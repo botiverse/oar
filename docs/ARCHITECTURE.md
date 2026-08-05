@@ -37,7 +37,7 @@ hand-written combinations. So process handling lives once under
 | Config options (the create-agent form's source) | `src/config/options.ts` | written |
 | Process lifecycle (day-1, implementor utility) | `src/backend/process/lifecycle.ts` | written (types only) |
 | Cross-cutting middleware (retry/timeout/tracing) | `src/backend/middleware/` | **empty** |
-| Backend trait (what a driver implements) | `src/backend/` | **not started** |
+| Backend trait (what a driver implements) | `src/backend/trait.ts` | written — incl. Readiness and ShutdownProtocol |
 | sea-trial — the conformance suite | `sea-trial/runner.ts` | written |
 | sea-trial cases | `sea-trial/cases/` | **empty** |
 | drydock — the no-daemon runner | `drydock/` | written (script/transcript/RuntimeUnderTest types) |
