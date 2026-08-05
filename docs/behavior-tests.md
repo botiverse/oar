@@ -96,10 +96,7 @@ controllable clock. The runner already uses the fake clock; once its waiting sur
 filesystem and transcripts rather than only in-process events, the driver layer becomes testable
 deterministically for the first time.
 
-That gap matters because **every case in priority A is a race**, and races are what deterministic
-simulation can enumerate systematically while a hundred live runs may never hit them. Recorded
-transcripts are a deterministic stand-in for the child process, so seeded scheduling layered over
-replay is what would make A genuinely testable.
-
-This is a concrete reason to get the driver boundary (chapter 1) right early: it decides whether
-that is ever possible.
+Recorded transcripts are a deterministic stand-in for the child process, so seeded scheduling
+layered over replay is what would let priority A be enumerated systematically rather than waited
+for. That makes the driver boundary (chapter 1) a decision about whether this is ever possible,
+not a testing afterthought.
