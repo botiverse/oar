@@ -76,6 +76,11 @@ fix — a non-passable row is still a row: searchable, and tickable by anyone wh
 note beside it. Removing the row dissolves prefix-collision without renaming anything, because
 "did the group pass" cannot be asked of a value.
 
+**Test for which one you need:** *if nobody updates this list, how long until it is false?* If you
+can name a period, it must be derived. Only "it will never become false" earns a list. The
+capability record here is the first kind — every new runtime can falsify it — so it is derived
+from the drivers, not hand-kept.
+
 **Derive guards from the structure; do not maintain a list.** A hand-kept list of retired keys is
 an assertion someone must remember to update — the same unenforced-label defect in another
 costume. Deriving the guard from the `group` column instead (no group value may also be a row id;
