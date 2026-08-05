@@ -1,8 +1,14 @@
-# (project name TBD)
+# oar
 
-A general programming interface layer for agent runtimes.
+**An agent client access layer.**
 
-Write against one interface, run on any runtime — and prove they actually behave the same.
+Write against one interface, drive any agent runtime — and prove they actually behave the same.
+
+An *agent client* is the host side: the thing that starts an agent runtime, drives it, and
+consumes its events. `oar` is the access layer for that side — one interface over many
+runtimes, the way a data access layer sits over many storage backends.
+
+The name is the oar you pull: the thing in your hands that moves the boat, whichever boat it is.
 
 > Status: **private, pre-alpha, nothing works yet.** This document defines scope and the bar
 > for going public. It is written to an external-consumer standard from the first commit —
@@ -34,7 +40,7 @@ conformance suite is what decides whether a runtime actually implements it.
 
 ## The three parts
 
-Three parts. The project name is **not yet chosen** — see Open decisions.
+Three parts.
 
 | Part | What it is |
 | --- | --- |
@@ -92,11 +98,9 @@ This pays out either way:
 - **Maintenance ownership.** Vendor CLIs change often. Absorbed privately, that churn is
   invisible; published, each absorption is a breaking change plus issue load. Needs a named
   long-term owner before release, not after.
-- **The project name.** Not chosen. `drydock` is kept for the runner/harness, where the
-  maintenance-yard connotation is correct; the interface layer needs a name that does not read
-  as testing or operations.
-- **What RRP stands for.** Currently just an acronym. It should not expand to anything
-  product-specific.
+- **Whether `RRP` survives as a separate name.** Four names (`oar`, `RRP`, `drydock`,
+  `sea-trial`) is a lot for one project; the contract could simply be *the oar contract*.
+  Undecided.
 
 ## Current state
 
