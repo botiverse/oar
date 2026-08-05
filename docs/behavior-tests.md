@@ -97,6 +97,19 @@ can name a period, it must be derived. Only "it will never become false" earns a
 capability record here is the first kind — every new runtime can falsify it — so it is derived
 from the drivers, not hand-kept.
 
+**A derived guard resting on a hand-filled column has a hole per blank cell.** Deriving the guard
+is only half of it: if the column it derives from can be left empty, every blank is a **silent
+exemption** — the check never runs and nothing goes red. That is how one variant family kept a
+defect while its sibling was being fixed. So the column the derivation depends on must itself be
+mandatory: **state a value or state `none`**, enforced. Otherwise "forgot to maintain a list" has
+merely become "forgot to fill a cell", which is less visible, not more.
+
+**Split the seat rather than label the conflict.** Where a reviewer would be checking whether
+their *own* findings were correctly implemented, assign that part elsewhere instead of recording
+the conflict afterwards. A label is a fallback; splitting removes the situation. The same holds
+for verifying fixes to findings one raised oneself — the person most inclined to accept the fix is
+whoever asked for it.
+
 **Derive guards from the structure; do not maintain a list.** A hand-kept list of retired keys is
 an assertion someone must remember to update — the same unenforced-label defect in another
 costume. Deriving the guard from the `group` column instead (no group value may also be a row id;
