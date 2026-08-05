@@ -1,6 +1,8 @@
 # oar
 
-**Programmable access to agent runtimes** — Codex, Claude Code, Kimi Code, Gemini CLI, Cursor,
+**An agent client access layer.**
+
+Programmable access to agent runtimes — Codex, Claude Code, Kimi Code, Gemini CLI, Cursor,
 Copilot, opencode, ACP-speaking agents, and more.
 
 One interface, any runtime, plus a conformance suite that proves they actually behave the same.
