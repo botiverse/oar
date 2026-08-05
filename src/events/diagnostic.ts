@@ -32,10 +32,10 @@ const MAX_DETAIL_BYTES = 512;
  * Kept first because it is the one a reviewer is least likely to think of.
  */
 const REDACTIONS: readonly { readonly pattern: RegExp; readonly with: string }[] = [
-  { pattern: /\b([A-Z][A-Z0-9_]{2,})=\S+/g, with: "$1=<redacted>" },
-  { pattern: /\b(sk-|pk-|ghp_|xox[abps]-)[A-Za-z0-9._-]+/g, with: "<redacted-token>" },
-  { pattern: /\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g, with: "<redacted-email>" },
-  { pattern: /\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, with: "<redacted-url>" },
+  { pattern: /\b(?<key>[A-Z][A-Z0-9_]{2,})=\S+/gu, with: "$<key>=<redacted>" },
+  { pattern: /\b(?:sk-|pk-|ghp_|xox[abps]-)[A-Za-z0-9._-]+/gu, with: "<redacted-token>" },
+  { pattern: /\b[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}\b/gu, with: "<redacted-email>" },
+  { pattern: /\b[a-z][a-z0-9+.-]*:\/\/\S+/giu, with: "<redacted-url>" },
 ];
 
 export class Diagnostic {

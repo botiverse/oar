@@ -1,9 +1,52 @@
 {
-  "plugins": ["typescript"],
-  "categories": {},
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "promise",
+    "import"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "pedantic": "error",
+    "perf": "error",
+    "style": "error"
+  },
   "rules": {
-    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "typescript/consistent-type-assertions": [
+      "error",
+      {
+        "assertionStyle": "never"
+      }
+    ],
     "typescript/no-non-null-assertion": "error",
-    "typescript/no-explicit-any": "error"
+    "typescript/no-explicit-any": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/restrict-plus-operands": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/prefer-readonly-parameter-types": "off",
+    "eslint/sort-keys": "off",
+    "unicorn/switch-case-braces": "off",
+    "import/no-named-export": "off",
+    "eslint/no-ternary": "off",
+    "eslint/no-magic-numbers": "off",
+    "eslint/func-style": "off",
+    "eslint/no-undefined": "off",
+    "typescript/method-signature-style": "off",
+    "import/group-exports": "off",
+    "typescript/parameter-properties": "off",
+    "import/exports-last": "off",
+    "unicorn/no-null": "off",
+    "eslint/capitalized-comments": "off"
   }
 }

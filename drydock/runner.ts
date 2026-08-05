@@ -6,8 +6,8 @@
  * consumer WITHOUT our daemon can drive a runtime; importing that world would
  * leave the claim looking tested while it no longer is.
  */
-import type { RuntimeEvent } from "../src/events/event.js";
 import type { IdleSession } from "../src/session/handle.js";
+import type { RuntimeEvent } from "../src/events/event.js";
 
 /**
  * A script is a plain list of steps, so a run is reproducible by reading it.

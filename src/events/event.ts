@@ -1,3 +1,5 @@
+import type { Diagnostic } from "./diagnostic.js";
+
 /**
  * Outbound events, as a discriminated union with exhaustive handling.
  *
@@ -19,7 +21,7 @@ export type RuntimeEvent =
    * variant carrying raw stderr: a consumer cannot be handed an unscrubbed
    * credential-bearing channel by accident, because no such variant exists.
    */
-  | { readonly kind: "runtime_error"; readonly detail: import("./diagnostic.js").Diagnostic };
+  | { readonly kind: "runtime_error"; readonly detail: Diagnostic };
 
 /**
  * Why a turn ended. `crashed` is distinct from `completed` because the

@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint --deny-warnings .",
+    "lint": "oxlint --type-aware --deny-warnings .",
     "check": "npm run typecheck && npm run lint"
   },
   "devDependencies": {
     "oxlint": "^1.77.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^5.6.3"
   }
 }

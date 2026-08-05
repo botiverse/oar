@@ -1,4 +1,5 @@
 import type { Capabilities } from "../capability.js";
+import type { Diagnostic } from "../events/diagnostic.js";
 import type { RuntimeEvent } from "../events/event.js";
 
 /**
@@ -50,7 +51,7 @@ export interface SteerableSession extends BusySession {
 export interface ClosedSession {
   readonly state: "closed";
   /** Absent on a clean stop; present when the runtime died on its own. */
-  readonly diagnostic?: import("../events/diagnostic.js").Diagnostic;
+  readonly diagnostic?: Diagnostic;
 }
 
 export type Session = IdleSession | BusySession | ClosedSession;
