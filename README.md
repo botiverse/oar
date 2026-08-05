@@ -53,6 +53,18 @@ project can tell itself indefinitely. "A consumer who does not have our daemon c
 runtime" is either true or it fails loudly. Every design question should be settled by asking
 which answer keeps that claim honest.
 
+## Who it is for
+
+Any project that drives more than one agent runtime and is tired of re-deriving the contract.
+
+The first consumer is [Raft](https://github.com/botiverse), which runs ~12 agent runtimes in
+production and supplies the breadth of real-world behaviour this contract has to survive. That
+experience is a seed corpus, not the specification: where one product's needs and a general
+contract diverge, the general contract wins.
+
+*(When this actually drives those runtimes, this should read "powers Raft". It does not yet, so
+it does not say so.)*
+
 ## Going public
 
 Public release is gated on one condition, stated so it has teeth rather than decaying into an
