@@ -55,11 +55,11 @@ and must be labelled as one. Silent retry hides exactly the instability worth kn
 enumerate where runtimes diverge, but it is corpus rather than specification: it fuses capability
 with mechanism, describes our adapters rather than observable behaviour, hands divergence upward
 instead of absorbing it, and has no axis for any path that has actually caused an incident. See
-[rrp-chapters.md](rrp-chapters.md) for the critique and the capability / guarantee / mechanism
-split that replaces it.
+[rrp-chapters.md](rrp-chapters.md) for the critique and the flat capability record that replaces
+it.
 
-For this suite the consequence is direct: **cases are written against capabilities and
-guarantees, never against mechanisms.** A case that has to know whether input travels over stdin
+For this suite the consequence is direct: **cases are written against capabilities, never against
+mechanisms** — and guarantees live here, as assertions, rather than in a category system. A case that has to know whether input travels over stdin
 or an SDK call is testing an adapter, not a contract.
 
 Each case declares the capabilities it requires; each runtime declares what it has. A skip is
@@ -111,7 +111,7 @@ for.
 
 ### Where determinism applies, in priority order
 
-1. **Enumerate the capability space.** Once capabilities and guarantees are finite and declared,
+1. **Enumerate the capability space.** Once capabilities are finite and declared,
    the behaviour space is enumerable: synthesise a fake runtime for a combination and run the
    state machine against it. No real process, fully deterministic, and it reaches combinations
    **no current vendor exhibits** — which is exactly where the next vendor change lands. This

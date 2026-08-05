@@ -102,21 +102,31 @@ tool call, and what state must be converged to after abnormal exit.
 which is why discovery (ch.7) precedes negotiation (ch.5). A constant per driver cannot express
 "steer, from version X onward".
 
-### The split
+### What replaces it — deliberately small
 
-| | |
-| --- | --- |
-| **Capability** | What a consumer may rely on. Observable and decidable, free of mechanism. |
-| **Guarantee** | What must hold when it happens: ordering, liveness, and the state converged to after failure. Every incident we have paid for lands here, and it currently has no home. |
-| **Mechanism** | Private to the adapter. Never in the contract. |
+A flat capability record: booleans and limits, one per thing a consumer may rely on. Nothing
+else. Storage-abstraction layers run ~50 backends on exactly this and it holds; a richer ontology
+is not earned yet.
+
+**Guarantees are not a second taxonomy — they are the assertions.** Ordering, liveness, and the
+state converged to after failure belong in `sea-trial` as executable cases, not in a category
+system. A guarantee that isn't a test is prose.
+
+**Mechanism stays out of the contract entirely.** The usual way to hold that line is two layers:
+an ergonomic public API for consumers, and a raw trait that backends implement. Consumers never
+see the raw one, so mechanism has nowhere to leak to.
+
+**Cross-cutting concerns compose rather than repeat.** Retry, timeout, logging and tracing belong
+in stackable middleware over the backend trait, not re-implemented per adapter — otherwise every
+new runtime re-pays for them and each pays slightly differently, which is how divergence gets
+manufactured internally.
 
 **Admissibility:** an axis exists only where a consumer must branch on it. If it is unobservable,
-or observable but cannot change what the consumer does, absorbing it is this layer's job rather
-than the consumer's burden.
+or observable but cannot change what the consumer does, absorbing it is this layer's job.
 
-Working method for chapter 1: walk the existing descriptor axis by axis, keep only those that
-survive the razor, and file each survivor as capability, guarantee, or mechanism. Whatever fails
-is this layer's debt, not something to pass upward.
+Working method for chapter 1: walk the existing descriptor axis by axis, keep only what survives
+the razor, and express each survivor as a capability flag or an assertion. Whatever fails is this
+layer's debt, not something to pass upward.
 
 ## Suggested order
 
