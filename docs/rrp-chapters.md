@@ -121,6 +121,29 @@ in stackable middleware over the backend trait, not re-implemented per adapter �
 new runtime re-pays for them and each pays slightly differently, which is how divergence gets
 manufactured internally.
 
+**Push errors to the compiler.** The aim is that the natural way to write a call is the correct
+one, and that mistakes surface as type errors rather than incidents:
+
+- **No casts on the contract boundary.** A cast is an unchecked assertion that silences exactly
+  the checker that would have found the bug. The production crash that motivated this project was
+  one cast erasing an optional field; without it, every read site would have failed to compile.
+  Contract values are built by validating constructors returning a result, never asserted into
+  existence.
+- **State lives in the type, not in a runtime check.** A handle that is mid-turn should not offer
+  the operations that are illegal mid-turn. Then "prompted while busy" stops being a case to test
+  and becomes a program that does not compile.
+- **Events are a discriminated union with exhaustive handling**, so a new event kind breaks every
+  consumer that ignores it — at build time. Silently dropping an unrecognised kind is a failure
+  mode we have already paid for.
+- **Capability flags narrow types**, rather than only documenting what to skip. Where capability
+  is known statically, gate the API; where it is resolved at runtime by version, a check on the
+  flag narrows the handle.
+
+The line not to cross: ordinary discriminated unions, exhaustive switches and state-typed handles
+are the tool. Type-level computation that produces unreadable errors or that only its author can
+extend costs more than the bugs it prevents. State-typed handles in particular make generic
+wrappers harder to write — worth it at the boundary, not everywhere.
+
 **Admissibility:** an axis exists only where a consumer must branch on it. If it is unobservable,
 or observable but cannot change what the consumer does, absorbing it is this layer's job.
 
