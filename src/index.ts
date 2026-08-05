@@ -12,3 +12,5 @@ export type {
   StopMode,
 } from "./session.js";
 export { steerable } from "./session.js";
+export type { Outcome, SuiteResult, TrialCase } from "./sea-trial.js";
+export { runCase, summarise } from "./sea-trial.js";
