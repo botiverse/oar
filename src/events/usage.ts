@@ -61,24 +61,18 @@ export interface UsageReport {
  * is inventing a zero for something nobody measured.
  */
 export function addUsage(left: TokenUsage, right: TokenUsage): TokenUsage {
-  const out: {
-    inputTokens?: number;
-    outputTokens?: number;
-    cacheReadTokens?: number;
-    cacheWriteTokens?: number;
-    reasoningTokens?: number;
-  } = {};
   const input = sum(left.inputTokens, right.inputTokens);
-  if (input !== undefined) { out.inputTokens = input; }
   const output = sum(left.outputTokens, right.outputTokens);
-  if (output !== undefined) { out.outputTokens = output; }
   const cacheRead = sum(left.cacheReadTokens, right.cacheReadTokens);
-  if (cacheRead !== undefined) { out.cacheReadTokens = cacheRead; }
   const cacheWrite = sum(left.cacheWriteTokens, right.cacheWriteTokens);
-  if (cacheWrite !== undefined) { out.cacheWriteTokens = cacheWrite; }
   const reasoning = sum(left.reasoningTokens, right.reasoningTokens);
-  if (reasoning !== undefined) { out.reasoningTokens = reasoning; }
-  return out;
+  return {
+    ...(input === undefined ? {} : { inputTokens: input }),
+    ...(output === undefined ? {} : { outputTokens: output }),
+    ...(cacheRead === undefined ? {} : { cacheReadTokens: cacheRead }),
+    ...(cacheWrite === undefined ? {} : { cacheWriteTokens: cacheWrite }),
+    ...(reasoning === undefined ? {} : { reasoningTokens: reasoning }),
+  };
 }
 
 /**
