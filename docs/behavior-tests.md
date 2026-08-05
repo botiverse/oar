@@ -51,7 +51,21 @@ and must be labelled as one. Silent retry hides exactly the instability worth kn
 
 ## Capability vector
 
-`steer` · `interrupt` · `resume` · `tool_events` · `usage` · `permission-hooks` · `model_select`
+**This already exists** in the extraction source, as a per-runtime descriptor every driver
+declares. Its fields are exactly the axes along which runtimes differ:
+
+```
+transport / lifecycle / stdout.channel
+input.initial : start | request | unsupported
+input.idle    : stdin | request | sdk_prompt | unsupported
+input.busy    : stdin_steer | request | sdk_steer | unsupported
+readiness     : spawned | stdout_signal | healthcheck | sdk_ready
+turnBoundary  : parsed_event | sdk_event | process_exit
+startPolicy   : immediate | defer_until_concrete_message
+inFlightWake  : queue | steer | spawn_new | coalesce_into_pending
+busyDelivery  : direct | gated | notification | none
+postTurn      : keep_alive | close_stdin | terminate_process
+```
 
 Each case declares the capabilities it requires; each runtime declares what it has. A skip is
 legal **only** when it maps to a declared missing capability.
@@ -98,5 +112,30 @@ deterministically for the first time.
 
 Recorded transcripts are a deterministic stand-in for the child process, so seeded scheduling
 layered over replay is what would let priority A be enumerated systematically rather than waited
-for. That makes the driver boundary (chapter 1) a decision about whether this is ever possible,
-not a testing afterthought.
+for.
+
+### Where determinism applies, in priority order
+
+1. **Enumerate the descriptor space.** Every axis above is a finite enum across roughly eleven
+   axes, so the behaviour space is enumerable: synthesise a fake runtime for a descriptor
+   combination and run the state machine against it. No real process, fully deterministic, and it
+   reaches combinations **no current vendor exhibits** — which is exactly where the next vendor
+   change lands.
+2. **Busy / steer / turn races.** `turn_end` arriving against an in-flight steer; `stop` racing a
+   tool result. Pure state machine — priority A case 3.
+3. **Death mid-turn**, with death as an injectable event rather than a real kill: assert
+   convergence and no half-open turn — priority A case 4.
+4. **Config composition and validation.** Pure functions; needs no process at all, fake or real.
+5. **Event normalisation** — a pure function over recorded transcripts.
+6. **Timeout and backoff policy** — virtual time, which already exists.
+
+The seam this needs is already present: a session is an interface carrying a descriptor plus
+start/send/stop and an event stream, so a simulated implementation is straightforward. Preserving
+that seam is what keeps determinism available; losing it in the extraction is what would forfeit
+it.
+
+### The limit worth stating
+
+Simulation proves the state machine survives **the interleavings we simulate**. The grammar of
+what can happen must therefore be derived from recorded real behaviour, or the exploration is
+thorough inside a universe that does not exist. Coverage demonstrates sensitivity, not relevance.
