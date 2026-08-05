@@ -1,46 +1,24 @@
 # oar
 
-**An agent client access layer.**
+**Programmable access to agent runtimes** — Codex, Claude Code, Kimi Code, Gemini CLI, Cursor,
+Copilot, opencode, ACP-speaking agents, and more.
 
-Write against one interface, drive any agent runtime — and prove they actually behave the same.
+One interface, any runtime, plus a conformance suite that proves they actually behave the same.
 
-An *agent client* is the host side: the thing that starts an agent runtime, drives it, and
-consumes its events. `oar` is the access layer for that side — one interface over many
-runtimes, the way a data access layer sits over many storage backends.
+An *agent client* is the host side: it starts a runtime, drives it, and consumes its events.
+`oar` is the access layer for that side, the way a data access layer sits over storage backends.
 
-The name is the oar you pull: the thing in your hands that moves the boat, whichever boat it is.
+> Status: **private, pre-alpha, nothing works yet.** This document defines scope and the bar for
+> going public. It is written to an external-consumer standard from the first commit — that
+> standard is the point, not a formality.
 
-> Status: **private, pre-alpha, nothing works yet.** This document defines scope and the bar
-> for going public. It is written to an external-consumer standard from the first commit —
-> that standard is the point, not a formality.
-
-## The problem
-
-Agent CLI runtimes — Claude Code, Codex, Gemini CLI, Cursor, Copilot, opencode, Kimi, Grok,
-and others — all do roughly the same job and none of them agree on the details. They differ on
-process lifecycle, streaming event shapes, session resumption, model selection, credential
-handling, and what a "turn" even is.
-
-Anyone building on more than one of them writes an adapter layer. The adapters are tedious but
-tractable. **The hard part is the contract**: the set of behaviours you promise your callers
-regardless of which runtime is underneath. That contract is usually never written down. It
-lives as tribal knowledge spread across the adapters, and every project re-derives it badly.
-
-Two failure modes follow, and both are common enough to be worth naming:
-
-1. **The contract layer is where the bugs are.** Not the vendor adapters — the shared code that
-   claims to normalise them. A type that asserts a field the wire does not actually guarantee
-   will crash at launch, and it will crash identically for every runtime.
-2. **The enforcement point is unreachable.** A strict validator exists, produces a good error,
-   and no live code path calls it — because internal callers can always reach around it to a
-   tolerant helper. An abstraction whose enforcement point can be bypassed is not an abstraction.
-
-This project exists to make both of those impossible to hide: the interface is written down, and the
-conformance suite is what decides whether a runtime actually implements it.
+They all do roughly the same job and none of them agree on the details: process lifecycle, event
+shapes, session resumption, model selection, credentials, even what a "turn" is. Writing the
+adapters is tedious but tractable. The hard part is the contract, which is usually never written
+down — so the bugs land in the layer that claims to normalise them, and the strict validator ends
+up somewhere no live path reaches.
 
 ## The three parts
-
-Three parts.
 
 | Part | What it is |
 | --- | --- |
@@ -52,10 +30,8 @@ Three parts.
 lifted clear of the water to be inspected and worked on. That is the right word for the runner
 and the wrong word for an interface layer, which is why the umbrella needs its own name.
 
-This is the shape a storage-abstraction layer takes: one interface, many backends, and a
-behaviour suite that every backend must satisfy. In those layers the durable asset turns out to
-be the behaviour suite, not the number of backends — backends are volume, the suite is what makes
-the interface mean anything.
+The durable asset is the behaviour suite, not the backend count: backends are volume, the suite
+is what makes the interface mean anything.
 
 ### The load-bearing constraint
 
