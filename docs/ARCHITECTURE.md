@@ -28,6 +28,7 @@ hand-written combinations. So process handling lives once under
 | 1 — Session handles (state-typed) | `src/session/handle.ts` | written |
 | 2 — Calling interface (start/prompt/steer/interrupt/stop) | `src/session/handle.ts` | partly — operation set exists, `acceptedAs` not modelled |
 | 3a — Outbound events, observation | `src/events/event.ts` | written |
+| — Per-subject progress vs liveness | `src/events/progress.ts` | written — encodes the #757 incident |
 | 3b — Interception & permission | `src/events/intercept.ts` | written (types only) |
 | — Bounded scrubbed diagnostics | `src/events/diagnostic.ts` | written |
 | 4 — Session & transcript | `src/transcript/` | **empty** |

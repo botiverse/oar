@@ -42,3 +42,5 @@ export type {
 export { steerable } from "./session/handle.js";
 export type { TokenUsage, UsageReport, UsageScope } from "./events/usage.js";
 export { addUsage } from "./events/usage.js";
+export type { Liveness, NoProgressDeadline, Progress, Staleness, Subject } from "./events/progress.js";
+export { resets } from "./events/progress.js";
