@@ -45,8 +45,43 @@ export interface LaunchSpec {
  * to infer one.
  */
 export type ProcessOutcome =
-  | { readonly kind: "exited"; readonly code: number; readonly diagnostic?: Diagnostic }
-  | { readonly kind: "stalled"; readonly diagnostic: Diagnostic };
+  | {
+      readonly kind: "exited";
+      readonly code: number;
+      readonly tree: TreeCleanup;
+      readonly diagnostic?: Diagnostic;
+    }
+  | { readonly kind: "stalled"; readonly tree: TreeCleanup; readonly diagnostic: Diagnostic };
+
+/**
+ * STOPPING IS A PROPERTY OF A PROCESS TREE, NOT OF ONE PROCESS.
+ *
+ * From a live upstream defect: after the parent command exits or times out, its
+ * DESCENDANTS keep holding the stdout/stderr handles, so the runtime never sees
+ * EOF and the turn hangs forever. Build, test and compiler commands are the
+ * common triggers — exactly the shape of the reported incident.
+ *
+ * ⇒ So an outcome that reports only the parent's exit code is not merely
+ * incomplete, it is misleading: recovery can restart the model loop while
+ * leaving orphans that keep consuming resources and can contaminate the next
+ * session.
+ *
+ * `unknown` is mandatory and must NOT be read as success. Where the underlying
+ * runtime cannot prove the tree is clean, recovery degrades to
+ * *unproven* rather than claiming a cleanup it did not observe — the same rule
+ * as everywhere else here: an unmeasured thing must not be reported as a
+ * measured absence.
+ */
+export type TreeCleanup =
+  /** Every descendant of the launch is observed gone. */
+  | { readonly kind: "cleaned" }
+  /** Descendants observed still alive — recovery did NOT fully succeed. */
+  | { readonly kind: "orphans_observed"; readonly count: number }
+  /**
+   * The platform or runtime gives no way to enumerate descendants here.
+   * ⚠️ Not a success. A caller must treat this as recovery of unknown outcome.
+   */
+  | { readonly kind: "unknown" };
 
 /**
  * What a platform backend implements. Adding Windows means adding one of
