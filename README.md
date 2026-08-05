@@ -24,7 +24,7 @@ up somewhere no live path reaches.
 
 | Part | What it is |
 | --- | --- |
-| **RRP** | The host↔runtime boundary, frozen as an explicit written contract, one chapter at a time, each chapter with its own assertion list. |
+| **RRP** | The host↔runtime boundary, frozen as an explicit written contract, one chapter at a time, each with its own assertion list. Chapter map: [docs/rrp-chapters.md](docs/rrp-chapters.md). |
 | **drydock** | Starts and drives a runtime **with no host daemon present**. Script-driven, with transcript capture and replay. The testing/operations surface. |
 | **sea-trial** | The conformance suite. Every runtime must pass the same suite. |
 
@@ -79,9 +79,9 @@ This pays out either way:
 - **Maintenance ownership.** Vendor CLIs change often. Absorbed privately, that churn is
   invisible; published, each absorption is a breaking change plus issue load. Needs a named
   long-term owner before release, not after.
-- **Whether `RRP` survives as a separate name.** Four names (`oar`, `RRP`, `drydock`,
-  `sea-trial`) is a lot for one project; the contract could simply be *the oar contract*.
-  Undecided.
+- **Whether `RRP` survives as a separate name.** Leaning keep: the chapter map shows the full
+  boundary is genuinely larger than `oar` (ch.2's delivery half stays with the product), so the
+  two names denote different things.
 
 ## Current state
 
