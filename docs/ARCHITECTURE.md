@@ -40,7 +40,7 @@ hand-written combinations. So process handling lives once under
 | Backend trait (what a driver implements) | `src/backend/` | **not started** |
 | sea-trial — the conformance suite | `sea-trial/runner.ts` | written |
 | sea-trial cases | `sea-trial/cases/` | **empty** |
-| drydock — the no-daemon runner | — | **not started** |
+| drydock — the no-daemon runner | `drydock/` | written (script/transcript/RuntimeUnderTest types) |
 
 ## Why `capability` and `config options` are two records
 
