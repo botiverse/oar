@@ -1,6 +1,8 @@
 # Drydock
 
-Drive an agent CLI runtime **without a host daemon**, and prove every runtime behaves the same way.
+A general programming interface layer for agent runtimes.
+
+Write against one interface, run on any runtime — and prove they actually behave the same.
 
 > Status: **private, pre-alpha, nothing works yet.** This document defines scope and the bar
 > for going public. It is written to an external-consumer standard from the first commit —
@@ -27,7 +29,8 @@ Two failure modes follow, and both are common enough to be worth naming:
    and no live code path calls it — because internal callers can always reach around it to a
    tolerant helper. An abstraction whose enforcement point can be bypassed is not an abstraction.
 
-Drydock exists to make both of those impossible to hide.
+Drydock exists to make both of those impossible to hide: the interface is written down, and the
+conformance suite is what decides whether a runtime actually implements it.
 
 ## The three parts
 
@@ -37,8 +40,10 @@ Drydock exists to make both of those impossible to hide.
 | **Drydock** | An entry point that starts and drives a runtime **with no host daemon present**. Script-driven, with transcript capture and replay. |
 | **sea-trial** | The conformance suite. Every runtime must pass the same suite. |
 
-If you know OpenDAL: **RRP** is the trait, the runtimes are the backends, and **sea-trial** is
-`behavior tests` — which is the part that actually carries the value, not the backend count.
+This is the shape a storage-abstraction layer takes: one interface, many backends, and a
+behaviour suite that every backend must satisfy. In those layers the durable asset turns out to
+be the behaviour suite, not the number of backends — backends are volume, the suite is what makes
+the interface mean anything.
 
 ### The load-bearing constraint
 
