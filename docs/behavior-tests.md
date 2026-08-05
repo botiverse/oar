@@ -76,6 +76,22 @@ fix — a non-passable row is still a row: searchable, and tickable by anyone wh
 note beside it. Removing the row dissolves prefix-collision without renaming anything, because
 "did the group pass" cannot be asked of a value.
 
+**A reviewed delta chain does not add up to a reviewed whole.** Each delta asserts only that *this
+change is sound relative to the previous state*; nothing in the chain holds how far the artifact
+has drifted from its last full review. Interactions between changes fall in the gaps between
+deltas, where no single review looks.
+
+Worse, that distance never errors and never turns red — it grows while every individual step
+looks compliant. So it is carried rather than remembered:
+
+```
+full-structure-review: <version>
+structural-deltas-since: <count>
+```
+
+Both derive from version history, so this is a field and not another hand-kept list, and it makes
+"are we due for a full re-review" readable instead of dependent on someone noticing.
+
 **Test for which one you need:** *if nobody updates this list, how long until it is false?* If you
 can name a period, it must be derived. Only "it will never become false" earns a list. The
 capability record here is the first kind — every new runtime can falsify it — so it is derived
