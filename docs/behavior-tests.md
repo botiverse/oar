@@ -70,6 +70,17 @@ and **stopped throwing** — not a false alarm, but silently testing nothing at 
 looked healthy the entire time. Controls therefore need a self-check on their own shape (field
 count, arity) so that outgrowing them fails loudly rather than quietly.
 
+**A group is a value in a `group` field, never a row.** A row means a testable unit and a group
+is not one, so it gets no row, no verdict, and nothing tickable. "Non-passable row" is not the
+fix — a non-passable row is still a row: searchable, and tickable by anyone who does not read the
+note beside it. Removing the row dissolves prefix-collision without renaming anything, because
+"did the group pass" cannot be asked of a value.
+
+**Define a grading scale's symbols in the artifact that uses them.** Fixing a wrong grade fixes
+one instance; writing the definition down fixes the next one. A scale whose letters must be
+inferred from context will be inverted by someone eventually — it was, here, across four
+revisions, putting the only production-confirmed item in the lowest tier.
+
 **Labels are additive and never reassigned, and sub-labels do not count as new.** Splitting a key
 allocates fresh names; reusing an existing letter silently falsifies references already sent, and
 references cannot be recalled. A sub-label like `R-04a1` still contains `R-04a`, so any search or
