@@ -63,6 +63,19 @@ normalised to the declared shape. Never on what the model said.
 **Retries must be explicit.** An assertion that needs three attempts to pass is a flaky assertion
 and must be labelled as one. Silent retry hides exactly the instability worth knowing about.
 
+**A negative control is not proven once — it is proven again after every contract change.** A
+real instance tonight: a column was added to a table, so rows went from 10 fields to 11 while the
+deliberately-bad fixture row still had 10. The assertion indexed past the end, got `undefined`,
+and **stopped throwing** — not a false alarm, but silently testing nothing at all. The control
+looked healthy the entire time. Controls therefore need a self-check on their own shape (field
+count, arity) so that outgrowing them fails loudly rather than quietly.
+
+**Labels are additive and never reassigned, and sub-labels do not count as new.** Splitting a key
+allocates fresh names; reusing an existing letter silently falsifies references already sent, and
+references cannot be recalled. A sub-label like `R-04a1` still contains `R-04a`, so any search or
+prefix aggregation for a non-passable group label also matches its passable children — which
+re-joins at the string layer exactly what the split separated.
+
 ## Capability vector
 
 **Not inherited as-is.** The extraction source carries a per-runtime descriptor whose fields do
