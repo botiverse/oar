@@ -90,9 +90,12 @@ This pays out either way:
 - **Not green** — what exists is N special cases sharing a directory rather than one contract.
   That finding is the return on this work regardless of whether anything is ever published.
 
+## Licence
+
+[Apache-2.0](LICENSE).
+
 ## Open decisions (not settled — do not assume)
 
-- **Licence.** Not chosen. Needs a real answer before this goes public.
 - **Vendor terms.** Whether distributing adapters that wrap commercial vendor CLIs carries
   obligations has **not been checked**. Blocks public release, not work here.
 - **Maintenance ownership.** Vendor CLIs change often. Absorbed privately, that churn is
