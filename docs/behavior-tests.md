@@ -81,6 +81,21 @@ stable tie-break, with timing routed through it across the daemon.
 Deterministic **simulation** does not: no seeded scheduling or interleaving exploration, no
 simulated I/O, no fault injection, and runtimes are real child processes.
 
+**Baseline, measured — the runtime layer has none of it.** A fake clock appears in five test
+files, covering the host's own state machines: process manager (two), connection, reminder cache,
+and the runner's own tests. In the driver layer — the adapters this project exists to extract —
+it appears in **zero** of 34 test files, which wait on real time instead (one driver's tests alone
+contain 27 real waits).
+
+That is precisely why priority A keeps biting: those four cases are races, and a race under real
+time only fires occasionally. A hundred green runs do not mean it is absent, only that it was not
+hit — so today's green on those four carries almost no information.
+
+Extracting this layer is therefore also the opportunity to move it from real time onto a
+controllable clock. The runner already uses the fake clock; once its waiting surface covers the
+filesystem and transcripts rather than only in-process events, the driver layer becomes testable
+deterministically for the first time.
+
 That gap matters because **every case in priority A is a race**, and races are what deterministic
 simulation can enumerate systematically while a hundred live runs may never hit them. Recorded
 transcripts are a deterministic stand-in for the child process, so seeded scheduling layered over
