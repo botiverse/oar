@@ -51,21 +51,16 @@ and must be labelled as one. Silent retry hides exactly the instability worth kn
 
 ## Capability vector
 
-**This already exists** in the extraction source, as a per-runtime descriptor every driver
-declares. Its fields are exactly the axes along which runtimes differ:
+**Not inherited as-is.** The extraction source carries a per-runtime descriptor whose fields do
+enumerate where runtimes diverge, but it is corpus rather than specification: it fuses capability
+with mechanism, describes our adapters rather than observable behaviour, hands divergence upward
+instead of absorbing it, and has no axis for any path that has actually caused an incident. See
+[rrp-chapters.md](rrp-chapters.md) for the critique and the capability / guarantee / mechanism
+split that replaces it.
 
-```
-transport / lifecycle / stdout.channel
-input.initial : start | request | unsupported
-input.idle    : stdin | request | sdk_prompt | unsupported
-input.busy    : stdin_steer | request | sdk_steer | unsupported
-readiness     : spawned | stdout_signal | healthcheck | sdk_ready
-turnBoundary  : parsed_event | sdk_event | process_exit
-startPolicy   : immediate | defer_until_concrete_message
-inFlightWake  : queue | steer | spawn_new | coalesce_into_pending
-busyDelivery  : direct | gated | notification | none
-postTurn      : keep_alive | close_stdin | terminate_process
-```
+For this suite the consequence is direct: **cases are written against capabilities and
+guarantees, never against mechanisms.** A case that has to know whether input travels over stdin
+or an SDK call is testing an adapter, not a contract.
 
 Each case declares the capabilities it requires; each runtime declares what it has. A skip is
 legal **only** when it maps to a declared missing capability.
@@ -116,11 +111,11 @@ for.
 
 ### Where determinism applies, in priority order
 
-1. **Enumerate the descriptor space.** Every axis above is a finite enum across roughly eleven
-   axes, so the behaviour space is enumerable: synthesise a fake runtime for a descriptor
-   combination and run the state machine against it. No real process, fully deterministic, and it
-   reaches combinations **no current vendor exhibits** — which is exactly where the next vendor
-   change lands.
+1. **Enumerate the capability space.** Once capabilities and guarantees are finite and declared,
+   the behaviour space is enumerable: synthesise a fake runtime for a combination and run the
+   state machine against it. No real process, fully deterministic, and it reaches combinations
+   **no current vendor exhibits** — which is exactly where the next vendor change lands. This
+   works on the redesigned axes; it is not a reason to keep the inherited ones.
 2. **Busy / steer / turn races.** `turn_end` arriving against an in-flight steer; `stop` racing a
    tool result. Pure state machine — priority A case 3.
 3. **Death mid-turn**, with death as an injectable event rather than a real kill: assert
