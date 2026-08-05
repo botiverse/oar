@@ -1,5 +1,5 @@
-import type { Capabilities } from "./capability.js";
-import type { IdleSession } from "./session.js";
+import type { Capabilities } from "../src/capability.js";
+import type { IdleSession } from "../src/session/handle.js";
 
 /**
  * `sea-trial` — the conformance suite every runtime passes.

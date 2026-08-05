@@ -1,5 +1,5 @@
-import type { Capabilities } from "./capability.js";
-import type { RuntimeEvent } from "./event.js";
+import type { Capabilities } from "../capability.js";
+import type { RuntimeEvent } from "../events/event.js";
 
 /**
  * State lives in the type, not in a runtime check.
@@ -50,7 +50,7 @@ export interface SteerableSession extends BusySession {
 export interface ClosedSession {
   readonly state: "closed";
   /** Absent on a clean stop; present when the runtime died on its own. */
-  readonly diagnostic?: import("./diagnostic.js").Diagnostic;
+  readonly diagnostic?: import("../events/diagnostic.js").Diagnostic;
 }
 
 export type Session = IdleSession | BusySession | ClosedSession;
