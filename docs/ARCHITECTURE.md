@@ -81,3 +81,16 @@ missing outcome case    -> TS2322 fail-variant not assignable to never
 `as` is banned outright (`consistent-type-assertions: never`). The production
 crash that motivated this project was one cast erasing an optional field;
 without it every read site would have failed to compile.
+
+⚠️ **Two lint facts that are easy to get wrong, recorded because I got both wrong:**
+
+1. `consistent-type-assertions` defaults to `assertionStyle: "as"` — i.e. casts
+   **allowed**. Enabling the rule by name alone lints clean while the ban is
+   absent. It only bites with an explicit `"never"`.
+2. `switch-exhaustiveness-check` **is** available, under `--type-aware` with
+   `oxlint-tsgolint` installed. An earlier commit message here claims it has no
+   oxlint equivalent; **that claim is wrong** and this line supersedes it.
+
+Both share a shape: **a lint config that is green tells you nothing about
+whether its teeth are present.** Every rule this repo relies on has a control
+that proves it can fire.

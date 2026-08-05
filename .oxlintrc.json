@@ -47,6 +47,23 @@
     "typescript/parameter-properties": "off",
     "import/exports-last": "off",
     "unicorn/no-null": "off",
-    "eslint/capitalized-comments": "off"
+    "eslint/capitalized-comments": "off",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/strict-boolean-expressions": "error",
+    "typescript/no-confusing-void-expression": "error",
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/explicit-function-return-type": "error",
+    "typescript/no-unnecessary-type-parameters": "error",
+    "typescript/promise-function-async": "error",
+    "typescript/require-await": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-meaningless-void-operator": "error",
+    "typescript/prefer-reduce-type-parameter": "error",
+    "typescript/no-redundant-type-constituents": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/consistent-type-exports": "error",
+    "eslint/id-length": "off",
+    "eslint/no-inline-comments": "off"
   }
 }
