@@ -3,6 +3,20 @@
 Draft. Every runtime passes the same suite. This document defines what gets tested hard, what
 gets a smoke test, and the machinery that keeps the suite honest.
 
+## Reserved: an independent reader for these invariants
+
+The rules in this document are **candidates**, not established practice. They have been adopted
+and used, but never exercised by someone who did not help shape them — and adoption inside a
+discussion its author is arguing in is the weakest possible check, because counter-examples pass
+through the author first.
+
+Confirmation requires someone who wrote neither the invariant nor the artifact being measured. The
+pool for that shrinks with every round of discussion, and it **cannot be refilled afterwards** —
+so **a reader is reserved from now, before the first keys are frozen**, rather than sought once
+everyone has grown used to the rules.
+
+Until then these carry `C=0`, and nothing here should be cited as settled.
+
 ## Weight tests by how *quietly* a failure happens, not by how complex the code is
 
 Complexity is the wrong selector. The failures that cost real money are the **silent** ones: a
