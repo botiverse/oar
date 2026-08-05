@@ -59,6 +59,44 @@ consumer refuse?*, which is precisely the security-relevant one.
 host exercises control, and vendor behaviour diverges most (synchronous interception, after-the-fact
 notification only, or nothing at all). Widest divergence is where a uniform interface is worth most.
 
+### 6 — Trust boundary: authentication is a capability axis
+
+How a runtime authenticates differs in kind, not degree, so it is a declared capability rather
+than a config field:
+
+| mode | who holds the secret |
+| --- | --- |
+| **ambient** | the runtime's own login state on the host; **this layer holds nothing** |
+| **explicit-key** | the caller supplies one |
+| **delegated** | the host holds a session obtained on the user's behalf |
+| **gateway** | the host routes through its own endpoint; the runtime never sees a provider credential |
+
+Three properties, in order of how much they matter:
+
+**Holding no secret is first-class, not a degenerate case.** `ambient` lets a consumer drive a
+runtime without ever touching a credential, which keeps them out of the secret-custody business.
+Layers that build explicit-key first and retrofit ambient leave it a second-class path forever.
+
+**The resolved mode must be readable back.** The classic failure in credential chains is silent
+fallback: you believe you are using key A and you are using whatever the environment held. For
+agents that is worse than wrong — it bills someone else. The contract must answer *which mode did
+this session actually use*, as a closed-set mode name, never the secret. Configured-as is not
+authenticated-as.
+
+**Precedence is declared, and ambient fallback is opt-in.** Default is: use what was supplied,
+fail if it is absent. Otherwise something works locally on a developer's own login and fails in
+CI — or an agent process quietly spends a human's account.
+
+**Two properties learned in production, stated as contract rather than implementation choice:**
+credentials must never enter ordinary runtime config or a restart snapshot — a *reference*
+travels and is materialised at launch; and **a credential reference and a resolved credential are
+two types**, converted only by a function that can fail, never by an assertion. The crash that
+motivated this project was an assertion collapsing exactly that distinction.
+
+**Acceptance check:** the capability record must be sufficient to drive a create-agent form —
+which fields to show, which are required, which are mutually exclusive. If the form cannot be
+generated from it, the model is underspecified.
+
 ### 7 — Discovery & provisioning
 
 Presence detection, version read and minimum-version rules, model enumeration and resolution, and
