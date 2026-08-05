@@ -76,6 +76,18 @@ fix — a non-passable row is still a row: searchable, and tickable by anyone wh
 note beside it. Removing the row dissolves prefix-collision without renaming anything, because
 "did the group pass" cannot be asked of a value.
 
+**Derive guards from the structure; do not maintain a list.** A hand-kept list of retired keys is
+an assertion someone must remember to update — the same unenforced-label defect in another
+costume. Deriving the guard from the `group` column instead (no group value may also be a row id;
+no row id may contain a group value) means new groups extend the guard automatically, with nobody
+needing to remember anything.
+
+**One scale, one vocabulary.** Two different scales sharing the same symbols is the alias problem
+one layer up, in vocabulary rather than identifiers: a criterion from one silently becomes a
+requirement of the other, and the merge reads perfectly sensible. Shape evidence here is
+`derived` / `observed`; if a second scale is ever needed it takes different words, not the same
+letters with a different meaning.
+
 **Define a grading scale's symbols in the artifact that uses them.** Fixing a wrong grade fixes
 one instance; writing the definition down fixes the next one. A scale whose letters must be
 inferred from context will be inverted by someone eventually — it was, here, across four
