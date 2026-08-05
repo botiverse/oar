@@ -1,4 +1,5 @@
 import type { Diagnostic } from "./diagnostic.js";
+import type { UsageReport } from "./usage.js";
 
 /**
  * Outbound events, as a discriminated union with exhaustive handling.
@@ -14,7 +15,7 @@ export type RuntimeEvent =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "tool_call"; readonly callId: string; readonly name: string }
   | { readonly kind: "tool_result"; readonly callId: string; readonly ok: boolean }
-  | { readonly kind: "turn_end"; readonly reason: TurnEndReason }
+  | { readonly kind: "turn_end"; readonly reason: TurnEndReason; readonly usage?: UsageReport }
   /**
    * The runtime failed in a way the consumer must see. `detail` is already
    * bounded and scrubbed -- see `diagnostic.ts`. There is deliberately no

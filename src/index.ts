@@ -40,3 +40,5 @@ export type {
   StopMode,
 } from "./session/handle.js";
 export { steerable } from "./session/handle.js";
+export type { TokenUsage, UsageReport, UsageScope } from "./events/usage.js";
+export { addUsage } from "./events/usage.js";
