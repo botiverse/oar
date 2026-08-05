@@ -49,8 +49,11 @@ Any project that drives more than one agent runtime and is tired of re-deriving 
 
 The first consumer is [Raft](https://github.com/botiverse), which runs ~12 agent runtimes in
 production and supplies the breadth of real-world behaviour this contract has to survive. That
-experience is a seed corpus, not the specification: where one product's needs and a general
-contract diverge, the general contract wins.
+experience is a seed corpus, not the specification. Where one product's needs and a general
+contract diverge, the general contract wins — **including when that means breaking how the first
+consumer uses it today.** A layer that must preserve one product's existing shapes is that
+product's internals wearing a coat, so the freedom to break them is what makes a general design
+possible at all.
 
 *(When this actually drives those runtimes, this should read "powers Raft". It does not yet, so
 it does not say so.)*
