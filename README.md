@@ -1,4 +1,4 @@
-# Drydock
+# (project name TBD)
 
 A general programming interface layer for agent runtimes.
 
@@ -29,22 +29,22 @@ Two failure modes follow, and both are common enough to be worth naming:
    and no live code path calls it — because internal callers can always reach around it to a
    tolerant helper. An abstraction whose enforcement point can be bypassed is not an abstraction.
 
-Drydock exists to make both of those impossible to hide: the interface is written down, and the
+This project exists to make both of those impossible to hide: the interface is written down, and the
 conformance suite is what decides whether a runtime actually implements it.
 
 ## The three parts
 
-Drydock is the project. It has three parts:
+Three parts. The project name is **not yet chosen** — see Open decisions.
 
 | Part | What it is |
 | --- | --- |
 | **RRP** | The host↔runtime boundary, frozen as an explicit written contract, one chapter at a time, each chapter with its own assertion list. |
-| **the runner** | Starts and drives a runtime **with no host daemon present**. Script-driven, with transcript capture and replay. |
+| **drydock** | Starts and drives a runtime **with no host daemon present**. Script-driven, with transcript capture and replay. The testing/operations surface. |
 | **sea-trial** | The conformance suite. Every runtime must pass the same suite. |
 
-"Drydock" names the whole, never a component — a dry dock is where a vessel is lifted clear of
-the water so every part of it is reachable with standard equipment, whoever built it. That is
-what this is: uniform access to heterogeneous runtimes.
+"drydock" names that harness specifically, not the project: a dry dock is where a vessel is
+lifted clear of the water to be inspected and worked on. That is the right word for the runner
+and the wrong word for an interface layer, which is why the umbrella needs its own name.
 
 This is the shape a storage-abstraction layer takes: one interface, many backends, and a
 behaviour suite that every backend must satisfy. In those layers the durable asset turns out to
@@ -53,7 +53,7 @@ the interface mean anything.
 
 ### The load-bearing constraint
 
-**The runner must work without a host daemon.** This is not an architectural preference; it is the
+**drydock must work without a host daemon.** This is not an architectural preference; it is the
 only property here that cannot be self-certified. "Our abstraction is clean" is a claim any
 project can tell itself indefinitely. "A consumer who does not have our daemon can drive this
 runtime" is either true or it fails loudly. Every design question should be settled by asking
@@ -92,6 +92,9 @@ This pays out either way:
 - **Maintenance ownership.** Vendor CLIs change often. Absorbed privately, that churn is
   invisible; published, each absorption is a breaking change plus issue load. Needs a named
   long-term owner before release, not after.
+- **The project name.** Not chosen. `drydock` is kept for the runner/harness, where the
+  maintenance-yard connotation is correct; the interface layer needs a name that does not read
+  as testing or operations.
 - **What RRP stands for.** Currently just an acronym. It should not expand to anything
   product-specific.
 
@@ -103,5 +106,5 @@ This pays out either way:
 - It has not spread, and the reason is known: it only offers *wait for an in-process event*,
   while most hand-rolled waits in a real suite are waiting on the **filesystem** — artifacts
   written by child processes.
-- **W2 is therefore filesystem/transcript coverage.** Without it, the runner cannot reach the main
+- **W2 is therefore filesystem/transcript coverage.** Without it, drydock cannot reach the main
   scenario and nobody will adopt it.
