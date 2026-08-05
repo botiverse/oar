@@ -69,6 +69,55 @@ present and runnable, while this answers whether it is there at all and whether 
 support what you are about to negotiate. Merged, the first real failure — installed but too old —
 has no owner.
 
+## Chapter 1's design premise: capability, guarantee, mechanism
+
+The extraction source already carries a per-runtime descriptor, and it is tempting to adopt it as
+the capability model. It should be **demoted to corpus rather than adopted as specification** —
+it records what we happened to encounter, not what must exist. Four problems make it unsuitable
+as-is.
+
+**It fuses capability with mechanism.** An axis reading `stdin | request | sdk_prompt |
+unsupported` is three implementations of one capability plus one genuine capability statement.
+Whether input arrives over stdin or an SDK call is exactly what this layer exists to hide;
+encoding it in the contract leaks the adapter through the interface.
+
+**It describes our adapters, not observable behaviour.** Transport and stream-channel fields say
+how we talk to a runtime, which a consumer cannot observe.
+
+> **Razor: if two values are indistinguishable to a consumer, they are not two contract values.**
+
+**It hands divergence upward instead of absorbing it.** An axis with four distinct in-flight-wake
+behaviours obliges the consumer to write four code paths — the abstraction failing precisely
+where it should pay off. Each axis must answer: *is this irreducibly different observable
+semantics, or did we simply not unify it?* A catalogue of how N adapters differ produces N
+special cases sharing a directory, which is the outcome this project exists to avoid.
+
+**It is silent on every path that has actually hurt.** Resumption going inert, hung tool calls,
+death mid-turn, a start that succeeds but comes up ineffective — none of these have an axis. The
+descriptor covers plumbing that has never caused an incident. Absorbing failure experience means
+the contract needs failure-side axes: what holds after resume, what liveness is guaranteed for a
+tool call, and what state must be converged to after abnormal exit.
+
+**And capability is resolved, not declared.** Support can depend on version and configuration,
+which is why discovery (ch.7) precedes negotiation (ch.5). A constant per driver cannot express
+"steer, from version X onward".
+
+### The split
+
+| | |
+| --- | --- |
+| **Capability** | What a consumer may rely on. Observable and decidable, free of mechanism. |
+| **Guarantee** | What must hold when it happens: ordering, liveness, and the state converged to after failure. Every incident we have paid for lands here, and it currently has no home. |
+| **Mechanism** | Private to the adapter. Never in the contract. |
+
+**Admissibility:** an axis exists only where a consumer must branch on it. If it is unobservable,
+or observable but cannot change what the consumer does, absorbing it is this layer's job rather
+than the consumer's burden.
+
+Working method for chapter 1: walk the existing descriptor axis by axis, keep only those that
+survive the razor, and file each survivor as capability, guarantee, or mechanism. Whatever fails
+is this layer's debt, not something to pass upward.
+
 ## Suggested order
 
 1. **7** and **3a** — both have running code to harvest; cheapest first clauses.
