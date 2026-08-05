@@ -26,7 +26,7 @@ up somewhere no live path reaches.
 | --- | --- |
 | **RRP** | The host↔runtime boundary, frozen as an explicit written contract, one chapter at a time, each with its own assertion list. Chapter map: [docs/rrp-chapters.md](docs/rrp-chapters.md). |
 | **drydock** | Starts and drives a runtime **with no host daemon present**. Script-driven, with transcript capture and replay. The testing/operations surface. |
-| **sea-trial** | The conformance suite. Every runtime must pass the same suite. |
+| **sea-trial** | The conformance suite. Every runtime must pass the same suite. Design: [docs/behavior-tests.md](docs/behavior-tests.md). |
 
 "drydock" names that harness specifically, not the project: a dry dock is where a vessel is
 lifted clear of the water to be inspected and worked on. That is the right word for the runner
