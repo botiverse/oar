@@ -45,6 +45,9 @@ import { spawn } from "node:child_process";
 const TIMEOUT_MS = 15_000;
 const INIT_ID = 1;
 
+/** Sentinel: JSON.parse failed. Unique by identity, so no legal payload collides. */
+const PARSE_FAILURE = Symbol("parse-failure");
+
 const failures: string[] = [];
 
 function check(ok: boolean, what: string): void {
@@ -90,15 +93,19 @@ function inspectResponse(message: unknown): void {
   // Deliberately not asserting userAgent's content — see FINDING 1.
   check(typeof readField(result, "codexHome") === "string",
     "initialize response is missing codexHome (needed to reason about isolation)");
-  child.stdin?.write(frame({ jsonrpc: "2.0", method: "initialized", params: {} }));
+  child.stdin.write(frame({ jsonrpc: "2.0", method: "initialized", params: {} }));
   child.kill("SIGTERM");
 }
 
 function consume(line: string): void {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(line);
-  } catch {
+  const parsed: unknown = ((): unknown => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      return PARSE_FAILURE;
+    }
+  })();
+  if (parsed === PARSE_FAILURE) {
     failures.push(`unparseable line on stdout: ${line.slice(0, 80)}`);
     return;
   }
@@ -134,7 +141,7 @@ function report(code: number | null, signal: string | null): void {
   console.log("\nPASS — a real codex runtime completed a handshake with no daemon present.");
 }
 
-child.stdout?.on("data", (chunk: Buffer) => {
+child.stdout.on("data", (chunk: Buffer) => {
   buffer += chunk.toString();
   drain();
 });
@@ -142,7 +149,7 @@ child.stdout?.on("data", (chunk: Buffer) => {
 // Bounded and unattributed: stderr may carry credential-shaped text, so it is
 // counted, never echoed. Scrubbing is the layer's job; this probe does not open
 // the channel at all.
-child.stderr?.on("data", (chunk: Buffer) => {
+child.stderr.on("data", (chunk: Buffer) => {
   stderrBytes += chunk.length;
 });
 
@@ -174,7 +181,7 @@ child.on("exit", (code: number | null, signal: string | null) => {
   report(code, signal);
 });
 
-child.stdin?.write(frame({
+child.stdin.write(frame({
   jsonrpc: "2.0",
   id: INIT_ID,
   method: "initialize",
