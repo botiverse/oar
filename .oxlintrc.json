@@ -65,5 +65,13 @@
     "typescript/consistent-type-exports": "error",
     "eslint/id-length": "off",
     "eslint/no-inline-comments": "off"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["drydock/**"],
+      "rules": {
+        "import/no-nodejs-modules": "off"
+      }
+    }
+  ]
 }
