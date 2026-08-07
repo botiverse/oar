@@ -23,6 +23,33 @@ export type {
 } from "./config/options.js";
 export type { AuthMode, CredentialRef, ResolvedAuth } from "./config/auth.js";
 
+// Launch-config form surface (create-agent). Clients still import nothing —
+// they consume JSON Schema over the wire. Server/host import these.
+export type {
+  ModelConfig,
+  ModelConfigSupport,
+  ModelInfo,
+  ModelBranch,
+} from "./config/model.js";
+export { modelBranch, CODEX_CONFIG } from "./config/model.js";
+export type { FormSchemaResult } from "./config/schema.js";
+export { buildFormSchema, authSubschema, snapshotIdOf } from "./config/schema.js";
+export type { RuntimeConfig, ValidationError, ValidateConfigInput } from "./config/validate.js";
+export { validateConfig, ConfigError } from "./config/validate.js";
+export {
+  PROFILE_KEYWORDS,
+  effectiveSchema,
+  matches,
+  checkAgainstProfile,
+  assertInProfile,
+  profileViolations,
+  ProfileError,
+  ConfigCheckError,
+} from "./config/profile.js";
+export type { JsonSchema, EffectiveSchema, ConfigCheckCode } from "./config/profile.js";
+export type { DetectFailure, RuntimeDescriptor } from "./discovery/detect.js";
+export { detectAll } from "./discovery/detect.js";
+
 // Events: observation only. Interception (can the host say no?) is a
 // separate contract under events/intercept.ts.
 export type { RuntimeEvent, TurnEndReason } from "./events/event.js";

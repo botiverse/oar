@@ -2,6 +2,7 @@ import type { IdleSession, StopMode } from "../session/handle.js";
 import type { LaunchSpec, ProcessOutcome } from "./process/lifecycle.js";
 import type { Capabilities } from "../capability.js";
 import type { ConfigSchema } from "../config/options.js";
+import type { ModelInfo } from "../config/model.js";
 import type { RuntimeEvent } from "../events/event.js";
 
 /**
@@ -20,7 +21,20 @@ import type { RuntimeEvent } from "../events/event.js";
 export interface RuntimeDriver {
   readonly id: string;
 
-  /** Declaration, not behaviour: what this runtime can do and must be told. */
+  /**
+   * Installed on this host? Which version?
+   * `null` = genuinely absent. May throw (caught by detectAll as detect_failed).
+   */
+  detect(): Promise<{ readonly version: string } | null>;
+
+  /** Dynamic model list plus each model's support. One call covers every model. */
+  models(): Promise<readonly ModelInfo[]>;
+
+  /**
+   * Declaration, not behaviour: what this runtime can do and must be told.
+   * Config path does NOT depend on this member (models() → support is the source).
+   * Whether the member stays is a runtime-interface question outside the config cut.
+   */
   describe(resolution: { readonly version: string; readonly model?: string }): Promise<Declaration>;
 
   /**

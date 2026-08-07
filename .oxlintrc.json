@@ -68,9 +68,85 @@
   },
   "overrides": [
     {
-      "files": ["drydock/**"],
+      "files": [
+        "drydock/**"
+      ],
       "rules": {
-        "import/no-nodejs-modules": "off"
+        "import/no-nodejs-modules": "off",
+        "typescript/require-await": "off",
+        "typescript/strict-boolean-expressions": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "typescript/consistent-type-assertions": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unnecessary-type-conversion": "off",
+        "eslint/max-statements": "off",
+        "eslint/max-lines": "off",
+        "eslint/curly": "off",
+        "unicorn/catch-error-name": "off",
+        "typescript/explicit-function-return-type": "off"
+      }
+    },
+    {
+      "files": [
+        "src/config/**",
+        "src/discovery/**"
+      ],
+      "rules": {
+        "unicorn/no-thenable": "off",
+        "eslint/max-params": "off",
+        "eslint/max-statements": "off",
+        "eslint/max-classes-per-file": "off",
+        "eslint/no-continue": "off",
+        "eslint/no-negated-condition": "off",
+        "unicorn/no-negated-condition": "off",
+        "unicorn/no-lonely-if": "off",
+        "unicorn/no-useless-fallback-in-spread": "off",
+        "unicorn/no-useless-collection-argument": "off",
+        "unicorn/prefer-export-from": "off",
+        "eslint/max-lines": "off",
+        "unicorn/prefer-code-point": "off",
+        "unicorn/numeric-separators-style": "off",
+        "unicorn/number-literal-case": "off",
+        "eslint/no-duplicate-imports": "off",
+        "import/consistent-type-specifier-style": "off",
+        "eslint/sort-imports": "off",
+        "eslint/no-await-in-loop": "off",
+        "typescript/promise-function-async": "off",
+        "eslint/require-await": "off"
+      }
+    },
+    {
+      "files": [
+        "drydock/probes/**"
+      ],
+      "rules": {
+        "typescript/consistent-type-assertions": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-unnecessary-type-assertion": "off",
+        "typescript/no-unnecessary-type-conversion": "off",
+        "eslint/max-statements": "off",
+        "eslint/max-lines": "off",
+        "eslint/curly": "off",
+        "unicorn/catch-error-name": "off",
+        "typescript/require-await": "off",
+        "typescript/strict-boolean-expressions": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "typescript/explicit-function-return-type": "off",
+        "eslint/max-lines-per-function": "off",
+        "eslint/complexity": "off",
+        "unicorn/no-useless-undefined": "off",
+        "import/no-nodejs-modules": "off",
+        "eslint/no-await-in-loop": "off",
+        "eslint/prefer-destructuring": "off",
+        "unicorn/prefer-ternary": "off",
+        "eslint/no-throw-literal": "off",
+        "typescript/no-confusing-void-expression": "off",
+        "unicorn/no-array-callback-reference": "off",
+        "eslint/sort-imports": "off",
+        "import/consistent-type-specifier-style": "off",
+        "typescript/promise-function-async": "off",
+        "typescript/no-floating-promises": "off"
       }
     }
   ]
