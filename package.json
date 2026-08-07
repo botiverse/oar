@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings src drydock sea-trial",
     "check": "npm run typecheck && npm run lint",
-    "teeth": "tsx scripts/config-form-teeth.ts"
+    "teeth": "npx --yes tsx scripts/config-form-teeth.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
