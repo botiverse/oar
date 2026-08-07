@@ -271,6 +271,7 @@ async function main() {
   }
 
   // 8b fail-closed out_of_profile
+  // Verdict is a flag — never infer pass from e.message that might be our own throw.
   try {
     const badSchema = {
       type: "object",
@@ -279,12 +280,13 @@ async function main() {
     } as unknown as JsonSchema;
     const v = profileViolations(badSchema);
     if (!v.some((x) => x.keyword === "oneOf")) throw new Error("oneOf not flagged");
+    let rejected = false;
     try {
       checkAgainstProfile(badSchema, { x: "a" });
-      throw new Error("expected out_of_profile");
     } catch (e) {
-      if (!(e instanceof Error) || !String(e.message).includes("out_of_profile")) throw e;
+      rejected = e instanceof Error && e.message.includes("out_of_profile");
     }
+    if (!rejected) throw new Error("guard did not reject an out-of-profile schema");
     ok("8b fail-closed out_of_profile");
   } catch (e) {
     bad("8b fail-closed", e);
