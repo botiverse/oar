@@ -170,7 +170,7 @@ document.getElementById("btn-valid").onclick=()=>{
   state.authMode=(s.body.auth&&s.body.auth.mode)||"ambient"; state.options={};
   for(const [k,v] of Object.entries(s.body)) if(!["runtime","model","auth","provider"].includes(k)) state.options[k]=v;
   renderForm();
-  document.getElementById("result").innerHTML='<span class="ok">oar validateConfig PASS</span><pre>"+JSON.stringify(s.result,null,2)+"</pre>";
+  document.getElementById("result").innerHTML='<span class="ok">oar validateConfig PASS</span><pre>'+JSON.stringify(s.result,null,2)+'</pre>';
 };
 renderLedger();
 state.runtime=(DATA.creatable&&DATA.creatable[0])||"";

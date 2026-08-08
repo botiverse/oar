@@ -7,7 +7,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings src drydock sea-trial",
     "check": "npm run typecheck && npm run lint",
-    "teeth": "npx --yes tsx scripts/config-form-teeth.ts"
+    "teeth": "npx --yes tsx scripts/config-form-teeth.ts",
+    "check-demo-html": "npx --yes tsx scripts/check-demo-html-js.ts artifacts-local/create-agent-form-live.html",
+    "embed-live": "npx --yes tsx scripts/embed-live-html.ts && npm run check-demo-html"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
