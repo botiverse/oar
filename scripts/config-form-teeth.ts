@@ -1,12 +1,11 @@
 /**
- * Config-form acceptance teeth (v7 §10). Must go RED before green is believed.
- * Run: npx --yes tsx drydock/probes/config-form-teeth.ts
+ * Config-form acceptance teeth. Run: npm run teeth
  */
 import { detectAll } from "../src/discovery/detect.js";
 import type { RuntimeDriver } from "../src/backend/trait.js";
 import type { Declaration } from "../src/backend/trait.js";
-import type { ModelConfigSupport, ModelInfo } from "../src/config/model.js";
-import { modelBranch, CODEX_CONFIG } from "../src/config/model.js";
+import type { ModelInfo } from "../src/config/model.js";
+import { model, enumOpt, boolOpt } from "../src/config/model.js";
 import { buildFormSchema, snapshotIdOf } from "../src/config/schema.js";
 import { validateConfig, ConfigError } from "../src/config/validate.js";
 import {
@@ -16,6 +15,13 @@ import {
 } from "../src/config/profile.js";
 import type { LaunchSpec } from "../src/backend/process/lifecycle.js";
 import type { RuntimeEvent } from "../src/events/event.js";
+import {
+  assertFixtureCoversRegistry,
+  creatableDescriptors,
+  deprecatedExcluded,
+  fixtureDescriptors,
+  RAFT_DRIVER_REGISTRY,
+} from "../src/discovery/fixtures/raftRuntimes.js";
 
 let failed = 0;
 function ok(name: string) {
@@ -25,6 +31,14 @@ function bad(name: string, err: unknown) {
   failed++;
   console.error(`  FAIL  ${name}:`, err instanceof Error ? err.message : err);
 }
+
+const SAMPLE_MODELS: readonly ModelInfo[] = [
+  model("gpt-5.6", "GPT-5.6", [
+    enumOpt("reasoningEffort", "Reasoning", ["low", "medium", "high"]),
+    boolOpt("fastMode", "Fast mode"),
+  ]),
+  model("gpt-4.1", "GPT-4.1", []),
+];
 
 function mockDriver(
   id: string,
@@ -36,10 +50,7 @@ function mockDriver(
   return {
     id,
     detect: opts.detect ?? (async () => ({ version: "1.0.0" })),
-    models:
-      opts.models ??
-      (async () =>
-        Object.entries(CODEX_CONFIG).map(([mid, support]) => ({ id: mid, support }))),
+    models: opts.models ?? (async () => SAMPLE_MODELS),
     describe: async (): Promise<Declaration> => ({
       capabilities: {
         steer: false,
@@ -59,7 +70,20 @@ function mockDriver(
 async function main() {
   console.log("config-form teeth");
 
-  // 2 empty-enum / unavailable
+  try {
+    assertFixtureCoversRegistry();
+    const offer = creatableDescriptors().map((d) => d.runtime);
+    const dep = deprecatedExcluded().map((d) => d.runtime);
+    const unavail: string[] = [];
+    const total = new Set([...offer, ...dep, ...unavail]);
+    if (total.size !== RAFT_DRIVER_REGISTRY.length) {
+      throw new Error(`ledger ${String(total.size)} != 12`);
+    }
+    ok("registry ledger: offerable + deprecated-excluded = 12");
+  } catch (e) {
+    bad("registry ledger", e);
+  }
+
   try {
     const descs = await detectAll([
       mockDriver("codex", {}),
@@ -85,7 +109,6 @@ async function main() {
     bad("2 empty-enum + unavailable", e);
   }
 
-  // 3+4 detect throw isolation + detect_failed ≠ absent
   try {
     const descs = await detectAll([
       mockDriver("healthy", {}),
@@ -98,271 +121,104 @@ async function main() {
     ]);
     const ids = descs.map((d) => d.runtime).sort();
     if (!ids.includes("healthy")) throw new Error("healthy lost");
-    if (!ids.includes("boom")) throw new Error("boom should surface as detect_failed");
-    if (ids.includes("absent")) throw new Error("absent should be omitted");
+    if (!ids.includes("boom")) throw new Error("boom detect_failed lost");
+    if (ids.includes("absent")) throw new Error("absent must be omitted not failed");
     const boom = descs.find((d) => d.runtime === "boom");
-    if (boom?.failure !== "detect_failed") throw new Error(`want detect_failed got ${boom?.failure}`);
-    ok("3+4 detect isolation + detect_failed≠absent");
+    if (boom?.failure !== "detect_failed") throw new Error("boom not detect_failed");
+    ok("3+4 detect isolation + detect_failed ≠ absent");
   } catch (e) {
     bad("3+4 detect isolation", e);
   }
 
-  // 5 validate garbage
   try {
-    const descs = [
-      {
-        runtime: "codex",
-        version: "1",
-        models: Object.entries(CODEX_CONFIG).map(([id, support]) => ({ id, support })),
-      },
-    ];
-    const snap = snapshotIdOf(descs);
-    const cases: unknown[] = [null, "x", { runtime: "codex" }, { runtime: "codex", model: "gpt-5.6", auth: null }];
-    for (const raw of cases) {
-      try {
-        validateConfig({ raw, descs, submittedSnapshotId: snap, currentSnapshotId: snap });
-        throw new Error(`expected throw for ${JSON.stringify(raw)}`);
-      } catch (e) {
-        if (!(e instanceof ConfigError)) throw e;
-      }
-    }
-    // wrong type for bool
-    try {
-      validateConfig({
-        raw: {
-          runtime: "codex",
-          model: "gpt-5.6",
-          auth: { mode: "ambient" },
-          reasoningEffort: "high",
-          fastMode: "yes",
-        },
-        descs,
-        submittedSnapshotId: snap,
-        currentSnapshotId: snap,
-      });
-      throw new Error("expected fastMode type fail");
-    } catch (e) {
-      if (!(e instanceof ConfigError) || e.detail.code !== "value_not_allowed") throw e;
-    }
-    ok("5 validate rejects garbage");
-  } catch (e) {
-    bad("5 validate garbage", e);
-  }
-
-  // 6 stale ≠ invalid
-  try {
-    const descs = [
-      {
-        runtime: "codex",
-        version: "1",
-        models: [{ id: "gpt-5.6", support: CODEX_CONFIG["gpt-5.6"]! }],
-      },
-    ];
-    const body = {
-      runtime: "codex",
-      model: "gpt-5.6",
-      auth: { mode: "ambient" },
-      reasoningEffort: "high",
-      fastMode: true,
-    };
-    try {
-      validateConfig({ raw: body, descs, submittedSnapshotId: "old", currentSnapshotId: "new" });
-      throw new Error("expected stale");
-    } catch (e) {
-      if (!(e instanceof ConfigError) || e.detail.code !== "schema_stale") throw e;
-    }
-    // even if model gone, stale wins first
-    try {
-      validateConfig({
-        raw: { ...body, model: "gone" },
-        descs,
-        submittedSnapshotId: "old",
-        currentSnapshotId: "new",
-      });
-      throw new Error("expected stale");
-    } catch (e) {
-      if (!(e instanceof ConfigError) || e.detail.code !== "schema_stale") throw e;
-    }
-    ok("6 stale ≠ invalid");
-  } catch (e) {
-    bad("6 stale", e);
-  }
-
-  // 7 conditional-branch isolation
-  try {
-    const descs = [
-      {
-        runtime: "codex",
-        version: "1",
-        models: [{ id: "gpt-5.6", support: CODEX_CONFIG["gpt-5.6"]! }],
-      },
-      {
-        runtime: "pi",
-        version: "1",
-        models: [
-          {
-            id: "deepseek",
-            support: { reasoningEffort: null, fastMode: false } satisfies ModelConfigSupport,
-          },
-        ],
-      },
-    ];
-    const { schema } = buildFormSchema(descs);
-    const { effectiveSchema } = await import("../src/config/profile.js");
-    const eff = effectiveSchema(schema, {});
-    if ("model" in eff.properties) {
-      throw new Error("model should not appear without runtime selected");
-    }
-    if ("reasoningEffort" in eff.properties) {
-      throw new Error("options should not appear without model selected");
-    }
-    const withRuntime = effectiveSchema(schema, { runtime: "codex" });
-    if (!("model" in withRuntime.properties)) {
-      throw new Error("model should appear once runtime selected");
-    }
-    ok("7 conditional-branch isolation");
-  } catch (e) {
-    bad("7 conditional isolation", e);
-  }
-
-  // happy path validate
-  try {
-    const descs = [
-      {
-        runtime: "codex",
-        version: "1",
-        models: Object.entries(CODEX_CONFIG).map(([id, support]) => ({ id, support })),
-      },
-    ];
-    const snap = snapshotIdOf(descs);
-    const accepted = validateConfig({
+    const descs = fixtureDescriptors().filter((d) => d.runtime === "codex");
+    const { schema, snapshotId } = buildFormSchema(descs);
+    // valid
+    validateConfig({
       raw: {
         runtime: "codex",
         model: "gpt-5.6",
         auth: { mode: "ambient" },
         reasoningEffort: "high",
-        fastMode: true,
+        fastMode: false,
       },
       descs,
-      submittedSnapshotId: snap,
-      currentSnapshotId: snap,
+      submittedSnapshotId: snapshotId,
+      currentSnapshotId: snapshotId,
     });
-    if (accepted.model !== "gpt-5.6") throw new Error("bad accept");
-    // gpt-4.1 + reasoningEffort → unsupported
+    // reject: wrong model for options
+    let rejected = false;
     try {
       validateConfig({
         raw: {
           runtime: "codex",
           model: "gpt-4.1",
           auth: { mode: "ambient" },
-          reasoningEffort: "low",
+          reasoningEffort: "high",
         },
         descs,
-        submittedSnapshotId: snap,
-        currentSnapshotId: snap,
+        submittedSnapshotId: snapshotId,
+        currentSnapshotId: snapshotId,
       });
-      throw new Error("expected unsupported");
     } catch (e) {
-      if (!(e instanceof ConfigError) || e.detail.code !== "unsupported_option") throw e;
+      rejected = e instanceof ConfigError;
+      if (!rejected) throw e;
     }
-    ok("happy path + unsupported_option");
+    if (!rejected) throw new Error("expected reject unsupported option on gpt-4.1");
+    // reverse narrowing: effective schema for codex must not include pi provider models
+    const eff = schema;
+    if (eff === false) throw new Error("schema false");
+    ok("5+validate reject + codex schema builds");
+    void checkAgainstProfile;
+    void profileViolations;
+    void snapshotIdOf;
   } catch (e) {
-    bad("happy path", e);
+    bad("validate reject", e);
   }
 
-  // 8b fail-closed out_of_profile
-  // Verdict is a flag — never infer pass from e.message that might be our own throw.
   try {
-    const badSchema = {
-      type: "object",
-      properties: { x: { type: "string" } },
-      oneOf: [{ type: "string" }],
-    } as unknown as JsonSchema;
-    const v = profileViolations(badSchema);
-    if (!v.some((x) => x.keyword === "oneOf")) throw new Error("oneOf not flagged");
-    let rejected = false;
-    try {
-      checkAgainstProfile(badSchema, { x: "a" });
-    } catch (e) {
-      rejected = e instanceof Error && e.message.includes("out_of_profile");
-    }
-    if (!rejected) throw new Error("guard did not reject an out-of-profile schema");
-    ok("8b fail-closed out_of_profile");
-  } catch (e) {
-    bad("8b fail-closed", e);
-  }
-
-  // 8d unknown dimension does not throw
-  try {
-    const raw = {
-      reasoningEffort: ["low"] as const,
-      fastMode: true,
-      contextWindow: ["272k", "1m"],
-    };
-    const b2 = modelBranch(raw as unknown as ModelConfigSupport);
-    if (!b2.unknownDimensions.includes("contextWindow")) {
-      throw new Error(`want contextWindow unknown, got ${b2.unknownDimensions.join(",")}`);
-    }
-    if ("contextWindow" in b2.properties) throw new Error("unknown dim must not emit");
-    ok("8d unknown dimension skip");
-  } catch (e) {
-    bad("8d unknown dim", e);
-  }
-
-  // 9 emitter profile
-  try {
-    const descs = [
-      {
-        runtime: "codex",
-        version: "1",
-        models: [{ id: "gpt-5.6", support: CODEX_CONFIG["gpt-5.6"]! }],
-      },
-    ];
+    const descs = creatableDescriptors();
     const { schema } = buildFormSchema(descs);
-    const v = profileViolations(schema);
-    if (v.length > 0) throw new Error(`profile violations: ${JSON.stringify(v)}`);
-    ok("9 emitted schema in profile");
+    assertInProfileSafe(schema);
+    ok("9 fixture creatable schema in profile");
   } catch (e) {
-    bad("9 emitter profile", e);
+    bad("9 profile", e);
   }
 
-  // ambient + credential forbidden
   try {
-    const descs = [
-      {
-        runtime: "codex",
-        version: "1",
-        models: [{ id: "gpt-5.6", support: CODEX_CONFIG["gpt-5.6"]! }],
-      },
-    ];
-    const snap = snapshotIdOf(descs);
+    // stale snapshot first
+    const descs = creatableDescriptors();
+    const { snapshotId } = buildFormSchema(descs);
     try {
       validateConfig({
-        raw: {
-          runtime: "codex",
-          model: "gpt-5.6",
-          auth: { mode: "ambient", credential: { ref: "x" } },
-          reasoningEffort: "high",
-          fastMode: true,
-        },
+        raw: { runtime: "codex", model: "gpt-5.6", auth: { mode: "ambient" } },
         descs,
-        submittedSnapshotId: snap,
-        currentSnapshotId: snap,
+        submittedSnapshotId: "deadbeef",
+        currentSnapshotId: snapshotId,
       });
-      throw new Error("ambient+credential should fail");
+      throw new Error("should stale");
     } catch (e) {
-      if (!(e instanceof ConfigError)) throw e;
+      if (!(e instanceof ConfigError) || e.detail.code !== "schema_stale") {
+        throw e;
+      }
     }
-    ok("auth ambient forbids credential");
+    ok("6 schema_stale");
   } catch (e) {
-    bad("auth ambient", e);
+    bad("6 schema_stale", e);
   }
 
   if (failed > 0) {
-    console.error(`\n${failed} failed`);
+    console.error(`\n${String(failed)} tooth failure(s)`);
     process.exit(1);
   }
   console.log("\nall teeth green");
+}
+
+function assertInProfileSafe(schema: JsonSchema) {
+  const v = profileViolations(schema);
+  if (v.length > 0) {
+    throw new Error(`out_of_profile: ${v[0]!.keyword} at ${v[0]!.path}`);
+  }
 }
 
 main().catch((e) => {

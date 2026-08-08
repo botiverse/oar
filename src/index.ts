@@ -26,12 +26,13 @@ export type { AuthMode, CredentialRef, ResolvedAuth } from "./config/auth.js";
 // Launch-config form surface (create-agent). Clients still import nothing —
 // they consume JSON Schema over the wire. Server/host import these.
 export type {
-  ModelConfig,
-  ModelConfigSupport,
+  Choice,
+  ConfigOption as ModelConfigOption,
   ModelInfo,
   ModelBranch,
+  ProviderInfo,
 } from "./config/model.js";
-export { modelBranch, CODEX_CONFIG } from "./config/model.js";
+export { optionsBranch, enumOpt, boolOpt, model } from "./config/model.js";
 export type { FormSchemaResult } from "./config/schema.js";
 export { buildFormSchema, authSubschema, snapshotIdOf } from "./config/schema.js";
 export type { RuntimeConfig, ValidationError, ValidateConfigInput } from "./config/validate.js";
@@ -49,6 +50,14 @@ export {
 export type { JsonSchema, EffectiveSchema, ConfigCheckCode } from "./config/profile.js";
 export type { DetectFailure, RuntimeDescriptor } from "./discovery/detect.js";
 export { detectAll } from "./discovery/detect.js";
+export {
+  fixtureDescriptors,
+  creatableDescriptors,
+  deprecatedExcluded,
+  assertFixtureCoversRegistry,
+  RAFT_DRIVER_REGISTRY,
+  RAFT_DEPRECATED_FOR_CREATE,
+} from "./discovery/fixtures/raftRuntimes.js";
 
 // Events: observation only. Interception (can the host say no?) is a
 // separate contract under events/intercept.ts.

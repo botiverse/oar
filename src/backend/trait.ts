@@ -27,8 +27,14 @@ export interface RuntimeDriver {
    */
   detect(): Promise<{ readonly version: string } | null>;
 
-  /** Dynamic model list plus each model's support. One call covers every model. */
+  /** Dynamic model list plus each model's options. One call covers every model. */
   models(): Promise<readonly ModelInfo[]>;
+
+  /**
+   * Optional provider axis (e.g. pi). When present, schema uses provider→model
+   * and models() may return [] (providers own the lists).
+   */
+  providers?(): Promise<readonly import("../config/model.js").ProviderInfo[]>;
 
   /**
    * Declaration, not behaviour: what this runtime can do and must be told.

@@ -9,12 +9,12 @@ export const PROFILE_KEYWORDS = {
   leaf: ["type", "enum", "const"] as const,
   /** `false` as a whole schema = property FORBIDDEN (auth ambient: credential: false). */
   literalFalseSchema: true,
-  /** runtime → model conditional nesting. */
-  maxDepth: 2,
+  /** runtime → (provider) → model conditional nesting. */
+  maxDepth: 3,
 } as const;
 
 export interface JsonSchemaObject {
-  readonly type?: "object" | "string" | "boolean";
+  readonly type?: "object" | "string" | "boolean" | "number";
   readonly properties?: Readonly<Record<string, JsonSchema>>;
   readonly required?: readonly string[];
   readonly allOf?: readonly { readonly if: JsonSchema; readonly then: JsonSchema }[];

@@ -34,19 +34,17 @@ function formatDetail(detail: ValidationError): string {
   return detail.code;
 }
 
-/** Accepted create-agent body after validation (option dims are top-level). */
-export interface RuntimeConfig {
+/** Accepted create-agent body after validation. Options are top-level fields. */
+export type RuntimeConfig = {
   readonly runtime: string;
   readonly model: string;
+  readonly provider?: string;
   readonly auth: {
     readonly mode: "ambient" | "explicit_key" | "delegated" | "gateway";
     readonly credential?: { readonly ref: string };
-    readonly provider?: string;
   };
   readonly env?: Readonly<Record<string, string>>;
-  readonly reasoningEffort?: string;
-  readonly fastMode?: boolean;
-}
+} & Readonly<Record<string, string | boolean | number | undefined | object>>;
 
 export interface ValidateConfigInput {
   readonly raw: unknown;
@@ -70,69 +68,6 @@ function isAuthMode(
   );
 }
 
-function buildAuth(
-  auth: Record<string, unknown>,
-  mode: "ambient" | "explicit_key" | "delegated" | "gateway",
-): RuntimeConfig["auth"] {
-  if (mode === "ambient") {
-    return { mode };
-  }
-  const { credential, provider } = auth;
-  if (!asRecord(credential)) {
-    throw new ConfigError({ code: "malformed", field: "auth.credential" });
-  }
-  const { ref } = credential;
-  if (typeof ref !== "string") {
-    throw new ConfigError({ code: "malformed", field: "auth.credential.ref" });
-  }
-  if (typeof provider === "string") {
-    return { mode, credential: { ref }, provider };
-  }
-  return { mode, credential: { ref } };
-}
-
-function stringifyEnv(env: Record<string, unknown>): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(env)) {
-    if (typeof v === "string") {
-      out[k] = v;
-    }
-  }
-  return out;
-}
-
-function toRuntimeConfig(accepted: Record<string, unknown>): RuntimeConfig {
-  const { runtime, model, auth, reasoningEffort, fastMode, env } = accepted;
-  if (typeof runtime !== "string" || typeof model !== "string" || !asRecord(auth)) {
-    throw new ConfigError({ code: "malformed" });
-  }
-  const { mode } = auth;
-  if (!isAuthMode(mode)) {
-    throw new ConfigError({ code: "malformed", field: "auth.mode" });
-  }
-  return {
-    runtime,
-    model,
-    auth: buildAuth(auth, mode),
-    ...(typeof reasoningEffort === "string" ? { reasoningEffort } : {}),
-    ...(typeof fastMode === "boolean" ? { fastMode } : {}),
-    ...(asRecord(env) ? { env: stringifyEnv(env) } : {}),
-  };
-}
-
-function rethrowCheckError(error: unknown): never {
-  if (error instanceof ProfileError) {
-    throw new ConfigError({ code: "out_of_profile", keyword: error.keyword });
-  }
-  if (error instanceof ConfigCheckError) {
-    if (error.field !== undefined) {
-      throw new ConfigError({ code: error.code, field: error.field });
-    }
-    throw new ConfigError({ code: error.code });
-  }
-  throw error;
-}
-
 /**
  * Validate a create-agent submission against the schema rebuilt from current descriptors.
  * Snapshot mismatch is checked first and is its own closed code.
@@ -147,8 +82,26 @@ export function validateConfig(input: ValidateConfigInput): RuntimeConfig {
   }
   const { schema } = buildFormSchema(descs);
   try {
-    return toRuntimeConfig(checkAgainstProfile(schema, raw));
+    const accepted = checkAgainstProfile(schema, raw);
+    const { runtime, model, auth } = accepted;
+    if (typeof runtime !== "string" || typeof model !== "string" || !asRecord(auth)) {
+      throw new ConfigError({ code: "malformed" });
+    }
+    if (!isAuthMode(auth.mode)) {
+      throw new ConfigError({ code: "malformed", field: "auth.mode" });
+    }
+    return accepted as RuntimeConfig;
   } catch (error) {
-    return rethrowCheckError(error);
+    if (error instanceof ProfileError) {
+      throw new ConfigError({ code: "out_of_profile", keyword: error.keyword });
+    }
+    if (error instanceof ConfigCheckError) {
+      if (error.field !== undefined) {
+        throw new ConfigError({ code: error.code, field: error.field });
+      }
+      throw new ConfigError({ code: error.code });
+    }
+    if (error instanceof ConfigError) throw error;
+    throw error;
   }
 }
