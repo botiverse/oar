@@ -7,7 +7,7 @@ import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hostname } from "node:os";
-import { detectAll } from "../src/discovery/detect.js";
+import { detectAllRegistered } from "../src/discovery/detect.js";
 import { buildFormSchema } from "../src/config/schema.js";
 import { validateConfig, ConfigError } from "../src/config/validate.js";
 import { createHostDrivers, hostDetectMeta } from "../src/discovery/host/runtimeDrivers.js";
@@ -23,16 +23,52 @@ async function main() {
   const meta = hostDetectMeta();
   const drivers = createHostDrivers();
   console.error("detecting via oar host drivers…");
-  const descs = await detectAll(drivers);
+  const descs = await detectAllRegistered(drivers, RAFT_DRIVER_REGISTRY);
   console.error(
     "descriptors:",
     descs.map((d) => `${d.runtime}@${d.version} models=${d.models.length} fail=${d.failure ?? "-"}`).join("\n  "),
   );
 
-  // Apply create-agent deprecated filter for offerable enum (kimi, gemini)
+  // Full registry (incl. not_installed) → unavailable[] carries reasons (design §5).
+  // Deprecated runtimes stay out of the create enum only.
   const deprecated = new Set<string>(RAFT_DEPRECATED_FOR_CREATE);
+  const bakedAll = buildFormSchema(descs);
+  // Strip deprecated from create enum; re-tag them as unavailable with explicit reason if present.
+  const runtimeProp = bakedAll.schema !== false ? bakedAll.schema.properties?.runtime : undefined;
+  const enumIds =
+    runtimeProp && runtimeProp !== false && Array.isArray(runtimeProp.enum)
+      ? runtimeProp.enum.filter((id) => !deprecated.has(String(id)))
+      : [];
+  const depUnavailable = descs
+    .filter((d) => deprecated.has(d.runtime))
+    .map((d) => ({
+      runtime: d.runtime,
+      failure: (d.failure ?? "models_unavailable") as typeof d.failure extends undefined
+        ? "models_unavailable"
+        : NonNullable<typeof d.failure>,
+    }));
+  // Prefer a structured note: keep schema from non-deprecated descs for validate, but
+  // unavailable = all non-offerable including not_installed + deprecated.
   const forCreate = descs.filter((d) => !deprecated.has(d.runtime));
   const baked = buildFormSchema(forCreate);
+  // Merge unavailable: schema-from-forCreate + any deprecated + ensure not_installed from full set
+  const unavailMap = new Map<string, { runtime: string; failure: string }>();
+  for (const u of baked.unavailable) unavailMap.set(u.runtime, u);
+  for (const d of descs) {
+    if (deprecated.has(d.runtime)) {
+      unavailMap.set(d.runtime, { runtime: d.runtime, failure: d.failure ?? "not_installed" });
+    } else if (d.failure) {
+      unavailMap.set(d.runtime, { runtime: d.runtime, failure: d.failure });
+    } else if (d.models.length === 0 && !(d.providers && d.providers.length > 0)) {
+      unavailMap.set(d.runtime, { runtime: d.runtime, failure: "models_unavailable" });
+    }
+  }
+  const mergedUnavailable = [...unavailMap.values()];
+  // attach for payload
+  (baked as { unavailable: typeof mergedUnavailable }).unavailable = mergedUnavailable as typeof baked.unavailable;
+  void bakedAll;
+  void enumIds;
+  void depUnavailable;
 
   // Registry ledger
   const offerable = new Set(
@@ -49,46 +85,58 @@ async function main() {
     }
   }
 
-  // Reject sample from real codex if possible
-  let rejectSample: { body: unknown; error: string } | null = null;
+  // Reject samples: (a) illegal enum with all required present; (b) missing required only
+  type Reject = { body: unknown; error: string; intent: string };
+  const rejects: Reject[] = [];
   const codex = forCreate.find((d) => d.runtime === "codex" && d.models.length > 0);
   if (codex) {
-    const plain = codex.models.find((m) => m.options.length === 0) ?? codex.models[0]!;
-    const body: Record<string, unknown> = {
-      runtime: "codex",
-      model: plain.id,
-      auth: { mode: "ambient" },
-      reasoningEffort: "not-a-real-effort",
-    };
-    try {
-      validateConfig({
-        raw: body,
-        descs: forCreate,
-        submittedSnapshotId: baked.snapshotId,
-        currentSnapshotId: baked.snapshotId,
-      });
-    } catch (e) {
-      if (e instanceof ConfigError) {
-        rejectSample = { body, error: e.message };
+    const rich = codex.models.find((m) => m.options.some((o) => o.kind === "enum" && o.id === "reasoningEffort"));
+    if (rich) {
+      const bodyIllegal: Record<string, unknown> = {
+        runtime: "codex",
+        model: rich.id,
+        auth: { mode: "ambient" },
+        reasoningEffort: "not-a-real-effort",
+        fastMode: false, // present so illegal enum is the sole error
+      };
+      try {
+        validateConfig({
+          raw: bodyIllegal,
+          descs: forCreate,
+          submittedSnapshotId: baked.snapshotId,
+          currentSnapshotId: baked.snapshotId,
+        });
+      } catch (e) {
+        if (e instanceof ConfigError) {
+          rejects.push({ body: bodyIllegal, error: e.message, intent: "value_not_allowed on reasoningEffort" });
+        }
+      }
+      const bodyMissing: Record<string, unknown> = {
+        runtime: "codex",
+        model: rich.id,
+        auth: { mode: "ambient" },
+        reasoningEffort: (rich.options.find((o) => o.id === "reasoningEffort") as { values: { id: string }[] }).values[0]!.id,
+        // omit fastMode deliberately
+      };
+      try {
+        validateConfig({
+          raw: bodyMissing,
+          descs: forCreate,
+          submittedSnapshotId: baked.snapshotId,
+          currentSnapshotId: baked.snapshotId,
+        });
+      } catch (e) {
+        if (e instanceof ConfigError) {
+          rejects.push({ body: bodyMissing, error: e.message, intent: "missing_required fastMode" });
+        }
       }
     }
   }
-  if (!rejectSample) {
-    rejectSample = {
-      body: { runtime: "codex", model: "__none__", auth: { mode: "ambient" } },
-      error: "value_not_allowed: model",
-    };
-    try {
-      validateConfig({
-        raw: rejectSample.body,
-        descs: forCreate,
-        submittedSnapshotId: baked.snapshotId,
-        currentSnapshotId: baked.snapshotId,
-      });
-    } catch (e) {
-      if (e instanceof ConfigError) rejectSample.error = e.message;
-    }
-  }
+  const rejectSample = rejects[0] ?? {
+    body: { runtime: "codex", model: "__none__", auth: { mode: "ambient" } },
+    error: "value_not_allowed: model",
+    intent: "fallback",
+  };
 
   let validSample: { body: unknown; result: unknown } | null = null;
   if (codex) {
@@ -158,6 +206,7 @@ async function main() {
         ? { body: validSample.body, ok: true, result: validSample.result }
         : null,
       rejected: { ...rejectSample, ok: false },
+      rejectedAll: rejects.map((r) => ({ ...r, ok: false as const })),
     },
   };
 

@@ -10,8 +10,9 @@ import type { ModelInfo, ProviderInfo } from "../config/model.js";
  * Why a runtime is not offering models. CLOSED set — never a raw exception string.
  */
 export type DetectFailure =
-  | "models_unavailable" // detect() ok, models() failed
-  | "detect_failed"; // detect() threw — installed-ness UNKNOWN, not "absent"
+  | "models_unavailable" // detect() ok, models() empty/failed
+  | "detect_failed" // detect() threw — installed-ness UNKNOWN, not "absent"
+  | "not_installed"; // known registry runtime, host detect returned absent
 
 export interface RuntimeDescriptor {
   readonly runtime: string;
@@ -77,4 +78,33 @@ export async function detectAll(
   }
   const out = await Promise.all(tasks);
   return out.filter((desc): desc is RuntimeDescriptor => desc !== null);
+}
+
+/**
+ * Like detectAll, but every `registryId` is represented:
+ * - present → normal descriptor
+ * - driver detect() null → { failure: "not_installed", models: [] }
+ * - no driver for id → { failure: "not_installed", models: [] }
+ */
+export async function detectAllRegistered(
+  drivers: readonly RuntimeDriver[],
+  registryIds: readonly string[],
+): Promise<readonly RuntimeDescriptor[]> {
+  const found = await detectAll(drivers);
+  const foundIds = new Set(found.map((d) => d.runtime));
+  const out: RuntimeDescriptor[] = [...found];
+  for (const id of registryIds) {
+    if (foundIds.has(id)) continue;
+    // Driver existed but returned null, or no driver.
+    out.push({
+      runtime: id,
+      version: "unknown",
+      models: [],
+      failure: "not_installed",
+    });
+  }
+  // Preserve registry order
+  const order = new Map(registryIds.map((id, i) => [id, i]));
+  out.sort((a, b) => (order.get(a.runtime) ?? 999) - (order.get(b.runtime) ?? 999));
+  return out;
 }

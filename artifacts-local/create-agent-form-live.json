@@ -1,7 +1,7 @@
 {
   "provenance": {
     "host": "Tenneys-MacBook-Pro.local",
-    "at": "2026-08-08T09:35:59.602Z",
+    "at": "2026-08-08T09:42:51.867Z",
     "sources": {
       "codex": "~/.codex/models_cache.json + codex --version",
       "claude": "claude --version + claude model list help",
@@ -57,7 +57,7 @@
         "zai/glm-4.5-air"
       ],
       "optionsExample": [],
-      "source": "raft-daemon detectModels live (SLOCK_DAEMON_ROOT / OAR_LIVE_PROBE_JSON)",
+      "source": "raft-daemon detectModels live",
       "provenanceKind": "sdk_catalog_live"
     },
     {
@@ -82,7 +82,7 @@
         "reasoningEffort",
         "fastMode"
       ],
-      "source": "claude --version + model aliases confirmed via `claude /model` on this host 2026-08-08",
+      "source": "claude --version + claude /model aliases (host verified)",
       "provenanceKind": "host_cli_verified"
     },
     {
@@ -104,7 +104,7 @@
         "reasoningEffort",
         "fastMode"
       ],
-      "source": "codex --version + ~/.codex/models_cache.json (fetched_at from cache file)",
+      "source": "codex --version + ~/.codex/models_cache.json",
       "provenanceKind": "host_cli_cache"
     },
     {
@@ -119,62 +119,62 @@
       "optionsExample": [
         "reasoningEffort"
       ],
-      "source": "grok --version + `grok models` stdout",
+      "source": "grok --version + grok models",
       "provenanceKind": "host_cli_verified"
     },
     {
       "runtime": "antigravity",
-      "version": null,
+      "version": "unknown",
       "modelCount": 0,
       "providerCount": 0,
       "failure": "not_installed",
       "modelIds": [],
       "optionsExample": [],
-      "source": "which agy \u2192 not found on this host",
+      "source": "which agy \u2192 not found",
       "provenanceKind": "not_installed"
     },
     {
       "runtime": "copilot",
-      "version": null,
+      "version": "unknown",
       "modelCount": 0,
       "providerCount": 0,
       "failure": "not_installed",
       "modelIds": [],
       "optionsExample": [],
-      "source": "which copilot \u2192 not found on this host",
+      "source": "which copilot \u2192 not found",
       "provenanceKind": "not_installed"
     },
     {
       "runtime": "cursor",
-      "version": null,
+      "version": "unknown",
       "modelCount": 0,
       "providerCount": 0,
       "failure": "not_installed",
       "modelIds": [],
       "optionsExample": [],
-      "source": "which cursor-agent \u2192 not found on this host",
+      "source": "which cursor-agent \u2192 not found",
       "provenanceKind": "not_installed"
     },
     {
       "runtime": "gemini",
-      "version": null,
+      "version": "unknown",
       "modelCount": 0,
       "providerCount": 0,
       "failure": "not_installed",
       "modelIds": [],
       "optionsExample": [],
-      "source": "which gemini \u2192 not found on this host",
+      "source": "which gemini \u2192 not found",
       "provenanceKind": "not_installed"
     },
     {
       "runtime": "kimi",
-      "version": null,
+      "version": "unknown",
       "modelCount": 0,
       "providerCount": 0,
       "failure": "not_installed",
       "modelIds": [],
       "optionsExample": [],
-      "source": "which kimi \u2192 not found on this host",
+      "source": "which kimi \u2192 not found",
       "provenanceKind": "not_installed"
     },
     {
@@ -182,10 +182,10 @@
       "version": "kimi-sdk",
       "modelCount": 0,
       "providerCount": 0,
-      "failure": null,
+      "failure": "models_unavailable",
       "modelIds": [],
       "optionsExample": [],
-      "source": "runtime present in-process; models kind=missing_config recovery=kimi_login (raft probe)",
+      "source": "models_unavailable / missing_config (kimi_login)",
       "provenanceKind": "needs_login"
     },
     {
@@ -209,7 +209,7 @@
         "\u001b[0m      \u001b[2mat \u001b[0m\u001b[0m\u001b[1m\u001b[3minternal:assert/assertion_error\u001b[0m\u001b[2m (\u001b[0m\u001b[0m\u001b[36minternal:assert/assertion_error\u001b[0m\u001b[2m:\u001b[0m\u001b[33m2\u001b[0m\u001b[2m:\u001b[33m187\u001b[0m\u001b[2m)\u001b[0m"
       ],
       "optionsExample": [],
-      "source": "opencode --version + `opencode models` stdout",
+      "source": "opencode --version + opencode models",
       "provenanceKind": "host_cli_verified"
     },
     {
@@ -226,7 +226,7 @@
       "optionsExample": [
         "reasoningEffort"
       ],
-      "source": "raft-daemon detectModels live (in-process pi agent)",
+      "source": "raft-daemon detectModels live",
       "provenanceKind": "sdk_catalog_live"
     }
   ],
@@ -246,11 +246,31 @@
   ],
   "unavailable": [
     {
+      "runtime": "antigravity",
+      "failure": "not_installed"
+    },
+    {
+      "runtime": "copilot",
+      "failure": "not_installed"
+    },
+    {
+      "runtime": "cursor",
+      "failure": "not_installed"
+    },
+    {
       "runtime": "kimi-sdk",
       "failure": "models_unavailable"
+    },
+    {
+      "runtime": "gemini",
+      "failure": "not_installed"
+    },
+    {
+      "runtime": "kimi",
+      "failure": "not_installed"
     }
   ],
-  "snapshotId": "9b29cb87",
+  "snapshotId": "db559a53",
   "schema": {
     "type": "object",
     "required": [
@@ -9281,6 +9301,9 @@
     "model:codex:gpt-5.3-codex-spark": "GPT-5.3-Codex-Spark",
     "runtime:grok": "grok",
     "model:grok:grok-4.5": "grok-4.5",
+    "runtime:antigravity": "antigravity",
+    "runtime:copilot": "copilot",
+    "runtime:cursor": "cursor",
     "runtime:kimi-sdk": "kimi-sdk",
     "runtime:opencode": "opencode",
     "model:opencode:opencode/big-pickle": "opencode/big-pickle",
@@ -9299,13 +9322,20 @@
     "model:pi:deepseek/deepseek-v4-flash": "DeepSeek V4 Flash \u00b7 DeepSeek",
     "choice:reasoningEffort:minimal": "minimal",
     "model:pi:deepseek/deepseek-v4-pro": "DeepSeek V4 Pro \u00b7 DeepSeek",
-    "model:pi:mimo/mimo-v2.5-pro-ultraspeed": "MiMo V2.5 Pro (Ultraspeed) \u00b7 Mimo"
+    "model:pi:mimo/mimo-v2.5-pro-ultraspeed": "MiMo V2.5 Pro (Ultraspeed) \u00b7 Mimo",
+    "runtime:gemini": "gemini",
+    "runtime:kimi": "kimi"
   },
   "detectedAll": [
     "builtin",
     "claude",
     "codex",
     "grok",
+    "antigravity",
+    "copilot",
+    "cursor",
+    "gemini",
+    "kimi",
     "kimi-sdk",
     "opencode",
     "pi"
@@ -9347,18 +9377,57 @@
         "auth": {
           "mode": "ambient"
         },
-        "reasoningEffort": "not-a-real-effort"
+        "reasoningEffort": "not-a-real-effort",
+        "fastMode": false
       },
-      "error": "missing_required: fastMode",
+      "error": "value_not_allowed: reasoningEffort",
+      "intent": "value_not_allowed on reasoningEffort",
       "ok": false
-    }
+    },
+    "rejectedAll": [
+      {
+        "body": {
+          "runtime": "codex",
+          "model": "gpt-5.6-sol",
+          "auth": {
+            "mode": "ambient"
+          },
+          "reasoningEffort": "not-a-real-effort",
+          "fastMode": false
+        },
+        "error": "value_not_allowed: reasoningEffort",
+        "intent": "value_not_allowed on reasoningEffort",
+        "ok": false
+      },
+      {
+        "body": {
+          "runtime": "codex",
+          "model": "gpt-5.6-sol",
+          "auth": {
+            "mode": "ambient"
+          },
+          "reasoningEffort": "low"
+        },
+        "error": "missing_required: fastMode",
+        "intent": "missing_required fastMode",
+        "ok": false
+      }
+    ]
   },
   "ledger": {
     "registry": 12,
-    "detected": 7,
     "creatable": 6,
+    "unavailable": 6,
     "deprecated": 2,
-    "unavailable": 1,
+    "sum_create_plus_unavail": 12,
+    "liveModels": [
+      "builtin",
+      "claude",
+      "codex",
+      "grok",
+      "opencode",
+      "pi"
+    ],
     "notInstalled": [
       "antigravity",
       "copilot",
@@ -9368,14 +9437,6 @@
     ],
     "needsLogin": [
       "kimi-sdk"
-    ],
-    "liveModels": [
-      "builtin",
-      "claude",
-      "codex",
-      "grok",
-      "opencode",
-      "pi"
     ]
   }
 }

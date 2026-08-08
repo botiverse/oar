@@ -49,7 +49,7 @@ export {
 } from "./config/profile.js";
 export type { JsonSchema, EffectiveSchema, ConfigCheckCode } from "./config/profile.js";
 export type { DetectFailure, RuntimeDescriptor } from "./discovery/detect.js";
-export { detectAll } from "./discovery/detect.js";
+export { detectAll, detectAllRegistered } from "./discovery/detect.js";
 export {
   fixtureDescriptors,
   creatableDescriptors,
