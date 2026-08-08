@@ -19,6 +19,21 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
+/** Producer-side provenanceKind — never leave only the HTML renderer to invent this. */
+function provenanceKindOf(
+  d: { failure?: string; models: readonly unknown[] },
+  source: string,
+): string {
+  if (d.failure === "not_installed") return "not_installed";
+  if (d.failure === "needs_login") return "needs_login";
+  if (d.failure === "detect_failed") return "detect_failed";
+  if (d.failure === "models_unavailable") return "models_unavailable";
+  if (d.models.length === 0) return "models_unavailable";
+  if (/raft-daemon|SLOCK_DAEMON|sdk/i.test(source)) return "sdk_catalog_live";
+  if (/cache/i.test(source)) return "host_cli_cache";
+  return "host_cli_verified";
+}
+
 async function main() {
   const meta = hostDetectMeta();
   const drivers = createHostDrivers();
@@ -163,17 +178,35 @@ async function main() {
     }
   }
 
-  const evidence = descs.map((d) => ({
-    runtime: d.runtime,
-    version: d.version,
-    modelCount: d.models.length,
-    providerCount: d.providers?.length ?? 0,
-    failure: d.failure ?? null,
-    modelIds: d.models.slice(0, 12).map((m) => m.id),
-    optionsExample: d.models[0]
-      ? d.models[0].options.map((o) => o.id)
-      : [],
-  }));
+  const evidence = descs.map((d) => {
+    const source = meta.sources[d.runtime] ?? "host detect";
+    const provenanceKind = provenanceKindOf(d, source);
+    return {
+      runtime: d.runtime,
+      version: d.version,
+      modelCount: d.models.length,
+      providerCount: d.providers?.length ?? 0,
+      failure: d.failure ?? null,
+      // Four product states must be self-describing in JSON (not only HTML):
+      // ready | needs_login | not_installed | detect_failed|models_unavailable
+      provenanceKind,
+      source,
+      modelIds: d.models.slice(0, 12).map((m) => m.id),
+      optionsExample: d.models[0]
+        ? d.models[0].options.map((o) => o.id)
+        : [],
+    };
+  });
+
+  const notInstalled = descs.filter((d) => d.failure === "not_installed").map((d) => d.runtime);
+  const needsLogin = descs.filter((d) => d.failure === "needs_login").map((d) => d.runtime);
+  const detectFailed = descs.filter((d) => d.failure === "detect_failed").map((d) => d.runtime);
+  const modelsUnavailable = descs
+    .filter((d) => d.failure === "models_unavailable")
+    .map((d) => d.runtime);
+  const ready = descs
+    .filter((d) => d.failure === undefined && d.models.length > 0)
+    .map((d) => d.runtime);
 
   const payload = {
     provenance: {
@@ -187,6 +220,20 @@ async function main() {
       liveProbeJson: process.env.OAR_LIVE_PROBE_JSON ?? null,
     },
     evidence,
+    /** Machine-readable four-state partition for testbed/oar acceptance (R3). */
+    ledger: {
+      registry: RAFT_DRIVER_REGISTRY.length,
+      creatable: offerable.size,
+      unavailable: baked.unavailable.length,
+      deprecated: dep.size,
+      sum_create_plus_unavail: offerable.size + baked.unavailable.length,
+      ready,
+      notInstalled,
+      needsLogin,
+      detectFailed,
+      modelsUnavailable,
+      liveModels: ready,
+    },
     deprecated: [...RAFT_DEPRECATED_FOR_CREATE],
     deprecatedExcluded: [...dep].map((runtime) => ({ runtime, reason: "deprecated" as const })),
     unavailable: baked.unavailable,
@@ -256,13 +303,13 @@ button.secondary{background:#fff;color:#0f172a}
 pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:.78rem}
 .ok{color:#15803d;font-weight:600}.bad{color:#b91c1c;font-weight:600}
 .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#e2e8f0;margin:2px;font-size:.72rem}
-.pill.on{background:#dcfce7}.pill.dep{background:#fef3c7}.pill.off{background:#fee2e2}
+.pill.on{background:#dcfce7}.pill.dep{background:#fef3c7}.pill.off{background:#fee2e2}.pill.login{background:#dbeafe}
 table{width:100%;border-collapse:collapse;font-size:.8rem}
 td,th{border-bottom:1px solid #e2e8f0;padding:6px 4px;text-align:left;vertical-align:top}
 </style></head><body>
 <h1>OAR create-agent form — LIVE host detect</h1>
 <p class="sub" id="prov"></p>
-<div class="card"><strong>Registry ledger</strong><div id="ledger"></div></div>
+<div class="card"><strong>Registry ledger + four-state</strong><div id="ledger"></div></div>
 <div class="card"><strong>Evidence (per runtime)</strong><div id="evidence"></div></div>
 <div class="card"><div id="form"></div>
 <button id="btn-validate">Validate</button>
@@ -307,25 +354,28 @@ function renderLedger(){
   const dep=new Set(DATA.deprecated||[]);
   const unavail=new Set((DATA.unavailable||[]).map(u=>u.runtime));
   const all=DATA.provenance.registry;
+  const L=DATA.ledger||{};
   let html='host='+DATA.provenance.host+' · at='+DATA.provenance.at+' · mode='+DATA.provenance.mode+'<br/>';
-  const union=new Set([...offer,...dep,...unavail,...(DATA.detectedAll||[])]);
+  html+='ready=['+(L.ready||[]).join(', ')+'] · needsLogin=['+(L.needsLogin||[]).join(', ')+'] · notInstalled=['+(L.notInstalled||[]).join(', ')+'] · detectFailed=['+(L.detectFailed||[]).join(', ')+'] · modelsUnavailable=['+(L.modelsUnavailable||[]).join(', ')+']<br/>';
   // Close ledger: every registry id must appear in detectedAll or be explained
   const detected=new Set(DATA.detectedAll||[]);
   let missing=[];
   for(const id of all){ if(!detected.has(id) && !dep.has(id) && !unavail.has(id) && !offer.has(id)) missing.push(id); }
   html += (missing.length===0 ? '<span class="ok">REGISTRY COVERED ('+all.length+')</span>' : '<span class="bad">MISSING '+missing.join(',')+'</span>')+'<br/><br/>';
-  for(const id of all){
-    let cls='pill', tag=id;
-    if(dep.has(id)) { cls+=' dep'; tag+=' (deprecated)'; }
-    else if(offer.has(id)) { cls+=' on'; tag+=' (create/'+((DATA.evidence.find(e=>e.runtime===id)||{}).modelCount||0)+' models)'; }
-    else { cls+=' off'; tag+=' (unavailable)'; }
-    html+='<span class="'+cls+'">'+tag+'</span>';
+  for(const e of (DATA.evidence||[])){
+    let cls='pill';
+    if(e.provenanceKind==='not_installed') cls+=' off';
+    else if(e.provenanceKind==='needs_login') cls+=' login';
+    else if(e.failure) cls+=' off';
+    else if(offer.has(e.runtime)) cls+=' on';
+    else if(dep.has(e.runtime)) cls+=' dep';
+    html+='<span class="'+cls+'">'+e.runtime+' · '+(e.provenanceKind||'?')+' · models='+e.modelCount+'</span>';
   }
   document.getElementById('ledger').innerHTML=html;
   document.getElementById('prov').textContent=DATA.provenance.note;
-  let ev='<table><tr><th>runtime</th><th>version</th><th>models</th><th>failure</th><th>sample ids</th></tr>';
+  let ev='<table><tr><th>runtime</th><th>provenanceKind</th><th>version</th><th>models</th><th>failure</th><th>source</th><th>sample ids</th></tr>';
   for(const e of DATA.evidence){
-    ev+='<tr><td>'+e.runtime+'</td><td>'+e.version+'</td><td>'+e.modelCount+'</td><td>'+(e.failure||'')+'</td><td>'+(e.modelIds||[]).slice(0,6).join(', ')+'</td></tr>';
+    ev+='<tr><td>'+e.runtime+'</td><td>'+(e.provenanceKind||'')+'</td><td>'+e.version+'</td><td>'+e.modelCount+'</td><td>'+(e.failure||'')+'</td><td style="max-width:240px;white-space:normal">'+(e.source||'')+'</td><td>'+(e.modelIds||[]).slice(0,6).join(', ')+'</td></tr>';
   }
   ev+='</table>';
   document.getElementById('evidence').innerHTML=ev;

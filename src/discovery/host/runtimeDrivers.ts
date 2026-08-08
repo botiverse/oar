@@ -8,8 +8,15 @@ import type { ModelInfo, ProviderInfo } from "../../config/model.js";
 import type { LaunchSpec } from "../../backend/process/lifecycle.js";
 import type { RuntimeEvent } from "../../events/event.js";
 import { fileExists, firstLineVersion, home, runText, which } from "../cli.js";
+import { ModelsProbeError } from "../detect.js";
 import { modelsOnly, modelsToInfo, type LiveModel } from "./mapModels.js";
 
+/** CLI stderr/stdout that means "binary is there; auth is not". */
+function looksLikeNeedsLogin(text: string): boolean {
+  return /please sign in|sign in to view|not (logged|signed) in|login required|authentication required|missing_config|kimi_login|auth required/i.test(
+    text,
+  );
+}
 const emptyDecl = async (): Promise<Declaration> => ({
   capabilities: { steer: false, interrupt: false, resume: false, interceptToolCalls: false },
   config: { options: [], unsupported: [] },
@@ -186,6 +193,42 @@ function binaryOnly(
 }
 
 /**
+ * Antigravity (`agy`): binary may be present while models require interactive sign-in.
+ * That must surface as needs_login, never as failure:undefined + models=0.
+ */
+function antigravityDriver(): RuntimeDriver {
+  return baseDriver("antigravity", {
+    detect: async () => versionVia("agy"),
+    models: async () => {
+      const path = which("agy");
+      if (!path) return [];
+      const r = runText(path, ["models"], { timeoutMs: 20_000 });
+      const text = `${r.stdout}\n${r.stderr}`;
+      if (looksLikeNeedsLogin(text)) {
+        throw new ModelsProbeError(
+          "needs_login",
+          (text.trim().split(/\r?\n/).find(Boolean) ?? "agy models requires sign-in").slice(0, 240),
+        );
+      }
+      if (r.code !== 0 && !r.stdout.trim()) {
+        // Non-zero without a login phrase — still not "healthy empty".
+        throw new ModelsProbeError(
+          "models_unavailable",
+          (text.trim().slice(0, 240) || `agy models exit ${String(r.code)}`),
+        );
+      }
+      const ids: string[] = [];
+      for (const line of text.split(/\r?\n/)) {
+        const t = line.trim();
+        if (!t || /error|warning|please|sign/i.test(t)) continue;
+        const mm = t.match(/^[\*\-•]\s+(\S+)/) ?? t.match(/^(\S+\/\S+)/);
+        if (mm?.[1]) ids.push(mm[1]);
+      }
+      return modelsOnly(ids.map((id) => ({ id, label: id })));
+    },
+  });
+}
+/**
  * Builtin / Pi: model catalog comes from the in-process Pi agent stack.
  * When SLOCK_DAEMON_ROOT is set, we shell to the monorepo probe (same code path
  * Raft Computer uses). Without it, report detect_failed-style empty models after detect.
@@ -308,7 +351,7 @@ export function createHostDrivers(): readonly RuntimeDriver[] {
     claudeDriver(),
     codexDriver(),
     grokDriver(),
-    binaryOnly("antigravity", "agy", async () => []),
+    antigravityDriver(),
     binaryOnly("copilot", "copilot", async () =>
       modelsToInfo("copilot", [
         {
@@ -332,7 +375,11 @@ export function createHostDrivers(): readonly RuntimeDriver[] {
       models: async () => {
         const live = await raftDriverProbeModels("kimi-sdk");
         if (live && live.length > 0) return modelsOnly(live);
-        return []; // missing_config → models_unavailable after detectAll
+        // Empty after probe (or no daemon root) — treat as login/config, not "healthy 0".
+        throw new ModelsProbeError(
+          "needs_login",
+          "kimi-sdk models empty / missing_config (kimi_login)",
+        );
       },
     }),
     opencodeDriver(),
@@ -357,12 +404,12 @@ export function hostDetectMeta(): HostDetectMeta {
       opencode: "opencode --version + opencode models",
       builtin: "SLOCK_DAEMON_ROOT raft-daemon detectModels (live)",
       pi: "SLOCK_DAEMON_ROOT raft-daemon detectModels (live)",
-      antigravity: "which agy",
+      antigravity: "agy --version + agy models (needs_login when sign-in required)",
       copilot: "which copilot",
       cursor: "which cursor-agent",
       gemini: "which gemini",
       kimi: "which kimi",
-      "kimi-sdk": "raft-daemon detectModels / missing_config",
+      "kimi-sdk": "raft-daemon detectModels / missing_config → needs_login",
     },
   };
 }

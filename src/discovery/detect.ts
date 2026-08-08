@@ -8,11 +8,30 @@ import type { ModelInfo, ProviderInfo } from "../config/model.js";
 
 /**
  * Why a runtime is not offering models. CLOSED set — never a raw exception string.
+ *
+ * Three product states for testbed/oar acceptance (R3) must stay distinguishable:
+ * - not_installed — binary/driver absent
+ * - needs_login — installed but auth required before model list works
+ * - models_unavailable / detect_failed — installed-ish but probe failed without a clean login signal
  */
 export type DetectFailure =
-  | "models_unavailable" // detect() ok, models() empty/failed
+  | "models_unavailable" // detect() ok, models() empty/failed (not a clean login signal)
   | "detect_failed" // detect() threw — installed-ness UNKNOWN, not "absent"
-  | "not_installed"; // known registry runtime, host detect returned absent
+  | "not_installed" // known registry runtime, host detect returned absent
+  | "needs_login"; // installed; models probe says sign-in required
+
+/**
+ * Drivers throw this from models() when the CLI is present but auth-gated.
+ * Must not be collapsed into empty-models + failure:undefined (looks "healthy").
+ */
+export class ModelsProbeError extends Error {
+  readonly failure: DetectFailure;
+  constructor(failure: DetectFailure, message: string) {
+    super(message);
+    this.name = "ModelsProbeError";
+    this.failure = failure;
+  }
+}
 
 export interface RuntimeDescriptor {
   readonly runtime: string;
@@ -45,13 +64,35 @@ async function detectOne(d: RuntimeDriver): Promise<RuntimeDescriptor | null> {
     const models = await d.models();
     const providers =
       typeof d.providers === "function" ? await d.providers() : undefined;
+    const hasProviderModels = Boolean(
+      providers && providers.some((p) => p.models.length > 0),
+    );
+    // Empty model catalog after successful detect is NOT "healthy" — mark unavailable
+    // so it never shares shape with creatable runtimes (failure:undefined + models>0).
+    if (models.length === 0 && !hasProviderModels) {
+      return {
+        runtime: d.id,
+        version: det.version,
+        models: [],
+        ...(providers !== undefined ? { providers } : {}),
+        failure: "models_unavailable",
+      };
+    }
     return {
       runtime: d.id,
       version: det.version,
       models,
       ...(providers !== undefined ? { providers } : {}),
     };
-  } catch {
+  } catch (err) {
+    if (err instanceof ModelsProbeError) {
+      return {
+        runtime: d.id,
+        version: det.version,
+        models: [],
+        failure: err.failure,
+      };
+    }
     return {
       runtime: d.id,
       version: det.version,
