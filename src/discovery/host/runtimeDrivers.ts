@@ -47,7 +47,7 @@ export function hostDetectMeta(): HostDetectMeta {
       grok: "grok --version + grok models",
       opencode: "opencode --version + opencode models",
       pi: "SDK in-process: package version + ModelRuntime.create({allowModelNetwork:false}).getAvailableSnapshot()",
-      kimi: "SDK config pure-read: $KIMI_CODE_HOME|~/.kimi-code/config.toml [models.*] (raft detectKimiSdkModels shape)",
+      kimi: "version: @botiverse/kimi-code-sdk package or kimi --version; models: $KIMI_CODE_HOME|~/.kimi-code/config.toml [models.*]",
       antigravity: "agy --version + agy models (needs_login when sign-in required)",
       copilot: "which copilot",
       cursor: "which cursor-agent",
