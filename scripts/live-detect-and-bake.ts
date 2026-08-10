@@ -1,7 +1,7 @@
 /**
  * Live host detect → form schema → offline HTML.
  * Usage:
- *   SLOCK_DAEMON_ROOT=... OAR_LIVE_PROBE_JSON=... npx tsx scripts/live-detect-and-bake.ts
+ *   pnpm exec tsx scripts/live-detect-and-bake.ts
  */
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -214,10 +214,8 @@ async function main() {
       host: hostname(),
       mode: "live-host-detect",
       note:
-        "Models/options come from oar host drivers (CLI/cache) and optional raft-daemon live probe cache — not hand-authored fixture catalogs.",
+        "Models/options come from oar host drivers (CLI/cache/SDK in-process) — not hand-authored fixture catalogs.",
       registry: [...RAFT_DRIVER_REGISTRY],
-      slockDaemonRoot: process.env.SLOCK_DAEMON_ROOT ?? null,
-      liveProbeJson: process.env.OAR_LIVE_PROBE_JSON ?? null,
     },
     evidence,
     /** Machine-readable four-state partition for testbed/oar acceptance (R3). */

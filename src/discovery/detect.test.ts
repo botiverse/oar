@@ -92,3 +92,60 @@ test("ready: models non-empty, failure undefined", async () => {
   assert.equal(descs[0]!.failure, undefined);
   assert.equal(descs[0]!.models.length, 1);
 });
+
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+test("timings present and delay does not change failure state", async () => {
+  const descs = await detectAllRegistered(
+    [
+      stub(
+        "slow-ok",
+        async () => {
+          await delay(30);
+          return { version: "1" };
+        },
+        async () => {
+          await delay(40);
+          return [{ id: "m1", label: "m1", options: [] }];
+        },
+      ),
+    ],
+    ["slow-ok"],
+  );
+  const d0 = descs[0];
+  assert.ok(d0);
+  assert.equal(d0.failure, undefined);
+  assert.ok(d0.timings);
+  const tm = d0.timings;
+  assert.ok(tm.detectMs >= 20);
+  assert.ok((tm.modelsMs ?? 0) >= 20);
+  assert.ok(tm.totalMs >= tm.detectMs);
+});
+
+test("models budget timeout yields models_unavailable with timings", async () => {
+  const descs = await detectAllRegistered(
+    [
+      stub(
+        "hang-models",
+        async () => ({ version: "1" }),
+        async () => {
+          await delay(200);
+          return [{ id: "m1", label: "m1", options: [] }];
+        },
+      ),
+    ],
+    ["hang-models"],
+    { modelsBudgetMs: 30 },
+  );
+  const d0 = descs[0];
+  assert.ok(d0);
+  assert.equal(d0.failure, "models_unavailable");
+  assert.ok(d0.timings);
+  assert.ok((d0.timings.modelsMs ?? 0) >= 25);
+  assert.equal(d0.models.length, 0);
+});

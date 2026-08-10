@@ -12,7 +12,7 @@ export type LiveModel = {
   additionalSpeedTiers?: readonly string[];
 };
 
-const REASONING_RUNTIMES = new Set(["claude", "codex", "grok", "copilot", "pi"]);
+const REASONING_RUNTIMES = new Set(["claude", "codex", "grok", "copilot", "pi", "kimi"]);
 
 export function modelsToInfo(runtime: string, models: readonly LiveModel[]): readonly ModelInfo[] {
   return models.map((m) => {

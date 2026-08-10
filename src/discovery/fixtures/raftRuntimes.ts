@@ -1,7 +1,6 @@
 /**
  * Offline fixtures aligned to Raft registry:
- * packages/daemon/src/drivers/index.ts driverFactories (12 ids)
- * packages/shared RUNTIMES (same 12; kimi + gemini deprecated for new agents)
+ * External host runtimes for detect (pi is the sole Pi-stack id; packed builtin is not listed).
  *
  * Form width follows design tiers — not full harness config surface.
  */
@@ -9,9 +8,12 @@
 import type { RuntimeDescriptor } from "../detect.js";
 import { boolOpt, enumOpt, model } from "../../config/model.js";
 
-/** Authoritative registry ids — must match daemon driverFactories keys. */
+/**
+ * Host runtime ids for detect enumeration.
+ * Product ids (pi, kimi) use SDK probe paths — not CLI binary names.
+ * Bridge to raft-computer internal ids (builtin, kimi-sdk) is adapter-layer.
+ */
 export const RAFT_DRIVER_REGISTRY = [
-  "builtin",
   "claude",
   "codex",
   "grok",
@@ -20,12 +22,11 @@ export const RAFT_DRIVER_REGISTRY = [
   "cursor",
   "gemini",
   "kimi",
-  "kimi-sdk",
   "opencode",
   "pi",
 ] as const;
 
-export const RAFT_DEPRECATED_FOR_CREATE = ["kimi", "gemini"] as const;
+export const RAFT_DEPRECATED_FOR_CREATE = ["gemini"] as const;
 
 const REASONING_FULL = ["none", "low", "medium", "high", "xhigh", "max"] as const;
 const REASONING_STD = ["low", "medium", "high"] as const;
@@ -78,15 +79,6 @@ export function fixtureDescriptors(): readonly RuntimeDescriptor[] {
       ],
     },
     {
-      runtime: "builtin",
-      label: "Built-in Pi",
-      version: "fixture-1",
-      models: [
-        model("deepseek-chat", "DeepSeek Chat", [reasoning([...THINKING])]),
-        model("deepseek-reasoner", "DeepSeek Reasoner", [reasoning([...THINKING])]),
-      ],
-    },
-    {
       runtime: "antigravity",
       label: "Antigravity CLI",
       version: "fixture-1",
@@ -96,12 +88,12 @@ export function fixtureDescriptors(): readonly RuntimeDescriptor[] {
       ],
     },
     {
-      runtime: "kimi-sdk",
+      runtime: "kimi",
       label: "Kimi Code",
       version: "fixture-1",
       models: [
-        model("kimi-k2", "Kimi K2", []),
-        model("kimi-latest", "Kimi Latest", []),
+        model("kimi-code/kimi-for-coding", "K2.7 Coding", []),
+        model("kimi-code/k3", "K3", [enumOpt("reasoningEffort", "Reasoning", ["low", "high", "max"])]),
       ],
     },
     {
@@ -184,14 +176,7 @@ export function fixtureDescriptors(): readonly RuntimeDescriptor[] {
         },
       ],
     },
-    // Deprecated — still in registry; fixtures include them so ledger can close at 12.
-    // Create form excludes them (same as Raft isRuntimeSelectableForNewAgent).
-    {
-      runtime: "kimi",
-      label: "Kimi CLI (deprecated)",
-      version: "fixture-1",
-      models: [model("kimi-k2", "Kimi K2", [])],
-    },
+    // Deprecated — still in registry; create form excludes them.
     {
       runtime: "gemini",
       label: "Gemini CLI (deprecated)",

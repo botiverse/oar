@@ -1,93 +1,219 @@
 /**
  * `oar` CLI entry.
  *
- * Deliberately a thin shell over already-merged modules: no detection logic, no
- * schema logic, no formatting rules that do not already exist. Anything this
- * file decides for itself is a second source of truth waiting to drift from the
- * library, which is the failure this project has been paying down all week.
+ * Thin shell over library modules. Detection logic lives in discovery/; this
+ * file only chooses presentation (table / json / profile / debug).
  */
 
 import { Command } from "commander";
 import { spawn } from "node:child_process";
-import { detectAllRegistered, type RuntimeDescriptor } from "./discovery/detect.js";
+import {
+  detectAllRegistered,
+  type RuntimeDescriptor,
+  type RuntimeTimings,
+  MODELS_PROBE_BUDGET_MS,
+} from "./discovery/detect.js";
 import { createHostDrivers } from "./discovery/host/runtimeDrivers.js";
 import { RAFT_DRIVER_REGISTRY } from "./discovery/fixtures/raftRuntimes.js";
 
 /**
  * Human-readable status for one runtime.
- *
- * The four failure states are printed verbatim and never merged. `needs_login`
- * and `models_unavailable` in particular describe different worlds — signed out
- * versus present-but-no-models — and collapsing them into "0 models" is the
- * exact defect this discovery layer was built to fix. A renderer that helpfully
- * simplifies them would silently reintroduce it.
+ * Failure states print verbatim and never merge.
  */
 function statusLine(d: RuntimeDescriptor): string {
   const name = (d.label ?? d.runtime).padEnd(14);
   const version = (d.version || "unknown").padEnd(12);
   const modelCount = d.providers?.length
-    ? `${d.providers.length} provider(s)`
+    ? `${d.providers.length} provider(s) / ${d.providers.reduce((n, p) => n + p.models.length, 0)} model(s)`
     : `${d.models.length} model(s)`;
   const failure = d.failure ? `  failure=${d.failure}` : "";
-  return `${name} ${version} ${modelCount.padEnd(16)}${failure}`;
+  return `${name} ${version} ${modelCount.padEnd(28)}${failure}`;
+}
+
+function formatTimings(t: RuntimeTimings | undefined): string {
+  if (!t) return "  timings=-";
+  const models = t.modelsMs === null ? "-" : `${Math.round(t.modelsMs)}ms`;
+  return `  detect=${Math.round(t.detectMs)}ms models=${models} total=${Math.round(t.totalMs)}ms`;
+}
+
+/** Print every model (and provider axis when present). */
+function writeModelsDetail(d: RuntimeDescriptor): void {
+  if (d.providers && d.providers.length > 0) {
+    for (const p of d.providers) {
+      process.stdout.write(`  [${p.id}] ${p.label}\n`);
+      if (p.models.length === 0) {
+        process.stdout.write(`    (no models)\n`);
+        continue;
+      }
+      for (const m of p.models) {
+        const opts =
+          m.options.length > 0
+            ? `  options=${m.options.map((o) => o.id).join(",")}`
+            : "";
+        process.stdout.write(`    ${m.id.padEnd(40)} ${m.label}${opts}\n`);
+      }
+    }
+    return;
+  }
+  if (d.models.length === 0) {
+    process.stdout.write(`  (no models)\n`);
+    return;
+  }
+  for (const m of d.models) {
+    const opts =
+      m.options.length > 0 ? `  options=${m.options.map((o) => o.id).join(",")}` : "";
+    process.stdout.write(`  ${m.id.padEnd(40)} ${m.label}${opts}\n`);
+  }
 }
 
 /**
- * v1 machine projection — deliberately NARROWER than `RuntimeDescriptor`.
- *
- * Consumption boundary set by @Jianwei (`#wg-oar`): Testbed may only eat a
- * versioned, stable projection, never the whole current `detectAll()` shape.
- * `models` is excluded on purpose: its `support → options` structure is still
- * pending §4.2–4.4, so emitting it in v1 would make Testbed a signed-up
- * consumer of a type we already know is going to change. The human table below
- * may still show a model count — Testbed simply does not sign off on that
- * column.
- *
- * `failure` stays a closed set and keeps the explicit unknown states
- * (`detect_failed` / `needs_login` / `models_unavailable`) distinct.
+ * v1 machine projection for full-board detect — deliberately NARROWER than RuntimeDescriptor.
+ * models excluded (Jianwei). timings is additive metadata Testbed may ignore.
  */
 interface DetectV1Row {
   readonly schemaVersion: 1;
   readonly runtime: string;
   readonly version: string;
   readonly failure: RuntimeDescriptor["failure"] | null;
+  readonly timings: {
+    readonly unit: "ms";
+    readonly detectMs: number;
+    readonly modelsMs: number | null;
+    readonly totalMs: number;
+    readonly modelsBudgetMs: number;
+  };
 }
 
 function toV1(d: RuntimeDescriptor): DetectV1Row {
+  const t = d.timings ?? { detectMs: 0, modelsMs: null, totalMs: 0 };
   return {
     schemaVersion: 1,
     runtime: d.runtime,
     version: d.version,
     failure: d.failure ?? null,
+    timings: {
+      unit: "ms",
+      detectMs: t.detectMs,
+      modelsMs: t.modelsMs,
+      totalMs: t.totalMs,
+      modelsBudgetMs: MODELS_PROBE_BUDGET_MS,
+    },
   };
 }
 
-async function runDetect(opts: { json?: boolean }): Promise<void> {
-  const descriptors = await detectAllRegistered(createHostDrivers(), RAFT_DRIVER_REGISTRY);
+/** Single-runtime detail JSON — includes models (human asked to list them). */
+function toDetailJson(d: RuntimeDescriptor) {
+  return {
+    ...toV1(d),
+    models: d.models.map((m) => ({
+      id: m.id,
+      label: m.label,
+      options: m.options.map((o) => o.id),
+    })),
+    providers: d.providers?.map((p) => ({
+      id: p.id,
+      label: p.label,
+      models: p.models.map((m) => ({
+        id: m.id,
+        label: m.label,
+        options: m.options.map((o) => o.id),
+      })),
+    })),
+  };
+}
+
+async function runDetect(opts: {
+  runtime?: string;
+  json?: boolean;
+  profile?: boolean;
+  debug?: boolean;
+}): Promise<void> {
+  if (opts.debug) {
+    process.stderr.write(
+      "oar detect --debug: command-level trace not yet wired through host drivers; "
+        + "use --profile for phase timings. Full allowlist capture lands next.\n",
+    );
+  }
+
+  const allDrivers = createHostDrivers();
+  const runtimeFilter = opts.runtime?.trim();
+
+  if (runtimeFilter) {
+    const known = new Set<string>([...RAFT_DRIVER_REGISTRY, ...allDrivers.map((d) => d.id)]);
+    if (!known.has(runtimeFilter)) {
+      process.stderr.write(
+        `oar: unknown runtime "${runtimeFilter}". registry: ${RAFT_DRIVER_REGISTRY.join(", ")}\n`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  // Single-runtime: only run that driver (avoids spawnSync event-loop starvation
+  // from probing every CLI in parallel) and give models phase more headroom.
+  const drivers = runtimeFilter
+    ? allDrivers.filter((d) => d.id === runtimeFilter)
+    : allDrivers;
+  const registry = runtimeFilter
+    ? ([runtimeFilter] as string[])
+    : ([...RAFT_DRIVER_REGISTRY] as string[]);
+  const modelsBudgetMs = runtimeFilter ? 30_000 : MODELS_PROBE_BUDGET_MS;
+
+  const descriptors = await detectAllRegistered(drivers, registry, { modelsBudgetMs });
 
   if (opts.json) {
-    process.stdout.write(`${JSON.stringify(descriptors.map(toV1), null, 2)}\n`);
+    if (runtimeFilter) {
+      process.stdout.write(`${JSON.stringify(descriptors.map(toDetailJson), null, 2)}\n`);
+    } else {
+      process.stdout.write(`${JSON.stringify(descriptors.map(toV1), null, 2)}\n`);
+    }
     return;
   }
 
-  for (const d of descriptors) process.stdout.write(`${statusLine(d)}\n`);
+  for (const d of descriptors) {
+    let line = statusLine(d);
+    if (opts.profile) line += formatTimings(d.timings);
+    process.stdout.write(`${line}\n`);
+    // `oar detect <runtime>` always lists every model.
+    if (runtimeFilter) writeModelsDetail(d);
+  }
 
-  const unavailable = descriptors.filter((d) => d.failure).length;
-  process.stdout.write(
-    `\n${descriptors.length} runtime(s) in registry, ${descriptors.length - unavailable} usable, `
-    + `${unavailable} with a failure state.\n`,
-  );
+  if (!runtimeFilter) {
+    const unavailable = descriptors.filter((d) => d.failure).length;
+    process.stdout.write(
+      `\n${descriptors.length} runtime(s) in registry, ${descriptors.length - unavailable} usable, `
+        + `${unavailable} with a failure state.\n`,
+    );
+  }
+
+  if (opts.profile) {
+    const sum = descriptors.reduce((s, d) => s + (d.timings?.totalMs ?? 0), 0);
+    const wall = Math.max(...descriptors.map((d) => d.timings?.totalMs ?? 0), 0);
+    process.stdout.write(
+      `profile: sum(totalMs)=${Math.round(sum)} wall≈max(totalMs)=${Math.round(wall)} `
+        + `modelsBudgetMs=${modelsBudgetMs}\n`,
+    );
+    for (const d of descriptors) {
+      const total = d.timings?.totalMs ?? 0;
+      if (total >= 1000) {
+        process.stderr.write(
+          `oar: slow probe ${d.runtime} total=${Math.round(total)}ms\n`,
+        );
+      }
+    }
+  }
 }
 
 async function runDemo(opts: { open?: boolean }): Promise<void> {
-  // The demo HTML is produced by the existing bake script; shelling out to it
-  // keeps one builder rather than a second copy that can drift.
   const script = new URL("../scripts/bake-create-agent-demo.ts", import.meta.url).pathname;
   const child = spawn("npx", ["--yes", "tsx", script], {
     stdio: opts.open ? "inherit" : ["ignore", "inherit", "inherit"],
   });
   await new Promise<void>((resolve, reject) => {
-    child.on("exit", (code) => { if (code === 0) { resolve(); } else { reject(new Error(`bake exited ${code}`)); } });
+    child.on("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`bake exited ${code}`));
+    });
     child.on("error", reject);
   });
 }
@@ -101,11 +227,24 @@ export function buildProgram(): Command {
 
   program
     .command("detect")
-    .description("Detect host runtimes and report the four-state status of each")
-    .option("--json", "emit raw RuntimeDescriptor[] as JSON")
-    .action(async (opts: { json?: boolean }) => {
-      await runDetect(opts);
-    });
+    .description(
+      "Detect host runtimes (four-state). Optional <runtime> probes only that id and lists all models.",
+    )
+    .argument("[runtime]", "runtime id (e.g. pi, codex, kimi) — list all models for that runtime")
+    .option("--json", "emit JSON (full board: v1 narrow; single runtime: includes models)")
+    .option("--profile", "human table with per-runtime phase timings (ms)")
+    .option("--debug", "emit probe debug on stderr (not mixed into --json stdout)")
+    .action(
+      async (
+        runtime: string | undefined,
+        opts: { json?: boolean; profile?: boolean; debug?: boolean },
+      ) => {
+        await runDetect({
+          ...opts,
+          ...(runtime !== undefined ? { runtime } : {}),
+        });
+      },
+    );
 
   program
     .command("demo")
@@ -118,10 +257,13 @@ export function buildProgram(): Command {
   return program;
 }
 
-const invokedDirectly = process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop() ?? "");
+const invokedDirectly =
+  process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop() ?? "");
 if (invokedDirectly || process.env.OAR_CLI_FORCE_RUN) {
-  buildProgram().parseAsync(process.argv).catch((err: unknown) => {
-    process.stderr.write(`oar: ${err instanceof Error ? err.message : String(err)}\n`);
-    process.exitCode = 1;
-  });
+  buildProgram()
+    .parseAsync(process.argv)
+    .catch((err: unknown) => {
+      process.stderr.write(`oar: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exitCode = 1;
+    });
 }

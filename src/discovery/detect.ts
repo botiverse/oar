@@ -21,6 +21,34 @@ export type DetectFailure =
   | "needs_login"; // installed; models probe says sign-in required
 
 /**
+ * Per-runtime phase timings (ms). First-class on every live collection record.
+ * Does not alter the four DetectFailure states.
+ */
+export interface RuntimeTimings {
+  readonly detectMs: number;
+  /** null when models() was not invoked (detect failed / absent). */
+  readonly modelsMs: number | null;
+  readonly totalMs: number;
+}
+
+/** Soft budget for models(); exceeded → models_unavailable (typed), not hang-the-sweep. */
+export const MODELS_PROBE_BUDGET_MS = 5_000;
+
+/**
+ * Optional probe trace for --debug. Default empty so the hot path stays quiet
+ * and free of raw CLI dumps (which may contain credential-shaped material).
+ */
+export interface ProbeTraceEvent {
+  readonly phase: "detect" | "models";
+  readonly command?: string;
+  readonly exitCode?: number | null;
+  readonly durationMs: number;
+  readonly stdoutExcerpt?: string;
+  readonly stderrExcerpt?: string;
+  readonly note?: string;
+}
+
+/**
  * Drivers throw this from models() when the CLI is present but auth-gated.
  * Must not be collapsed into empty-models + failure:undefined (looks "healthy").
  */
@@ -43,61 +71,159 @@ export interface RuntimeDescriptor {
   /** Provider axis (e.g. pi). When present and non-empty, schema uses provider→model. */
   readonly providers?: readonly ProviderInfo[];
   readonly failure?: DetectFailure;
+  /** Always present on live detect paths; offline fixtures may omit. */
+  readonly timings?: RuntimeTimings;
+  /**
+   * In-process / non-CLI capability (pi is SDK-only in oar for now).
+   * Optional; not required for the four failure states.
+   */
+  readonly inProcess?: boolean;
+  /** Only populated when detect is run with debug tracing enabled. */
+  readonly debug?: readonly ProbeTraceEvent[];
 }
 
-async function detectOne(d: RuntimeDriver): Promise<RuntimeDescriptor | null> {
+export type DetectCollectOptions = {
+  /** Soft budget for models() phase. Default MODELS_PROBE_BUDGET_MS. */
+  readonly modelsBudgetMs?: number;
+};
+
+function nowMs(): number {
+  return performance.now();
+}
+
+function timingsOf(detectMs: number, modelsMs: number | null): RuntimeTimings {
+  return {
+    detectMs,
+    modelsMs,
+    totalMs: detectMs + (modelsMs ?? 0),
+  };
+}
+
+async function withBudget<T>(
+  budgetMs: number,
+  work: () => Promise<T>,
+): Promise<{ ok: true; value: T; ms: number } | { ok: false; ms: number }> {
+  const t0 = nowMs();
+  let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+  try {
+    const value = await Promise.race([
+      work().then((v) => ({ tag: "value" as const, v })),
+      new Promise<{ tag: "timeout" }>((resolve) => {
+        timer = setTimeout(() => resolve({ tag: "timeout" }), budgetMs);
+      }),
+    ]);
+    const ms = nowMs() - t0;
+    if (value.tag === "timeout") return { ok: false, ms };
+    return { ok: true, value: value.v, ms };
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+type OneResult =
+  | { kind: "absent"; timings: RuntimeTimings }
+  | { kind: "present"; desc: RuntimeDescriptor };
+
+async function detectOne(
+  d: RuntimeDriver,
+  opts: DetectCollectOptions,
+): Promise<OneResult> {
+  const budget = opts.modelsBudgetMs ?? MODELS_PROBE_BUDGET_MS;
+  const tDetect0 = nowMs();
   let det: { readonly version: string } | null = null;
   try {
     det = await d.detect();
   } catch {
+    const detectMs = nowMs() - tDetect0;
     return {
-      runtime: d.id,
-      version: "unknown",
-      models: [],
-      failure: "detect_failed",
+      kind: "present",
+      desc: {
+        runtime: d.id,
+        version: "unknown",
+        models: [],
+        failure: "detect_failed",
+        timings: timingsOf(detectMs, null),
+      },
     };
   }
+  const detectMs = nowMs() - tDetect0;
   if (det === null) {
-    return null;
+    return { kind: "absent", timings: timingsOf(detectMs, null) };
   }
+
+  const tModels0 = nowMs();
   try {
-    const models = await d.models();
-    const providers =
-      typeof d.providers === "function" ? await d.providers() : undefined;
+    const raced = await withBudget(budget, async () => {
+      const models = await d.models();
+      const providers =
+        typeof d.providers === "function" ? await d.providers() : undefined;
+      return { models, providers };
+    });
+
+    if (!raced.ok) {
+      return {
+        kind: "present",
+        desc: {
+          runtime: d.id,
+          version: det.version,
+          models: [],
+          failure: "models_unavailable",
+          timings: timingsOf(detectMs, raced.ms),
+        },
+      };
+    }
+
+    const { models, providers } = raced.value;
+    const modelsMs = raced.ms;
     const hasProviderModels = Boolean(
       providers && providers.some((p) => p.models.length > 0),
     );
-    // Empty model catalog after successful detect is NOT "healthy" — mark unavailable
-    // so it never shares shape with creatable runtimes (failure:undefined + models>0).
     if (models.length === 0 && !hasProviderModels) {
       return {
-        runtime: d.id,
-        version: det.version,
-        models: [],
-        ...(providers !== undefined ? { providers } : {}),
-        failure: "models_unavailable",
+        kind: "present",
+        desc: {
+          runtime: d.id,
+          version: det.version,
+          models: [],
+          ...(providers !== undefined ? { providers } : {}),
+          failure: "models_unavailable",
+          timings: timingsOf(detectMs, modelsMs),
+        },
       };
     }
     return {
-      runtime: d.id,
-      version: det.version,
-      models,
-      ...(providers !== undefined ? { providers } : {}),
+      kind: "present",
+      desc: {
+        runtime: d.id,
+        version: det.version,
+        models,
+        ...(providers !== undefined ? { providers } : {}),
+        timings: timingsOf(detectMs, modelsMs),
+      },
     };
   } catch (err) {
+    const modelsMs = nowMs() - tModels0;
     if (err instanceof ModelsProbeError) {
       return {
-        runtime: d.id,
-        version: det.version,
-        models: [],
-        failure: err.failure,
+        kind: "present",
+        desc: {
+          runtime: d.id,
+          version: det.version,
+          models: [],
+          failure: err.failure,
+          timings: timingsOf(detectMs, modelsMs),
+        },
       };
     }
     return {
-      runtime: d.id,
-      version: det.version,
-      models: [],
-      failure: "models_unavailable",
+      kind: "present",
+      desc: {
+        runtime: d.id,
+        version: det.version,
+        models: [],
+        failure: "models_unavailable",
+        timings: timingsOf(detectMs, modelsMs),
+      },
     };
   }
 }
@@ -106,19 +232,15 @@ async function detectOne(d: RuntimeDriver): Promise<RuntimeDescriptor | null> {
  * Detect every runtime on this host.
  * Each driver's detect() is try/caught independently so one throw cannot sink the sweep.
  * null from detect() = genuinely not installed (omit). detect_failed is a distinct state.
- *
- * Tooth 13: every schema fetch path MUST call this (or equivalent fresh detect) —
- * do not serve a process-lifetime cached descriptor list as the form contract.
  */
 export async function detectAll(
   drivers: readonly RuntimeDriver[],
+  opts: DetectCollectOptions = {},
 ): Promise<readonly RuntimeDescriptor[]> {
-  const tasks: Promise<RuntimeDescriptor | null>[] = [];
-  for (const d of drivers) {
-    tasks.push(detectOne(d));
-  }
-  const out = await Promise.all(tasks);
-  return out.filter((desc): desc is RuntimeDescriptor => desc !== null);
+  const out = await Promise.all(drivers.map((d) => detectOne(d, opts)));
+  return out
+    .filter((r): r is { kind: "present"; desc: RuntimeDescriptor } => r.kind === "present")
+    .map((r) => r.desc);
 }
 
 /**
@@ -130,22 +252,40 @@ export async function detectAll(
 export async function detectAllRegistered(
   drivers: readonly RuntimeDriver[],
   registryIds: readonly string[],
+  opts: DetectCollectOptions = {},
 ): Promise<readonly RuntimeDescriptor[]> {
-  const found = await detectAll(drivers);
-  const foundIds = new Set(found.map((d) => d.runtime));
-  const out: RuntimeDescriptor[] = [...found];
+  const results = await Promise.all(
+    drivers.map((d) => detectOne(d, opts).then((r) => ({ id: d.id, r }))),
+  );
+  const byId = new Map<string, RuntimeDescriptor>();
+  for (const { id, r } of results) {
+    if (r.kind === "present") {
+      byId.set(r.desc.runtime, r.desc);
+    } else {
+      byId.set(id, {
+        runtime: id,
+        version: "unknown",
+        models: [],
+        failure: "not_installed",
+        timings: r.timings,
+      });
+    }
+  }
+
+  const out: RuntimeDescriptor[] = [];
   for (const id of registryIds) {
-    if (foundIds.has(id)) continue;
-    // Driver existed but returned null, or no driver.
+    const existing = byId.get(id);
+    if (existing) {
+      out.push(existing);
+      continue;
+    }
     out.push({
       runtime: id,
       version: "unknown",
       models: [],
       failure: "not_installed",
+      timings: timingsOf(0, null),
     });
   }
-  // Preserve registry order
-  const order = new Map(registryIds.map((id, i) => [id, i]));
-  out.sort((a, b) => (order.get(a.runtime) ?? 999) - (order.get(b.runtime) ?? 999));
   return out;
 }

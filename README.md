@@ -86,6 +86,24 @@ This pays out either way:
   boundary is genuinely larger than `oar` (ch.2's delivery half stays with the product), so the
   two names denote different things.
 
+## CLI (`oar detect`)
+
+Always use **pnpm** locally:
+
+```bash
+pnpm oar detect                 # all registry runtimes (four-state summary)
+pnpm oar detect pi              # one runtime: full models list (providers when present)
+pnpm oar detect codex --profile # phase timings (ms) on the human table
+pnpm oar detect kimi --json     # single-runtime JSON includes models; full-board --json stays v1-narrow
+pnpm oar detect --profile --json
+```
+
+- `<runtime>` must be a registry id (`claude`, `codex`, `grok`, `antigravity`, `copilot`,
+  `cursor`, `gemini`, `kimi`, `opencode`, `pi`). Unknown id → error + legal id list (no silent empty).
+- Four failure states stay explicit: `not_installed` / `needs_login` / `models_unavailable` /
+  `detect_failed`. `user-configured` escape models are listed, not collapsed.
+- Product ids `pi` and `kimi` probe **SDK paths only** (no CLI mode this round).
+
 ## Current state
 
 - A W1 prototype exists: event probes, a fake clock, and
