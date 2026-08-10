@@ -32,13 +32,41 @@ function statusLine(d: RuntimeDescriptor): string {
   return `${name} ${version} ${modelCount.padEnd(16)}${failure}`;
 }
 
+/**
+ * v1 machine projection — deliberately NARROWER than `RuntimeDescriptor`.
+ *
+ * Consumption boundary set by @Jianwei (`#wg-oar`): Testbed may only eat a
+ * versioned, stable projection, never the whole current `detectAll()` shape.
+ * `models` is excluded on purpose: its `support → options` structure is still
+ * pending §4.2–4.4, so emitting it in v1 would make Testbed a signed-up
+ * consumer of a type we already know is going to change. The human table below
+ * may still show a model count — Testbed simply does not sign off on that
+ * column.
+ *
+ * `failure` stays a closed set and keeps the explicit unknown states
+ * (`detect_failed` / `needs_login` / `models_unavailable`) distinct.
+ */
+interface DetectV1Row {
+  readonly schemaVersion: 1;
+  readonly runtime: string;
+  readonly version: string;
+  readonly failure: RuntimeDescriptor["failure"] | null;
+}
+
+function toV1(d: RuntimeDescriptor): DetectV1Row {
+  return {
+    schemaVersion: 1,
+    runtime: d.runtime,
+    version: d.version,
+    failure: d.failure ?? null,
+  };
+}
+
 async function runDetect(opts: { json?: boolean }): Promise<void> {
   const descriptors = await detectAllRegistered(createHostDrivers(), RAFT_DRIVER_REGISTRY);
 
   if (opts.json) {
-    // Raw descriptors, unshaped: a consumer diffing this against the library's
-    // own output should get byte equality, not a CLI dialect of it.
-    process.stdout.write(`${JSON.stringify(descriptors, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(descriptors.map(toV1), null, 2)}\n`);
     return;
   }
 
