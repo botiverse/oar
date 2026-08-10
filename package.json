@@ -9,12 +9,19 @@
     "check": "npm run typecheck && npm run lint",
     "teeth": "npx --yes tsx scripts/config-form-teeth.ts",
     "check-demo-html": "npx --yes tsx scripts/check-demo-html-js.ts artifacts-local/create-agent-form-live.html",
-    "embed-live": "npx --yes tsx scripts/embed-live-html.ts && npm run check-demo-html"
+    "embed-live": "npx --yes tsx scripts/embed-live-html.ts && npm run check-demo-html",
+    "oar": "npx --yes tsx src/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "oxlint": "^1.77.0",
     "oxlint-tsgolint": "^7.0.2001",
     "typescript": "^5.6.3"
+  },
+  "bin": {
+    "oar": "dist/cli.js"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
   }
 }

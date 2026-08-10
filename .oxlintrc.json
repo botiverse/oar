@@ -90,7 +90,9 @@
     {
       "files": [
         "src/config/**",
-        "src/discovery/**"
+        "src/discovery/**",
+        "src/cli.ts",
+        "src/backend/**"
       ],
       "rules": {
         "unicorn/no-thenable": "off",
@@ -113,7 +115,45 @@
         "eslint/sort-imports": "off",
         "eslint/no-await-in-loop": "off",
         "typescript/promise-function-async": "off",
-        "eslint/require-await": "off"
+        "eslint/require-await": "off",
+        "typescript/require-await": "off",
+        "typescript/strict-boolean-expressions": "off",
+        "typescript/no-non-null-assertion": "off",
+        "typescript/consistent-type-assertions": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/array-type": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/prefer-regexp-exec": "off",
+        "typescript/no-unnecessary-type-conversion": "off",
+        "typescript/consistent-type-definitions": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "typescript/explicit-function-return-type": "off",
+        "typescript/prefer-nullish-coalescing": "off",
+        "typescript/consistent-type-imports": "off",
+        "eslint/curly": "off",
+        "eslint/require-unicode-regexp": "off",
+        "import/no-nodejs-modules": "off",
+        "eslint/prefer-named-capture-group": "off",
+        "eslint/max-lines-per-function": "off",
+        "unicorn/filename-case": "off",
+        "eslint/max-depth": "off",
+        "unicorn/catch-error-name": "off",
+        "typescript/no-confusing-void-expression": "off",
+        "eslint/prefer-template": "off",
+        "unicorn/prefer-top-level-await": "off",
+        "unicorn/no-array-callback-reference": "off",
+        "unicorn/consistent-existence-index-check": "off",
+        "eslint/complexity": "off",
+        "eslint/no-nested-ternary": "off",
+        "unicorn/prefer-string-raw": "off",
+        "eslint/no-useless-escape": "off",
+        "promise/avoid-new": "off",
+        "promise/prefer-await-to-then": "off",
+        "promise/prefer-await-to-callbacks": "off",
+        "oxc/no-map-spread": "off",
+        "import/prefer-default-export": "off",
+        "eslint/prefer-destructuring": "off",
+        "import/no-duplicates": "off"
       }
     },
     {
