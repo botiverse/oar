@@ -1,0 +1,1400 @@
+{
+  "registry": [
+    "builtin",
+    "claude",
+    "codex",
+    "grok",
+    "antigravity",
+    "copilot",
+    "cursor",
+    "gemini",
+    "kimi",
+    "kimi-sdk",
+    "opencode",
+    "pi"
+  ],
+  "deprecated": [
+    "kimi",
+    "gemini"
+  ],
+  "deprecatedExcluded": [
+    {
+      "runtime": "kimi",
+      "reason": "deprecated"
+    },
+    {
+      "runtime": "gemini",
+      "reason": "deprecated"
+    }
+  ],
+  "unavailable": [],
+  "snapshotId": "ff6bf23f",
+  "schema": {
+    "type": "object",
+    "required": [
+      "runtime",
+      "auth"
+    ],
+    "properties": {
+      "runtime": {
+        "type": "string",
+        "enum": [
+          "claude",
+          "codex",
+          "grok",
+          "builtin",
+          "antigravity",
+          "kimi-sdk",
+          "copilot",
+          "cursor",
+          "opencode",
+          "pi"
+        ]
+      },
+      "auth": {
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ambient",
+              "explicit_key",
+              "delegated",
+              "gateway"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "const": "ambient"
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "properties": {
+                "credential": false
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "explicit_key",
+                    "delegated",
+                    "gateway"
+                  ]
+                }
+              },
+              "required": [
+                "mode"
+              ]
+            },
+            "then": {
+              "required": [
+                "credential"
+              ],
+              "properties": {
+                "credential": {
+                  "type": "object",
+                  "required": [
+                    "ref"
+                  ],
+                  "properties": {
+                    "ref": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "env": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "provider": {
+        "type": "string"
+      },
+      "model": {
+        "type": "string"
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "claude"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "opus",
+                "sonnet",
+                "haiku",
+                "user-configured"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "opus"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "fastMode": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "reasoningEffort",
+                  "fastMode"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "sonnet"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "fastMode": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "reasoningEffort",
+                  "fastMode"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "haiku"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "user-configured"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "codex"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "gpt-5.6",
+                "gpt-5.3-codex",
+                "gpt-5",
+                "gpt-4.1",
+                "user-configured"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gpt-5.6"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh",
+                      "max"
+                    ]
+                  },
+                  "fastMode": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "reasoningEffort",
+                  "fastMode"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gpt-5.3-codex"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh",
+                      "max"
+                    ]
+                  },
+                  "fastMode": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "reasoningEffort",
+                  "fastMode"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gpt-5"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  },
+                  "fastMode": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "reasoningEffort",
+                  "fastMode"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gpt-4.1"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "user-configured"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "grok"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "grok-4",
+                "grok-3"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "grok-4"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "grok-3"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "builtin"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "deepseek-chat",
+                "deepseek-reasoner"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "deepseek-chat"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "deepseek-reasoner"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "antigravity"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "gemini-2.5-pro",
+                "gemini-2.5-flash"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gemini-2.5-pro"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gemini-2.5-flash"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "kimi-sdk"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "kimi-k2",
+                "kimi-latest"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "kimi-k2"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "kimi-latest"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "copilot"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "gpt-4.1",
+                "claude-sonnet-4"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gpt-4.1"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "claude-sonnet-4"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "reasoningEffort": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ]
+                  }
+                },
+                "required": [
+                  "reasoningEffort"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "cursor"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "sonnet-4",
+                "gpt-5"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "auto"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "sonnet-4"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "gpt-5"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "opencode"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "openai/gpt-5",
+                "anthropic/claude-sonnet-4",
+                "deepseek/deepseek-chat",
+                "moonshotai/kimi-k2"
+              ]
+            }
+          },
+          "required": [
+            "model"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "openai/gpt-5"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "anthropic/claude-sonnet-4"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "deepseek/deepseek-chat"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "model": {
+                    "const": "moonshotai/kimi-k2"
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              },
+              "then": {
+                "properties": {}
+              }
+            }
+          ]
+        }
+      },
+      {
+        "if": {
+          "properties": {
+            "runtime": {
+              "const": "pi"
+            }
+          },
+          "required": [
+            "runtime"
+          ]
+        },
+        "then": {
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "deepseek",
+                "openai",
+                "anthropic",
+                "google"
+              ]
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "provider": {
+                    "const": "deepseek"
+                  }
+                },
+                "required": [
+                  "provider"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "deepseek-chat",
+                      "deepseek-reasoner"
+                    ]
+                  }
+                },
+                "required": [
+                  "model"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "model": {
+                          "const": "deepseek-chat"
+                        }
+                      },
+                      "required": [
+                        "model"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "thinkingLevel"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "model": {
+                          "const": "deepseek-reasoner"
+                        }
+                      },
+                      "required": [
+                        "model"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "thinkingLevel"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "provider": {
+                    "const": "openai"
+                  }
+                },
+                "required": [
+                  "provider"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "gpt-4.1",
+                      "o3"
+                    ]
+                  }
+                },
+                "required": [
+                  "model"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "model": {
+                          "const": "gpt-4.1"
+                        }
+                      },
+                      "required": [
+                        "model"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "thinkingLevel"
+                      ]
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "model": {
+                          "const": "o3"
+                        }
+                      },
+                      "required": [
+                        "model"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "thinkingLevel"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "provider": {
+                    "const": "anthropic"
+                  }
+                },
+                "required": [
+                  "provider"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "claude-sonnet-4"
+                    ]
+                  }
+                },
+                "required": [
+                  "model"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "model": {
+                          "const": "claude-sonnet-4"
+                        }
+                      },
+                      "required": [
+                        "model"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "thinkingLevel"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "provider": {
+                    "const": "google"
+                  }
+                },
+                "required": [
+                  "provider"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "enum": [
+                      "gemini-2.5-pro"
+                    ]
+                  }
+                },
+                "required": [
+                  "model"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "model": {
+                          "const": "gemini-2.5-pro"
+                        }
+                      },
+                      "required": [
+                        "model"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "thinkingLevel"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "labels": {
+    "runtime:claude": "Claude Code",
+    "model:claude:opus": "Opus",
+    "option:reasoningEffort": "Reasoning",
+    "choice:reasoningEffort:low": "low",
+    "choice:reasoningEffort:medium": "medium",
+    "choice:reasoningEffort:high": "high",
+    "option:fastMode": "Fast mode",
+    "model:claude:sonnet": "Sonnet",
+    "model:claude:haiku": "Haiku",
+    "model:claude:user-configured": "User-configured (env / config file)",
+    "runtime:codex": "Codex CLI",
+    "model:codex:gpt-5.6": "GPT-5.6",
+    "choice:reasoningEffort:none": "none",
+    "choice:reasoningEffort:xhigh": "xhigh",
+    "choice:reasoningEffort:max": "max",
+    "model:codex:gpt-5.3-codex": "GPT-5.3 Codex",
+    "model:codex:gpt-5": "GPT-5",
+    "model:codex:gpt-4.1": "GPT-4.1",
+    "model:codex:user-configured": "User-configured (isolated config dir)",
+    "runtime:grok": "Grok Build",
+    "model:grok:grok-4": "Grok 4",
+    "model:grok:grok-3": "Grok 3",
+    "runtime:builtin": "Built-in Pi",
+    "model:builtin:deepseek-chat": "DeepSeek Chat",
+    "choice:reasoningEffort:minimal": "minimal",
+    "model:builtin:deepseek-reasoner": "DeepSeek Reasoner",
+    "runtime:antigravity": "Antigravity CLI",
+    "model:antigravity:gemini-2.5-pro": "Gemini 2.5 Pro",
+    "model:antigravity:gemini-2.5-flash": "Gemini 2.5 Flash",
+    "runtime:kimi-sdk": "Kimi Code",
+    "model:kimi-sdk:kimi-k2": "Kimi K2",
+    "model:kimi-sdk:kimi-latest": "Kimi Latest",
+    "runtime:copilot": "Copilot CLI",
+    "model:copilot:gpt-4.1": "GPT-4.1",
+    "model:copilot:claude-sonnet-4": "Claude Sonnet 4",
+    "runtime:cursor": "Cursor CLI",
+    "model:cursor:auto": "Auto",
+    "model:cursor:sonnet-4": "Sonnet 4",
+    "model:cursor:gpt-5": "GPT-5",
+    "runtime:opencode": "OpenCode",
+    "model:opencode:openai/gpt-5": "OpenAI GPT-5",
+    "model:opencode:anthropic/claude-sonnet-4": "Anthropic Claude Sonnet 4",
+    "model:opencode:deepseek/deepseek-chat": "DeepSeek Chat",
+    "model:opencode:moonshotai/kimi-k2": "Kimi K2",
+    "runtime:pi": "Pi",
+    "provider:pi:deepseek": "DeepSeek",
+    "model:pi:deepseek:deepseek-chat": "DeepSeek Chat",
+    "model:pi:deepseek-chat": "DeepSeek Chat",
+    "option:thinkingLevel": "Thinking",
+    "choice:thinkingLevel:minimal": "minimal",
+    "choice:thinkingLevel:low": "low",
+    "choice:thinkingLevel:medium": "medium",
+    "choice:thinkingLevel:high": "high",
+    "choice:thinkingLevel:xhigh": "xhigh",
+    "model:pi:deepseek:deepseek-reasoner": "DeepSeek Reasoner",
+    "model:pi:deepseek-reasoner": "DeepSeek Reasoner",
+    "provider:pi:openai": "OpenAI",
+    "model:pi:openai:gpt-4.1": "GPT-4.1",
+    "model:pi:gpt-4.1": "GPT-4.1",
+    "model:pi:openai:o3": "o3",
+    "model:pi:o3": "o3",
+    "provider:pi:anthropic": "Anthropic",
+    "model:pi:anthropic:claude-sonnet-4": "Claude Sonnet 4",
+    "model:pi:claude-sonnet-4": "Claude Sonnet 4",
+    "provider:pi:google": "Google",
+    "model:pi:google:gemini-2.5-pro": "Gemini 2.5 Pro",
+    "model:pi:gemini-2.5-pro": "Gemini 2.5 Pro"
+  },
+  "detectedAll": [
+    "claude",
+    "codex",
+    "grok",
+    "builtin",
+    "antigravity",
+    "kimi-sdk",
+    "copilot",
+    "cursor",
+    "opencode",
+    "pi",
+    "kimi",
+    "gemini"
+  ],
+  "creatable": [
+    "claude",
+    "codex",
+    "grok",
+    "builtin",
+    "antigravity",
+    "kimi-sdk",
+    "copilot",
+    "cursor",
+    "opencode",
+    "pi"
+  ],
+  "samples": {
+    "valid": {
+      "body": {
+        "runtime": "codex",
+        "model": "gpt-5.6",
+        "auth": {
+          "mode": "ambient"
+        },
+        "reasoningEffort": "high",
+        "fastMode": false
+      },
+      "ok": true,
+      "result": {
+        "runtime": "codex",
+        "model": "gpt-5.6",
+        "auth": {
+          "mode": "ambient"
+        },
+        "reasoningEffort": "high",
+        "fastMode": false
+      }
+    },
+    "rejected": {
+      "body": {
+        "runtime": "codex",
+        "model": "gpt-4.1",
+        "auth": {
+          "mode": "ambient"
+        },
+        "reasoningEffort": "high"
+      },
+      "error": "unsupported_option: reasoningEffort",
+      "ok": false
+    }
+  }
+}
