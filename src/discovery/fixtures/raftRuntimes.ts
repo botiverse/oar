@@ -51,10 +51,14 @@ export function fixtureDescriptors(): readonly RuntimeDescriptor[] {
       label: "Claude Code",
       version: "fixture-1",
       models: [
-        model("opus", "Opus", [reasoning(["low", "medium", "high"]), fast()]),
-        model("sonnet", "Sonnet", [reasoning(["low", "medium", "high"]), fast()]),
-        model("haiku", "Haiku", [reasoning(["low", "medium", "high"])]),
-        model("user-configured", "User-configured (env / config file)", []),
+        model("opus", "Claude Opus", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("sonnet", "Claude Sonnet", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("haiku", "Claude Haiku", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("fable", "Claude Fable", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("claude-opus-5", "Claude Opus 5", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("claude-fable-5", "Claude Fable 5", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("claude-sonnet-5", "Claude Sonnet 5", [reasoning(["low", "medium", "high", "xhigh", "max"]), fast()]),
+        model("user-configured", "User-configured (env / config file / full claude-* id)", []),
       ],
     },
     {

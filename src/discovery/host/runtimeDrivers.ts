@@ -43,7 +43,7 @@ export function hostDetectMeta(): HostDetectMeta {
     at: new Date().toISOString(),
     sources: {
       codex: "codex --version + ~/.codex/models_cache.json (cacheAsOf stamped on version; app-server later)",
-      claude: "claude --version + claude model list help",
+      claude: "claude --version; models=static aliases+API ids (docs model-config / raft RUNTIME_MODELS) + user-configured; CLAUDE_MODEL_LIST extends",
       grok: "grok --version + grok models",
       opencode: "opencode --version + opencode models",
       pi: "SDK in-process: package version + ModelRuntime.create({allowModelNetwork:false}).getAvailableSnapshot()",

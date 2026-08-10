@@ -7,6 +7,12 @@ import { parseAgyModelsOutput } from "./antigravity.js";
 import { parseOpencodeModelsOutput } from "./opencode.js";
 import { parseCodexModelsCache } from "./codex.js";
 import { parseKimiCodeConfigToml } from "./kimi.js";
+import {
+  buildClaudeModels,
+  defaultClaudeModelIds,
+  CLAUDE_API_MODELS,
+  CLAUDE_ALIASES,
+} from "./claude.js";
 
 const fixtures = join(import.meta.dirname, "fixtures");
 
@@ -59,4 +65,30 @@ test("kimi config.toml fixture → models + efforts", () => {
   assert.equal(models.length, 2);
   assert.equal(models[1]!.label, "K3");
   assert.deepEqual(models[1]!.supportedReasoningEfforts, ["low", "high", "max"]);
+});
+
+test("claude models fixture lists aliases + API ids + user-configured", () => {
+  const fixtureIds = load("claude-models.sample.txt")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const catalog = buildClaudeModels();
+  const catalogIds = new Set(catalog.map((m) => m.id));
+  for (const id of fixtureIds) {
+    assert.ok(catalogIds.has(id), `missing ${id}`);
+  }
+  assert.ok(catalog.some((m) => m.id === "user-configured"));
+  assert.equal(catalog.find((m) => m.id === "user-configured")!.options.length, 0);
+  // Full Anthropic IDs present (raft RUNTIME_MODELS.claude shape)
+  assert.ok(catalogIds.has("claude-opus-5"));
+  assert.ok(catalogIds.has("claude-fable-5"));
+  assert.ok(CLAUDE_API_MODELS.length >= 8);
+  assert.ok(CLAUDE_ALIASES.some((a) => a.id === "opus"));
+  assert.ok(defaultClaudeModelIds().includes("claude-sonnet-5"));
+});
+
+test("claude CLAUDE_MODEL_LIST extra ids are appended", () => {
+  const models = buildClaudeModels(["claude-custom-gateway-model"]);
+  assert.ok(models.some((m) => m.id === "claude-custom-gateway-model"));
+  assert.ok(models.some((m) => m.id === "user-configured"));
 });
