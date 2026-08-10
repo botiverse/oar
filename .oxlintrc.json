@@ -64,7 +64,8 @@
     "typescript/no-duplicate-type-constituents": "error",
     "typescript/consistent-type-exports": "error",
     "eslint/id-length": "off",
-    "eslint/no-inline-comments": "off"
+    "eslint/no-inline-comments": "off",
+    "eslint/one-var": "off"
   },
   "overrides": [
     {
