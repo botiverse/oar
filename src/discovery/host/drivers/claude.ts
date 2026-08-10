@@ -1,9 +1,12 @@
 /**
  * Claude Code host runtime.
  *
- * Models: Claude Code accepts **aliases** and **full Anthropic API model names**
- * (docs: https://code.claude.com/docs/en/model-config — "model alias or model name";
- *  any name starting with `claude-` is recognized on the Anthropic API).
+ * Models: Claude Code accepts **aliases** and **full Anthropic API model names**.
+ * Docs (hardcode authority — not a live probe):
+ * - https://code.claude.com/docs/en/model-config  (alias vs full model name)
+ * - https://platform.claude.com/docs/en/about-claude/models/overview  (API model ids)
+ * Any name starting with `claude-` is recognized on the Anthropic API; the curated
+ * full-id table is not exhaustive → `user-configured` covers the rest.
  * There is no reliable machine `claude models` list; raft treats claude as a
  * **static** catalog (`STATIC_RUNTIME_MODEL_SOURCE_IDS` + `RUNTIME_MODELS.claude`).
  *
