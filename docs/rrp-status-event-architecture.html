@@ -131,6 +131,10 @@
       <p class="d" style="margin:8px 0 0">runtime's raw detail, verbatim · nothing dropped · no untyped catch-all needed</p>
     </div>
   </div>
+  <p class="cap"><b>Header/body — but not a network stack.</b> Only <b>one</b> layer (no envelope wrapping an
+     envelope); the raw→envelope map is an <b>N-to-M</b> semantic translation (drop a heartbeat, split one raw
+     into several, coalesce several into one), not a bijection; and <code>raw → event → status</code>
+     <b>shrinks</b> by layer (status ⊂ events ⊂ raw), the opposite of a stack that grows headers.</p>
 
   <h2>3 · Two folds, two levels</h2>
   <p class="cap">Each level folds its own events. A <b>running</b> process with an <b>idle</b> turn is legal — merging the levels would erase that.</p>
@@ -175,6 +179,39 @@
       A retriable failure event <b>must not</b> fold to terminal. (The rate-limit datapoint: an account-level
       capacity error is transient — exactly the event that must survive, not kill.)</p>
   </div>
+
+  <h2>5 · Compatibility — status is the version firewall</h2>
+  <p class="cap">Three parties depend on oar and version independently; the server leads. The trick: keep the
+     growing <b>event union off the cross-version line</b>, and let the small stable <b style="color:var(--oar)">status</b>
+     enum be what crosses. A new event kind folds into an existing status → an older consumer never sees it break.</p>
+  <div class="lanes">
+    <div class="lane p">
+      <div class="hd">raft-computer<br>PRODUCER</div>
+      <div class="row">
+        <div class="node hot"><div class="t">event union (grows freely)</div><div class="d">closed + `never`, single build — stays computer-side</div></div>
+        <span class="arw">→</span>
+        <div class="node derive"><div class="t">fold → status</div><div class="d">the firewall: collapses a growing union into a small stable enum</div></div>
+      </div>
+    </div>
+    <div class="lane o">
+      <div class="hd">the wire<br>STATUS ONLY</div>
+      <div class="row">
+        <div class="contract">status enum (small, stable) crosses · raw event detail travels a separate activity-log path</div>
+        <span class="arw">→</span>
+        <div class="node"><div class="t">unknown status value</div><div class="d">→ <b style="color:var(--bad)">opaque</b>: never terminal (#840), never dropped</div></div>
+      </div>
+    </div>
+    <div class="lane c">
+      <div class="hd">CONSUMERS</div>
+      <div class="row">
+        <div class="node"><div class="t">raft-server</div><div class="d">leads; understands older computers (backward-compat)</div></div>
+        <div class="node"><div class="t">raft-frontend</div><div class="d">downstream of server; same status</div></div>
+      </div>
+    </div>
+  </div>
+  <p class="cap"><b>The object of compat is the multi-version serving window, not forever.</b> oar's own API may break
+     (users upgrade fast); during the rolling window, an end that meets an unknown status/kind degrades to
+     <code>opaque</code> rather than crashing. One firewall line covers both consumers.</p>
 
   <div class="footer">
     Boundary anchor: raft <code>packages/daemon/src/runtimeTurnState.ts</code> —
