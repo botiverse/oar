@@ -58,35 +58,91 @@ function runClaude(
   });
 }
 
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * Best-effort parse of Claude /usage human reset strings.
+ * Formats seen:
+ * - `Mar 3, 3:40pm (UTC)` (older)
+ * - `Aug 10 at 10:30pm (America/Chicago)` (current)
+ * Timezone names are not fully resolved without a TZ DB — we only accept UTC
+ * for a real ISO instant; other zones omit resetsAt (window → incomplete).
+ */
 function resetAtFromText(value: string, observedAtMs: number): string | null {
-  const match =
-    /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}), (\d{1,2})(?::(\d{2}))?(am|pm) \(UTC\)$/.exec(
-      value.trim(),
+  const raw = value.trim();
+  // Older: "Mar 3, 3:40pm (UTC)"
+  const utcComma =
+    /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}), (\d{1,2})(?::(\d{2}))?(am|pm) \(UTC\)$/i.exec(
+      raw,
     );
-  if (!match) return null;
-  const month = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ].indexOf(match[1]!);
-  let hour = Number(match[3]);
-  if (match[5] === "pm" && hour !== 12) hour += 12;
-  if (match[5] === "am" && hour === 12) hour = 0;
-  const observed = new Date(observedAtMs);
-  let reset = Date.UTC(observed.getUTCFullYear(), month, Number(match[2]), hour, Number(match[4] ?? 0));
-  if (reset <= observedAtMs) {
-    reset = Date.UTC(observed.getUTCFullYear() + 1, month, Number(match[2]), hour, Number(match[4] ?? 0));
+  if (utcComma) {
+    const month = MONTHS.indexOf(utcComma[1]! as (typeof MONTHS)[number]);
+    let hour = Number(utcComma[3]);
+    if (utcComma[5]!.toLowerCase() === "pm" && hour !== 12) hour += 12;
+    if (utcComma[5]!.toLowerCase() === "am" && hour === 12) hour = 0;
+    const observed = new Date(observedAtMs);
+    let reset = Date.UTC(
+      observed.getUTCFullYear(),
+      month,
+      Number(utcComma[2]),
+      hour,
+      Number(utcComma[4] ?? 0),
+    );
+    if (reset <= observedAtMs) {
+      reset = Date.UTC(
+        observed.getUTCFullYear() + 1,
+        month,
+        Number(utcComma[2]),
+        hour,
+        Number(utcComma[4] ?? 0),
+      );
+    }
+    return new Date(reset).toISOString();
   }
-  return new Date(reset).toISOString();
+  // Current: "Aug 10 at 10:30pm (America/Chicago)" — only trustworthy when zone is UTC
+  const atForm =
+    /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}) at (\d{1,2})(?::(\d{2}))?(am|pm) \(([^)]+)\)$/i.exec(
+      raw,
+    );
+  if (atForm && /^UTC$/i.test(atForm[6]!)) {
+    const month = MONTHS.indexOf(atForm[1]! as (typeof MONTHS)[number]);
+    let hour = Number(atForm[3]);
+    if (atForm[5]!.toLowerCase() === "pm" && hour !== 12) hour += 12;
+    if (atForm[5]!.toLowerCase() === "am" && hour === 12) hour = 0;
+    const observed = new Date(observedAtMs);
+    let reset = Date.UTC(
+      observed.getUTCFullYear(),
+      month,
+      Number(atForm[2]),
+      hour,
+      Number(atForm[4] ?? 0),
+    );
+    if (reset <= observedAtMs) {
+      reset = Date.UTC(
+        observed.getUTCFullYear() + 1,
+        month,
+        Number(atForm[2]),
+        hour,
+        Number(atForm[4] ?? 0),
+      );
+    }
+    return new Date(reset).toISOString();
+  }
+  // Non-UTC human zones: refuse to invent a timestamp (HaoHao: silent wrong > missing).
+  return null;
 }
 
 function windowId(label: string): string {
@@ -134,13 +190,14 @@ export function projectClaudeUsageTextSnapshot(input: {
     collectedAt: new Date(input.observedAtMs).toISOString(),
     staleAfter: new Date(input.observedAtMs + 15 * 60_000).toISOString(),
     acquisition: "text_parse",
+    // local_sessions_only: Claude's own disclaimer — approximate, this machine only.
     scope: "local_sessions_only",
     collectorVersion: input.collectorVersion,
+    // Explicit caveat so consumers never treat this like codex server rateLimits.
+    sourceVersion: "claude -p /usage rendered text (approximate; local sessions only)",
     accounts: [
       {
         accountKey: accountKey(),
-        // Free-form /usage text without % lines is still a successful read of the
-        // programmable surface — do not call it "error" (that means probe failed).
         health: windows.some((w) => w.status === "limit_reached") ? "rate_limited" : "ok",
         healthAcquisition: "text_parse",
         healthObservedAt: new Date(input.observedAtMs).toISOString(),

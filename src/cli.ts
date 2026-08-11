@@ -226,9 +226,19 @@ function writeUsageHuman(snap: AccountUsageSnapshot): void {
     `${snap.provider}  health=${snap.accounts.map((a) => a.health).join(",")}  `
       + `acquisition=${snap.acquisition}  scope=${snap.scope}\n`,
   );
+  if (snap.sourceVersion) {
+    process.stdout.write(`  source=${snap.sourceVersion}\n`);
+  }
+  if (snap.acquisition === "text_parse" || snap.scope === "local_sessions_only") {
+    process.stdout.write(
+      "  caveat=approximate / rendered-cli or local-session estimate — not the same "
+        + "authority as codex structured rateLimits\n",
+    );
+  }
   for (const acc of snap.accounts) {
     if (acc.planLabel) process.stdout.write(`  plan=${acc.planLabel}\n`);
     if (acc.maskedLabel) process.stdout.write(`  account=${acc.maskedLabel}\n`);
+    if (acc.parseErrorCode) process.stdout.write(`  parseError=${acc.parseErrorCode}\n`);
     if (acc.windows.length === 0) {
       process.stdout.write(`  (no usage windows)\n`);
       continue;
