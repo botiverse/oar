@@ -79,10 +79,10 @@ test("claude models fixture lists aliases + API ids + user-configured", () => {
   }
   assert.ok(catalog.some((m) => m.id === "user-configured"));
   assert.equal(catalog.find((m) => m.id === "user-configured")!.options.length, 0);
-  // Fidelity: Claude Code 2.1.225 still ships [1m] aliases (live /model Available).
-  assert.ok(catalogIds.has("sonnet[1m]"));
-  assert.ok(catalogIds.has("opus[1m]"));
-  assert.ok(catalogIds.has("fable[1m]"));
+  // No-op [1m] suffixes omitted from create-form (product: xxchan + Huaihuai).
+  assert.ok(!catalogIds.has("sonnet[1m]"));
+  assert.ok(!catalogIds.has("opus[1m]"));
+  assert.ok(!catalogIds.has("fable[1m]"));
   // Full Anthropic IDs present (raft RUNTIME_MODELS.claude shape)
   assert.ok(catalogIds.has("claude-opus-5"));
   assert.ok(catalogIds.has("claude-fable-5"));

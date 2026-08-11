@@ -1,14 +1,12 @@
-# Claude Code 2.1.225 /model Available (xxair):
-# sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m], opusplan, default, or a full model ID.
+# oar create-form alias set (not full /model Available).
+# Claude Code 2.1.225 still lists sonnet[1m]/opus[1m]/fable[1m] but they are no-ops
+# when base aliases resolve to Sonnet 5 / Opus 5 / Fable 5 with native 1M — omitted.
 default
 best
 fable
 opus
 sonnet
 haiku
-sonnet[1m]
-opus[1m]
-fable[1m]
 opusplan
 claude-fable-5
 claude-opus-5

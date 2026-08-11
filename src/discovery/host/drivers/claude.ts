@@ -11,17 +11,16 @@
  * **static** catalog (`STATIC_RUNTIME_MODEL_SOURCE_IDS` + `RUNTIME_MODELS.claude`).
  *
  * Catalog shape (aligned with raft `RUNTIME_MODELS.claude` + Code model aliases):
- * - aliases: mirror Claude Code `/model` Available list on this host (fidelity rule)
- * - full IDs: curated convenience set (not exhaustive)
+ * - aliases: curated create-form set (not every string Claude Code still accepts)
+ * - full IDs: convenience set (not exhaustive)
  * - user-configured escape (zero options) for any other Anthropic / gateway id
  * - optional `CLAUDE_MODEL_LIST=id1,id2` extends the list (host override)
  *
- * Fidelity (Huaihuai 2026-08-11): hardcode alias table **must equal** what the
- * installed Claude Code reports under `/model` Available. Verified on xxair with
- * Claude Code 2.1.225:
- *   `Available: sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m],
- *    opusplan, default, or a full model ID.`
- * So `[1m]` aliases stay — they are still shipped (not deleted for "default is 1m").
+ * Omitted: `sonnet[1m]` / `opus[1m]` / `fable[1m]` (xxchan + Huaihuai 2026-08-11).
+ * Claude Code 2.1.225 `/model` still *lists* them, but model-config says `sonnet[1m]`
+ * has **no effect** when `sonnet` already resolves to Sonnet 5 (native 1M). Same
+ * for current Opus 5. oar create-form drops no-op aliases; re-add if product wants
+ * picker parity with every `/model` row. Use user-configured / CLAUDE_MODEL_LIST.
  *
  * Fixture: fixtures/claude-models.sample.txt (ids one per line; same set as default catalog).
  */
@@ -30,10 +29,7 @@ import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
 
-/**
- * Claude Code model aliases — must match `/model` Available on current Claude Code.
- * Source sample (Claude Code 2.1.225 on xxair): fixtures/claude-models.sample.txt header.
- */
+/** Claude Code model aliases for create-form (no-op [1m] suffixes omitted). */
 export const CLAUDE_ALIASES: readonly { id: string; label: string }[] = [
   { id: "default", label: "Default (account / org recommended)" },
   { id: "best", label: "Best (Fable 5 when available, else latest Opus)" },
@@ -41,9 +37,6 @@ export const CLAUDE_ALIASES: readonly { id: string; label: string }[] = [
   { id: "opus", label: "Claude Opus (alias → latest)" },
   { id: "sonnet", label: "Claude Sonnet (alias → latest)" },
   { id: "haiku", label: "Claude Haiku (alias → latest)" },
-  { id: "sonnet[1m]", label: "Sonnet 1M context" },
-  { id: "opus[1m]", label: "Opus 1M context" },
-  { id: "fable[1m]", label: "Fable 1M context" },
   { id: "opusplan", label: "Opus plan → Sonnet execute" },
 ];
 
