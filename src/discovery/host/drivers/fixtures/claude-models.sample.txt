@@ -4,8 +4,6 @@ fable
 opus
 sonnet
 haiku
-sonnet[1m]
-opus[1m]
 opusplan
 claude-fable-5
 claude-opus-5

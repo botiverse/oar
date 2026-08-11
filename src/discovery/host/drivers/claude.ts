@@ -11,10 +11,15 @@
  * **static** catalog (`STATIC_RUNTIME_MODEL_SOURCE_IDS` + `RUNTIME_MODELS.claude`).
  *
  * Catalog shape (aligned with raft `RUNTIME_MODELS.claude` + Code model aliases):
- * - aliases: default, best, fable, sonnet, opus, haiku, sonnet[1m], opus[1m], opusplan
+ * - aliases: default, best, fable, sonnet, opus, haiku, opusplan
  * - full IDs: claude-opus-5, claude-fable-5, claude-sonnet-5, …
  * - user-configured escape (zero options) for custom / gateway / env models
  * - optional `CLAUDE_MODEL_LIST=id1,id2` extends the list (host override)
+ *
+ * Omitted aliases (xxchan 2026-08-11): `sonnet[1m]` / `opus[1m]` — on Anthropic API
+ * current `sonnet`/`opus` already resolve to Sonnet 5 / Opus 5 with native 1M windows
+ * (docs: sonnet[1m] has "no effect" when sonnet is already Sonnet 5). Users who still
+ * need the suffix can pick user-configured or CLAUDE_MODEL_LIST.
  *
  * Fixture: fixtures/claude-models.sample.txt (ids one per line; same set as default catalog).
  */
@@ -31,8 +36,6 @@ export const CLAUDE_ALIASES: readonly { id: string; label: string }[] = [
   { id: "opus", label: "Claude Opus (alias → latest)" },
   { id: "sonnet", label: "Claude Sonnet (alias → latest)" },
   { id: "haiku", label: "Claude Haiku (alias → latest)" },
-  { id: "sonnet[1m]", label: "Sonnet 1M context" },
-  { id: "opus[1m]", label: "Opus 1M context" },
   { id: "opusplan", label: "Opus plan → Sonnet execute" },
 ];
 
