@@ -20,7 +20,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import {
   baseDriver,
-  home,
   fileExists,
   modelsToInfo,
   ModelsProbeError,
@@ -30,17 +29,12 @@ import {
   type LiveModel,
 } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
+import { kimiCodeHome } from "../paths.js";
 
 const PKG_JSON_CANDIDATES = [
   "@botiverse/kimi-code-sdk/package.json",
   "@moonshot-ai/kimi-code-sdk/package.json",
 ] as const;
-
-export function resolveKimiCodeHome(): string {
-  const fromEnv = process.env.KIMI_CODE_HOME?.trim();
-  if (fromEnv) return fromEnv;
-  return home(".kimi-code");
-}
 
 /** Read installed kimi SDK / product version — never invent a mode string. */
 export function resolveKimiSdkVersion(): string | null {
@@ -136,7 +130,7 @@ export function kimiDriver(): RuntimeDriver {
       const fromPkg = resolveKimiSdkVersion();
       if (fromPkg) return { version: fromPkg };
       // Product binary version (PATH or $KIMI_CODE_HOME/bin) — not used for models.
-      const homeBin = join(resolveKimiCodeHome(), "bin", "kimi");
+      const homeBin = join(kimiCodeHome(), "bin", "kimi");
       if (fileExists(homeBin)) {
         const r = runText(homeBin, ["--version"], { timeoutMs: 10_000 });
         const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
@@ -147,7 +141,7 @@ export function kimiDriver(): RuntimeDriver {
       return { version: "unknown" };
     },
     models: async () => {
-      const kimiHome = resolveKimiCodeHome();
+      const kimiHome = kimiCodeHome();
       const configPath = join(kimiHome, "config.toml");
       if (!fileExists(configPath)) {
         throw new ModelsProbeError(

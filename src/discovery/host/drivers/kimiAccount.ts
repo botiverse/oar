@@ -8,7 +8,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileExists, home } from "../probe.js";
+import { fileExists } from "../probe.js";
+import { kimiCodeHome } from "../paths.js";
 import type {
   AccountUsageHealth,
   AccountUsageSnapshot,
@@ -53,12 +54,8 @@ function safeLabel(value: unknown): string | undefined {
   return trimmed;
 }
 
-function kimiHome(): string {
-  return process.env.KIMI_CODE_HOME?.trim() || home(".kimi-code");
-}
-
 function readAccessToken(): string | null {
-  const path = join(kimiHome(), "credentials", "kimi-code.json");
+  const path = join(kimiCodeHome(), "credentials", "kimi-code.json");
   if (!fileExists(path)) return null;
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as { access_token?: unknown };
