@@ -24,7 +24,8 @@
  *
  * Fixture: fixtures/claude-models.sample.txt (ids one per line; same set as default catalog).
  */
-import { baseDriver, which, runText, firstLineVersion, modelsToInfo } from "../probe.js";
+import { baseDriver, runText, firstLineVersion, modelsToInfo } from "../probe.js";
+import { resolveClaudeCommand } from "../claudeResolve.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
@@ -107,7 +108,9 @@ export function buildClaudeModels(extraIds: readonly string[] = []): readonly Mo
 export function claudeDriver(): RuntimeDriver {
   return baseDriver("claude", {
     detect: async () => {
-      const path = which("claude");
+      // PATH → (darwin) "Claude Code URL Handler.app" bundle, per raft
+      // resolveClaudeCommand. Desktop-installed claude off PATH was invisible.
+      const path = resolveClaudeCommand();
       if (!path) return null;
       const r = runText(path, ["--version"], { timeoutMs: 10_000 });
       const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
