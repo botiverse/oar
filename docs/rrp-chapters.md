@@ -59,6 +59,33 @@ consumer refuse?*, which is precisely the security-relevant one.
 host exercises control, and vendor behaviour diverges most (synchronous interception, after-the-fact
 notification only, or nothing at all). Widest divergence is where a uniform interface is worth most.
 
+### 3a — the envelope and its payload (and why it is not a network stack)
+
+Every event has two faces, one for each side that pulls against the other — a
+clean typed contract for the consumer, no lost detail for the producer:
+
+- **envelope** — the typed, common meaning the *consumer* reads and folds to
+  status. Stable across every runtime.
+- **payload** — the runtime's raw detail, carried verbatim for the *producer*,
+  so nothing is dropped. The normalizer decides only *which* envelope a raw
+  event means; it never discards raw. No raw with nowhere to go ⇒ no untyped
+  catch-all variant is needed.
+
+That is a header/body split, and **only that much is network-like.** It is
+deliberately *not* a network stack:
+
+- **Single layer, not nested.** One header+body per event — there is no envelope
+  wrapping an envelope wrapping an envelope.
+- **N-to-M, not a bijection.** The raw→envelope map is a semantic *translation*,
+  not a one-to-one encapsulation: the normalizer may drop a raw event (a
+  heartbeat → nothing), split one raw into several events, or coalesce several
+  raw into one. Whether a semantically-important raw (a tool call) is lifted into
+  its envelope kind is a *judgement* — and getting it wrong is where status
+  drifts silently. The cross-runtime conformance fixture guards exactly this.
+- **Reduction, not accretion.** A network stack *grows* by layer (each adds a
+  header); oar's `raw → event → status` *shrinks* by layer (status ⊂ events ⊂
+  raw). Status is a lossy projection, not a wrapper.
+
 ### 3a — status is a projection of the event stream, never a stored field
 
 The events are the primary facts; **status is `fold` over them.** A runtime does not *set* a
