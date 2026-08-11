@@ -101,4 +101,22 @@ export interface ProcessHandle {
    * the safe transformation the only available one beats documenting it.
    */
   drainDiagnostics(): AsyncIterable<Diagnostic>;
+  /** The protocol channel (stdin/stdout). See `Transport`. */
+  readonly transport: Transport;
+}
+
+/**
+ * The PROTOCOL transport of a spawned runtime: stdin (send) + stdout (frames).
+ *
+ * This is stdout — the channel a runtime talks its own protocol over — NOT
+ * stderr. stderr is credential-shaped and is only ever surfaced as a scrubbed
+ * Diagnostic through `drainDiagnostics()`; it deliberately has no raw accessor.
+ * stdout is the legitimate protocol channel, so exposing it here does not
+ * reopen the leak the scrubber exists to close.
+ */
+export interface Transport {
+  /** Write one newline-delimited frame to the runtime's stdin. */
+  send(line: string): void;
+  /** Newline-delimited frames from the runtime's stdout, in arrival order. */
+  lines(): AsyncIterable<string>;
 }

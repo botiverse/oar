@@ -7,14 +7,8 @@ import {
   type DetectFailure,
 } from "./detect.js";
 import type { ModelInfo } from "../config/model.js";
-import type { Declaration } from "../backend/trait.js";
-import type { LaunchSpec } from "../backend/process/lifecycle.js";
+import { emptyDeclaration } from "../backend/trait.js";
 import type { RuntimeEvent } from "../events/event.js";
-
-const emptyDecl = async (): Promise<Declaration> => ({
-  capabilities: { steer: false, interrupt: false, resume: false, interceptToolCalls: false },
-  config: { options: [], unsupported: [] },
-});
 
 function stub(
   id: string,
@@ -25,11 +19,12 @@ function stub(
     id,
     detect,
     models,
-    describe: emptyDecl,
-    plan: (): LaunchSpec => ({ command: id, args: [], env: {} }),
-    readiness: { kind: "process_spawned" },
-    shutdown: { graceMs: 1000, onGraceExpiry: "immediate" },
+    describe: emptyDeclaration,
     normalise: (_raw: unknown): readonly RuntimeEvent[] => [],
+    // detect-only stub: these tests never call start().
+    start: async () => {
+      throw new Error("stub driver: start() not implemented");
+    },
   };
 }
 

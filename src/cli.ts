@@ -15,6 +15,8 @@ import {
 } from "./discovery/detect.js";
 import { createHostDrivers } from "./discovery/host/runtimeDrivers.js";
 import { RAFT_DRIVER_REGISTRY } from "./discovery/fixtures/raftRuntimes.js";
+import { describeEvent, type RuntimeEvent } from "./events/event.js";
+import type { BusySession, IdleSession } from "./session/handle.js";
 import type { AccountUsageSnapshot } from "./discovery/accountUsage.js";
 import { USAGE_PROVIDERS } from "./discovery/accountUsage.js";
 import { collectUsage, collectUsageAll, parseUsageProvider } from "./discovery/usageCollect.js";
@@ -282,6 +284,88 @@ async function runUsage(opts: {
   }
 }
 
+/**
+ * The conformance snapshot: driver → start → prompt → collect raw → normalise →
+ * print the RuntimeEvent stream. The pipeline is uniform; the kind (subprocess
+ * vs in-process SDK) is invisible — it was absorbed by how the driver was built.
+ */
+function nextOrTimeout(
+  it: AsyncIterator<RuntimeEvent>,
+  ms: number,
+): Promise<IteratorResult<RuntimeEvent> | "timeout"> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve("timeout"), ms);
+    it.next().then(
+      (r) => {
+        clearTimeout(timer);
+        resolve(r);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve({ done: true, value: undefined });
+      },
+    );
+  });
+}
+
+async function runDrive(
+  runtime: string,
+  prompt: string,
+  opts: { timeoutMs?: number },
+): Promise<void> {
+  const driver = createHostDrivers().find((d) => d.id === runtime);
+  if (!driver) {
+    process.stderr.write(
+      `oar: unknown runtime "${runtime}". known: ${createHostDrivers().map((d) => d.id).join(", ")}\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  let session: IdleSession;
+  try {
+    session = await driver.start({});
+  } catch (err) {
+    process.stderr.write(
+      `oar drive ${runtime}: start failed — ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  process.stdout.write(`[oar drive] ${runtime}: started (readiness witness observed)\n`);
+
+  let stream: IdleSession | BusySession = session;
+  try {
+    stream = await session.prompt(prompt);
+    process.stdout.write(`[oar drive] ${runtime}: prompt sent\n`);
+  } catch (err) {
+    process.stderr.write(
+      `[oar drive] ${runtime}: prompt not wired — ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.stderr.write(
+      `[oar drive] streaming any live frames from the idle session instead\n`,
+    );
+  }
+
+  const timeoutMs = opts.timeoutMs ?? 8_000;
+  const it = stream.events()[Symbol.asyncIterator]();
+  for (;;) {
+    const step = await nextOrTimeout(it, timeoutMs);
+    if (step === "timeout") {
+      process.stdout.write(`[oar drive] (no further events within ${String(timeoutMs)}ms)\n`);
+      break;
+    }
+    if (step.done) break;
+    process.stdout.write(`${describeEvent(step.value)}\n`);
+    if (step.value.kind === "turn_end") break;
+  }
+
+  const closed = await stream.stop({ mode: "graceful" });
+  process.stdout.write(
+    `[oar drive] ${runtime}: stopped${closed.diagnostic ? ` (diagnostic: ${closed.diagnostic.errorClass})` : ""}\n`,
+  );
+}
+
 export function buildProgram(): Command {
   const program = new Command();
   program
@@ -309,6 +393,22 @@ export function buildProgram(): Command {
         });
       },
     );
+
+  program
+    .command("drive")
+    .description(
+      "Drive a runtime: start → prompt → normalise → print the RuntimeEvent stream "
+        + "(the conformance snapshot). codex has a real handshake witness; pi is in-process SDK.",
+    )
+    .argument("<runtime>", "runtime id (e.g. codex, pi)")
+    .argument("<prompt>", "prompt text to send")
+    .option("--timeout <ms>", "max ms to wait for further events (default 8000)")
+    .action(async (runtime: string, prompt: string, opts: { timeout?: string }) => {
+      const timeoutMs = opts.timeout ? Number.parseInt(opts.timeout, 10) : undefined;
+      await runDrive(runtime, prompt, {
+        ...(timeoutMs !== undefined && Number.isFinite(timeoutMs) ? { timeoutMs } : {}),
+      });
+    });
 
   program
     .command("demo")

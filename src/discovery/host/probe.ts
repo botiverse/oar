@@ -3,10 +3,9 @@
  * Change reason: version/binary/login heuristics should not live inside any one runtime file.
  * SDK runtimes call their packages in-process; CLI runtimes use binary/cache paths.
  */
-import type { RuntimeDriver, Declaration } from "../../backend/trait.js";
+import type { RuntimeDriver } from "../../backend/trait.js";
 import type { ModelInfo, ProviderInfo } from "../../config/model.js";
-import type { LaunchSpec } from "../../backend/process/lifecycle.js";
-import type { RuntimeEvent } from "../../events/event.js";
+import { subprocessDriver } from "../../backend/subprocessDriver.js";
 import { fileExists, firstLineVersion, home, runText, which } from "../cli.js";
 import { ModelsProbeError } from "../detect.js";
 import { modelsOnly, modelsToInfo, type LiveModel } from "./mapModels.js";
@@ -21,11 +20,14 @@ export function looksLikeNeedsLogin(text: string): boolean {
   );
 }
 
-const emptyDecl = async (): Promise<Declaration> => ({
-  capabilities: { steer: false, interrupt: false, resume: false, interceptToolCalls: false },
-  config: { options: [], unsupported: [] },
-});
-
+/**
+ * A discovery-only driver: detect + models(+providers) with the default
+ * subprocess launch (bare `<id>`, `process_spawned` readiness, `() => []`
+ * normalise). These runtimes are DETECTED but not yet driven for real — the
+ * weak defaults are the honest declaration of that. A runtime that becomes
+ * drivable supplies plan/readiness/handshake/normalise to `subprocessDriver`
+ * directly (see codex).
+ */
 export function baseDriver(
   id: string,
   impl: {
@@ -34,20 +36,12 @@ export function baseDriver(
     providers?: () => Promise<readonly ProviderInfo[]>;
   },
 ): RuntimeDriver {
-  const driver: RuntimeDriver = {
+  return subprocessDriver({
     id,
     detect: impl.detect,
     models: impl.models,
-    describe: emptyDecl,
-    plan: (): LaunchSpec => ({ command: id, args: [], env: {} }),
-    readiness: { kind: "process_spawned" },
-    shutdown: { graceMs: 1000, onGraceExpiry: "immediate" },
-    normalise: (_raw: unknown): readonly RuntimeEvent[] => [],
-  };
-  if (impl.providers) {
-    driver.providers = impl.providers;
-  }
-  return driver;
+    ...(impl.providers ? { providers: impl.providers } : {}),
+  });
 }
 
 export function versionVia(

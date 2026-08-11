@@ -1,5 +1,4 @@
 import type { IdleSession, StopMode } from "../session/handle.js";
-import type { LaunchSpec, ProcessOutcome } from "./process/lifecycle.js";
 import type { Capabilities } from "../capability.js";
 import type { ConfigSchema } from "../config/options.js";
 import type { ModelInfo } from "../config/model.js";
@@ -17,6 +16,16 @@ import type { RuntimeEvent } from "../events/event.js";
  * readiness, graceful→force escalation, reaping, timeouts and the Windows
  * branch are identical work for every runtime and are therefore written once,
  * not re-paid per adapter.
+ *
+ * ── UNIFORM BY CONSTRUCTION ─────────────────────────────────────────────────
+ * The execution-kind (subprocess vs in-process SDK) is INVISIBLE here. A host
+ * sees only `start()` + `normalise()`. Whether a runtime is a child process or
+ * an in-process SDK is absorbed by WHICH construction path built the driver:
+ *   - subprocess runtimes are built via `subprocessDriver({ plan, readiness,
+ *     shutdown, normalise, ... })` — `plan`/`LaunchSpec`/`ProcessHost` live
+ *     there now, as the mid-layer's internals, not on this contract;
+ *   - in-process runtimes (pi) build a `RuntimeDriver` directly, with a
+ *     `start()` that spins up an SDK-backed session and never touches a process.
  */
 export interface RuntimeDriver {
   readonly id: string;
@@ -44,18 +53,17 @@ export interface RuntimeDriver {
   describe(resolution: { readonly version: string; readonly model?: string }): Promise<Declaration>;
 
   /**
-   * Derive a launch plan from resolved config. This is a FUNCTION, not a
-   * constant: a launch argument may depend on the chosen model or mode (fast
-   * mode becomes a settings flag on one runtime and a service tier on
-   * another), so a static command string cannot express it.
+   * Start a drivable session. Resolves ONLY once the runtime is genuinely READY
+   * — the declared readiness witness has been observed — never merely spawned.
+   * There is deliberately no path to an `IdleSession` that skips readiness: a
+   * caller cannot obtain a drivable handle for a process that started but never
+   * became usable.
+   *
+   * How readiness is awaited, how a subprocess is spawned (via the shared
+   * `ProcessHost`) or how an SDK is created is the construction path's business,
+   * not this contract's.
    */
-  plan(options: Readonly<Record<string, string>>): LaunchSpec;
-
-  /** How this runtime signals it is genuinely usable -- see `Readiness`. */
-  readonly readiness: Readiness;
-
-  /** How this runtime prefers to be stopped -- see `ShutdownProtocol`. */
-  readonly shutdown: ShutdownProtocol;
+  start(options: Readonly<Record<string, string>>): Promise<IdleSession>;
 
   /** Turn transport-specific traffic into contract events. */
   normalise(raw: unknown): readonly RuntimeEvent[];
@@ -113,18 +121,11 @@ export interface ShutdownProtocol {
 }
 
 /**
- * The seam oar implements over a driver. Kept in the trait file so it is
- * obvious that a driver does NOT implement it -- readiness waiting and stop
- * escalation are the layer's job, and a driver that reimplements them is the
- * divergence this project exists to prevent.
+ * Empty capability/config declaration — the honest default for a driver that
+ * declares nothing extra. Shared so each construction path (subprocessDriver,
+ * the direct pi driver) does not re-invent a subtly different one.
  */
-export interface DriverHost {
-  /**
-   * Resolves only once the driver's declared readiness witness is observed.
-   * There is deliberately no path from `plan()` to an `IdleSession` that skips
-   * this: a caller cannot obtain a drivable handle for a process that started
-   * but never became usable.
-   */
-  start(driver: RuntimeDriver, options: Readonly<Record<string, string>>): Promise<IdleSession>;
-  stop(driver: RuntimeDriver, mode: StopMode): Promise<ProcessOutcome>;
-}
+export const emptyDeclaration = async (): Promise<Declaration> => ({
+  capabilities: { steer: false, interrupt: false, resume: false, interceptToolCalls: false },
+  config: { options: [], unsupported: [] },
+});

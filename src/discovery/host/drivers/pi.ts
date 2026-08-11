@@ -14,8 +14,9 @@ import { createRequire } from "node:module";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { baseDriver, which } from "../probe.js";
-import type { RuntimeDriver } from "../../../backend/trait.js";
+import { which } from "../probe.js";
+import { emptyDeclaration, type RuntimeDriver } from "../../../backend/trait.js";
+import type { IdleSession } from "../../../session/handle.js";
 import type { ModelInfo, ProviderInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
 
@@ -136,8 +137,40 @@ function toProviders(models: readonly PiSdkModel[]): readonly ProviderInfo[] {
   }));
 }
 
+/**
+ * In-process session over a created `ModelRuntime`. pi has no child process, so
+ * `stop()` is a plain teardown (nothing to kill) and there is no transport.
+ *
+ * ⚠️ HONEST GAP: the pi SDK's turn/event surface (how a prompt is submitted and
+ * what event objects come back) is NOT documented anywhere in this repo — the
+ * only pi SDK method used is `getAvailableSnapshot()` for the model catalog.
+ * Wiring `prompt()` to real SDK events would mean GUESSING the turn API, which
+ * the drive-layer discipline forbids. So `start()`/`create` is real, but the
+ * turn (prompt → SDK events → normalise) is left explicitly unwired: `prompt()`
+ * throws rather than fabricate a stream. codex is the fully-wired reference.
+ */
+function makePiSession(_rt: PiModelRuntime): IdleSession {
+  return {
+    state: "idle",
+    capabilities: { steer: false, interrupt: false, resume: false, interceptToolCalls: false },
+    async *events() {
+      // No events until the SDK turn surface is wired (see makePiSession note).
+    },
+    async prompt(_text: string) {
+      throw new Error(
+        "pi: in-process turn/prompt API not wired — pi SDK turn surface is undocumented in this repo",
+      );
+    },
+    async stop() {
+      // In-process SDK: nothing to kill.
+      return { state: "closed" as const };
+    },
+  };
+}
+
 export function piDriver(): RuntimeDriver {
-  return baseDriver("pi", {
+  return {
+    id: "pi",
     detect: async () => {
       const v = resolvePiSdkVersion();
       return { version: v ?? "unknown" };
@@ -157,5 +190,17 @@ export function piDriver(): RuntimeDriver {
         return [];
       }
     },
-  });
+    describe: emptyDeclaration,
+    normalise: () => [],
+    // Direct construction: pi bypasses the subprocess mid-layer legitimately —
+    // it is an in-process SDK, not a child. start() = ModelRuntime.create.
+    start: async () => {
+      const loaded = await loadPiSdk();
+      if (!loaded) {
+        throw new Error("pi: SDK not installed (ModelRuntime unavailable)");
+      }
+      const rt = await loaded.mod.ModelRuntime.create({ allowModelNetwork: true });
+      return makePiSession(rt);
+    },
+  };
 }

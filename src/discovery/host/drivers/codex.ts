@@ -21,16 +21,102 @@
 import { readFileSync, statSync } from "node:fs";
 import { spawn } from "node:child_process";
 import {
-  baseDriver,
   fileExists,
   modelsToInfo,
   type LiveModel,
 } from "../probe.js";
 import { codexHome } from "../paths.js";
 import { resolveCodexBin } from "../codexResolve.js";
+import { subprocessDriver, type HandshakeIo } from "../../../backend/subprocessDriver.js";
+import type { LaunchSpec } from "../../../backend/process/lifecycle.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
+import type { RuntimeEvent } from "../../../events/event.js";
+import { Diagnostic } from "../../../events/diagnostic.js";
 import { model } from "../../../config/model.js";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+const HANDSHAKE_TIMEOUT_MS = 15_000;
+
+/**
+ * codex app-server launch — newline-delimited JSON-RPC over stdio.
+ * Reference: drydock/probes/codex-handshake.ts (codex 0.144.6).
+ */
+function codexPlan(): LaunchSpec {
+  const r = resolveCodexBin();
+  const command = r.ok ? r.command : "codex";
+  return { command, args: ["app-server", "--listen", "stdio://"], env: {} };
+}
+
+/**
+ * The REAL readiness witness (not `process_spawned`): send `initialize`, wait
+ * for the id-matched response carrying the `userAgent` handshake field, then
+ * send `initialized`. Tolerates unsolicited / out-of-order notifications
+ * (codex-handshake.ts FINDING 3): only the `id === 1` response is the witness;
+ * anything else is ignored while we keep waiting.
+ */
+async function codexHandshake(io: HandshakeIo): Promise<void> {
+  io.send(
+    JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } },
+    }),
+  );
+  const deadline = Date.now() + HANDSHAKE_TIMEOUT_MS;
+  for (;;) {
+    if (Date.now() > deadline) {
+      throw new Error(`codex: no initialize response within ${String(HANDSHAKE_TIMEOUT_MS)}ms`);
+    }
+    const line = await io.next();
+    if (line === null) {
+      throw new Error("codex: app-server closed before completing the initialize handshake");
+    }
+    let msg: unknown;
+    try {
+      msg = JSON.parse(line);
+    } catch {
+      continue; // non-JSON noise — tolerate, keep waiting
+    }
+    if (!isRecord(msg) || msg.id !== 1) {
+      continue; // unsolicited notification / other id — tolerate, keep waiting
+    }
+    if (msg.error !== undefined || !isRecord(msg.result) || typeof msg.result.userAgent !== "string") {
+      throw new Error("codex: initialize failed or missing userAgent handshake field");
+    }
+    io.send(JSON.stringify({ jsonrpc: "2.0", method: "initialized", params: {} }));
+    return; // READY — a real handshake witness was observed
+  }
+}
+
+/**
+ * Frame → contract events. TOLERATES unsolicited / out-of-order frames: an
+ * unrecognised notification yields `[]` rather than desyncing a request/response
+ * reader. A JSON-RPC error response maps to a `runtime_error`.
+ *
+ * ⚠️ HONEST GAP: the codex app-server CONVERSATION/turn protocol (which
+ * notification methods carry model text / tool calls / turn end) is NOT in the
+ * reference — the drydock probe only documents the handshake, and codex.ts's
+ * own app-server use is limited to `model/list`. Mapping specific turn methods
+ * to `text`/`tool_call`/`turn_end` would mean guessing method names, which the
+ * drive-layer discipline forbids. So turn-event mapping is deliberately left
+ * out; it is added when a real turn capture lands (the same acceptance bar as
+ * codex-handshake.ts held itself to).
+ */
+function codexNormalise(raw: unknown): readonly RuntimeEvent[] {
+  if (!isRecord(raw)) return [];
+  if (isRecord(raw.error)) {
+    const message = typeof raw.error.message === "string" ? raw.error.message : "codex app-server error";
+    return [{ kind: "runtime_error", detail: Diagnostic.fromRaw("unknown", message) }];
+  }
+  // Notifications / results whose turn semantics are not in the reference:
+  // tolerate (no desync, no invented mapping).
+  return [];
+}
 
 /** Sentinel model: caps unknown; zero options (supported⇒required forbids guessing). */
 export const CODEX_USER_CONFIGURED: ModelInfo = model(
@@ -318,7 +404,8 @@ function modelsFromCacheFallback(): readonly ModelInfo[] {
 }
 
 export function codexDriver(): RuntimeDriver {
-  return baseDriver("codex", {
+  return subprocessDriver({
+    id: "codex",
     // Version from the arbitrated, app-server-capable binary (CODEX_BIN / PATH /
     // ChatGPT.app bundle), not a bare PATH `codex --version`. Fail-closed: a
     // set-but-unusable CODEX_BIN yields not-detected, never a PATH fallthrough.
@@ -335,5 +422,11 @@ export function codexDriver(): RuntimeDriver {
       // Fallback: file cache (may be stale). Prefer empty typed failure over lying.
       return modelsFromCacheFallback();
     },
+    // Drive-layer: real launch + handshake witness + tolerant normalise.
+    plan: codexPlan,
+    readiness: { kind: "handshake_event" },
+    handshake: codexHandshake,
+    normalise: codexNormalise,
+    shutdown: { graceMs: 2_000, onGraceExpiry: "immediate" },
   });
 }
