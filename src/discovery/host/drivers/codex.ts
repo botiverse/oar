@@ -27,7 +27,7 @@ import {
 } from "../probe.js";
 import { codexHome } from "../paths.js";
 import { resolveCodexBin } from "../codexResolve.js";
-import { subprocessDriver, type HandshakeIo } from "../../../backend/subprocessDriver.js";
+import { subprocessDriver, type HandshakeIo, type PromptIo } from "../../../backend/subprocessDriver.js";
 import type { LaunchSpec } from "../../../backend/process/lifecycle.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
@@ -52,70 +52,286 @@ function codexPlan(): LaunchSpec {
 }
 
 /**
- * The REAL readiness witness (not `process_spawned`): send `initialize`, wait
- * for the id-matched response carrying the `userAgent` handshake field, then
- * send `initialized`. Tolerates unsolicited / out-of-order notifications
- * (codex-handshake.ts FINDING 3): only the `id === 1` response is the witness;
- * anything else is ignored while we keep waiting.
+ * Codex app-server turn controller. Bundles the readiness handshake and the
+ * per-turn `sendPrompt` because they share ONE piece of session state that oar's
+ * stateless `normalise` cannot carry: the `threadId`.
+ *
+ * A user turn is submitted with `turn/start { threadId, input: [{type:"text",
+ * text}] }` (raft daemon `codex.ts:1183-1186` + `codex.integration.test.ts:263-266,
+ * 335-341`). `turn/start` REQUIRES an established `threadId`, and that id is only
+ * obtained from a `thread/start` request/response round-trip (daemon
+ * `codex.ts:753-794`; integration test drives `thread/start` before every
+ * `turn/start`). `PromptIo` is fire-and-forget (send only, no `next()`), so the
+ * round-trip must happen in the handshake — which owns `io.next()` — and the
+ * resulting `threadId` is stashed here for `sendPrompt` to reuse.
+ *
+ * Single-active-session assumption: one controller instance backs one drive
+ * session (`createHostDrivers()` builds a fresh `codexDriver()` per call and
+ * `oar drive` starts exactly one session). Concurrent sessions from one instance
+ * would share/overwrite `threadId`; that is out of scope for the drive/conformance
+ * path and is reset at the start of each handshake.
  */
-async function codexHandshake(io: HandshakeIo): Promise<void> {
-  io.send(
-    JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } },
-    }),
-  );
-  const deadline = Date.now() + HANDSHAKE_TIMEOUT_MS;
-  for (;;) {
-    if (Date.now() > deadline) {
-      throw new Error(`codex: no initialize response within ${String(HANDSHAKE_TIMEOUT_MS)}ms`);
+interface CodexTurnController {
+  handshake: (io: HandshakeIo) => Promise<void>;
+  sendPrompt: (io: PromptIo, text: string) => void;
+}
+
+function makeCodexTurnController(): CodexTurnController {
+  let threadId: string | null = null;
+  let requestId = 0;
+  const nextId = (): number => (requestId += 1);
+
+  /**
+   * The REAL readiness witness (not `process_spawned`): `initialize` → id-matched
+   * response carrying `userAgent` → `initialized` → `thread/start` → id-matched
+   * response carrying `result.thread.id`. Tolerates unsolicited / out-of-order
+   * notifications (codex-handshake.ts FINDING 3): only the id-matched responses
+   * are witnesses; anything else is ignored while we keep waiting. Establishing
+   * the thread here (not just `initialized`) is what lets `sendPrompt` submit a
+   * turn — it mirrors the daemon, which always establishes a thread before its
+   * first turn.
+   */
+  async function handshake(io: HandshakeIo): Promise<void> {
+    threadId = null;
+    requestId = 0;
+    const deadline = Date.now() + HANDSHAKE_TIMEOUT_MS;
+
+    const nextFrame = async (what: string): Promise<Record<string, unknown>> => {
+      for (;;) {
+        if (Date.now() > deadline) {
+          throw new Error(`codex: no ${what} response within ${String(HANDSHAKE_TIMEOUT_MS)}ms`);
+        }
+        const line = await io.next();
+        if (line === null) {
+          throw new Error(`codex: app-server closed before completing the ${what} handshake`);
+        }
+        let msg: unknown = null;
+        try {
+          msg = JSON.parse(line);
+        } catch {
+          continue; // non-JSON noise — tolerate, keep waiting
+        }
+        if (isRecord(msg)) return msg;
+        // non-object JSON — tolerate, keep waiting
+      }
+    };
+
+    // 1) initialize → userAgent witness → initialized
+    const initId = nextId();
+    io.send(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: initId,
+        method: "initialize",
+        params: { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } },
+      }),
+    );
+    for (;;) {
+      const msg = await nextFrame("initialize");
+      if (msg.id !== initId) continue; // unsolicited notification / other id — tolerate
+      if (msg.error !== undefined || !isRecord(msg.result) || typeof msg.result.userAgent !== "string") {
+        throw new Error("codex: initialize failed or missing userAgent handshake field");
+      }
+      io.send(JSON.stringify({ jsonrpc: "2.0", method: "initialized", params: {} }));
+      break;
     }
-    const line = await io.next();
-    if (line === null) {
-      throw new Error("codex: app-server closed before completing the initialize handshake");
+
+    // 2) thread/start → threadId witness. Non-interactive driving params mirror
+    //    the daemon (`codex.ts:759-768`) / integration test (`:326-331`):
+    //    approvalPolicy "never" + full-access sandbox so a turn cannot hang on an
+    //    approval prompt. experimentalRawEvents is deliberately NOT set (oar does
+    //    not consume raw events; stays off the experimental surface).
+    const threadStartId = nextId();
+    io.send(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: threadStartId,
+        method: "thread/start",
+        params: { cwd: process.cwd(), approvalPolicy: "never", sandbox: "danger-full-access" },
+      }),
+    );
+    for (;;) {
+      const msg = await nextFrame("thread/start");
+      if (msg.id !== threadStartId) continue; // unsolicited notification / other id — tolerate
+      if (msg.error !== undefined) {
+        throw new Error("codex: thread/start failed");
+      }
+      const thread = isRecord(msg.result) ? msg.result.thread : undefined;
+      const id = isRecord(thread) ? thread.id : undefined;
+      if (typeof id !== "string" || id.length === 0) {
+        throw new Error("codex: thread/start response missing thread.id");
+      }
+      threadId = id;
+      return; // READY — a real handshake witness AND an established thread
     }
-    let msg: unknown;
-    try {
-      msg = JSON.parse(line);
-    } catch {
-      continue; // non-JSON noise — tolerate, keep waiting
+  }
+
+  /**
+   * Submit a user turn: `turn/start { threadId, input: [{type:"text", text}] }`.
+   * Throws if no thread was established (handshake did not complete), rather than
+   * silently sending an unaddressed turn.
+   */
+  function sendPrompt(io: PromptIo, text: string): void {
+    if (threadId === null) {
+      throw new Error("codex: no established thread (handshake did not complete thread/start)");
     }
-    if (!isRecord(msg) || msg.id !== 1) {
-      continue; // unsolicited notification / other id — tolerate, keep waiting
+    io.send(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: nextId(),
+        method: "turn/start",
+        params: { threadId, input: [{ type: "text", text }] },
+      }),
+    );
+  }
+
+  return { handshake, sendPrompt };
+}
+
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/**
+ * Assistant-text phase gate (raft `codexEventNormalizer.ts:217-219`): codex tags
+ * agent messages with a `phase`; only `final_answer` (or an absent phase) is the
+ * user-visible answer. Other phases (e.g. `commentary`) are tool-preamble scaffolding.
+ */
+function isUserVisibleAgentPhase(phase: string | null): boolean {
+  return phase === null || phase === "final_answer";
+}
+
+/**
+ * codex item.type → oar tool name (raft `codexEventNormalizer.ts:466-569`).
+ * Returns `null` for item types that are not tool calls (agentMessage, reasoning,
+ * contextCompaction, review modes, …). `fileChange` is intentionally excluded: the
+ * reference fans one `fileChange` item out to N tool calls (one per changed path,
+ * `:502-534`) with no per-change id, which has no clean mapping onto oar's single
+ * `callId`-per-call envelope — so it is tolerated rather than mapped by guesswork.
+ */
+function codexToolName(item: Record<string, unknown>): string | null {
+  switch (item.type) {
+    case "commandExecution":
+      return "shell"; // raft codexEventNormalizer.ts:466-475
+    case "webSearch":
+      return "web_search"; // raft codexEventNormalizer.ts:560-569
+    case "collabAgentToolCall":
+      return "collab_tool_call"; // raft codexEventNormalizer.ts:549-558
+    case "mcpToolCall": {
+      // raft codexEventNormalizer.ts:196-200 (codexMcpToolName)
+      const tool = nonEmptyString(item.tool) ?? "unknown";
+      const server = nonEmptyString(item.server);
+      return server ? `mcp_${server}_${tool}` : `mcp_${tool}`;
     }
-    if (msg.error !== undefined || !isRecord(msg.result) || typeof msg.result.userAgent !== "string") {
-      throw new Error("codex: initialize failed or missing userAgent handshake field");
-    }
-    io.send(JSON.stringify({ jsonrpc: "2.0", method: "initialized", params: {} }));
-    return; // READY — a real handshake witness was observed
+    default:
+      return null;
   }
 }
 
 /**
- * Frame → contract events. TOLERATES unsolicited / out-of-order frames: an
- * unrecognised notification yields `[]` rather than desyncing a request/response
- * reader. A JSON-RPC error response maps to a `runtime_error`.
+ * Frame → oar `RuntimeEvent`s for the codex app-server turn protocol, extracted
+ * from raft's production daemon driver (`packages/daemon/src/drivers/codexEventNormalizer.ts`).
+ * Stateless and per-frame: TOLERATES unsolicited / out-of-order / unrecognised
+ * frames by returning `[]` rather than desyncing.
  *
- * ⚠️ HONEST GAP: the codex app-server CONVERSATION/turn protocol (which
- * notification methods carry model text / tool calls / turn end) is NOT in the
- * reference — the drydock probe only documents the handshake, and codex.ts's
- * own app-server use is limited to `model/list`. Mapping specific turn methods
- * to `text`/`tool_call`/`turn_end` would mean guessing method names, which the
- * drive-layer discipline forbids. So turn-event mapping is deliberately left
- * out; it is added when a real turn capture lands (the same acceptance bar as
- * codex-handshake.ts held itself to).
+ * Method → event mapping (raft file:line is the authority for each):
+ * - JSON-RPC error response (top-level `error`)     → `runtime_error`
+ * - JSON-RPC success response (top-level `result`)   → `[]` (thread/turn accept — handshake owns thread; turn accept carries no turn content). raft `:276-292`
+ * - `item/completed` item.type `agentMessage`        → `text` (item.text), phase-gated on the item's own `phase`. raft `:447-464`
+ * - `item/agentMessage/delta`                        → `[]` — the daemon's streamed delta path (`:347-364`) needs a cross-frame phase cache (phase is set on `item/started` and omitted on later deltas) that a stateless mapper cannot hold; oar surfaces the phase-gated text at completion instead.
+ * - `item/started`  tool item (shell/mcp/web/collab) → `tool_call{callId=item.id, name}`. raft `:466-569`
+ * - `item/completed` tool item                       → `tool_result{callId=item.id, ok:true}`. raft `:466-569`
+ *     ⚠️ `ok` HAS NO PER-TOOL SOURCE in the reference: the daemon emits a bare
+ *     `tool_output` (name only) on completion and surfaces failures only at the
+ *     TURN level (`turn/completed` status, `:574-615`). `item/completed` is the
+ *     resolution signal, so `ok:true` = "the call resolved (no item-level failure
+ *     channel exists)". This is the single field oar asks for that codex does not
+ *     report per-item — flagged for the non-author reviewer.
+ * - `turn/completed` status `completed`              → `turn_end{completed}`. raft `:585-614`
+ * - `turn/completed` status `failed`                 → `runtime_error` + `turn_end{crashed}`. raft `:576-577,609-614`
+ * - `turn/completed` status `interrupted`            → `turn_end{interrupted}`. raft `:579-583` (daemon also emits an error; oar carries the interruption in `turn_end.reason`).
+ * - `error` notification, `willRetry:true`           → `[]` (retryable progress). raft `:617-620`
+ * - `error` notification, otherwise                  → `runtime_error`. raft `:621-626`
+ * - everything else (turn/started, reasoning deltas, telemetry, thread/status, …) → `[]`.
+ *
+ * Not represented (no oar event kind): reasoning/thinking text, token-usage
+ * telemetry (a separate `thread/tokenUsage/updated` frame, so it cannot be
+ * attached to `turn_end.usage` by a stateless per-frame mapper), compaction, and
+ * review-mode transitions — all tolerated.
  */
-function codexNormalise(raw: unknown): readonly RuntimeEvent[] {
+export function codexNormalise(raw: unknown): readonly RuntimeEvent[] {
   if (!isRecord(raw)) return [];
+
+  // JSON-RPC error response.
   if (isRecord(raw.error)) {
     const message = typeof raw.error.message === "string" ? raw.error.message : "codex app-server error";
     return [{ kind: "runtime_error", detail: Diagnostic.fromRaw("unknown", message) }];
   }
-  // Notifications / results whose turn semantics are not in the reference:
-  // tolerate (no desync, no invented mapping).
-  return [];
+
+  // JSON-RPC success response (thread/turn accept, model/list, …): no turn content.
+  if (isRecord(raw.result)) return [];
+
+  const method = typeof raw.method === "string" ? raw.method : "";
+  const params = isRecord(raw.params) ? raw.params : {};
+
+  switch (method) {
+    case "item/agentMessage/delta":
+      // Streamed deltas need cross-frame phase state a stateless mapper lacks;
+      // text is surfaced at item/completed instead. Tolerate.
+      return [];
+
+    case "item/started":
+    case "item/completed": {
+      const item = isRecord(params.item) ? params.item : null;
+      if (!item || typeof item.type !== "string") return [];
+
+      if (item.type === "agentMessage") {
+        // Assistant text: only on completion, only user-visible phase.
+        if (method !== "item/completed") return [];
+        const phase = nonEmptyString(item.phase);
+        const text = nonEmptyString(item.text);
+        if (!text || !isUserVisibleAgentPhase(phase)) return [];
+        return [{ kind: "text", text }];
+      }
+
+      const name = codexToolName(item);
+      if (name === null) return []; // non-tool item type — tolerate
+      const callId = nonEmptyString(item.id);
+      if (callId === null) return []; // no id → cannot form a call envelope
+      return method === "item/started"
+        ? [{ kind: "tool_call", callId, name }]
+        : [{ kind: "tool_result", callId, ok: true }];
+    }
+
+    case "turn/completed": {
+      const turn = isRecord(params.turn) ? params.turn : null;
+      const status = turn && typeof turn.status === "string" ? turn.status : "completed";
+      if (status === "failed") {
+        const turnError = turn && isRecord(turn.error) ? turn.error : null;
+        const message = (turnError && nonEmptyString(turnError.message)) ?? "Codex turn failed";
+        return [
+          { kind: "runtime_error", detail: Diagnostic.fromRaw("crashed", message) },
+          { kind: "turn_end", reason: "crashed" },
+        ];
+      }
+      if (status === "interrupted") {
+        return [{ kind: "turn_end", reason: "interrupted" }];
+      }
+      return [{ kind: "turn_end", reason: "completed" }];
+    }
+
+    case "error": {
+      if (params.willRetry === true) return []; // retryable — progress, not terminal
+      const message =
+        nonEmptyString(params.message) ??
+        (isRecord(params.error) ? nonEmptyString(params.error.message) : null) ??
+        "codex app-server error";
+      return [{ kind: "runtime_error", detail: Diagnostic.fromRaw("unknown", message) }];
+    }
+
+    default:
+      return [];
+  }
 }
 
 /** Sentinel model: caps unknown; zero options (supported⇒required forbids guessing). */
@@ -404,6 +620,7 @@ function modelsFromCacheFallback(): readonly ModelInfo[] {
 }
 
 export function codexDriver(): RuntimeDriver {
+  const turn = makeCodexTurnController();
   return subprocessDriver({
     id: "codex",
     // Version from the arbitrated, app-server-capable binary (CODEX_BIN / PATH /
@@ -422,10 +639,12 @@ export function codexDriver(): RuntimeDriver {
       // Fallback: file cache (may be stale). Prefer empty typed failure over lying.
       return modelsFromCacheFallback();
     },
-    // Drive-layer: real launch + handshake witness + tolerant normalise.
+    // Drive-layer: real launch + handshake witness (initialize + thread/start) +
+    // tolerant normalise + a wired user-turn submitter (turn/start).
     plan: codexPlan,
     readiness: { kind: "handshake_event" },
-    handshake: codexHandshake,
+    handshake: turn.handshake,
+    sendPrompt: turn.sendPrompt,
     normalise: codexNormalise,
     shutdown: { graceMs: 2_000, onGraceExpiry: "immediate" },
   });
