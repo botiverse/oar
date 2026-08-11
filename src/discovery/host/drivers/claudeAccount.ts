@@ -24,8 +24,11 @@ export type ClaudeUsageReadOutcome =
   | { kind: "unsupported" }
   | { kind: "error" };
 
-function accountKey(): string {
-  return createHash("sha256").update("claude\0local").digest("hex");
+/** Default slot for oar-standalone callers; daemon swap adapter injects its slockHome. */
+const DEFAULT_LOCAL_ACCOUNT_SLOT = "local";
+
+function accountKey(localAccountSlot: string): string {
+  return createHash("sha256").update(`claude\0${localAccountSlot}`).digest("hex");
 }
 
 function resolveClaudeBin(): string | null {
@@ -156,7 +159,9 @@ export function projectClaudeUsageTextSnapshot(input: {
   text: string;
   collectorVersion: string;
   observedAtMs: number;
+  localAccountSlot?: string;
 }): AccountUsageSnapshot {
+  const localAccountSlot = input.localAccountSlot ?? DEFAULT_LOCAL_ACCOUNT_SLOT;
   const windows: AccountUsageWindow[] = [];
   for (const line of input.text.split(/\r?\n/)) {
     const match =
@@ -197,7 +202,7 @@ export function projectClaudeUsageTextSnapshot(input: {
     sourceVersion: "claude -p /usage rendered text (approximate; local sessions only)",
     accounts: [
       {
-        accountKey: accountKey(),
+        accountKey: accountKey(localAccountSlot),
         health: windows.some((w) => w.status === "limit_reached") ? "rate_limited" : "ok",
         healthAcquisition: "text_parse",
         healthObservedAt: new Date(input.observedAtMs).toISOString(),
@@ -250,14 +255,17 @@ export async function readClaudeUsageText(opts?: {
 
 export async function collectClaudeAccountUsage(opts?: {
   timeoutMs?: number;
+  localAccountSlot?: string;
 }): Promise<AccountUsageSnapshot> {
   const observedAtMs = Date.now();
+  const localAccountSlot = opts?.localAccountSlot ?? DEFAULT_LOCAL_ACCOUNT_SLOT;
   const outcome = await readClaudeUsageText(opts);
   if (outcome.kind === "ok") {
     return projectClaudeUsageTextSnapshot({
       text: outcome.text,
       collectorVersion: "oar-0.0.0",
       observedAtMs,
+      localAccountSlot,
     });
   }
   return {
@@ -270,7 +278,7 @@ export async function collectClaudeAccountUsage(opts?: {
     collectorVersion: "oar-0.0.0",
     accounts: [
       {
-        accountKey: accountKey(),
+        accountKey: accountKey(localAccountSlot),
         health: ((): AccountUsageHealth => {
           if (outcome.kind === "reauth_required") return "reauth_required";
           if (outcome.kind === "unsupported") return "unsupported";

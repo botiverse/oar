@@ -73,10 +73,18 @@ function durationLabel(value: unknown): string {
   return `${minutes} minutes`;
 }
 
+/** Default slot for oar-standalone callers; daemon swap adapter injects its slockHome. */
+const DEFAULT_LOCAL_ACCOUNT_SLOT = "local";
+
+function accountKey(localAccountSlot: string): string {
+  return createHash("sha256").update(`codex\0${localAccountSlot}`).digest("hex");
+}
+
 function statusSnapshot(input: {
   health: Extract<AccountUsageHealth, "reauth_required" | "unsupported" | "error">;
   collectorVersion: string;
   observedAtMs: number;
+  localAccountSlot: string;
   sourceVersion?: string;
 }): AccountUsageSnapshot {
   return {
@@ -90,7 +98,7 @@ function statusSnapshot(input: {
     ...(input.sourceVersion ? { sourceVersion: input.sourceVersion } : {}),
     accounts: [
       {
-        accountKey: createHash("sha256").update("codex\0local").digest("hex"),
+        accountKey: accountKey(input.localAccountSlot),
         health: input.health,
         windows: [],
       },
@@ -103,8 +111,10 @@ export function projectCodexRateLimitsReadSnapshot(input: {
   outcome: CodexRateLimitsReadOutcome;
   collectorVersion: string;
   observedAtMs: number;
+  localAccountSlot?: string;
   sourceVersion?: string;
 }): AccountUsageSnapshot {
+  const localAccountSlot = input.localAccountSlot ?? DEFAULT_LOCAL_ACCOUNT_SLOT;
   if (input.outcome.kind !== "ok") {
     let health: Extract<AccountUsageHealth, "reauth_required" | "unsupported" | "error"> = "error";
     if (input.outcome.kind === "reauth_required") health = "reauth_required";
@@ -113,6 +123,7 @@ export function projectCodexRateLimitsReadSnapshot(input: {
       health,
       collectorVersion: input.collectorVersion,
       observedAtMs: input.observedAtMs,
+      localAccountSlot,
       ...(input.sourceVersion !== undefined ? { sourceVersion: input.sourceVersion } : {}),
     });
   }
@@ -169,7 +180,7 @@ export function projectCodexRateLimitsReadSnapshot(input: {
     ...(input.sourceVersion !== undefined ? { sourceVersion: input.sourceVersion } : {}),
     accounts: [
       {
-        accountKey: createHash("sha256").update("codex\0local").digest("hex"),
+        accountKey: accountKey(localAccountSlot),
         ...(planLabel !== undefined ? { planLabel } : {}),
         health,
         ...(windows.some((w) => w.status === "parse_unavailable")
@@ -279,6 +290,7 @@ export function readCodexRateLimitsFromAppServer(opts: {
 
 export async function collectCodexAccountUsage(opts?: {
   timeoutMs?: number;
+  localAccountSlot?: string;
 }): Promise<AccountUsageSnapshot> {
   const observedAtMs = Date.now();
   const outcome = await readCodexRateLimitsFromAppServer(opts);
@@ -286,5 +298,6 @@ export async function collectCodexAccountUsage(opts?: {
     outcome,
     collectorVersion: "oar-0.0.0",
     observedAtMs,
+    ...(opts?.localAccountSlot !== undefined ? { localAccountSlot: opts.localAccountSlot } : {}),
   });
 }

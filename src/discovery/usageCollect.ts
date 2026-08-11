@@ -9,19 +9,20 @@ import { collectClaudeAccountUsage } from "./host/drivers/claudeAccount.js";
 
 export async function collectUsage(
   provider: AccountUsageProvider,
+  opts?: { localAccountSlot?: string },
 ): Promise<AccountUsageSnapshot> {
   const now = Date.now();
   switch (provider) {
     case "codex":
       // app-server account/rateLimits/read (raft RuntimeAccountUsageCodexCollector).
-      return collectCodexAccountUsage();
+      return collectCodexAccountUsage(opts);
     case "kimi":
       // GET {platform.base_url}/usages with host OAuth token (kimi-cli /usage internals).
-      return collectKimiAccountUsage();
+      return collectKimiAccountUsage(opts);
     case "claude":
       // raft-aligned: claude -p /usage --output-format json (text_parse).
       // HaoHao also found GET /api/oauth/usage in the binary — future upgrade path.
-      return collectClaudeAccountUsage();
+      return collectClaudeAccountUsage(opts);
     case "grok":
       // HaoHao dive (grok 1.0.0): /usage opens console only; no usage API in binary.
       return unsupportedUsageSnapshot(
@@ -45,6 +46,8 @@ export function parseUsageProvider(raw: string | undefined): AccountUsageProvide
   return null;
 }
 
-export async function collectUsageAll(): Promise<readonly AccountUsageSnapshot[]> {
-  return Promise.all(USAGE_PROVIDERS.map((p) => collectUsage(p)));
+export async function collectUsageAll(
+  opts?: { localAccountSlot?: string },
+): Promise<readonly AccountUsageSnapshot[]> {
+  return Promise.all(USAGE_PROVIDERS.map((p) => collectUsage(p, opts)));
 }

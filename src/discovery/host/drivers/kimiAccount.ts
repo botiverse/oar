@@ -67,8 +67,11 @@ function readAccessToken(): string | null {
   }
 }
 
-function accountKey(rawAccount: string): string {
-  return createHash("sha256").update(`kimi\0local\0${rawAccount}`).digest("hex");
+/** Default slot for oar-standalone callers; daemon swap adapter injects its slockHome. */
+const DEFAULT_LOCAL_ACCOUNT_SLOT = "local";
+
+function accountKey(localAccountSlot: string, rawAccount: string): string {
+  return createHash("sha256").update(`kimi\0${localAccountSlot}\0${rawAccount}`).digest("hex");
 }
 
 function maskedLabel(rawAccount: string): string | undefined {
@@ -122,7 +125,9 @@ export function projectKimiUsageSnapshot(input: {
   outcome: KimiUsageReadOutcome;
   collectorVersion: string;
   observedAtMs: number;
+  localAccountSlot?: string;
 }): AccountUsageSnapshot {
+  const localAccountSlot = input.localAccountSlot ?? DEFAULT_LOCAL_ACCOUNT_SLOT;
   if (input.outcome.kind !== "ok") {
     return {
       protocolVersion: ACCOUNT_USAGE_PROTOCOL_VERSION,
@@ -134,7 +139,7 @@ export function projectKimiUsageSnapshot(input: {
       collectorVersion: input.collectorVersion,
       accounts: [
         {
-          accountKey: accountKey("status"),
+          accountKey: accountKey(localAccountSlot, "status"),
           health: ((): AccountUsageHealth => {
             if (input.outcome.kind === "reauth_required") return "reauth_required";
             if (input.outcome.kind === "unsupported") return "unsupported";
@@ -184,7 +189,7 @@ export function projectKimiUsageSnapshot(input: {
       const label = maskedLabel(rawIdentity);
       return [
         {
-          accountKey: accountKey(rawIdentity),
+          accountKey: accountKey(localAccountSlot, rawIdentity),
           ...(label ? { maskedLabel: label } : {}),
           health,
           ...(windows.some((w) => w.status === "parse_unavailable")
@@ -199,6 +204,7 @@ export function projectKimiUsageSnapshot(input: {
         outcome: { kind: "error" },
         collectorVersion: input.collectorVersion,
         observedAtMs: input.observedAtMs,
+        localAccountSlot,
       });
     }
     return {
@@ -268,7 +274,7 @@ export function projectKimiUsageSnapshot(input: {
     collectorVersion: input.collectorVersion,
     accounts: [
       {
-        accountKey: accountKey("local"),
+        accountKey: accountKey(localAccountSlot, "local"),
         health,
         ...(windows.some((w) => w.status === "parse_unavailable")
           ? { parseErrorCode: "kimi_usage_window_incomplete" }
@@ -304,6 +310,7 @@ export async function readKimiUsage(opts?: {
 
 export async function collectKimiAccountUsage(opts?: {
   timeoutMs?: number;
+  localAccountSlot?: string;
 }): Promise<AccountUsageSnapshot> {
   const observedAtMs = Date.now();
   const outcome = await readKimiUsage(opts);
@@ -311,5 +318,6 @@ export async function collectKimiAccountUsage(opts?: {
     outcome,
     collectorVersion: "oar-0.0.0",
     observedAtMs,
+    ...(opts?.localAccountSlot !== undefined ? { localAccountSlot: opts.localAccountSlot } : {}),
   });
 }
