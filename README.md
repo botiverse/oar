@@ -86,7 +86,7 @@ This pays out either way:
   boundary is genuinely larger than `oar` (ch.2's delivery half stays with the product), so the
   two names denote different things.
 
-## CLI (`oar detect`)
+## CLI
 
 Always use **pnpm** locally:
 
@@ -96,13 +96,28 @@ pnpm oar detect pi              # one runtime: full models list (providers when 
 pnpm oar detect codex --profile # phase timings (ms) on the human table
 pnpm oar detect kimi --json     # single-runtime JSON includes models; full-board --json stays v1-narrow
 pnpm oar detect --profile --json
+
+pnpm oar usage                  # account usage / rate limits for claude+codex+kimi+grok
+pnpm oar usage codex            # one provider
+pnpm oar usage claude --json    # protocol v1 snapshot JSON
 ```
 
+### `oar detect`
 - `<runtime>` must be a registry id (`claude`, `codex`, `grok`, `antigravity`, `copilot`,
   `cursor`, `gemini`, `kimi`, `opencode`, `pi`). Unknown id → error + legal id list (no silent empty).
 - Four failure states stay explicit: `not_installed` / `needs_login` / `models_unavailable` /
   `detect_failed`. `user-configured` escape models are listed, not collapsed.
 - Product ids `pi` and `kimi` probe **SDK paths only** (no CLI mode this round).
+
+### `oar usage`
+- Separate from detect (avoids "missing usage" looking like "0% used").
+- Providers (programmable surfaces only; never invent 0%):
+  - `codex` — app-server `account/rateLimits/read`
+  - `kimi` — `GET {platform}/usages` (same endpoint as kimi-cli `/usage`)
+  - `claude` — `claude -p /usage --output-format json` (text_parse; binary also has
+    `GET /api/oauth/usage` for a future structured path)
+  - `grok` — `unsupported` / no programmable usage API in current binary
+- Snapshot shape mirrors raft `RuntimeAccountUsageSnapshot` protocol v1.
 
 ## Current state
 

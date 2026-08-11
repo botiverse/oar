@@ -15,6 +15,9 @@ import {
 } from "./discovery/detect.js";
 import { createHostDrivers } from "./discovery/host/runtimeDrivers.js";
 import { RAFT_DRIVER_REGISTRY } from "./discovery/fixtures/raftRuntimes.js";
+import type { AccountUsageSnapshot } from "./discovery/accountUsage.js";
+import { USAGE_PROVIDERS } from "./discovery/accountUsage.js";
+import { collectUsage, collectUsageAll, parseUsageProvider } from "./discovery/usageCollect.js";
 
 /**
  * Human-readable status for one runtime.
@@ -218,6 +221,57 @@ async function runDemo(opts: { open?: boolean }): Promise<void> {
   });
 }
 
+function writeUsageHuman(snap: AccountUsageSnapshot): void {
+  process.stdout.write(
+    `${snap.provider}  health=${snap.accounts.map((a) => a.health).join(",")}  `
+      + `acquisition=${snap.acquisition}  scope=${snap.scope}\n`,
+  );
+  for (const acc of snap.accounts) {
+    if (acc.planLabel) process.stdout.write(`  plan=${acc.planLabel}\n`);
+    if (acc.maskedLabel) process.stdout.write(`  account=${acc.maskedLabel}\n`);
+    if (acc.windows.length === 0) {
+      process.stdout.write(`  (no usage windows)\n`);
+      continue;
+    }
+    for (const w of acc.windows) {
+      const pct =
+        w.usedRatio === undefined ? "—" : `${Math.round(w.usedRatio * 1000) / 10}%`;
+      const reset = w.resetsAt ? `  resets=${w.resetsAt}` : "";
+      process.stdout.write(
+        `  ${w.id.padEnd(28)} ${w.label.padEnd(28)} status=${w.status}  used=${pct}${reset}\n`,
+      );
+    }
+  }
+}
+
+async function runUsage(opts: {
+  provider?: string;
+  json?: boolean;
+}): Promise<void> {
+  const parsed = parseUsageProvider(opts.provider);
+  if (parsed === null) {
+    process.stderr.write(
+      `oar: unknown usage provider "${opts.provider}". `
+        + `supported: ${USAGE_PROVIDERS.join(", ")} (or omit for all)\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const snaps =
+    parsed === "all" ? await collectUsageAll() : [await collectUsage(parsed)];
+
+  if (opts.json) {
+    process.stdout.write(`${JSON.stringify(parsed === "all" ? snaps : snaps[0], null, 2)}\n`);
+    return;
+  }
+
+  for (const snap of snaps) {
+    writeUsageHuman(snap);
+    process.stdout.write("\n");
+  }
+}
+
 export function buildProgram(): Command {
   const program = new Command();
   program
@@ -252,6 +306,24 @@ export function buildProgram(): Command {
     .option("--open", "pass through to the bake script's interactive mode")
     .action(async (opts: { open?: boolean }) => {
       await runDemo(opts);
+    });
+
+  program
+    .command("usage")
+    .description(
+      "Read host account usage / rate limits (separate from detect four-state). "
+        + "codex/claude/kimi collectors; grok returns unsupported until a surface exists.",
+    )
+    .argument(
+      "[provider]",
+      `provider id (${USAGE_PROVIDERS.join("|")}); omit for all`,
+    )
+    .option("--json", "emit AccountUsageSnapshot JSON (protocol v1 mirror of raft)")
+    .action(async (provider: string | undefined, opts: { json?: boolean }) => {
+      await runUsage({
+        ...opts,
+        ...(provider !== undefined ? { provider } : {}),
+      });
     });
 
   return program;
