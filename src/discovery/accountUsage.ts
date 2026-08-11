@@ -8,6 +8,8 @@
  * Unsupported runtimes return health=unsupported with empty windows.
  */
 
+import { createHash } from "node:crypto";
+
 export const ACCOUNT_USAGE_PROTOCOL_VERSION = 1 as const;
 
 export type AccountUsageProvider = "claude" | "codex" | "kimi" | "grok";
@@ -69,11 +71,26 @@ export const USAGE_PROVIDERS: readonly AccountUsageProvider[] = [
   "grok",
 ];
 
+/** Default slot for oar-standalone callers; daemon swap adapter injects its slockHome. */
+const DEFAULT_LOCAL_ACCOUNT_SLOT = "local";
+
+/**
+ * Per-provider account key. Must satisfy raft's zod schema regex
+ * `/^[a-f0-9]{64}$/` (slock `packages/shared/src/runtimeAccountUsage.ts:79`),
+ * so the sha256 hex digest is required — the old `${provider}_unsupported`
+ * literal violated it. Same shape as the real collectors (e.g. codex
+ * `sha256("codex\0"+slot)` — oar `host/drivers/codexAccount.ts:79-80`).
+ */
+function accountKey(provider: AccountUsageProvider, localAccountSlot: string): string {
+  return createHash("sha256").update(`${provider}\0${localAccountSlot}`).digest("hex");
+}
+
 export function unsupportedUsageSnapshot(
   provider: AccountUsageProvider,
   collectorVersion: string,
   observedAtMs: number,
   note?: string,
+  localAccountSlot: string = DEFAULT_LOCAL_ACCOUNT_SLOT,
 ): AccountUsageSnapshot {
   return {
     protocolVersion: ACCOUNT_USAGE_PROTOCOL_VERSION,
@@ -86,7 +103,7 @@ export function unsupportedUsageSnapshot(
     ...(note ? { sourceVersion: note } : {}),
     accounts: [
       {
-        accountKey: `${provider}_unsupported`,
+        accountKey: accountKey(provider, localAccountSlot),
         health: "unsupported",
         windows: [],
       },

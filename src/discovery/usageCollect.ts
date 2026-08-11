@@ -30,6 +30,7 @@ export async function collectUsage(
         "oar-0.0.0",
         now,
         "no_programmable_usage_surface",
+        opts?.localAccountSlot,
       );
     default: {
       const neverProvider: never = provider;

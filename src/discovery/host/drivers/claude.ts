@@ -157,6 +157,7 @@ function claudePlan(options: Readonly<Record<string, string>>): LaunchSpec {
   const args = [
     "--verbose", // raft claudeLaunch.ts:68
     "--permission-mode", "bypassPermissions", // raft :69 — non-interactive: a turn cannot hang on a permission prompt (mirrors codex approvalPolicy:"never")
+    "--allow-dangerously-skip-permissions", // raft claudeLaunch.ts:65 — companion gate: some claude versions require this to honor --dangerously-skip-permissions
     "--dangerously-skip-permissions", // raft :67
     "--output-format", "stream-json", // raft :70
     "--input-format", "stream-json", // raft :71
