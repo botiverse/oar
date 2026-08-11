@@ -42,7 +42,7 @@ export function hostDetectMeta(): HostDetectMeta {
     host: process.env.RAFT_CURRENT_COMPUTER_HOSTNAME ?? process.env.HOSTNAME ?? "local",
     at: new Date().toISOString(),
     sources: {
-      codex: "codex --version + ~/.codex/models_cache.json (cacheAsOf stamped on version; app-server later)",
+      codex: "codex --version; models via app-server model/list (cache fallback if app-server fails)",
       claude: "claude --version; models=static aliases+API ids (docs model-config / raft RUNTIME_MODELS) + user-configured; CLAUDE_MODEL_LIST extends",
       grok: "grok --version + grok models",
       opencode: "opencode --version + opencode models",

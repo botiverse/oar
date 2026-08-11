@@ -1,9 +1,14 @@
+# Claude Code 2.1.225 /model Available (xxair):
+# sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m], opusplan, default, or a full model ID.
 default
 best
 fable
 opus
 sonnet
 haiku
+sonnet[1m]
+opus[1m]
+fable[1m]
 opusplan
 claude-fable-5
 claude-opus-5
