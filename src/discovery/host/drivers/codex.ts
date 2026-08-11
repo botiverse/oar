@@ -22,13 +22,12 @@ import { readFileSync, statSync } from "node:fs";
 import { spawn } from "node:child_process";
 import {
   baseDriver,
-  versionVia,
-  home,
   fileExists,
   modelsToInfo,
-  which,
   type LiveModel,
 } from "../probe.js";
+import { codexHome } from "../paths.js";
+import { resolveCodexBin } from "../codexResolve.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
@@ -169,7 +168,11 @@ export function detectCodexModelsFromAppServer(opts: {
   timeoutMs?: number;
   codexBin?: string;
 } = {}): Promise<readonly ModelInfo[] | null> {
-  const bin = opts.codexBin ?? which("codex");
+  let bin = opts.codexBin ?? null;
+  if (!bin) {
+    const r = resolveCodexBin();
+    bin = r.ok ? r.command : null;
+  }
   if (!bin) return Promise.resolve(null);
   const timeoutMs = opts.timeoutMs ?? 8_000;
 
@@ -303,7 +306,8 @@ export function detectCodexModelsFromAppServer(opts: {
 }
 
 function modelsFromCacheFallback(): readonly ModelInfo[] {
-  const cache = home(".codex", "models_cache.json");
+  // CODEX_HOME-aware (was hard-coded ~/.codex); shared root via host/paths.ts.
+  const cache = codexHome("models_cache.json");
   if (!fileExists(cache)) return [];
   try {
     const raw = JSON.parse(readFileSync(cache, "utf8")) as CodexCacheBody;
@@ -315,9 +319,18 @@ function modelsFromCacheFallback(): readonly ModelInfo[] {
 
 export function codexDriver(): RuntimeDriver {
   return baseDriver("codex", {
-    detect: async () => versionVia("codex"),
+    // Version from the arbitrated, app-server-capable binary (CODEX_BIN / PATH /
+    // ChatGPT.app bundle), not a bare PATH `codex --version`. Fail-closed: a
+    // set-but-unusable CODEX_BIN yields not-detected, never a PATH fallthrough.
+    detect: async () => {
+      const r = resolveCodexBin();
+      if (!r.ok) return null;
+      return { version: r.version ?? r.command };
+    },
     models: async () => {
-      const live = await detectCodexModelsFromAppServer();
+      const r = resolveCodexBin();
+      const bin = r.ok ? r.command : null;
+      const live = bin ? await detectCodexModelsFromAppServer({ codexBin: bin }) : null;
       if (live && live.length > 0) return live;
       // Fallback: file cache (may be stale). Prefer empty typed failure over lying.
       return modelsFromCacheFallback();
