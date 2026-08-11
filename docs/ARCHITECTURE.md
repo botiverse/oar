@@ -98,11 +98,15 @@ that proves it can fire.
 
 ## Compatibility: the object is a multi-version serving window, not forever
 
-oar is a library that **both raft-computer (the producer) and raft-server (the
-consumer) depend on**, and they version independently. So the thing to design
-for is not permanent backward-compatibility — it is the **window during which a
-spread of versions serves at once**, because computers ship to user machines and
-cannot all update the instant the server does.
+oar is a library that **three parties depend on**: raft-computer (the producer),
+and raft-server plus raft-frontend (the consumers; the frontend sits downstream
+of the server and consumes the same status, so it behaves like it). They version
+independently. So the thing to design for is not permanent backward-compatibility
+— it is the **window during which a spread of versions serves at once**, because
+computers ship to user machines and cannot all update the instant the server
+does. The `fold → status` firewall covers both consumers on one line: an
+additive change on the computer reaches server and frontend as a status they
+still recognise.
 
 The premises, in order:
 
