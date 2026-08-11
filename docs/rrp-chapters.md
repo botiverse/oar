@@ -18,7 +18,7 @@ item rather than a matter of taste.
 | --- | --- | --- | --- |
 | 1 | **Runtime interface** | oar | harvestable from existing code |
 | 2 | **Calling interface** | oar (see split) | partly exists, see below |
-| 3a | **Outbound events — observation** | oar | engineering ahead of docs; harvest |
+| 3a | **Outbound events — observation** (incl. *status = fold(events)*) | oar | engineering ahead of docs; harvest |
 | 3b | **Interception & permission (hooks)** | oar | **highest value, widest vendor divergence** |
 | 4 | **Session & transcript** | oar | independent, can start anytime |
 | 5 | **Capability negotiation** | oar | after ch.7 |
@@ -58,6 +58,47 @@ consumer refuse?*, which is precisely the security-relevant one.
 3b is likely the most valuable chapter in the set: sandboxing, approval and permission are where a
 host exercises control, and vendor behaviour diverges most (synchronous interception, after-the-fact
 notification only, or nothing at all). Widest divergence is where a uniform interface is worth most.
+
+### 3a — status is a projection of the event stream, never a stored field
+
+The events are the primary facts; **status is `fold` over them.** A runtime does not *set* a
+status the host then trusts — it *emits events*, and the host computes status from the event
+prefix seen so far. There is no `set_status` in the protocol, only `emit_event`.
+
+The event stream is append-only, past-tense, ordered, and immutable:
+
+```
+turn_started · tool_call · tool_result · turn_end{completed | interrupted | crashed} · runtime_error
+```
+
+Status (`idle` / `thinking` / `tool-executing` / `stopped` / `crashed`) is a pure function of that
+prefix. **Why derived and not a field of its own:** an independently-settable status can disagree
+with the events — the status says `idle` while an un-closed `tool_call` says otherwise — and that
+disagreement is invisible, because nothing forces the field false. A derived status *cannot* drift:
+it is recomputed from the facts every time. So **the derivation function itself is the contract**,
+shipped alongside the event union, not a status enum each vendor fills in its own way. Every
+consumer that folds the same events gets the same status.
+
+**Two levels, and they must not be merged:**
+
+| level | states | folds from |
+| --- | --- | --- |
+| **process lifecycle** | launching / running / stopped / crashed | daemon residency + process-level events |
+| **turn lifecycle** | idle / thinking / tool-executing / turn-end | in-process turn events |
+
+A process that is `running` while its turn is `idle` is a legal, common state; collapsing the two
+loses exactly that distinction. And `crashed ≠ completed`: only a derived projection can express
+"the process ended without ever producing a `turn_end{completed}`" — the silent-failure case an
+independently-set `done` flag cannot tell apart from a clean finish.
+
+This is not academic. The concrete failure it prevents: **marking an agent terminal is a status bug
+whenever `terminal` is set independently rather than folded from events.** A recoverable
+remote-compaction or provider-capacity failure is *not* agent-terminal, but a hand-set flag makes it
+so and the process is killed. The first-principles fix is the rule above — `terminal` / `crashed`
+must fold from the event stream, and a retriable failure event must not fold to `terminal`. (Raft's
+`packages/daemon/src/runtimeTurnState.ts` already states the shape: the normalizer decides which raw
+event means turn-started / tool-boundary, and `RuntimeTurnState` "owns only the derived state
+budget" — status is downstream of events, never a peer of them.)
 
 ### 6 — Trust boundary: authentication is a capability axis
 
