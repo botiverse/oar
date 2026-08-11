@@ -22,6 +22,12 @@ export type DiagnosticClass =
   | "credential_missing"
   | "crashed"
   | "stalled"
+  // Transient/recoverable: an account-level rate-limit, provider capacity error,
+  // or a remote-compaction failure. This is the #840 class — it must fold to a
+  // recovering (backoff/fallback) status, NOT to terminal. The raw→`capacity`
+  // recognition (which stderr/response means this) is pinned when the real
+  // captured capacity signature lands; see status.ts `isRetriableError`.
+  | "capacity"
   | "protocol_violation"
   | "unknown";
 

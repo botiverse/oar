@@ -95,3 +95,38 @@ without it every read site would have failed to compile.
 Both share a shape: **a lint config that is green tells you nothing about
 whether its teeth are present.** Every rule this repo relies on has a control
 that proves it can fire.
+
+## Compatibility: the object is a multi-version serving window, not forever
+
+oar is a library that **both raft-computer (the producer) and raft-server (the
+consumer) depend on**, and they version independently. So the thing to design
+for is not permanent backward-compatibility — it is the **window during which a
+spread of versions serves at once**, because computers ship to user machines and
+cannot all update the instant the server does.
+
+The premises, in order:
+
+- **oar's own API may break freely.** Its direct users are developers who
+  upgrade fast. Do not pay for indefinite source stability; be pragmatically
+  bold, not conservatively strict.
+- **The server leads.** It upgrades first, so the primary direction is a *newer
+  server understanding an older computer's events/status* (backward-compat). The
+  reverse — a newer computer talking to an older server — only has to **not
+  crash**, not fully interoperate.
+- **During the rolling window, cross-version coexistence must degrade, not
+  crash.** An end that meets an unknown status/kind folds it to `opaque` — it is
+  **never mis-taken as terminal** (that is the #840 failure) and **never silently
+  dropped**.
+
+The implementation takes the **lightest** mechanism that satisfies this:
+
+- **`fold → status` is the version firewall.** Status (a small, stable enum) is
+  what crosses the computer→server line; the *event union* stays computer-side
+  and may grow freely, because a new event kind almost always folds into an
+  existing status and is therefore invisible to an older server. Raw event detail
+  travels a separate activity-log/transcript path, not the status line.
+- **`opaque` degradation only backstops the rare status-layer change** (the
+  status enum itself gains a value an older consumer does not know), not every
+  event. This is why the `RuntimeEvent` union can stay `closed` with a `never`
+  exhaustiveness tooth (single-build, in-process) while the wire stays tolerant:
+  the two operate at different layers. See `src/events/status.ts`.
