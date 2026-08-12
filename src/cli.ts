@@ -327,23 +327,23 @@ async function runDrive(
     session = await driver.start({});
   } catch (err) {
     process.stderr.write(
-      `oar drive ${runtime}: start failed — ${err instanceof Error ? err.message : String(err)}\n`,
+      `oar run ${runtime}: start failed — ${err instanceof Error ? err.message : String(err)}\n`,
     );
     process.exitCode = 1;
     return;
   }
-  process.stdout.write(`[oar drive] ${runtime}: started (readiness witness observed)\n`);
+  process.stdout.write(`[oar run] ${runtime}: started (readiness witness observed)\n`);
 
   let stream: IdleSession | BusySession = session;
   try {
     stream = await session.prompt(prompt);
-    process.stdout.write(`[oar drive] ${runtime}: prompt sent\n`);
+    process.stdout.write(`[oar run] ${runtime}: prompt sent\n`);
   } catch (err) {
     process.stderr.write(
-      `[oar drive] ${runtime}: prompt not wired — ${err instanceof Error ? err.message : String(err)}\n`,
+      `[oar run] ${runtime}: prompt not wired — ${err instanceof Error ? err.message : String(err)}\n`,
     );
     process.stderr.write(
-      `[oar drive] streaming any live frames from the idle session instead\n`,
+      `[oar run] streaming any live frames from the idle session instead\n`,
     );
   }
 
@@ -352,7 +352,7 @@ async function runDrive(
   for (;;) {
     const step = await nextOrTimeout(it, timeoutMs);
     if (step === "timeout") {
-      process.stdout.write(`[oar drive] (no further events within ${String(timeoutMs)}ms)\n`);
+      process.stdout.write(`[oar run] (no further events within ${String(timeoutMs)}ms)\n`);
       break;
     }
     if (step.done) break;
@@ -362,7 +362,7 @@ async function runDrive(
 
   const closed = await stream.stop({ mode: "graceful" });
   process.stdout.write(
-    `[oar drive] ${runtime}: stopped${closed.diagnostic ? ` (diagnostic: ${closed.diagnostic.errorClass})` : ""}\n`,
+    `[oar run] ${runtime}: stopped${closed.diagnostic ? ` (diagnostic: ${closed.diagnostic.errorClass})` : ""}\n`,
   );
 }
 
@@ -395,9 +395,9 @@ export function buildProgram(): Command {
     );
 
   program
-    .command("drive")
+    .command("run")
     .description(
-      "Drive a runtime: start → prompt → normalise → print the RuntimeEvent stream "
+      "Run a runtime: start → prompt → normalise → print the RuntimeEvent stream "
         + "(the conformance snapshot). codex has a real handshake witness; pi is in-process SDK.",
     )
     .argument("<runtime>", "runtime id (e.g. codex, pi)")
