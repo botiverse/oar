@@ -308,6 +308,28 @@ function nextOrTimeout(
   });
 }
 
+/**
+ * Fast availability roster for `oar run` errors: each host runtime + whether it
+ * is installed. Uses only `detect()` (binary/SDK presence), NOT models — an
+ * error path must not hang probing every runtime's model list.
+ */
+async function formatRuntimeAvailability(): Promise<string> {
+  const drivers = createHostDrivers();
+  const rows = await Promise.all(
+    drivers.map(async (d) => {
+      let mark: string;
+      try {
+        const det = await d.detect();
+        mark = det ? `available (installed, ${det.version})` : "not installed";
+      } catch {
+        mark = "detect failed";
+      }
+      return `  ${d.id.padEnd(12)} ${mark}`;
+    }),
+  );
+  return rows.join("\n");
+}
+
 async function runDrive(
   runtime: string,
   prompt: string,
@@ -316,7 +338,7 @@ async function runDrive(
   const driver = createHostDrivers().find((d) => d.id === runtime);
   if (!driver) {
     process.stderr.write(
-      `oar: unknown runtime "${runtime}". known: ${createHostDrivers().map((d) => d.id).join(", ")}\n`,
+      `oar: unknown runtime "${runtime}".\nsupported runtimes:\n${await formatRuntimeAvailability()}\n`,
     );
     process.exitCode = 1;
     return;
@@ -327,7 +349,8 @@ async function runDrive(
     session = await driver.start({});
   } catch (err) {
     process.stderr.write(
-      `oar run ${runtime}: start failed — ${err instanceof Error ? err.message : String(err)}\n`,
+      `oar run ${runtime}: start failed — ${err instanceof Error ? err.message : String(err)}\n`
+        + `supported runtimes:\n${await formatRuntimeAvailability()}\n`,
     );
     process.exitCode = 1;
     return;
