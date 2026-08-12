@@ -38,7 +38,7 @@ export type TurnEndReason = "completed" | "interrupted" | "crashed";
 export function describeEvent(event: RuntimeEvent): string {
   switch (event.kind) {
     case "text":
-      return `text(${String(event.text.length)})`;
+      return `text ${JSON.stringify(event.text)}`;
     case "tool_call":
       return `tool_call(${event.name})`;
     case "tool_result":
