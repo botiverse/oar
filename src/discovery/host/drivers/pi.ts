@@ -10,19 +10,24 @@
  * Models: call the installed pi SDK in-process (`ModelRuntime.create`).
  * Catalog = getAvailableSnapshot() (auth-available only). No cross-repo shell-out.
  */
-import { createRequire } from "node:module";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { which } from "../probe.js";
+import { resolveSdkPackage } from "../sdkResolve.js";
 import { emptyDeclaration, type RuntimeDriver } from "../../../backend/trait.js";
 import type { IdleSession } from "../../../session/handle.js";
 import type { ModelInfo, ProviderInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
 
-const PKG_JSON_CANDIDATES = [
-  "@earendil-works/pi-coding-agent/package.json",
-  "@mariozechner/pi-coding-agent/package.json",
+/**
+ * Pi SDK candidates as PACKAGE NAMES (not `<pkg>/package.json` subpaths — see
+ * sdkResolve.ts). Raft's dependency first, then the supported upstream.
+ * Both are declared optional peers by the packaging seat.
+ */
+const PI_SDK_CANDIDATES = [
+  "@earendil-works/pi-coding-agent",
+  "@mariozechner/pi-coding-agent",
 ] as const;
 
 type PiSdkModel = {
@@ -43,21 +48,25 @@ type PiSdkModule = {
   };
 };
 
-/** Locate the installed pi-coding-agent package root (no CLI spawn). */
+/**
+ * Locate the installed pi-coding-agent package (no CLI spawn on the happy path).
+ *
+ * Same correction as kimi: the old code resolved `<pkg>/package.json`, which
+ * throws ERR_PACKAGE_PATH_NOT_EXPORTED on packages whose `exports` map does not
+ * publish that subpath — pi is one of them, so this reported pi ABSENT on real
+ * daemon installs. Resolution now goes through the package's main entry.
+ *
+ * The `which("pi")` walk-up below is kept as a last resort and is NOT the same
+ * signal: it finds a package root from an installed CLI binary, i.e. a
+ * different install identity. For kimi that conflation was the whole defect
+ * this card removed. Pi is declared SDK-only here, so the same question applies
+ * to it — flagged to @Huaihuai rather than silently changed, because pi's
+ * identity is what the Raft adapter synthesises `builtin` from and that is not
+ * this card's contract to move.
+ */
 export function resolvePiSdkPackageRoot(): string | null {
-  try {
-    const require = createRequire(import.meta.url);
-    for (const spec of PKG_JSON_CANDIDATES) {
-      try {
-        const p = require.resolve(spec);
-        return dirname(p);
-      } catch {
-        // next
-      }
-    }
-  } catch {
-    // fall through
-  }
+  const resolved = resolveSdkPackage(PI_SDK_CANDIDATES);
+  if (resolved) return resolved.root;
 
   const bin = which("pi");
   if (!bin) return null;
@@ -98,16 +107,29 @@ export function resolvePiSdkVersion(): string | null {
 }
 
 async function loadPiSdk(): Promise<{ root: string; mod: PiSdkModule } | null> {
-  const root = resolvePiSdkPackageRoot();
+  // Prefer the entry the package itself declares. Guessing `dist/index.js` is
+  // the same class of assumption as the package.json subpath: it happens to be
+  // true today and breaks silently when the package restructures.
+  const resolved = resolveSdkPackage(PI_SDK_CANDIDATES);
+  const candidates: string[] = [];
+  if (resolved) candidates.push(resolved.entry);
+  const root = resolved?.root ?? resolvePiSdkPackageRoot();
   if (!root) return null;
-  try {
-    const entry = pathToFileURL(join(root, "dist", "index.js")).href;
-    const mod = (await import(entry)) as PiSdkModule;
-    if (!mod?.ModelRuntime?.create) return null;
-    return { root, mod };
-  } catch {
-    return null;
+  candidates.push(join(root, "dist", "index.js"));
+
+  for (const entryPath of candidates) {
+    try {
+      const mod = (await import(pathToFileURL(entryPath).href)) as PiSdkModule;
+      // typeof, not truthiness: the cast asserts `create` exists, so a plain
+      // truthy test is statically always-true (TS2774) and would silently stop
+      // guarding the case this loop is FOR — an entry that imported fine but is
+      // not the SDK shape.
+      if (typeof mod?.ModelRuntime?.create === "function") return { root, mod };
+    } catch {
+      // next candidate
+    }
   }
+  return null;
 }
 
 /**

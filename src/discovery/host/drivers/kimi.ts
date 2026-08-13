@@ -28,9 +28,8 @@
  * Fixture (parser tests load the same file):
  *   fixtures/kimi-config.sample.toml
  */
-import { createRequire } from "node:module";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   baseDriver,
   fileExists,
@@ -44,52 +43,33 @@ import {
 import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
 import { kimiCodeHome } from "../paths.js";
+import { resolveSdkPackage } from "../sdkResolve.js";
 
-const PKG_JSON_CANDIDATES = [
-  "@botiverse/kimi-code-sdk/package.json",
-  "@moonshot-ai/kimi-code-sdk/package.json",
+/**
+ * Kimi SDK candidates, in preference order: the package Raft actually depends
+ * on first, then the supported upstream alternative. These are PACKAGE NAMES,
+ * not `<pkg>/package.json` subpaths — see sdkResolve.ts for why that subpath is
+ * unusable on real installs. The packaging seat declares all of these as
+ * optional peers so a published OAR can see them under pnpm's strict layout.
+ */
+export const KIMI_SDK_CANDIDATES = [
+  "@botiverse/kimi-code-sdk",
+  "@moonshot-ai/kimi-code-sdk",
 ] as const;
 
-/** Read installed kimi SDK / product version — never invent a mode string. */
+/**
+ * Read the installed Kimi SDK version — never invent a mode string.
+ *
+ * ⛔ The previous implementation also swept `process.cwd()` and the global
+ * node prefix for a matching node_modules path. That is deliberately gone: it
+ * made the answer depend on WHERE oar was invoked from, so the same host could
+ * report the SDK installed or absent for the same install. Under the identity
+ * split that flicker is not a version detail — `kimi` present/absent IS the
+ * SDK answer. Visibility is a packaging contract (optional peers), not
+ * something a filesystem sweep should paper over.
+ */
 export function resolveKimiSdkVersion(): string | null {
-  try {
-    const require = createRequire(import.meta.url);
-    for (const spec of PKG_JSON_CANDIDATES) {
-      try {
-        const p = require.resolve(spec);
-        const v = (JSON.parse(readFileSync(p, "utf8")) as { version?: string }).version;
-        if (typeof v === "string" && v.length > 0) return v;
-      } catch {
-        // next
-      }
-    }
-  } catch {
-    // fall through
-  }
-
-  // Walk node_modules next to the oar process and common global prefixes.
-  const searchRoots = [
-    process.cwd(),
-    dirname(process.execPath),
-    join(dirname(process.execPath), "..", "lib", "node_modules"),
-  ];
-  for (const root of searchRoots) {
-    for (const rel of [
-      "node_modules/@botiverse/kimi-code-sdk/package.json",
-      "node_modules/@moonshot-ai/kimi-code-sdk/package.json",
-    ]) {
-      const p = join(root, rel);
-      if (!existsSync(p)) continue;
-      try {
-        const v = (JSON.parse(readFileSync(p, "utf8")) as { version?: string }).version;
-        if (typeof v === "string" && v.length > 0) return v;
-      } catch {
-        // next
-      }
-    }
-  }
-
-  return null;
+  return resolveSdkPackage(KIMI_SDK_CANDIDATES)?.version ?? null;
 }
 
 /** Pure parse of kimi-code config.toml — unit-tested without the filesystem. */
