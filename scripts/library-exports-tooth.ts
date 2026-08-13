@@ -211,6 +211,12 @@ function assertInstallParitySource(): void {
   } else {
     ok("antigravity asks agy");
   }
+  const assembly = readFileSync(join(root, "src/discovery/host/runtimeDrivers.ts"), "utf8");
+  if (!/withInstallAttempts\(\s*codexDriver\(\)\s*,\s*commandInstallAttempts\(\["codex"\]\)/.test(assembly)) {
+    bad("codex install candidate", "createHostDrivers must attach commandInstallAttempts([\"codex\"]) without adding a codex.ts import");
+  } else {
+    ok("codex attempts attached at assembly");
+  }
   const kimi = readFileSync(join(root, "src/discovery/host/drivers/kimi.ts"), "utf8");
   if (!/commandInstallAttempts\(\["kimi"\]\)/.test(kimi) || !/kimiCodeHome\(\)/.test(kimi)) {
     bad("kimi-cli install candidates", "must try home-bin + PATH kimi");

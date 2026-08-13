@@ -50,7 +50,7 @@ test("createHostDrivers production ids ask real executables, not driver.id", asy
       platform: "win32",
       env: {},
       execFileSyncFn: ((_cmd: string, args?: readonly string[]) => {
-        const name = String(args?.[args.length - 1] ?? "");
+        const name = String(args?.at(-1) ?? "");
         asked.push(name);
         const hits: Record<string, string> = {
           "cursor-agent": "C:\\npm\\cursor-agent.ps1",

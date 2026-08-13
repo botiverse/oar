@@ -30,7 +30,6 @@ import { resolveCodexBin } from "../codexResolve.js";
 import { subprocessDriver, type HandshakeIo, type PromptIo } from "../../../backend/subprocessDriver.js";
 import type { LaunchSpec } from "../../../backend/process/lifecycle.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
-import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 import type { ModelInfo } from "../../../config/model.js";
 import type { RuntimeEvent } from "../../../events/event.js";
 import { Diagnostic } from "../../../events/diagnostic.js";
@@ -622,7 +621,7 @@ function modelsFromCacheFallback(): readonly ModelInfo[] {
 
 export function codexDriver(): RuntimeDriver {
   const turn = makeCodexTurnController();
-  return withInstallAttempts(subprocessDriver({
+  return subprocessDriver({
     id: "codex",
     // Version from the arbitrated, app-server-capable binary (CODEX_BIN / PATH /
     // ChatGPT.app bundle), not a bare PATH `codex --version`. Fail-closed: a
@@ -648,5 +647,5 @@ export function codexDriver(): RuntimeDriver {
     sendPrompt: turn.sendPrompt,
     normalise: codexNormalise,
     shutdown: { graceMs: 2_000, onGraceExpiry: "immediate" },
-  }), commandInstallAttempts(["codex"]));
+  });
 }
