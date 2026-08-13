@@ -35,7 +35,8 @@
     "check-demo-html": "pnpm exec tsx scripts/check-demo-html-js.ts artifacts-local/create-agent-form-live.html",
     "embed-live": "pnpm exec tsx scripts/embed-live-html.ts && pnpm run check-demo-html",
     "oar": "pnpm exec tsx src/cli.ts",
-    "prove:git-consumer": "pnpm exec tsx scripts/prove-git-consumer.ts"
+    "prove:git-consumer": "pnpm exec tsx scripts/prove-git-consumer.ts",
+    "teeth:strict-sdk-consumer": "pnpm exec tsx scripts/strict-sdk-consumer-tooth.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
