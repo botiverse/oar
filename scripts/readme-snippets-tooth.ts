@@ -28,7 +28,7 @@ const FORBIDDEN = [
   { name: "CJS require example", re: /require\(\s*["']@botiverse\/oar["']\s*\)/ },
   { name: "Pi in-process as run capability", re: /Pi in-process SDK/ },
   { name: "peers are detect-time only", re: /detect-time only/i },
-  { name: "present-tense Raft consumer", re: /first in-tree consumer is Raft|The first consumer is Raft|powers Raft/i },
+  { name: "present-tense Raft consumer", re: /first in-tree consumer is|The first consumer is Raft|powers Raft/i },
 ];
 
 const REQUIRED = [
