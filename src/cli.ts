@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * `oar` CLI entry.
  *
@@ -7,6 +8,8 @@
 
 import { Command } from "commander";
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   detectAllRegistered,
   type RuntimeDescriptor,
@@ -462,9 +465,20 @@ export function buildProgram(): Command {
   return program;
 }
 
-const invokedDirectly =
-  process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop() ?? "");
-if (invokedDirectly || process.env.OAR_CLI_FORCE_RUN) {
+/**
+ * True when this file is the process entry, including npm/pnpm `.bin/oar`
+ * which is a symlink to dist/cli.js (basename is `oar`, not `cli.js`).
+ */
+export function isCliEntry(argv1: string | undefined, moduleUrl: string): boolean {
+  if (!argv1) return false;
+  try {
+    return realpathSync(argv1) === fileURLToPath(moduleUrl);
+  } catch {
+    return false;
+  }
+}
+
+if (isCliEntry(process.argv[1], import.meta.url) || process.env.OAR_CLI_FORCE_RUN) {
   buildProgram()
     .parseAsync(process.argv)
     .catch((err: unknown) => {

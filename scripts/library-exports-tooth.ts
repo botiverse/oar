@@ -8,7 +8,8 @@
  * Run: pnpm run teeth:library-exports
  * Requires: pnpm run build first (or prepare).
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdtempSync, rmSync, symlinkSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
@@ -46,6 +47,74 @@ function ok(name: string) {
 function bad(name: string, detail: string) {
   failed++;
   console.error(`  FAIL  ${name}: ${detail}`);
+}
+
+const NODE_SHEBANG = "#!/usr/bin/env node";
+
+function hasNodeShebang(text: string): boolean {
+  return text.startsWith(`${NODE_SHEBANG}\n`) || text.startsWith(`${NODE_SHEBANG}\r\n`);
+}
+
+/** Packaging tooth: npm bin.oar must remain a node shebang script. */
+function assertCliShebang(): void {
+  const srcCli = join(root, "src/cli.ts");
+  const distCli = join(root, "dist/cli.js");
+  const src = readFileSync(srcCli, "utf8");
+  if (!hasNodeShebang(src)) {
+    bad("src/cli.ts shebang", `first line must be ${NODE_SHEBANG}`);
+  } else {
+    ok("src/cli.ts shebang");
+  }
+  if (!existsSync(distCli)) {
+    bad("dist/cli.js shebang", "missing — run pnpm run build first");
+    return;
+  }
+  const dist = readFileSync(distCli, "utf8");
+  if (!hasNodeShebang(dist)) {
+    bad("dist/cli.js shebang", `tsc must preserve ${NODE_SHEBANG} as first line`);
+  } else {
+    ok("dist/cli.js shebang");
+  }
+}
+
+/** `.bin/oar` is a symlink whose basename is `oar`, not `cli.js`. */
+async function assertBinSymlinkInvokesCli(): Promise<void> {
+  const distCli = join(root, "dist/cli.js");
+  if (!existsSync(distCli)) {
+    bad("bin symlink invoke", "missing dist/cli.js");
+    return;
+  }
+  const src = readFileSync(join(root, "src/cli.ts"), "utf8");
+  if (!/export function isCliEntry/.test(src) || !/realpathSync/.test(src)) {
+    bad("isCliEntry uses realpathSync", "basename-only check misses npm bin symlink named oar");
+  } else {
+    ok("isCliEntry uses realpathSync");
+  }
+  const cliMod = (await import(pathToFileURL(distCli).href)) as {
+    isCliEntry?: (argv1: string | undefined, moduleUrl: string) => boolean;
+  };
+  if (typeof cliMod.isCliEntry !== "function") {
+    bad("isCliEntry export", "dist/cli.js must export isCliEntry");
+    return;
+  }
+  const dir = mkdtempSync(join(tmpdir(), "oar-bin-tooth-"));
+  try {
+    const link = join(dir, "oar");
+    symlinkSync(realpathSync(distCli), link);
+    const moduleUrl = pathToFileURL(realpathSync(distCli)).href;
+    if (!cliMod.isCliEntry(link, moduleUrl)) {
+      bad("isCliEntry(symlink named oar)", "must resolve .bin/oar → dist/cli.js");
+    } else {
+      ok("isCliEntry(symlink named oar)");
+    }
+    if (cliMod.isCliEntry(undefined, moduleUrl)) {
+      bad("isCliEntry(undefined)", "must be false");
+    } else {
+      ok("isCliEntry(undefined) is false");
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function assertSourceReexports(): void {
@@ -158,6 +227,8 @@ async function assertBuiltExports(): Promise<void> {
 
 async function main(): Promise<void> {
   console.log("library-exports tooth");
+  assertCliShebang();
+  await assertBinSymlinkInvokesCli();
   assertSourceReexports();
   await assertBuiltExports();
   if (failed > 0) {

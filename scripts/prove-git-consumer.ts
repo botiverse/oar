@@ -134,6 +134,18 @@ console.log(JSON.stringify({
     writeFileSync(join(dir, "probe.mjs"), probe);
     const out = sh("node", ["probe.mjs"], dir);
     console.log(out);
+
+    // Must execute the installed bin via its shebang — not `node dist/cli.js`.
+    const oarBin = join(dir, "node_modules", ".bin", "oar");
+    if (!existsSync(oarBin)) {
+      throw new Error(`missing ${oarBin} after npm install`);
+    }
+    const help = sh(oarBin, ["--help"], dir);
+    if (!/Usage:\s+oar/i.test(help)) {
+      throw new Error(`oar --help did not look like commander usage:\n${help}`);
+    }
+    console.log("oar --help (installed bin) OK");
+
     console.log("RECEIPT_OK");
     console.log(
       JSON.stringify(
