@@ -44,6 +44,7 @@ import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
 import { kimiCodeHome } from "../paths.js";
 import { resolveSdkPackage } from "../sdkResolve.js";
+import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 
 /**
  * Kimi SDK candidates as PACKAGE NAMES (not `<pkg>/package.json` subpaths — see
@@ -212,12 +213,24 @@ export function kimiDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
 export function kimiCliDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
   const cliVersion = probes?.cliVersion ?? resolveKimiCliVersion;
   const models = probes?.readModels;
-  return baseDriver("kimi-cli", {
+  return withInstallAttempts(baseDriver("kimi-cli", {
     detect: async () => {
       const version = cliVersion();
       return version === null ? null : { version };
     },
     models: async () =>
       models ? models() : modelsToInfo("kimi-cli", readKimiModels()),
-  });
+  }), (ctx) => [
+    {
+      resolution: "command" as const,
+      run: async () => {
+        const homeBin = join(kimiCodeHome(), "bin", "kimi");
+        if (!fileExists(homeBin)) return null;
+        if (ctx.readVersion) return ctx.readVersion(homeBin);
+        const r = runText(homeBin, ["--version"], { timeoutMs: 10_000 });
+        return firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr) ?? "unknown";
+      },
+    },
+    ...commandInstallAttempts(["kimi"])(ctx),
+  ]);
 }

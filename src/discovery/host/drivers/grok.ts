@@ -1,5 +1,6 @@
 import { baseDriver, versionVia, which, runText, modelsToInfo } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
+import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 
 /**
  * Parse `grok models` stdout.
@@ -26,7 +27,7 @@ export function parseGrokModelsOutput(text: string): string[] {
 }
 
 export function grokDriver(): RuntimeDriver {
-  return baseDriver("grok", {
+  return withInstallAttempts(baseDriver("grok", {
     detect: async () => versionVia("grok", ["--version"]),
     models: async () => {
       const path = which("grok");
@@ -38,5 +39,5 @@ export function grokDriver(): RuntimeDriver {
         ids.map((id) => ({ id, label: id, supportedReasoningEfforts: ["high", "medium", "low"] })),
       );
     },
-  });
+  }), commandInstallAttempts(["grok"]));
 }

@@ -41,6 +41,48 @@ function stub(
   };
 }
 
+test("createHostDrivers production ids ask real executables, not driver.id", async () => {
+  const asked: string[] = [];
+  const { createHostDrivers } = await import("./host/runtimeDrivers.js");
+  const { RAFT_DRIVER_REGISTRY } = await import("./fixtures/raftRuntimes.js");
+  const rows = await detectInstallRegistered(createHostDrivers(), [...RAFT_DRIVER_REGISTRY], {
+    commandResolve: {
+      platform: "win32",
+      env: {},
+      execFileSyncFn: ((_cmd: string, args?: readonly string[]) => {
+        const name = String(args?.[args.length - 1] ?? "");
+        asked.push(name);
+        const hits: Record<string, string> = {
+          "cursor-agent": "C:\\npm\\cursor-agent.ps1",
+          agy: "C:\\npm\\agy.ps1",
+          kimi: "C:\\npm\\kimi.ps1",
+        };
+        const hit = hits[name];
+        if (hit) return Buffer.from(`${hit}\r\n`);
+        throw new Error(`not found:${name}`);
+      }) as never,
+      existsSyncFn: (p: string) => p.endsWith(".cmd"),
+      windowsEnvironmentReaderFn: () => ({ machine: {}, user: {} }),
+    },
+    readVersion: (bin) => {
+      if (bin.includes("cursor-agent.cmd")) return "cursor-from-agent";
+      if (bin.includes("agy.cmd")) return "agy-from-cmd";
+      if (bin.includes("kimi.cmd")) return "kimi-from-cmd";
+      return null;
+    },
+  });
+  const byId = Object.fromEntries(rows.map((r) => [r.runtime, r]));
+  assert.equal(byId.cursor?.version, "cursor-from-agent");
+  assert.equal(byId.antigravity?.version, "agy-from-cmd");
+  assert.equal(byId["kimi-cli"]?.version, "kimi-from-cmd");
+  assert.ok(asked.includes("cursor-agent"), `asked=${asked.join(",")}`);
+  assert.ok(asked.includes("agy"), `asked=${asked.join(",")}`);
+  assert.ok(asked.includes("kimi"), `asked=${asked.join(",")}`);
+  assert.equal(asked.includes("cursor"), false);
+  assert.equal(asked.includes("antigravity"), false);
+  assert.equal(asked.includes("kimi-cli"), false);
+});
+
 test("OpenCode version gate: 1.14.29 no, 1.14.30 yes", () => {
   assert.equal(MIN_SUPPORTED_OPENCODE_VERSION, "1.14.30");
   assert.equal(isSupportedOpenCodeVersion("1.14.29"), false);

@@ -123,6 +123,27 @@ export function readCommandVersion(
   return firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
 }
 
+export function commandInstallAttempts(
+  names: readonly string[],
+): (ctx: InstallProbeCtx) => InstallAttempt[] {
+  return (ctx) =>
+    names.map((name) => ({
+      resolution: "command" as const,
+      run: async () =>
+        readCommandVersion(name, {
+          ...ctx,
+          commandDeps: { ...ctx.commandDeps, failMode: "throw" },
+        }),
+    }));
+}
+
+export function withInstallAttempts(
+  driver: RuntimeDriver,
+  attempts: (ctx: InstallProbeCtx) => readonly InstallAttempt[],
+): RuntimeDriver {
+  return Object.assign(driver, { installAttempts: attempts });
+}
+
 export function defaultCommandAttempts(driver: RuntimeDriver, ctx: InstallProbeCtx): InstallAttempt[] {
   return [
     {

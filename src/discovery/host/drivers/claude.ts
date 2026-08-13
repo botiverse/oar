@@ -29,6 +29,7 @@ import { resolveClaudeCommand } from "../claudeResolve.js";
 import { subprocessDriver, type PromptIo } from "../../../backend/subprocessDriver.js";
 import type { LaunchSpec } from "../../../backend/process/lifecycle.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
+import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 import type { ModelInfo } from "../../../config/model.js";
 import type { RuntimeEvent } from "../../../events/event.js";
 import type { TokenUsage, UsageReport } from "../../../events/usage.js";
@@ -385,7 +386,7 @@ export function claudeNormalise(raw: unknown): readonly RuntimeEvent[] {
 }
 
 export function claudeDriver(): RuntimeDriver {
-  return subprocessDriver({
+  return withInstallAttempts(subprocessDriver({
     id: "claude",
     detect: async () => {
       // PATH → (darwin) "Claude Code URL Handler.app" bundle, per raft
@@ -411,5 +412,5 @@ export function claudeDriver(): RuntimeDriver {
     sendPrompt: claudeSendPrompt,
     normalise: claudeNormalise,
     shutdown: { graceMs: 2_000, onGraceExpiry: "immediate" },
-  });
+  }), commandInstallAttempts(["claude"]));
 }

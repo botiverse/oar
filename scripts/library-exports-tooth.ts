@@ -199,6 +199,24 @@ function assertInstallParitySource(): void {
   } else {
     ok("no unconditional probeErrorObserved:false on detect()");
   }
+  const misc = readFileSync(join(root, "src/discovery/host/drivers/misc.ts"), "utf8");
+  if (!/commandInstallAttempts\(\["cursor-agent"\]\)/.test(misc)) {
+    bad("cursor install candidate", 'cursorDriver must ask cursor-agent, not driver.id');
+  } else {
+    ok("cursor asks cursor-agent");
+  }
+  const agy = readFileSync(join(root, "src/discovery/host/drivers/antigravity.ts"), "utf8");
+  if (!/commandInstallAttempts\(\["agy"\]\)/.test(agy)) {
+    bad("antigravity install candidate", "must ask agy");
+  } else {
+    ok("antigravity asks agy");
+  }
+  const kimi = readFileSync(join(root, "src/discovery/host/drivers/kimi.ts"), "utf8");
+  if (!/commandInstallAttempts\(\["kimi"\]\)/.test(kimi) || !/kimiCodeHome\(\)/.test(kimi)) {
+    bad("kimi-cli install candidates", "must try home-bin + PATH kimi");
+  } else {
+    ok("kimi-cli asks home-bin + kimi");
+  }
 }
 
 function assertOptionalPeers(): void {
