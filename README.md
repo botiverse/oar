@@ -3,9 +3,11 @@
 **An agent client access layer** (`@botiverse/oar`).
 
 Host-side access to agent runtimes: detect what is installed, read account usage,
-and (where wired) start a session and consume typed events. The first in-tree
-consumer is [Raft](https://github.com/botiverse). Raft is a seed corpus, not the
-spec — where product shape and the general contract diverge, the contract wins.
+and (where wired) start a session and consume typed events. The intended first
+consumer / integration target is [Raft](https://github.com/botiverse). That
+integration is not landed in this 0.0.1 (no Raft adapter PR yet). Raft
+experience is a seed corpus, not the spec — where product shape and the general
+contract diverge, the contract wins.
 
 > **0.0.1 status (this npm package).** Detect + account-usage are the supported
 > library/CLI surfaces. `oar run` has a **full turn** path only for **Codex**

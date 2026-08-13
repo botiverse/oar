@@ -28,6 +28,7 @@ const FORBIDDEN = [
   { name: "CJS require example", re: /require\(\s*["']@botiverse\/oar["']\s*\)/ },
   { name: "Pi in-process as run capability", re: /Pi in-process SDK/ },
   { name: "peers are detect-time only", re: /detect-time only/i },
+  { name: "present-tense Raft consumer", re: /first in-tree consumer is Raft|The first consumer is Raft|powers Raft/i },
 ];
 
 const REQUIRED = [
@@ -52,6 +53,7 @@ const REQUIRED = [
   { name: "Pi peer used for providers/start", needle: "providers()" },
   { name: "detectAll omits not-installed", needle: "omits" },
   { name: "detectAllRegistered keeps not_installed", needle: "detectAllRegistered" },
+  { name: "Raft is intended consumer, not landed", needle: "intended first consumer / integration target" },
 ];
 
 console.log("readme-snippets tooth");
