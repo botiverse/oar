@@ -8,10 +8,12 @@ consumer is [Raft](https://github.com/botiverse). Raft is a seed corpus, not the
 spec — where product shape and the general contract diverge, the contract wins.
 
 > **0.0.1 status (this npm package).** Detect + account-usage are the supported
-> library/CLI surfaces. `oar run` can drive a subset of runtimes (Codex
-> handshake, Pi in-process SDK). This is **not** “sea-trial green for every
-> driver”, and it is not “nothing works”. Drive/conformance coverage is
-> incomplete; do not treat an empty `sea-trial/cases/` as a pass.
+> library/CLI surfaces. `oar run` has a **full turn** path only for **Codex**
+> (app-server handshake → prompt → events). Other runtimes may start or
+> catalog; they do **not** complete a turn (Pi `prompt()` throws
+> `turn/prompt API not wired`). This is not “sea-trial green for every
+> driver”, and it is not “nothing works”. Do not treat an empty
+> `sea-trial/cases/` as a pass.
 
 An *agent client* is the host: it starts a runtime, drives it, and observes
 events. `oar` is that access layer.
@@ -26,10 +28,13 @@ events. `oar` is that access layer.
 npm install @botiverse/oar
 ```
 
-Optional peers (detect-time only; not required to install oar):
+Optional peers are **host-provided SDK integrations** (not required to
+install oar). They are used as follows:
 
-- `@botiverse/kimi-code-sdk` — canonical `kimi` (SDK)
-- `@earendil-works/pi-coding-agent` or `@mariozechner/pi-coding-agent` — `pi`
+- `@botiverse/kimi-code-sdk` — detect/version for canonical `kimi`
+- `@earendil-works/pi-coding-agent` or `@mariozechner/pi-coding-agent` —
+  detect/version **and** `providers()` / `start()` for `pi` (catalog +
+  session create). `start()` does **not** mean a wired turn.
 
 ```bash
 npx oar --help
@@ -59,11 +64,15 @@ const grokUsage = await collectUsage("grok", {
 });
 ```
 
-`detectAll` returns one descriptor per installed runtime (four-state failures
-stay explicit). `collectUsage` is separate from detect so “no usage surface”
-cannot look like “0% used”. Host adapters must pass `collectorVersion` and
-should pass a single `observedAtMs` for a sweep; standalone CLI defaults to
-`oar-0.0.0`.
+`detectAll(drivers)` **omits** runtimes whose `detect()` returned null
+(not installed). It does **not** emit a full four-state board.
+`detectAllRegistered(drivers, registryIds)` emits one row per registry id
+and is the API that keeps `not_installed`. The other three failures
+(`needs_login` / `models_unavailable` / `detect_failed`) can appear on
+either API when the driver is present. `collectUsage` is separate from
+detect so “no usage surface” cannot look like “0% used”. Host adapters
+must pass `collectorVersion` and should pass a single `observedAtMs` for a
+sweep; standalone CLI defaults to `oar-0.0.0`.
 
 ## Host runtimes
 

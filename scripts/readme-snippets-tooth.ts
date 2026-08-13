@@ -26,6 +26,8 @@ const FORBIDDEN = [
   { name: "sea-trial as publish gate", re: /sea-trial passes for every runtime driver/i },
   { name: "vendor terms silently block without owner", re: /Blocks public release, not work here/ },
   { name: "CJS require example", re: /require\(\s*["']@botiverse\/oar["']\s*\)/ },
+  { name: "Pi in-process as run capability", re: /Pi in-process SDK/ },
+  { name: "peers are detect-time only", re: /detect-time only/i },
 ];
 
 const REQUIRED = [
@@ -44,6 +46,12 @@ const REQUIRED = [
   { name: "0.0.1 honesty: detect+usage supported", needle: "Detect + account-usage are the supported" },
   { name: "does not claim sea-trial green", needle: "sea-trial green for every" },
   { name: "vendor terms owner xxchan", needle: "Owner: **@xxchan**" },
+  { name: "Codex is the full-turn runtime", needle: "full turn" },
+  { name: "Pi prompt not wired", needle: "turn/prompt API not wired" },
+  { name: "peers are host-provided SDK integrations", needle: "host-provided SDK integrations" },
+  { name: "Pi peer used for providers/start", needle: "providers()" },
+  { name: "detectAll omits not-installed", needle: "omits" },
+  { name: "detectAllRegistered keeps not_installed", needle: "detectAllRegistered" },
 ];
 
 console.log("readme-snippets tooth");
