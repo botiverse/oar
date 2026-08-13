@@ -1,15 +1,21 @@
 /**
  * Install-only registered-runtime detection.
  *
- * One row per registry id. Calls only `detect()` (or an injected equivalent).
- * Never calls models()/providers().
+ * One row per registry id. Never calls models()/providers().
+ * Default production path runs a per-candidate attempt list that:
+ *   - uses Windows-aware resolveCommandOnPath for command candidates
+ *   - records probeErrorObserved when an earlier candidate throws and a later one wins
+ *   - surfaces windows_env_refresh_failed as a bounded diagnostic
  *
- * State is independent of the models four-state:
- *   available | not_installed | incompatible | detect_failed
+ * Resolution is the winning candidate's kind, not a second runtime-id table.
  */
-import type { RuntimeDriver } from "../backend/trait.js";
 import { spawnSync } from "node:child_process";
-import { which } from "./cli.js";
+import { firstLineVersion, runText } from "./cli.js";
+import type { RuntimeDriver } from "../backend/trait.js";
+import {
+  resolveCommandOnPath,
+  type CommandResolveDeps,
+} from "./host/windowsResolve.js";
 
 export const GROK_STDIO_PROBE_ARGS = ["agent", "stdio", "--help"] as const;
 export const GROK_STDIO_TIMEOUT_MS = 5_000;
@@ -31,7 +37,6 @@ export type InstallEvidence = {
 
 export type InstallDiagnostic = {
   readonly code: "windows_env_refresh_failed" | InstallReason;
-  /** Closed/bounded; never a path, command line, exception, URL, or token. */
   readonly detail?: string;
 };
 
@@ -47,28 +52,34 @@ export type InstallDescriptor = {
 export type DetectAttempt = {
   readonly version: string | null;
   readonly probeErrorObserved: boolean;
+  readonly resolution?: InstallResolution;
+  readonly windowsRefreshFailed?: boolean;
+};
+
+export type InstallAttempt = {
+  readonly resolution: Exclude<InstallResolution, "none">;
+  run: () => Promise<string | null>;
+};
+
+export type InstallProbeCtx = {
+  readonly commandDeps: CommandResolveDeps;
+  readonly readVersion?: (bin: string) => string | null;
+};
+
+export type InstallAwareDriver = RuntimeDriver & {
+  readonly installAttempts: (ctx: InstallProbeCtx) => readonly InstallAttempt[];
 };
 
 export type InstallDetectHooks = {
-  /**
-   * Availability probe. Default: driver.detect() only.
-   * Must never call models()/providers().
-   */
+  /** Override production attempt runner. Tests may inject; default is required to be real. */
   probeDetect?: (driver: RuntimeDriver) => Promise<DetectAttempt>;
-  /** Grok compatibility: `grok agent stdio --help` + 5s. Default: live spawn. */
   grokStdioHelp?: (command: string) => Promise<boolean>;
-  /** When false, Grok skips the stdio gate (mutation target). Default true. */
   grokStdioGate?: boolean;
-  /**
-   * OpenCode minimum version. Omit to use MIN_SUPPORTED_OPENCODE_VERSION.
-   * Pass `null` to disable the gate (mutation target).
-   */
   opencodeMinVersion?: string | null;
-  /** Command locator (Windows-aware). Default: which(). */
-  resolveCommand?: (name: string) => string | null;
+  commandResolve?: CommandResolveDeps;
+  /** Test seam: after PATH resolve, map the binary to a version without spawn. */
+  readVersion?: (bin: string) => string | null;
 };
-
-const SDK_RUNTIME_IDS = new Set(["pi", "kimi"]);
 
 export function parseLooseSemver(raw: string | undefined): [number, number, number] | null {
   if (!raw) return null;
@@ -96,16 +107,83 @@ export function isSupportedOpenCodeVersion(
   return cmp !== null && cmp >= 0;
 }
 
-export function resolutionOf(runtime: string, installed: boolean): InstallResolution {
-  if (!installed) return "none";
-  return SDK_RUNTIME_IDS.has(runtime) ? "sdk" : "command";
+export function isInstallAware(driver: RuntimeDriver): driver is InstallAwareDriver {
+  return typeof (driver as InstallAwareDriver).installAttempts === "function";
 }
 
-function defaultProbeDetect(driver: RuntimeDriver): Promise<DetectAttempt> {
-  return driver.detect().then(
-    (v) => ({ version: v?.version ?? null, probeErrorObserved: false }),
-    () => ({ version: null, probeErrorObserved: true }),
-  );
+export function readCommandVersion(
+  name: string,
+  ctx: InstallProbeCtx,
+  args: readonly string[] = ["--version"],
+): string | null {
+  const bin = resolveCommandOnPath(name, ctx.commandDeps);
+  if (!bin) return null;
+  if (ctx.readVersion) return ctx.readVersion(bin);
+  const r = runText(bin, [...args], { timeoutMs: 10_000 });
+  return firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
+}
+
+export function defaultCommandAttempts(driver: RuntimeDriver, ctx: InstallProbeCtx): InstallAttempt[] {
+  return [
+    {
+      resolution: "command",
+      run: async () =>
+        readCommandVersion(driver.id, {
+          ...ctx,
+          commandDeps: { ...ctx.commandDeps, failMode: "throw" },
+        }),
+    },
+    {
+      resolution: "command",
+      run: async () => {
+        const d = await driver.detect();
+        return d?.version ?? null;
+      },
+    },
+  ];
+}
+
+export function sdkInstallAttempts(getVersion: () => string | null): InstallAttempt[] {
+  return [
+    {
+      resolution: "sdk",
+      run: async () => getVersion(),
+    },
+  ];
+}
+
+export function attemptsFor(driver: RuntimeDriver, ctx: InstallProbeCtx): readonly InstallAttempt[] {
+  if (isInstallAware(driver)) return driver.installAttempts(ctx);
+  return defaultCommandAttempts(driver, ctx);
+}
+
+/** Production default: walk candidates; a throw on an earlier one sets probeErrorObserved. */
+export async function runInstallAttempts(
+  driver: RuntimeDriver,
+  ctx: InstallProbeCtx,
+): Promise<DetectAttempt> {
+  let probeErrorObserved = false;
+  for (const attempt of attemptsFor(driver, ctx)) {
+    try {
+      const version = await attempt.run();
+      if (version !== null) {
+        return {
+          version,
+          probeErrorObserved,
+          resolution: attempt.resolution,
+          windowsRefreshFailed: false,
+        };
+      }
+    } catch {
+      probeErrorObserved = true;
+    }
+  }
+  return {
+    version: null,
+    probeErrorObserved,
+    resolution: "none",
+    windowsRefreshFailed: false,
+  };
 }
 
 function defaultGrokStdioHelp(command: string): Promise<boolean> {
@@ -119,57 +197,70 @@ function defaultGrokStdioHelp(command: string): Promise<boolean> {
   });
 }
 
-function row(partial: InstallDescriptor): InstallDescriptor {
-  return partial;
-}
-
 export async function detectInstallOne(
   driver: RuntimeDriver,
   hooks: InstallDetectHooks = {},
 ): Promise<InstallDescriptor> {
-  const probeDetect = hooks.probeDetect ?? defaultProbeDetect;
+  let windowsRefreshFailed = false;
+  const ctx: InstallProbeCtx = {
+    commandDeps: {
+      ...hooks.commandResolve,
+      onRefreshFailed: (code) => {
+        windowsRefreshFailed = true;
+        hooks.commandResolve?.onRefreshFailed?.(code);
+      },
+    },
+    ...(hooks.readVersion ? { readVersion: hooks.readVersion } : {}),
+  };
+
+  const probeDetect = hooks.probeDetect ?? ((d: RuntimeDriver) => runInstallAttempts(d, ctx));
   const grokStdioGate = hooks.grokStdioGate !== false;
-  const opencodeMin = hooks.opencodeMinVersion;
   const grokStdioHelp = hooks.grokStdioHelp ?? defaultGrokStdioHelp;
-  const resolveCommand = hooks.resolveCommand ?? which;
 
   let attempt: DetectAttempt;
   try {
     attempt = await probeDetect(driver);
   } catch {
-    return row({
+    return {
       runtime: driver.id,
       state: "detect_failed",
       reason: "detect_failed",
-      evidence: { resolution: resolutionOf(driver.id, false), probeErrorObserved: true },
-    });
+      evidence: { resolution: "none", probeErrorObserved: true },
+      ...(windowsRefreshFailed ? { diagnostic: { code: "windows_env_refresh_failed" as const } } : {}),
+    };
   }
+
+  const refreshDiag = windowsRefreshFailed || attempt.windowsRefreshFailed
+    ? ({ diagnostic: { code: "windows_env_refresh_failed" as const } } as const)
+    : {};
 
   if (attempt.version === null) {
     if (attempt.probeErrorObserved) {
-      return row({
+      return {
         runtime: driver.id,
         state: "detect_failed",
         reason: "detect_failed",
         evidence: { resolution: "none", probeErrorObserved: true },
-      });
+        ...refreshDiag,
+      };
     }
-    return row({
+    return {
       runtime: driver.id,
       state: "not_installed",
       reason: "not_installed",
       evidence: { resolution: "none", probeErrorObserved: false },
-    });
+      ...refreshDiag,
+    };
   }
 
   const version = attempt.version;
-  const evidenceBase = {
-    resolution: resolutionOf(driver.id, true),
+  const evidence: InstallEvidence = {
+    resolution: attempt.resolution ?? "command",
     probeErrorObserved: attempt.probeErrorObserved,
-  } as const;
+  };
 
   if (driver.id === "grok" && grokStdioGate) {
-    const bin = resolveCommand("grok") ?? "grok";
+    const bin = resolveCommandOnPath("grok", ctx.commandDeps) ?? "grok";
     let ok = false;
     try {
       ok = await grokStdioHelp(bin);
@@ -177,42 +268,43 @@ export async function detectInstallOne(
       ok = false;
     }
     if (!ok) {
-      return row({
+      return {
         runtime: "grok",
         state: "incompatible",
         version,
         reason: "incompatible_stdio",
-        evidence: evidenceBase,
-      });
+        evidence,
+        ...refreshDiag,
+      };
     }
   }
 
   if (driver.id === "opencode") {
-    const min = opencodeMin === undefined ? MIN_SUPPORTED_OPENCODE_VERSION : opencodeMin;
+    const min = hooks.opencodeMinVersion === undefined
+      ? MIN_SUPPORTED_OPENCODE_VERSION
+      : hooks.opencodeMinVersion;
     if (min !== null && !isSupportedOpenCodeVersion(version, min)) {
-      return row({
+      return {
         runtime: "opencode",
         state: "incompatible",
         version,
         reason: "incompatible_version",
-        evidence: evidenceBase,
-      });
+        evidence,
+        ...refreshDiag,
+      };
     }
   }
 
-  return row({
+  return {
     runtime: driver.id,
     state: "available",
     version,
     reason: "available",
-    evidence: evidenceBase,
-  });
+    evidence,
+    ...refreshDiag,
+  };
 }
 
-/**
- * One row per registry id. Missing driver → not_installed.
- * A throwing driver is detect_failed; the sweep continues.
- */
 export async function detectInstallRegistered(
   drivers: readonly RuntimeDriver[],
   registryIds: readonly string[],
@@ -238,7 +330,7 @@ export async function detectInstallRegistered(
         runtime: id,
         state: "detect_failed",
         reason: "detect_failed",
-        evidence: { resolution: resolutionOf(id, false), probeErrorObserved: true },
+        evidence: { resolution: "none", probeErrorObserved: true },
       });
     }
   }

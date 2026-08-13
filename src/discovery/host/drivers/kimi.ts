@@ -187,13 +187,21 @@ function readKimiModels(): readonly LiveModel[] {
 export function kimiDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
   const sdkVersion = probes?.sdkVersion ?? resolveKimiSdkVersion;
   const models = probes?.readModels;
-  return baseDriver("kimi", {
+  const driver = baseDriver("kimi", {
     detect: async () => {
       const version = sdkVersion();
       return version === null ? null : { version };
     },
     models: async () =>
       models ? models() : modelsToInfo("kimi", readKimiModels()),
+  });
+  return Object.assign(driver, {
+    installAttempts: () => [
+      {
+        resolution: "sdk" as const,
+        run: async () => sdkVersion(),
+      },
+    ],
   });
 }
 

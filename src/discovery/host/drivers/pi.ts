@@ -171,7 +171,7 @@ export interface PiProbes {
 
 export function piDriver(probes?: Partial<PiProbes>): RuntimeDriver {
   const sdkVersion = probes?.sdkVersion ?? resolvePiSdkVersion;
-  return {
+  const driver: RuntimeDriver = {
     id: "pi",
     detect: async () => {
       // ⛔ Do not restore `?? "unknown"`. Returning a descriptor for an
@@ -209,4 +209,12 @@ export function piDriver(probes?: Partial<PiProbes>): RuntimeDriver {
       return makePiSession(rt);
     },
   };
+  return Object.assign(driver, {
+    installAttempts: () => [
+      {
+        resolution: "sdk" as const,
+        run: async () => sdkVersion(),
+      },
+    ],
+  });
 }

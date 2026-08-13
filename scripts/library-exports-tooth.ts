@@ -181,6 +181,24 @@ function assertInstallParitySource(): void {
   } else {
     ok("OpenCode min 1.14.30");
   }
+  if (!/from ["']\.\/host\/windowsResolve\.js["']/.test(src) || !src.includes("resolveCommandOnPath")) {
+    bad("Windows resolver wired", "installDetect default path must import resolveCommandOnPath");
+  } else {
+    ok("Windows resolver imported by installDetect");
+  }
+  if (/from ["']\.\/cli\.js["']/.test(src) && /which/.test(src.match(/from ["']\.\/cli\.js["']/)?.[0] ?? "")) {
+    bad("old which import", "default install path must not import which from cli.js");
+  }
+  if (/\bimport\s*\{[^}]*\bwhich\b[^}]*\}\s*from\s*["']\.\/cli\.js["']/.test(src)) {
+    bad("old which import", "default install path must not import which from cli.js");
+  } else {
+    ok("installDetect does not import which");
+  }
+  if (/probeErrorObserved:\s*false\s*,\s*\n\s*resolution:/.test(src) && src.includes("driver.detect().then")) {
+    bad("unconditional false evidence", "must not map successful detect() to probeErrorObserved:false");
+  } else {
+    ok("no unconditional probeErrorObserved:false on detect()");
+  }
 }
 
 function assertOptionalPeers(): void {

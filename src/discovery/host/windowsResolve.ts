@@ -26,6 +26,8 @@ export type CommandResolveDeps = {
   windowsEnvironmentReaderFn?: WindowsEnvironmentReader;
   /** Called with a closed, bounded code when Machine/User PATH refresh fails. */
   onRefreshFailed?: (code: "windows_env_refresh_failed") => void;
+  /** `throw` = exec failures propagate (install candidate evidence). Default `null`. */
+  failMode?: "null" | "throw";
 };
 
 export const WINDOWS_COMMAND_RESOLVE_TIMEOUT_MS = 1000;
@@ -119,6 +121,7 @@ function resolveCommandOnWindows(
   env: NodeJS.ProcessEnv,
   execFileSyncFn: typeof execFileSync,
   existsSyncFn: (filePath: string) => boolean,
+  failMode: "null" | "throw" = "null",
 ): string | null {
   const script =
     "& {$cmd = Get-Command -Name $args[0] -ErrorAction Stop | Select-Object -First 1; " +
@@ -149,7 +152,8 @@ function resolveCommandOnWindows(
       return null;
     }
     return resolved;
-  } catch {
+  } catch (error) {
+    if (failMode === "throw") throw error;
     return null;
   }
 }
@@ -168,7 +172,13 @@ export function resolveCommandOnPath(command: string, deps: CommandResolveDeps =
     } else {
       deps.onRefreshFailed?.("windows_env_refresh_failed");
     }
-    return resolveCommandOnWindows(command, env, execFileSyncFn, existsSyncFn);
+    return resolveCommandOnWindows(
+      command,
+      env,
+      execFileSyncFn,
+      existsSyncFn,
+      deps.failMode ?? "null",
+    );
   }
   try {
     const output = String(
