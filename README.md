@@ -1,131 +1,121 @@
 # oar
 
-**An agent client access layer.**
+**An agent client access layer** (`@botiverse/oar`).
 
-Programmable access to agent runtimes — Codex, Claude Code, Kimi Code, Gemini CLI, Cursor,
-Copilot, opencode, ACP-speaking agents, and more.
+Host-side access to agent runtimes: detect what is installed, read account usage,
+and (where wired) start a session and consume typed events. The first in-tree
+consumer is [Raft](https://github.com/botiverse). Raft is a seed corpus, not the
+spec — where product shape and the general contract diverge, the contract wins.
 
-One interface, any runtime, plus a conformance suite that proves they actually behave the same.
+> **0.0.1 status (this npm package).** Detect + account-usage are the supported
+> library/CLI surfaces. `oar run` can drive a subset of runtimes (Codex
+> handshake, Pi in-process SDK). This is **not** “sea-trial green for every
+> driver”, and it is not “nothing works”. Drive/conformance coverage is
+> incomplete; do not treat an empty `sea-trial/cases/` as a pass.
 
-An *agent client* is the host side: it starts a runtime, drives it, and consumes its events.
-`oar` is the access layer for that side, the way a data access layer sits over storage backends.
+An *agent client* is the host: it starts a runtime, drives it, and observes
+events. `oar` is that access layer.
 
-> Status: **private, pre-alpha, nothing works yet.** This document defines scope and the bar for
-> going public. It is written to an external-consumer standard from the first commit — that
-> standard is the point, not a formality.
+## Install
 
-They all do roughly the same job and none of them agree on the details: process lifecycle, event
-shapes, session resumption, model selection, credentials, even what a "turn" is. Writing the
-adapters is tedious but tractable. The hard part is the contract, which is usually never written
-down — so the bugs land in the layer that claims to normalise them, and the strict validator ends
-up somewhere no live path reaches.
+```bash
+npm install @botiverse/oar
+```
+
+Optional peers (detect-time only; not required to install oar):
+
+- `@botiverse/kimi-code-sdk` — canonical `kimi` (SDK)
+- `@earendil-works/pi-coding-agent` or `@mariozechner/pi-coding-agent` — `pi`
+
+```bash
+npx oar --help
+npx oar --version
+npx oar detect
+npx oar usage
+```
+
+After a local install the same binary is `./node_modules/.bin/oar`.
+
+In this repo, development still uses **pnpm**: `pnpm oar detect`.
+
+## Library
+
+```js
+import {
+  detectAll,
+  createHostDrivers,
+  collectUsage,
+} from "@botiverse/oar";
+
+const board = await detectAll(createHostDrivers());
+const grokUsage = await collectUsage("grok", {
+  collectorVersion: "my-host-1.0.0",
+  localAccountSlot: "local",
+  observedAtMs: Date.now(),
+});
+```
+
+`detectAll` returns one descriptor per installed runtime (four-state failures
+stay explicit). `collectUsage` is separate from detect so “no usage surface”
+cannot look like “0% used”. Host adapters must pass `collectorVersion` and
+should pass a single `observedAtMs` for a sweep; standalone CLI defaults to
+`oar-0.0.0`.
+
+## Host runtimes
+
+| id | What detect means | New-agent form |
+| --- | --- | --- |
+| `claude` | Claude Code CLI | yes |
+| `codex` | Codex CLI / app-server | yes |
+| `grok` | Grok CLI | yes |
+| `antigravity` | `agy` CLI | yes |
+| `copilot` | Copilot CLI presence | yes |
+| `cursor` | `cursor-agent` presence | yes |
+| `gemini` | Gemini CLI | **deprecated** (compat only) |
+| `kimi` | **Kimi Code SDK only** — absent if the SDK package is not resolvable | yes |
+| `kimi-cli` | **legacy Kimi CLI** — binary presence/version only (`0.0.1` P2 composite) | **deprecated** (compat only) |
+| `opencode` | OpenCode CLI | yes |
+| `pi` | Pi coding-agent SDK only | yes |
+
+Identity that must not alias: SDK-only ⇒ `kimi` present, `kimi-cli` absent;
+CLI-only ⇒ `kimi` `not_installed`, `kimi-cli` present. Raft maps
+`kimi → kimi-sdk`, `kimi-cli → kimi`, and synthesizes `builtin` from OAR `pi`.
+
+Four detect failures stay distinct: `not_installed` / `needs_login` /
+`models_unavailable` / `detect_failed`.
+
+### `oar usage`
+
+| provider | Surface |
+| --- | --- |
+| `codex` | app-server `account/rateLimits/read` |
+| `kimi` | `GET {platform}/usages` |
+| `claude` | `claude -p /usage --output-format json` (text parse) |
+| `grok` | `unsupported` — no programmable usage API in current binary |
 
 ## The three parts
 
-| Part | What it is |
-| --- | --- |
-| **RRP** | The host↔runtime boundary, frozen as an explicit written contract, one chapter at a time, each with its own assertion list. Chapter map: [docs/rrp-chapters.md](docs/rrp-chapters.md). |
-| **drydock** | Starts and drives a runtime **with no host daemon present**. Script-driven, with transcript capture and replay. The testing/operations surface. |
-| **sea-trial** | The conformance suite. Every runtime must pass the same suite. Design: [docs/behavior-tests.md](docs/behavior-tests.md). |
+| Part | What it is | 0.0.1 honesty |
+| --- | --- | --- |
+| **RRP** | Host↔runtime contract, chapter by chapter. Map: [docs/rrp-chapters.md](docs/rrp-chapters.md). | Written in parts; not a finished freeze. |
+| **drydock** | Drive a runtime **with no host daemon**. | Required invariant. Implementation is partial. |
+| **sea-trial** | Same conformance suite for every runtime. [docs/behavior-tests.md](docs/behavior-tests.md). | **Not** green across drivers. Not a publish gate for 0.0.1. |
 
-"drydock" names that harness specifically, not the project: a dry dock is where a vessel is
-lifted clear of the water to be inspected and worked on. That is the right word for the runner
-and the wrong word for an interface layer, which is why the umbrella needs its own name.
+**drydock must work without a host daemon.** That claim cannot be
+self-certified. It is the design constraint, not a statement that every runtime
+already passes.
 
-The durable asset is the behaviour suite, not the backend count: backends are volume, the suite
-is what makes the interface mean anything.
+## Open risks (not silently closed)
 
-### The load-bearing constraint
-
-**drydock must work without a host daemon.** This is not an architectural preference; it is the
-only property here that cannot be self-certified. "Our abstraction is clean" is a claim any
-project can tell itself indefinitely. "A consumer who does not have our daemon can drive this
-runtime" is either true or it fails loudly. Every design question should be settled by asking
-which answer keeps that claim honest.
-
-## Who it is for
-
-Any project that drives more than one agent runtime and is tired of re-deriving the contract.
-
-The first consumer is [Raft](https://github.com/botiverse), which runs ~12 agent runtimes in
-production and supplies the breadth of real-world behaviour this contract has to survive. That
-experience is a seed corpus, not the specification. Where one product's needs and a general
-contract diverge, the general contract wins — **including when that means breaking how the first
-consumer uses it today.** A layer that must preserve one product's existing shapes is that
-product's internals wearing a coat, so the freedom to break them is what makes a general design
-possible at all.
-
-*(When this actually drives those runtimes, this should read "powers Raft". It does not yet, so
-it does not say so.)*
-
-## Going public
-
-Public release is gated on one condition, stated so it has teeth rather than decaying into an
-indefinite "someday":
-
-> **sea-trial passes for every runtime driver.**
-
-This pays out either way:
-
-- **Green** — the abstraction is real; publishing is mostly packaging.
-- **Not green** — what exists is N special cases sharing a directory rather than one contract.
-  That finding is the return on this work regardless of whether anything is ever published.
+- **Vendor terms.** Whether shipping adapters that wrap commercial vendor CLIs
+  creates redistribution / ToS obligations is **unchecked**. Owner: **@xxchan**.
+  This is an explicit first-publish risk, not a deleted warning. It is **not**
+  silently treated as “blocks npm 0.0.1” unless xxchan says it is a live hold.
+- **Maintenance ownership.** Vendor CLIs churn. A named long-term owner is
+  still needed; 0.0.1 does not invent one.
+- **Whether `RRP` stays a separate name.** Leaning keep: the chapter map is
+  larger than the npm CLI.
 
 ## Licence
 
 [Apache-2.0](LICENSE).
-
-## Open decisions (not settled — do not assume)
-
-- **Vendor terms.** Whether distributing adapters that wrap commercial vendor CLIs carries
-  obligations has **not been checked**. Blocks public release, not work here.
-- **Maintenance ownership.** Vendor CLIs change often. Absorbed privately, that churn is
-  invisible; published, each absorption is a breaking change plus issue load. Needs a named
-  long-term owner before release, not after.
-- **Whether `RRP` survives as a separate name.** Leaning keep: the chapter map shows the full
-  boundary is genuinely larger than `oar` (ch.2's delivery half stays with the product), so the
-  two names denote different things.
-
-## CLI
-
-Always use **pnpm** locally:
-
-```bash
-pnpm oar detect                 # all registry runtimes (four-state summary)
-pnpm oar detect pi              # one runtime: full models list (providers when present)
-pnpm oar detect codex --profile # phase timings (ms) on the human table
-pnpm oar detect kimi --json     # single-runtime JSON includes models; full-board --json stays v1-narrow
-pnpm oar detect --profile --json
-
-pnpm oar usage                  # account usage / rate limits for claude+codex+kimi+grok
-pnpm oar usage codex            # one provider
-pnpm oar usage claude --json    # protocol v1 snapshot JSON
-```
-
-### `oar detect`
-- `<runtime>` must be a registry id (`claude`, `codex`, `grok`, `antigravity`, `copilot`,
-  `cursor`, `gemini`, `kimi`, `opencode`, `pi`). Unknown id → error + legal id list (no silent empty).
-- Four failure states stay explicit: `not_installed` / `needs_login` / `models_unavailable` /
-  `detect_failed`. `user-configured` escape models are listed, not collapsed.
-- Product ids `pi` and `kimi` probe **SDK paths only** (no CLI mode this round).
-
-### `oar usage`
-- Separate from detect (avoids "missing usage" looking like "0% used").
-- Providers (programmable surfaces only; never invent 0%):
-  - `codex` — app-server `account/rateLimits/read`
-  - `kimi` — `GET {platform}/usages` (same endpoint as kimi-cli `/usage`)
-  - `claude` — `claude -p /usage --output-format json` (text_parse; binary also has
-    `GET /api/oauth/usage` for a future structured path)
-  - `grok` — `unsupported` / no programmable usage API in current binary
-- Snapshot shape mirrors raft `RuntimeAccountUsageSnapshot` protocol v1.
-
-## Current state
-
-- A W1 prototype exists: event probes, a fake clock, and
-  child-process-lifecycle-aware waits (a wait fails immediately when the child dies rather than
-  hanging to timeout).
-- It has not spread, and the reason is known: it only offers *wait for an in-process event*,
-  while most hand-rolled waits in a real suite are waiting on the **filesystem** — artifacts
-  written by child processes.
-- **W2 is therefore filesystem/transcript coverage.** Without it, drydock cannot reach the main
-  scenario and nobody will adopt it.

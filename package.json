@@ -31,6 +31,7 @@
     "check": "pnpm run typecheck && pnpm run lint",
     "teeth": "pnpm exec tsx scripts/config-form-teeth.ts",
     "teeth:library-exports": "pnpm exec tsx scripts/library-exports-tooth.ts",
+    "teeth:readme": "pnpm exec tsx scripts/readme-snippets-tooth.ts",
     "check-demo-html": "pnpm exec tsx scripts/check-demo-html-js.ts artifacts-local/create-agent-form-live.html",
     "embed-live": "pnpm exec tsx scripts/embed-live-html.ts && pnpm run check-demo-html",
     "oar": "pnpm exec tsx src/cli.ts",
