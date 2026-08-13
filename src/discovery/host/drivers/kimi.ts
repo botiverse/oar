@@ -46,16 +46,20 @@ import { kimiCodeHome } from "../paths.js";
 import { resolveSdkPackage } from "../sdkResolve.js";
 
 /**
- * Kimi SDK candidates, in preference order: the package Raft actually depends
- * on first, then the supported upstream alternative. These are PACKAGE NAMES,
- * not `<pkg>/package.json` subpaths — see sdkResolve.ts for why that subpath is
- * unusable on real installs. The packaging seat declares all of these as
- * optional peers so a published OAR can see them under pnpm's strict layout.
+ * Kimi SDK candidates as PACKAGE NAMES (not `<pkg>/package.json` subpaths — see
+ * sdkResolve.ts for why that subpath is unusable on real installs).
+ *
+ * Every entry here must be a package that (a) the packaging seat declares as an
+ * optional peer, so a published OAR can see it under pnpm's strict layout, and
+ * (b) a consumer can actually install, so the claim is provable end to end.
+ *
+ * ⛔ `@moonshot-ai/kimi-code-sdk` was removed: measured E404 on the npm registry
+ * (Huaihuai found it, independently confirmed here). Keeping it would have
+ * advertised support that OAR cannot resolve and no consumer tooth could ever
+ * exercise — a "supported" candidate that is unfalsifiable is worse than none,
+ * because it reads as coverage.
  */
-export const KIMI_SDK_CANDIDATES = [
-  "@botiverse/kimi-code-sdk",
-  "@moonshot-ai/kimi-code-sdk",
-] as const;
+export const KIMI_SDK_CANDIDATES = ["@botiverse/kimi-code-sdk"] as const;
 
 /**
  * Read the installed Kimi SDK version — never invent a mode string.
