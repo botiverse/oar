@@ -1,16 +1,40 @@
 {
-  "name": "oar",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@botiverse/oar",
+  "version": "0.0.1",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Agent client access layer — host-side runtime detect, usage, and drive surface",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "bin": {
+    "oar": "dist/cli.js"
+  },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings src drydock sea-trial",
     "check": "pnpm run typecheck && pnpm run lint",
     "teeth": "pnpm exec tsx scripts/config-form-teeth.ts",
+    "teeth:library-exports": "pnpm exec tsx scripts/library-exports-tooth.ts",
     "check-demo-html": "pnpm exec tsx scripts/check-demo-html-js.ts artifacts-local/create-agent-form-live.html",
     "embed-live": "pnpm exec tsx scripts/embed-live-html.ts && pnpm run check-demo-html",
-    "oar": "pnpm exec tsx src/cli.ts"
+    "oar": "pnpm exec tsx src/cli.ts",
+    "prove:git-consumer": "pnpm exec tsx scripts/prove-git-consumer.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
@@ -19,11 +43,16 @@
     "typescript": "^5.6.3",
     "tsx": "^4.21.0"
   },
-  "bin": {
-    "oar": "dist/cli.js"
-  },
   "dependencies": {
     "commander": "^12.1.0"
   },
-  "packageManager": "pnpm@9.12.3"
+  "packageManager": "pnpm@9.12.3",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/botiverse/oar.git"
+  },
+  "license": "Apache-2.0"
 }

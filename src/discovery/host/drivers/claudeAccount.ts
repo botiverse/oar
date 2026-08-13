@@ -256,14 +256,18 @@ export async function readClaudeUsageText(opts?: {
 export async function collectClaudeAccountUsage(opts?: {
   timeoutMs?: number;
   localAccountSlot?: string;
+  /** Host adapters inject daemon version; standalone default oar-0.0.0. */
+  collectorVersion?: string;
+  observedAtMs?: number;
 }): Promise<AccountUsageSnapshot> {
-  const observedAtMs = Date.now();
+  const observedAtMs = opts?.observedAtMs ?? Date.now();
+  const collectorVersion = opts?.collectorVersion ?? "oar-0.0.0";
   const localAccountSlot = opts?.localAccountSlot ?? DEFAULT_LOCAL_ACCOUNT_SLOT;
   const outcome = await readClaudeUsageText(opts);
   if (outcome.kind === "ok") {
     return projectClaudeUsageTextSnapshot({
       text: outcome.text,
-      collectorVersion: "oar-0.0.0",
+      collectorVersion,
       observedAtMs,
       localAccountSlot,
     });
@@ -275,7 +279,7 @@ export async function collectClaudeAccountUsage(opts?: {
     staleAfter: new Date(observedAtMs + 5 * 60_000).toISOString(),
     acquisition: "text_parse",
     scope: "local_sessions_only",
-    collectorVersion: "oar-0.0.0",
+    collectorVersion,
     accounts: [
       {
         accountKey: accountKey(localAccountSlot),

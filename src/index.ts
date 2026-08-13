@@ -48,8 +48,14 @@ export {
   ConfigCheckError,
 } from "./config/profile.js";
 export type { JsonSchema, EffectiveSchema, ConfigCheckCode } from "./config/profile.js";
-export type { DetectFailure, RuntimeDescriptor } from "./discovery/detect.js";
-export { detectAll, detectAllRegistered } from "./discovery/detect.js";
+export type {
+  DetectFailure,
+  RuntimeDescriptor,
+  RuntimeTimings,
+  DetectCollectOptions,
+  ProbeTraceEvent,
+} from "./discovery/detect.js";
+export { detectAll, detectAllRegistered, ModelsProbeError, MODELS_PROBE_BUDGET_MS } from "./discovery/detect.js";
 export {
   fixtureDescriptors,
   creatableDescriptors,
@@ -58,6 +64,38 @@ export {
   RAFT_DRIVER_REGISTRY,
   RAFT_DEPRECATED_FOR_CREATE,
 } from "./discovery/fixtures/raftRuntimes.js";
+
+// Host registry: live drivers for detectAll(createHostDrivers()).
+// RuntimeDriver is the detect/models surface the registry returns — not a
+// process handle. Consumers still cannot import backend/* process machinery.
+export type { RuntimeDriver } from "./backend/trait.js";
+export { createHostDrivers, hostDetectMeta } from "./discovery/host/runtimeDrivers.js";
+export type { HostDetectMeta } from "./discovery/host/runtimeDrivers.js";
+
+// Account usage (host-facing). Adapters inject collectorVersion + slot + clock;
+// they must not import per-provider projectors under discovery/host/drivers/.
+export type {
+  AccountUsageProvider,
+  AccountUsageAcquisition,
+  AccountUsageScope,
+  AccountUsageHealth,
+  AccountUsageWindowStatus,
+  AccountUsageWindow,
+  AccountUsageAccount,
+  AccountUsageSnapshot,
+} from "./discovery/accountUsage.js";
+export {
+  ACCOUNT_USAGE_PROTOCOL_VERSION,
+  USAGE_PROVIDERS,
+  unsupportedUsageSnapshot,
+} from "./discovery/accountUsage.js";
+export type { CollectUsageOptions } from "./discovery/usageCollect.js";
+export {
+  STANDALONE_COLLECTOR_VERSION,
+  collectUsage,
+  collectUsageAll,
+  parseUsageProvider,
+} from "./discovery/usageCollect.js";
 
 // Events: observation only. Interception (can the host say no?) is a
 // separate contract under events/intercept.ts.

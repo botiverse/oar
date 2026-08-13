@@ -291,12 +291,16 @@ export function readCodexRateLimitsFromAppServer(opts: {
 export async function collectCodexAccountUsage(opts?: {
   timeoutMs?: number;
   localAccountSlot?: string;
+  /** Host adapters inject daemon version; standalone default oar-0.0.0. */
+  collectorVersion?: string;
+  observedAtMs?: number;
 }): Promise<AccountUsageSnapshot> {
-  const observedAtMs = Date.now();
+  const observedAtMs = opts?.observedAtMs ?? Date.now();
+  const collectorVersion = opts?.collectorVersion ?? "oar-0.0.0";
   const outcome = await readCodexRateLimitsFromAppServer(opts);
   return projectCodexRateLimitsReadSnapshot({
     outcome,
-    collectorVersion: "oar-0.0.0",
+    collectorVersion,
     observedAtMs,
     ...(opts?.localAccountSlot !== undefined ? { localAccountSlot: opts.localAccountSlot } : {}),
   });
