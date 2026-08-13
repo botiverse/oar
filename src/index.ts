@@ -56,6 +56,29 @@ export type {
   ProbeTraceEvent,
 } from "./discovery/detect.js";
 export { detectAll, detectAllRegistered, ModelsProbeError, MODELS_PROBE_BUDGET_MS } from "./discovery/detect.js";
+export type {
+  InstallState,
+  InstallResolution,
+  InstallReason,
+  InstallEvidence,
+  InstallDiagnostic,
+  InstallDescriptor,
+  InstallDetectHooks,
+  DetectAttempt,
+} from "./discovery/installDetect.js";
+export {
+  detectInstallRegistered,
+  detectInstallOne,
+  isSupportedOpenCodeVersion,
+  GROK_STDIO_PROBE_ARGS,
+  GROK_STDIO_TIMEOUT_MS,
+  MIN_SUPPORTED_OPENCODE_VERSION,
+} from "./discovery/installDetect.js";
+export {
+  resolveCommandOnPath,
+  mergeWindowsPathSegments,
+  mergeWindowsEnvironmentScopes,
+} from "./discovery/host/windowsResolve.js";
 export {
   fixtureDescriptors,
   creatableDescriptors,

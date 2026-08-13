@@ -31,6 +31,10 @@ const REQUIRED_VALUE_EXPORTS = [
   "STANDALONE_COLLECTOR_VERSION",
   "unsupportedUsageSnapshot",
   "RAFT_DRIVER_REGISTRY",
+  "detectInstallRegistered",
+  "detectInstallOne",
+  "GROK_STDIO_PROBE_ARGS",
+  "MIN_SUPPORTED_OPENCODE_VERSION",
 ] as const;
 
 const REQUIRED_TYPE_EXPORT_MARKERS = [
@@ -39,6 +43,9 @@ const REQUIRED_TYPE_EXPORT_MARKERS = [
   "AccountUsageSnapshot",
   "RuntimeDescriptor",
   "RuntimeDriver",
+  "InstallDescriptor",
+  "InstallState",
+  "InstallEvidence",
 ] as const;
 
 let failed = 0;
@@ -154,6 +161,25 @@ function assertCliVersionFromPackage(): void {
     bad("cli --version", `printed ${JSON.stringify(printed)}, package.json.version=${pkg.version}`);
   } else {
     ok(`cli --version === ${pkg.version}`);
+  }
+}
+
+function assertInstallParitySource(): void {
+  const src = readFileSync(join(root, "src/discovery/installDetect.ts"), "utf8");
+  if (!src.includes('["agent", "stdio", "--help"]')) {
+    bad("Grok stdio probe args", 'must keep ["agent", "stdio", "--help"]');
+  } else {
+    ok("Grok stdio probe args");
+  }
+  if (!src.includes('GROK_STDIO_TIMEOUT_MS = 5_000')) {
+    bad("Grok stdio timeout", "must stay 5_000");
+  } else {
+    ok("Grok stdio timeout 5s");
+  }
+  if (!src.includes('MIN_SUPPORTED_OPENCODE_VERSION = "1.14.30"')) {
+    bad("OpenCode min version", 'must stay "1.14.30"');
+  } else {
+    ok("OpenCode min 1.14.30");
   }
 }
 
@@ -291,6 +317,7 @@ async function main(): Promise<void> {
   assertCliShebang();
   await assertBinSymlinkInvokesCli();
   assertCliVersionFromPackage();
+  assertInstallParitySource();
   assertOptionalPeers();
   assertSourceReexports();
   await assertBuiltExports();

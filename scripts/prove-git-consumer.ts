@@ -76,6 +76,7 @@ function main(): void {
 import { createHash } from "node:crypto";
 import {
   detectAll,
+  detectInstallRegistered,
   createHostDrivers,
   collectUsage,
   ACCOUNT_USAGE_PROTOCOL_VERSION,
@@ -85,7 +86,7 @@ import {
 } from "@botiverse/oar";
 
 const required = [
-  detectAll, createHostDrivers, collectUsage,
+  detectAll, detectInstallRegistered, createHostDrivers, collectUsage,
   ACCOUNT_USAGE_PROTOCOL_VERSION, USAGE_PROVIDERS,
   STANDALONE_COLLECTOR_VERSION, RAFT_DRIVER_REGISTRY,
 ];
@@ -95,6 +96,9 @@ for (const x of required) {
 
 const empty = await detectAll([]);
 if (!Array.isArray(empty) || empty.length !== 0) throw new Error("detectAll([]) shape");
+const install = await detectInstallRegistered([], ["grok"]);
+if (install[0]?.state !== "not_installed") throw new Error("install-only missing driver");
+if (install[0]?.evidence.resolution !== "none") throw new Error("install-only resolution");
 
 const drivers = createHostDrivers();
 if (!Array.isArray(drivers) || drivers.length === 0) throw new Error("createHostDrivers empty");
