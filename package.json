@@ -48,15 +48,11 @@
   },
   "peerDependencies": {
     "@botiverse/kimi-code-sdk": "*",
-    "@moonshot-ai/kimi-code-sdk": "*",
     "@earendil-works/pi-coding-agent": "*",
     "@mariozechner/pi-coding-agent": "*"
   },
   "peerDependenciesMeta": {
     "@botiverse/kimi-code-sdk": {
-      "optional": true
-    },
-    "@moonshot-ai/kimi-code-sdk": {
       "optional": true
     },
     "@earendil-works/pi-coding-agent": {

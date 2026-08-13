@@ -8,7 +8,8 @@
 
 import { Command } from "commander";
 import { spawn } from "node:child_process";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   detectAllRegistered,
@@ -392,12 +393,22 @@ async function runDrive(
   );
 }
 
+/** Single source of truth: package.json version (src/ and dist/ both sit one level below). */
+export function readPackageVersion(moduleUrl: string = import.meta.url): string {
+  const pkgPath = join(dirname(fileURLToPath(moduleUrl)), "..", "package.json");
+  const raw = JSON.parse(readFileSync(pkgPath, "utf8")) as { version?: unknown };
+  if (typeof raw.version !== "string" || raw.version.length === 0) {
+    throw new Error(`missing version in ${pkgPath}`);
+  }
+  return raw.version;
+}
+
 export function buildProgram(): Command {
   const program = new Command();
   program
     .name("oar")
     .description("oar — agent client access layer")
-    .version("0.0.0");
+    .version(readPackageVersion());
 
   program
     .command("detect")

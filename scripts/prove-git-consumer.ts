@@ -146,6 +146,17 @@ console.log(JSON.stringify({
     }
     console.log("oar --help (installed bin) OK");
 
+    const installedPkg = JSON.parse(
+      readFileSync(join(dir, "node_modules", "@botiverse", "oar", "package.json"), "utf8"),
+    ) as { version: string };
+    const printedVersion = sh(oarBin, ["--version"], dir).trim();
+    if (printedVersion !== installedPkg.version) {
+      throw new Error(
+        `oar --version ${JSON.stringify(printedVersion)} !== package.json.version ${installedPkg.version}`,
+      );
+    }
+    console.log(`oar --version === ${installedPkg.version} OK`);
+
     console.log("RECEIPT_OK");
     console.log(
       JSON.stringify(

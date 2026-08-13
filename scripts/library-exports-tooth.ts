@@ -8,6 +8,7 @@
  * Run: pnpm run teeth:library-exports
  * Requires: pnpm run build first (or prepare).
  */
+import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync, mkdtempSync, rmSync, symlinkSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -123,10 +124,38 @@ async function assertBinSymlinkInvokesCli(): Promise<void> {
  */
 const REQUIRED_OPTIONAL_PEERS = [
   "@botiverse/kimi-code-sdk",
-  "@moonshot-ai/kimi-code-sdk",
   "@earendil-works/pi-coding-agent",
   "@mariozechner/pi-coding-agent",
 ] as const;
+
+function assertCliVersionFromPackage(): void {
+  const src = readFileSync(join(root, "src/cli.ts"), "utf8");
+  if (/\.version\(\s*["']0\.0\.0["']\s*\)/.test(src)) {
+    bad("cli version hardcode", 'buildProgram().version("0.0.0") must not exist — read package.json');
+  } else {
+    ok("cli version not hardcoded 0.0.0");
+  }
+  if (!/readPackageVersion/.test(src) || !/package\.json/.test(src)) {
+    bad("cli version source", "must read version from package.json");
+  } else {
+    ok("cli version reads package.json");
+  }
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string };
+  const distCli = join(root, "dist/cli.js");
+  if (!existsSync(distCli)) {
+    bad("cli --version", "missing dist/cli.js");
+    return;
+  }
+  const printed = execFileSync(process.execPath, [distCli, "--version"], {
+    encoding: "utf8",
+    cwd: root,
+  }).trim();
+  if (printed !== pkg.version) {
+    bad("cli --version", `printed ${JSON.stringify(printed)}, package.json.version=${pkg.version}`);
+  } else {
+    ok(`cli --version === ${pkg.version}`);
+  }
+}
 
 function assertOptionalPeers(): void {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
@@ -261,6 +290,7 @@ async function main(): Promise<void> {
   console.log("library-exports tooth");
   assertCliShebang();
   await assertBinSymlinkInvokesCli();
+  assertCliVersionFromPackage();
   assertOptionalPeers();
   assertSourceReexports();
   await assertBuiltExports();
