@@ -53,7 +53,10 @@ const REQUIRED = [
   { name: "Pi peer used for providers/start", needle: "providers()" },
   { name: "detectAll omits not-installed", needle: "omits" },
   { name: "detectAllRegistered keeps not_installed", needle: "detectAllRegistered" },
-  { name: "Raft is intended consumer, not landed", needle: "intended first consumer / integration target" },
+  {
+    name: "Raft is intended consumer, not landed",
+    re: /intended first\s+consumer \/ integration target/,
+  },
 ];
 
 console.log("readme-snippets tooth");
@@ -65,8 +68,9 @@ for (const f of FORBIDDEN) {
   }
 }
 for (const r of REQUIRED) {
-  if (!readme.includes(r.needle)) {
-    bad(r.name, `missing ${JSON.stringify(r.needle)}`);
+  const hit = "re" in r && r.re ? r.re.test(readme) : Boolean(r.needle && readme.includes(r.needle));
+  if (!hit) {
+    bad(r.name, `missing ${"re" in r && r.re ? String(r.re) : JSON.stringify(r.needle)}`);
   } else {
     ok(r.name);
   }
