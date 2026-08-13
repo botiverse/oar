@@ -12,6 +12,13 @@ import { boolOpt, enumOpt, model } from "../../config/model.js";
  * Host runtime ids for detect enumeration.
  * Product ids (pi, kimi) use SDK probe paths — not CLI binary names.
  * Bridge to raft-computer internal ids (builtin, kimi-sdk) is adapter-layer.
+ *
+ * `kimi` and `kimi-cli` are two SEPARATE registry rows on purpose (P2 identity
+ * parity): `kimi` is SDK-only, `kimi-cli` is the CLI-only legacy descriptor.
+ * Both must be enumerated so a host that has one and not the other reports the
+ * missing one as `not_installed` instead of simply omitting it — the adapter
+ * mapping (`kimi → kimi-sdk`, `kimi-cli → kimi`) needs an explicit answer for
+ * both ids, not silence.
  */
 export const RAFT_DRIVER_REGISTRY = [
   "claude",
@@ -22,11 +29,21 @@ export const RAFT_DRIVER_REGISTRY = [
   "cursor",
   "gemini",
   "kimi",
+  "kimi-cli",
   "opencode",
   "pi",
 ] as const;
 
-export const RAFT_DEPRECATED_FOR_CREATE = ["gemini"] as const;
+/**
+ * Detected and reported, but never offered on the create form.
+ *
+ * `kimi-cli` is here because Raft's legacy `kimi` runtime (which this id maps
+ * onto) exists only to keep already-created agents working. Enumerating it is
+ * required — the adapter must receive the legacy row — but re-offering it for
+ * NEW agents would resurrect a runtime the product already moved off. Canonical
+ * `kimi` (SDK) remains the creatable Kimi Code.
+ */
+export const RAFT_DEPRECATED_FOR_CREATE = ["gemini", "kimi-cli"] as const;
 
 const REASONING_FULL = ["none", "low", "medium", "high", "xhigh", "max"] as const;
 const REASONING_STD = ["low", "medium", "high"] as const;
@@ -94,6 +111,18 @@ export function fixtureDescriptors(): readonly RuntimeDescriptor[] {
     {
       runtime: "kimi",
       label: "Kimi Code",
+      version: "fixture-1",
+      models: [
+        model("kimi-code/kimi-for-coding", "K2.7 Coding", []),
+        model("kimi-code/k3", "K3", [enumOpt("reasoningEffort", "Reasoning", ["low", "high", "max"])]),
+      ],
+    },
+    {
+      // Same product, same config-derived catalog, DIFFERENT install identity.
+      // The label is the only thing that should read differently to a human;
+      // the id is what keeps the adapter from aliasing SDK onto CLI.
+      runtime: "kimi-cli",
+      label: "Kimi Code (CLI)",
       version: "fixture-1",
       models: [
         model("kimi-code/kimi-for-coding", "K2.7 Coding", []),

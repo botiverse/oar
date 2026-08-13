@@ -9,7 +9,7 @@ import { grokDriver } from "./drivers/grok.js";
 import { antigravityDriver } from "./drivers/antigravity.js";
 import { opencodeDriver } from "./drivers/opencode.js";
 import { piDriver } from "./drivers/pi.js";
-import { kimiDriver } from "./drivers/kimi.js";
+import { kimiCliDriver, kimiDriver } from "./drivers/kimi.js";
 import {
   copilotDriver,
   cursorDriver,
@@ -26,6 +26,7 @@ export function createHostDrivers(): readonly RuntimeDriver[] {
     cursorDriver(),
     geminiDriver(),
     kimiDriver(),
+    kimiCliDriver(),
     opencodeDriver(),
     piDriver(),
   ];
@@ -47,7 +48,8 @@ export function hostDetectMeta(): HostDetectMeta {
       grok: "grok --version + grok models",
       opencode: "opencode --version + opencode models",
       pi: "SDK in-process: package version + ModelRuntime.create({allowModelNetwork:false}).getAvailableSnapshot()",
-      kimi: "version: @botiverse/kimi-code-sdk package or kimi --version; models: $KIMI_CODE_HOME|~/.kimi-code/config.toml [models.*]",
+      kimi: "SDK ONLY: version from @botiverse/kimi-code-sdk package (absent if unresolvable); models: $KIMI_CODE_HOME|~/.kimi-code/config.toml [models.*]",
+      "kimi-cli": "CLI ONLY: presence/version from $KIMI_CODE_HOME/bin/kimi or PATH kimi --version (absent if no binary); models: same config.toml [models.*]",
       antigravity: "agy --version + agy models (needs_login when sign-in required)",
       copilot: "which copilot",
       cursor: "which cursor-agent",

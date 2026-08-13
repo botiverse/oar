@@ -1,16 +1,29 @@
 /**
- * Kimi host runtime — SDK path only (xxchan / Huaihuai 2026-08-10).
+ * Kimi host runtimes — two DISTINCT identities (Huaihuai 2026-08-13, P2 parity).
  *
- * Registry id is product name `kimi` (not raft's internal `kimi-sdk`).
- * Models: pure-read of SDK config dir (not the kimi CLI model list).
+ *   `kimi`      canonical, means SDK **and only SDK**. SDK unresolvable ⇒ absent.
+ *   `kimi-cli`  legacy descriptor, decided purely by CLI presence/version.
  *
- * Version (same rule as pi): real package/product semver in the version slot.
- * Prefer `@botiverse/kimi-code-sdk` package.json; else `kimi --version` from the
- * installed product binary under PATH / `$KIMI_CODE_HOME/bin`. Unresolvable →
- * `unknown` (typed empty, not a mode label).
+ * Why they had to be split: `detect()` returning null is the ONLY way this
+ * codebase expresses "absent" (see detect.ts — detectAll drops it,
+ * detectAllRegistered marks not_installed). The previous single `kimi` driver
+ * fell back SDK → $KIMI_CODE_HOME/bin/kimi → PATH kimi → {version:"unknown"},
+ * so it could never return null: a host with ONLY the CLI installed produced a
+ * `kimi` descriptor byte-identical to a host with the SDK. Downstream that
+ * aliases two different runtimes onto one id, and the future Raft adapter
+ * mapping (`kimi → kimi-sdk`, `kimi-cli → kimi`) would silently send CLI-only
+ * hosts down the SDK path.
  *
- * Models source mirrors raft-daemon `detectKimiSdkModels`:
- * `<KIMI_CODE_HOME|~/.kimi-code>/config.toml` → `[models.<id>]` + display_name.
+ * Version (same rule as pi): real package/product semver in the version slot,
+ * never a mode label. Canonical `kimi` reads the SDK package.json only;
+ * `kimi-cli` reads the binary's `--version` only.
+ *
+ * Models: BOTH read `<KIMI_CODE_HOME|~/.kimi-code>/config.toml` → `[models.<id>]`.
+ * That is deliberate parity, not a shortcut — raft-daemon's legacy CLI `kimi`
+ * driver parses the same file, so making kimi-cli report an empty catalog would
+ * regress the descriptor the adapter maps onto raft `kimi`. Identity is what
+ * separates these two runtimes; the model catalog is a property of the product's
+ * config and is genuinely shared.
  *
  * Fixture (parser tests load the same file):
  *   fixtures/kimi-config.sample.toml
@@ -23,12 +36,13 @@ import {
   fileExists,
   modelsToInfo,
   ModelsProbeError,
-  versionVia,
   runText,
   firstLineVersion,
+  which,
   type LiveModel,
 } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
+import type { ModelInfo } from "../../../config/model.js";
 import { kimiCodeHome } from "../paths.js";
 
 const PKG_JSON_CANDIDATES = [
@@ -122,47 +136,96 @@ export function parseKimiCodeConfigToml(raw: string): {
   return { models, ...(defaultModel !== undefined ? { defaultModel } : {}) };
 }
 
-export function kimiDriver(): RuntimeDriver {
+/**
+ * Read the installed kimi CLI's version — binary presence is the whole signal.
+ * `$KIMI_CODE_HOME/bin/kimi` first (the product's own install location), then
+ * PATH. Returns null when no binary is found, which is what makes `kimi-cli`
+ * absent rather than present-with-unknown-version.
+ */
+export function resolveKimiCliVersion(): string | null {
+  const homeBin = join(kimiCodeHome(), "bin", "kimi");
+  if (fileExists(homeBin)) {
+    const r = runText(homeBin, ["--version"], { timeoutMs: 10_000 });
+    const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
+    // Binary exists but prints nothing parseable: still installed. Reporting
+    // "unknown" here is a version gap, NOT an identity claim — absent would be
+    // a lie about presence.
+    return v ?? "unknown";
+  }
+  const path = which("kimi");
+  if (!path) return null;
+  const r = runText(path, ["--version"], { timeoutMs: 10_000 });
+  const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
+  return v ?? "unknown";
+}
+
+/**
+ * Injectable probes. Production passes nothing; the four-state matrix tests
+ * pass fakes so SDK-only / CLI-only / both / neither can be asserted without
+ * touching the real PATH, filesystem, or spawning anything.
+ */
+export interface KimiProbes {
+  readonly sdkVersion: () => string | null;
+  readonly cliVersion: () => string | null;
+  readonly readModels: () => readonly ModelInfo[];
+}
+
+/** Shared config.toml catalog read — identical for both identities by design. */
+function readKimiModels(): readonly LiveModel[] {
+  const configPath = join(kimiCodeHome(), "config.toml");
+  if (!fileExists(configPath)) {
+    throw new ModelsProbeError(
+      "needs_login",
+      "kimi config.toml missing (run kimi login / set KIMI_CODE_HOME)",
+    );
+  }
+  let raw = "";
+  try {
+    raw = readFileSync(configPath, "utf8");
+  } catch {
+    throw new ModelsProbeError("models_unavailable", "kimi config.toml unreadable");
+  }
+  const { models } = parseKimiCodeConfigToml(raw);
+  if (models.length === 0) {
+    throw new ModelsProbeError(
+      "needs_login",
+      "kimi config.toml has no [models.*] sections",
+    );
+  }
+  return models;
+}
+
+/**
+ * Canonical `kimi` — SDK ONLY.
+ * ⛔ Do not add a CLI fallback here. That fallback is the exact defect this
+ * split removed: it makes a CLI-only host indistinguishable from an SDK host.
+ */
+export function kimiDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
+  const sdkVersion = probes?.sdkVersion ?? resolveKimiSdkVersion;
+  const models = probes?.readModels;
   return baseDriver("kimi", {
-    // In-process capability is always a host fact (config may still be missing).
-    // Version: package first; else product binary --version; else typed unknown.
     detect: async () => {
-      const fromPkg = resolveKimiSdkVersion();
-      if (fromPkg) return { version: fromPkg };
-      // Product binary version (PATH or $KIMI_CODE_HOME/bin) — not used for models.
-      const homeBin = join(kimiCodeHome(), "bin", "kimi");
-      if (fileExists(homeBin)) {
-        const r = runText(homeBin, ["--version"], { timeoutMs: 10_000 });
-        const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
-        if (v) return { version: v };
-      }
-      const fromCli = await versionVia("kimi");
-      if (fromCli?.version) return fromCli;
-      return { version: "unknown" };
+      const version = sdkVersion();
+      return version === null ? null : { version };
     },
-    models: async () => {
-      const kimiHome = kimiCodeHome();
-      const configPath = join(kimiHome, "config.toml");
-      if (!fileExists(configPath)) {
-        throw new ModelsProbeError(
-          "needs_login",
-          "kimi config.toml missing (run kimi login / set KIMI_CODE_HOME)",
-        );
-      }
-      let raw = "";
-      try {
-        raw = readFileSync(configPath, "utf8");
-      } catch {
-        throw new ModelsProbeError("models_unavailable", "kimi config.toml unreadable");
-      }
-      const { models } = parseKimiCodeConfigToml(raw);
-      if (models.length === 0) {
-        throw new ModelsProbeError(
-          "needs_login",
-          "kimi config.toml has no [models.*] sections",
-        );
-      }
-      return modelsToInfo("kimi", models);
+    models: async () =>
+      models ? models() : modelsToInfo("kimi", readKimiModels()),
+  });
+}
+
+/**
+ * Legacy `kimi-cli` — CLI presence/version ONLY.
+ * ⛔ Do not consult the SDK package here, for the mirror-image reason.
+ */
+export function kimiCliDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
+  const cliVersion = probes?.cliVersion ?? resolveKimiCliVersion;
+  const models = probes?.readModels;
+  return baseDriver("kimi-cli", {
+    detect: async () => {
+      const version = cliVersion();
+      return version === null ? null : { version };
     },
+    models: async () =>
+      models ? models() : modelsToInfo("kimi-cli", readKimiModels()),
   });
 }
