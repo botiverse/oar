@@ -5,15 +5,16 @@
  * Naming (Huaihuai): registry id remains `pi` (no separate builtin row).
  *
  * Version (Huaihuai / HaoHao): real SDK package semver in the version slot.
- * Mode is never stuffed into `version`. Unresolvable package → `version: "unknown"`.
+ * Mode is never stuffed into `version`. Unresolvable package → the runtime is
+ * ABSENT (detect returns null); it is NOT reported present with a placeholder
+ * version. `pi` present means the SDK is there and in-process drivable, which
+ * is what the Raft adapter synthesises `builtin` from.
  *
  * Models: call the installed pi SDK in-process (`ModelRuntime.create`).
  * Catalog = getAvailableSnapshot() (auth-available only). No cross-repo shell-out.
  */
-import { existsSync, readFileSync, realpathSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { which } from "../probe.js";
 import { resolveSdkPackage } from "../sdkResolve.js";
 import { emptyDeclaration, type RuntimeDriver } from "../../../backend/trait.js";
 import type { IdleSession } from "../../../session/handle.js";
@@ -49,61 +50,30 @@ type PiSdkModule = {
 };
 
 /**
- * Locate the installed pi-coding-agent package (no CLI spawn on the happy path).
+ * Locate the installed pi-coding-agent package. SDK ONLY — no CLI spawn.
  *
- * Same correction as kimi: the old code resolved `<pkg>/package.json`, which
- * throws ERR_PACKAGE_PATH_NOT_EXPORTED on packages whose `exports` map does not
- * publish that subpath — pi is one of them, so this reported pi ABSENT on real
- * daemon installs. Resolution now goes through the package's main entry.
+ * Two corrections, both the same shape as kimi's (Huaihuai, 2026-08-13):
  *
- * The `which("pi")` walk-up below is kept as a last resort and is NOT the same
- * signal: it finds a package root from an installed CLI binary, i.e. a
- * different install identity. For kimi that conflation was the whole defect
- * this card removed. Pi is declared SDK-only here, so the same question applies
- * to it — flagged to @Huaihuai rather than silently changed, because pi's
- * identity is what the Raft adapter synthesises `builtin` from and that is not
- * this card's contract to move.
+ * 1. The old code resolved `<pkg>/package.json`, which throws
+ *    ERR_PACKAGE_PATH_NOT_EXPORTED on packages whose `exports` map does not
+ *    publish that subpath. Pi is one of them — worse, its exports declare only
+ *    an `import` condition, so plain `require.resolve(<pkg>)` is blocked too and
+ *    ONLY the ESM resolver can see it. Measured: pi reported absent on real
+ *    daemon installs. Resolution now goes through the package's main entry.
+ *
+ * 2. ⛔ The `which("pi")` walk-up is GONE. It found a package root from an
+ *    installed CLI binary — a different install identity — so a CLI-only host
+ *    reported canonical `pi` as installed. That is precisely the alias this card
+ *    removed from kimi, and it matters more here: the Raft adapter synthesises
+ *    `builtin` from `pi`, so the false positive propagates into a runtime the
+ *    daemon cannot actually drive in-process.
  */
 export function resolvePiSdkPackageRoot(): string | null {
-  const resolved = resolveSdkPackage(PI_SDK_CANDIDATES);
-  if (resolved) return resolved.root;
-
-  const bin = which("pi");
-  if (!bin) return null;
-  try {
-    let dir = dirname(realpathSync(bin));
-    for (let i = 0; i < 10; i++) {
-      const pj = join(dir, "package.json");
-      if (existsSync(pj)) {
-        const j = JSON.parse(readFileSync(pj, "utf8")) as {
-          name?: string;
-          version?: string;
-        };
-        if (typeof j.name === "string" && /pi-coding-agent/i.test(j.name)) {
-          return dir;
-        }
-      }
-      const parent = dirname(dir);
-      if (parent === dir) break;
-      dir = parent;
-    }
-  } catch {
-    // ignore
-  }
-  return null;
+  return resolveSdkPackage(PI_SDK_CANDIDATES)?.root ?? null;
 }
 
 export function resolvePiSdkVersion(): string | null {
-  const root = resolvePiSdkPackageRoot();
-  if (!root) return null;
-  try {
-    const j = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
-      version?: string;
-    };
-    return typeof j.version === "string" && j.version.length > 0 ? j.version : null;
-  } catch {
-    return null;
-  }
+  return resolveSdkPackage(PI_SDK_CANDIDATES)?.version ?? null;
 }
 
 async function loadPiSdk(): Promise<{ root: string; mod: PiSdkModule } | null> {
@@ -190,12 +160,26 @@ function makePiSession(_rt: PiModelRuntime): IdleSession {
   };
 }
 
-export function piDriver(): RuntimeDriver {
+/**
+ * Injectable SDK-version probe. Production passes nothing; the identity teeth
+ * pass a fake so SDK-only / CLI-only / neither can be asserted without a real
+ * install and without touching PATH.
+ */
+export interface PiProbes {
+  readonly sdkVersion: () => string | null;
+}
+
+export function piDriver(probes?: Partial<PiProbes>): RuntimeDriver {
+  const sdkVersion = probes?.sdkVersion ?? resolvePiSdkVersion;
   return {
     id: "pi",
     detect: async () => {
-      const v = resolvePiSdkVersion();
-      return { version: v ?? "unknown" };
+      // ⛔ Do not restore `?? "unknown"`. Returning a descriptor for an
+      // unresolvable SDK made `pi` permanently present: detect.ts treats null as
+      // the ONLY expression of absent, so "unknown" reports a runtime that is not
+      // there — and the Raft adapter would synthesise `builtin` from it.
+      const version = sdkVersion();
+      return version === null ? null : { version };
     },
     // Prefer providers() when the provider axis is populated; flat list stays empty.
     models: async () => [],
