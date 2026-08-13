@@ -46,6 +46,26 @@
   "dependencies": {
     "commander": "^12.1.0"
   },
+  "peerDependencies": {
+    "@botiverse/kimi-code-sdk": "*",
+    "@moonshot-ai/kimi-code-sdk": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "peerDependenciesMeta": {
+    "@botiverse/kimi-code-sdk": {
+      "optional": true
+    },
+    "@moonshot-ai/kimi-code-sdk": {
+      "optional": true
+    },
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    },
+    "@mariozechner/pi-coding-agent": {
+      "optional": true
+    }
+  },
   "packageManager": "pnpm@9.12.3",
   "engines": {
     "node": ">=20"

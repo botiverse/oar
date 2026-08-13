@@ -117,6 +117,38 @@ async function assertBinSymlinkInvokesCli(): Promise<void> {
   }
 }
 
+/**
+ * Host SDKs oar probes at runtime. Must be optional peers so a published
+ * package can see the consumer's install (pnpm strict) without bundling them.
+ */
+const REQUIRED_OPTIONAL_PEERS = [
+  "@botiverse/kimi-code-sdk",
+  "@moonshot-ai/kimi-code-sdk",
+  "@earendil-works/pi-coding-agent",
+  "@mariozechner/pi-coding-agent",
+] as const;
+
+function assertOptionalPeers(): void {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+    peerDependencies?: Record<string, string>;
+    peerDependenciesMeta?: Record<string, { optional?: boolean }>;
+  };
+  const peers = pkg.peerDependencies ?? {};
+  const meta = pkg.peerDependenciesMeta ?? {};
+  for (const name of REQUIRED_OPTIONAL_PEERS) {
+    if (!(name in peers)) {
+      bad(`peerDependencies ${name}`, "missing — published oar cannot see host SDK");
+    } else {
+      ok(`peerDependencies ${name}`);
+    }
+    if (meta[name]?.optional !== true) {
+      bad(`peerDependenciesMeta ${name}.optional`, "must be true (SDK is detect-time, not required)");
+    } else {
+      ok(`peerDependenciesMeta ${name}.optional`);
+    }
+  }
+}
+
 function assertSourceReexports(): void {
   const indexPath = join(root, "src/index.ts");
   const src = readFileSync(indexPath, "utf8");
@@ -229,6 +261,7 @@ async function main(): Promise<void> {
   console.log("library-exports tooth");
   assertCliShebang();
   await assertBinSymlinkInvokesCli();
+  assertOptionalPeers();
   assertSourceReexports();
   await assertBuiltExports();
   if (failed > 0) {
