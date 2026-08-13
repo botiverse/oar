@@ -25,9 +25,12 @@ const FORBIDDEN = [
   { name: "private pre-alpha as current status", re: /\*\*private, pre-alpha/i },
   { name: "sea-trial as publish gate", re: /sea-trial passes for every runtime driver/i },
   { name: "vendor terms silently block without owner", re: /Blocks public release, not work here/ },
+  { name: "CJS require example", re: /require\(\s*["']@botiverse\/oar["']\s*\)/ },
 ];
 
 const REQUIRED = [
+  { name: "ESM-only", needle: "ESM-only" },
+  { name: "Node >= 20", needle: "Node >= 20" },
   { name: "npm install snippet", needle: "npm install @botiverse/oar" },
   { name: "npx oar --help", needle: "npx oar --help" },
   { name: "npx oar detect", needle: "npx oar detect" },

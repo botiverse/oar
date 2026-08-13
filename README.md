@@ -18,6 +18,10 @@ events. `oar` is that access layer.
 
 ## Install
 
+`@botiverse/oar` is **ESM-only** and requires **Node >= 20**. Use static
+`import` from the package. CommonJS `require` of this package is unsupported
+(it resolves to the ESM entry). If you must stay in CJS, use dynamic `import()`.
+
 ```bash
 npm install @botiverse/oar
 ```
