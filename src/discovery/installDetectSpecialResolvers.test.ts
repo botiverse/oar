@@ -186,3 +186,36 @@ test("④ version-only / no-app-server: --version succeeds but the app-server ga
     `app-server gate never ran; probed=${JSON.stringify(h.probed)}`,
   );
 });
+
+/**
+ * Seam-liveness teeth. These exist so that a deps-disconnect mutant fails with a message
+ * that NAMES the broken seam, rather than only showing a downstream `not_installed` row.
+ */
+test("⑤a seam live (Claude): the injected resolution deps are actually consumed", async () => {
+  const h = harness({ onPath: {}, existing: [CLAUDE_DESKTOP], version: "1.2.3" });
+  await rowFor("claude", h.hooks);
+
+  assert.ok(
+    h.whichAsked.length > 0,
+    "injected PATH resolution was never consulted — the resolution deps are not reaching resolveClaudeCommand",
+  );
+  assert.ok(
+    h.existsAsked.length > 0,
+    "injected existsSyncFn was never consulted — the resolution deps are not reaching resolveClaudeCommand",
+  );
+});
+
+test("⑤b seam live (Codex): the injected raw command runner is actually consumed", async () => {
+  clearCodexProbeCacheForTests();
+  const h = harness({ onPath: { codex: "/usr/local/bin/codex" }, existing: [] });
+  await rowFor("codex", h.hooks);
+
+  assert.ok(
+    h.whichAsked.length > 0,
+    "injected PATH resolution was never consulted — resolution deps are not reaching resolveCodexBin",
+  );
+  assert.ok(
+    h.probed.length > 0,
+    "injected runCommand was never consulted — the low-level runner is not reaching probeCommand",
+  );
+});
