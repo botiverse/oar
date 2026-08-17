@@ -21,9 +21,19 @@ export function which(cmd: string, env: NodeJS.ProcessEnv = process.env): string
   }
 }
 
+/**
+ * Raw command runner seam. Returns the uninterpreted result; callers derive meaning.
+ * Injectable so tests can supply command RESULTS without spawning; production stays `runText`.
+ */
+export type CommandRunner = (
+  command: string,
+  args: readonly string[],
+  opts?: { timeoutMs?: number; env?: NodeJS.ProcessEnv },
+) => { ok: boolean; stdout: string; stderr: string; code: number | null };
+
 export function runText(
   command: string,
-  args: string[],
+  args: readonly string[],
   opts: { timeoutMs?: number; env?: NodeJS.ProcessEnv } = {},
 ): { ok: boolean; stdout: string; stderr: string; code: number | null } {
   const r = spawnSync(command, args, {
