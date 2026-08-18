@@ -1,6 +1,5 @@
 import { baseDriver, which, runText, modelsOnly } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
-import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 
 /**
  * Parse `opencode models` stdout (one provider/model id per line).
@@ -17,7 +16,7 @@ export function parseOpencodeModelsOutput(text: string): string[] {
 }
 
 export function opencodeDriver(): RuntimeDriver {
-  return withInstallAttempts(baseDriver("opencode", {
+  return baseDriver("opencode", {
     detect: async () => {
       const path = which("opencode");
       if (!path) return null;
@@ -36,5 +35,5 @@ export function opencodeDriver(): RuntimeDriver {
       const ids = parseOpencodeModelsOutput(r.stdout + "\n" + r.stderr);
       return modelsOnly(ids.map((id) => ({ id, label: id })));
     },
-  }), commandInstallAttempts(["opencode"]));
+  });
 }

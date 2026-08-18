@@ -1,6 +1,6 @@
 /**
  * Special-resolver install teeth, driven through the PRODUCTION assembly
- * `detectInstallRegistered(createHostDrivers(), …)` — never a resolver unit call.
+ * `detectInstallRegistered(createHostInstallTargets(), …)` — never a resolver unit call.
  *
  * Contract (OAR task #6, frozen msg 932b06a6; seam shape ruled by @Huaihuai):
  *   - `CommandResolveDeps` stays resolution-only; the adapter maps it onto the resolvers'
@@ -16,7 +16,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { detectInstallRegistered } from "./installDetect.js";
-import { createHostDrivers } from "./host/runtimeDrivers.js";
+import { createHostInstallTargets } from "./host/runtimeDrivers.js";
 import {
   CLAUDE_DESKTOP_CLI_RELATIVE_PATH,
   CLAUDE_DESKTOP_CLI_SYSTEM_PATH,
@@ -80,7 +80,7 @@ function harness(opts: {
 
 async function rowFor(runtime: string, hooks: unknown) {
   const rows = await detectInstallRegistered(
-    createHostDrivers(),
+    createHostInstallTargets(),
     [runtime],
     hooks as never,
   );

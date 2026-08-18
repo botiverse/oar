@@ -78,6 +78,7 @@ import {
   detectAll,
   detectInstallRegistered,
   createHostDrivers,
+  createHostInstallTargets,
   collectUsage,
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   USAGE_PROVIDERS,
@@ -86,7 +87,7 @@ import {
 } from "@botiverse/oar";
 
 const required = [
-  detectAll, detectInstallRegistered, createHostDrivers, collectUsage,
+  detectAll, detectInstallRegistered, createHostDrivers, createHostInstallTargets, collectUsage,
   ACCOUNT_USAGE_PROTOCOL_VERSION, USAGE_PROVIDERS,
   STANDALONE_COLLECTOR_VERSION, RAFT_DRIVER_REGISTRY,
 ];
@@ -104,6 +105,13 @@ const drivers = createHostDrivers();
 if (!Array.isArray(drivers) || drivers.length === 0) throw new Error("createHostDrivers empty");
 if (!drivers.every((d) => typeof d.id === "string" && typeof d.detect === "function")) {
   throw new Error("driver shape");
+}
+const installTargets = createHostInstallTargets();
+if (!Array.isArray(installTargets) || installTargets.length !== drivers.length) {
+  throw new Error("install target registry shape");
+}
+if (!installTargets.every((target) => typeof target.runtime === "string" && typeof target.attempts === "function")) {
+  throw new Error("install target boundary");
 }
 
 const slot = "consumer-slot-proof";

@@ -11,33 +11,23 @@
  */
 import { binaryOnly, modelsToInfo } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
-import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 
 export function copilotDriver(): RuntimeDriver {
-  return withInstallAttempts(
-    binaryOnly("copilot", "copilot", async () =>
-      modelsToInfo("copilot", [
-        {
-          id: "default",
-          label: "default (CLI present; no model list API)",
-          supportedReasoningEfforts: ["low", "medium", "high"],
-        },
-      ]),
-    ),
-    commandInstallAttempts(["copilot"]),
+  return binaryOnly("copilot", "copilot", async () =>
+    modelsToInfo("copilot", [
+      {
+        id: "default",
+        label: "default (CLI present; no model list API)",
+        supportedReasoningEfforts: ["low", "medium", "high"],
+      },
+    ]),
   );
 }
 
 export function cursorDriver(): RuntimeDriver {
-  return withInstallAttempts(
-    binaryOnly("cursor", "cursor-agent", async () => []),
-    commandInstallAttempts(["cursor-agent"]),
-  );
+  return binaryOnly("cursor", "cursor-agent", async () => []);
 }
 
 export function geminiDriver(): RuntimeDriver {
-  return withInstallAttempts(
-    binaryOnly("gemini", "gemini", async () => []),
-    commandInstallAttempts(["gemini"]),
-  );
+  return binaryOnly("gemini", "gemini", async () => []);
 }

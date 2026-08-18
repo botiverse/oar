@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createHostDrivers } from "./runtimeDrivers.js";
+import {
+  createHostDrivers,
+  createHostInstallTargets,
+} from "./runtimeDrivers.js";
 import { RAFT_DRIVER_REGISTRY } from "../fixtures/raftRuntimes.js";
 
 /**
@@ -64,6 +67,22 @@ test("live drivers and the detect registry are the same set", () => {
     `built but NOT in RAFT_DRIVER_REGISTRY: ${unregistered.join(", ")} — ` +
       "these are detected by detectAll but never enumerated, so the adapter cannot ask about them",
   );
+});
+
+test("catalog drivers and install targets cover the same runtime identities", () => {
+  const catalogIds = createHostDrivers().map((driver) => driver.id);
+  const installIds = createHostInstallTargets().map((target) => target.runtime);
+  assert.deepEqual(installIds, catalogIds);
+});
+
+test("catalog/drive drivers do not carry install implementation fields", () => {
+  for (const driver of createHostDrivers()) {
+    assert.equal(
+      "installAttempts" in driver,
+      false,
+      `${driver.id}: install detection must live in createHostInstallTargets(), not RuntimeDriver`,
+    );
+  }
 });
 
 test("both Kimi install identities are actually assembled", () => {
