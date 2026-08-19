@@ -15,12 +15,16 @@ import {
   cursorDriver,
   geminiDriver,
 } from "./drivers/misc.js";
-import { commandInstallAttempts, withInstallAttempts } from "../installDetect.js";
+import {
+  claudeInstallAttempts,
+  codexInstallAttempts,
+  withInstallAttempts,
+} from "../installDetect.js";
 
 export function createHostDrivers(): readonly RuntimeDriver[] {
   return [
-    claudeDriver(),
-    withInstallAttempts(codexDriver(), commandInstallAttempts(["codex"])),
+    withInstallAttempts(claudeDriver(), claudeInstallAttempts),
+    withInstallAttempts(codexDriver(), codexInstallAttempts),
     grokDriver(),
     antigravityDriver(),
     copilotDriver(),

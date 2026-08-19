@@ -10,12 +10,14 @@
  * Resolution is the winning candidate's kind, not a second runtime-id table.
  */
 import { spawnSync } from "node:child_process";
-import { firstLineVersion, runText } from "./cli.js";
+import { firstLineVersion, runText, type CommandRunner } from "./cli.js";
 import type { RuntimeDriver } from "../backend/trait.js";
 import {
   resolveCommandOnPath,
   type CommandResolveDeps,
 } from "./host/windowsResolve.js";
+import { resolveClaudeCommand } from "./host/claudeResolve.js";
+import { resolveCodexBin } from "./host/codexResolve.js";
 
 export const GROK_STDIO_PROBE_ARGS = ["agent", "stdio", "--help"] as const;
 export const GROK_STDIO_TIMEOUT_MS = 5_000;
@@ -64,6 +66,11 @@ export type InstallAttempt = {
 export type InstallProbeCtx = {
   readonly commandDeps: CommandResolveDeps;
   readonly readVersion?: (bin: string) => string | null;
+  /**
+   * Raw command runner for special resolvers (Codex app-server gate, version reads).
+   * Tests inject command RESULTS through here; eligibility is still derived in production code.
+   */
+  readonly runCommand?: CommandRunner;
 };
 
 export type InstallAwareDriver = RuntimeDriver & {
@@ -79,6 +86,8 @@ export type InstallDetectHooks = {
   commandResolve?: CommandResolveDeps;
   /** Test seam: after PATH resolve, map the binary to a version without spawn. */
   readVersion?: (bin: string) => string | null;
+  /** Test seam: raw command runner. Supplies command results, never derived eligibility. */
+  runCommand?: CommandRunner;
 };
 
 export function parseLooseSemver(raw: string | undefined): [number, number, number] | null {
@@ -135,6 +144,71 @@ export function commandInstallAttempts(
           commandDeps: { ...ctx.commandDeps, failMode: "throw" },
         }),
     }));
+}
+
+/**
+ * Adapter: map the resolution-only `commandDeps` onto the shape the special resolvers already accept.
+ * `CommandResolveDeps` stays resolution-only — no execution capability is added to it, and the global
+ * `cli.which()` is not modified. PATH resolution goes through the Windows-aware resolveCommandOnPath.
+ */
+export function specialResolverDeps(ctx: InstallProbeCtx): {
+  env: NodeJS.ProcessEnv;
+  platform?: NodeJS.Platform;
+  which: (cmd: string, env?: NodeJS.ProcessEnv) => string | null;
+  exists?: (p: string) => boolean;
+  runCommand?: CommandRunner;
+} {
+  const env = ctx.commandDeps.env ?? process.env;
+  return {
+    env,
+    ...(ctx.commandDeps.platform ? { platform: ctx.commandDeps.platform } : {}),
+    which: (cmd, e) => resolveCommandOnPath(cmd, { ...ctx.commandDeps, env: e ?? env }),
+    ...(ctx.commandDeps.existsSyncFn ? { exists: ctx.commandDeps.existsSyncFn } : {}),
+    ...(ctx.runCommand ? { runCommand: ctx.runCommand } : {}),
+  };
+}
+
+/** Read a version from an already-resolved binary, via the injectable runner. */
+function versionOfResolved(bin: string, ctx: InstallProbeCtx): string | null {
+  if (ctx.readVersion) return ctx.readVersion(bin);
+  const run = ctx.runCommand ?? runText;
+  const r = run(bin, ["--version"], { timeoutMs: 10_000 });
+  return firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
+}
+
+/**
+ * Claude install attempts through the REAL resolver: PATH → (darwin) desktop bundle.
+ * Replaces the bare `commandInstallAttempts(["claude"])` shape, which could never see a
+ * desktop-only install because it never consulted resolveClaudeCommand.
+ */
+export function claudeInstallAttempts(ctx: InstallProbeCtx): InstallAttempt[] {
+  return [
+    {
+      resolution: "command" as const,
+      run: async () => {
+        const bin = resolveClaudeCommand(specialResolverDeps(ctx));
+        if (!bin) return null;
+        return versionOfResolved(bin, ctx);
+      },
+    },
+  ];
+}
+
+/**
+ * Codex install attempts through the REAL resolver: authoritative fail-closed `CODEX_BIN`,
+ * then app-server-gated PATH / desktop-bundle arbitration. Replaces the outer bare wrapper.
+ */
+export function codexInstallAttempts(ctx: InstallProbeCtx): InstallAttempt[] {
+  return [
+    {
+      resolution: "command" as const,
+      run: async () => {
+        const r = resolveCodexBin(specialResolverDeps(ctx));
+        if (!r.ok) return null;
+        return r.version ?? versionOfResolved(r.command, ctx);
+      },
+    },
+  ];
 }
 
 export function withInstallAttempts(
@@ -232,6 +306,7 @@ export async function detectInstallOne(
       },
     },
     ...(hooks.readVersion ? { readVersion: hooks.readVersion } : {}),
+    ...(hooks.runCommand ? { runCommand: hooks.runCommand } : {}),
   };
 
   const probeDetect = hooks.probeDetect ?? ((d: RuntimeDriver) => runInstallAttempts(d, ctx));

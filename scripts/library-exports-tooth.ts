@@ -212,10 +212,45 @@ function assertInstallParitySource(): void {
     ok("antigravity asks agy");
   }
   const assembly = readFileSync(join(root, "src/discovery/host/runtimeDrivers.ts"), "utf8");
-  if (!/withInstallAttempts\(\s*codexDriver\(\)\s*,\s*commandInstallAttempts\(\["codex"\]\)/.test(assembly)) {
-    bad("codex install candidate", "createHostDrivers must attach commandInstallAttempts([\"codex\"]) without adding a codex.ts import");
+  // Codex and Claude are install-detected through their REAL special resolvers, attached at the
+  // assembly. Two positive checks that the wiring exists, and two NEGATIVE checks — without those,
+  // swapping one function name for another would still allow a silent regression to the bare path
+  // or a leak of resolver internals into the assembly.
+  if (!/withInstallAttempts\(\s*codexDriver\(\)\s*,\s*codexInstallAttempts/.test(assembly)) {
+    bad(
+      "codex install candidate",
+      'createHostDrivers must attach codexInstallAttempts (the real resolveCodexBin path: authoritative CODEX_BIN, app-server gate, desktop bundle)',
+    );
   } else {
-    ok("codex attempts attached at assembly");
+    ok("codex attempts attached at assembly via the real resolver");
+  }
+  if (!/withInstallAttempts\(\s*claudeDriver\(\)\s*,\s*claudeInstallAttempts/.test(assembly)) {
+    bad(
+      "claude install candidate",
+      "createHostDrivers must attach claudeInstallAttempts (the real resolveClaudeCommand path: PATH then darwin desktop bundle)",
+    );
+  } else {
+    ok("claude attempts attached at assembly via the real resolver");
+  }
+  const bareRegression = /commandInstallAttempts\(\s*\[\s*"(codex|claude)"\s*\]/.exec(assembly);
+  if (bareRegression) {
+    bad(
+      "no bare regression for special resolvers",
+      `runtimeDrivers.ts must not attach bare commandInstallAttempts(["${bareRegression[1]}"]) — that bypasses the special resolver, so a desktop-only install and an authoritative CODEX_BIN become undetectable`,
+    );
+  } else {
+    ok("no bare commandInstallAttempts for codex/claude at assembly");
+  }
+  const internalLeak = /from\s+"\.\/(codexResolve|claudeResolve|windowsResolve)\.js"|from\s+"\.\/host\/(codexResolve|claudeResolve)\.js"/.exec(
+    assembly,
+  );
+  if (internalLeak) {
+    bad(
+      "assembly does not import special-resolver internals",
+      `runtimeDrivers.ts must reach the resolvers only through the public installDetect helpers, not by importing ${internalLeak[0]}`,
+    );
+  } else {
+    ok("assembly imports no special-resolver internals");
   }
   const kimi = readFileSync(join(root, "src/discovery/host/drivers/kimi.ts"), "utf8");
   if (!/commandInstallAttempts\(\["kimi"\]\)/.test(kimi) || !/kimiCodeHome\(\)/.test(kimi)) {

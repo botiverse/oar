@@ -27,7 +27,7 @@
 import os from "node:os";
 import path from "node:path";
 import { existsSync, statSync } from "node:fs";
-import { runText, which } from "../cli.js";
+import { runText, which, type CommandRunner } from "../cli.js";
 
 export type CodexBinSource = "explicit_bin" | "path" | "desktop_bundle";
 
@@ -110,6 +110,11 @@ export type CodexResolveDeps = {
   exists?: (p: string) => boolean;
   /** app-server `--help` gate + `--version` read for one command path. */
   probe?: (command: string) => CandidateProbe;
+  /**
+   * Raw command runner used by the real probe. Injecting this supplies command RESULTS;
+   * `appServerOk`/`version` are still derived here, never injected pre-computed.
+   */
+  runCommand?: CommandRunner;
 };
 
 type Candidate = { source: CodexBinSource; command: string };
@@ -137,10 +142,14 @@ function codexSpawnCandidates(deps: Required<Pick<CodexResolveDeps, "platform" |
 }
 
 /** Real probe: app-server `--help` must succeed (gate); then read `--version`. */
-function probeCommand(command: string, env: NodeJS.ProcessEnv): CandidateProbe {
-  const help = runText(command, ["app-server", "--help"], { timeoutMs: 5_000, env });
+function probeCommand(
+  command: string,
+  env: NodeJS.ProcessEnv,
+  run: CommandRunner = runText,
+): CandidateProbe {
+  const help = run(command, ["app-server", "--help"], { timeoutMs: 5_000, env });
   if (!help.ok) return { appServerOk: false, version: null };
-  const ver = runText(command, ["--version"], { timeoutMs: 5_000, env });
+  const ver = run(command, ["--version"], { timeoutMs: 5_000, env });
   const version = ver.ok ? (ver.stdout.trim().split(/\r?\n/)[0] || null) : null;
   return { appServerOk: true, version };
 }
@@ -205,7 +214,8 @@ export function resolveCodexBin(deps: CodexResolveDeps = {}): CodexResolution {
   const homeDir = deps.homeDir ?? env.HOME ?? env.USERPROFILE ?? os.homedir();
   const whichFn = deps.which ?? which;
   const exists = deps.exists ?? existsSync;
-  const rawProbe = deps.probe ?? ((command: string) => probeCommand(command, env));
+  const runCommand = deps.runCommand ?? runText;
+  const rawProbe = deps.probe ?? ((command: string) => probeCommand(command, env, runCommand));
   const probe = (command: string): CandidateProbe => cachedProbe(command, rawProbe, exists);
 
   // 1) Explicit override — authoritative, fail-closed.
