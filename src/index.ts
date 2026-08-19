@@ -80,7 +80,7 @@ export {
   resolveCommandOnPath,
   mergeWindowsPathSegments,
   mergeWindowsEnvironmentScopes,
-} from "./discovery/host/windowsResolve.js";
+} from "./discovery/host/windowsCommandResolution.js";
 export {
   fixtureDescriptors,
   creatableDescriptors,
@@ -90,16 +90,30 @@ export {
   RAFT_DEPRECATED_FOR_CREATE,
 } from "./discovery/fixtures/raftRuntimes.js";
 
-// Separate host registries: RuntimeDriver for catalog/drive, InstallTarget for
-// install eligibility. See docs/DETECT.md; neither service depends on the
-// other's implementation shape.
-export type { RuntimeDriver } from "./backend/trait.js";
+// One runtime definition is the adoption unit. Catalog, install, and driver
+// views are derived from this registry; consumers never reconcile identities.
+export type { RuntimeDriver } from "./backend/runtimeDriver.js";
+export type {
+  RuntimeDefinition,
+  RuntimeInstallDefinition,
+} from "./runtime/definition.js";
+export {
+  createDriversFromDefinitions,
+  createInstallTargetsFromDefinitions,
+} from "./runtime/projections.js";
 export {
   createHostDrivers,
   createHostInstallTargets,
-  hostDetectMeta,
-} from "./discovery/host/runtimeDrivers.js";
-export type { HostDetectMeta } from "./discovery/host/runtimeDrivers.js";
+  createHostRuntimeDefinitions,
+} from "./runtime/registry.js";
+export {
+  collectHostDetectMetadata,
+  collectHostDetectMetadata as hostDetectMeta,
+} from "./runtime/host-metadata.js";
+export type {
+  HostDetectMetadata,
+  HostDetectMetadata as HostDetectMeta,
+} from "./runtime/host-metadata.js";
 
 // Account usage (host-facing). Adapters inject collectorVersion + slot + clock;
 // they must not import per-provider projectors under discovery/host/drivers/.

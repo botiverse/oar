@@ -1,5 +1,5 @@
-import { baseDriver, versionVia, which, runText, modelsToInfo } from "../probe.js";
-import type { RuntimeDriver } from "../../../backend/trait.js";
+import { baseDriver, versionVia, which, runText, modelsToInfo } from "../runtimeProbe.js";
+import type { RuntimeDriver } from "../../../backend/runtimeDriver.js";
 
 /**
  * Parse `grok models` stdout.

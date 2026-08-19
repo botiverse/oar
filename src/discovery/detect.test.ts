@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { RuntimeDriver } from "../backend/trait.js";
+import type { RuntimeDriver } from "../backend/runtimeDriver.js";
 import {
   detectAllRegistered,
   ModelsProbeError,
   type DetectFailure,
 } from "./detect.js";
 import type { ModelInfo } from "../config/model.js";
-import { emptyDeclaration } from "../backend/trait.js";
+import { emptyDeclaration } from "../backend/runtimeDriver.js";
 import type { RuntimeEvent } from "../events/event.js";
 
 function stub(

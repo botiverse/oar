@@ -16,12 +16,12 @@ import path from "node:path";
 import test from "node:test";
 
 import { detectInstallRegistered } from "./installDetect.js";
-import { createHostInstallTargets } from "./host/runtimeDrivers.js";
+import { createHostInstallTargets } from "../runtime/registry.js";
 import {
   CLAUDE_DESKTOP_CLI_RELATIVE_PATH,
   CLAUDE_DESKTOP_CLI_SYSTEM_PATH,
-} from "./host/claudeResolve.js";
-import { clearCodexProbeCacheForTests } from "./host/codexResolve.js";
+} from "./host/claudeCommandResolution.js";
+import { clearCodexProbeCacheForTests } from "./host/codexCommandResolution.js";
 
 const HOME = "/fake/home";
 const CLAUDE_DESKTOP = path.join(HOME, CLAUDE_DESKTOP_CLI_RELATIVE_PATH);

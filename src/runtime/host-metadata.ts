@@ -1,46 +1,11 @@
-/**
- * Host driver assembly — one import site for createHostDrivers().
- * Per-runtime change goes under ./drivers/<id>.ts (change-reason isolation).
- */
-import type { RuntimeDriver } from "../../backend/trait.js";
-import { claudeDriver } from "./drivers/claude.js";
-import { codexDriver } from "./drivers/codex.js";
-import { grokDriver } from "./drivers/grok.js";
-import { antigravityDriver } from "./drivers/antigravity.js";
-import { opencodeDriver } from "./drivers/opencode.js";
-import { piDriver } from "./drivers/pi.js";
-import { kimiCliDriver, kimiDriver } from "./drivers/kimi.js";
-import {
-  copilotDriver,
-  cursorDriver,
-  geminiDriver,
-} from "./drivers/misc.js";
-
-export { createHostInstallTargets } from "./installTargets.js";
-
-export function createHostDrivers(): readonly RuntimeDriver[] {
-  return [
-    claudeDriver(),
-    codexDriver(),
-    grokDriver(),
-    antigravityDriver(),
-    copilotDriver(),
-    cursorDriver(),
-    geminiDriver(),
-    kimiDriver(),
-    kimiCliDriver(),
-    opencodeDriver(),
-    piDriver(),
-  ];
-}
-
-export type HostDetectMeta = {
+export interface HostDetectMetadata {
   readonly host: string;
   readonly at: string;
   readonly sources: Readonly<Record<string, string>>;
-};
+}
 
-export function hostDetectMeta(): HostDetectMeta {
+/** Explain which live host evidence each runtime definition reads. */
+export function collectHostDetectMetadata(): HostDetectMetadata {
   return {
     host: process.env.RAFT_CURRENT_COMPUTER_HOSTNAME ?? process.env.HOSTNAME ?? "local",
     at: new Date().toISOString(),

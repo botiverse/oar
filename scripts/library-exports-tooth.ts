@@ -23,6 +23,10 @@ const REQUIRED_VALUE_EXPORTS = [
   "detectAllRegistered",
   "createHostDrivers",
   "createHostInstallTargets",
+  "createHostRuntimeDefinitions",
+  "createDriversFromDefinitions",
+  "createInstallTargetsFromDefinitions",
+  "collectHostDetectMetadata",
   "hostDetectMeta",
   "collectUsage",
   "collectUsageAll",
@@ -44,6 +48,7 @@ const REQUIRED_TYPE_EXPORT_MARKERS = [
   "AccountUsageSnapshot",
   "RuntimeDescriptor",
   "RuntimeDriver",
+  "RuntimeDefinition",
   "InstallDescriptor",
   "InstallState",
   "InstallEvidence",
@@ -168,10 +173,18 @@ function assertCliVersionFromPackage(): void {
 function assertInstallParitySource(): void {
   const facade = readFileSync(join(root, "src/discovery/installDetect.ts"), "utf8");
   const policies = readFileSync(join(root, "src/discovery/install/policies.ts"), "utf8");
-  const service = readFileSync(join(root, "src/discovery/install/service.ts"), "utf8");
-  const attempts = readFileSync(join(root, "src/discovery/host/installAttempts.ts"), "utf8");
-  const targets = readFileSync(join(root, "src/discovery/host/installTargets.ts"), "utf8");
-  const assembly = readFileSync(join(root, "src/discovery/host/runtimeDrivers.ts"), "utf8");
+  const service = readFileSync(join(root, "src/discovery/install/detectInstall.ts"), "utf8");
+  const installHelpers = readFileSync(join(root, "src/discovery/host/installProbeHelpers.ts"), "utf8");
+  const claudeInstall = readFileSync(join(root, "src/discovery/host/claudeInstall.ts"), "utf8");
+  const codexInstall = readFileSync(join(root, "src/discovery/host/codexInstall.ts"), "utf8");
+  const kimiCliInstall = readFileSync(join(root, "src/discovery/host/kimiCliInstall.ts"), "utf8");
+  const definition = readFileSync(join(root, "src/runtime/definition.ts"), "utf8");
+  const projections = readFileSync(join(root, "src/runtime/projections.ts"), "utf8");
+  const registry = readFileSync(join(root, "src/runtime/registry.ts"), "utf8");
+  const cursorDefinition = readFileSync(join(root, "src/runtime/definitions/cursor.ts"), "utf8");
+  const antigravityDefinition = readFileSync(join(root, "src/runtime/definitions/antigravity.ts"), "utf8");
+  const claudeDefinition = readFileSync(join(root, "src/runtime/definitions/claude.ts"), "utf8");
+  const codexDefinition = readFileSync(join(root, "src/runtime/definitions/codex.ts"), "utf8");
 
   if (!policies.includes('["agent", "stdio", "--help"]')) {
     bad("Grok stdio probe args", 'must keep ["agent", "stdio", "--help"]');
@@ -188,12 +201,12 @@ function assertInstallParitySource(): void {
   } else {
     ok("OpenCode min 1.14.30");
   }
-  if (!attempts.includes("resolveCommandOnPath")) {
-    bad("Windows resolver wired", "host install attempts must use resolveCommandOnPath");
+  if (!installHelpers.includes("resolveCommandOnPath")) {
+    bad("Windows resolver wired", "host install probe helpers must use resolveCommandOnPath");
   } else {
     ok("Windows resolver wired in host install attempts");
   }
-  if (/\bRuntimeDriver\b/.test(service) || /host\/(?:codexResolve|claudeResolve|windowsResolve)/.test(service)) {
+  if (/\bRuntimeDriver\b/.test(service) || /host\/(?:codex|claude|windows).*Resolution/.test(service)) {
     bad(
       "install service boundary",
       "generic service must depend on InstallTarget, not RuntimeDriver or host resolver implementations",
@@ -201,22 +214,22 @@ function assertInstallParitySource(): void {
   } else {
     ok("install service is host/runtime-driver independent");
   }
-  if (!facade.includes('./install/service.js') || !facade.includes('./install/types.js')) {
+  if (!facade.includes('./install/detectInstall.js') || !facade.includes('./install/contract.js')) {
     bad("install facade", "installDetect.ts must remain a thin contract/service facade");
   } else {
     ok("installDetect is a thin facade");
   }
-  if (!/commandTarget\("cursor", \["cursor-agent"\]\)/.test(targets)) {
+  if (!cursorDefinition.includes('commands: ["cursor-agent"]')) {
     bad("cursor install candidate", "install target must ask cursor-agent, not runtime id");
   } else {
     ok("cursor asks cursor-agent");
   }
-  if (!/commandTarget\("antigravity", \["agy"\]\)/.test(targets)) {
+  if (!antigravityDefinition.includes('commands: ["agy"]')) {
     bad("antigravity install candidate", "must ask agy");
   } else {
     ok("antigravity asks agy");
   }
-  if (!/runtime: "codex", attempts: codexInstallAttempts/.test(targets)) {
+  if (!codexDefinition.includes("codexInstallAttempts")) {
     bad(
       "codex install candidate",
       "createHostInstallTargets must use codexInstallAttempts",
@@ -224,7 +237,7 @@ function assertInstallParitySource(): void {
   } else {
     ok("codex install target uses the real resolver");
   }
-  if (!/runtime: "claude", attempts: claudeInstallAttempts/.test(targets)) {
+  if (!claudeDefinition.includes("claudeInstallAttempts")) {
     bad(
       "claude install candidate",
       "createHostInstallTargets must use claudeInstallAttempts",
@@ -232,24 +245,26 @@ function assertInstallParitySource(): void {
   } else {
     ok("claude install target uses the real resolver");
   }
-  const bareRegression = /commandTarget\(\s*"(codex|claude)"/.exec(targets);
+  const bareRegression = /commands:\s*\["(codex|claude)"\]/.exec(
+    `${codexDefinition}\n${claudeDefinition}`,
+  );
   if (bareRegression) {
     bad(
       "no bare regression for special resolvers",
-      `installTargets.ts must not use a bare command target for ${bareRegression[1]}`,
+      `runtime definition must not use a bare command target for ${bareRegression[1]}`,
     );
   } else {
     ok("no bare target for codex/claude");
   }
-  if (!attempts.includes("resolveCodexBin") || !attempts.includes("resolveClaudeCommand")) {
+  if (!codexInstall.includes("resolveCodexBin") || !claudeInstall.includes("resolveClaudeCommand")) {
     bad(
       "special resolver implementation",
-      "host installAttempts.ts must call both real special resolvers",
+      "named Claude/Codex install modules must call both real special resolvers",
     );
   } else {
-    ok("special resolver implementation is isolated under host/installAttempts");
+    ok("special resolver implementation is isolated in named install modules");
   }
-  if (!attempts.includes('commandAttempts(["kimi"])') || !attempts.includes("kimiCodeHome()")) {
+  if (!kimiCliInstall.includes('commandAttempts(["kimi"])') || !kimiCliInstall.includes("kimiCodeHome()")) {
     bad("kimi-cli install candidates", "must try home-bin + PATH kimi");
   } else {
     ok("kimi-cli asks home-bin + kimi");
@@ -258,8 +273,12 @@ function assertInstallParitySource(): void {
     "antigravity.ts",
     "claude.ts",
     "grok.ts",
-    "kimi.ts",
-    "misc.ts",
+    "codex.ts",
+    "copilot.ts",
+    "cursor.ts",
+    "gemini.ts",
+    "kimiCli.ts",
+    "kimiSdk.ts",
     "opencode.ts",
     "pi.ts",
   ].map((name) => readFileSync(join(root, "src/discovery/host/drivers", name), "utf8"));
@@ -268,10 +287,20 @@ function assertInstallParitySource(): void {
   } else {
     ok("RuntimeDriver implementations contain no installAttempts");
   }
-  if (!assembly.includes("createHostInstallTargets")) {
-    bad("install registry export", "runtimeDrivers.ts must expose createHostInstallTargets");
+  if (!definition.includes('Omit<InstallTarget, "runtime">')) {
+    bad("single runtime identity", "RuntimeDefinition install facet must not carry a second runtime id");
   } else {
-    ok("host exposes a separate install registry");
+    ok("RuntimeDefinition owns one runtime identity");
+  }
+  if (!projections.includes("runtime: definition.id")) {
+    bad("install identity projection", "install target identity must derive from RuntimeDefinition.id");
+  } else {
+    ok("install target identity derives from RuntimeDefinition.id");
+  }
+  if (!registry.includes("createHostRuntimeDefinitions") || !registry.includes("createInstallTargetsFromDefinitions")) {
+    bad("canonical runtime registry", "host views must derive from createHostRuntimeDefinitions()");
+  } else {
+    ok("host views derive from one runtime definition registry");
   }
 }
 
@@ -386,7 +415,7 @@ async function assertBuiltExports(): Promise<void> {
     ok("collectUsage injects localAccountSlot into accountKey");
   }
 
-  // detectAll + createHostDrivers are callable (may be slow if live; use empty drivers)
+  // Unified definitions and both projections are callable.
   const detectAll = mod.detectAll as (drivers: readonly unknown[]) => Promise<readonly unknown[]>;
   const empty = await detectAll([]);
   if (!Array.isArray(empty) || empty.length !== 0) {
@@ -401,6 +430,21 @@ async function assertBuiltExports(): Promise<void> {
     bad("createHostDrivers()", "expected non-empty driver registry");
   } else {
     ok(`createHostDrivers() → ${drivers.length} drivers`);
+  }
+  const createHostRuntimeDefinitions = mod.createHostRuntimeDefinitions as () => readonly { id: string }[];
+  const definitions = createHostRuntimeDefinitions();
+  const createDriversFromDefinitions = mod.createDriversFromDefinitions as (
+    runtimeDefinitions: readonly unknown[],
+  ) => readonly { id: string }[];
+  const createInstallTargetsFromDefinitions = mod.createInstallTargetsFromDefinitions as (
+    runtimeDefinitions: readonly unknown[],
+  ) => readonly { runtime: string }[];
+  const projectedDrivers = createDriversFromDefinitions(definitions);
+  const projectedInstalls = createInstallTargetsFromDefinitions(definitions);
+  if (projectedDrivers.length !== definitions.length || projectedInstalls.length !== definitions.length) {
+    bad("RuntimeDefinition projections", "catalog/session and install projections must preserve registry cardinality");
+  } else {
+    ok(`RuntimeDefinition projections → ${definitions.length} runtimes`);
   }
 }
 

@@ -17,7 +17,7 @@ import {
   type RuntimeTimings,
   MODELS_PROBE_BUDGET_MS,
 } from "./discovery/detect.js";
-import { createHostDrivers } from "./discovery/host/runtimeDrivers.js";
+import { createHostDrivers } from "./runtime/registry.js";
 import { RAFT_DRIVER_REGISTRY } from "./discovery/fixtures/raftRuntimes.js";
 import { describeEvent, type RuntimeEvent } from "./events/event.js";
 import type { BusySession, IdleSession } from "./session/handle.js";

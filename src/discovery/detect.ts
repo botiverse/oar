@@ -7,14 +7,14 @@ export type {
   ProbeTraceEvent,
   RuntimeDescriptor,
   RuntimeTimings,
-} from "./catalog/types.js";
+} from "./catalog/contract.js";
 
 export {
   MODELS_PROBE_BUDGET_MS,
   ModelsProbeError,
-} from "./catalog/types.js";
+} from "./catalog/contract.js";
 
 export {
   detectAll,
   detectAllRegistered,
-} from "./catalog/service.js";
+} from "./catalog/detectCatalog.js";

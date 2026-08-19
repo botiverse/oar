@@ -1,6 +1,8 @@
 # Detect architecture
 
-Detect has two different jobs and therefore two different input contracts.
+Detect has two different jobs and therefore two narrow internal contracts. A
+consumer still adopts one complete `RuntimeDefinition`; the catalog and install
+views are projections of the same canonical registry.
 
 ## Catalog detection
 
@@ -17,19 +19,27 @@ service cannot depend on drive implementation details.
 `InstallTarget` answers “can the host start this runtime contract?” It is
 implemented in four layers:
 
-- `discovery/install/types.ts`: public states, evidence, and target contract;
+- `discovery/install/contract.ts`: states, evidence, and target contract;
 - `discovery/install/attempts.ts`: generic candidate execution;
 - `discovery/install/policies.ts`: compatibility policy such as Grok stdio and
   OpenCode minimum version;
-- `discovery/install/service.ts`: one-row and registered sweeps.
+- `discovery/install/detectInstall.ts`: one-row and registered sweeps.
 
-Host-specific candidates live under `discovery/host/`. Special Claude/Codex
-resolution is isolated in `host/installAttempts.ts`; the production identity
-registry is `host/installTargets.ts`.
+Host-specific candidates live under `discovery/host/`. Claude, Codex, and Kimi
+CLI install candidates each have a named `*Install.ts` module; shared resolver
+adaptation lives in `host/installProbeHelpers.ts`. The production identity
+registry is `runtime/registry.ts`.
 
-`RuntimeDriver` does not carry install candidates. `createHostDrivers()` owns
-catalog/drive assembly; `createHostInstallTargets()` owns install assembly. The
-parity test requires both registries to contain the same runtime identities.
+Each runtime definition has its own file under `runtime/definitions/`. Small
+group modules keep the final registry below the dependency-hub threshold while
+preserving the deliberate presentation order. Adding a runtime therefore has
+one obvious composition file and cannot require editing separate catalog and
+install identity lists.
+
+`RuntimeDriver` does not carry install candidates. `runtime/registry.ts` owns one
+`RuntimeDefinition[]`; `createHostDrivers()` and `createHostInstallTargets()`
+are derived views. Runtime identity therefore has one source rather than two
+hand-maintained registries guarded by an order-sensitive parity assertion.
 
 ## Dependency direction
 

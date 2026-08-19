@@ -7,7 +7,7 @@ import type {
   InstallEvidence,
   InstallProbeContext,
   InstallTarget,
-} from "./types.js";
+} from "./contract.js";
 
 const NONE_EVIDENCE: InstallEvidence = {
   resolution: "none",

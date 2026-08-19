@@ -1,5 +1,5 @@
-import { baseDriver, which, runText, modelsOnly } from "../probe.js";
-import type { RuntimeDriver } from "../../../backend/trait.js";
+import { baseDriver, which, runText, modelsOnly } from "../runtimeProbe.js";
+import type { RuntimeDriver } from "../../../backend/runtimeDriver.js";
 
 /**
  * Parse `opencode models` stdout (one provider/model id per line).

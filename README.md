@@ -54,15 +54,17 @@ In this repo, development still uses **pnpm**: `pnpm oar detect`.
 import {
   detectAll,
   detectInstallRegistered,
-  createHostDrivers,
-  createHostInstallTargets,
+  createHostRuntimeDefinitions,
+  createDriversFromDefinitions,
+  createInstallTargetsFromDefinitions,
   RAFT_DRIVER_REGISTRY,
   collectUsage,
 } from "@botiverse/oar";
 
-const board = await detectAll(createHostDrivers());
+const runtimes = createHostRuntimeDefinitions();
+const board = await detectAll(createDriversFromDefinitions(runtimes));
 const installs = await detectInstallRegistered(
-  createHostInstallTargets(),
+  createInstallTargetsFromDefinitions(runtimes),
   RAFT_DRIVER_REGISTRY,
 );
 const grokUsage = await collectUsage("grok", {
@@ -82,10 +84,11 @@ detect so “no usage surface” cannot look like “0% used”. Host adapters
 must pass `collectorVersion` and should pass a single `observedAtMs` for a
 sweep; standalone CLI defaults to `oar-0.0.0`.
 
-Catalog/drive drivers and install targets are separate contracts.
-`createHostDrivers()` supplies model/catalog detection and runtime driving;
-`createHostInstallTargets()` supplies install candidates and compatibility
-policy. Runtime drivers do not carry hidden `installAttempts` fields.
+`RuntimeDefinition` is the one adoption unit. It owns one runtime identity plus
+its install facet and driver factory. Catalog/drive drivers and install targets
+remain narrow internal contracts for testability, but both views are projected
+from the same adopted definition list; consumers do not reconcile parallel
+registries. Runtime drivers do not carry hidden `installAttempts` fields.
 
 ## Host runtimes
 

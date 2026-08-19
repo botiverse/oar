@@ -3,47 +3,37 @@ import test from "node:test";
 import {
   createHostDrivers,
   createHostInstallTargets,
-} from "./runtimeDrivers.js";
-import { RAFT_DRIVER_REGISTRY } from "../fixtures/raftRuntimes.js";
+  createHostRuntimeDefinitions,
+} from "./registry.js";
+import { RAFT_DRIVER_REGISTRY } from "../discovery/fixtures/raftRuntimes.js";
+import { createDriverFromDefinition } from "./projections.js";
 
 /**
- * Live assembly parity: what `createHostDrivers()` actually builds must be
- * exactly what `RAFT_DRIVER_REGISTRY` enumerates.
+ * Live assembly identity: one RuntimeDefinition is the source from which the
+ * catalog/session and install views are projected.
  *
- * Found by Huaihuai's reviewer mutation on 96d38dd, and it is a hole I left:
- * deleting `kimiCliDriver()` from createHostDrivers() (with its import, so
- * typecheck stays clean) left EVERYTHING green — 97 tests, all three teeth
- * suites, library-exports still reporting a non-zero driver count.
+ * A previous two-registry design needed an order-sensitive parity assertion.
+ * That was the wrong shape: it detected drift after two identity lists had
+ * already diverged. The canonical definition list makes that divergence
+ * unrepresentable; these tests now protect the remaining external registry and
+ * definition/driver identity seams.
  *
- * Nothing bit because every existing check looked at the wrong object:
- *   registry/fixture teeth  assert RAFT_DRIVER_REGISTRY and the fixtures contain
- *                           `kimi-cli` — both are literals, unaffected by the
- *                           assembly
- *   library-exports tooth   asserts the driver count is non-zero, not which
- *   detect matrix teeth     construct their drivers directly, bypassing the
- *                           assembly entirely
- *
- * And the consequence is silent rather than loud: `detectAllRegistered()` emits
- * a row per registryId regardless of whether a driver owns it, so a missing
- * driver does not disappear — it comes back as a confident `not_installed`. A
- * host with the Kimi CLI genuinely installed would be reported as not having
- * it, permanently, with no error anywhere.
- *
- * This is the same defect shape as three earlier ones on this card: an
- * assertion placed on a value derived from the test's own input rather than on
- * the production object. Hence this file asserts on `createHostDrivers()`
- * itself.
+ * Missing a definition still has a silent consequence in
+ * `detectAllRegistered()`: the external registry row becomes a confident
+ * `not_installed`. Therefore external-registry parity remains a real tooth.
  */
 
 test("no driver id is registered twice in the live assembly", () => {
-  const ids = createHostDrivers().map((d) => d.id);
+  const ids = createHostRuntimeDefinitions().map((definition) => definition.id);
   const seen = new Set<string>();
   const dupes: string[] = [];
   for (const id of ids) {
-    if (seen.has(id)) dupes.push(id);
+    if (seen.has(id)) {
+      dupes.push(id);
+    }
     seen.add(id);
   }
-  assert.deepEqual(dupes, [], `duplicate driver ids in createHostDrivers(): ${dupes.join(", ")}`);
+  assert.deepEqual(dupes, [], `duplicate ids in createHostRuntimeDefinitions(): ${dupes.join(", ")}`);
 });
 
 test("live drivers and the detect registry are the same set", () => {
@@ -69,10 +59,23 @@ test("live drivers and the detect registry are the same set", () => {
   );
 });
 
-test("catalog drivers and install targets cover the same runtime identities", () => {
-  const catalogIds = createHostDrivers().map((driver) => driver.id);
-  const installIds = createHostInstallTargets().map((target) => target.runtime);
-  assert.deepEqual(installIds, catalogIds);
+test("catalog and install views are derived from each runtime definition", () => {
+  const definitionIds = new Set(createHostRuntimeDefinitions().map((definition) => definition.id));
+  const catalogIds = new Set(createHostDrivers().map((driver) => driver.id));
+  const installIds = new Set(createHostInstallTargets().map((target) => target.runtime));
+  assert.deepEqual(catalogIds, definitionIds);
+  assert.deepEqual(installIds, definitionIds);
+});
+
+test("a definition cannot construct a driver with another identity", () => {
+  const [first] = createHostRuntimeDefinitions();
+  if (!first) {
+    assert.fail("host runtime registry must not be empty");
+  }
+  assert.throws(
+    () => createDriverFromDefinition({ ...first, id: "identity-mismatch-control" }),
+    /runtime definition identity mismatch/u,
+  );
 });
 
 test("catalog/drive drivers do not carry install implementation fields", () => {

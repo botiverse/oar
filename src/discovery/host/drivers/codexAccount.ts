@@ -17,7 +17,7 @@
  */
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { which } from "../probe.js";
+import { which } from "../runtimeProbe.js";
 import type {
   AccountUsageHealth,
   AccountUsageSnapshot,

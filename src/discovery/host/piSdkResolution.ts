@@ -1,4 +1,4 @@
-import { resolveSdkPackage } from "./sdkResolve.js";
+import { resolveSdkPackage } from "./sdkPackageResolution.js";
 
 export const PI_SDK_CANDIDATES = [
   "@earendil-works/pi-coding-agent",

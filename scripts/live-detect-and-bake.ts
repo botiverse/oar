@@ -10,7 +10,8 @@ import { hostname } from "node:os";
 import { detectAllRegistered } from "../src/discovery/detect.js";
 import { buildFormSchema } from "../src/config/schema.js";
 import { validateConfig, ConfigError } from "../src/config/validate.js";
-import { createHostDrivers, hostDetectMeta } from "../src/discovery/host/runtimeDrivers.js";
+import { createHostDrivers } from "../src/runtime/registry.js";
+import { collectHostDetectMetadata as hostDetectMeta } from "../src/runtime/host-metadata.js";
 import {
   RAFT_DRIVER_REGISTRY,
   RAFT_DEPRECATED_FOR_CREATE,

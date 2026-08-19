@@ -8,8 +8,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileExists } from "../probe.js";
-import { kimiCodeHome } from "../paths.js";
+import { fileExists } from "../runtimeProbe.js";
+import { kimiCodeHome } from "../runtimePaths.js";
 import type {
   AccountUsageHealth,
   AccountUsageSnapshot,
