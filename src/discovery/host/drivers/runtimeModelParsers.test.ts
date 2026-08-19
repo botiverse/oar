@@ -6,7 +6,7 @@ import { parseGrokModelsOutput } from "./grok.js";
 import { parseAgyModelsOutput } from "./antigravity.js";
 import { parseOpencodeModelsOutput } from "./opencode.js";
 import { parseCodexModelsCache } from "./codex.js";
-import { parseKimiCodeConfigToml } from "./kimi.js";
+import { parseKimiCodeConfigToml } from "./kimiCatalog.js";
 import {
   buildClaudeModels,
   defaultClaudeModelIds,

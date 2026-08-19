@@ -14,7 +14,7 @@
  */
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { which } from "../probe.js";
+import { which } from "../runtimeProbe.js";
 import type { AccountUsageHealth, AccountUsageSnapshot, AccountUsageWindow } from "../../accountUsage.js";
 import { ACCOUNT_USAGE_PROTOCOL_VERSION } from "../../accountUsage.js";
 

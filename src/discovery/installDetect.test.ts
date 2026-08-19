@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { RuntimeDriver } from "../backend/trait.js";
-import { emptyDeclaration } from "../backend/trait.js";
+import type { RuntimeDriver } from "../backend/runtimeDriver.js";
+import { emptyDeclaration } from "../backend/runtimeDriver.js";
 import type { ModelInfo } from "../config/model.js";
 import type { RuntimeEvent } from "../events/event.js";
 import {
@@ -73,7 +73,7 @@ function targets(drivers: readonly RuntimeDriver[]): readonly InstallTarget[] {
 
 test("createHostInstallTargets production ids ask real executables, not runtime id", async () => {
   const asked: string[] = [];
-  const { createHostInstallTargets } = await import("./host/runtimeDrivers.js");
+  const { createHostInstallTargets } = await import("../runtime/registry.js");
   const { RAFT_DRIVER_REGISTRY } = await import("./fixtures/raftRuntimes.js");
   const rows = await detectInstallRegistered(createHostInstallTargets(), [...RAFT_DRIVER_REGISTRY], {
     commandResolve: {

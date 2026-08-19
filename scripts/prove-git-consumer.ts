@@ -77,8 +77,9 @@ import { createHash } from "node:crypto";
 import {
   detectAll,
   detectInstallRegistered,
-  createHostDrivers,
-  createHostInstallTargets,
+  createHostRuntimeDefinitions,
+  createDriversFromDefinitions,
+  createInstallTargetsFromDefinitions,
   collectUsage,
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   USAGE_PROVIDERS,
@@ -87,7 +88,8 @@ import {
 } from "@botiverse/oar";
 
 const required = [
-  detectAll, detectInstallRegistered, createHostDrivers, createHostInstallTargets, collectUsage,
+  detectAll, detectInstallRegistered, createHostRuntimeDefinitions,
+  createDriversFromDefinitions, createInstallTargetsFromDefinitions, collectUsage,
   ACCOUNT_USAGE_PROTOCOL_VERSION, USAGE_PROVIDERS,
   STANDALONE_COLLECTOR_VERSION, RAFT_DRIVER_REGISTRY,
 ];
@@ -101,12 +103,13 @@ const install = await detectInstallRegistered([], ["grok"]);
 if (install[0]?.state !== "not_installed") throw new Error("install-only missing driver");
 if (install[0]?.evidence.resolution !== "none") throw new Error("install-only resolution");
 
-const drivers = createHostDrivers();
-if (!Array.isArray(drivers) || drivers.length === 0) throw new Error("createHostDrivers empty");
+const definitions = createHostRuntimeDefinitions();
+if (!Array.isArray(definitions) || definitions.length === 0) throw new Error("runtime definitions empty");
+const drivers = createDriversFromDefinitions(definitions);
 if (!drivers.every((d) => typeof d.id === "string" && typeof d.detect === "function")) {
   throw new Error("driver shape");
 }
-const installTargets = createHostInstallTargets();
+const installTargets = createInstallTargetsFromDefinitions(definitions);
 if (!Array.isArray(installTargets) || installTargets.length !== drivers.length) {
   throw new Error("install target registry shape");
 }

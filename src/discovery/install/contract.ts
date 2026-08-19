@@ -1,5 +1,5 @@
 import type { CommandRunner } from "../cli.js";
-import type { CommandResolveDeps } from "../host/windowsResolve.js";
+import type { CommandResolveDeps } from "../host/windowsCommandResolution.js";
 
 export type InstallState =
   | "available"

@@ -24,12 +24,12 @@ import {
   fileExists,
   modelsToInfo,
   type LiveModel,
-} from "../probe.js";
-import { codexHome } from "../paths.js";
-import { resolveCodexBin } from "../codexResolve.js";
+} from "../runtimeProbe.js";
+import { codexHome } from "../runtimePaths.js";
+import { resolveCodexBin } from "../codexCommandResolution.js";
 import { subprocessDriver, type HandshakeIo, type PromptIo } from "../../../backend/subprocessDriver.js";
 import type { LaunchSpec } from "../../../backend/process/lifecycle.js";
-import type { RuntimeDriver } from "../../../backend/trait.js";
+import type { RuntimeDriver } from "../../../backend/runtimeDriver.js";
 import type { ModelInfo } from "../../../config/model.js";
 import type { RuntimeEvent } from "../../../events/event.js";
 import { Diagnostic } from "../../../events/diagnostic.js";
@@ -608,7 +608,7 @@ export function detectCodexModelsFromAppServer(opts: {
 }
 
 function modelsFromCacheFallback(): readonly ModelInfo[] {
-  // CODEX_HOME-aware (was hard-coded ~/.codex); shared root via host/paths.ts.
+  // CODEX_HOME-aware (was hard-coded ~/.codex); shared root via host/runtimePaths.ts.
   const cache = codexHome("models_cache.json");
   if (!fileExists(cache)) return [];
   try {

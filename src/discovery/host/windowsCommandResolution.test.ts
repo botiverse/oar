@@ -5,7 +5,7 @@ import {
   mergeWindowsEnvironmentScopes,
   mergeWindowsPathSegments,
   resolveCommandOnPath,
-} from "./windowsResolve.js";
+} from "./windowsCommandResolution.js";
 
 test("mergeWindowsPathSegments: base first, then machine, then user; case-insensitive dedupe", () => {
   const merged = mergeWindowsPathSegments([

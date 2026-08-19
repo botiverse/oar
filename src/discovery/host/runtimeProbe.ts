@@ -3,12 +3,12 @@
  * Change reason: version/binary/login heuristics should not live inside any one runtime file.
  * SDK runtimes call their packages in-process; CLI runtimes use binary/cache paths.
  */
-import type { RuntimeDriver } from "../../backend/trait.js";
+import type { RuntimeDriver } from "../../backend/runtimeDriver.js";
 import type { ModelInfo, ProviderInfo } from "../../config/model.js";
 import { subprocessDriver } from "../../backend/subprocessDriver.js";
 import { fileExists, firstLineVersion, home, runText, which } from "../cli.js";
 import { ModelsProbeError } from "../detect.js";
-import { modelsOnly, modelsToInfo, type LiveModel } from "./mapModels.js";
+import { modelsOnly, modelsToInfo, type LiveModel } from "./modelMapping.js";
 
 export type { LiveModel };
 export { ModelsProbeError, modelsOnly, modelsToInfo, fileExists, home, runText, which, firstLineVersion };

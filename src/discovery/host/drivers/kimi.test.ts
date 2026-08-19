@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseKimiCodeConfigToml } from "./kimi.js";
+import { parseKimiCodeConfigToml } from "./kimiCatalog.js";
 
 const SAMPLE = `
 default_model = "kimi-code/k3"

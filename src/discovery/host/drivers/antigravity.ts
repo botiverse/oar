@@ -6,8 +6,8 @@ import {
   looksLikeNeedsLogin,
   ModelsProbeError,
   modelsOnly,
-} from "../probe.js";
-import type { RuntimeDriver } from "../../../backend/trait.js";
+} from "../runtimeProbe.js";
+import type { RuntimeDriver } from "../../../backend/runtimeDriver.js";
 
 /**
  * Parse `agy models` stdout.

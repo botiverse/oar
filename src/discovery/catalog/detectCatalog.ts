@@ -6,7 +6,7 @@ import {
   type ModelsProbeFailure,
   type RuntimeDescriptor,
   type RuntimeTimings,
-} from "./types.js";
+} from "./contract.js";
 import type { ProviderInfo } from "../../config/model.js";
 
 type CatalogResult =

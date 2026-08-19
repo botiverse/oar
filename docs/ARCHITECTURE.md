@@ -8,7 +8,7 @@ types exist and compile under the strict config; `empty` means the directory is
 reserved by a decision and holds nothing yet. A reserved-but-empty directory is
 recorded as empty rather than left to look finished.
 
-## The two cuts that generate the layout
+## The three cuts that generate the layout
 
 **Cut 1 — consumer vs implementor.** `src/index.ts` is the entire consumer
 surface. A consumer sees a session and typed events; never a process, never a
@@ -19,6 +19,25 @@ driver and is deliberately not re-exported.
 `claude / pi / codex`. Let the first leak into the second and you get 13 × 2
 hand-written combinations. So process handling lives once under
 `src/backend/process/`, and drivers hold protocol differences only.
+
+**Cut 3 — adoption root vs feature seam.** A host adopts one
+`RuntimeDefinition` per runtime. Internally, install detection, catalog
+detection, and session driving stay narrow so each can be tested without the
+others. `src/runtime/definitions/` owns the composition; `src/discovery/`
+owns the feature contracts and mechanisms. A feature directory must never grow
+its own hand-maintained runtime identity registry.
+
+## Directory vocabulary
+
+| Directory | The question answered by files inside it |
+| --- | --- |
+| `src/runtime/` | Which complete runtimes does this host expose, and how are feature views projected? |
+| `src/runtime/definitions/` | How does one named runtime compose install + driver behavior? |
+| `src/discovery/catalog/` | Is an installed runtime present, and which models/providers does it expose? |
+| `src/discovery/install/` | Can this host resolve a compatible install without constructing a session? |
+| `src/discovery/host/drivers/` | What protocol/catalog behavior differs for one runtime? |
+| `src/discovery/host/` | Which reusable host probes and command/package resolvers support those runtimes? |
+| `src/backend/` | How are driver declarations executed (process, readiness, shutdown)? |
 
 ## Map
 
@@ -34,11 +53,13 @@ hand-written combinations. So process handling lives once under
 | 4 — Session & transcript | `src/transcript/` | **empty** |
 | 5 — Capability negotiation | — | **not started** (follows ch.7) |
 | 6 — Trust boundary / auth axis | `src/config/auth.ts` | written |
-| 7 — Discovery & provisioning | `src/discovery/` | **empty** |
+| 7 — Discovery contracts and feature logic | `src/discovery/{catalog,install}/` | written |
+| 7 — Host probes, resolvers, and per-runtime drivers | `src/discovery/host/` | written |
 | Config options (the create-agent form's source) | `src/config/options.ts` | written |
 | Process lifecycle (day-1, implementor utility) | `src/backend/process/lifecycle.ts` | written (types only) |
 | Cross-cutting middleware (retry/timeout/tracing) | `src/backend/middleware/` | **empty** |
-| Backend trait (what a driver implements) | `src/backend/trait.ts` | written — incl. Readiness and ShutdownProtocol |
+| Runtime driver contract (what a driver implements) | `src/backend/runtimeDriver.ts` | written — incl. Readiness and ShutdownProtocol |
+| Unified runtime definition + canonical registry | `src/runtime/{definition,registry}.ts` | written — install/catalog/drive views derive from one identity |
 | sea-trial — the conformance suite | `sea-trial/runner.ts` | written |
 | sea-trial cases | `sea-trial/cases/` | **empty** |
 | drydock — the no-daemon runner | `drydock/` | written (script/transcript/RuntimeUnderTest types) |

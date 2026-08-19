@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { resolveCommandOnPath } from "../host/windowsResolve.js";
-import type { InstallCompatibilityPolicy } from "./types.js";
+import { resolveCommandOnPath } from "../host/windowsCommandResolution.js";
+import type { InstallCompatibilityPolicy } from "./contract.js";
 
 export const GROK_STDIO_PROBE_ARGS = ["agent", "stdio", "--help"] as const;
 export const GROK_STDIO_TIMEOUT_MS = 5_000;

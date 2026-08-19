@@ -1,11 +1,11 @@
 import { firstLineVersion, runText } from "../cli.js";
-import { resolveCommandOnPath } from "../host/windowsResolve.js";
+import { resolveCommandOnPath } from "../host/windowsCommandResolution.js";
 import type {
   DetectAttempt,
   InstallAttempt,
   InstallProbeContext,
   InstallTarget,
-} from "./types.js";
+} from "./contract.js";
 
 export function readCommandVersion(
   name: string,

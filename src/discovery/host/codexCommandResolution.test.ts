@@ -6,7 +6,7 @@ import {
   resolveCodexBin,
   clearCodexProbeCacheForTests,
   type CodexResolveDeps,
-} from "./codexResolve.js";
+} from "./codexCommandResolution.js";
 
 // --- pure version ordering ---
 

@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { findOwningPackage, resolveSdkPackage } from "./sdkResolve.js";
+import { findOwningPackage, resolveSdkPackage } from "./sdkPackageResolution.js";
 
 /**
  * Regression teeth for the published-package SDK false-negative that Huaihuai

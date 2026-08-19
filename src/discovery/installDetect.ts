@@ -20,7 +20,7 @@ export type {
   InstallResolution,
   InstallState,
   InstallTarget,
-} from "./install/types.js";
+} from "./install/contract.js";
 
 export {
   commandAttempts,
@@ -41,4 +41,4 @@ export {
 export {
   detectInstallOne,
   detectInstallRegistered,
-} from "./install/service.js";
+} from "./install/detectInstall.js";

@@ -24,11 +24,11 @@
  *
  * Fixture: fixtures/claude-models.sample.txt (ids one per line; same set as default catalog).
  */
-import { runText, firstLineVersion, modelsToInfo } from "../probe.js";
-import { resolveClaudeCommand } from "../claudeResolve.js";
+import { runText, firstLineVersion, modelsToInfo } from "../runtimeProbe.js";
+import { resolveClaudeCommand } from "../claudeCommandResolution.js";
 import { subprocessDriver, type PromptIo } from "../../../backend/subprocessDriver.js";
 import type { LaunchSpec } from "../../../backend/process/lifecycle.js";
-import type { RuntimeDriver } from "../../../backend/trait.js";
+import type { RuntimeDriver } from "../../../backend/runtimeDriver.js";
 import type { ModelInfo } from "../../../config/model.js";
 import type { RuntimeEvent } from "../../../events/event.js";
 import type { TokenUsage, UsageReport } from "../../../events/usage.js";

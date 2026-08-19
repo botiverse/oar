@@ -1,17 +1,9 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { firstLineVersion, runText, which } from "../cli.js";
-import { kimiCodeHome } from "./paths.js";
-import { resolveSdkPackage } from "./sdkResolve.js";
+import { kimiCodeHome } from "./runtimePaths.js";
 
-/** Published, installable SDK identities supported by canonical `kimi`. */
-export const KIMI_SDK_CANDIDATES = ["@botiverse/kimi-code-sdk"] as const;
-
-export function resolveKimiSdkVersion(): string | null {
-  return resolveSdkPackage(KIMI_SDK_CANDIDATES)?.version ?? null;
-}
-
-/** Legacy CLI identity; never falls back to the SDK package. */
+/** Resolve only the legacy CLI identity; never fall back to the SDK package. */
 export function resolveKimiCliVersion(): string | null {
   const homeBinary = join(kimiCodeHome(), "bin", "kimi");
   if (existsSync(homeBinary)) {

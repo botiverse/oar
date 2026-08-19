@@ -22,7 +22,7 @@ import type {
 import type { Capabilities } from "../capability.js";
 import type { ModelInfo, ProviderInfo } from "../config/model.js";
 import type { RuntimeEvent } from "../events/event.js";
-import { emptyDeclaration, type Declaration, type Readiness, type ShutdownProtocol, type RuntimeDriver } from "./trait.js";
+import { emptyDeclaration, type Declaration, type Readiness, type ShutdownProtocol, type RuntimeDriver } from "./runtimeDriver.js";
 import type { LaunchSpec, ProcessHandle, ProcessHost } from "./process/lifecycle.js";
 import { nodeProcessHost } from "./process/nodeHost.js";
 

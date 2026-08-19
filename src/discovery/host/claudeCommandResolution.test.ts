@@ -4,7 +4,7 @@ import {
   resolveClaudeCommand,
   CLAUDE_DESKTOP_CLI_SYSTEM_PATH,
   type ClaudeResolveDeps,
-} from "./claudeResolve.js";
+} from "./claudeCommandResolution.js";
 
 function deps(over: Partial<ClaudeResolveDeps>): ClaudeResolveDeps {
   return {

@@ -15,8 +15,8 @@
  */
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { resolveSdkPackage } from "../sdkResolve.js";
-import { emptyDeclaration, type RuntimeDriver } from "../../../backend/trait.js";
+import { resolveSdkPackage } from "../sdkPackageResolution.js";
+import { emptyDeclaration, type RuntimeDriver } from "../../../backend/runtimeDriver.js";
 import type { IdleSession } from "../../../session/handle.js";
 import type { ModelInfo, ProviderInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
@@ -24,12 +24,12 @@ import {
   PI_SDK_CANDIDATES,
   resolvePiSdkPackageRoot,
   resolvePiSdkVersion,
-} from "../piResolve.js";
+} from "../piSdkResolution.js";
 
 export {
   resolvePiSdkPackageRoot,
   resolvePiSdkVersion,
-} from "../piResolve.js";
+} from "../piSdkResolution.js";
 
 type PiSdkModel = {
   id: string;

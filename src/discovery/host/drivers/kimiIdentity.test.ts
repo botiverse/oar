@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { detectAllRegistered, type RuntimeDescriptor } from "../../detect.js";
 import { model } from "../../../config/model.js";
-import { kimiCliDriver, kimiDriver, type KimiProbes } from "./kimi.js";
+import { kimiCliDriver } from "./kimiCli.js";
+import type { KimiDriverProbes } from "./kimiDriverProbes.js";
+import { kimiDriver } from "./kimiSdk.js";
 
 /**
  * Identity parity for the two Kimi install identities (task #5, P2).
@@ -35,7 +37,7 @@ const CONFIG_MODELS = [model("kimi-code/k3", "K3", [])] as const;
 function probes(opts: {
   sdk: string | null;
   cli: string | null;
-}): Pick<KimiProbes, "sdkVersion" | "cliVersion" | "readModels"> {
+}): Pick<KimiDriverProbes, "sdkVersion" | "cliVersion" | "readModels"> {
   return {
     sdkVersion: () => opts.sdk,
     cliVersion: () => opts.cli,
