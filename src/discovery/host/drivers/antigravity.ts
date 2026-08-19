@@ -8,7 +8,6 @@ import {
   modelsOnly,
 } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
-import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
 
 /**
  * Parse `agy models` stdout.
@@ -53,7 +52,7 @@ export function parseAgyModelsOutput(text: string): Array<{ id: string; label: s
 }
 
 export function antigravityDriver(): RuntimeDriver {
-  return withInstallAttempts(baseDriver("antigravity", {
+  return baseDriver("antigravity", {
     detect: async () => versionVia("agy"),
     models: async () => {
       const path = which("agy");
@@ -75,5 +74,5 @@ export function antigravityDriver(): RuntimeDriver {
       const rows = parseAgyModelsOutput(text);
       return modelsOnly(rows);
     },
-  }), commandInstallAttempts(["agy"]));
+  });
 }

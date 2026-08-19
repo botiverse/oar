@@ -20,16 +20,16 @@ import { emptyDeclaration, type RuntimeDriver } from "../../../backend/trait.js"
 import type { IdleSession } from "../../../session/handle.js";
 import type { ModelInfo, ProviderInfo } from "../../../config/model.js";
 import { model } from "../../../config/model.js";
+import {
+  PI_SDK_CANDIDATES,
+  resolvePiSdkPackageRoot,
+  resolvePiSdkVersion,
+} from "../piResolve.js";
 
-/**
- * Pi SDK candidates as PACKAGE NAMES (not `<pkg>/package.json` subpaths — see
- * sdkResolve.ts). Raft's dependency first, then the supported upstream.
- * Both are declared optional peers by the packaging seat.
- */
-const PI_SDK_CANDIDATES = [
-  "@earendil-works/pi-coding-agent",
-  "@mariozechner/pi-coding-agent",
-] as const;
+export {
+  resolvePiSdkPackageRoot,
+  resolvePiSdkVersion,
+} from "../piResolve.js";
 
 type PiSdkModel = {
   id: string;
@@ -48,33 +48,6 @@ type PiSdkModule = {
     create: (opts?: { allowModelNetwork?: boolean }) => Promise<PiModelRuntime>;
   };
 };
-
-/**
- * Locate the installed pi-coding-agent package. SDK ONLY — no CLI spawn.
- *
- * Two corrections, both the same shape as kimi's (Huaihuai, 2026-08-13):
- *
- * 1. The old code resolved `<pkg>/package.json`, which throws
- *    ERR_PACKAGE_PATH_NOT_EXPORTED on packages whose `exports` map does not
- *    publish that subpath. Pi is one of them — worse, its exports declare only
- *    an `import` condition, so plain `require.resolve(<pkg>)` is blocked too and
- *    ONLY the ESM resolver can see it. Measured: pi reported absent on real
- *    daemon installs. Resolution now goes through the package's main entry.
- *
- * 2. ⛔ The `which("pi")` walk-up is GONE. It found a package root from an
- *    installed CLI binary — a different install identity — so a CLI-only host
- *    reported canonical `pi` as installed. That is precisely the alias this card
- *    removed from kimi, and it matters more here: the Raft adapter synthesises
- *    `builtin` from `pi`, so the false positive propagates into a runtime the
- *    daemon cannot actually drive in-process.
- */
-export function resolvePiSdkPackageRoot(): string | null {
-  return resolveSdkPackage(PI_SDK_CANDIDATES)?.root ?? null;
-}
-
-export function resolvePiSdkVersion(): string | null {
-  return resolveSdkPackage(PI_SDK_CANDIDATES)?.version ?? null;
-}
 
 async function loadPiSdk(): Promise<{ root: string; mod: PiSdkModule } | null> {
   // Prefer the entry the package itself declares. Guessing `dist/index.js` is
@@ -171,7 +144,7 @@ export interface PiProbes {
 
 export function piDriver(probes?: Partial<PiProbes>): RuntimeDriver {
   const sdkVersion = probes?.sdkVersion ?? resolvePiSdkVersion;
-  const driver: RuntimeDriver = {
+  return {
     id: "pi",
     detect: async () => {
       // ⛔ Do not restore `?? "unknown"`. Returning a descriptor for an
@@ -209,12 +182,4 @@ export function piDriver(probes?: Partial<PiProbes>): RuntimeDriver {
       return makePiSession(rt);
     },
   };
-  return Object.assign(driver, {
-    installAttempts: () => [
-      {
-        resolution: "sdk" as const,
-        run: async () => sdkVersion(),
-      },
-    ],
-  });
 }

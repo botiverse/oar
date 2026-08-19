@@ -50,6 +50,7 @@ export {
 export type { JsonSchema, EffectiveSchema, ConfigCheckCode } from "./config/profile.js";
 export type {
   DetectFailure,
+  ModelsProbeFailure,
   RuntimeDescriptor,
   RuntimeTimings,
   DetectCollectOptions,
@@ -64,6 +65,7 @@ export type {
   InstallDiagnostic,
   InstallDescriptor,
   InstallDetectHooks,
+  InstallTarget,
   DetectAttempt,
 } from "./discovery/installDetect.js";
 export {
@@ -88,11 +90,15 @@ export {
   RAFT_DEPRECATED_FOR_CREATE,
 } from "./discovery/fixtures/raftRuntimes.js";
 
-// Host registry: live drivers for detectAll(createHostDrivers()).
-// RuntimeDriver is the detect/models surface the registry returns — not a
-// process handle. Consumers still cannot import backend/* process machinery.
+// Separate host registries: RuntimeDriver for catalog/drive, InstallTarget for
+// install eligibility. See docs/DETECT.md; neither service depends on the
+// other's implementation shape.
 export type { RuntimeDriver } from "./backend/trait.js";
-export { createHostDrivers, hostDetectMeta } from "./discovery/host/runtimeDrivers.js";
+export {
+  createHostDrivers,
+  createHostInstallTargets,
+  hostDetectMeta,
+} from "./discovery/host/runtimeDrivers.js";
 export type { HostDetectMeta } from "./discovery/host/runtimeDrivers.js";
 
 // Account usage (host-facing). Adapters inject collectorVersion + slot + clock;

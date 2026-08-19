@@ -35,47 +35,21 @@ import {
   fileExists,
   modelsToInfo,
   ModelsProbeError,
-  runText,
-  firstLineVersion,
-  which,
   type LiveModel,
 } from "../probe.js";
 import type { RuntimeDriver } from "../../../backend/trait.js";
 import type { ModelInfo } from "../../../config/model.js";
 import { kimiCodeHome } from "../paths.js";
-import { resolveSdkPackage } from "../sdkResolve.js";
-import { commandInstallAttempts, withInstallAttempts } from "../../installDetect.js";
+import {
+  resolveKimiCliVersion,
+  resolveKimiSdkVersion,
+} from "../kimiResolve.js";
 
-/**
- * Kimi SDK candidates as PACKAGE NAMES (not `<pkg>/package.json` subpaths — see
- * sdkResolve.ts for why that subpath is unusable on real installs).
- *
- * Every entry here must be a package that (a) the packaging seat declares as an
- * optional peer, so a published OAR can see it under pnpm's strict layout, and
- * (b) a consumer can actually install, so the claim is provable end to end.
- *
- * ⛔ `@moonshot-ai/kimi-code-sdk` was removed: measured E404 on the npm registry
- * (Huaihuai found it, independently confirmed here). Keeping it would have
- * advertised support that OAR cannot resolve and no consumer tooth could ever
- * exercise — a "supported" candidate that is unfalsifiable is worse than none,
- * because it reads as coverage.
- */
-export const KIMI_SDK_CANDIDATES = ["@botiverse/kimi-code-sdk"] as const;
-
-/**
- * Read the installed Kimi SDK version — never invent a mode string.
- *
- * ⛔ The previous implementation also swept `process.cwd()` and the global
- * node prefix for a matching node_modules path. That is deliberately gone: it
- * made the answer depend on WHERE oar was invoked from, so the same host could
- * report the SDK installed or absent for the same install. Under the identity
- * split that flicker is not a version detail — `kimi` present/absent IS the
- * SDK answer. Visibility is a packaging contract (optional peers), not
- * something a filesystem sweep should paper over.
- */
-export function resolveKimiSdkVersion(): string | null {
-  return resolveSdkPackage(KIMI_SDK_CANDIDATES)?.version ?? null;
-}
+export {
+  KIMI_SDK_CANDIDATES,
+  resolveKimiCliVersion,
+  resolveKimiSdkVersion,
+} from "../kimiResolve.js";
 
 /** Pure parse of kimi-code config.toml — unit-tested without the filesystem. */
 export function parseKimiCodeConfigToml(raw: string): {
@@ -122,29 +96,6 @@ export function parseKimiCodeConfigToml(raw: string): {
 }
 
 /**
- * Read the installed kimi CLI's version — binary presence is the whole signal.
- * `$KIMI_CODE_HOME/bin/kimi` first (the product's own install location), then
- * PATH. Returns null when no binary is found, which is what makes `kimi-cli`
- * absent rather than present-with-unknown-version.
- */
-export function resolveKimiCliVersion(): string | null {
-  const homeBin = join(kimiCodeHome(), "bin", "kimi");
-  if (fileExists(homeBin)) {
-    const r = runText(homeBin, ["--version"], { timeoutMs: 10_000 });
-    const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
-    // Binary exists but prints nothing parseable: still installed. Reporting
-    // "unknown" here is a version gap, NOT an identity claim — absent would be
-    // a lie about presence.
-    return v ?? "unknown";
-  }
-  const path = which("kimi");
-  if (!path) return null;
-  const r = runText(path, ["--version"], { timeoutMs: 10_000 });
-  const v = firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr);
-  return v ?? "unknown";
-}
-
-/**
  * Injectable probes. Production passes nothing; the four-state matrix tests
  * pass fakes so SDK-only / CLI-only / both / neither can be asserted without
  * touching the real PATH, filesystem, or spawning anything.
@@ -188,21 +139,13 @@ function readKimiModels(): readonly LiveModel[] {
 export function kimiDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
   const sdkVersion = probes?.sdkVersion ?? resolveKimiSdkVersion;
   const models = probes?.readModels;
-  const driver = baseDriver("kimi", {
+  return baseDriver("kimi", {
     detect: async () => {
       const version = sdkVersion();
       return version === null ? null : { version };
     },
     models: async () =>
       models ? models() : modelsToInfo("kimi", readKimiModels()),
-  });
-  return Object.assign(driver, {
-    installAttempts: () => [
-      {
-        resolution: "sdk" as const,
-        run: async () => sdkVersion(),
-      },
-    ],
   });
 }
 
@@ -213,24 +156,12 @@ export function kimiDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
 export function kimiCliDriver(probes?: Partial<KimiProbes>): RuntimeDriver {
   const cliVersion = probes?.cliVersion ?? resolveKimiCliVersion;
   const models = probes?.readModels;
-  return withInstallAttempts(baseDriver("kimi-cli", {
+  return baseDriver("kimi-cli", {
     detect: async () => {
       const version = cliVersion();
       return version === null ? null : { version };
     },
     models: async () =>
       models ? models() : modelsToInfo("kimi-cli", readKimiModels()),
-  }), (ctx) => [
-    {
-      resolution: "command" as const,
-      run: async () => {
-        const homeBin = join(kimiCodeHome(), "bin", "kimi");
-        if (!fileExists(homeBin)) return null;
-        if (ctx.readVersion) return ctx.readVersion(homeBin);
-        const r = runText(homeBin, ["--version"], { timeoutMs: 10_000 });
-        return firstLineVersion(r.stdout) ?? firstLineVersion(r.stderr) ?? "unknown";
-      },
-    },
-    ...commandInstallAttempts(["kimi"])(ctx),
-  ]);
+  });
 }

@@ -22,6 +22,7 @@ const REQUIRED_VALUE_EXPORTS = [
   "detectAll",
   "detectAllRegistered",
   "createHostDrivers",
+  "createHostInstallTargets",
   "hostDetectMeta",
   "collectUsage",
   "collectUsageAll",
@@ -165,98 +166,112 @@ function assertCliVersionFromPackage(): void {
 }
 
 function assertInstallParitySource(): void {
-  const src = readFileSync(join(root, "src/discovery/installDetect.ts"), "utf8");
-  if (!src.includes('["agent", "stdio", "--help"]')) {
+  const facade = readFileSync(join(root, "src/discovery/installDetect.ts"), "utf8");
+  const policies = readFileSync(join(root, "src/discovery/install/policies.ts"), "utf8");
+  const service = readFileSync(join(root, "src/discovery/install/service.ts"), "utf8");
+  const attempts = readFileSync(join(root, "src/discovery/host/installAttempts.ts"), "utf8");
+  const targets = readFileSync(join(root, "src/discovery/host/installTargets.ts"), "utf8");
+  const assembly = readFileSync(join(root, "src/discovery/host/runtimeDrivers.ts"), "utf8");
+
+  if (!policies.includes('["agent", "stdio", "--help"]')) {
     bad("Grok stdio probe args", 'must keep ["agent", "stdio", "--help"]');
   } else {
     ok("Grok stdio probe args");
   }
-  if (!src.includes('GROK_STDIO_TIMEOUT_MS = 5_000')) {
+  if (!policies.includes("GROK_STDIO_TIMEOUT_MS = 5_000")) {
     bad("Grok stdio timeout", "must stay 5_000");
   } else {
     ok("Grok stdio timeout 5s");
   }
-  if (!src.includes('MIN_SUPPORTED_OPENCODE_VERSION = "1.14.30"')) {
+  if (!policies.includes('MIN_SUPPORTED_OPENCODE_VERSION = "1.14.30"')) {
     bad("OpenCode min version", 'must stay "1.14.30"');
   } else {
     ok("OpenCode min 1.14.30");
   }
-  if (!/from ["']\.\/host\/windowsResolve\.js["']/.test(src) || !src.includes("resolveCommandOnPath")) {
-    bad("Windows resolver wired", "installDetect default path must import resolveCommandOnPath");
+  if (!attempts.includes("resolveCommandOnPath")) {
+    bad("Windows resolver wired", "host install attempts must use resolveCommandOnPath");
   } else {
-    ok("Windows resolver imported by installDetect");
+    ok("Windows resolver wired in host install attempts");
   }
-  if (/from ["']\.\/cli\.js["']/.test(src) && /which/.test(src.match(/from ["']\.\/cli\.js["']/)?.[0] ?? "")) {
-    bad("old which import", "default install path must not import which from cli.js");
-  }
-  if (/\bimport\s*\{[^}]*\bwhich\b[^}]*\}\s*from\s*["']\.\/cli\.js["']/.test(src)) {
-    bad("old which import", "default install path must not import which from cli.js");
+  if (/\bRuntimeDriver\b/.test(service) || /host\/(?:codexResolve|claudeResolve|windowsResolve)/.test(service)) {
+    bad(
+      "install service boundary",
+      "generic service must depend on InstallTarget, not RuntimeDriver or host resolver implementations",
+    );
   } else {
-    ok("installDetect does not import which");
+    ok("install service is host/runtime-driver independent");
   }
-  if (/probeErrorObserved:\s*false\s*,\s*\n\s*resolution:/.test(src) && src.includes("driver.detect().then")) {
-    bad("unconditional false evidence", "must not map successful detect() to probeErrorObserved:false");
+  if (!facade.includes('./install/service.js') || !facade.includes('./install/types.js')) {
+    bad("install facade", "installDetect.ts must remain a thin contract/service facade");
   } else {
-    ok("no unconditional probeErrorObserved:false on detect()");
+    ok("installDetect is a thin facade");
   }
-  const misc = readFileSync(join(root, "src/discovery/host/drivers/misc.ts"), "utf8");
-  if (!/commandInstallAttempts\(\["cursor-agent"\]\)/.test(misc)) {
-    bad("cursor install candidate", 'cursorDriver must ask cursor-agent, not driver.id');
+  if (!/commandTarget\("cursor", \["cursor-agent"\]\)/.test(targets)) {
+    bad("cursor install candidate", "install target must ask cursor-agent, not runtime id");
   } else {
     ok("cursor asks cursor-agent");
   }
-  const agy = readFileSync(join(root, "src/discovery/host/drivers/antigravity.ts"), "utf8");
-  if (!/commandInstallAttempts\(\["agy"\]\)/.test(agy)) {
+  if (!/commandTarget\("antigravity", \["agy"\]\)/.test(targets)) {
     bad("antigravity install candidate", "must ask agy");
   } else {
     ok("antigravity asks agy");
   }
-  const assembly = readFileSync(join(root, "src/discovery/host/runtimeDrivers.ts"), "utf8");
-  // Codex and Claude are install-detected through their REAL special resolvers, attached at the
-  // assembly. Two positive checks that the wiring exists, and two NEGATIVE checks — without those,
-  // swapping one function name for another would still allow a silent regression to the bare path
-  // or a leak of resolver internals into the assembly.
-  if (!/withInstallAttempts\(\s*codexDriver\(\)\s*,\s*codexInstallAttempts/.test(assembly)) {
+  if (!/runtime: "codex", attempts: codexInstallAttempts/.test(targets)) {
     bad(
       "codex install candidate",
-      'createHostDrivers must attach codexInstallAttempts (the real resolveCodexBin path: authoritative CODEX_BIN, app-server gate, desktop bundle)',
+      "createHostInstallTargets must use codexInstallAttempts",
     );
   } else {
-    ok("codex attempts attached at assembly via the real resolver");
+    ok("codex install target uses the real resolver");
   }
-  if (!/withInstallAttempts\(\s*claudeDriver\(\)\s*,\s*claudeInstallAttempts/.test(assembly)) {
+  if (!/runtime: "claude", attempts: claudeInstallAttempts/.test(targets)) {
     bad(
       "claude install candidate",
-      "createHostDrivers must attach claudeInstallAttempts (the real resolveClaudeCommand path: PATH then darwin desktop bundle)",
+      "createHostInstallTargets must use claudeInstallAttempts",
     );
   } else {
-    ok("claude attempts attached at assembly via the real resolver");
+    ok("claude install target uses the real resolver");
   }
-  const bareRegression = /commandInstallAttempts\(\s*\[\s*"(codex|claude)"\s*\]/.exec(assembly);
+  const bareRegression = /commandTarget\(\s*"(codex|claude)"/.exec(targets);
   if (bareRegression) {
     bad(
       "no bare regression for special resolvers",
-      `runtimeDrivers.ts must not attach bare commandInstallAttempts(["${bareRegression[1]}"]) — that bypasses the special resolver, so a desktop-only install and an authoritative CODEX_BIN become undetectable`,
+      `installTargets.ts must not use a bare command target for ${bareRegression[1]}`,
     );
   } else {
-    ok("no bare commandInstallAttempts for codex/claude at assembly");
+    ok("no bare target for codex/claude");
   }
-  const internalLeak = /from\s+"\.\/(codexResolve|claudeResolve|windowsResolve)\.js"|from\s+"\.\/host\/(codexResolve|claudeResolve)\.js"/.exec(
-    assembly,
-  );
-  if (internalLeak) {
+  if (!attempts.includes("resolveCodexBin") || !attempts.includes("resolveClaudeCommand")) {
     bad(
-      "assembly does not import special-resolver internals",
-      `runtimeDrivers.ts must reach the resolvers only through the public installDetect helpers, not by importing ${internalLeak[0]}`,
+      "special resolver implementation",
+      "host installAttempts.ts must call both real special resolvers",
     );
   } else {
-    ok("assembly imports no special-resolver internals");
+    ok("special resolver implementation is isolated under host/installAttempts");
   }
-  const kimi = readFileSync(join(root, "src/discovery/host/drivers/kimi.ts"), "utf8");
-  if (!/commandInstallAttempts\(\["kimi"\]\)/.test(kimi) || !/kimiCodeHome\(\)/.test(kimi)) {
+  if (!attempts.includes('commandAttempts(["kimi"])') || !attempts.includes("kimiCodeHome()")) {
     bad("kimi-cli install candidates", "must try home-bin + PATH kimi");
   } else {
     ok("kimi-cli asks home-bin + kimi");
+  }
+  const driverSources = [
+    "antigravity.ts",
+    "claude.ts",
+    "grok.ts",
+    "kimi.ts",
+    "misc.ts",
+    "opencode.ts",
+    "pi.ts",
+  ].map((name) => readFileSync(join(root, "src/discovery/host/drivers", name), "utf8"));
+  if (driverSources.some((source) => source.includes("installAttempts"))) {
+    bad("driver/install separation", "RuntimeDriver implementations must not carry installAttempts");
+  } else {
+    ok("RuntimeDriver implementations contain no installAttempts");
+  }
+  if (!assembly.includes("createHostInstallTargets")) {
+    bad("install registry export", "runtimeDrivers.ts must expose createHostInstallTargets");
+  } else {
+    ok("host exposes a separate install registry");
   }
 }
 

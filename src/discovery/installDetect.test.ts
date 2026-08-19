@@ -6,11 +6,18 @@ import type { ModelInfo } from "../config/model.js";
 import type { RuntimeEvent } from "../events/event.js";
 import {
   detectInstallRegistered,
+  commandAttempts,
   isSupportedOpenCodeVersion,
   MIN_SUPPORTED_OPENCODE_VERSION,
+  sdkAttempts,
   type DetectAttempt,
   type InstallDetectHooks,
+  type InstallTarget,
 } from "./installDetect.js";
+import {
+  grokCompatibility,
+  opencodeCompatibility,
+} from "./install/policies.js";
 
 /** Keep default command candidate from seeing the host PATH. */
 const isolatePath = {
@@ -41,11 +48,34 @@ function stub(
   };
 }
 
-test("createHostDrivers production ids ask real executables, not driver.id", async () => {
+function target(driver: RuntimeDriver): InstallTarget {
+  const base: InstallTarget = {
+    runtime: driver.id,
+    attempts: (context) => [
+      ...commandAttempts([driver.id])(context),
+      {
+        resolution: "command",
+        run: async () => {
+          const detected = await driver.detect();
+          return detected?.version ?? null;
+        },
+      },
+    ],
+  };
+  if (driver.id === "grok") return { ...base, compatibility: grokCompatibility };
+  if (driver.id === "opencode") return { ...base, compatibility: opencodeCompatibility };
+  return base;
+}
+
+function targets(drivers: readonly RuntimeDriver[]): readonly InstallTarget[] {
+  return drivers.map(target);
+}
+
+test("createHostInstallTargets production ids ask real executables, not runtime id", async () => {
   const asked: string[] = [];
-  const { createHostDrivers } = await import("./host/runtimeDrivers.js");
+  const { createHostInstallTargets } = await import("./host/runtimeDrivers.js");
   const { RAFT_DRIVER_REGISTRY } = await import("./fixtures/raftRuntimes.js");
-  const rows = await detectInstallRegistered(createHostDrivers(), [...RAFT_DRIVER_REGISTRY], {
+  const rows = await detectInstallRegistered(createHostInstallTargets(), [...RAFT_DRIVER_REGISTRY], {
     commandResolve: {
       platform: "win32",
       env: {},
@@ -104,7 +134,7 @@ test("install-only never calls models/providers", async () => {
       return [];
     },
   };
-  const rows = await detectInstallRegistered([d], ["claude"], isolatePath);
+  const rows = await detectInstallRegistered(targets([d]), ["claude"], isolatePath);
   assert.equal(rows[0]!.state, "available");
   assert.equal(modelsCalls, 0);
   assert.equal(providersCalls, 0);
@@ -112,7 +142,7 @@ test("install-only never calls models/providers", async () => {
 
 test("Grok version ok + stdio fail => incompatible, version kept, resolution=command", async () => {
   const grok = stub("grok", async () => ({ version: "1.0.3" }));
-  const rows = await detectInstallRegistered([grok], ["grok"], {
+  const rows = await detectInstallRegistered(targets([grok]), ["grok"], {
     grokStdioHelp: async () => false,
     ...isolatePath,
   });
@@ -124,7 +154,7 @@ test("Grok version ok + stdio fail => incompatible, version kept, resolution=com
 
 test("Grok version ok + stdio ok => available", async () => {
   const grok = stub("grok", async () => ({ version: "1.0.3" }));
-  const rows = await detectInstallRegistered([grok], ["grok"], {
+  const rows = await detectInstallRegistered(targets([grok]), ["grok"], {
     grokStdioHelp: async () => true,
     ...isolatePath,
   });
@@ -135,8 +165,8 @@ test("Grok version ok + stdio ok => available", async () => {
 test("OpenCode 1.14.29 => incompatible; 1.14.30 => available", async () => {
   const old = stub("opencode", async () => ({ version: "1.14.29" }));
   const neu = stub("opencode", async () => ({ version: "1.14.30" }));
-  const a = await detectInstallRegistered([old], ["opencode"], isolatePath);
-  const b = await detectInstallRegistered([neu], ["opencode"], isolatePath);
+  const a = await detectInstallRegistered(targets([old]), ["opencode"], isolatePath);
+  const b = await detectInstallRegistered(targets([neu]), ["opencode"], isolatePath);
   assert.equal(a[0]!.state, "incompatible");
   assert.equal(a[0]!.reason, "incompatible_version");
   assert.equal(a[0]!.version, "1.14.29");
@@ -148,7 +178,7 @@ test("single driver throw => detect_failed; sweep still complete", async () => {
     throw new Error("boom");
   });
   const good = stub("codex", async () => ({ version: "0.1.0" }));
-  const rows = await detectInstallRegistered([bad, good], ["claude", "codex"], isolatePath);
+  const rows = await detectInstallRegistered(targets([bad, good]), ["claude", "codex"], isolatePath);
   assert.equal(rows.length, 2);
   assert.equal(rows[0]!.runtime, "claude");
   assert.equal(rows[0]!.state, "detect_failed");
@@ -166,19 +196,19 @@ test("candidate throw then success => available + probeErrorObserved=true", asyn
     grokStdioHelp: async () => true,
     ...isolatePath,
   };
-  const rows = await detectInstallRegistered([grok], ["grok"], hooks);
+  const rows = await detectInstallRegistered(targets([grok]), ["grok"], hooks);
   assert.equal(rows[0]!.state, "available");
   assert.equal(rows[0]!.evidence.probeErrorObserved, true);
   assert.equal(rows[0]!.evidence.resolution, "command");
 });
 
 test("SDK-only runtime reports resolution=sdk", async () => {
-  const pi = Object.assign(stub("pi", async () => ({ version: "0.84.1" })), {
-    installAttempts: () => [
-      { resolution: "sdk" as const, run: async () => "0.84.1" },
-    ],
-  });
-  const rows = await detectInstallRegistered([pi], ["pi"], isolatePath);
+  const pi = stub("pi", async () => ({ version: "0.84.1" }));
+  const rows = await detectInstallRegistered(
+    [{ ...target(pi), attempts: () => sdkAttempts(() => "0.84.1") }],
+    ["pi"],
+    isolatePath,
+  );
   assert.equal(rows[0]!.evidence.resolution, "sdk");
   assert.equal(rows[0]!.state, "available");
 });
@@ -191,12 +221,12 @@ test("missing driver is not_installed resolution=none", async () => {
 
 test("mutation: disable Grok stdio gate => version-only false positive (tooth expects this RED in dedicated check)", async () => {
   const grok = stub("grok", async () => ({ version: "1.0.3" }));
-  const gated = await detectInstallRegistered([grok], ["grok"], {
+  const gated = await detectInstallRegistered(targets([grok]), ["grok"], {
     grokStdioHelp: async () => false,
     grokStdioGate: true,
     ...isolatePath,
   });
-  const ungated = await detectInstallRegistered([grok], ["grok"], {
+  const ungated = await detectInstallRegistered(targets([grok]), ["grok"], {
     grokStdioHelp: async () => false,
     grokStdioGate: false,
     ...isolatePath,
@@ -207,13 +237,13 @@ test("mutation: disable Grok stdio gate => version-only false positive (tooth ex
 
 test("production default: command candidate throw then driver.detect wins => probeErrorObserved", async () => {
   const driver = stub("claude", async () => ({ version: "2.0.0" }));
-  const rows = await detectInstallRegistered([driver], ["claude"], {
+  const rows = await detectInstallRegistered(targets([driver]), ["claude"], {
     commandResolve: {
       platform: "win32",
       env: {},
       execFileSyncFn: (() => {
         throw new Error("Get-Command failed");
-      }) as never,
+      }),
       windowsEnvironmentReaderFn: () => ({ machine: { Path: "C:\\M" }, user: { Path: "C:\\U" } }),
     },
   });
@@ -225,13 +255,13 @@ test("production default: command candidate throw then driver.detect wins => pro
 
 test("production default: Windows refresh fail is bounded diagnostic on the row", async () => {
   const driver = stub("claude", async () => ({ version: "2.0.0" }));
-  const rows = await detectInstallRegistered([driver], ["claude"], {
+  const rows = await detectInstallRegistered(targets([driver]), ["claude"], {
     commandResolve: {
       platform: "win32",
       env: { Path: "C:\\Base" },
       execFileSyncFn: (() => {
         throw new Error("secret path C:\\hidden token=xyz");
-      }) as never,
+      }),
       windowsEnvironmentReaderFn: () => null,
     },
   });
@@ -243,7 +273,7 @@ test("production default: Windows refresh fail is bounded diagnostic on the row"
 
 test("production default: Get-Command .ps1 prefers sibling .cmd as winning command", async () => {
   const driver = stub("claude", async () => ({ version: "should-not-win" }));
-  const rows = await detectInstallRegistered([driver], ["claude"], {
+  const rows = await detectInstallRegistered(targets([driver]), ["claude"], {
     commandResolve: {
       platform: "win32",
       env: {},
@@ -261,8 +291,8 @@ test("production default: Get-Command .ps1 prefers sibling .cmd as winning comma
 
 test("mutation: disable OpenCode min => old version looks available", async () => {
   const old = stub("opencode", async () => ({ version: "1.14.29" }));
-  const gated = await detectInstallRegistered([old], ["opencode"], isolatePath);
-  const ungated = await detectInstallRegistered([old], ["opencode"], {
+  const gated = await detectInstallRegistered(targets([old]), ["opencode"], isolatePath);
+  const ungated = await detectInstallRegistered(targets([old]), ["opencode"], {
     opencodeMinVersion: null,
     ...isolatePath,
   });
