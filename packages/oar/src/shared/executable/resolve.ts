@@ -28,7 +28,9 @@ function resolveWindows(
     const resolved = firstLine(execFile(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-Command", script, executable],
-      { env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1000 },
+      // Cold powershell startup on CI runners routinely exceeds 1s; keep this
+      // generous — resolution is rare and cached by callers, not hot-path.
+      { env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15_000 },
     ));
     if (resolved === null || !resolved.toLowerCase().endsWith(".ps1")) {
       return resolved;
