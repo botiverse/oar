@@ -72,6 +72,7 @@
   "overrides": [
     {
       "files": [
+        "packages/oar/src/installation.ts",
         "packages/oar/src/runtimes/**",
         "packages/oar/src/shared/**",
         "packages/cli/src/**",

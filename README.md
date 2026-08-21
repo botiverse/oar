@@ -16,10 +16,7 @@ import { runtimes } from "@botiverse/oar";
 
 const codex = runtimes.require("codex");
 const installation = await codex.installation?.probe();
-const usage = await codex.accountUsage?.read({
-  collectorVersion: "my-host-1.0.0",
-  localAccountSlot: "local",
-});
+const usage = await codex.accountUsage?.read();
 ```
 
 The source ownership model is documented in [`packages/oar/src/AGENTS.md`](packages/oar/src/AGENTS.md):

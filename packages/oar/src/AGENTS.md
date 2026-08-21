@@ -4,6 +4,7 @@
 src/
   index.ts                 # public exports + built-in composition
   registry.ts              # runtime collection and lookup
+  installation.ts          # shared executable installation probe
   contracts/               # provider-independent agreements
   runtimes/<id>/           # one runtime, split by capability
   shared/                  # policy-free reusable mechanisms
@@ -13,6 +14,7 @@ src/
 flowchart TB
   Entry[index.ts<br/>only built-in composition root]
   Registry[registry.ts<br/>imports contracts only]
+  Installation[installation.ts<br/>shared executable probe policy]
   Contracts[contracts/*<br/>what every implementation promises]
   Runtimes[runtimes/*<br/>runtime-specific policy + native handling]
   Shared[shared/*<br/>no runtime identity or OAR domain policy]
@@ -22,7 +24,10 @@ flowchart TB
   Entry --> Contracts
   Entry --> Runtimes
   Registry --> Contracts
+  Installation --> Contracts
+  Installation --> Shared
   Runtimes --> Contracts
+  Runtimes --> Installation
   Runtimes --> Shared
   Runtimes --> Native
 

@@ -1,12 +1,11 @@
 import { defineRuntime } from "../../contracts/runtime.js";
-import { createClaudeAccountUsage } from "./account-usage.js";
-import { createClaudeInstallation } from "./installation.js";
+import { claudeAccountUsage } from "./account-usage.js";
+import { claudeInstallation } from "./installation.js";
 
 export const claudeRuntime = defineRuntime({
   id: "claude",
-  installation: createClaudeInstallation(),
-  accountUsage: createClaudeAccountUsage(),
+  installation: claudeInstallation,
+  accountUsage: claudeAccountUsage,
 });
 
-export { createClaudeAccountUsage, projectClaudeUsage } from "./account-usage.js";
-export { createClaudeInstallation } from "./installation.js";
+export { claudeAccountUsage } from "./account-usage.js";

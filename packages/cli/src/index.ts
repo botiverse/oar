@@ -40,11 +40,10 @@ program
   .description("Read account usage independently from installation detection")
   .action(async (id: string | undefined) => {
     const result = await Promise.all(selected(id).map(async (runtime) => {
-      if (runtime.accountUsage === undefined) {
-        return { runtime: runtime.id, health: "unsupported" };
-      }
-      const usage = await runtime.accountUsage.read();
-      return usage;
+      const accountUsage = runtime.accountUsage === undefined
+        ? { kind: "unsupported" as const }
+        : await runtime.accountUsage.read();
+      return { runtimeId: runtime.id, accountUsage };
     }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });

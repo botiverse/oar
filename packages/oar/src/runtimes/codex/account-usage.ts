@@ -1,19 +1,10 @@
 import { spawn } from "node:child_process";
-import {
-  ACCOUNT_USAGE_PROTOCOL_VERSION,
-  unsupportedAccountUsage,
-  type AccountUsage,
-  type AccountUsageHealth,
-  type AccountUsageReadOptions,
-  type AccountUsageSnapshot,
-  type AccountUsageWindow,
+import type {
+  AccountUsage,
+  AccountUsageSnapshot,
+  AccountUsageWindow,
 } from "../../contracts/account-usage.js";
 import { resolveExecutable } from "../../shared/executable/index.js";
-import { sha256Hex } from "../../shared/hash.js";
-
-function accountKey(localAccountSlot: string): string {
-  return sha256Hex(`codex\0${localAccountSlot}`);
-}
 
 type ReadOutcome =
   | { readonly kind: "ok"; readonly result: unknown }
@@ -56,41 +47,44 @@ function windowLabel(value: unknown): string {
     return "Usage limit";
   }
   if (minutes % (7 * 24 * 60) === 0) {
-    return `${minutes / (7 * 24 * 60)} weeks`;
+    const weeks = minutes / (7 * 24 * 60);
+    return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
   }
   if (minutes % (24 * 60) === 0) {
-    return `${minutes / (24 * 60)} days`;
+    const days = minutes / (24 * 60);
+    return `${days} ${days === 1 ? "day" : "days"}`;
   }
   if (minutes % 60 === 0) {
-    return `${minutes / 60} hours`;
+    const hours = minutes / 60;
+    return `${hours} ${hours === 1 ? "hour" : "hours"}`;
   }
   return `${minutes} minutes`;
 }
 
-function statusSnapshot(
-  health: Extract<AccountUsageHealth, "reauth_required" | "unsupported" | "error">,
-  options: Required<Pick<AccountUsageReadOptions, "collectorVersion" | "localAccountSlot" | "observedAtMs">>,
-): AccountUsageSnapshot {
-  return {
-    protocolVersion: ACCOUNT_USAGE_PROTOCOL_VERSION,
-    runtime: "codex",
-    collectedAt: new Date(options.observedAtMs).toISOString(),
-    staleAfter: new Date(options.observedAtMs + 5 * 60_000).toISOString(),
-    acquisition: "structured_endpoint",
-    scope: "account_global",
-    collectorVersion: options.collectorVersion,
-    accounts: [{
-      accountKey: accountKey(options.localAccountSlot),
-      health,
-      windows: [],
-    }],
-  };
-}
-
-export function projectCodexUsage(
-  result: unknown,
-  options: Required<Pick<AccountUsageReadOptions, "collectorVersion" | "localAccountSlot" | "observedAtMs">>,
-): AccountUsageSnapshot {
+/**
+ * Native evidence comes from `codex app-server --listen stdio://`, followed by
+ * `initialize` and `account/rateLimits/read`. A representative response is:
+ *
+ * ```json
+ * {
+ *   "rateLimits": {
+ *     "primary": { "usedPercent": 50, "windowDurationMins": 10080, "resetsAt": 1787820410 },
+ *     "secondary": null,
+ *     "planType": "pro",
+ *     "rateLimitReachedType": null
+ *   },
+ *   "rateLimitsByLimitId": {
+ *     "codex_bengalfox": {
+ *       "limitName": "GPT-5.3-Codex-Spark",
+ *       "primary": { "usedPercent": 0, "windowDurationMins": 300, "resetsAt": 1787322278 },
+ *       "secondary": { "usedPercent": 0, "windowDurationMins": 10080, "resetsAt": 1787909078 },
+ *       "planType": "pro"
+ *     }
+ *   }
+ * }
+ * ```
+ */
+export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
   const root = record(result);
   const historical = record(root?.rateLimits);
   const indexed = record(root?.rateLimitsByLimitId);
@@ -98,59 +92,44 @@ export function projectCodexUsage(
     ? Object.values(indexed).map((value) => record(value))
     : [historical];
   const windows: AccountUsageWindow[] = [];
-  let health: AccountUsageHealth = "ok";
-  let planLabel: string | undefined = undefined;
-  let index = 0;
+  let rateLimited = false;
+  let plan: string | undefined = undefined;
+
   for (const bucket of buckets) {
     if (bucket === null) {
       continue;
     }
-    planLabel ??= text(bucket.planType);
-    if (bucket.rateLimitReachedType !== null && bucket.rateLimitReachedType !== undefined) {
-      health = "rate_limited";
-    }
+    plan ??= text(bucket.planType);
+    rateLimited ||= bucket.rateLimitReachedType !== null
+      && bucket.rateLimitReachedType !== undefined;
+
     for (const kind of ["primary", "secondary"] as const) {
       const candidate = record(bucket[kind]);
       if (candidate === null) {
         continue;
       }
       const usedPercent = number(candidate.usedPercent);
-      const resetsAt = resetInstant(candidate.resetsAt);
-      const complete = usedPercent !== null && usedPercent >= 0 && usedPercent <= 100
-        && resetsAt !== undefined;
-      if (complete && usedPercent >= 100) {
-        health = "rate_limited";
+      if (usedPercent === null || usedPercent < 0 || usedPercent > 100) {
+        continue;
       }
+      const resetsAt = resetInstant(candidate.resetsAt);
       windows.push({
-        id: `${kind}_${String(index)}`,
         label: windowLabel(candidate.windowDurationMins),
-        status: complete ? (usedPercent >= 100 ? "limit_reached" : "ok") : "parse_unavailable",
-        ...(complete ? { usedRatio: Number((usedPercent / 100).toFixed(6)), resetsAt } : {}),
+        usedRatio: Number((usedPercent / 100).toFixed(6)),
+        ...(resetsAt === undefined ? {} : { resetsAt }),
       });
-      index += 1;
+      rateLimited ||= usedPercent >= 100;
     }
   }
+
   if (windows.length === 0) {
-    health = "error";
-    windows.push({ id: "usage_unavailable", label: "Usage limit", status: "parse_unavailable" });
+    throw new Error("Codex returned no usable account usage windows");
   }
   return {
-    protocolVersion: ACCOUNT_USAGE_PROTOCOL_VERSION,
-    runtime: "codex",
-    collectedAt: new Date(options.observedAtMs).toISOString(),
-    staleAfter: new Date(options.observedAtMs + 30 * 60_000).toISOString(),
-    acquisition: "structured_endpoint",
-    scope: "account_global",
-    collectorVersion: options.collectorVersion,
-    accounts: [{
-      accountKey: accountKey(options.localAccountSlot),
-      ...(planLabel === undefined ? {} : { planLabel }),
-      health,
-      ...(windows.some((window) => window.status === "parse_unavailable")
-        ? { parseErrorCode: "codex_rate_limit_window_incomplete" }
-        : {}),
-      windows,
-    }],
+    kind: "available",
+    ...(plan === undefined ? {} : { plan }),
+    rateLimited,
+    windows,
   };
 }
 
@@ -228,35 +207,22 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
   return result;
 }
 
-export function createCodexAccountUsage(): AccountUsage {
-  return {
-    async read(input = {}): Promise<AccountUsageSnapshot> {
-      const options = {
-        collectorVersion: input.collectorVersion ?? "oar-0.0.0",
-        localAccountSlot: input.localAccountSlot ?? "local",
-        observedAtMs: input.observedAtMs ?? Date.now(),
-      };
-      const command = resolveExecutable("codex");
-      if (command === null) {
-        return unsupportedAccountUsage({
-          runtime: "codex",
-          collectorVersion: options.collectorVersion,
-          observedAtMs: options.observedAtMs,
-          accountKey: accountKey(options.localAccountSlot),
-          sourceVersion: "codex executable not found",
-        });
-      }
-      const outcome = await readFromAppServer(command, input.timeoutMs ?? 8000);
-      if (outcome.kind === "ok") {
-        return projectCodexUsage(outcome.result, options);
-      }
-      if (outcome.kind === "reauth_required") {
-        return statusSnapshot("reauth_required", options);
-      }
-      if (outcome.kind === "unsupported") {
-        return statusSnapshot("unsupported", options);
-      }
-      return statusSnapshot("error", options);
-    },
-  };
-}
+export const codexAccountUsage: AccountUsage = {
+  async read(options = {}): Promise<AccountUsageSnapshot> {
+    const command = resolveExecutable("codex");
+    if (command === null) {
+      return { kind: "unsupported" };
+    }
+    const outcome = await readFromAppServer(command, options.timeoutMs ?? 8000);
+    if (outcome.kind === "ok") {
+      return projectCodexUsage(outcome.result);
+    }
+    if (outcome.kind === "reauth_required") {
+      return { kind: "reauth_required" };
+    }
+    if (outcome.kind === "unsupported") {
+      return { kind: "unsupported" };
+    }
+    throw new Error("Failed to read Codex account usage");
+  },
+};

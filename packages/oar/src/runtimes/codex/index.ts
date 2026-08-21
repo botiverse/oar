@@ -1,12 +1,11 @@
 import { defineRuntime } from "../../contracts/runtime.js";
-import { createCodexAccountUsage } from "./account-usage.js";
-import { createCodexInstallation } from "./installation.js";
+import { codexAccountUsage } from "./account-usage.js";
+import { codexInstallation } from "./installation.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
-  installation: createCodexInstallation(),
-  accountUsage: createCodexAccountUsage(),
+  installation: codexInstallation,
+  accountUsage: codexAccountUsage,
 });
 
-export { createCodexAccountUsage, projectCodexUsage } from "./account-usage.js";
-export { createCodexInstallation } from "./installation.js";
+export { codexAccountUsage, projectCodexUsage } from "./account-usage.js";
