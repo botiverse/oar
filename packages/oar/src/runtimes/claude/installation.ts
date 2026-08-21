@@ -1,6 +1,5 @@
 import type { Installation, InstallationSnapshot } from "../../contracts/installation.js";
-import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
-import type { ExecutableRunner } from "../../shared/executable/index.js";
+import { resolveExecutable, runExecutable, type ExecutableRunner } from "../../shared/executable/index.js";
 
 export interface ClaudeInstallationDependencies {
   readonly env?: NodeJS.ProcessEnv;
@@ -19,13 +18,17 @@ export function createClaudeInstallation(
       const command = explicit === undefined || explicit.length === 0
         ? resolve("claude")
         : resolve(explicit);
-      if (command === null) return { kind: "not_found" };
+      if (command === null) {
+        return { kind: "not_found" };
+      }
 
       const result = await (dependencies.run ?? runExecutable)(command, ["--version"], {
         env,
-        timeoutMs: 5_000,
+        timeoutMs: 5000,
       });
-      if (!result.ok) throw new Error("Failed to probe the Claude installation version");
+      if (!result.ok) {
+        throw new Error("Failed to probe the Claude installation version");
+      }
       const version = result.stdout.trim().split(/\r?\n/u)[0];
       return {
         kind: "available",

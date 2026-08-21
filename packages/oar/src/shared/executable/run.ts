@@ -18,14 +18,14 @@ export type ExecutableRunner = (
   options?: ExecutableRunOptions,
 ) => Promise<ExecutableResult>;
 
-export const runExecutable: ExecutableRunner = async (executable, args, options = {}) =>
-  new Promise((resolve) => {
+export const runExecutable: ExecutableRunner = async (executable, args, options = {}) => {
+  const result = await new Promise<ExecutableResult>((resolve) => {
     execFile(
       executable,
       [...args],
       {
         env: options.env,
-        timeout: options.timeoutMs ?? 5_000,
+        timeout: options.timeoutMs ?? 5000,
         maxBuffer: 2 * 1024 * 1024,
       },
       (error, stdout, stderr) => {
@@ -34,10 +34,12 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
           : null;
         resolve({
           ok: error === null,
-          stdout: String(stdout ?? ""),
-          stderr: String(stderr ?? ""),
+          stdout,
+          stderr,
           exitCode,
         });
       },
     );
   });
+  return result;
+};

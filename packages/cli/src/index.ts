@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { runtimes } from "@botiverse/oar";
-import type { Runtime } from "@botiverse/oar";
+import { runtimes, type Runtime } from "@botiverse/oar";
 
 const program = new Command()
   .name("oar")
@@ -40,10 +39,13 @@ program
   .command("usage [runtime]")
   .description("Read account usage independently from installation detection")
   .action(async (id: string | undefined) => {
-    const result = await Promise.all(selected(id).map(async (runtime) =>
-      runtime.accountUsage === undefined
-        ? { runtime: runtime.id, health: "unsupported" }
-        : runtime.accountUsage.read()));
+    const result = await Promise.all(selected(id).map(async (runtime) => {
+      if (runtime.accountUsage === undefined) {
+        return { runtime: runtime.id, health: "unsupported" };
+      }
+      const usage = await runtime.accountUsage.read();
+      return usage;
+    }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 

@@ -17,8 +17,12 @@ test("codex projection preserves typed rate-limit windows", () => {
     },
   }, options);
   assert.equal(snapshot.runtime, "codex");
-  assert.equal(snapshot.accounts[0]?.planLabel, "plus");
-  assert.equal(snapshot.accounts[0]?.windows[0]?.usedRatio, 0.25);
+  const [account] = snapshot.accounts;
+  assert.ok(account);
+  assert.equal(account.planLabel, "plus");
+  const [window] = account.windows;
+  assert.ok(window);
+  assert.equal(window.usedRatio, 0.25);
 });
 
 test("claude projection refuses to invent a non-UTC reset instant", () => {
@@ -27,6 +31,10 @@ test("claude projection refuses to invent a non-UTC reset instant", () => {
     options,
   );
   assert.equal(snapshot.runtime, "claude");
-  assert.equal(snapshot.accounts[0]?.windows[0]?.status, "parse_unavailable");
-  assert.equal(snapshot.accounts[0]?.windows[0]?.resetsAt, undefined);
+  const [account] = snapshot.accounts;
+  assert.ok(account);
+  const [window] = account.windows;
+  assert.ok(window);
+  assert.equal(window.status, "parse_unavailable");
+  assert.equal(window.resetsAt, undefined);
 });

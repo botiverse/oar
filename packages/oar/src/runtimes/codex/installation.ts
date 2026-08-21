@@ -2,8 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import type { Installation, InstallationSnapshot } from "../../contracts/installation.js";
-import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
-import type { ExecutableRunner } from "../../shared/executable/index.js";
+import { resolveExecutable, runExecutable, type ExecutableRunner } from "../../shared/executable/index.js";
 
 export interface CodexInstallationDependencies {
   readonly env?: NodeJS.ProcessEnv;
@@ -26,14 +25,18 @@ function candidates(dependencies: CodexInstallationDependencies): readonly strin
 
   const found: string[] = [];
   const onPath = resolve("codex");
-  if (onPath !== null) found.push(onPath);
+  if (onPath !== null) {
+    found.push(onPath);
+  }
   if ((dependencies.platform ?? process.platform) === "darwin") {
     const home = dependencies.homeDirectory ?? os.homedir();
     for (const command of [
       "/Applications/ChatGPT.app/Contents/Resources/codex",
       path.join(home, ".codex", "plugins", ".plugin-appserver", "codex"),
     ]) {
-      if (exists(command) && !found.includes(command)) found.push(command);
+      if (exists(command) && !found.includes(command)) {
+        found.push(command);
+      }
     }
   }
   return found;
@@ -45,11 +48,13 @@ export function createCodexInstallation(
   return {
     async probe(): Promise<InstallationSnapshot> {
       const available = candidates(dependencies);
-      if (available.length === 0) return { kind: "not_found" };
+      if (available.length === 0) {
+        return { kind: "not_found" };
+      }
 
       const run = dependencies.run ?? runExecutable;
       const options = {
-        timeoutMs: 5_000,
+        timeoutMs: 5000,
         ...(dependencies.env === undefined ? {} : { env: dependencies.env }),
       };
       for (const command of available) {
@@ -57,7 +62,9 @@ export function createCodexInstallation(
         if (!appServer.ok && appServer.exitCode === null) {
           throw new Error("Failed to probe the Codex app-server surface");
         }
-        if (!appServer.ok) continue;
+        if (!appServer.ok) {
+          continue;
+        }
 
         const version = await run(command, ["--version"], options);
         if (!version.ok && version.exitCode === null) {

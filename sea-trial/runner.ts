@@ -40,5 +40,9 @@ export async function runSuite(
   cases: readonly TrialCase[],
   subject: RuntimeUnderTest,
 ): Promise<readonly Outcome[]> {
-  return Promise.all(cases.map(async (testCase) => runCase(testCase, subject)));
+  const outcomes = await Promise.all(cases.map(async (testCase) => {
+    const outcome = await runCase(testCase, subject);
+    return outcome;
+  }));
+  return outcomes;
 }

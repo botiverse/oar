@@ -1,14 +1,12 @@
 import { spawn } from "node:child_process";
-import type {
-  AccountUsage,
-  AccountUsageHealth,
-  AccountUsageReadOptions,
-  AccountUsageSnapshot,
-  AccountUsageWindow,
-} from "../../contracts/account-usage.js";
 import {
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   unsupportedAccountUsage,
+  type AccountUsage,
+  type AccountUsageHealth,
+  type AccountUsageReadOptions,
+  type AccountUsageSnapshot,
+  type AccountUsageWindow,
 } from "../../contracts/account-usage.js";
 import { resolveExecutable } from "../../shared/executable/index.js";
 import { sha256Hex } from "../../shared/hash.js";
@@ -36,24 +34,36 @@ function number(value: unknown): number | null {
 }
 
 function text(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== "string") {
+    return undefined;
+  }
   const trimmed = value.trim();
   return trimmed.length > 0 && trimmed.length <= 80 ? trimmed : undefined;
 }
 
 function resetInstant(value: unknown): string | undefined {
   const raw = number(value);
-  if (raw === null) return undefined;
-  const instant = new Date(raw >= 1_000_000_000_000 ? raw : raw * 1_000);
+  if (raw === null) {
+    return undefined;
+  }
+  const instant = new Date(raw >= 1_000_000_000_000 ? raw : raw * 1000);
   return Number.isFinite(instant.getTime()) ? instant.toISOString() : undefined;
 }
 
 function windowLabel(value: unknown): string {
   const minutes = number(value);
-  if (minutes === null || minutes <= 0) return "Usage limit";
-  if (minutes % (7 * 24 * 60) === 0) return `${minutes / (7 * 24 * 60)} weeks`;
-  if (minutes % (24 * 60) === 0) return `${minutes / (24 * 60)} days`;
-  if (minutes % 60 === 0) return `${minutes / 60} hours`;
+  if (minutes === null || minutes <= 0) {
+    return "Usage limit";
+  }
+  if (minutes % (7 * 24 * 60) === 0) {
+    return `${minutes / (7 * 24 * 60)} weeks`;
+  }
+  if (minutes % (24 * 60) === 0) {
+    return `${minutes / (24 * 60)} days`;
+  }
+  if (minutes % 60 === 0) {
+    return `${minutes / 60} hours`;
+  }
   return `${minutes} minutes`;
 }
 
@@ -85,26 +95,32 @@ export function projectCodexUsage(
   const historical = record(root?.rateLimits);
   const indexed = record(root?.rateLimitsByLimitId);
   const buckets = indexed !== null && Object.keys(indexed).length > 0
-    ? Object.values(indexed).map(record)
+    ? Object.values(indexed).map((value) => record(value))
     : [historical];
   const windows: AccountUsageWindow[] = [];
   let health: AccountUsageHealth = "ok";
   let planLabel: string | undefined = undefined;
   let index = 0;
   for (const bucket of buckets) {
-    if (bucket === null) continue;
+    if (bucket === null) {
+      continue;
+    }
     planLabel ??= text(bucket.planType);
     if (bucket.rateLimitReachedType !== null && bucket.rateLimitReachedType !== undefined) {
       health = "rate_limited";
     }
     for (const kind of ["primary", "secondary"] as const) {
       const candidate = record(bucket[kind]);
-      if (candidate === null) continue;
+      if (candidate === null) {
+        continue;
+      }
       const usedPercent = number(candidate.usedPercent);
       const resetsAt = resetInstant(candidate.resetsAt);
       const complete = usedPercent !== null && usedPercent >= 0 && usedPercent <= 100
         && resetsAt !== undefined;
-      if (complete && usedPercent >= 100) health = "rate_limited";
+      if (complete && usedPercent >= 100) {
+        health = "rate_limited";
+      }
       windows.push({
         id: `${kind}_${String(index)}`,
         label: windowLabel(candidate.windowDurationMins),
@@ -138,8 +154,8 @@ export function projectCodexUsage(
   };
 }
 
-function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutcome> {
-  return new Promise((resolve) => {
+async function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutcome> {
+  const result = await new Promise<ReadOutcome>((resolve) => {
     const child = spawn(command, ["app-server", "--listen", "stdio://"], {
       env: process.env,
       stdio: ["pipe", "pipe", "ignore"],
@@ -147,24 +163,36 @@ function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutc
     let buffer = "";
     let finished = false;
     const finish = (outcome: ReadOutcome): void => {
-      if (finished) return;
+      if (finished) {
+        return;
+      }
       finished = true;
       clearTimeout(timer);
       child.kill("SIGTERM");
       // oxlint-disable-next-line promise/no-multiple-resolved -- finished is the settlement guard
       resolve(outcome);
     };
-    const timer = setTimeout(() => finish({ kind: "error" }), timeoutMs);
-    child.once("error", () => finish({ kind: "error" }));
-    child.once("exit", () => finish({ kind: "error" }));
+    const timer = setTimeout(() => {
+      finish({ kind: "error" });
+    }, timeoutMs);
+    child.once("error", () => {
+      finish({ kind: "error" });
+    });
+    child.once("exit", () => {
+      finish({ kind: "error" });
+    });
     child.stdout.on("data", (chunk: Buffer | string) => {
       buffer += chunk.toString();
       for (;;) {
         const newline = buffer.indexOf("\n");
-        if (newline < 0) break;
+        if (newline === -1) {
+          break;
+        }
         const line = buffer.slice(0, newline).trim();
         buffer = buffer.slice(newline + 1);
-        if (line.length === 0) continue;
+        if (line.length === 0) {
+          continue;
+        }
         let message: RecordValue | null = null;
         try {
           message = record(JSON.parse(line));
@@ -176,13 +204,17 @@ function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutc
           child.stdin.write(`${JSON.stringify({ id: "usage", method: "account/rateLimits/read", params: {} })}\n`);
         } else if (message?.id === "usage") {
           const error = record(message.error);
-          if (error !== null) {
-            const errorText = text(error.message) ?? "";
-            if (/authentication required/iu.test(errorText)) finish({ kind: "reauth_required" });
-            else if (/method not found|not supported/iu.test(errorText)) finish({ kind: "unsupported" });
-            else finish({ kind: "error" });
-          } else {
+          if (error === null) {
             finish({ kind: "ok", result: message.result });
+          } else {
+            const errorText = text(error.message) ?? "";
+            if (/authentication required/iu.test(errorText)) {
+              finish({ kind: "reauth_required" });
+            } else if (/method not found|not supported/iu.test(errorText)) {
+              finish({ kind: "unsupported" });
+            } else {
+              finish({ kind: "error" });
+            }
           }
         }
       }
@@ -193,6 +225,7 @@ function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutc
       params: { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } },
     })}\n`);
   });
+  return result;
 }
 
 export function createCodexAccountUsage(): AccountUsage {
@@ -213,10 +246,16 @@ export function createCodexAccountUsage(): AccountUsage {
           sourceVersion: "codex executable not found",
         });
       }
-      const outcome = await readFromAppServer(command, input.timeoutMs ?? 8_000);
-      if (outcome.kind === "ok") return projectCodexUsage(outcome.result, options);
-      if (outcome.kind === "reauth_required") return statusSnapshot("reauth_required", options);
-      if (outcome.kind === "unsupported") return statusSnapshot("unsupported", options);
+      const outcome = await readFromAppServer(command, input.timeoutMs ?? 8000);
+      if (outcome.kind === "ok") {
+        return projectCodexUsage(outcome.result, options);
+      }
+      if (outcome.kind === "reauth_required") {
+        return statusSnapshot("reauth_required", options);
+      }
+      if (outcome.kind === "unsupported") {
+        return statusSnapshot("unsupported", options);
+      }
       return statusSnapshot("error", options);
     },
   };

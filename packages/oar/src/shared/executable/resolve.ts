@@ -28,14 +28,18 @@ function resolveWindows(
     const resolved = firstLine(execFile(
       "powershell.exe",
       ["-NoProfile", "-NonInteractive", "-Command", script, executable],
-      { env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1_000 },
+      { env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1000 },
     ));
-    if (resolved === null || !resolved.toLowerCase().endsWith(".ps1")) return resolved;
+    if (resolved === null || !resolved.toLowerCase().endsWith(".ps1")) {
+      return resolved;
+    }
     const directory = path.dirname(resolved);
     const base = path.basename(resolved, ".ps1");
     for (const extension of [".cmd", ".bat", ".exe", ""]) {
       const candidate = path.join(directory, `${base}${extension}`);
-      if (exists(candidate)) return candidate;
+      if (exists(candidate)) {
+        return candidate;
+      }
     }
     return null;
   } catch {
@@ -52,7 +56,9 @@ export function resolveExecutable(
   const env = options.env ?? process.env;
   const execFile = options.execFileSyncFn ?? execFileSync;
   const exists = options.existsSyncFn ?? existsSync;
-  if (platform === "win32") return resolveWindows(executable, env, execFile, exists);
+  if (platform === "win32") {
+    return resolveWindows(executable, env, execFile, exists);
+  }
   try {
     return firstLine(execFile("which", [executable], {
       env,

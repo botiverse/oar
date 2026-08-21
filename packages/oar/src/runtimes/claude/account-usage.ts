@@ -1,13 +1,11 @@
-import type {
-  AccountUsage,
-  AccountUsageHealth,
-  AccountUsageReadOptions,
-  AccountUsageSnapshot,
-  AccountUsageWindow,
-} from "../../contracts/account-usage.js";
 import {
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   unsupportedAccountUsage,
+  type AccountUsage,
+  type AccountUsageHealth,
+  type AccountUsageReadOptions,
+  type AccountUsageSnapshot,
+  type AccountUsageWindow,
 } from "../../contracts/account-usage.js";
 import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
 import { sha256Hex } from "../../shared/hash.js";
@@ -23,7 +21,9 @@ const MONTHS = [
 
 function resetAt(value: string, observedAtMs: number): string | undefined {
   const match = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2})(?:,| at) (\d{1,2})(?::(\d{2}))?(am|pm) \(UTC\)$/iu.exec(value.trim());
-  if (match === null) return undefined;
+  if (match === null) {
+    return undefined;
+  }
   const monthName = match[1];
   const dayText = match[2];
   const hourText = match[3];
@@ -33,8 +33,12 @@ function resetAt(value: string, observedAtMs: number): string | undefined {
   }
   const month = MONTHS.map(String).indexOf(monthName);
   let hour = Number(hourText);
-  if (period.toLowerCase() === "pm" && hour !== 12) hour += 12;
-  if (period.toLowerCase() === "am" && hour === 12) hour = 0;
+  if (period.toLowerCase() === "pm" && hour !== 12) {
+    hour += 12;
+  }
+  if (period.toLowerCase() === "am" && hour === 12) {
+    hour = 0;
+  }
   const observed = new Date(observedAtMs);
   let instant = Date.UTC(
     observed.getUTCFullYear(),
@@ -50,8 +54,12 @@ function resetAt(value: string, observedAtMs: number): string | undefined {
 }
 
 function windowId(label: string): string {
-  if (label === "Current session") return "current_session";
-  if (label === "Current week (all models)") return "current_week_all_models";
+  if (label === "Current session") {
+    return "current_session";
+  }
+  if (label === "Current week (all models)") {
+    return "current_week_all_models";
+  }
   return label.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "_").replaceAll(/^_|_$/gu, "");
 }
 
@@ -65,7 +73,9 @@ export function projectClaudeUsage(
     const label = match?.[1];
     const percentage = match?.[2];
     const resetText = match?.[3];
-    if (label === undefined || percentage === undefined || resetText === undefined) continue;
+    if (label === undefined || percentage === undefined || resetText === undefined) {
+      continue;
+    }
     const usedPercent = Number(percentage);
     const resetsAt = resetAt(resetText, options.observedAtMs);
     const complete = Number.isFinite(usedPercent) && usedPercent >= 0 && usedPercent <= 100
@@ -137,8 +147,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parsedResult(stdout: string): string | null {
   try {
     const value: unknown = JSON.parse(stdout);
-    if (!isRecord(value)) return null;
-    const result = value.result;
+    if (!isRecord(value)) {
+      return null;
+    }
+    const {result} = value;
     return typeof result === "string" && result.trim().length > 0 ? result : null;
   } catch {
     return null;

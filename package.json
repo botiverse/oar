@@ -5,7 +5,7 @@
   "scripts": {
     "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
     "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src drydock sea-trial",
+    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src drydock sea-trial tests",
     "test": "tsx --test tests/*.test.ts",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "oar": "pnpm run build && node packages/cli/dist/index.js"

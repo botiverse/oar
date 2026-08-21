@@ -19,7 +19,6 @@ test("codex installation requires the app-server surface", async () => {
     run: async () => ({ ok: false, stdout: "", stderr: "", exitCode: 1 }),
   }).probe();
   assert.equal(unavailable.kind, "unsupported");
-  if (unavailable.kind !== "unsupported") assert.fail("expected unsupported installation");
   assert.equal(unavailable.reason, "app_server_unavailable");
 
   const available = await createCodexInstallation({
@@ -29,7 +28,6 @@ test("codex installation requires the app-server surface", async () => {
     run: success,
   }).probe();
   assert.equal(available.kind, "available");
-  if (available.kind !== "available") assert.fail("expected available installation");
   assert.equal(available.version, "runtime 1.2.3");
 });
 

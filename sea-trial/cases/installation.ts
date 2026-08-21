@@ -6,7 +6,9 @@ export const installationCases: readonly TrialCase[] = [
     requires: ["installation"],
     async run(subject) {
       const snapshot = await subject.runtime.installation?.probe();
-      if (snapshot === undefined) throw new Error("installation capability disappeared");
+      if (snapshot === undefined) {
+        throw new Error("installation capability disappeared");
+      }
       if (snapshot.kind === "unsupported" && snapshot.reason.length === 0) {
         throw new Error("unsupported installation has no reason");
       }
