@@ -20,6 +20,8 @@ import type { AvailableInstallation } from "./installation.js";
 export interface SessionOptions {
   /** Working directory the runtime operates in. */
   readonly cwd: string;
+  /** Runtime-native model identifier; the runtime's default when omitted. */
+  readonly model?: string;
 }
 
 /**

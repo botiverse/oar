@@ -53,4 +53,40 @@ program
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 
+program
+  .command("run <runtime> <prompt>")
+  .description("Run one turn in a fresh session and stream its events")
+  .option("--model <model>", "runtime-native model identifier")
+  .action(async (id: string, prompt: string, flags: { model?: string }) => {
+    const runtime = runtimes.require(id);
+    if (runtime.session === undefined || runtime.installation === undefined) {
+      process.stderr.write(`${id} has no session capability\n`);
+      process.exitCode = 1;
+      return;
+    }
+    const installation = await runtime.installation();
+    if (installation.kind !== "available") {
+      process.stderr.write(`${id} is not available: ${installation.kind}\n`);
+      process.exitCode = 1;
+      return;
+    }
+    const session = await runtime.session(installation, {
+      cwd: process.cwd(),
+      ...(flags.model === undefined ? {} : { model: flags.model }),
+    });
+    session.subscribe((event) => {
+      process.stdout.write(`${JSON.stringify(event)}\n`);
+    });
+    const result = session.prompt(prompt);
+    if (result.kind !== "turn") {
+      process.stderr.write("session is busy\n");
+      process.exitCode = 1;
+      return;
+    }
+    const outcome = await result.turn.outcome;
+    await session.dispose();
+    process.stdout.write(`${JSON.stringify({ outcome })}\n`);
+    process.exitCode = outcome.kind === "completed" ? 0 : 1;
+  });
+
 await program.parseAsync();
