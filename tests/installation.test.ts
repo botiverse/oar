@@ -112,8 +112,8 @@ test("claude and codex probe through their pin env vars", async () => {
 
 test("pi installation reports the bundled sdk version", async () => {
   const snapshot = await piInstallation();
-  if (snapshot.kind !== "available" || snapshot.via !== "bundled") {
-    throw new Error("pi installation is not a bundled availability");
+  if (snapshot.kind !== "available" || snapshot.via !== "bundled" || snapshot.version === undefined) {
+    throw new Error("pi installation is not a versioned bundled availability");
   }
   assert.match(snapshot.version, /^\d+\.\d+\.\d+/u);
 });

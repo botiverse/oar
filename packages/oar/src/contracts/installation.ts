@@ -6,11 +6,15 @@ export interface ExecutableInstallation {
   readonly version?: string;
 }
 
-/** A runtime compiled into the embedding application; availability needs no probe target. */
+/**
+ * A runtime compiled into the embedding application; availability needs no
+ * probe target. Version is absent when the code is reachable but no trustworthy
+ * manifest is (bundled/SEA deployments without node_modules on disk).
+ */
 export interface BundledInstallation {
   readonly kind: "available";
   readonly via: "bundled";
-  readonly version: string;
+  readonly version?: string;
 }
 
 export type AvailableInstallation = ExecutableInstallation | BundledInstallation;
