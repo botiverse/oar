@@ -11,11 +11,11 @@
  *
  * Run: pnpm tsx drydock/probes/claude-session-adapter.ts   (requires logged-in `claude`)
  */
-import { claudeRuntime } from "../../packages/oar/src/index.js";
-import type { SessionEvent } from "../../packages/oar/src/index.js";
+import { setTimeout as delay } from "node:timers/promises";
+import { claudeRuntime, type SessionEvent } from "../../packages/oar/src/index.js";
 
-const installation = await claudeRuntime.installation?.();
-if (installation?.kind !== "available" || claudeRuntime.session === undefined) {
+const installation = await claudeRuntime.installation();
+if (installation.kind !== "available") {
   throw new Error("claude is not available on this machine");
 }
 
@@ -42,9 +42,10 @@ if (session.prompt("should be busy").kind !== "busy") {
 const steerTimer = setInterval(() => {
   if (events.some((event) => event.kind === "tool_call_started")) {
     clearInterval(steerTimer);
-    void first.turn.steer?.("Also append the word MANGO to your final reply.").then((result) => {
-      process.stdout.write(`steer -> ${result.kind}\n`);
-    });
+    void (async (): Promise<void> => {
+      const result = await first.turn.steer?.("Also append the word MANGO to your final reply.");
+      process.stdout.write(`steer -> ${result?.kind ?? "absent"}\n`);
+    })();
   }
 }, 100);
 const firstOutcome = await first.turn.outcome;
@@ -66,15 +67,13 @@ if (second.kind !== "turn") {
   throw new Error("second prompt did not start a turn");
 }
 const secondId = second.turn.id;
-await new Promise<void>((resolve) => {
-  const poll = setInterval(() => {
-    if (events.some((event) => event.turnId === secondId && event.kind === "tool_call_started")) {
-      clearInterval(poll);
-      resolve();
-    }
-  }, 100);
-});
-await new Promise((resolve) => setTimeout(resolve, 2000));
+const toolStarted = (): boolean =>
+  events.some((event) => event.turnId === secondId && event.kind === "tool_call_started");
+while (!toolStarted()) {
+  // eslint-disable-next-line no-await-in-loop
+  await delay(100);
+}
+await delay(2000);
 await second.turn.abort();
 const secondOutcome = await second.turn.outcome;
 if (secondOutcome.kind !== "aborted") {
