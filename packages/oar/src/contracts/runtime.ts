@@ -1,11 +1,11 @@
-import type { AccountUsage } from "./account-usage.js";
-import type { Installation } from "./installation.js";
+import type { AccountUsageReader } from "./account-usage.js";
+import type { InstallationProbe } from "./installation.js";
 
 /** One provider-independent runtime adoption unit. */
 export interface Runtime {
   readonly id: string;
-  readonly installation?: Installation;
-  readonly accountUsage?: AccountUsage;
+  readonly installation?: InstallationProbe;
+  readonly accountUsage?: AccountUsageReader;
 }
 
 export function defineRuntime<const T extends Runtime>(runtime: T): T {

@@ -8,23 +8,15 @@ import { defineRuntime } from "../packages/oar/src/index.js";
 
 const fixture = defineRuntime({
   id: "fixture",
-  installation: {
-    async probe() {
-      return {
-        kind: "available" as const,
-        version: "1.0.0",
-      };
-    },
-  },
-  accountUsage: {
-    async read() {
-      return {
-        kind: "available" as const,
-        rateLimited: false,
-        windows: [],
-      };
-    },
-  },
+  installation: async () => ({
+    kind: "available" as const,
+    version: "1.0.0",
+  }),
+  accountUsage: async () => ({
+    kind: "available" as const,
+    rateLimited: false,
+    windows: [],
+  }),
 });
 
 test("drydock executes shared sea-trial behavior cases", async () => {

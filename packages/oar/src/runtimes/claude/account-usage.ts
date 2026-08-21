@@ -1,26 +1,14 @@
 import type {
-  AccountUsage,
+  AccountUsageReader,
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
 import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
-
-type RecordValue = Record<string, unknown>;
-
-function record(value: unknown): RecordValue | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? Object.fromEntries(Object.entries(value))
-    : null;
-}
+import { asRecord, parseJson } from "../../shared/json.js";
 
 function resultText(stdout: string): string | null {
-  try {
-    const value: unknown = JSON.parse(stdout);
-    const result = record(value)?.result;
-    return typeof result === "string" && result.trim().length > 0 ? result : null;
-  } catch {
-    return null;
-  }
+  const result = asRecord(parseJson(stdout))?.result;
+  return typeof result === "string" && result.trim().length > 0 ? result : null;
 }
 
 export function projectClaudeUsage(content: string): AccountUsageSnapshot {
@@ -75,40 +63,38 @@ export function projectClaudeUsage(content: string): AccountUsageSnapshot {
  *
  * Reset values are deliberately omitted until arbitrary IANA zones can be normalized reliably.
  */
-export const claudeAccountUsage: AccountUsage = {
-  async read(options = {}): Promise<AccountUsageSnapshot> {
-    const command = resolveExecutable("claude");
-    if (command === null) {
-      return { kind: "unsupported" };
-    }
-    const timeoutMs = options.timeoutMs ?? 15_000;
-    const env = { ...process.env, CLAUDECODE: undefined };
-    const auth = await runExecutable(command, ["auth", "status", "--json"], { env, timeoutMs });
-    if (!auth.ok && auth.exitCode === null) {
-      throw new Error("Failed to read Claude authentication status");
-    }
-    if (!auth.ok || /"loggedIn"\s*:\s*false/iu.test(auth.stdout)) {
+export const claudeAccountUsage: AccountUsageReader = async (options = {}) => {
+  const command = resolveExecutable("claude");
+  if (command === null) {
+    return { kind: "unsupported" };
+  }
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  const env = { ...process.env, CLAUDECODE: undefined };
+  const auth = await runExecutable(command, ["auth", "status", "--json"], { env, timeoutMs });
+  if (!auth.ok && auth.exitCode === null) {
+    throw new Error("Failed to read Claude authentication status");
+  }
+  if (!auth.ok || asRecord(parseJson(auth.stdout))?.loggedIn === false) {
+    return { kind: "reauth_required" };
+  }
+
+  const usage = await runExecutable(command, ["-p", "/usage", "--output-format", "json"], {
+    env,
+    timeoutMs,
+  });
+  if (!usage.ok && usage.exitCode === null) {
+    throw new Error("Failed to execute Claude account usage");
+  }
+  if (!usage.ok) {
+    const output = `${usage.stdout}\n${usage.stderr}`;
+    if (/auth(?:entication)?\s*(?:missing|required)|log(?:ged)?\s*in/iu.test(output)) {
       return { kind: "reauth_required" };
     }
-
-    const usage = await runExecutable(command, ["-p", "/usage", "--output-format", "json"], {
-      env,
-      timeoutMs,
-    });
-    if (!usage.ok && usage.exitCode === null) {
-      throw new Error("Failed to execute Claude account usage");
-    }
-    if (!usage.ok) {
-      const output = `${usage.stdout}\n${usage.stderr}`;
-      if (/auth(?:entication)?\s*(?:missing|required)|log(?:ged)?\s*in/iu.test(output)) {
-        return { kind: "reauth_required" };
-      }
-      throw new Error("Claude account usage command failed");
-    }
-    const content = resultText(usage.stdout);
-    if (content === null) {
-      throw new Error("Claude returned no account usage result");
-    }
-    return projectClaudeUsage(content);
-  },
+    throw new Error("Claude account usage command failed");
+  }
+  const content = resultText(usage.stdout);
+  if (content === null) {
+    throw new Error("Claude returned no account usage result");
+  }
+  return projectClaudeUsage(content);
 };

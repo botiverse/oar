@@ -12,6 +12,4 @@ export type InstallationSnapshot =
     };
 
 /** A local-only installation observation. Implementations must not perform account or usage I/O. */
-export interface Installation {
-  probe(): Promise<InstallationSnapshot>;
-}
+export type InstallationProbe = () => Promise<InstallationSnapshot>;

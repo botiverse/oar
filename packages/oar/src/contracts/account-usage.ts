@@ -18,6 +18,6 @@ export interface AccountUsageReadOptions {
   readonly timeoutMs?: number;
 }
 
-export interface AccountUsage {
-  read(options?: AccountUsageReadOptions): Promise<AccountUsageSnapshot>;
-}
+export type AccountUsageReader = (
+  options?: AccountUsageReadOptions,
+) => Promise<AccountUsageSnapshot>;

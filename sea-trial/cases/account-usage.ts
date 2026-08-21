@@ -5,7 +5,7 @@ export const accountUsageCases: readonly TrialCase[] = [
     id: "account-usage.snapshot",
     requires: ["accountUsage"],
     async run(subject) {
-      const snapshot = await subject.runtime.accountUsage?.read();
+      const snapshot = await subject.runtime.accountUsage?.();
       if (snapshot === undefined) {
         throw new Error("account usage capability disappeared");
       }

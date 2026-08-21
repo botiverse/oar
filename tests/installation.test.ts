@@ -24,10 +24,10 @@ async function withEnv<T>(
 }
 
 test("executable installation resolves bare names on PATH", async () => {
-  const onPath = await executableInstallation("OAR_FIXTURE_BIN", "node").probe();
+  const onPath = await executableInstallation("OAR_FIXTURE_BIN", "node")();
   assert.deepEqual(onPath, { kind: "available", version: process.version });
 
-  const absent = await executableInstallation("OAR_FIXTURE_BIN", "oar-fixture-missing").probe();
+  const absent = await executableInstallation("OAR_FIXTURE_BIN", "oar-fixture-missing")();
   assert.equal(absent.kind, "not_found");
 });
 
@@ -36,7 +36,7 @@ test("a missing fallback path contributes no candidate", async () => {
     "OAR_FIXTURE_BIN",
     "oar-fixture-missing",
     ["/nonexistent/oar-fixture", process.execPath],
-  ).probe();
+  )();
   assert.deepEqual(snapshot, { kind: "available", version: process.version });
 });
 
@@ -44,13 +44,13 @@ test("a pinned env var is exclusive and must exist as given", async () => {
   const installation = executableInstallation("OAR_FIXTURE_BIN", "node");
   const pinnedMissing = await withEnv(
     { OAR_FIXTURE_BIN: "/nonexistent/oar-fixture" },
-    async () => installation.probe(),
+    async () => installation(),
   );
   assert.equal(pinnedMissing.kind, "not_found");
 
   const pinned = await withEnv(
     { OAR_FIXTURE_BIN: process.execPath },
-    async () => installation.probe(),
+    async () => installation(),
   );
   assert.deepEqual(pinned, { kind: "available", version: process.version });
 });
@@ -61,7 +61,7 @@ test("readiness gates each candidate", async () => {
     "node",
     [],
     ["--version"],
-  ).probe();
+  )();
   assert.deepEqual(ready, { kind: "available", version: process.version });
 
   // Node rejects the app-server-style subcommand, so the probe is unsupported.
@@ -70,7 +70,7 @@ test("readiness gates each candidate", async () => {
     "node",
     [],
     ["oar-fixture-subcommand", "--help"],
-  ).probe();
+  )();
   assert.deepEqual(unsupported, {
     kind: "unsupported",
     reason: "oar-fixture-subcommand --help failed",
@@ -80,13 +80,13 @@ test("readiness gates each candidate", async () => {
 test("claude and codex probe through their pin env vars", async () => {
   const claude = await withEnv(
     { OAR_CLAUDE_BIN: process.execPath },
-    async () => claudeInstallation.probe(),
+    async () => claudeInstallation(),
   );
   assert.deepEqual(claude, { kind: "available", version: process.version });
 
   const codex = await withEnv(
     { OAR_CODEX_BIN: process.execPath },
-    async () => codexInstallation.probe(),
+    async () => codexInstallation(),
   );
   assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
 });

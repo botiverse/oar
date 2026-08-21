@@ -1,28 +1,17 @@
 import { spawn } from "node:child_process";
 import type {
-  AccountUsage,
+  AccountUsageReader,
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
 import { resolveExecutable } from "../../shared/executable/index.js";
+import { asNumber, asRecord, parseJson } from "../../shared/json.js";
 
 type ReadOutcome =
   | { readonly kind: "ok"; readonly result: unknown }
   | { readonly kind: "reauth_required" }
   | { readonly kind: "unsupported" }
   | { readonly kind: "error" };
-
-type RecordValue = Record<string, unknown>;
-
-function record(value: unknown): RecordValue | null {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? Object.fromEntries(Object.entries(value))
-    : null;
-}
-
-function number(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
 
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -33,7 +22,7 @@ function text(value: unknown): string | undefined {
 }
 
 function resetInstant(value: unknown): string | undefined {
-  const raw = number(value);
+  const raw = asNumber(value);
   if (raw === null) {
     return undefined;
   }
@@ -42,7 +31,7 @@ function resetInstant(value: unknown): string | undefined {
 }
 
 function windowLabel(value: unknown): string {
-  const minutes = number(value);
+  const minutes = asNumber(value);
   if (minutes === null || minutes <= 0) {
     return "Usage limit";
   }
@@ -85,11 +74,11 @@ function windowLabel(value: unknown): string {
  * ```
  */
 export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
-  const root = record(result);
-  const historical = record(root?.rateLimits);
-  const indexed = record(root?.rateLimitsByLimitId);
+  const root = asRecord(result);
+  const historical = asRecord(root?.rateLimits);
+  const indexed = asRecord(root?.rateLimitsByLimitId);
   const buckets = indexed !== null && Object.keys(indexed).length > 0
-    ? Object.values(indexed).map((value) => record(value))
+    ? Object.values(indexed).map((value) => asRecord(value))
     : [historical];
   const windows: AccountUsageWindow[] = [];
   let rateLimited = false;
@@ -104,11 +93,11 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
       && bucket.rateLimitReachedType !== undefined;
 
     for (const kind of ["primary", "secondary"] as const) {
-      const candidate = record(bucket[kind]);
+      const candidate = asRecord(bucket[kind]);
       if (candidate === null) {
         continue;
       }
-      const usedPercent = number(candidate.usedPercent);
+      const usedPercent = asNumber(candidate.usedPercent);
       if (usedPercent === null || usedPercent < 0 || usedPercent > 100) {
         continue;
       }
@@ -172,17 +161,12 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
         if (line.length === 0) {
           continue;
         }
-        let message: RecordValue | null = null;
-        try {
-          message = record(JSON.parse(line));
-        } catch {
-          continue;
-        }
+        const message = asRecord(parseJson(line));
         if (message?.id === "initialize") {
           child.stdin.write(`${JSON.stringify({ method: "initialized", params: {} })}\n`);
           child.stdin.write(`${JSON.stringify({ id: "usage", method: "account/rateLimits/read", params: {} })}\n`);
         } else if (message?.id === "usage") {
-          const error = record(message.error);
+          const error = asRecord(message.error);
           if (error === null) {
             finish({ kind: "ok", result: message.result });
           } else {
@@ -207,22 +191,20 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
   return result;
 }
 
-export const codexAccountUsage: AccountUsage = {
-  async read(options = {}): Promise<AccountUsageSnapshot> {
-    const command = resolveExecutable("codex");
-    if (command === null) {
-      return { kind: "unsupported" };
-    }
-    const outcome = await readFromAppServer(command, options.timeoutMs ?? 8000);
-    if (outcome.kind === "ok") {
-      return projectCodexUsage(outcome.result);
-    }
-    if (outcome.kind === "reauth_required") {
-      return { kind: "reauth_required" };
-    }
-    if (outcome.kind === "unsupported") {
-      return { kind: "unsupported" };
-    }
-    throw new Error("Failed to read Codex account usage");
-  },
+export const codexAccountUsage: AccountUsageReader = async (options = {}) => {
+  const command = resolveExecutable("codex");
+  if (command === null) {
+    return { kind: "unsupported" };
+  }
+  const outcome = await readFromAppServer(command, options.timeoutMs ?? 8000);
+  if (outcome.kind === "ok") {
+    return projectCodexUsage(outcome.result);
+  }
+  if (outcome.kind === "reauth_required") {
+    return { kind: "reauth_required" };
+  }
+  if (outcome.kind === "unsupported") {
+    return { kind: "unsupported" };
+  }
+  throw new Error("Failed to read Codex account usage");
 };

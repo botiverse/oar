@@ -3,13 +3,13 @@ import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
 
 export type {
-  AccountUsage,
+  AccountUsageReader,
   AccountUsageReadOptions,
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "./contracts/account-usage.js";
 export type {
-  Installation,
+  InstallationProbe,
   InstallationSnapshot,
 } from "./contracts/installation.js";
 export type { Runtime } from "./contracts/runtime.js";

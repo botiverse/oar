@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import type { Installation, InstallationSnapshot } from "../contracts/installation.js";
+import type { InstallationProbe, InstallationSnapshot } from "../contracts/installation.js";
 import { readExecutableVersion, resolveExecutable, runExecutable } from "./executable/index.js";
 
 // An entry with a path separator is a pinned path: it must exist as given and
@@ -27,38 +27,36 @@ export function executableInstallation(
   command: string,
   fallbacks: readonly string[] = [],
   readiness?: readonly string[],
-): Installation {
-  return {
-    async probe(): Promise<InstallationSnapshot> {
-      const pinned = process.env[envVar];
-      const entries = pinned !== undefined && pinned !== "" ? [pinned] : [command, ...fallbacks];
+): InstallationProbe {
+  return async (): Promise<InstallationSnapshot> => {
+    const pinned = process.env[envVar];
+    const entries = pinned !== undefined && pinned !== "" ? [pinned] : [command, ...fallbacks];
 
-      const found: string[] = [];
-      for (const entry of entries) {
-        const candidate = usable(entry);
-        if (candidate !== null && !found.includes(candidate)) {
-          found.push(candidate);
-        }
+    const found: string[] = [];
+    for (const entry of entries) {
+      const candidate = usable(entry);
+      if (candidate !== null && !found.includes(candidate)) {
+        found.push(candidate);
       }
+    }
 
-      const [first] = found;
-      if (first === undefined) {
-        return { kind: "not_found" };
-      }
-      if (readiness === undefined) {
-        return versionSnapshot(first);
-      }
+    const [first] = found;
+    if (first === undefined) {
+      return { kind: "not_found" };
+    }
+    if (readiness === undefined) {
+      return versionSnapshot(first);
+    }
 
-      for (const candidate of found) {
-        const result = await runExecutable(candidate, readiness);
-        if (!result.ok && result.exitCode === null) {
-          throw new Error(`Failed to run ${candidate} ${readiness.join(" ")}`);
-        }
-        if (result.ok) {
-          return versionSnapshot(candidate);
-        }
+    for (const candidate of found) {
+      const result = await runExecutable(candidate, readiness);
+      if (!result.ok && result.exitCode === null) {
+        throw new Error(`Failed to run ${candidate} ${readiness.join(" ")}`);
       }
-      return { kind: "unsupported", reason: `${readiness.join(" ")} failed` };
-    },
+      if (result.ok) {
+        return versionSnapshot(candidate);
+      }
+    }
+    return { kind: "unsupported", reason: `${readiness.join(" ")} failed` };
   };
 }
