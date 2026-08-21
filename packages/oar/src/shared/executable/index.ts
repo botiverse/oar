@@ -4,4 +4,4 @@ export type { ExecutableResult, ExecutableRunner, ExecutableRunOptions } from ".
 export { runExecutable } from "./run.js";
 export { readExecutableVersion } from "./version.js";
 export type { LineProcess } from "./process.js";
-export { spawnLineProcess } from "./process.js";
+export { requiresShell, spawnLineProcess } from "./process.js";

@@ -19,12 +19,17 @@ export interface LineProcess {
   kill(): void;
 }
 
+/** Windows npm shims are .cmd/.bat files, which modern Node refuses to spawn without a shell (EINVAL). */
+export function requiresShell(command: string, platform: NodeJS.Platform): boolean {
+  return platform === "win32" && /\.(?:cmd|bat)$/iu.test(command);
+}
+
 export function spawnLineProcess(
   command: string,
   args: readonly string[],
   options: { readonly cwd?: string; readonly env?: NodeJS.ProcessEnv } = {},
 ): LineProcess {
-  const needsShell = process.platform === "win32" && /\.(?:cmd|bat)$/iu.test(command);
+  const needsShell = requiresShell(command, process.platform);
   const child = spawn(command, [...args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,

@@ -126,6 +126,26 @@
         "unicorn/no-useless-undefined": "off",
         "typescript/explicit-function-return-type": "off"
       }
+    },
+    {
+      "files": [
+        "packages/oar/src/runtimes/**",
+        "packages/oar/src/observe/**",
+        "packages/oar/src/contracts/**"
+      ],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "node:child_process",
+                "message": "Process mechanics live in shared/executable (spawnLineProcess/runExecutable); raw child_process in adapters loses the cross-platform handling."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
