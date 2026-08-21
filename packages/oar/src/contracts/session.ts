@@ -1,33 +1,17 @@
 import type { AvailableInstallation } from "./installation.js";
 
 /**
- * Session/Turn contract v1.
+ * Session/Turn contract v1. Behavior invariants live as comments on the
+ * member they constrain; each "must/never" has (or gets) a sea-trial case.
  *
- * Invariants (settled 2026-08-21; see the session-design thread):
- * - At most one active turn per session. `prompt` during an active turn
- *   returns a typed busy result; implicit queueing never happens.
- * - Ownership is the object reference; no in-process lease. Turn handles bind
- *   intent to identity, so steer/abort are structurally race-checked at the
- *   runtime (codex: expectedTurnId).
- * - Terminal idempotence: abort on an ended turn is a typed no-op, outcomes
- *   settle exactly once, dispose aborts an active turn and is idempotent.
- * - Observation is a side-tap: observers run synchronously, are never awaited,
- *   and a throwing observer must not affect the run or other observers.
+ * Scope notes that fit no single member:
+ * - Ownership is the object reference; no in-process lease. Multi-controller
+ *   arbitration belongs to the application layer.
  * - v1 defers resume/persistence, permission settlement (adapters run
  *   pre-approved/harness defaults), and any remote/multi-consumer model.
- *
- * Runtime-autonomous activity (verified live + in source, 2026-08-21):
- * - Auto-compaction inside a turn (claude, codex) stays inside that turn:
- *   framing and outcome are unaffected; unmapped maintenance events are
- *   dropped. Steer input written during it is held by the runtime and applied
- *   when the continuation resumes (codex) or after the turn (claude).
- * - Manual compaction differs per runtime (claude: an own framed turn; codex:
- *   a Compact-kind turn that rejects steer with a typed error; pi: a
- *   session-level operation that is NOT a turn and would abort an active run)
- *   — which is why a unified compact() capability must be idle-only.
- * - pi additionally emits session-scoped events (compaction_start/end,
- *   queue_update) that belong to no turn; representing those is a deliberate
- *   v2 decision (nullable turnId vs a second event scope).
+ * - pi emits session-scoped events (compaction_start/end, queue_update) that
+ *   belong to no turn; representing those is a deliberate v2 decision
+ *   (nullable turnId vs a second event scope). Until then adapters drop them.
  */
 
 export interface SessionOptions {
@@ -49,12 +33,9 @@ export type StartSession = (
 
 export interface Session {
   readonly id: string;
-  /** Submit one user run. Busy while another turn is active — never queues implicitly. */
-  prompt(input: string): PromptResult;
-  /** Side-tap: sync fan-out, never awaited; observer errors are swallowed. */
-  subscribe(observer: SessionObserver): Unsubscribe;
-  /** Aborts an active turn, releases the runtime, idempotent. */
-  dispose(): Promise<void>;
+  prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
+  subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
+  dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent
 }
 
 export type PromptResult =
@@ -65,21 +46,19 @@ export type SessionObserver = (event: SessionEvent) => void;
 export type Unsubscribe = () => void;
 
 export interface Turn {
-  readonly id: string;
-  /** Settles exactly once; runtime-reported ends resolve (never reject). */
-  readonly outcome: Promise<TurnOutcome>;
-  /** Typed no-op after the turn ended (a late abort is normal, not an error). */
-  abort(): Promise<void>;
+  readonly id: string; // handle binds intent to identity — steer/abort are race-checked at the runtime (codex: expectedTurnId)
+  readonly outcome: Promise<TurnOutcome>; // settles exactly once; runtime-reported ends resolve, never reject
+  abort(): Promise<void>; // no-op after the turn ended — a late abort is a normal race, not an error
   /**
-   * Mid-turn input, absent when the runtime cannot inject into an active turn.
-   * Timing is always "next model-step boundary"; where the input landed is the
-   * event stream's job to show (same turnId, or a fresh turn_started when a
-   * runtime like claude auto-queues past a turn that just ended). Ack strength
-   * differs per runtime and is documented, not typed: codex confirms
-   * into-active-turn, pi confirms enqueue, claude confirms the write.
-   * Known gap, deliberate: a turn a runtime starts on its own (claude
-   * auto-queue landing) has events but no control handle until a real
-   * application needs one.
+   * Mid-turn input; absent when the runtime cannot inject into an active turn.
+   * Applies at the next model-step boundary. During runtime-autonomous
+   * compaction the input is HELD, not lost (codex resumes then drains; claude
+   * runs it after the compaction turn); codex Compact/Review turns reject with
+   * not_steerable instead. Where input landed is the event stream's job: same
+   * turnId, or a fresh turn_started when claude auto-queues past a turn that
+   * just ended (that spontaneous turn has events but no control handle yet).
+   * Ack strength is documented, not typed: codex confirms into-active-turn,
+   * pi confirms enqueue, claude confirms the write.
    */
   readonly steer?: (input: string) => Promise<SteerResult>;
 }
