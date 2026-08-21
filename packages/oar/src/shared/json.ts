@@ -20,3 +20,13 @@ export function asRecord(value: unknown): JsonRecord | null {
 export function asNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
+
+/** Narrow an epoch timestamp in seconds or milliseconds to an ISO-8601 instant. */
+export function asEpochInstant(value: unknown): string | null {
+  const raw = asNumber(value);
+  if (raw === null) {
+    return null;
+  }
+  const instant = new Date(raw >= 1_000_000_000_000 ? raw : raw * 1000);
+  return Number.isFinite(instant.getTime()) ? instant.toISOString() : null;
+}

@@ -1,11 +1,10 @@
-import { spawn } from "node:child_process";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
-import { resolveExecutable } from "../../shared/executable/index.js";
-import { asNumber, asRecord, parseJson } from "../../shared/json.js";
+import { exchangeJsonl, resolveExecutable } from "../../shared/executable/index.js";
+import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 
 type ReadOutcome =
   | { readonly kind: "ok"; readonly result: unknown }
@@ -19,15 +18,6 @@ function text(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 && trimmed.length <= 80 ? trimmed : undefined;
-}
-
-function resetInstant(value: unknown): string | undefined {
-  const raw = asNumber(value);
-  if (raw === null) {
-    return undefined;
-  }
-  const instant = new Date(raw >= 1_000_000_000_000 ? raw : raw * 1000);
-  return Number.isFinite(instant.getTime()) ? instant.toISOString() : undefined;
 }
 
 function windowLabel(value: unknown): string {
@@ -101,11 +91,11 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
       if (usedPercent === null || usedPercent < 0 || usedPercent > 100) {
         continue;
       }
-      const resetsAt = resetInstant(candidate.resetsAt);
+      const resetsAt = asEpochInstant(candidate.resetsAt);
       windows.push({
         label: windowLabel(candidate.windowDurationMins),
         usedRatio: Number((usedPercent / 100).toFixed(6)),
-        ...(resetsAt === undefined ? {} : { resetsAt }),
+        ...(resetsAt === null ? {} : { resetsAt }),
       });
       rateLimited ||= usedPercent >= 100;
     }
@@ -123,72 +113,39 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
 }
 
 async function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutcome> {
-  const result = await new Promise<ReadOutcome>((resolve) => {
-    const child = spawn(command, ["app-server", "--listen", "stdio://"], {
-      env: process.env,
-      stdio: ["pipe", "pipe", "ignore"],
-    });
-    let buffer = "";
-    let finished = false;
-    const finish = (outcome: ReadOutcome): void => {
-      if (finished) {
-        return;
-      }
-      finished = true;
-      clearTimeout(timer);
-      child.kill("SIGTERM");
-      // oxlint-disable-next-line promise/no-multiple-resolved -- finished is the settlement guard
-      resolve(outcome);
-    };
-    const timer = setTimeout(() => {
-      finish({ kind: "error" });
-    }, timeoutMs);
-    child.once("error", () => {
-      finish({ kind: "error" });
-    });
-    child.once("exit", () => {
-      finish({ kind: "error" });
-    });
-    child.stdout.on("data", (chunk: Buffer | string) => {
-      buffer += chunk.toString();
-      for (;;) {
-        const newline = buffer.indexOf("\n");
-        if (newline === -1) {
-          break;
-        }
-        const line = buffer.slice(0, newline).trim();
-        buffer = buffer.slice(newline + 1);
-        if (line.length === 0) {
-          continue;
-        }
-        const message = asRecord(parseJson(line));
-        if (message?.id === "initialize") {
-          child.stdin.write(`${JSON.stringify({ method: "initialized", params: {} })}\n`);
-          child.stdin.write(`${JSON.stringify({ id: "usage", method: "account/rateLimits/read", params: {} })}\n`);
-        } else if (message?.id === "usage") {
-          const error = asRecord(message.error);
-          if (error === null) {
-            finish({ kind: "ok", result: message.result });
-          } else {
-            const errorText = text(error.message) ?? "";
-            if (/authentication required/iu.test(errorText)) {
-              finish({ kind: "reauth_required" });
-            } else if (/method not found|not supported/iu.test(errorText)) {
-              finish({ kind: "unsupported" });
-            } else {
-              finish({ kind: "error" });
-            }
-          }
-        }
-      }
-    });
-    child.stdin.write(`${JSON.stringify({
+  const outcome = await exchangeJsonl<ReadOutcome>(
+    command,
+    ["app-server", "--listen", "stdio://"],
+    {
       id: "initialize",
       method: "initialize",
       params: { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } },
-    })}\n`);
-  });
-  return result;
+    },
+    (message, send) => {
+      if (message.id === "initialize") {
+        send({ method: "initialized", params: {} });
+        send({ id: "usage", method: "account/rateLimits/read", params: {} });
+        return null;
+      }
+      if (message.id !== "usage") {
+        return null;
+      }
+      const error = asRecord(message.error);
+      if (error === null) {
+        return { kind: "ok", result: message.result };
+      }
+      const errorText = text(error.message) ?? "";
+      if (/authentication required/iu.test(errorText)) {
+        return { kind: "reauth_required" };
+      }
+      if (/method not found|not supported/iu.test(errorText)) {
+        return { kind: "unsupported" };
+      }
+      return { kind: "error" };
+    },
+    timeoutMs,
+  );
+  return outcome ?? { kind: "error" };
 }
 
 export const codexAccountUsage: AccountUsageReader = async (options = {}) => {
