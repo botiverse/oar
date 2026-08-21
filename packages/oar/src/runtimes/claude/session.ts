@@ -1,11 +1,10 @@
-import { spawn, type ChildProcessByStdio } from "node:child_process";
-import type { Readable, Writable } from "node:stream";
 import type {
   PromptResult,
   Session,
   StartSession,
   Turn,
 } from "../../contracts/session.js";
+import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 
@@ -30,7 +29,7 @@ function userMessage(text: string): string {
 }
 
 interface ClaudeSessionState {
-  child: ChildProcessByStdio<Writable, Readable, null>;
+  child: LineProcess;
   turn: KernelTurn | null;
   abortPending: boolean;
   disposed: boolean;
@@ -88,7 +87,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   if (installation.via !== "executable") {
     throw new Error("The claude session adapter needs an executable installation");
   }
-  const child = spawn(installation.command, [
+  const child = spawnLineProcess(installation.command, [
     "-p",
     "--input-format", "stream-json",
     "--output-format", "stream-json",
@@ -97,36 +96,26 @@ export const claudeSession: StartSession = async (installation, options) => {
   ], {
     cwd: options.cwd,
     env: { ...process.env, CLAUDECODE: undefined },
-    stdio: ["pipe", "pipe", "ignore"],
   });
-  await new Promise<void>((resolve, reject) => {
-    child.once("spawn", resolve);
-    child.once("error", reject);
-  });
+  await child.spawned;
 
   const kernel = createSessionKernel();
   const state: ClaudeSessionState = { child, turn: null, abortPending: false, disposed: false };
   let interruptCounter = 0;
-  let buffer = "";
 
-  child.stdout.on("data", (chunk: Buffer | string) => {
-    buffer += chunk.toString();
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const raw of lines) {
-      const message = raw.trim().length > 0 ? asRecord(parseJson(raw)) : null;
-      if (message === null) {
-        continue;
-      }
-      // A system/init with no active turn is claude starting a run on its own
-      // (a steer that landed past the turn's end) — surface it as a real turn.
-      if (message.type === "system" && message.subtype === "init" && kernel.active() === null) {
-        state.turn = kernel.begin();
-      }
-      projectMessage(state, message);
+  child.onLine((line) => {
+    const message = asRecord(parseJson(line));
+    if (message === null) {
+      return;
     }
+    // A system/init with no active turn is claude starting a run on its own
+    // (a steer that landed past the turn's end) — surface it as a real turn.
+    if (message.type === "system" && message.subtype === "init" && kernel.active() === null) {
+      state.turn = kernel.begin();
+    }
+    projectMessage(state, message);
   });
-  child.on("exit", () => {
+  child.onExit(() => {
     const active = kernel.active();
     if (active !== null && !state.disposed) {
       active.settle({ kind: "failed", reason: "claude process exited" });
@@ -142,7 +131,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       }
       state.abortPending = true;
       interruptCounter += 1;
-      child.stdin.write(`${JSON.stringify({
+      child.write(`${JSON.stringify({
         type: "control_request",
         request_id: `interrupt-${interruptCounter}`,
         request: { subtype: "interrupt" },
@@ -154,7 +143,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       if (turn.settled()) {
         return { kind: "not_steerable", reason: "turn already ended" };
       }
-      child.stdin.write(userMessage(input));
+      child.write(userMessage(input));
       return { kind: "accepted" };
     },
   });
@@ -167,7 +156,7 @@ export const claudeSession: StartSession = async (installation, options) => {
         return { kind: "busy" };
       }
       state.turn = turn;
-      child.stdin.write(userMessage(input));
+      child.write(userMessage(input));
       return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
@@ -177,8 +166,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       }
       state.disposed = true;
       kernel.active()?.settle({ kind: "aborted" });
-      child.stdin.end();
-      child.kill("SIGTERM");
+      child.kill();
       await Promise.resolve();
     },
   };

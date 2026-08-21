@@ -1,0 +1,86 @@
+import { spawn } from "node:child_process";
+
+/**
+ * A long-lived child process spoken to line-by-line — the transport shape both
+ * session adapters use (JSONL protocols over stdio). Owns the details raw
+ * spawn callers keep re-implementing: stdio wiring, line buffering with a
+ * trailing partial buffer, exit fan-out, teardown, and the Windows quirk that
+ * npm-installed CLIs are .cmd shims which modern Node refuses to spawn without
+ * a shell (EINVAL). Windows handling follows Node's documented `shell` option
+ * and is honest about being untested here (no Windows machine in the loop).
+ */
+export interface LineProcess {
+  /** Resolves once the OS process exists; rejects when it cannot be spawned. */
+  readonly spawned: Promise<void>;
+  write(text: string): void;
+  onLine(handler: (line: string) => void): void;
+  /** Fires exactly once, for exit or spawn-level error alike. */
+  onExit(handler: (code: number | null) => void): void;
+  kill(): void;
+}
+
+export function spawnLineProcess(
+  command: string,
+  args: readonly string[],
+  options: { readonly cwd?: string; readonly env?: NodeJS.ProcessEnv } = {},
+): LineProcess {
+  const needsShell = process.platform === "win32" && /\.(?:cmd|bat)$/iu.test(command);
+  const child = spawn(command, [...args], {
+    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+    env: options.env ?? process.env,
+    stdio: ["pipe", "pipe", "ignore"],
+    shell: needsShell,
+  });
+  const lineHandlers: ((line: string) => void)[] = [];
+  const exitHandlers: ((code: number | null) => void)[] = [];
+  let buffer = "";
+  let ended = false;
+  const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
+  child.once("spawn", spawnOk);
+  const end = (code: number | null): void => {
+    if (!ended) {
+      ended = true;
+      for (const handler of exitHandlers) {
+        handler(code);
+      }
+    }
+  };
+
+  child.stdout.on("data", (chunk: Buffer | string) => {
+    buffer += chunk.toString();
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line.length > 0) {
+        for (const handler of lineHandlers) {
+          handler(line);
+        }
+      }
+    }
+  });
+  child.on("exit", (code) => {
+    end(code);
+  });
+  child.on("error", (error) => {
+    spawnFailed(error);
+    end(null);
+  });
+
+  return {
+    spawned,
+    write(text) {
+      child.stdin.write(text);
+    },
+    onLine(handler) {
+      lineHandlers.push(handler);
+    },
+    onExit(handler) {
+      exitHandlers.push(handler);
+    },
+    kill() {
+      child.stdin.end();
+      child.kill("SIGTERM");
+    },
+  };
+}
