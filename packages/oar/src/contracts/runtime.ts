@@ -5,9 +5,9 @@ import type { StartSession } from "./session.js";
 /** One provider-independent runtime adoption unit. */
 export interface Runtime {
   readonly id: string;
+  readonly session: StartSession; // the core capability — a runtime without sessions is not usable
   readonly installation?: InstallationProbe;
   readonly accountUsage?: AccountUsageReader;
-  readonly session?: StartSession;
 }
 
 export function defineRuntime<const T extends Runtime>(runtime: T): T {

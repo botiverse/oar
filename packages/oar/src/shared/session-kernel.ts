@@ -30,8 +30,7 @@ export interface KernelTurn {
   settle(outcome: TurnOutcome): void;
 }
 
-export function createSessionKernel(): SessionKernel {
-  const sessionId = randomUUID();
+export function createSessionKernel(sessionId: string = randomUUID()): SessionKernel {
   const observers = new Set<SessionObserver>();
   let seq = 0;
   let activeTurn: KernelTurn | null = null;

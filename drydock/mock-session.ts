@@ -6,9 +6,9 @@ import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.j
  * size is deliberate — the session contract is supposed to be implementable in
  * about one screenful, and this file is that acceptance test.
  */
-export const startMockSession: StartSession = async (): Promise<Session> => {
+export const startMockSession: StartSession = async (_installation, options): Promise<Session> => {
   await Promise.resolve();
-  const kernel = createSessionKernel();
+  const kernel = createSessionKernel(options.resume);
   const steered: string[] = [];
   return {
     id: kernel.sessionId,

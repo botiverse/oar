@@ -104,3 +104,12 @@ test("reduceStatus follows the documented transition table", async () => {
   assert.deepEqual(stallOf(runningAt, 1600, 500), { turnId: "t", silentForMs: 600 });
   assert.equal(stallOf(initialStatus, 99_999, 1), null);
 });
+
+test("resume adopts the runtime-native session identity", async () => {
+  const installation = { kind: "available", via: "bundled" } as const;
+  const first = await startMockSession(installation, { cwd: process.cwd() });
+  const second = await startMockSession(installation, { cwd: process.cwd(), resume: first.id });
+  assert.equal(second.id, first.id);
+  await first.dispose();
+  await second.dispose();
+});

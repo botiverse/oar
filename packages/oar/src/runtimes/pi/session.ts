@@ -27,10 +27,15 @@ export const piSession: StartSession = async (installation, options) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }
+  if (options.resume !== undefined) {
+    // pi resumes by session FILE (SessionManager.open(path)), not by bare id;
+    // wiring the id→file lookup waits for a consumer with configured pi.
+    throw new Error("pi session resume is not implemented yet");
+  }
   const sdk = await import("@earendil-works/pi-coding-agent");
   const { session: piAgentSession } = await sdk.createAgentSession({ cwd: options.cwd });
 
-  const kernel = createSessionKernel();
+  const kernel = createSessionKernel(piAgentSession.sessionId);
   let current: { turn: KernelTurn; abortRequested: boolean } | null = null;
   let disposed = false;
 

@@ -4,6 +4,7 @@ import type {
   StartSession,
   Turn,
 } from "../../contracts/session.js";
+import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
@@ -87,11 +88,16 @@ export const claudeSession: StartSession = async (installation, options) => {
   if (installation.via !== "executable") {
     throw new Error("The claude session adapter needs an executable installation");
   }
+  // Session identity is claude's own: we either choose it up front
+  // (--session-id) or reattach to an existing one (--resume), so Session.id
+  // is always the runtime-native persistent id.
+  const sessionId = options.resume ?? randomUUID();
   const child = spawnLineProcess(installation.command, [
     "-p",
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose",
+    ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
   ], {
     cwd: options.cwd,
@@ -99,7 +105,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   });
   await child.spawned;
 
-  const kernel = createSessionKernel();
+  const kernel = createSessionKernel(sessionId);
   const state: ClaudeSessionState = { child, turn: null, abortPending: false, disposed: false };
   let interruptCounter = 0;
 

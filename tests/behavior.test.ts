@@ -4,10 +4,12 @@ import { runtimeUnderTest } from "../drydock/runner.js";
 import { accountUsageCases } from "../sea-trial/cases/account-usage.js";
 import { installationCases } from "../sea-trial/cases/installation.js";
 import { runSuite } from "../sea-trial/runner.js";
+import { startMockSession } from "../drydock/mock-session.js";
 import { defineRuntime } from "../packages/oar/src/index.js";
 
 const fixture = defineRuntime({
   id: "fixture",
+  session: startMockSession,
   installation: async () => ({
     kind: "available" as const,
     via: "executable" as const,

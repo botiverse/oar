@@ -44,19 +44,27 @@ export const codexSession: StartSession = async (installation, options) => {
     capabilities: { experimentalApi: true },
   });
   client.notify("initialized", {});
-  const started = await client.request("thread/start", {
-    cwd: options.cwd,
-    ...(options.model === undefined ? {} : { model: options.model }),
-    approvalPolicy: "never",
-    sandboxMode: "workspace-write",
-    ephemeral: true,
-  });
+  // Threads persist so a later SessionOptions.resume can reattach; the thread
+  // id is the runtime-native identity and becomes Session.id.
+  const started = options.resume === undefined
+    ? await client.request("thread/start", {
+        cwd: options.cwd,
+        ...(options.model === undefined ? {} : { model: options.model }),
+        approvalPolicy: "never",
+        sandboxMode: "workspace-write",
+      })
+    : await client.request("thread/resume", {
+        threadId: options.resume,
+        cwd: options.cwd,
+        approvalPolicy: "never",
+        sandboxMode: "workspace-write",
+      });
   const threadId = asRecord(started.thread)?.id;
   if (typeof threadId !== "string") {
-    throw new TypeError("codex thread/start returned no thread id");
+    throw new TypeError("codex thread start/resume returned no thread id");
   }
 
-  const kernel = createSessionKernel();
+  const kernel = createSessionKernel(threadId);
   let current: CodexTurnState | null = null;
   let disposed = false;
 

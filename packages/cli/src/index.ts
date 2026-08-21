@@ -17,6 +17,7 @@ program
   .action(() => {
     const result = runtimes.list().map((runtime) => ({
       id: runtime.id,
+      session: true,
       installation: runtime.installation !== undefined,
       accountUsage: runtime.accountUsage !== undefined,
     }));
@@ -59,8 +60,8 @@ program
   .option("--model <model>", "runtime-native model identifier")
   .action(async (id: string, prompt: string, flags: { model?: string }) => {
     const runtime = runtimes.require(id);
-    if (runtime.session === undefined || runtime.installation === undefined) {
-      process.stderr.write(`${id} has no session capability\n`);
+    if (runtime.installation === undefined) {
+      process.stderr.write(`${id} has no installation capability\n`);
       process.exitCode = 1;
       return;
     }

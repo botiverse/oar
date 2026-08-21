@@ -19,6 +19,8 @@ export interface SessionOptions {
   readonly cwd: string;
   /** Runtime-native model identifier; the runtime's default when omitted. */
   readonly model?: string;
+  /** Resume the runtime-native session identified by a previous Session.id. */
+  readonly resume?: string;
 }
 
 /**
@@ -32,7 +34,7 @@ export type StartSession = (
 ) => Promise<Session>;
 
 export interface Session {
-  readonly id: string;
+  readonly id: string; // runtime-native persistent identity — pass to SessionOptions.resume to reattach later
   prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
   subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
   dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent

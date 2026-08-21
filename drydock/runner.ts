@@ -14,8 +14,8 @@ export function runtimeUnderTest(runtime: Runtime): RuntimeUnderTest {
     id: runtime.id,
     runtime,
     async startSession() {
-      if (runtime.installation === undefined || runtime.session === undefined) {
-        throw new Error(`${runtime.id} lacks installation or session capability`);
+      if (runtime.installation === undefined) {
+        throw new Error(`${runtime.id} lacks the installation capability`);
       }
       const installation = await runtime.installation();
       if (installation.kind !== "available") {
