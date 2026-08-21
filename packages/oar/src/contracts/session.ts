@@ -52,11 +52,15 @@ export interface Turn {
   /**
    * Mid-turn input; absent when the runtime cannot inject into an active turn.
    * `accepted` is ONE deliberately weak promise, identical on every runtime:
-   * the adapter took this input attempt and the caller must not resubmit it —
-   * no guarantee the model saw it, none that it lands in the current turn,
-   * none that it was acted on. How acceptance happens (stdin write, native
-   * enqueue, a runtime-side steer ack) is adapter-internal and adapter-tested,
-   * never an application-facing difference. Input written during
+   * the adapter has taken over this input and the caller's delivery
+   * obligation ENDS — do not resubmit. Taking over means the adapter now owns
+   * not losing it (e.g. holding it through runtime-autonomous compaction);
+   * failure to take over is a typed not_steerable or a thrown operational
+   * error, never a silent drop. No guarantee it lands in the current turn,
+   * that the model attends to it, or that any business outcome happened. How
+   * acceptance happens (stdin write, native enqueue, a runtime-side steer
+   * ack) is adapter-internal and adapter-tested, never an application-facing
+   * difference. Input written during
    * runtime-autonomous compaction is HELD, not lost; codex Compact/Review
    * turns reject with not_steerable instead. Where input landed is the event
    * stream's job: same turnId, or a fresh turn_started when a runtime
