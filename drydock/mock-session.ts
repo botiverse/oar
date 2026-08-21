@@ -17,7 +17,8 @@ export const startMockSession: StartSession = async (): Promise<Session> => {
       if (turn === null) {
         return { kind: "busy" };
       }
-      const timer = setTimeout(() => {
+      // "hang" never settles on its own — the stall-observation fixture.
+      const timer = input === "hang" ? null : setTimeout(() => {
         turn.emit({ kind: "text_delta", text: `echo:${input}` });
         for (const extra of steered.splice(0)) {
           turn.emit({ kind: "text_delta", text: `steer:${extra}` });
@@ -31,7 +32,9 @@ export const startMockSession: StartSession = async (): Promise<Session> => {
           outcome: turn.outcome,
           abort: async () => {
             await Promise.resolve();
-            clearTimeout(timer);
+            if (timer !== null) {
+              clearTimeout(timer);
+            }
             turn.settle({ kind: "aborted" });
           },
           steer: async (extra) => {

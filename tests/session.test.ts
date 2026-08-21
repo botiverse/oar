@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 import { startMockSession } from "../drydock/mock-session.js";
 import { runtimeUnderTest } from "../drydock/runner.js";
 import { runSuite } from "../sea-trial/runner.js";
@@ -46,4 +47,25 @@ test("aggregateDeltas merges consecutive deltas and preserves order", async () =
     "text:echo:hellosteer:extra",
     "turn_ended",
   ]);
+});
+
+test("observeStalls reports a silent active turn", async () => {
+  const { observeStalls } = await import("../packages/oar/src/shared/stall-observer.js");
+  const session = await startMockSession(
+    { kind: "available", via: "bundled" },
+    { cwd: process.cwd() },
+  );
+  const stalls: string[] = [];
+  const stop = observeStalls(session, {
+    stallAfterMs: 50,
+    onStall: (info) => {
+      stalls.push(`${info.lastEventKind}:${info.silentForMs >= 50}`);
+    },
+  });
+  const result = session.prompt("hang");
+  assert.equal(result.kind, "turn");
+  await delay(150);
+  assert.deepEqual(stalls, ["turn_started:true"]);
+  stop();
+  await session.dispose();
 });

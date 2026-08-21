@@ -1,5 +1,6 @@
 import { defineRuntime } from "../../contracts/runtime.js";
 import { piInstallation } from "./installation.js";
+import { piSession } from "./session.js";
 
 /**
  * The bundled Pi runtime, embedded through the Pi SDK dependency. Account
@@ -9,4 +10,7 @@ import { piInstallation } from "./installation.js";
 export const piRuntime = defineRuntime({
   id: "pi",
   installation: piInstallation,
+  session: piSession,
 });
+
+export { piSession } from "./session.js";
