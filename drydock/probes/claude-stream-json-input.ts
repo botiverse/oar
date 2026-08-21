@@ -31,11 +31,13 @@
  * 3. It was QUEUED AS THE NEXT TURN: a fresh system/init followed A's result
  *    within ~25ms and B's turn ran immediately with B's demanded output.
  *
- * Consequence for the session contract: claude stream-json has no transport
- * "unsendable window", but mid-turn input has queue semantics, not steer
- * semantics — a claude session adapter gets `queue` (native: just write) and
- * NO `steer` capability. Also note each turn is framed by its own
- * system/init … result pair, which maps cleanly onto our Turn identity.
+ * ⚠️ CORRECTED by claude-stream-json-phases.ts: the "queue semantics" read
+ * below is an artifact of a SINGLE-STEP turn (no tool calls → no remaining
+ * model-step boundary inside the turn). With multi-tool turns the same write
+ * is delivered INTO the active turn at the next step boundary — steer
+ * semantics, same timing class as codex/pi. What stays true here: stdin is
+ * writable at every phase, nothing is rejected or fatal, and each turn is
+ * framed by its own system/init … result pair (clean Turn identity mapping).
  */
 import { spawn } from "node:child_process";
 
