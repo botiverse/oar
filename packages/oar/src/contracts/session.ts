@@ -15,6 +15,19 @@ import type { AvailableInstallation } from "./installation.js";
  *   and a throwing observer must not affect the run or other observers.
  * - v1 defers resume/persistence, permission settlement (adapters run
  *   pre-approved/harness defaults), and any remote/multi-consumer model.
+ *
+ * Runtime-autonomous activity (verified live + in source, 2026-08-21):
+ * - Auto-compaction inside a turn (claude, codex) stays inside that turn:
+ *   framing and outcome are unaffected; unmapped maintenance events are
+ *   dropped. Steer input written during it is held by the runtime and applied
+ *   when the continuation resumes (codex) or after the turn (claude).
+ * - Manual compaction differs per runtime (claude: an own framed turn; codex:
+ *   a Compact-kind turn that rejects steer with a typed error; pi: a
+ *   session-level operation that is NOT a turn and would abort an active run)
+ *   — which is why a unified compact() capability must be idle-only.
+ * - pi additionally emits session-scoped events (compaction_start/end,
+ *   queue_update) that belong to no turn; representing those is a deliberate
+ *   v2 decision (nullable turnId vs a second event scope).
  */
 
 export interface SessionOptions {
