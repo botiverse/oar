@@ -1,49 +1,22 @@
-# Source ownership and dependency rules
-
-This source tree is organized around three stable ownership axes:
-
-- `contracts/` defines provider-independent agreements shared by callers and runtime implementations.
-- `runtimes/<id>/` owns one concrete runtime and splits its implementation by real capability.
-- `shared/` contains policy-free mechanisms reusable across runtimes.
-
-`index.ts` is the public export and built-in composition entrypoint. It is not a separate facade layer. `registry.ts` implements runtime collection and lookup.
-
-## Directory semantics
+# Source layout
 
 ```text
 src/
-  index.ts
-  registry.ts
-  contracts/
-    runtime.ts
-    installation.ts
-    account-usage.ts
-  runtimes/
-    <runtime-id>/
-      index.ts
-      installation.ts
-      account-usage.ts
-  shared/
-    <policy-free mechanism>/
+  index.ts                 # public exports + built-in composition
+  registry.ts              # runtime collection and lookup
+  contracts/               # provider-independent agreements
+  runtimes/<id>/           # one runtime, split by capability
+  shared/                  # policy-free reusable mechanisms
 ```
-
-- A simple capability has one behavior contract. Do not create API/SPI twins unless the call direction or abstraction level is genuinely different.
-- `runtimes/<id>/index.ts` is the composition root that answers which capabilities that runtime supports.
-- Runtime-specific parsing, protocol details, compatibility policy, and native surface handling stay in that runtime directory.
-- Move code to `shared/` only when it has no runtime identity and no OAR domain policy.
-- Keep host dependencies as ordinary constructor inputs until multiple runtimes prove a stable independently substitutable contract.
-- Do not pre-create empty architecture directories. Add a directory when real code establishes its ownership.
-
-## Import direction
 
 ```mermaid
 flowchart TB
-  Entry[index.ts<br/>public exports + composition]
-  Registry[registry.ts]
-  Contracts[contracts/*<br/>stable agreements]
-  Runtimes[runtimes/*<br/>concrete implementations]
-  Shared[shared/*<br/>policy-free utilities]
-  Native[native surfaces<br/>CLI / app-server / SDK]
+  Entry[index.ts<br/>only built-in composition root]
+  Registry[registry.ts<br/>imports contracts only]
+  Contracts[contracts/*<br/>what every implementation promises]
+  Runtimes[runtimes/*<br/>runtime-specific policy + native handling]
+  Shared[shared/*<br/>no runtime identity or OAR domain policy]
+  Native[CLI / app-server / SDK]
 
   Entry --> Registry
   Entry --> Contracts
@@ -53,18 +26,13 @@ flowchart TB
   Runtimes --> Shared
   Runtimes --> Native
 
-  Contracts -. must not import .-> Runtimes
-  Shared -. must not import .-> Runtimes
-  Shared -. must not import .-> Contracts
+  Contracts -. never import .-> Runtimes
+  Shared -. never import .-> Runtimes
+  Shared -. never import .-> Contracts
 ```
 
-Enforce the arrows as import rules. `contracts/` and `shared/` never import concrete runtimes. Only the public composition entrypoint assembles built-ins.
-
-## Behavior evidence
-
-- `sea-trial/` owns shared behavior/conformance cases and their judgments.
-- `drydock/` is the daemon-free execution vehicle for a RuntimeUnderTest.
-- `drydock/probes/` discovers native behavior; a probe is evidence for designing a contract, not a conformance case.
-- Ordinary focused unit and integration tests stay under `tests/`.
-
-Installation probing must remain local-only and must not perform login or usage requests. Account usage observation is a separate capability with its own caching, authentication, rate-limit, and error semantics.
+- Simple capabilities use one behavior contract; add separate API/SPI contracts only when abstraction level or call direction differs.
+- `runtimes/<id>/index.ts` declares that runtime's supported capabilities. Keep its parsing, compatibility policy, and protocol details nearby.
+- Keep host dependencies as constructor inputs until multiple runtimes prove a stable shared boundary. Do not create empty architecture directories.
+- `sea-trial/` owns shared behavior judgments; `drydock/` is their daemon-free RuntimeUnderTest vehicle; `drydock/probes/` is evidence, not conformance.
+- Installation probing is local-only. Account usage is a separate authenticated observation capability.
