@@ -7,7 +7,6 @@ export interface Runtime {
   readonly id: string;
   readonly installation?: InstallationProbe;
   readonly accountUsage?: AccountUsageReader;
-  /** @internal Draft scaffold — hidden from the published surface until the session design settles. */
   readonly session?: StartSession;
 }
 

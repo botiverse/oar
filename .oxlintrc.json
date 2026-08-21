@@ -105,7 +105,8 @@
         "import/no-nodejs-modules": "off",
         "eslint/max-statements": "off",
         "eslint/max-lines": "off",
-        "eslint/max-lines-per-function": "off"
+        "eslint/max-lines-per-function": "off",
+        "import/prefer-default-export": "off"
       }
     },
     {

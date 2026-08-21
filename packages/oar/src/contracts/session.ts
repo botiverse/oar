@@ -1,18 +1,20 @@
 import type { AvailableInstallation } from "./installation.js";
 
 /**
- * DRAFT SCAFFOLD — file framework only. Every shape below is a starting point
- * for review, not a settled contract; nothing here is exported from the public
- * package surface yet, and `Runtime.session` is `@internal` until the design
- * settles.
+ * Session/Turn contract v1.
  *
- * Settled inputs this draft is built on (see work log 2026-08-21):
- * - one high-level Turn per submitted user run, with a first-class id
- * - events carry sessionId/turnId/seq and an ingress hrtime timestamp
- * - observation is a sync, never-awaited side-tap with multi-subscribe
- * - static capability = optional field presence; dynamic refusal = result union
- * - mid-turn steer is native-only; next-turn queue prefers native passthrough
- * - v1 defers resume/persistence, permission settlement, and remote/lease
+ * Invariants (settled 2026-08-21; see the session-design thread):
+ * - At most one active turn per session. `prompt` during an active turn
+ *   returns a typed busy result; implicit queueing never happens.
+ * - Ownership is the object reference; no in-process lease. Turn handles bind
+ *   intent to identity, so steer/abort are structurally race-checked at the
+ *   runtime (codex: expectedTurnId).
+ * - Terminal idempotence: abort on an ended turn is a typed no-op, outcomes
+ *   settle exactly once, dispose aborts an active turn and is idempotent.
+ * - Observation is a side-tap: observers run synchronously, are never awaited,
+ *   and a throwing observer must not affect the run or other observers.
+ * - v1 defers resume/persistence, permission settlement (adapters run
+ *   pre-approved/harness defaults), and any remote/multi-consumer model.
  */
 
 export interface SessionOptions {
@@ -20,7 +22,11 @@ export interface SessionOptions {
   readonly cwd: string;
 }
 
-/** Execution capability entrypoint: composition probes installation first. */
+/**
+ * Execution capability entrypoint; composition probes installation first.
+ * Rejects only on operational failure (spawn/load/auth errors carry the
+ * runtime's message).
+ */
 export type StartSession = (
   installation: AvailableInstallation,
   options: SessionOptions,
@@ -28,22 +34,38 @@ export type StartSession = (
 
 export interface Session {
   readonly id: string;
-  /**
-   * Submit one user run. Open question: reject or auto-queue when a turn is
-   * already active — leaning reject, with queueing an explicit capability.
-   */
-  prompt(input: string): Turn;
-  /** Side-tap: observers are called synchronously, never awaited, must not throw. */
-  subscribe(observer: (event: SessionEvent) => void): () => void;
+  /** Submit one user run. Busy while another turn is active — never queues implicitly. */
+  prompt(input: string): PromptResult;
+  /** Side-tap: sync fan-out, never awaited; observer errors are swallowed. */
+  subscribe(observer: SessionObserver): Unsubscribe;
+  /** Aborts an active turn, releases the runtime, idempotent. */
   dispose(): Promise<void>;
 }
 
+export type PromptResult =
+  | { readonly kind: "turn"; readonly turn: Turn }
+  | { readonly kind: "busy" };
+
+export type SessionObserver = (event: SessionEvent) => void;
+export type Unsubscribe = () => void;
+
 export interface Turn {
   readonly id: string;
-  /** Settles exactly once with the terminal outcome; never rejects for a runtime-reported end. */
+  /** Settles exactly once; runtime-reported ends resolve (never reject). */
   readonly outcome: Promise<TurnOutcome>;
+  /** Typed no-op after the turn ended (a late abort is normal, not an error). */
   abort(): Promise<void>;
-  /** Mid-turn steering; absent when the runtime cannot inject into an active turn. */
+  /**
+   * Mid-turn input, absent when the runtime cannot inject into an active turn.
+   * Timing is always "next model-step boundary"; where the input landed is the
+   * event stream's job to show (same turnId, or a fresh turn_started when a
+   * runtime like claude auto-queues past a turn that just ended). Ack strength
+   * differs per runtime and is documented, not typed: codex confirms
+   * into-active-turn, pi confirms enqueue, claude confirms the write.
+   * Known gap, deliberate: a turn a runtime starts on its own (claude
+   * auto-queue landing) has events but no control handle until a real
+   * application needs one.
+   */
   readonly steer?: (input: string) => Promise<SteerResult>;
 }
 
@@ -53,13 +75,10 @@ export type TurnOutcome =
   | { readonly kind: "failed"; readonly reason: string };
 
 export type SteerResult =
-  | { readonly kind: "steered" }
+  | { readonly kind: "accepted" }
   | { readonly kind: "not_steerable"; readonly reason: string };
 
-/**
- * Minimal v1 event union. Deliberately shallow: runtime-specific detail rides
- * in adapter-owned payloads once real adapters demand it.
- */
+/** Envelope + minimal body; runtime-specific detail waits for real demand. */
 export type SessionEvent = SessionEventEnvelope & SessionEventBody;
 
 export interface SessionEventEnvelope {
@@ -67,7 +86,7 @@ export interface SessionEventEnvelope {
   readonly turnId: string;
   /** Monotonic per session; total order for trace alignment. */
   readonly seq: number;
-  /** process.hrtime.bigint()-derived milliseconds at adapter ingress. */
+  /** Milliseconds since the session started, stamped at adapter ingress. */
   readonly receivedAt: number;
 }
 

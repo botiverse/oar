@@ -1,11 +1,100 @@
+import type { SessionEvent, Turn } from "../../packages/oar/src/contracts/session.js";
 import type { TrialCase } from "../runner.js";
 
-/**
- * DRAFT SCAFFOLD — shared session behavior cases land here once the session
- * contract settles. Planned judgments, driven through the mock runtime first:
- * - a prompt yields turn_started … turn_ended framing with one terminal outcome
- * - event envelopes are attributable (sessionId/turnId) and seq is monotonic
- * - abort settles the outcome as aborted exactly once
- * - observers are isolated: a throwing observer must not affect the run
- */
-export const sessionCases: readonly TrialCase[] = [];
+function expectTurn(result: { kind: "turn"; turn: Turn } | { kind: "busy" }): Turn {
+  if (result.kind !== "turn") {
+    throw new Error("expected a turn but the session reported busy");
+  }
+  return result.turn;
+}
+
+export const sessionCases: readonly TrialCase[] = [
+  {
+    id: "session.framing-and-attribution",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const events: SessionEvent[] = [];
+      session.subscribe((event) => {
+        events.push(event);
+      });
+      const turn = expectTurn(session.prompt("hello"));
+      const outcome = await turn.outcome;
+      if (outcome.kind !== "completed") {
+        throw new Error(`expected completed, got ${outcome.kind}`);
+      }
+      if (events[0]?.kind !== "turn_started" || events.at(-1)?.kind !== "turn_ended") {
+        throw new Error("turn events are not framed by turn_started … turn_ended");
+      }
+      for (const [index, event] of events.entries()) {
+        if (event.sessionId !== session.id || event.turnId !== turn.id) {
+          throw new Error("event attribution crossed wires");
+        }
+        if (index > 0 && event.seq <= (events[index - 1]?.seq ?? Number.NaN)) {
+          throw new Error("seq is not strictly increasing");
+        }
+      }
+      await session.dispose();
+    },
+  },
+  {
+    id: "session.single-active-turn",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const first = expectTurn(session.prompt("one"));
+      if (session.prompt("two").kind !== "busy") {
+        throw new Error("second prompt during an active turn was not busy");
+      }
+      await first.outcome;
+      const third = session.prompt("three");
+      if (third.kind !== "turn") {
+        throw new Error("prompt after settlement should start a turn");
+      }
+      await third.turn.outcome;
+      await session.dispose();
+    },
+  },
+  {
+    id: "session.abort-exactly-once",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const turn = expectTurn(session.prompt("slow"));
+      await turn.abort();
+      const outcome = await turn.outcome;
+      if (outcome.kind !== "aborted") {
+        throw new Error(`expected aborted, got ${outcome.kind}`);
+      }
+      await turn.abort();
+      const second = await turn.outcome;
+      if (second.kind !== "aborted") {
+        throw new Error("late abort changed a settled outcome");
+      }
+      await session.dispose();
+    },
+  },
+  {
+    id: "session.observer-isolation",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const seen: string[] = [];
+      session.subscribe(() => {
+        throw new Error("observer deliberately hostile");
+      });
+      session.subscribe((event) => {
+        seen.push(event.kind);
+      });
+      const turn = expectTurn(session.prompt("hello"));
+      const outcome = await turn.outcome;
+      if (outcome.kind !== "completed") {
+        throw new Error("a throwing observer affected the run");
+      }
+      if (!seen.includes("turn_started") || !seen.includes("turn_ended")) {
+        throw new Error("a throwing observer starved a later observer");
+      }
+      await session.dispose();
+    },
+  },
+];

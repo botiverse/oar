@@ -17,6 +17,20 @@ export type {
   InstallationSnapshot,
 } from "./contracts/installation.js";
 export type { Runtime } from "./contracts/runtime.js";
+export type {
+  PromptResult,
+  Session,
+  SessionEvent,
+  SessionEventBody,
+  SessionEventEnvelope,
+  SessionObserver,
+  SessionOptions,
+  StartSession,
+  SteerResult,
+  Turn,
+  TurnOutcome,
+  Unsubscribe,
+} from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
