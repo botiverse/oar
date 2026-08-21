@@ -14,10 +14,7 @@ const fixture = defineRuntime({
   installation: {
     async probe() {
       return {
-        runtime: "fixture",
-        state: "available" as const,
-        observedAt: new Date(0).toISOString(),
-        source: "path" as const,
+        kind: "available" as const,
         version: "1.0.0",
       };
     },

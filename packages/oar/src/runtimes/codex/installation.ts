@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import { existsSync } from "node:fs";
-import type { Installation, InstallationSnapshot, InstallationSource } from "../../contracts/installation.js";
+import type { Installation, InstallationSnapshot } from "../../contracts/installation.js";
 import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
 import type { ExecutableRunner } from "../../shared/executable/index.js";
 
@@ -12,43 +12,31 @@ export interface CodexInstallationDependencies {
   readonly exists?: (filePath: string) => boolean;
   readonly resolve?: (command: string) => string | null;
   readonly run?: ExecutableRunner;
-  readonly now?: () => number;
 }
 
-interface Candidate {
-  readonly command: string;
-  readonly source: InstallationSource;
-}
-
-function candidates(dependencies: CodexInstallationDependencies): readonly Candidate[] {
+function candidates(dependencies: CodexInstallationDependencies): readonly string[] {
   const env = dependencies.env ?? process.env;
   const exists = dependencies.exists ?? existsSync;
   const resolve = dependencies.resolve ?? resolveExecutable;
   const explicit = env.CODEX_BIN?.trim();
   if (explicit !== undefined && explicit.length > 0) {
     const command = path.isAbsolute(explicit) ? explicit : resolve(explicit);
-    return command !== null && exists(command) ? [{ command, source: "explicit" }] : [];
+    return command !== null && exists(command) ? [command] : [];
   }
 
-  const found: Candidate[] = [];
+  const found: string[] = [];
   const onPath = resolve("codex");
-  if (onPath !== null) found.push({ command: onPath, source: "path" });
+  if (onPath !== null) found.push(onPath);
   if ((dependencies.platform ?? process.platform) === "darwin") {
     const home = dependencies.homeDirectory ?? os.homedir();
     for (const command of [
       "/Applications/ChatGPT.app/Contents/Resources/codex",
       path.join(home, ".codex", "plugins", ".plugin-appserver", "codex"),
     ]) {
-      if (exists(command) && !found.some((candidate) => candidate.command === command)) {
-        found.push({ command, source: "bundled" });
-      }
+      if (exists(command) && !found.includes(command)) found.push(command);
     }
   }
   return found;
-}
-
-function observedAt(dependencies: CodexInstallationDependencies): string {
-  return new Date((dependencies.now ?? Date.now)()).toISOString();
 }
 
 export function createCodexInstallation(
@@ -57,35 +45,31 @@ export function createCodexInstallation(
   return {
     async probe(): Promise<InstallationSnapshot> {
       const available = candidates(dependencies);
-      if (available.length === 0) {
-        return { runtime: "codex", state: "not_installed", observedAt: observedAt(dependencies) };
-      }
+      if (available.length === 0) return { kind: "not_found" };
+
       const run = dependencies.run ?? runExecutable;
-      const runOptions = {
+      const options = {
         timeoutMs: 5_000,
         ...(dependencies.env === undefined ? {} : { env: dependencies.env }),
       };
-      for (const candidate of available) {
-        const appServer = await run(candidate.command, ["app-server", "--help"], runOptions);
+      for (const command of available) {
+        const appServer = await run(command, ["app-server", "--help"], options);
+        if (!appServer.ok && appServer.exitCode === null) {
+          throw new Error("Failed to probe the Codex app-server surface");
+        }
         if (!appServer.ok) continue;
-        const version = await run(candidate.command, ["--version"], runOptions);
+
+        const version = await run(command, ["--version"], options);
+        if (!version.ok && version.exitCode === null) {
+          throw new Error("Failed to probe the Codex installation version");
+        }
+        const value = version.stdout.trim().split(/\r?\n/u)[0];
         return {
-          runtime: "codex",
-          state: "available",
-          observedAt: observedAt(dependencies),
-          source: candidate.source,
-          ...(version.ok && version.stdout.trim().length > 0
-            ? { version: version.stdout.trim().split(/\r?\n/u)[0] }
-            : {}),
+          kind: "available",
+          ...(version.ok && value !== undefined && value.length > 0 ? { version: value } : {}),
         };
       }
-      return {
-        runtime: "codex",
-        state: "incompatible",
-        observedAt: observedAt(dependencies),
-        ...(available[0] === undefined ? {} : { source: available[0].source }),
-        diagnostic: { code: "app_server_unavailable" },
-      };
+      return { kind: "unsupported", reason: "app_server_unavailable" };
     },
   };
 }

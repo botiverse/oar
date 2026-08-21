@@ -19,10 +19,7 @@ export {
 } from "./contracts/account-usage.js";
 export type {
   Installation,
-  InstallationDiagnostic,
   InstallationSnapshot,
-  InstallationSource,
-  InstallationState,
 } from "./contracts/installation.js";
 export type { Runtime } from "./contracts/runtime.js";
 export { defineRuntime } from "./contracts/runtime.js";

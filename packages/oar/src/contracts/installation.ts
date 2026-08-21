@@ -1,24 +1,15 @@
-export type InstallationState =
-  | "available"
-  | "not_installed"
-  | "incompatible"
-  | "detect_failed";
-
-export type InstallationSource = "explicit" | "path" | "bundled" | "sdk";
-
-export interface InstallationDiagnostic {
-  readonly code: string;
-  readonly detail?: string;
-}
-
-export interface InstallationSnapshot {
-  readonly runtime: string;
-  readonly state: InstallationState;
-  readonly observedAt: string;
-  readonly version?: string;
-  readonly source?: InstallationSource;
-  readonly diagnostic?: InstallationDiagnostic;
-}
+export type InstallationSnapshot =
+  | {
+      readonly kind: "available";
+      readonly version?: string;
+    }
+  | {
+      readonly kind: "not_found";
+    }
+  | {
+      readonly kind: "unsupported";
+      readonly reason: string;
+    };
 
 /** A local-only installation observation. Implementations must not perform account or usage I/O. */
 export interface Installation {

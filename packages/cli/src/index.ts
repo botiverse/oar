@@ -29,10 +29,10 @@ program
   .alias("detect")
   .description("Probe local runtime installation without account or usage I/O")
   .action(async (id: string | undefined) => {
-    const result = await Promise.all(selected(id).map(async (runtime) =>
-      runtime.installation === undefined
-        ? { runtime: runtime.id, state: "unsupported" }
-        : runtime.installation.probe()));
+    const result = await Promise.all(selected(id).map(async (runtime) => ({
+      runtimeId: runtime.id,
+      installation: runtime.installation === undefined ? null : await runtime.installation.probe(),
+    })));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 
