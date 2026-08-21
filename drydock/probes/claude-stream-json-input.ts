@@ -41,9 +41,7 @@ import { spawn } from "node:child_process";
 
 const started = Date.now();
 const t = (): string => `${String(Date.now() - started).padStart(6, " ")}ms`;
-const timeline: string[] = [];
 const log = (line: string): void => {
-  timeline.push(`${t()}  ${line}`);
   process.stdout.write(`${t()}  ${line}\n`);
 };
 
@@ -96,56 +94,82 @@ child.on("exit", (code) => {
   }
 });
 
+function parseRecord(line: string): Record<string, unknown> | null {
+  const value = ((): unknown => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      return null;
+    }
+  })();
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? Object.fromEntries(Object.entries(value))
+    : null;
+}
+
+function settle(): void {
+  const [a, b, c] = resultTexts;
+  const clean = a !== undefined && a.includes("ok-1") && !a.includes("ok-2")
+    && b !== undefined && b.includes("ok-2")
+    && c !== undefined && c.includes("ok-3");
+  finish(
+    clean ? 0 : 1,
+    clean
+      ? "mid-turn write ACCEPTED and QUEUED AS NEXT TURN (not injected into the active turn, not rejected, not fatal)"
+      : `unexpected attribution: ${JSON.stringify(resultTexts)}`,
+  );
+}
+
+function record(message: Record<string, unknown>, kind: string): void {
+  if (kind === "result") {
+    results += 1;
+    const text = typeof message.result === "string" ? message.result.trim() : "";
+    resultTexts.push(text);
+    log(`<< result #${results}: ${JSON.stringify(text.slice(0, 80))}`);
+  } else {
+    const subtype = typeof message.subtype === "string" ? `/${message.subtype}` : "";
+    log(`<< ${kind}${subtype}`);
+  }
+}
+
+// Drive the experiment forward from what the transcript shows.
+function drive(kind: string): void {
+  if (!wroteB && (kind === "assistant" || kind === "stream_event")) {
+    wroteB = true;
+    send("B mid-turn", "Reply with exactly ok-2 and nothing else.");
+  }
+  if (results === 2 && !wroteC) {
+    wroteC = true;
+    send("C while idle", "Reply with exactly ok-3 and nothing else.");
+  }
+  if (results === 3) {
+    settle();
+  }
+}
+
+function handleMessage(message: Record<string, unknown>): void {
+  const kind = typeof message.type === "string" ? message.type : "unknown";
+  record(message, kind);
+  drive(kind);
+}
+
+function handleLine(line: string): void {
+  const message = parseRecord(line);
+  if (message === null) {
+    log(`<< unparseable line: ${line.slice(0, 120)}`);
+  } else {
+    handleMessage(message);
+  }
+}
+
 child.stdout.on("data", (chunk: Buffer | string) => {
   buffer += chunk.toString();
-  for (;;) {
-    const newline = buffer.indexOf("\n");
-    if (newline === -1) {
-      break;
-    }
-    const line = buffer.slice(0, newline).trim();
-    buffer = buffer.slice(newline + 1);
-    if (line.length === 0) {
-      continue;
-    }
-    let message: Record<string, unknown>;
-    try {
-      message = JSON.parse(line) as Record<string, unknown>;
-    } catch {
-      log(`<< unparseable line: ${line.slice(0, 120)}`);
-      continue;
-    }
-    const kind = String(message.type);
-    const subtype = message.subtype === undefined ? "" : `/${String(message.subtype)}`;
-    if (kind === "result") {
-      results += 1;
-      const text = typeof message.result === "string" ? message.result.trim() : "";
-      resultTexts.push(text);
-      log(`<< result #${results}: ${JSON.stringify(text.slice(0, 80))}`);
-    } else {
-      log(`<< ${kind}${subtype}`);
-    }
-
-    // The moment turn A is visibly streaming, write B mid-turn.
-    if (!wroteB && (kind === "assistant" || kind === "stream_event")) {
-      wroteB = true;
-      send("B mid-turn", "Reply with exactly ok-2 and nothing else.");
-    }
-    // After the second result, the process is idle: write C.
-    if (results === 2 && !wroteC) {
-      wroteC = true;
-      send("C while idle", "Reply with exactly ok-3 and nothing else.");
-    }
-    if (results === 3) {
-      const [a, b, c] = resultTexts;
-      const clean = a?.includes("ok-1") === true && a.includes("ok-2") === false
-        && b?.includes("ok-2") === true && c?.includes("ok-3") === true;
-      finish(
-        clean ? 0 : 1,
-        clean
-          ? "mid-turn write ACCEPTED and QUEUED AS NEXT TURN (not injected into the active turn, not rejected, not fatal)"
-          : `unexpected attribution: ${JSON.stringify(resultTexts)}`,
-      );
+  const lines = buffer.split("\n");
+  buffer = lines.pop() ?? "";
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (line.length > 0) {
+      handleLine(line);
     }
   }
 });
