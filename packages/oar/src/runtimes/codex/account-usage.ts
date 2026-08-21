@@ -3,7 +3,7 @@ import type {
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
-import { exchangeJsonl } from "../../shared/executable/index.js";
+import { startAppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 
 type ReadOutcome =
@@ -113,39 +113,31 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
 }
 
 async function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutcome> {
-  const outcome = await exchangeJsonl<ReadOutcome>(
-    command,
-    ["app-server", "--listen", "stdio://"],
-    {
-      id: "initialize",
-      method: "initialize",
-      params: { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } },
-    },
-    (message, send) => {
-      if (message.id === "initialize") {
-        send({ method: "initialized", params: {} });
-        send({ id: "usage", method: "account/rateLimits/read", params: {} });
-        return null;
-      }
-      if (message.id !== "usage") {
-        return null;
-      }
-      const error = asRecord(message.error);
-      if (error === null) {
-        return { kind: "ok", result: message.result };
-      }
-      const errorText = text(error.message) ?? "";
-      if (/authentication required/iu.test(errorText)) {
-        return { kind: "reauth_required" };
-      }
-      if (/method not found|not supported/iu.test(errorText)) {
-        return { kind: "unsupported" };
-      }
-      return { kind: "error" };
-    },
-    timeoutMs,
-  );
-  return outcome ?? { kind: "error" };
+  const client = startAppServerClient(command);
+  const deadline = setTimeout(() => {
+    client.kill();
+  }, timeoutMs);
+  try {
+    await client.request("initialize", {
+      clientInfo: { name: "oar", version: "0.0.0" },
+      capabilities: { experimentalApi: true },
+    });
+    client.notify("initialized", {});
+    const result = await client.request("account/rateLimits/read", {});
+    return { kind: "ok", result };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/authentication required/iu.test(message)) {
+      return { kind: "reauth_required" };
+    }
+    if (/method not found|not supported/iu.test(message)) {
+      return { kind: "unsupported" };
+    }
+    return { kind: "error" };
+  } finally {
+    clearTimeout(deadline);
+    client.kill();
+  }
 }
 
 export const codexAccountUsage: AccountUsageReader = async (installation, options = {}) => {

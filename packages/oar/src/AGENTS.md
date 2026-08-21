@@ -6,7 +6,8 @@ src/
   registry.ts              # runtime collection and lookup
   contracts/               # provider-independent agreements
   runtimes/<id>/           # one runtime, split by capability
-  shared/                  # provider-independent reusable mechanisms
+  shared/                  # mechanisms + shared contract implementations
+  observe/                 # consumer-side derivations over the event stream
 ```
 
 ```mermaid
@@ -16,20 +17,25 @@ flowchart TB
   Contracts[contracts/*<br/>what every implementation promises]
   Runtimes[runtimes/*<br/>runtime-specific policy + native handling]
   Shared[shared/*<br/>no runtime identity; may implement contracts]
+  Observe[observe/*<br/>consumes the public contract: status fold, stream transforms]
   Native[vendor CLI / app-server / SDK]
 
   Entry --> Registry
   Entry --> Contracts
   Entry --> Runtimes
+  Entry --> Observe
   Registry --> Contracts
   Runtimes --> Contracts
   Runtimes --> Shared
   Runtimes --> Native
   Shared --> Contracts
+  Observe --> Contracts
 
   Contracts -. never import .-> Shared
   Contracts -. never import .-> Runtimes
   Shared -. never import .-> Runtimes
+  Observe -. never import .-> Runtimes
+  Observe -. never import .-> Shared
 ```
 
 - Simple capabilities use one behavior contract; add separate API/SPI contracts only when abstraction level or call direction differs.
@@ -37,4 +43,4 @@ flowchart TB
 - Keep host dependencies as constructor inputs until multiple runtimes prove a stable shared boundary. Do not create empty architecture directories.
 - `sea-trial/` owns shared behavior judgments; `drydock/` is their daemon-free RuntimeUnderTest vehicle; `drydock/probes/` is evidence, not conformance.
 - Installation probing is local-only. Account usage is a separate authenticated observation capability.
-- Draft contracts stay off the public surface: `contracts/session.ts` and `Runtime.session` are `@internal` scaffolds (stripped from published d.ts) until the design settles; `runtimes/*/session.ts` hold the adapter landing sites.
+- Behavior invariants live as comments on the exact contract member they constrain; every must/never has (or gets) a sea-trial case.

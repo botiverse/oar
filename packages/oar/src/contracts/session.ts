@@ -51,14 +51,17 @@ export interface Turn {
   abort(): Promise<void>; // no-op after the turn ended — a late abort is a normal race, not an error
   /**
    * Mid-turn input; absent when the runtime cannot inject into an active turn.
-   * Applies at the next model-step boundary. During runtime-autonomous
-   * compaction the input is HELD, not lost (codex resumes then drains; claude
-   * runs it after the compaction turn); codex Compact/Review turns reject with
-   * not_steerable instead. Where input landed is the event stream's job: same
-   * turnId, or a fresh turn_started when claude auto-queues past a turn that
-   * just ended (that spontaneous turn has events but no control handle yet).
-   * Ack strength is documented, not typed: codex confirms into-active-turn,
-   * pi confirms enqueue, claude confirms the write.
+   * `accepted` is ONE deliberately weak promise, identical on every runtime:
+   * the adapter took this input attempt and the caller must not resubmit it —
+   * no guarantee the model saw it, none that it lands in the current turn,
+   * none that it was acted on. How acceptance happens (stdin write, native
+   * enqueue, a runtime-side steer ack) is adapter-internal and adapter-tested,
+   * never an application-facing difference. Input written during
+   * runtime-autonomous compaction is HELD, not lost; codex Compact/Review
+   * turns reject with not_steerable instead. Where input landed is the event
+   * stream's job: same turnId, or a fresh turn_started when a runtime
+   * auto-queues past a turn that just ended (that spontaneous turn has events
+   * but no control handle yet).
    */
   readonly steer?: (input: string) => Promise<SteerResult>;
 }

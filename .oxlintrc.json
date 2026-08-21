@@ -76,7 +76,8 @@
         "packages/oar/src/runtimes/**",
         "packages/oar/src/shared/**",
         "packages/cli/src/**",
-        "sea-trial/**"
+        "sea-trial/**",
+        "packages/oar/src/observe/**"
       ],
       "rules": {
         "eslint/max-params": "off",

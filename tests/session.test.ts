@@ -23,7 +23,7 @@ test("mock runtime passes every shared session behavior case", async () => {
 });
 
 async function runAggregated(): Promise<string[]> {
-  const { aggregateDeltas } = await import("../packages/oar/src/shared/aggregate-events.js");
+  const { aggregateDeltas } = await import("../packages/oar/src/observe/aggregate-events.js");
   const session = await startMockSession(
     { kind: "available", via: "bundled" },
     { cwd: process.cwd() },
@@ -50,7 +50,7 @@ test("aggregateDeltas merges consecutive deltas and preserves order", async () =
 });
 
 test("observeStalls reports a silent active turn", async () => {
-  const { observeStalls } = await import("../packages/oar/src/shared/stall-observer.js");
+  const { observeStalls } = await import("../packages/oar/src/observe/stall-observer.js");
   const session = await startMockSession(
     { kind: "available", via: "bundled" },
     { cwd: process.cwd() },
@@ -72,7 +72,7 @@ test("observeStalls reports a silent active turn", async () => {
 
 test("reduceStatus follows the documented transition table", async () => {
   const { initialStatus, reduceStatus, stallOf } = await import(
-    "../packages/oar/src/shared/agent-status.js"
+    "../packages/oar/src/observe/agent-status.js"
   );
   const envelope = { sessionId: "s", turnId: "t", seq: 0, receivedAt: 1000 };
   const fold = (events: Parameters<typeof reduceStatus>[1][]): unknown[] => {

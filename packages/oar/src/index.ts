@@ -33,15 +33,15 @@ export type {
 } from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
-export { aggregateDeltas } from "./shared/aggregate-events.js";
+export { aggregateDeltas } from "./observe/aggregate-events.js";
 export {
   initialStatus,
   reduceStatus,
   stallOf,
-} from "./shared/agent-status.js";
-export type { AgentStatus, RunningPhase } from "./shared/agent-status.js";
-export { observeStalls } from "./shared/stall-observer.js";
-export type { StallInfo } from "./shared/stall-observer.js";
+} from "./observe/agent-status.js";
+export type { AgentStatus, RunningPhase } from "./observe/agent-status.js";
+export { observeStalls } from "./observe/stall-observer.js";
+export type { StallInfo } from "./observe/stall-observer.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { codexRuntime } from "./runtimes/codex/index.js";
 export { piRuntime } from "./runtimes/pi/index.js";
