@@ -10,6 +10,7 @@ const fixture = defineRuntime({
   id: "fixture",
   installation: async () => ({
     kind: "available" as const,
+    command: process.execPath,
     version: "1.0.0",
   }),
   accountUsage: async () => ({

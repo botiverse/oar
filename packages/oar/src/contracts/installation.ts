@@ -1,8 +1,12 @@
+/** A verified local installation: the probed executable and its reported version. */
+export interface AvailableInstallation {
+  readonly kind: "available";
+  readonly command: string;
+  readonly version?: string;
+}
+
 export type InstallationSnapshot =
-  | {
-      readonly kind: "available";
-      readonly version?: string;
-    }
+  | AvailableInstallation
   | {
       readonly kind: "not_found";
     }

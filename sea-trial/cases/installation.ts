@@ -12,6 +12,9 @@ export const installationCases: readonly TrialCase[] = [
       if (snapshot.kind === "unsupported" && snapshot.reason.length === 0) {
         throw new Error("unsupported installation has no reason");
       }
+      if (snapshot.kind === "available" && snapshot.command.length === 0) {
+        throw new Error("available installation has no command");
+      }
     },
   },
 ];

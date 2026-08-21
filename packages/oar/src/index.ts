@@ -9,6 +9,7 @@ export type {
   AccountUsageWindow,
 } from "./contracts/account-usage.js";
 export type {
+  AvailableInstallation,
   InstallationProbe,
   InstallationSnapshot,
 } from "./contracts/installation.js";

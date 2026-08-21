@@ -3,7 +3,7 @@ import type {
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
-import { exchangeJsonl, resolveExecutable } from "../../shared/executable/index.js";
+import { exchangeJsonl } from "../../shared/executable/index.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 
 type ReadOutcome =
@@ -148,12 +148,8 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
   return outcome ?? { kind: "error" };
 }
 
-export const codexAccountUsage: AccountUsageReader = async (options = {}) => {
-  const command = resolveExecutable("codex");
-  if (command === null) {
-    return { kind: "unsupported" };
-  }
-  const outcome = await readFromAppServer(command, options.timeoutMs ?? 8000);
+export const codexAccountUsage: AccountUsageReader = async (installation, options = {}) => {
+  const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000);
   if (outcome.kind === "ok") {
     return projectCodexUsage(outcome.result);
   }

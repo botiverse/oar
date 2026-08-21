@@ -37,12 +37,17 @@ program
 
 program
   .command("usage [runtime]")
-  .description("Read account usage independently from installation detection")
+  .description("Read account usage for each available installation")
   .action(async (id: string | undefined) => {
     const result = await Promise.all(selected(id).map(async (runtime) => {
-      const accountUsage = runtime.accountUsage === undefined
-        ? { kind: "unsupported" as const }
-        : await runtime.accountUsage();
+      if (runtime.accountUsage === undefined || runtime.installation === undefined) {
+        return { runtimeId: runtime.id, accountUsage: { kind: "unsupported" as const } };
+      }
+      const installation = await runtime.installation();
+      if (installation.kind !== "available") {
+        return { runtimeId: runtime.id, installation, accountUsage: null };
+      }
+      const accountUsage = await runtime.accountUsage(installation);
       return { runtimeId: runtime.id, accountUsage };
     }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

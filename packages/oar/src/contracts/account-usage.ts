@@ -1,3 +1,5 @@
+import type { AvailableInstallation } from "./installation.js";
+
 export interface AccountUsageWindow {
   readonly label: string;
   readonly usedRatio: number;
@@ -19,5 +21,6 @@ export interface AccountUsageReadOptions {
 }
 
 export type AccountUsageReader = (
+  installation: AvailableInstallation,
   options?: AccountUsageReadOptions,
 ) => Promise<AccountUsageSnapshot>;

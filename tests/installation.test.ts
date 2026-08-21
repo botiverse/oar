@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
+import { resolveExecutable } from "../packages/oar/src/shared/executable/index.js";
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
 
 async function withEnv<T>(
@@ -23,9 +24,11 @@ async function withEnv<T>(
   }
 }
 
+const nodeOnPath = resolveExecutable("node");
+
 test("executable installation resolves bare names on PATH", async () => {
   const onPath = await executableInstallation("OAR_FIXTURE_BIN", "node")();
-  assert.deepEqual(onPath, { kind: "available", version: process.version });
+  assert.deepEqual(onPath, { kind: "available", command: nodeOnPath, version: process.version });
 
   const absent = await executableInstallation("OAR_FIXTURE_BIN", "oar-fixture-missing")();
   assert.equal(absent.kind, "not_found");
@@ -37,7 +40,11 @@ test("a missing fallback path contributes no candidate", async () => {
     "oar-fixture-missing",
     ["/nonexistent/oar-fixture", process.execPath],
   )();
-  assert.deepEqual(snapshot, { kind: "available", version: process.version });
+  assert.deepEqual(snapshot, {
+    kind: "available",
+    command: process.execPath,
+    version: process.version,
+  });
 });
 
 test("a pinned env var is exclusive and must exist as given", async () => {
@@ -52,7 +59,11 @@ test("a pinned env var is exclusive and must exist as given", async () => {
     { OAR_FIXTURE_BIN: process.execPath },
     async () => installation(),
   );
-  assert.deepEqual(pinned, { kind: "available", version: process.version });
+  assert.deepEqual(pinned, {
+    kind: "available",
+    command: process.execPath,
+    version: process.version,
+  });
 });
 
 test("readiness gates each candidate", async () => {
@@ -62,7 +73,7 @@ test("readiness gates each candidate", async () => {
     [],
     ["--version"],
   )();
-  assert.deepEqual(ready, { kind: "available", version: process.version });
+  assert.deepEqual(ready, { kind: "available", command: nodeOnPath, version: process.version });
 
   // Node rejects the app-server-style subcommand, so the probe is unsupported.
   const unsupported = await executableInstallation(
@@ -82,7 +93,11 @@ test("claude and codex probe through their pin env vars", async () => {
     { OAR_CLAUDE_BIN: process.execPath },
     async () => claudeInstallation(),
   );
-  assert.deepEqual(claude, { kind: "available", version: process.version });
+  assert.deepEqual(claude, {
+    kind: "available",
+    command: process.execPath,
+    version: process.version,
+  });
 
   const codex = await withEnv(
     { OAR_CODEX_BIN: process.execPath },

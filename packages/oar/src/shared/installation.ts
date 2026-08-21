@@ -13,7 +13,9 @@ function usable(entry: string): string | null {
 
 async function versionSnapshot(command: string): Promise<InstallationSnapshot> {
   const version = await readExecutableVersion(command);
-  return version === undefined ? { kind: "available" } : { kind: "available", version };
+  return version === undefined
+    ? { kind: "available", command }
+    : { kind: "available", command, version };
 }
 
 /**
