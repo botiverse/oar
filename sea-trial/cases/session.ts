@@ -75,6 +75,20 @@ export const sessionCases: readonly TrialCase[] = [
     },
   },
   {
+    id: "session.steer-after-end",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const turn = expectTurn(session.prompt("hello"));
+      await turn.outcome;
+      const late = await turn.steer?.("too late");
+      if (late !== undefined && late.kind !== "not_steerable") {
+        throw new Error("steer through an ended turn handle must be not_steerable");
+      }
+      await session.dispose();
+    },
+  },
+  {
     id: "session.observer-isolation",
     requires: ["installation", "session"],
     async run(subject) {

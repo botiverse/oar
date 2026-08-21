@@ -1,4 +1,5 @@
 import type { Session, StartSession } from "../packages/oar/src/contracts/session.js";
+import { sealSession } from "../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 
 /**
@@ -10,7 +11,17 @@ export const startMockSession: StartSession = async (_installation, options): Pr
   await Promise.resolve();
   const kernel = createSessionKernel(options.resume);
   const steered: string[] = [];
-  return {
+  const queued: string[] = [];
+  const drainQueue = (): void => {
+    const next = queued.shift();
+    const turn = next === undefined ? null : kernel.begin();
+    if (next !== undefined && turn !== null) {
+      turn.emit({ kind: "text_delta", text: `queued:${next}` });
+      turn.settle({ kind: "completed" });
+      drainQueue();
+    }
+  };
+  return sealSession({
     id: kernel.sessionId,
     prompt(input) {
       const turn = kernel.begin();
@@ -24,6 +35,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
           turn.emit({ kind: "text_delta", text: `steer:${extra}` });
         }
         turn.settle({ kind: "completed" });
+        drainQueue();
       }, 10);
       return {
         kind: "turn",
@@ -39,6 +51,9 @@ export const startMockSession: StartSession = async (_installation, options): Pr
           },
           steer: async (extra) => {
             await Promise.resolve();
+            if (turn.settled()) {
+              return { kind: "not_steerable", reason: "turn already ended" };
+            }
             steered.push(extra);
             return { kind: "accepted" };
           },
@@ -46,9 +61,19 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    queue: {
+      durable: false,
+      add: async (input) => {
+        await Promise.resolve();
+        queued.push(input);
+        if (kernel.active() === null) {
+          drainQueue();
+        }
+      },
+    },
     dispose: async () => {
       await Promise.resolve();
       kernel.active()?.settle({ kind: "aborted" });
     },
-  };
+  });
 };

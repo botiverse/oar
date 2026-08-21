@@ -37,7 +37,34 @@ export interface Session {
   readonly id: string; // runtime-native persistent identity — pass to SessionOptions.resume to reattach later
   prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
   subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
+  readonly queue?: TurnQueue; // next-turn input; absent only when a runtime cannot even hold input for later
   dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent
+  /**
+   * DERIVED, not adapter-implemented: steer when the runtime can, fall back to
+   * queueing, always report where the input landed. `rejected` means the input
+   * was NOT taken over and the caller still owns it.
+   */
+  steerOrQueue(turn: Turn, input: string): Promise<SteerOrQueueResult>;
+}
+
+/** What an adapter actually builds; sealSession derives the rest. This is the SPI face of Session. */
+export type AdapterSession = Omit<Session, "steerOrQueue">;
+
+export type SteerOrQueueResult =
+  | { readonly landed: "steered" }
+  | { readonly landed: "queued" }
+  | { readonly landed: "rejected"; readonly reason: string };
+
+/**
+ * Queue input to run as a future turn. `add` follows the same weak
+ * delivery-obligation transfer as steer's accepted: the adapter (or runtime)
+ * now owns not losing it; whether that survives a process restart is what
+ * `durable` reports honestly (codex: runtime-persisted; claude/pi: held in
+ * this process only).
+ */
+export interface TurnQueue {
+  readonly durable: boolean;
+  add(input: string): Promise<void>;
 }
 
 export type PromptResult =

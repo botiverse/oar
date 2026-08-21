@@ -1,4 +1,4 @@
-import { defineRuntime } from "../../contracts/runtime.js";
+import { defineRuntime } from "../../shared/define-runtime.js";
 import { piInstallation } from "./installation.js";
 import { piSession } from "./session.js";
 

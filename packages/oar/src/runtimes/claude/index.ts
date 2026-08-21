@@ -1,4 +1,4 @@
-import { defineRuntime } from "../../contracts/runtime.js";
+import { defineRuntime } from "../../shared/define-runtime.js";
 import { claudeAccountUsage } from "./account-usage.js";
 import { claudeInstallation } from "./installation.js";
 import { claudeSession } from "./session.js";

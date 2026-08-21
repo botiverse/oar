@@ -7,6 +7,7 @@ import type {
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
+import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 
 /*
@@ -108,6 +109,9 @@ export const claudeSession: StartSession = async (installation, options) => {
   const kernel = createSessionKernel(sessionId);
   const state: ClaudeSessionState = { child, turn: null, abortPending: false, disposed: false };
   let interruptCounter = 0;
+  // claude cannot hold input for a LATER turn natively (an active-turn write
+  // steers), so queueing is adapter-held: drained one message per turn end.
+  const heldQueue: string[] = [];
 
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
@@ -120,6 +124,12 @@ export const claudeSession: StartSession = async (installation, options) => {
       state.turn = kernel.begin();
     }
     projectMessage(state, message);
+    if (message.type === "result" && kernel.active() === null && !state.disposed) {
+      const next = heldQueue.shift();
+      if (next !== undefined) {
+        child.write(userMessage(next));
+      }
+    }
   });
   child.onExit(() => {
     const active = kernel.active();
@@ -154,7 +164,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     },
   });
 
-  const session: Session = {
+  const session: Session = sealSession({
     id: kernel.sessionId,
     prompt(input): PromptResult {
       const turn = kernel.begin();
@@ -166,6 +176,17 @@ export const claudeSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    queue: {
+      durable: false,
+      add: async (input) => {
+        await Promise.resolve();
+        if (kernel.active() === null) {
+          child.write(userMessage(input));
+        } else {
+          heldQueue.push(input);
+        }
+      },
+    },
     dispose: async () => {
       if (state.disposed) {
         return;
@@ -175,6 +196,6 @@ export const claudeSession: StartSession = async (installation, options) => {
       child.kill();
       await Promise.resolve();
     },
-  };
+  });
   return session;
 };

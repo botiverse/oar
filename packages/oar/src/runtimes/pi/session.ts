@@ -1,4 +1,5 @@
 import type { Session, StartSession, Turn } from "../../contracts/session.js";
+import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 
 /*
@@ -36,12 +37,25 @@ export const piSession: StartSession = async (installation, options) => {
   const { session: piAgentSession } = await sdk.createAgentSession({ cwd: options.cwd });
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
-  let current: { turn: KernelTurn; abortRequested: boolean } | null = null;
+  let current: { turn: KernelTurn; abortRequested: boolean; adopted: boolean } | null = null;
   let disposed = false;
 
   piAgentSession.subscribe((event) => {
+    // A run pi starts that we did not prompt (a drained followUp) still
+    // becomes a real kernel turn; it settles on agent_end since no prompt
+    // promise is attached to it.
+    if (event.type === "agent_start" && kernel.active() === null) {
+      const kernelTurn = kernel.begin();
+      if (kernelTurn !== null) {
+        current = { turn: kernelTurn, abortRequested: false, adopted: true };
+      }
+    }
     const state = current;
     if (state === null || state.turn.settled()) {
+      return;
+    }
+    if (event.type === "agent_end" && state.adopted) {
+      state.turn.settle(state.abortRequested ? { kind: "aborted" } : { kind: "completed" });
       return;
     }
     const turn = state.turn;
@@ -83,14 +97,14 @@ export const piSession: StartSession = async (installation, options) => {
     },
   });
 
-  const session: Session = {
+  const session: Session = sealSession({
     id: kernel.sessionId,
     prompt(input) {
       const turn = kernel.begin();
       if (turn === null) {
         return { kind: "busy" };
       }
-      const state = { turn, abortRequested: false };
+      const state = { turn, abortRequested: false, adopted: false };
       current = state;
       void (async (): Promise<void> => {
         try {
@@ -106,6 +120,13 @@ export const piSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(state) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    queue: {
+      durable: false,
+      add: async (input) => {
+        // followUp semantics: runs only when the agent would otherwise stop.
+        await piAgentSession.prompt(input, { streamingBehavior: "followUp" });
+      },
+    },
     dispose: async () => {
       if (disposed) {
         return;
@@ -118,6 +139,6 @@ export const piSession: StartSession = async (installation, options) => {
       }
       piAgentSession.dispose();
     },
-  };
+  });
   return session;
 };

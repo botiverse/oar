@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import type { Session, StartSession, Turn, TurnOutcome } from "../../contracts/session.js";
 import { asRecord } from "../../shared/json.js";
+import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 import { startAppServerClient } from "./app-server-client.js";
 
@@ -69,8 +71,24 @@ export const codexSession: StartSession = async (installation, options) => {
   let disposed = false;
 
   client.onNotification((method, params) => {
+    if (params.threadId !== threadId) {
+      return;
+    }
+    // A turn we did not start (a drained queue submission) still becomes a
+    // real kernel turn so its events and completion are attributable.
+    if (method === "turn/started" && kernel.active() === null) {
+      const startedTurn = asRecord(params.turn)?.id;
+      const kernelTurn = kernel.begin();
+      if (kernelTurn !== null && typeof startedTurn === "string") {
+        current = {
+          kernelTurn,
+          codexTurnId: Promise.resolve(startedTurn),
+          abortRequested: false,
+        };
+      }
+    }
     const state = current;
-    if (state === null || state.kernelTurn.settled() || params.threadId !== threadId) {
+    if (state === null || state.kernelTurn.settled()) {
       return;
     }
     const turn = state.kernelTurn;
@@ -135,7 +153,7 @@ export const codexSession: StartSession = async (installation, options) => {
     },
   });
 
-  const session: Session = {
+  const session: Session = sealSession({
     id: kernel.sessionId,
     prompt(input) {
       const kernelTurn = kernel.begin();
@@ -168,6 +186,16 @@ export const codexSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(state) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    queue: {
+      durable: true,
+      add: async (input) => {
+        await client.request("thread/queue/add", {
+          threadId,
+          input: [{ type: "text", text: input }],
+          clientUserMessageId: randomUUID(),
+        });
+      },
+    },
     dispose: async () => {
       if (disposed) {
         return;
@@ -177,6 +205,6 @@ export const codexSession: StartSession = async (installation, options) => {
       client.kill();
       await Promise.resolve();
     },
-  };
+  });
   return session;
 };

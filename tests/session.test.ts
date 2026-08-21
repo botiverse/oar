@@ -113,3 +113,23 @@ test("resume adopts the runtime-native session identity", async () => {
   await first.dispose();
   await second.dispose();
 });
+
+test("runtime.run composes probe, session, turn and text", async () => {
+  const outcome = await mockRuntime.run("ping", { cwd: process.cwd() });
+  assert.equal(outcome.outcome.kind, "completed");
+  assert.equal(outcome.text, "echo:ping");
+  assert.equal(typeof outcome.sessionId, "string");
+});
+
+test("session.steerOrQueue steers when possible and queues otherwise", async () => {
+  const installation = { kind: "available", via: "bundled" } as const;
+  const session = await startMockSession(installation, { cwd: process.cwd() });
+  const active = session.prompt("one");
+  if (active.kind !== "turn") {
+    throw new Error("expected turn");
+  }
+  assert.deepEqual(await session.steerOrQueue(active.turn, "mid"), { landed: "steered" });
+  await active.turn.outcome;
+  assert.deepEqual(await session.steerOrQueue(active.turn, "late"), { landed: "queued" });
+  await session.dispose();
+});
