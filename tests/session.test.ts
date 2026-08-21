@@ -20,3 +20,30 @@ test("mock runtime passes every shared session behavior case", async () => {
     JSON.stringify(outcomes),
   );
 });
+
+async function runAggregated(): Promise<string[]> {
+  const { aggregateDeltas } = await import("../packages/oar/src/shared/aggregate-events.js");
+  const session = await startMockSession(
+    { kind: "available", via: "bundled" },
+    { cwd: process.cwd() },
+  );
+  const merged: string[] = [];
+  session.subscribe(aggregateDeltas((event) => {
+    merged.push(event.kind === "text_delta" ? `text:${event.text}` : event.kind);
+  }));
+  const result = session.prompt("hello");
+  if (result.kind === "turn") {
+    await result.turn.steer?.("extra");
+    await result.turn.outcome;
+  }
+  await session.dispose();
+  return merged;
+}
+
+test("aggregateDeltas merges consecutive deltas and preserves order", async () => {
+  assert.deepEqual(await runAggregated(), [
+    "turn_started",
+    "text:echo:hellosteer:extra",
+    "turn_ended",
+  ]);
+});

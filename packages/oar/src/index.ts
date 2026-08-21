@@ -33,6 +33,7 @@ export type {
 } from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
+export { aggregateDeltas } from "./shared/aggregate-events.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { codexRuntime } from "./runtimes/codex/index.js";
 export { piRuntime } from "./runtimes/pi/index.js";
