@@ -10,7 +10,7 @@ import {
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   unsupportedAccountUsage,
 } from "../../contracts/account-usage.js";
-import { resolveCommand } from "../../shared/command/index.js";
+import { resolveExecutable } from "../../shared/executable/index.js";
 import { sha256Hex } from "../../shared/hash.js";
 
 function accountKey(localAccountSlot: string): string {
@@ -203,7 +203,7 @@ export function createCodexAccountUsage(): AccountUsage {
         localAccountSlot: input.localAccountSlot ?? "local",
         observedAtMs: input.observedAtMs ?? Date.now(),
       };
-      const command = resolveCommand("codex");
+      const command = resolveExecutable("codex");
       if (command === null) {
         return unsupportedAccountUsage({
           runtime: "codex",

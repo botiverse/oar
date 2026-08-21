@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-export interface CommandResolveOptions {
+export interface ExecutableResolveOptions {
   readonly platform?: NodeJS.Platform;
   readonly env?: NodeJS.ProcessEnv;
   readonly execFileSyncFn?: typeof execFileSync;
@@ -15,7 +15,7 @@ function firstLine(value: string | Buffer): string | null {
 }
 
 function resolveWindows(
-  command: string,
+  executable: string,
   env: NodeJS.ProcessEnv,
   execFile: typeof execFileSync,
   exists: (filePath: string) => boolean,
@@ -27,7 +27,7 @@ function resolveWindows(
   try {
     const resolved = firstLine(execFile(
       "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-Command", script, command],
+      ["-NoProfile", "-NonInteractive", "-Command", script, executable],
       { env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1_000 },
     ));
     if (resolved === null || !resolved.toLowerCase().endsWith(".ps1")) return resolved;
@@ -44,17 +44,17 @@ function resolveWindows(
 }
 
 /** Resolve one executable without invoking a shell. */
-export function resolveCommand(
-  command: string,
-  options: CommandResolveOptions = {},
+export function resolveExecutable(
+  executable: string,
+  options: ExecutableResolveOptions = {},
 ): string | null {
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
   const execFile = options.execFileSyncFn ?? execFileSync;
   const exists = options.existsSyncFn ?? existsSync;
-  if (platform === "win32") return resolveWindows(command, env, execFile, exists);
+  if (platform === "win32") return resolveWindows(executable, env, execFile, exists);
   try {
-    return firstLine(execFile("which", [command], {
+    return firstLine(execFile("which", [executable], {
       env,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],

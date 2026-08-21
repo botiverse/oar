@@ -1,11 +1,11 @@
 import type { Installation, InstallationSnapshot } from "../../contracts/installation.js";
-import { resolveCommand, runCommand } from "../../shared/command/index.js";
-import type { CommandRunner } from "../../shared/command/index.js";
+import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
+import type { ExecutableRunner } from "../../shared/executable/index.js";
 
 export interface ClaudeInstallationDependencies {
   readonly env?: NodeJS.ProcessEnv;
   readonly resolve?: (command: string) => string | null;
-  readonly run?: CommandRunner;
+  readonly run?: ExecutableRunner;
   readonly now?: () => number;
 }
 
@@ -15,14 +15,14 @@ export function createClaudeInstallation(
   return {
     async probe(): Promise<InstallationSnapshot> {
       const env = dependencies.env ?? process.env;
-      const resolve = dependencies.resolve ?? resolveCommand;
+      const resolve = dependencies.resolve ?? resolveExecutable;
       const explicit = env.CLAUDE_BIN?.trim();
       const command = explicit === undefined || explicit.length === 0
         ? resolve("claude")
         : resolve(explicit);
       const observedAt = new Date((dependencies.now ?? Date.now)()).toISOString();
       if (command === null) return { runtime: "claude", state: "not_installed", observedAt };
-      const result = await (dependencies.run ?? runCommand)(command, ["--version"], {
+      const result = await (dependencies.run ?? runExecutable)(command, ["--version"], {
         env,
         timeoutMs: 5_000,
       });

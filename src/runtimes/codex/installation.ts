@@ -2,8 +2,8 @@ import os from "node:os";
 import path from "node:path";
 import { existsSync } from "node:fs";
 import type { Installation, InstallationSnapshot, InstallationSource } from "../../contracts/installation.js";
-import { resolveCommand, runCommand } from "../../shared/command/index.js";
-import type { CommandRunner } from "../../shared/command/index.js";
+import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
+import type { ExecutableRunner } from "../../shared/executable/index.js";
 
 export interface CodexInstallationDependencies {
   readonly env?: NodeJS.ProcessEnv;
@@ -11,7 +11,7 @@ export interface CodexInstallationDependencies {
   readonly homeDirectory?: string;
   readonly exists?: (filePath: string) => boolean;
   readonly resolve?: (command: string) => string | null;
-  readonly run?: CommandRunner;
+  readonly run?: ExecutableRunner;
   readonly now?: () => number;
 }
 
@@ -23,7 +23,7 @@ interface Candidate {
 function candidates(dependencies: CodexInstallationDependencies): readonly Candidate[] {
   const env = dependencies.env ?? process.env;
   const exists = dependencies.exists ?? existsSync;
-  const resolve = dependencies.resolve ?? resolveCommand;
+  const resolve = dependencies.resolve ?? resolveExecutable;
   const explicit = env.CODEX_BIN?.trim();
   if (explicit !== undefined && explicit.length > 0) {
     const command = path.isAbsolute(explicit) ? explicit : resolve(explicit);
@@ -60,7 +60,7 @@ export function createCodexInstallation(
       if (available.length === 0) {
         return { runtime: "codex", state: "not_installed", observedAt: observedAt(dependencies) };
       }
-      const run = dependencies.run ?? runCommand;
+      const run = dependencies.run ?? runExecutable;
       const runOptions = {
         timeoutMs: 5_000,
         ...(dependencies.env === undefined ? {} : { env: dependencies.env }),

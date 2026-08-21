@@ -1,27 +1,27 @@
 import { execFile } from "node:child_process";
 
-export interface CommandResult {
+export interface ExecutableResult {
   readonly ok: boolean;
   readonly stdout: string;
   readonly stderr: string;
   readonly exitCode: number | null;
 }
 
-export interface CommandRunOptions {
+export interface ExecutableRunOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
 }
 
-export type CommandRunner = (
-  command: string,
+export type ExecutableRunner = (
+  executable: string,
   args: readonly string[],
-  options?: CommandRunOptions,
-) => Promise<CommandResult>;
+  options?: ExecutableRunOptions,
+) => Promise<ExecutableResult>;
 
-export const runCommand: CommandRunner = async (command, args, options = {}) =>
+export const runExecutable: ExecutableRunner = async (executable, args, options = {}) =>
   new Promise((resolve) => {
     execFile(
-      command,
+      executable,
       [...args],
       {
         env: options.env,

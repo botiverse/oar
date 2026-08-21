@@ -9,7 +9,7 @@ import {
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   unsupportedAccountUsage,
 } from "../../contracts/account-usage.js";
-import { resolveCommand, runCommand } from "../../shared/command/index.js";
+import { resolveExecutable, runExecutable } from "../../shared/executable/index.js";
 import { sha256Hex } from "../../shared/hash.js";
 
 function accountKey(localAccountSlot: string): string {
@@ -153,7 +153,7 @@ export function createClaudeAccountUsage(): AccountUsage {
         localAccountSlot: input.localAccountSlot ?? "local",
         observedAtMs: input.observedAtMs ?? Date.now(),
       };
-      const command = resolveCommand("claude");
+      const command = resolveExecutable("claude");
       if (command === null) {
         return unsupportedAccountUsage({
           runtime: "claude",
@@ -165,11 +165,11 @@ export function createClaudeAccountUsage(): AccountUsage {
       }
       const timeoutMs = input.timeoutMs ?? 15_000;
       const env = { ...process.env, CLAUDECODE: undefined };
-      const auth = await runCommand(command, ["auth", "status", "--json"], { env, timeoutMs });
+      const auth = await runExecutable(command, ["auth", "status", "--json"], { env, timeoutMs });
       if (/"loggedIn"\s*:\s*false/iu.test(auth.stdout)) {
         return statusSnapshot("reauth_required", options);
       }
-      const usage = await runCommand(command, ["-p", "/usage", "--output-format", "json"], {
+      const usage = await runExecutable(command, ["-p", "/usage", "--output-format", "json"], {
         env,
         timeoutMs,
       });

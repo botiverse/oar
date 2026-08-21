@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createClaudeInstallation } from "../src/runtimes/claude/installation.js";
 import { createCodexInstallation } from "../src/runtimes/codex/installation.js";
-import type { CommandRunner } from "../src/shared/command/index.js";
+import type { ExecutableRunner } from "../src/shared/executable/index.js";
 
-const success: CommandRunner = async (_command, args) => ({
+const success: ExecutableRunner = async (_executable, args) => ({
   ok: true,
   stdout: args[0] === "--version" ? "runtime 1.2.3\n" : "",
   stderr: "",
