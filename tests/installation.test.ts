@@ -110,10 +110,7 @@ test("claude and codex probe through their pin env vars", async () => {
   assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
 });
 
-test("pi installation reports the bundled sdk version", async () => {
+test("pi installation reports a versionless bundled availability", async () => {
   const snapshot = await piInstallation();
-  if (snapshot.kind !== "available" || snapshot.via !== "bundled" || snapshot.version === undefined) {
-    throw new Error("pi installation is not a versioned bundled availability");
-  }
-  assert.match(snapshot.version, /^\d+\.\d+\.\d+/u);
+  assert.deepEqual(snapshot, { kind: "available", via: "bundled" });
 });

@@ -15,12 +15,6 @@ export const installationCases: readonly TrialCase[] = [
       if (snapshot.kind === "available" && snapshot.via === "executable" && snapshot.command.length === 0) {
         throw new Error("available executable installation has no command");
       }
-      if (
-        snapshot.kind === "available" && snapshot.via === "bundled"
-        && snapshot.version !== undefined && snapshot.version.length === 0
-      ) {
-        throw new Error("available bundled installation has an empty version");
-      }
     },
   },
 ];

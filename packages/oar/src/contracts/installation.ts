@@ -8,13 +8,13 @@ export interface ExecutableInstallation {
 
 /**
  * A runtime compiled into the embedding application; availability needs no
- * probe target. Version is absent when the code is reachable but no trustworthy
- * manifest is (bundled/SEA deployments without node_modules on disk).
+ * probe target. Deliberately versionless: the embedder pins the sdk version,
+ * so unlike an uncontrolled machine-installed CLI there is nothing to advise
+ * the user to upgrade.
  */
 export interface BundledInstallation {
   readonly kind: "available";
   readonly via: "bundled";
-  readonly version?: string;
 }
 
 export type AvailableInstallation = ExecutableInstallation | BundledInstallation;
