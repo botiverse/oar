@@ -1,54 +1,24 @@
 {
-  "name": "@botiverse/oar",
-  "version": "0.0.1",
-  "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "description": "Provider-independent contracts for observing agent runtimes",
+  "name": "@botiverse/oar-workspace",
+  "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "LICENSE",
-    "README.md"
-  ],
-  "bin": {
-    "oar": "dist/cli.js"
-  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "prepare": "pnpm run build",
-    "typecheck": "tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings src drydock sea-trial",
+    "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
+    "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
+    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src drydock sea-trial",
     "test": "tsx --test tests/*.test.ts",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
-    "oar": "tsx src/cli.ts"
+    "oar": "pnpm run build && node packages/cli/dist/index.js"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "oxlint": "^1.77.0",
     "oxlint-tsgolint": "^7.0.2001",
-    "typescript": "^5.6.3",
-    "tsx": "^4.21.0"
-  },
-  "dependencies": {
-    "commander": "^12.1.0"
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.3"
   },
   "packageManager": "pnpm@9.12.3",
   "engines": {
     "node": ">=20"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/botiverse/oar.git"
-  },
-  "license": "Apache-2.0"
+  }
 }

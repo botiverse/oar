@@ -22,17 +22,21 @@ const usage = await codex.accountUsage?.read({
 });
 ```
 
-The source ownership model is documented in [`src/AGENTS.md`](src/AGENTS.md):
+The source ownership model is documented in [`packages/oar/src/AGENTS.md`](packages/oar/src/AGENTS.md):
 
-- `src/contracts/` — stable provider-independent agreements.
-- `src/runtimes/<id>/` — concrete implementations split by capability.
-- `src/shared/` — policy-free reusable mechanisms.
+- `packages/oar/src/contracts/` — stable provider-independent agreements.
+- `packages/oar/src/runtimes/<id>/` — concrete implementations split by capability.
+- `packages/oar/src/shared/` — policy-free reusable mechanisms.
+- `packages/cli/` — the separately installable CLI and its Commander dependency.
 - `drydock/` — daemon-free execution vehicle.
 - `sea-trial/` — shared behavior/conformance judgments.
 
 ## CLI
 
+The CLI is published separately as `@botiverse/oar-cli`, so library consumers do not install Commander.
+
 ```bash
+npx @botiverse/oar-cli list
 oar list
 oar installation
 oar installation codex

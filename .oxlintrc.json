@@ -90,9 +90,9 @@
     },
     {
       "files": [
-        "src/runtimes/**",
-        "src/shared/**",
-        "src/cli.ts",
+        "packages/oar/src/runtimes/**",
+        "packages/oar/src/shared/**",
+        "packages/cli/src/**",
         "sea-trial/**"
       ],
       "rules": {

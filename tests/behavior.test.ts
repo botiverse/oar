@@ -7,7 +7,7 @@ import { runSuite } from "../sea-trial/runner.js";
 import {
   ACCOUNT_USAGE_PROTOCOL_VERSION,
   defineRuntime,
-} from "../src/index.js";
+} from "../packages/oar/src/index.js";
 
 const fixture = defineRuntime({
   id: "fixture",

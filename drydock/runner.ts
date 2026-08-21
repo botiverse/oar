@@ -1,4 +1,4 @@
-import type { Runtime } from "../src/contracts/runtime.js";
+import type { Runtime } from "../packages/oar/src/contracts/runtime.js";
 
 /** A daemon-free subject passed to sea-trial behavior cases. */
 export interface RuntimeUnderTest {

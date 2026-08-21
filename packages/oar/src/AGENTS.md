@@ -16,7 +16,7 @@ flowchart TB
   Contracts[contracts/*<br/>what every implementation promises]
   Runtimes[runtimes/*<br/>runtime-specific policy + native handling]
   Shared[shared/*<br/>no runtime identity or OAR domain policy]
-  Native[CLI / app-server / SDK]
+  Native[vendor CLI / app-server / SDK]
 
   Entry --> Registry
   Entry --> Contracts

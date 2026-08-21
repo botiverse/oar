@@ -1,0 +1,32 @@
+{
+  "name": "@botiverse/oar",
+  "version": "0.0.1",
+  "description": "Provider-independent contracts for observing agent runtimes",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/botiverse/oar.git",
+    "directory": "packages/oar"
+  },
+  "license": "Apache-2.0"
+}

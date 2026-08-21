@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { projectClaudeUsage } from "../src/runtimes/claude/account-usage.js";
-import { projectCodexUsage } from "../src/runtimes/codex/account-usage.js";
+import { projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
+import { projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
 
 const options = {
   collectorVersion: "test",

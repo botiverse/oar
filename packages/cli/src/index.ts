@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import type { Runtime } from "./contracts/runtime.js";
-import { runtimes } from "./index.js";
+import { runtimes } from "@botiverse/oar";
+import type { Runtime } from "@botiverse/oar";
 
 const program = new Command()
   .name("oar")

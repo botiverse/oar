@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createClaudeInstallation } from "../src/runtimes/claude/installation.js";
-import { createCodexInstallation } from "../src/runtimes/codex/installation.js";
-import type { ExecutableRunner } from "../src/shared/executable/index.js";
+import { createClaudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
+import { createCodexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
+import type { ExecutableRunner } from "../packages/oar/src/shared/executable/index.js";
 
 const success: ExecutableRunner = async (_executable, args) => ({
   ok: true,

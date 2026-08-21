@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { RuntimeRegistry, defineRuntime } from "../src/index.js";
+import { RuntimeRegistry, defineRuntime } from "../packages/oar/src/index.js";
 
 test("registry preserves one canonical runtime per id", () => {
   const alpha = defineRuntime({ id: "alpha" });
