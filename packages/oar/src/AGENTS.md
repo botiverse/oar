@@ -37,3 +37,4 @@ flowchart TB
 - Keep host dependencies as constructor inputs until multiple runtimes prove a stable shared boundary. Do not create empty architecture directories.
 - `sea-trial/` owns shared behavior judgments; `drydock/` is their daemon-free RuntimeUnderTest vehicle; `drydock/probes/` is evidence, not conformance.
 - Installation probing is local-only. Account usage is a separate authenticated observation capability.
+- Draft contracts stay off the public surface: `contracts/session.ts` and `Runtime.session` are `@internal` scaffolds (stripped from published d.ts) until the design settles; `runtimes/*/session.ts` hold the adapter landing sites.
