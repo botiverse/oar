@@ -7,8 +7,19 @@ const SDK_PACKAGE = "@earendil-works/pi-coding-agent";
 
 // The SDK's exports map does not expose package.json, so walk up from the
 // resolved entry module to the package manifest.
-async function bundledSdkVersion(): Promise<string> {
-  let directory = path.dirname(fileURLToPath(import.meta.resolve(SDK_PACKAGE)));
+async function bundledSdkVersion(): Promise<string | null> {
+  const entry = ((): string | null => {
+    try {
+      return fileURLToPath(import.meta.resolve(SDK_PACKAGE));
+    } catch {
+      // The sdk is an optional dependency; an install that omitted it has no bundled pi.
+      return null;
+    }
+  })();
+  if (entry === null) {
+    return null;
+  }
+  let directory = path.dirname(entry);
   for (let depth = 0; depth < 10; depth += 1) {
     const manifestPath = path.join(directory, "package.json");
     const manifest: unknown = await readFile(manifestPath, "utf8").then(
@@ -28,8 +39,9 @@ async function bundledSdkVersion(): Promise<string> {
 }
 
 /** Pi ships inside this package as an SDK dependency; there is no executable to probe. */
-export const piInstallation: InstallationProbe = async (): Promise<InstallationSnapshot> => ({
-  kind: "available",
-  via: "bundled",
-  version: await bundledSdkVersion(),
-});
+export const piInstallation: InstallationProbe = async (): Promise<InstallationSnapshot> => {
+  const version = await bundledSdkVersion();
+  return version === null
+    ? { kind: "not_found" }
+    : { kind: "available", via: "bundled", version };
+};
