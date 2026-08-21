@@ -90,10 +90,10 @@
     },
     {
       "files": [
-        "src/config/**",
-        "src/discovery/**",
+        "src/runtimes/**",
+        "src/shared/**",
         "src/cli.ts",
-        "src/backend/**"
+        "sea-trial/**"
       ],
       "rules": {
         "unicorn/no-thenable": "off",

@@ -1,6 +1,0 @@
-You are logged in with grok.com.
-
-Default model: grok-4.5
-
-Available models:
-  * grok-4.5 (default)

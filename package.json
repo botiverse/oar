@@ -5,7 +5,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "Agent client access layer — host-side runtime detect, usage, and drive surface",
+  "description": "Provider-independent contracts for observing agent runtimes",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -28,15 +28,9 @@
     "prepare": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings src drydock sea-trial",
-    "check": "pnpm run typecheck && pnpm run lint",
-    "teeth": "pnpm exec tsx scripts/config-form-teeth.ts",
-    "teeth:library-exports": "pnpm exec tsx scripts/library-exports-tooth.ts",
-    "teeth:readme": "pnpm exec tsx scripts/readme-snippets-tooth.ts",
-    "check-demo-html": "pnpm exec tsx scripts/check-demo-html-js.ts artifacts-local/create-agent-form-live.html",
-    "embed-live": "pnpm exec tsx scripts/embed-live-html.ts && pnpm run check-demo-html",
-    "oar": "pnpm exec tsx src/cli.ts",
-    "prove:git-consumer": "pnpm exec tsx scripts/prove-git-consumer.ts",
-    "teeth:strict-sdk-consumer": "pnpm exec tsx scripts/strict-sdk-consumer-tooth.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
+    "oar": "tsx src/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
@@ -47,22 +41,6 @@
   },
   "dependencies": {
     "commander": "^12.1.0"
-  },
-  "peerDependencies": {
-    "@botiverse/kimi-code-sdk": "*",
-    "@earendil-works/pi-coding-agent": "*",
-    "@mariozechner/pi-coding-agent": "*"
-  },
-  "peerDependenciesMeta": {
-    "@botiverse/kimi-code-sdk": {
-      "optional": true
-    },
-    "@earendil-works/pi-coding-agent": {
-      "optional": true
-    },
-    "@mariozechner/pi-coding-agent": {
-      "optional": true
-    }
   },
   "packageManager": "pnpm@9.12.3",
   "engines": {

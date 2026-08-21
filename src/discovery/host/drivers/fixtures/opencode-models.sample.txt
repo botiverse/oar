@@ -1,7 +1,0 @@
-Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-      at warnOnDeactivatedColors (internal:tty:33:24)
-
-opencode/big-pickle
-opencode/deepseek-v4-flash-free
-anthropic/claude-sonnet-4
-openai/gpt-5

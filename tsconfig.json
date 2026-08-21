@@ -26,6 +26,7 @@
   "include": [
     "src",
     "sea-trial",
-    "drydock"
+    "drydock",
+    "tests"
   ]
 }
