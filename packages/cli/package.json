@@ -6,7 +6,10 @@
   "bin": {
     "oar": "./dist/index.js"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "pnpm --filter @botiverse/oar build && tsc --noEmit",

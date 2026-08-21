@@ -4,6 +4,7 @@ import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installa
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
 import { resolveExecutable } from "../packages/oar/src/shared/executable/index.js";
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
+import { piInstallation } from "../packages/oar/src/runtimes/pi/installation.js";
 
 async function withEnv<T>(
   overrides: Record<string, string>,
@@ -28,7 +29,7 @@ const nodeOnPath = resolveExecutable("node");
 
 test("executable installation resolves bare names on PATH", async () => {
   const onPath = await executableInstallation("OAR_FIXTURE_BIN", "node")();
-  assert.deepEqual(onPath, { kind: "available", command: nodeOnPath, version: process.version });
+  assert.deepEqual(onPath, { kind: "available", via: "executable", command: nodeOnPath, version: process.version });
 
   const absent = await executableInstallation("OAR_FIXTURE_BIN", "oar-fixture-missing")();
   assert.equal(absent.kind, "not_found");
@@ -42,6 +43,7 @@ test("a missing fallback path contributes no candidate", async () => {
   )();
   assert.deepEqual(snapshot, {
     kind: "available",
+    via: "executable",
     command: process.execPath,
     version: process.version,
   });
@@ -61,6 +63,7 @@ test("a pinned env var is exclusive and must exist as given", async () => {
   );
   assert.deepEqual(pinned, {
     kind: "available",
+    via: "executable",
     command: process.execPath,
     version: process.version,
   });
@@ -73,7 +76,7 @@ test("readiness gates each candidate", async () => {
     [],
     ["--version"],
   )();
-  assert.deepEqual(ready, { kind: "available", command: nodeOnPath, version: process.version });
+  assert.deepEqual(ready, { kind: "available", via: "executable", command: nodeOnPath, version: process.version });
 
   // Node rejects the app-server-style subcommand, so the probe is unsupported.
   const unsupported = await executableInstallation(
@@ -95,6 +98,7 @@ test("claude and codex probe through their pin env vars", async () => {
   );
   assert.deepEqual(claude, {
     kind: "available",
+    via: "executable",
     command: process.execPath,
     version: process.version,
   });
@@ -104,4 +108,12 @@ test("claude and codex probe through their pin env vars", async () => {
     async () => codexInstallation(),
   );
   assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
+});
+
+test("pi installation reports the bundled sdk version", async () => {
+  const snapshot = await piInstallation();
+  if (snapshot.kind !== "available" || snapshot.via !== "bundled") {
+    throw new Error("pi installation is not a bundled availability");
+  }
+  assert.match(snapshot.version, /^\d+\.\d+\.\d+/u);
 });

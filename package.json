@@ -11,6 +11,7 @@
     "oar": "pnpm run build && node packages/cli/dist/index.js"
   },
   "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.84.2",
     "@types/node": "^26.1.2",
     "oxlint": "^1.77.0",
     "oxlint-tsgolint": "^7.0.2001",

@@ -64,6 +64,9 @@ export function projectClaudeUsage(content: string): AccountUsageSnapshot {
  * Reset values are deliberately omitted until arbitrary IANA zones can be normalized reliably.
  */
 export const claudeAccountUsage: AccountUsageReader = async (installation, options = {}) => {
+  if (installation.via !== "executable") {
+    return { kind: "unsupported" };
+  }
   const command = installation.command;
   const timeoutMs = options.timeoutMs ?? 15_000;
   const env = { ...process.env, CLAUDECODE: undefined };

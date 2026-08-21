@@ -1,9 +1,19 @@
-/** A verified local installation: the probed executable and its reported version. */
-export interface AvailableInstallation {
+/** A verified machine-installed executable: the probed command and its reported version. */
+export interface ExecutableInstallation {
   readonly kind: "available";
+  readonly via: "executable";
   readonly command: string;
   readonly version?: string;
 }
+
+/** A runtime compiled into the embedding application; availability needs no probe target. */
+export interface BundledInstallation {
+  readonly kind: "available";
+  readonly via: "bundled";
+  readonly version: string;
+}
+
+export type AvailableInstallation = ExecutableInstallation | BundledInstallation;
 
 export type InstallationSnapshot =
   | AvailableInstallation

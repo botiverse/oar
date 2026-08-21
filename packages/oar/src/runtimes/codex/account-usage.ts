@@ -149,6 +149,9 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
 }
 
 export const codexAccountUsage: AccountUsageReader = async (installation, options = {}) => {
+  if (installation.via !== "executable") {
+    return { kind: "unsupported" };
+  }
   const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000);
   if (outcome.kind === "ok") {
     return projectCodexUsage(outcome.result);
