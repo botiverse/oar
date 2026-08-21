@@ -13,13 +13,14 @@ import { runtimes, type SessionEvent } from "../../packages/oar/src/index.js";
 
 const runtime = runtimes.require(process.argv[2] ?? "claude");
 const model = runtime.id === "claude" ? { model: "haiku" } : {};
-const installation = await runtime.installation?.();
-if (installation?.kind !== "available") {
+const probedInstallation = await runtime.installation?.();
+if (probedInstallation?.kind !== "available") {
   throw new Error(`${runtime.id} is not available`);
 }
+const installation = probedInstallation;
 
 async function runTurn(sessionOptions: { cwd: string; model?: string; resume?: string }, prompt: string): Promise<{ id: string; text: string }> {
-  const session = await runtime.session(installation as never, sessionOptions);
+  const session = await runtime.session(installation, sessionOptions);
   const texts: string[] = [];
   session.subscribe((event: SessionEvent) => {
     if (event.kind === "text_delta") {
