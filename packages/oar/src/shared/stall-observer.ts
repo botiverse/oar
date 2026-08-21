@@ -1,13 +1,13 @@
 import type { Session, Unsubscribe } from "../contracts/session.js";
+import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-status.js";
 
 /**
- * Native answer to "the agent is stuck and nobody knows why": watch a
- * session's event stream and report when an ACTIVE turn has produced no
- * events for `stallAfterMs`. Pure observation over the public side-tap —
- * the embedder decides what to do (surface it, notify, or abort via the turn
- * handle it already holds). Fires once per silence episode; the next event
- * re-arms it. OpenDAL's timeout layer lives at the same altitude: a wrapper
- * over the behavior object, invisible to adapters.
+ * Convenience layer over the public status reducer: fold the session's events
+ * with reduceStatus, ask stallOf with the wall clock, and report when an
+ * active turn has been silent for `stallAfterMs`. There is deliberately no
+ * second state machine here — the reducer is the single source of truth.
+ * Fires once per silence episode; the next event re-arms it. The embedder
+ * decides what a stall means (surface, notify, or abort via its turn handle).
  */
 export interface StallInfo {
   readonly turnId: string;
@@ -19,9 +19,8 @@ export function observeStalls(
   session: Session,
   options: { readonly stallAfterMs: number; readonly onStall: (info: StallInfo) => void },
 ): Unsubscribe {
-  let activeTurnId: string | null = null;
+  let status: AgentStatus = initialStatus;
   let lastEventKind = "";
-  let lastEventAt = 0;
   let timer: NodeJS.Timeout | null = null;
 
   const disarm = (): void => {
@@ -33,27 +32,20 @@ export function observeStalls(
   const arm = (): void => {
     disarm();
     timer = setTimeout(() => {
-      if (activeTurnId !== null) {
-        options.onStall({
-          turnId: activeTurnId,
-          silentForMs: Date.now() - lastEventAt,
-          lastEventKind,
-        });
+      const stall = stallOf(status, Date.now(), options.stallAfterMs);
+      if (stall !== null) {
+        options.onStall({ ...stall, lastEventKind });
       }
     }, options.stallAfterMs);
   };
 
   const unsubscribe = session.subscribe((event) => {
+    status = reduceStatus(status, event);
     lastEventKind = event.kind;
-    lastEventAt = Date.now();
-    if (event.kind === "turn_started") {
-      activeTurnId = event.turnId;
+    if (status.kind === "running") {
       arm();
-    } else if (event.kind === "turn_ended") {
-      activeTurnId = null;
+    } else {
       disarm();
-    } else if (activeTurnId !== null) {
-      arm();
     }
   });
 

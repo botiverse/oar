@@ -80,7 +80,7 @@ export interface SessionEventEnvelope {
   readonly turnId: string;
   /** Monotonic per session; total order for trace alignment. */
   readonly seq: number;
-  /** Milliseconds since the session started, stamped at adapter ingress. */
+  /** Unix epoch milliseconds stamped at adapter ingress — same clock as Date.now(), so fold×clock consumers (stallOf) compose directly. */
   readonly receivedAt: number;
 }
 

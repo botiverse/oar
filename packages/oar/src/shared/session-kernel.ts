@@ -32,7 +32,6 @@ export interface KernelTurn {
 
 export function createSessionKernel(): SessionKernel {
   const sessionId = randomUUID();
-  const startedAt = performance.now();
   const observers = new Set<SessionObserver>();
   let seq = 0;
   let activeTurn: KernelTurn | null = null;
@@ -42,7 +41,7 @@ export function createSessionKernel(): SessionKernel {
       sessionId,
       turnId,
       seq,
-      receivedAt: performance.now() - startedAt,
+      receivedAt: Date.now(),
       ...body,
     };
     seq += 1;
