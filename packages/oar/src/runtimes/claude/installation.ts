@@ -1,7 +1,12 @@
-import { createExecutableInstallation } from "../../installation.js";
+import type { Installation } from "../../contracts/installation.js";
+import { probeExecutableInstallation } from "../../shared/installation.js";
 
-export const claudeInstallation = createExecutableInstallation({
-  label: "Claude",
-  command: "claude",
-  explicit: process.env.CLAUDE_BIN,
-});
+export const claudeInstallation: Installation = {
+  async probe() {
+    const explicit = process.env.OAR_CLAUDE_BIN;
+    const snapshot = await probeExecutableInstallation([
+      explicit === undefined || explicit === "" ? "claude" : explicit,
+    ]);
+    return snapshot;
+  },
+};
