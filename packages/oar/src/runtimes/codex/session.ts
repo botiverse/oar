@@ -10,6 +10,9 @@ import { startAppServerClient } from "./app-server-client.js";
  *   notification whose turn.status is completed | interrupted | failed
  * - steer: turn/steer with the expectedTurnId precondition (race adjudicated
  *   at the runtime); typed rejection surfaces as not_steerable
+ * - steer `accepted` here means: the runtime confirmed injection into the
+ *   active turn (the strongest form; still expressed as the weak contract
+ *   promise). Live probe: codex-session-adapter.ts.
  * - abort: turn/interrupt {threadId, turnId}
  */
 

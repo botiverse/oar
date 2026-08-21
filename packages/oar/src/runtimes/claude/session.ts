@@ -17,6 +17,9 @@ import { createSessionKernel, type KernelTurn } from "../../shared/session-kerne
  * - each turn is framed by its own system/init … result pair.
  * - `control_request {subtype:"interrupt"}` is acked with control_response and
  *   settles the active turn with an error-subtype result.
+ * - steer `accepted` here means: the user message was written to stdin.
+ *   Landing (same turn vs auto-queued next turn) is claude's timing and shows
+ *   up only in the event stream. Live probe: claude-session-adapter.ts.
  */
 
 function userMessage(text: string): string {
