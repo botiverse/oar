@@ -12,6 +12,7 @@
     "sea-trial": "tsx sea-trial/main.ts"
   },
   "devDependencies": {
+    "@copilotkit/aimock": "^1.39.0",
     "@earendil-works/pi-coding-agent": "0.84.2",
     "@types/node": "^26.1.2",
     "oxlint": "^1.77.0",

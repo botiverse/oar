@@ -194,7 +194,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       state.disposed = true;
       kernel.active()?.settle({ kind: "aborted" });
       child.kill();
-      await Promise.resolve();
+      await child.exited; // release point for anything the process held
     },
   });
   return session;

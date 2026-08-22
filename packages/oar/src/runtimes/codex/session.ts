@@ -205,7 +205,9 @@ export const codexSession: StartSession = async (installation, options) => {
       disposed = true;
       kernel.active()?.settle({ kind: "aborted" });
       client.kill();
-      await Promise.resolve();
+      // Await the actual exit: the process may hold state (codex's sqlite
+      // runtime in CODEX_HOME) that the next session needs released.
+      await client.exited;
     },
   });
   return session;

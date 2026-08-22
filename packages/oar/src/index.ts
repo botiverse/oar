@@ -46,7 +46,11 @@ export type { AgentStatus, RunningPhase } from "./observe/agent-status.js";
 export { observeStalls } from "./observe/stall-observer.js";
 export type { StallInfo } from "./observe/stall-observer.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
+export { claudeSession } from "./runtimes/claude/session.js";
+export { claudeInstallation } from "./runtimes/claude/installation.js";
 export { codexRuntime } from "./runtimes/codex/index.js";
+export { codexSession } from "./runtimes/codex/session.js";
+export { codexInstallation } from "./runtimes/codex/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 
 export const runtimes = new RuntimeRegistry([claudeRuntime, codexRuntime, piRuntime]);

@@ -8,6 +8,7 @@ import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
  */
 export interface AppServerClient {
   readonly spawned: Promise<void>;
+  readonly exited: Promise<number | null>;
   request(method: string, params: JsonRecord): Promise<JsonRecord>;
   notify(method: string, params: JsonRecord): void;
   onNotification(handler: (method: string, params: JsonRecord) => void): void;
@@ -56,6 +57,7 @@ export function startAppServerClient(command: string): AppServerClient {
 
   return {
     spawned: child.spawned,
+    exited: child.exited,
     async request(method, params) {
       const id = nextId;
       nextId += 1;
