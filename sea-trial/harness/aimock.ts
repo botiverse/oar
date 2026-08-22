@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
 
+export type { LLMock } from "@copilotkit/aimock";
+
 /**
  * Backend setup for the aimock-backed instances: the REAL claude/codex
  * binaries run their REAL harnesses, only the model provider is a local
@@ -32,9 +34,11 @@ function baseFixtures(mock: LLMock): void {
   mock.onMessage(/[\s\S]*/u, { content: "ok" }, { latency: 80 });
 }
 
-export async function startClaudeAimock(): Promise<AimockEnv> {
+export async function startClaudeAimock(
+  configure: (mock: LLMock) => void = baseFixtures,
+): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
-  baseFixtures(mock);
+  configure(mock);
   await mock.start();
   process.env.ANTHROPIC_BASE_URL = mock.url;
   process.env.ANTHROPIC_API_KEY = "aimock";
@@ -45,9 +49,11 @@ export async function startClaudeAimock(): Promise<AimockEnv> {
   };
 }
 
-export async function startCodexAimock(): Promise<AimockEnv> {
+export async function startCodexAimock(
+  configure: (mock: LLMock) => void = baseFixtures,
+): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
-  baseFixtures(mock);
+  configure(mock);
   await mock.start();
   const codexHome = await mkdtemp(path.join(tmpdir(), "oar-codex-aimock-"));
   await writeFile(path.join(codexHome, "config.toml"), [

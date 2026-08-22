@@ -77,8 +77,15 @@ function projectMessage(state: ClaudeSessionState, message: JsonRecord): void {
       state.abortPending = false;
       turn.settle({ kind: "aborted" });
     } else if (message.is_error === true) {
-      const reason = typeof message.subtype === "string" ? message.subtype : "error";
-      turn.settle({ kind: "failed", reason });
+      // Vendor quirk (pinned 2026-08-22): claude can report is_error=true with
+      // subtype "success" and put the actual error text in result.
+      const text = typeof message.result === "string" && message.result.length > 0
+        ? message.result
+        : undefined;
+      const subtype = typeof message.subtype === "string" && message.subtype !== "success"
+        ? message.subtype
+        : undefined;
+      turn.settle({ kind: "failed", reason: text ?? subtype ?? "error" });
     } else {
       turn.settle({ kind: "completed" });
     }

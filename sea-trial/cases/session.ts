@@ -21,7 +21,7 @@ export const sessionCases: readonly TrialCase[] = [
       const turn = expectTurn(session.prompt("hello"));
       const outcome = await turn.outcome;
       if (outcome.kind !== "completed") {
-        throw new Error(`expected completed, got ${outcome.kind}`);
+        throw new Error(`expected completed, got ${JSON.stringify(outcome)}`);
       }
       if (events[0]?.kind !== "turn_started" || events.at(-1)?.kind !== "turn_ended") {
         throw new Error("turn events are not framed by turn_started … turn_ended");
@@ -108,7 +108,7 @@ export const sessionCases: readonly TrialCase[] = [
       const turn = expectTurn(session.prompt("hello"));
       const outcome = await turn.outcome;
       if (outcome.kind !== "completed") {
-        throw new Error("a throwing observer affected the run");
+        throw new Error(`a throwing observer affected the run: ${JSON.stringify(outcome)}`);
       }
       if (!seen.includes("turn_started") || !seen.includes("turn_ended")) {
         throw new Error("a throwing observer starved a later observer");

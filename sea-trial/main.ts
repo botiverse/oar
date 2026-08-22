@@ -22,7 +22,8 @@ import { installationCases } from "./cases/installation.js";
 import { sessionCases } from "./cases/session.js";
 import { startMockSession } from "./fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, type AimockEnv } from "./harness/aimock.js";
-import { runSuite } from "./harness/runner.js";
+import { claudeVendorCases } from "./vendor/claude.js";
+import { runCase, runSuite } from "./harness/runner.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
 const target = process.env.OAR_TEST ?? "mock";
@@ -58,7 +59,15 @@ if (installation === undefined || installation.kind !== "available") {
 }
 
 const cases = [...installationCases, ...accountUsageCases, ...sessionCases];
-const outcomes = await runSuite(cases, runtimeUnderTest(runtime));
+const subject = runtimeUnderTest(runtime);
+const outcomes = [...(await runSuite(cases, subject))];
+// Vendor edges re-point the process-wide provider env per case, so they must
+// not overlap the shared suite (which runs concurrently) or each other.
+if (target === "claude-aimock") {
+  for (const vendorCase of claudeVendorCases) {
+    outcomes.push(await runCase(vendorCase, subject));
+  }
+}
 let failures = 0;
 for (const outcome of outcomes) {
   if (outcome.kind === "fail") {
