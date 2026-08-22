@@ -9,10 +9,10 @@
  *      once, and a late abort must stay a no-op.
  *   3. busy: prompting during an active turn reports busy.
  *
- * Run: pnpm tsx drydock/probes/claude-session-adapter.ts   (requires logged-in `claude`)
+ * Run: pnpm tsx experiments/claude-session-adapter.ts   (requires logged-in `claude`)
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { claudeRuntime, type SessionEvent } from "../../packages/oar/src/index.js";
+import { claudeRuntime, type SessionEvent } from "../packages/oar/src/index.js";
 
 const installation = await claudeRuntime.installation();
 if (installation.kind !== "available") {

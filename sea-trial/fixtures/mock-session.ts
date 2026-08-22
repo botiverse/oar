@@ -1,6 +1,6 @@
-import type { Session, StartSession } from "../packages/oar/src/contracts/session.js";
-import { sealSession } from "../packages/oar/src/shared/seal-session.js";
-import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
+import type { Session, StartSession } from "../../packages/oar/src/contracts/session.js";
+import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
+import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
 /**
  * The mock session runtime: conformance fixture and (later) load source. Its

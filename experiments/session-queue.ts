@@ -3,10 +3,10 @@
  * (codex: native thread/queue; claude: adapter-held, drained at turn end),
  * surfaced as a spontaneous kernel turn with attributable events.
  *
- * Run: pnpm tsx drydock/probes/session-queue.ts <claude|codex>
+ * Run: pnpm tsx experiments/session-queue.ts <claude|codex>
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { runtimes, type SessionEvent } from "../../packages/oar/src/index.js";
+import { runtimes, type SessionEvent } from "../packages/oar/src/index.js";
 
 const runtime = runtimes.require(process.argv[2] ?? "claude");
 const model = runtime.id === "claude" ? { model: "haiku" } : {};

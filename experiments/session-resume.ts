@@ -7,9 +7,9 @@
  * (claude --session-id/--resume, codex thread/start/resume) and actual
  * transcript continuity.
  *
- * Run: pnpm tsx drydock/probes/session-resume.ts <claude|codex>
+ * Run: pnpm tsx experiments/session-resume.ts <claude|codex>
  */
-import { runtimes, type SessionEvent } from "../../packages/oar/src/index.js";
+import { runtimes, type SessionEvent } from "../packages/oar/src/index.js";
 
 const runtime = runtimes.require(process.argv[2] ?? "claude");
 const model = runtime.id === "claude" ? { model: "haiku" } : {};

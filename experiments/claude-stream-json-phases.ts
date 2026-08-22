@@ -12,7 +12,7 @@
  *        including tool output produced AFTER the injection moment.
  *   3. Ordering: two injections at different moments must run FIFO.
  *
- * Run: pnpm tsx drydock/probes/claude-stream-json-phases.ts <variant> [runs]
+ * Run: pnpm tsx experiments/claude-stream-json-phases.ts <variant> [runs]
  * Variants: thinking | tool-visibility | tool-steer
  * Exits non-zero when any run misbehaves.
  *

@@ -6,7 +6,7 @@
   "include": [
     "packages/oar/src",
     "sea-trial",
-    "drydock",
+    "experiments",
     "tests"
   ]
 }

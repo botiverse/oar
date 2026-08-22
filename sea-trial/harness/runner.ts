@@ -1,5 +1,5 @@
-import type { RuntimeUnderTest } from "../drydock/runner.js";
-import type { Runtime } from "../packages/oar/src/contracts/runtime.js";
+import type { RuntimeUnderTest } from "./subject.js";
+import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
 
 export type RuntimeCapability = Exclude<keyof Runtime, "id">;
 

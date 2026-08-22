@@ -100,7 +100,7 @@
     },
     {
       "files": [
-        "drydock/**"
+        "experiments/**"
       ],
       "rules": {
         "import/no-nodejs-modules": "off",

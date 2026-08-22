@@ -1,5 +1,5 @@
 import type { SessionEvent, Turn } from "../../packages/oar/src/contracts/session.js";
-import type { TrialCase } from "../runner.js";
+import type { TrialCase } from "../harness/runner.js";
 
 function expectTurn(result: { kind: "turn"; turn: Turn } | { kind: "busy" }): Turn {
   if (result.kind !== "turn") {
@@ -56,19 +56,24 @@ export const sessionCases: readonly TrialCase[] = [
     },
   },
   {
-    id: "session.abort-exactly-once",
+    // Race-honest by design: on a real runtime the turn may complete before
+    // the interrupt lands, and the runtime's truth wins. What every runtime
+    // MUST honor: abort settles the turn, the outcome is aborted or completed
+    // (never failed), and a late abort changes nothing. The strong
+    // "abort actually aborts a long turn" claim lives in the live experiments.
+    id: "session.abort-settles-and-is-idempotent",
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
       const turn = expectTurn(session.prompt("slow"));
       await turn.abort();
       const outcome = await turn.outcome;
-      if (outcome.kind !== "aborted") {
-        throw new Error(`expected aborted, got ${outcome.kind}`);
+      if (outcome.kind === "failed") {
+        throw new Error(`abort produced a failure: ${outcome.reason}`);
       }
       await turn.abort();
       const second = await turn.outcome;
-      if (second.kind !== "aborted") {
+      if (second.kind !== outcome.kind) {
         throw new Error("late abort changed a settled outcome");
       }
       await session.dispose();

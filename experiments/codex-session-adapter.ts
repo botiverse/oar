@@ -9,10 +9,10 @@
  *      once, and a late abort must stay a no-op.
  *   3. busy: prompting during an active turn reports busy.
  *
- * Run: pnpm tsx drydock/probes/codex-session-adapter.ts   (requires logged-in `codex`)
+ * Run: pnpm tsx experiments/codex-session-adapter.ts   (requires logged-in `codex`)
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { codexRuntime, type SessionEvent } from "../../packages/oar/src/index.js";
+import { codexRuntime, type SessionEvent } from "../packages/oar/src/index.js";
 
 const installation = await codexRuntime.installation();
 if (installation.kind !== "available") {

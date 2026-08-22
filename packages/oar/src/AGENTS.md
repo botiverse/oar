@@ -41,6 +41,6 @@ flowchart TB
 - Simple capabilities use one behavior contract; add separate API/SPI contracts only when abstraction level or call direction differs.
 - `runtimes/<id>/index.ts` declares that runtime's supported capabilities. Keep its parsing, compatibility policy, and protocol details nearby.
 - Keep host dependencies as constructor inputs until multiple runtimes prove a stable shared boundary. Do not create empty architecture directories.
-- `sea-trial/` owns shared behavior judgments; `drydock/` is their daemon-free RuntimeUnderTest vehicle; `drydock/probes/` is evidence, not conformance.
+- Test layers: `tests/` = fast pure unit tests plus `conformance.test.ts` (the mock through every sea-trial case, in CI). `sea-trial/` = contract behavior judgments (`cases/`), their engine and vehicle (`harness/`), the mock fixture (`fixtures/`), and the entry `pnpm sea-trial` — backend picked by `OAR_TEST` (unset = mock; unavailable runtime = skip, OpenDAL semantics). `experiments/` = manual real-runtime experiment records (see its README inventory); never CI.
 - Installation probing is local-only. Account usage is a separate authenticated observation capability.
 - Behavior invariants live as comments on the exact contract member they constrain; every must/never has (or gets) a sea-trial case.

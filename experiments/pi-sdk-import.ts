@@ -7,7 +7,7 @@
  * cannot prove that; only an actual import can (ESM graph, wasm deps, exports
  * map all participate).
  *
- * Run: pnpm tsx drydock/probes/pi-sdk-import.ts
+ * Run: pnpm tsx experiments/pi-sdk-import.ts
  * Exits non-zero on any unmet expectation.
  *
  * ── OBSERVED 2026-08-21, @earendil-works/pi-coding-agent 0.84.2, linux x64 ──

@@ -15,7 +15,7 @@
  *   C  written after the process goes idle    → "ok-3"
  * Every stdin write and every stdout message is timestamped into one timeline.
  *
- * Run: pnpm tsx drydock/probes/claude-stream-json-input.ts   (requires logged-in `claude`)
+ * Run: pnpm tsx experiments/claude-stream-json-input.ts   (requires logged-in `claude`)
  * Exits non-zero on any unmet expectation.
  *
  * ── OBSERVED 2026-08-21, claude 2.1.237 (haiku), linux x64 ──────────────────

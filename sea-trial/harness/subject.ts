@@ -1,5 +1,5 @@
-import type { Runtime } from "../packages/oar/src/contracts/runtime.js";
-import type { Session } from "../packages/oar/src/contracts/session.js";
+import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
+import type { Session } from "../../packages/oar/src/contracts/session.js";
 
 /** A daemon-free subject passed to sea-trial behavior cases. */
 export interface RuntimeUnderTest {
@@ -21,7 +21,11 @@ export function runtimeUnderTest(runtime: Runtime): RuntimeUnderTest {
       if (installation.kind !== "available") {
         throw new Error(`${runtime.id} is not available: ${installation.kind}`);
       }
-      return runtime.session(installation, { cwd: process.cwd() });
+      const model = process.env.OAR_TEST_MODEL;
+      return runtime.session(installation, {
+        cwd: process.cwd(),
+        ...(model === undefined ? {} : { model }),
+      });
     },
   };
 }

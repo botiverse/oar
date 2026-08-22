@@ -23,11 +23,13 @@ const TOOL_ITEM_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall"
 interface CodexTurnState {
   readonly kernelTurn: KernelTurn;
   readonly codexTurnId: Promise<string>;
-  abortRequested: boolean;
 }
 
-function outcomeFromStatus(status: unknown, aborted: boolean): TurnOutcome {
-  if (aborted || status === "interrupted") {
+// The runtime's own status is the truth: an interrupt that landed reports
+// "interrupted"; an interrupt that lost the race to completion reports
+// "completed" — mapping a local abort flag over it would falsify the latter.
+function outcomeFromStatus(status: unknown): TurnOutcome {
+  if (status === "interrupted") {
     return { kind: "aborted" };
   }
   if (status === "completed") {
@@ -80,11 +82,7 @@ export const codexSession: StartSession = async (installation, options) => {
       const startedTurn = asRecord(params.turn)?.id;
       const kernelTurn = kernel.begin();
       if (kernelTurn !== null && typeof startedTurn === "string") {
-        current = {
-          kernelTurn,
-          codexTurnId: Promise.resolve(startedTurn),
-          abortRequested: false,
-        };
+        current = { kernelTurn, codexTurnId: Promise.resolve(startedTurn) };
       }
     }
     const state = current;
@@ -112,7 +110,7 @@ export const codexSession: StartSession = async (installation, options) => {
       }
     } else if (method === "turn/completed") {
       const status = asRecord(params.turn)?.status;
-      turn.settle(outcomeFromStatus(status, state.abortRequested));
+      turn.settle(outcomeFromStatus(status));
     }
   });
   client.onExit(() => {
@@ -128,10 +126,14 @@ export const codexSession: StartSession = async (installation, options) => {
       if (state.kernelTurn.settled()) {
         return;
       }
-      state.abortRequested = true;
       const codexTurnId = await state.codexTurnId;
       if (!state.kernelTurn.settled()) {
-        await client.request("turn/interrupt", { threadId, turnId: codexTurnId });
+        try {
+          await client.request("turn/interrupt", { threadId, turnId: codexTurnId });
+        } catch {
+          // The turn ended before the interrupt landed — the contractual late
+          // abort no-op; turn/completed settles the real outcome.
+        }
         await state.kernelTurn.outcome;
       }
     },
@@ -181,7 +183,7 @@ export const codexSession: StartSession = async (installation, options) => {
           });
         }
       })();
-      const state: CodexTurnState = { kernelTurn, codexTurnId, abortRequested: false };
+      const state: CodexTurnState = { kernelTurn, codexTurnId };
       current = state;
       return { kind: "turn", turn: makeTurn(state) };
     },

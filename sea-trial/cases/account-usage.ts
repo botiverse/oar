@@ -1,4 +1,4 @@
-import type { TrialCase } from "../runner.js";
+import type { TrialCase } from "../harness/runner.js";
 
 export const accountUsageCases: readonly TrialCase[] = [
   {

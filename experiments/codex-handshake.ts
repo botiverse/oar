@@ -12,7 +12,7 @@
  * daemon can drive this runtime" either holds or fails loudly. That is the only
  * claim worth making here, so it is the only one made.
  *
- * Run: node drydock/probes/codex-handshake.ts   (requires `codex` on PATH)
+ * Run: node experiments/codex-handshake.ts   (requires `codex` on PATH)
  * Exits non-zero on any unmet expectation.
  *
  * ── OBSERVED 2026-08-06, codex 0.144.6, macOS arm64 ────────────────────────

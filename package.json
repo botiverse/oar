@@ -5,10 +5,11 @@
   "scripts": {
     "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
     "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src drydock sea-trial tests",
+    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src experiments sea-trial tests",
     "test": "tsx --test tests/*.test.ts",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test",
-    "oar": "pnpm run build && node packages/cli/dist/index.js"
+    "oar": "pnpm run build && node packages/cli/dist/index.js",
+    "sea-trial": "tsx sea-trial/main.ts"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "0.84.2",

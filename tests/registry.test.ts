@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { startMockSession } from "../drydock/mock-session.js";
+import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 import { RuntimeRegistry, defineRuntime } from "../packages/oar/src/index.js";
 
 test("registry preserves one canonical runtime per id", () => {
