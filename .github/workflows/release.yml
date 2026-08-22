@@ -1,0 +1,46 @@
+name: release
+
+# Publish both packages to npm when a version tag lands. Auth is npm trusted
+# publishing (OIDC): the job only requests an id-token — no npm token secret
+# exists in this repo. The npm-side trusted-publisher configuration for
+# @botiverse/oar and @botiverse/oar-cli is owner-managed.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+      - run: pnpm install --frozen-lockfile
+      # The tag is the single source of truth: refuse to publish when any
+      # workspace package disagrees with it.
+      - name: verify tag matches package versions
+        run: |
+          node -e '
+            const { readFileSync } = require("node:fs");
+            const tag = process.env.GITHUB_REF_NAME;
+            const bad = ["packages/oar/package.json", "packages/cli/package.json"]
+              .map((p) => JSON.parse(readFileSync(p, "utf8")))
+              .filter((pkg) => `v${pkg.version}` !== tag);
+            if (bad.length > 0) {
+              console.error(`tag ${tag} does not match: ${bad.map((p) => `${p.name}@${p.version}`).join(", ")}`);
+              process.exit(1);
+            }
+          '
+      - run: pnpm run check
+      - run: pnpm run build
+      # pnpm publish (not npm) so workspace:* deps are rewritten to the real
+      # version in the published manifests.
+      - run: pnpm -r publish --access public --no-git-checks
