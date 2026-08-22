@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import type { TrialCase } from "../harness/runner.js";
 
 export const installationCases: readonly TrialCase[] = [
@@ -6,14 +7,12 @@ export const installationCases: readonly TrialCase[] = [
     requires: ["installation"],
     async run(subject) {
       const snapshot = await subject.runtime.installation?.();
-      if (snapshot === undefined) {
-        throw new Error("installation capability disappeared");
+      assert.ok(snapshot !== undefined, "installation capability disappeared");
+      if (snapshot.kind === "unsupported") {
+        assert.ok(snapshot.reason.length > 0, "unsupported installation has no reason");
       }
-      if (snapshot.kind === "unsupported" && snapshot.reason.length === 0) {
-        throw new Error("unsupported installation has no reason");
-      }
-      if (snapshot.kind === "available" && snapshot.via === "executable" && snapshot.command.length === 0) {
-        throw new Error("available executable installation has no command");
+      if (snapshot.kind === "available" && snapshot.via === "executable") {
+        assert.ok(snapshot.command.length > 0, "available executable installation has no command");
       }
     },
   },

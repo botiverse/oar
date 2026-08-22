@@ -1,7 +1,7 @@
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 
-/** A daemon-free subject passed to sea-trial behavior cases. */
+/** What a behavior case runs against: one runtime plus how to open a session on it. */
 export interface RuntimeUnderTest {
   readonly id: string;
   readonly runtime: Runtime;

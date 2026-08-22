@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterEach, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { aggregateDeltas } from "../packages/oar/src/observe/aggregate-events.js";
 import type { SessionObserver } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
@@ -31,11 +31,13 @@ async function runAggregated(): Promise<string[]> {
 }
 
 test("aggregateDeltas merges consecutive deltas and preserves order", async () => {
-  assert.deepEqual(await runAggregated(), [
-    "turn_started",
-    "text:echo:hellosteer:extra",
-    "turn_ended",
-  ]);
+  expect(await runAggregated()).toMatchInlineSnapshot(`
+    [
+      "turn_started",
+      "text:echo:hellosteer:extra",
+      "turn_ended",
+    ]
+  `);
 });
 
 async function stallFixture(): Promise<{ stalls: string[]; stop: () => void; dispose: () => Promise<void> }> {
@@ -99,21 +101,26 @@ test("reduceStatus follows the documented transition table", async () => {
     }
     return seen;
   };
-  assert.deepEqual(fold([
+  expect(fold([
     { ...envelope, kind: "turn_started" },
     { ...envelope, kind: "thinking_delta", text: "…" },
     { ...envelope, kind: "text_delta", text: "hi" },
     { ...envelope, kind: "tool_call_started", callId: "c1", tool: "bash" },
     { ...envelope, kind: "tool_call_ended", callId: "c1" },
     { ...envelope, kind: "turn_ended", outcome: { kind: "completed" } },
-  ]), [
-    "waiting_model",
-    "thinking",
-    "responding",
-    { tool: "bash", callId: "c1" },
-    "waiting_model",
-    "idle",
-  ]);
+  ])).toMatchInlineSnapshot(`
+    [
+      "waiting_model",
+      "thinking",
+      "responding",
+      {
+        "callId": "c1",
+        "tool": "bash",
+      },
+      "waiting_model",
+      "idle",
+    ]
+  `);
   const runningAt = reduceStatus(initialStatus, { ...envelope, kind: "turn_started" });
   assert.deepEqual(stallOf(runningAt, 1400, 500), null);
   assert.deepEqual(stallOf(runningAt, 1600, 500), { turnId: "t", silentForMs: 600 });

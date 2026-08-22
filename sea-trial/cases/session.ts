@@ -1,10 +1,9 @@
+import assert from "node:assert/strict";
 import type { SessionEvent, Turn } from "../../packages/oar/src/contracts/session.js";
 import type { TrialCase } from "../harness/runner.js";
 
 function expectTurn(result: { kind: "turn"; turn: Turn } | { kind: "busy" }): Turn {
-  if (result.kind !== "turn") {
-    throw new Error("expected a turn but the session reported busy");
-  }
+  assert.ok(result.kind === "turn", "expected a turn but the session reported busy");
   return result.turn;
 }
 
@@ -20,18 +19,13 @@ export const sessionCases: readonly TrialCase[] = [
       });
       const turn = expectTurn(session.prompt("hello"));
       const outcome = await turn.outcome;
-      if (outcome.kind !== "completed") {
-        throw new Error(`expected completed, got ${JSON.stringify(outcome)}`);
-      }
-      if (events[0]?.kind !== "turn_started" || events.at(-1)?.kind !== "turn_ended") {
-        throw new Error("turn events are not framed by turn_started … turn_ended");
-      }
+      assert.deepEqual(outcome, { kind: "completed" });
+      assert.equal(events[0]?.kind, "turn_started");
+      assert.equal(events.at(-1)?.kind, "turn_ended");
       for (const [index, event] of events.entries()) {
-        if (event.sessionId !== session.id || event.turnId !== turn.id) {
-          throw new Error("event attribution crossed wires");
-        }
-        if (index > 0 && event.seq <= (events[index - 1]?.seq ?? Number.NaN)) {
-          throw new Error("seq is not strictly increasing");
+        assert.ok(event.sessionId === session.id && event.turnId === turn.id, "event attribution crossed wires");
+        if (index > 0) {
+          assert.ok(event.seq > (events[index - 1]?.seq ?? Number.NaN), "seq is not strictly increasing");
         }
       }
       await session.dispose();
@@ -43,14 +37,10 @@ export const sessionCases: readonly TrialCase[] = [
     async run(subject) {
       const session = await subject.startSession();
       const first = expectTurn(session.prompt("one"));
-      if (session.prompt("two").kind !== "busy") {
-        throw new Error("second prompt during an active turn was not busy");
-      }
+      assert.equal(session.prompt("two").kind, "busy", "second prompt during an active turn was not busy");
       await first.outcome;
       const third = session.prompt("three");
-      if (third.kind !== "turn") {
-        throw new Error("prompt after settlement should start a turn");
-      }
+      assert.ok(third.kind === "turn", "prompt after settlement should start a turn");
       await third.turn.outcome;
       await session.dispose();
     },
@@ -68,14 +58,10 @@ export const sessionCases: readonly TrialCase[] = [
       const turn = expectTurn(session.prompt("slow"));
       await turn.abort();
       const outcome = await turn.outcome;
-      if (outcome.kind === "failed") {
-        throw new Error(`abort produced a failure: ${outcome.reason}`);
-      }
+      assert.ok(outcome.kind !== "failed", `abort produced a failure: ${JSON.stringify(outcome)}`);
       await turn.abort();
       const second = await turn.outcome;
-      if (second.kind !== outcome.kind) {
-        throw new Error("late abort changed a settled outcome");
-      }
+      assert.equal(second.kind, outcome.kind, "late abort changed a settled outcome");
       await session.dispose();
     },
   },
@@ -87,8 +73,8 @@ export const sessionCases: readonly TrialCase[] = [
       const turn = expectTurn(session.prompt("hello"));
       await turn.outcome;
       const late = await turn.steer?.("too late");
-      if (late !== undefined && late.kind !== "not_steerable") {
-        throw new Error("steer through an ended turn handle must be not_steerable");
+      if (late !== undefined) {
+        assert.equal(late.kind, "not_steerable", "steer through an ended turn handle must be not_steerable");
       }
       await session.dispose();
     },
@@ -107,12 +93,8 @@ export const sessionCases: readonly TrialCase[] = [
       });
       const turn = expectTurn(session.prompt("hello"));
       const outcome = await turn.outcome;
-      if (outcome.kind !== "completed") {
-        throw new Error(`a throwing observer affected the run: ${JSON.stringify(outcome)}`);
-      }
-      if (!seen.includes("turn_started") || !seen.includes("turn_ended")) {
-        throw new Error("a throwing observer starved a later observer");
-      }
+      assert.deepEqual(outcome, { kind: "completed" }, "a throwing observer affected the run");
+      assert.ok(seen.includes("turn_started") && seen.includes("turn_ended"), "a throwing observer starved a later observer");
       await session.dispose();
     },
   },

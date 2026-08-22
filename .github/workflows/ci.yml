@@ -61,3 +61,5 @@ jobs:
       - run: npm install -g @openai/codex
         if: matrix.backend == 'codex-aimock'
       - run: pnpm run sea-trial
+      # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
+      - run: pnpm vitest run sea-trial/vendor

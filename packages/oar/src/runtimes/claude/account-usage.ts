@@ -169,8 +169,15 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (!auth.ok && auth.exitCode === null) {
     throw new Error("Failed to read Claude authentication status");
   }
-  if (!auth.ok || asRecord(parseJson(auth.stdout))?.loggedIn === false) {
+  const authStatus = asRecord(parseJson(auth.stdout));
+  if (!auth.ok || authStatus?.loggedIn === false) {
     return { kind: "reauth_required" };
+  }
+  if (typeof authStatus?.apiKeySource === "string") {
+    // An API key takes precedence over any claude.ai login, and API-key
+    // billing has no subscription usage windows — /usage would return only a
+    // cost report (pinned by the claude vendor usage test).
+    return { kind: "unsupported" };
   }
 
   const usage = await runExecutable(command, ["-p", "/usage", "--output-format", "json"], {

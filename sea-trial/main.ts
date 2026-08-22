@@ -24,7 +24,6 @@ import { installationCases } from "./cases/installation.js";
 import { sessionCases } from "./cases/session.js";
 import { startMockSession } from "./fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./harness/aimock.js";
-import { claudeVendorCases } from "./vendor/claude.js";
 import { runSuite } from "./harness/runner.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
@@ -63,14 +62,9 @@ if (installation === undefined || installation.kind !== "available") {
   process.exit(0);
 }
 
-const cases = [
-  ...installationCases,
-  ...accountUsageCases,
-  ...sessionCases,
-  // Vendor edges run fully concurrent with the shared suite: each starts its
-  // own scripted provider and scopes it per-session via SessionOptions.env.
-  ...(target === "claude-aimock" ? claudeVendorCases : []),
-];
+// Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
+// OAR_TEST-gated) — the behavior CI job runs them right after this suite.
+const cases = [...installationCases, ...accountUsageCases, ...sessionCases];
 const outcomes = await runSuite(cases, runtimeUnderTest(runtime, aimockEnv?.env));
 let failures = 0;
 for (const outcome of outcomes) {

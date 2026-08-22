@@ -42,6 +42,23 @@ export async function piEnvBashTool(
   }));
 }
 
+interface PiTurnState {
+  turn: KernelTurn;
+  abortRequested: boolean;
+  adopted: boolean;
+  providerError?: string;
+}
+
+function settledOutcome(state: PiTurnState): { kind: "aborted" } | { kind: "completed" } | { kind: "failed"; reason: string } {
+  if (state.abortRequested) {
+    return { kind: "aborted" };
+  }
+  if (state.providerError !== undefined) {
+    return { kind: "failed", reason: state.providerError };
+  }
+  return { kind: "completed" };
+}
+
 export const piSession: StartSession = async (installation, options) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
@@ -72,7 +89,7 @@ export const piSession: StartSession = async (installation, options) => {
   });
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
-  let current: { turn: KernelTurn; abortRequested: boolean; adopted: boolean } | null = null;
+  let current: PiTurnState | null = null;
   let disposed = false;
 
   piAgentSession.subscribe((event) => {
@@ -96,7 +113,7 @@ export const piSession: StartSession = async (installation, options) => {
     switch (event.type) {
       case "agent_end": {
         if (state.adopted) {
-          turn.settle(state.abortRequested ? { kind: "aborted" } : { kind: "completed" });
+          turn.settle(settledOutcome(state));
         }
         break;
       }
@@ -109,11 +126,16 @@ export const piSession: StartSession = async (installation, options) => {
           case "thinking_delta":
             turn.emit({ kind: "thinking_delta", text: inner.delta });
             break;
+          case "error": {
+            // pi's prompt() RESOLVES even when the provider errored — the
+            // failure only surfaces here (pinned by the pi vendor 400 test).
+            state.providerError = inner.error.errorMessage ?? inner.reason;
+            break;
+          }
           // Explicitly dropped: only deltas map to v1 turn events; block
           // boundaries and toolcall framing arrive via the outer events.
           case "start":
           case "done":
-          case "error":
           case "text_start":
           case "text_end":
           case "thinking_start":
@@ -137,12 +159,20 @@ export const piSession: StartSession = async (installation, options) => {
         turn.emit({ kind: "tool_call_ended", callId: event.toolCallId });
         break;
       }
+      case "turn_end": {
+        // A provider failure does NOT reject prompt() and does NOT emit an
+        // inner error event — it only shows as stopReason "error" on the
+        // turn's final assistant message (pinned by the pi vendor 400 test).
+        if (event.message.role === "assistant" && event.message.stopReason === "error") {
+          state.providerError = event.message.errorMessage ?? "provider error";
+        }
+        break;
+      }
       // Explicitly dropped: session-scoped events with no turn mapping in v1
       // (an exhaustive switch makes a NEW pi event type a compile error, so
       // each future addition gets a conscious mapped-or-dropped decision).
       case "agent_settled":
       case "turn_start":
-      case "turn_end":
       case "message_start":
       case "message_end":
       case "tool_execution_update":
@@ -162,7 +192,7 @@ export const piSession: StartSession = async (installation, options) => {
     }
   });
 
-  const makeTurn = (state: { turn: KernelTurn; abortRequested: boolean }): Turn => ({
+  const makeTurn = (state: PiTurnState): Turn => ({
     id: state.turn.id,
     outcome: state.turn.outcome,
     abort: async () => {
@@ -194,7 +224,7 @@ export const piSession: StartSession = async (installation, options) => {
       void (async (): Promise<void> => {
         try {
           await piAgentSession.prompt(input);
-          turn.settle(state.abortRequested ? { kind: "aborted" } : { kind: "completed" });
+          turn.settle(settledOutcome(state));
         } catch (error) {
           turn.settle({
             kind: "failed",
