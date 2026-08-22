@@ -25,6 +25,23 @@ import { createSessionKernel, type KernelTurn } from "../../shared/session-kerne
  *   message — expected on machines that never configured pi.
  */
 
+/**
+ * The bash tool that carries SessionOptions.env into the agent's spawned
+ * processes: same builtin bash, plus a spawnHook overlaying the env. pi's
+ * defineTool keeps the definition assignable to customTools, where it
+ * replaces the builtin by name. Exported for the unit test that executes it
+ * directly (no model needed to verify the overlay lands).
+ */
+export async function piEnvBashTool(
+  cwd: string,
+  overlay: Readonly<Record<string, string>>,
+): Promise<NonNullable<CreateAgentSessionOptions["customTools"]>[number]> {
+  const sdk = await import("@earendil-works/pi-coding-agent");
+  return sdk.defineTool(sdk.createBashToolDefinition(cwd, {
+    spawnHook: (context) => ({ ...context, env: { ...context.env, ...overlay } }),
+  }));
+}
+
 export const piSession: StartSession = async (installation, options) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
@@ -43,16 +60,9 @@ export const piSession: StartSession = async (installation, options) => {
   // channel. Tool-level spawn verified in SDK source, not yet live (no
   // configured pi on this machine).
   const overlay = options.env;
-  const envBashTool = (): NonNullable<CreateAgentSessionOptions["customTools"]> => {
-    const definition = sdk.createBashToolDefinition(options.cwd, {
-      spawnHook: (context) => ({ ...context, env: { ...context.env, ...overlay } }),
-    });
-    // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- SDK variance wart: customTools' erased element type (TDetails=unknown) cannot hold the narrowly-typed bash definition, though the registry accepts it (createAllToolDefinitions does the same erasure internally)
-    return [definition as NonNullable<CreateAgentSessionOptions["customTools"]>[number]];
-  };
   const { session: piAgentSession } = await sdk.createAgentSession({
     cwd: options.cwd,
-    ...(overlay === undefined ? {} : { customTools: envBashTool() }),
+    ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
