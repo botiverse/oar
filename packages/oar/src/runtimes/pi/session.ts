@@ -33,6 +33,11 @@ export const piSession: StartSession = async (installation, options) => {
     // wiring the id→file lookup waits for a consumer with configured pi.
     throw new Error("pi session resume is not implemented yet");
   }
+  if (options.env !== undefined) {
+    // In-process runtime: env is process-global here, so a per-session
+    // overlay cannot be honored — reject loudly rather than drop silently.
+    throw new Error("pi runs in-process and cannot take per-session env");
+  }
   const sdk = await import("@earendil-works/pi-coding-agent");
   const { session: piAgentSession } = await sdk.createAgentSession({ cwd: options.cwd });
 

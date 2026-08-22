@@ -1,5 +1,6 @@
 import type { TrialCase } from "../harness/runner.js";
 import { startClaudeAimock } from "../harness/aimock.js";
+import { runtimeUnderTest } from "../harness/subject.js";
 
 /**
  * Vendor-specific behavior: what the REAL claude harness does at error edges,
@@ -26,7 +27,10 @@ export const claudeVendorCases: readonly TrialCase[] = [
         });
       });
       try {
-        const session = await subject.startSession();
+        // Own subject over the same runtime, scoped to THIS case's scripted
+        // provider via per-session env — safe to run concurrently with the
+        // shared suite.
+        const session = await runtimeUnderTest(subject.runtime, env.env).startSession();
         const result = session.prompt("hello");
         if (result.kind !== "turn") {
           throw new Error("expected a turn");

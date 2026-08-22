@@ -9,7 +9,10 @@ export interface RuntimeUnderTest {
   startSession(): Promise<Session>;
 }
 
-export function runtimeUnderTest(runtime: Runtime): RuntimeUnderTest {
+export function runtimeUnderTest(
+  runtime: Runtime,
+  env?: Readonly<Record<string, string>>,
+): RuntimeUnderTest {
   return {
     id: runtime.id,
     runtime,
@@ -25,6 +28,7 @@ export function runtimeUnderTest(runtime: Runtime): RuntimeUnderTest {
       return runtime.session(installation, {
         cwd: process.cwd(),
         ...(model === undefined ? {} : { model }),
+        ...(env === undefined ? {} : { env }),
       });
     },
   };

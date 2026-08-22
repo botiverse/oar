@@ -42,7 +42,7 @@ export const codexSession: StartSession = async (installation, options) => {
   if (installation.via !== "executable") {
     throw new Error("The codex session adapter needs an executable installation");
   }
-  const client = startAppServerClient(installation.command);
+  const client = startAppServerClient(installation.command, options.env);
   await client.request("initialize", {
     clientInfo: { name: "oar", version: "0.0.0" },
     capabilities: { experimentalApi: true },

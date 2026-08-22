@@ -21,8 +21,15 @@ interface Pending {
   reject(error: Error): void;
 }
 
-export function startAppServerClient(command: string): AppServerClient {
-  const child = spawnLineProcess(command, ["app-server", "--listen", "stdio://"]);
+export function startAppServerClient(
+  command: string,
+  env?: Readonly<Record<string, string>>,
+): AppServerClient {
+  const child = spawnLineProcess(
+    command,
+    ["app-server", "--listen", "stdio://"],
+    env === undefined ? {} : { env: { ...process.env, ...env } },
+  );
   const pending = new Map<number, Pending>();
   const notificationHandlers: ((method: string, params: JsonRecord) => void)[] = [];
   let nextId = 1;

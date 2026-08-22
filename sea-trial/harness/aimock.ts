@@ -18,11 +18,14 @@ export type { LLMock } from "@copilotkit/aimock";
  *   "responses" and apikey auth
  */
 /**
- * Env mutation is process-scoped by design: sea-trial/main.ts is a dedicated
- * process that exits after the run, so setup dies with it; stop() reclaims
- * the on-disk pieces (server socket, temp CODEX_HOME).
+ * No process.env mutation: each environment returns the vars its sessions
+ * need (passed per-session via SessionOptions.env), so differently-scripted
+ * providers can run concurrently. stop() reclaims the on-disk pieces
+ * (server socket, temp CODEX_HOME).
  */
 export interface AimockEnv {
+  /** Session env overlay pointing the runtime at this scripted provider. */
+  readonly env: Readonly<Record<string, string>>;
   stop(): Promise<void>;
 }
 
@@ -40,9 +43,8 @@ export async function startClaudeAimock(
   const mock = new LLMock({ port: 0 });
   configure(mock);
   await mock.start();
-  process.env.ANTHROPIC_BASE_URL = mock.url;
-  process.env.ANTHROPIC_API_KEY = "aimock";
   return {
+    env: { ANTHROPIC_BASE_URL: mock.url, ANTHROPIC_API_KEY: "aimock" },
     stop: async () => {
       await mock.stop();
     },
@@ -68,15 +70,15 @@ export async function startCodexAimock(
     'wire_api = "responses"',
     "",
   ].join("\n"));
-  process.env.CODEX_HOME = codexHome;
-  process.env.OPENAI_API_KEY = "aimock";
+  const env = { CODEX_HOME: codexHome, OPENAI_API_KEY: "aimock" };
   // Warm the fresh home once: codex's first run initializes its sqlite state
   // and installs system skills, and those writers race when instances cycle
   // fast (observed: "failed to initialize sqlite state runtime"). One
   // throwaway app-server does the heavy init; the suite then behaves like a
   // long-lived home.
-  await warmCodexHome();
+  await warmCodexHome(env);
   return {
+    env,
     stop: async () => {
       await mock.stop();
       try {
@@ -90,7 +92,7 @@ export async function startCodexAimock(
   };
 }
 
-async function warmCodexHome(): Promise<void> {
+async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<void> {
   // Resolve + spawn through the shared executable layer for the Windows
   // details (npm shims are .cmd files a raw spawn can't start). If codex is
   // not installed at all, skip warming — the suite itself will skip later.
@@ -98,7 +100,9 @@ async function warmCodexHome(): Promise<void> {
   if (command === null) {
     return;
   }
-  const child = spawnLineProcess(command, ["app-server", "--listen", "stdio://"]);
+  const child = spawnLineProcess(command, ["app-server", "--listen", "stdio://"], {
+    env: { ...process.env, ...env },
+  });
   try {
     await child.spawned;
   } catch {

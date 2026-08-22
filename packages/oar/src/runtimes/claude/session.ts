@@ -109,7 +109,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     ...(options.model === undefined ? [] : ["--model", options.model]),
   ], {
     cwd: options.cwd,
-    env: { ...process.env, CLAUDECODE: undefined },
+    env: { ...process.env, CLAUDECODE: undefined, ...options.env },
   });
   await child.spawned;
 

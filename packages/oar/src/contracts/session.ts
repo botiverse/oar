@@ -21,6 +21,8 @@ export interface SessionOptions {
   readonly model?: string;
   /** Resume the runtime-native session identified by a previous Session.id. */
   readonly resume?: string;
+  /** Extra environment overlaid on the host env for THIS session's runtime process; in-process runtimes reject it (env is process-global there). */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 /**
