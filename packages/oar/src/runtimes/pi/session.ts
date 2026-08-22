@@ -87,7 +87,6 @@ export const piSession: StartSession = async (installation, options) => {
       return;
     }
     const turn = state.turn;
-    // oxlint-disable-next-line switch-exhaustiveness-check -- deliberately partial: session-scoped events (compaction, queue, retries, …) have no turn mapping in v1 and are dropped
     switch (event.type) {
       case "agent_end": {
         if (state.adopted) {
@@ -97,7 +96,6 @@ export const piSession: StartSession = async (installation, options) => {
       }
       case "message_update": {
         const inner = event.assistantMessageEvent;
-        // oxlint-disable-next-line switch-exhaustiveness-check -- deliberately partial: only deltas map to v1 turn events
         switch (inner.type) {
           case "text_delta":
             turn.emit({ kind: "text_delta", text: inner.delta });
@@ -105,7 +103,18 @@ export const piSession: StartSession = async (installation, options) => {
           case "thinking_delta":
             turn.emit({ kind: "thinking_delta", text: inner.delta });
             break;
-          default:
+          // Explicitly dropped: only deltas map to v1 turn events; block
+          // boundaries and toolcall framing arrive via the outer events.
+          case "start":
+          case "done":
+          case "error":
+          case "text_start":
+          case "text_end":
+          case "thinking_start":
+          case "thinking_end":
+          case "toolcall_start":
+          case "toolcall_delta":
+          case "toolcall_end":
             break;
         }
         break;
@@ -122,7 +131,27 @@ export const piSession: StartSession = async (installation, options) => {
         turn.emit({ kind: "tool_call_ended", callId: event.toolCallId });
         break;
       }
-      default:
+      // Explicitly dropped: session-scoped events with no turn mapping in v1
+      // (an exhaustive switch makes a NEW pi event type a compile error, so
+      // each future addition gets a conscious mapped-or-dropped decision).
+      case "agent_settled":
+      case "turn_start":
+      case "turn_end":
+      case "message_start":
+      case "message_end":
+      case "tool_execution_update":
+      case "bash_execution_update":
+      case "compaction_start":
+      case "compaction_end":
+      case "queue_update":
+      case "entry_appended":
+      case "session_info_changed":
+      case "thinking_level_changed":
+      case "auto_retry_start":
+      case "auto_retry_end":
+      case "summarization_retry_scheduled":
+      case "summarization_retry_attempt_start":
+      case "summarization_retry_finished":
         break;
     }
   });
