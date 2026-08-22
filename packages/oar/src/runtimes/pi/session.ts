@@ -70,39 +70,60 @@ export const piSession: StartSession = async (installation, options) => {
   let disposed = false;
 
   piAgentSession.subscribe((event) => {
-    // A run pi starts that we did not prompt (a drained followUp) still
-    // becomes a real kernel turn; it settles on agent_end since no prompt
-    // promise is attached to it.
-    if (event.type === "agent_start" && kernel.active() === null) {
-      const kernelTurn = kernel.begin();
-      if (kernelTurn !== null) {
-        current = { turn: kernelTurn, abortRequested: false, adopted: true };
+    if (event.type === "agent_start") {
+      // A run pi starts that we did not prompt (a drained followUp) still
+      // becomes a real kernel turn; it settles on agent_end since no prompt
+      // promise is attached to it.
+      if (kernel.active() === null) {
+        const kernelTurn = kernel.begin();
+        if (kernelTurn !== null) {
+          current = { turn: kernelTurn, abortRequested: false, adopted: true };
+        }
       }
+      return;
     }
     const state = current;
     if (state === null || state.turn.settled()) {
       return;
     }
-    if (event.type === "agent_end" && state.adopted) {
-      state.turn.settle(state.abortRequested ? { kind: "aborted" } : { kind: "completed" });
-      return;
-    }
     const turn = state.turn;
-    if (event.type === "message_update") {
-      const inner = event.assistantMessageEvent;
-      if (inner.type === "text_delta" && typeof inner.delta === "string") {
-        turn.emit({ kind: "text_delta", text: inner.delta });
-      } else if (inner.type === "thinking_delta" && typeof inner.delta === "string") {
-        turn.emit({ kind: "thinking_delta", text: inner.delta });
+    // oxlint-disable-next-line switch-exhaustiveness-check -- deliberately partial: session-scoped events (compaction, queue, retries, …) have no turn mapping in v1 and are dropped
+    switch (event.type) {
+      case "agent_end": {
+        if (state.adopted) {
+          turn.settle(state.abortRequested ? { kind: "aborted" } : { kind: "completed" });
+        }
+        break;
       }
-    } else if (event.type === "tool_execution_start") {
-      turn.emit({
-        kind: "tool_call_started",
-        callId: event.toolCallId,
-        tool: event.toolName,
-      });
-    } else if (event.type === "tool_execution_end") {
-      turn.emit({ kind: "tool_call_ended", callId: event.toolCallId });
+      case "message_update": {
+        const inner = event.assistantMessageEvent;
+        // oxlint-disable-next-line switch-exhaustiveness-check -- deliberately partial: only deltas map to v1 turn events
+        switch (inner.type) {
+          case "text_delta":
+            turn.emit({ kind: "text_delta", text: inner.delta });
+            break;
+          case "thinking_delta":
+            turn.emit({ kind: "thinking_delta", text: inner.delta });
+            break;
+          default:
+            break;
+        }
+        break;
+      }
+      case "tool_execution_start": {
+        turn.emit({
+          kind: "tool_call_started",
+          callId: event.toolCallId,
+          tool: event.toolName,
+        });
+        break;
+      }
+      case "tool_execution_end": {
+        turn.emit({ kind: "tool_call_ended", callId: event.toolCallId });
+        break;
+      }
+      default:
+        break;
     }
   });
 

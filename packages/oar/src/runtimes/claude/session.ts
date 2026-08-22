@@ -51,45 +51,72 @@ function projectMessage(state: ClaudeSessionState, message: JsonRecord): void {
   if (turn === null || turn.settled()) {
     return;
   }
-  const kind = String(message.type);
-  if (kind === "assistant") {
-    for (const block of contentBlocks(message)) {
-      if (block.type === "text" && typeof block.text === "string") {
-        turn.emit({ kind: "text_delta", text: block.text });
-      } else if (block.type === "thinking" && typeof block.thinking === "string") {
-        turn.emit({ kind: "thinking_delta", text: block.thinking });
-      } else if (block.type === "tool_use") {
-        turn.emit({
-          kind: "tool_call_started",
-          callId: typeof block.id === "string" ? block.id : "unknown",
-          tool: typeof block.name === "string" ? block.name : "unknown",
-        });
+  switch (String(message.type)) {
+    case "assistant": {
+      for (const block of contentBlocks(message)) {
+        switch (String(block.type)) {
+          case "text": {
+            if (typeof block.text === "string") {
+              turn.emit({ kind: "text_delta", text: block.text });
+            }
+            break;
+          }
+          case "thinking": {
+            if (typeof block.thinking === "string") {
+              turn.emit({ kind: "thinking_delta", text: block.thinking });
+            }
+            break;
+          }
+          case "tool_use": {
+            turn.emit({
+              kind: "tool_call_started",
+              callId: typeof block.id === "string" ? block.id : "unknown",
+              tool: typeof block.name === "string" ? block.name : "unknown",
+            });
+            break;
+          }
+          default:
+            break;
+        }
       }
+      break;
     }
-  } else if (kind === "user") {
-    for (const block of contentBlocks(message)) {
-      if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-        turn.emit({ kind: "tool_call_ended", callId: block.tool_use_id });
+    case "user": {
+      for (const block of contentBlocks(message)) {
+        if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
+          turn.emit({ kind: "tool_call_ended", callId: block.tool_use_id });
+        }
       }
+      break;
     }
-  } else if (kind === "result") {
-    if (state.abortPending) {
-      state.abortPending = false;
-      turn.settle({ kind: "aborted" });
-    } else if (message.is_error === true) {
-      // Vendor quirk (pinned 2026-08-22): claude can report is_error=true with
-      // subtype "success" and put the actual error text in result.
-      const text = typeof message.result === "string" && message.result.length > 0
-        ? message.result
-        : undefined;
-      const subtype = typeof message.subtype === "string" && message.subtype !== "success"
-        ? message.subtype
-        : undefined;
-      turn.settle({ kind: "failed", reason: text ?? subtype ?? "error" });
-    } else {
-      turn.settle({ kind: "completed" });
+    case "result": {
+      settleFromResult(state, turn, message);
+      break;
     }
+    default:
+      break;
   }
+}
+
+function settleFromResult(state: ClaudeSessionState, turn: KernelTurn, message: JsonRecord): void {
+  if (state.abortPending) {
+    state.abortPending = false;
+    turn.settle({ kind: "aborted" });
+    return;
+  }
+  if (message.is_error === true) {
+    // Vendor quirk (pinned 2026-08-22): claude can report is_error=true with
+    // subtype "success" and put the actual error text in result.
+    const text = typeof message.result === "string" && message.result.length > 0
+      ? message.result
+      : undefined;
+    const subtype = typeof message.subtype === "string" && message.subtype !== "success"
+      ? message.subtype
+      : undefined;
+    turn.settle({ kind: "failed", reason: text ?? subtype ?? "error" });
+    return;
+  }
+  turn.settle({ kind: "completed" });
 }
 
 export const claudeSession: StartSession = async (installation, options) => {

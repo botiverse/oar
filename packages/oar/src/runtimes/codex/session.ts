@@ -29,13 +29,14 @@ interface CodexTurnState {
 // "interrupted"; an interrupt that lost the race to completion reports
 // "completed" — mapping a local abort flag over it would falsify the latter.
 function outcomeFromStatus(status: unknown): TurnOutcome {
-  if (status === "interrupted") {
-    return { kind: "aborted" };
+  switch (status) {
+    case "interrupted":
+      return { kind: "aborted" };
+    case "completed":
+      return { kind: "completed" };
+    default:
+      return { kind: "failed", reason: typeof status === "string" ? status : "unknown" };
   }
-  if (status === "completed") {
-    return { kind: "completed" };
-  }
-  return { kind: "failed", reason: typeof status === "string" ? status : "unknown" };
 }
 
 export const codexSession: StartSession = async (installation, options) => {
@@ -76,41 +77,57 @@ export const codexSession: StartSession = async (installation, options) => {
     if (params.threadId !== threadId) {
       return;
     }
-    // A turn we did not start (a drained queue submission) still becomes a
-    // real kernel turn so its events and completion are attributable.
-    if (method === "turn/started" && kernel.active() === null) {
-      const startedTurn = asRecord(params.turn)?.id;
-      const kernelTurn = kernel.begin();
-      if (kernelTurn !== null && typeof startedTurn === "string") {
-        current = { kernelTurn, codexTurnId: Promise.resolve(startedTurn) };
+    if (method === "turn/started") {
+      // A turn we did not start (a drained queue submission) still becomes a
+      // real kernel turn so its events and completion are attributable.
+      if (kernel.active() === null) {
+        const startedTurn = asRecord(params.turn)?.id;
+        const kernelTurn = kernel.begin();
+        if (kernelTurn !== null && typeof startedTurn === "string") {
+          current = { kernelTurn, codexTurnId: Promise.resolve(startedTurn) };
+        }
       }
+      return;
     }
     const state = current;
     if (state === null || state.kernelTurn.settled()) {
       return;
     }
     const turn = state.kernelTurn;
-    if (method === "item/agentMessage/delta" && typeof params.delta === "string") {
-      turn.emit({ kind: "text_delta", text: params.delta });
-    } else if (
-      (method === "item/reasoning/textDelta" || method === "item/reasoning/summaryTextDelta")
-      && typeof params.delta === "string"
-    ) {
-      turn.emit({ kind: "thinking_delta", text: params.delta });
-    } else if (method === "item/started" || method === "item/completed") {
-      const item = asRecord(params.item);
-      const itemType = typeof item?.type === "string" ? item.type : "";
-      const itemId = typeof item?.id === "string" ? item.id : "unknown";
-      if (TOOL_ITEM_TYPES.has(itemType)) {
-        if (method === "item/started") {
-          turn.emit({ kind: "tool_call_started", callId: itemId, tool: itemType });
-        } else {
-          turn.emit({ kind: "tool_call_ended", callId: itemId });
+    switch (method) {
+      case "item/agentMessage/delta": {
+        if (typeof params.delta === "string") {
+          turn.emit({ kind: "text_delta", text: params.delta });
         }
+        break;
       }
-    } else if (method === "turn/completed") {
-      const status = asRecord(params.turn)?.status;
-      turn.settle(outcomeFromStatus(status));
+      case "item/reasoning/textDelta":
+      case "item/reasoning/summaryTextDelta": {
+        if (typeof params.delta === "string") {
+          turn.emit({ kind: "thinking_delta", text: params.delta });
+        }
+        break;
+      }
+      case "item/started":
+      case "item/completed": {
+        const item = asRecord(params.item);
+        const itemType = typeof item?.type === "string" ? item.type : "";
+        const itemId = typeof item?.id === "string" ? item.id : "unknown";
+        if (TOOL_ITEM_TYPES.has(itemType)) {
+          if (method === "item/started") {
+            turn.emit({ kind: "tool_call_started", callId: itemId, tool: itemType });
+          } else {
+            turn.emit({ kind: "tool_call_ended", callId: itemId });
+          }
+        }
+        break;
+      }
+      case "turn/completed": {
+        turn.settle(outcomeFromStatus(asRecord(params.turn)?.status));
+        break;
+      }
+      default:
+        break;
     }
   });
   client.onExit(() => {

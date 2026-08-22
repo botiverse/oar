@@ -192,14 +192,15 @@ export const codexAccountUsage: AccountUsageReader = async (installation, option
     return { kind: "unsupported" };
   }
   const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000);
-  if (outcome.kind === "ok") {
-    return projectCodexUsage(outcome.result);
-  }
-  if (outcome.kind === "reauth_required") {
-    return { kind: "reauth_required" };
-  }
-  if (outcome.kind === "unsupported") {
-    return { kind: "unsupported" };
+  switch (outcome.kind) {
+    case "ok":
+      return projectCodexUsage(outcome.result);
+    case "reauth_required":
+      return { kind: "reauth_required" };
+    case "unsupported":
+      return { kind: "unsupported" };
+    case "error":
+      break;
   }
   throw new Error("Failed to read Codex account usage");
 };
