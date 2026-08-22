@@ -60,8 +60,14 @@ export const piSession: StartSession = async (installation, options) => {
   // channel. Tool-level spawn verified in SDK source, not yet live (no
   // configured pi on this machine).
   const overlay = options.env;
+  // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/
+  // settings) — same namespaced-env-pin pattern as OAR_CLAUDE_BIN. This is
+  // how a host (or the pi-aimock behavior backend) points the in-process
+  // model plane somewhere else.
+  const agentDir = process.env.OAR_PI_AGENT_DIR;
   const { session: piAgentSession } = await sdk.createAgentSession({
     cwd: options.cwd,
+    ...(agentDir === undefined ? {} : { agentDir }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
 

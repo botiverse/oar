@@ -24,8 +24,8 @@ export type { LLMock } from "@copilotkit/aimock";
  * (server socket, temp CODEX_HOME).
  */
 export interface AimockEnv {
-  /** Session env overlay pointing the runtime at this scripted provider. */
-  readonly env: Readonly<Record<string, string>>;
+  /** Session env overlay pointing the runtime at this scripted provider (absent for in-process pi, which is re-pointed via OAR_PI_AGENT_DIR at startup). */
+  readonly env?: Readonly<Record<string, string>>;
   stop(): Promise<void>;
 }
 
@@ -118,4 +118,46 @@ async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<voi
   });
   child.kill();
   await child.exited;
+}
+
+export async function startPiAimock(
+  configure: (mock: LLMock) => void = baseFixtures,
+): Promise<AimockEnv> {
+  const mock = new LLMock({ port: 0 });
+  configure(mock);
+  await mock.start();
+  // pi is in-process: its model plane reads agentDir/models.json, not child
+  // env — so the re-point is a temp agentDir pinned via OAR_PI_AGENT_DIR
+  // (process-wide, set once at suite startup; recipe live-verified in
+  // experiments/pi-aimock.ts).
+  const agentDir = await mkdtemp(path.join(tmpdir(), "oar-pi-aimock-"));
+  await writeFile(path.join(agentDir, "models.json"), JSON.stringify({
+    providers: {
+      aimock: {
+        name: "aimock",
+        baseUrl: mock.url,
+        apiKey: "aimock",
+        api: "anthropic-messages",
+        models: [{
+          id: "aimock-model",
+          name: "aimock",
+          reasoning: false,
+          input: ["text"],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 200_000,
+          maxTokens: 16_384,
+        }],
+      },
+    },
+  }));
+  process.env.OAR_PI_AGENT_DIR = agentDir;
+  // The Raft daemon injects its own PI_PACKAGE_DIR into shells on this
+  // machine; it must not leak into the pi under test.
+  delete process.env.PI_PACKAGE_DIR;
+  return {
+    stop: async () => {
+      await mock.stop();
+      await rm(agentDir, { recursive: true, force: true });
+    },
+  };
 }

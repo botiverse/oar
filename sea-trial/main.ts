@@ -14,6 +14,8 @@ import {
   codexInstallation,
   codexSession,
   defineRuntime,
+  piInstallation,
+  piSession,
   runtimes,
   type Runtime,
 } from "../packages/oar/src/index.js";
@@ -21,7 +23,7 @@ import { accountUsageCases } from "./cases/account-usage.js";
 import { installationCases } from "./cases/installation.js";
 import { sessionCases } from "./cases/session.js";
 import { startMockSession } from "./fixtures/mock-session.js";
-import { startClaudeAimock, startCodexAimock, type AimockEnv } from "./harness/aimock.js";
+import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./harness/aimock.js";
 import { claudeVendorCases } from "./vendor/claude.js";
 import { runSuite } from "./harness/runner.js";
 import { runtimeUnderTest } from "./harness/subject.js";
@@ -47,6 +49,9 @@ if (target === "mock") {
 } else if (target === "codex-aimock") {
   aimockEnv = await startCodexAimock();
   runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
+} else if (target === "pi-aimock") {
+  aimockEnv = await startPiAimock();
+  runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
 } else {
   runtime = runtimes.require(target);
 }

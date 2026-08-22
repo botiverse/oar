@@ -32,7 +32,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        backend: [claude-aimock, codex-aimock]
+        backend: [claude-aimock, codex-aimock, pi-aimock]
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
@@ -44,6 +44,18 @@ jobs:
           node-version: "24"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # npm's download cache for the CLI installs below (content-addressed,
+      # so a stale restore never pins an old CLI version — latest still
+      # resolves, only unchanged tarballs are reused). pi needs no install:
+      # it is the bundled SDK already in node_modules.
+      - uses: actions/cache@v4
+        if: matrix.backend != 'pi-aimock'
+        with:
+          path: |
+            ~/.npm
+            ~/AppData/Local/npm-cache
+          key: npm-dl-${{ runner.os }}-${{ matrix.backend }}-${{ github.run_id }}
+          restore-keys: npm-dl-${{ runner.os }}-${{ matrix.backend }}-
       - run: npm install -g @anthropic-ai/claude-code
         if: matrix.backend == 'claude-aimock'
       - run: npm install -g @openai/codex

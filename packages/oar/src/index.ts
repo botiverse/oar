@@ -54,5 +54,7 @@ export { codexRuntime } from "./runtimes/codex/index.js";
 export { codexSession } from "./runtimes/codex/session.js";
 export { codexInstallation } from "./runtimes/codex/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";
+export { piSession } from "./runtimes/pi/session.js";
+export { piInstallation } from "./runtimes/pi/installation.js";
 
 export const runtimes = new RuntimeRegistry([claudeRuntime, codexRuntime, piRuntime]);
