@@ -5,8 +5,8 @@
   "scripts": {
     "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
     "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src experiments sea-trial tests",
-    "test": "tsx --test tests/*.test.ts",
+    "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src experiments sea-trial tests vitest.config.ts",
+    "test": "vitest run",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run sea-trial",
     "oar": "pnpm run build && node packages/cli/dist/index.js",
     "sea-trial": "tsx sea-trial/main.ts"
@@ -17,7 +17,8 @@
     "oxlint": "^1.77.0",
     "oxlint-tsgolint": "^7.0.2001",
     "tsx": "^4.21.0",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.11"
   },
   "packageManager": "pnpm@9.12.3",
   "engines": {

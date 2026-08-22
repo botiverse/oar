@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { afterEach, test, vi } from "vitest";
 import { aggregateDeltas } from "../packages/oar/src/observe/aggregate-events.js";
 import type { SessionObserver } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
@@ -7,6 +7,9 @@ import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 const aggregateDeltasSync = (observer: SessionObserver): SessionObserver =>
   aggregateDeltas(observer, { maxHoldMs: 100 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 async function runAggregated(): Promise<string[]> {
   const { aggregateDeltas: makeAggregate } = await import("../packages/oar/src/observe/aggregate-events.js");
@@ -52,23 +55,23 @@ async function stallFixture(): Promise<{ stalls: string[]; stop: () => void; dis
   return { stalls, stop, dispose: async () => session.dispose() };
 }
 
-test("observeStalls reports a silent active turn (virtual time)", async (t) => {
+test("observeStalls reports a silent active turn (virtual time)", async () => {
   // Date is mocked too: stallOf re-derives silence from the wall clock, so
   // virtual time must advance both the timer AND Date.now().
-  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });
   const { stalls, stop, dispose } = await stallFixture();
-  t.mock.timers.tick(49);
+  vi.advanceTimersByTime(49);
   assert.deepEqual(stalls, [], "must not fire before the threshold");
-  t.mock.timers.tick(2);
+  vi.advanceTimersByTime(2);
   assert.deepEqual(stalls, ["turn_started"], "fires once past the threshold");
-  t.mock.timers.tick(500);
+  vi.advanceTimersByTime(500);
   assert.deepEqual(stalls, ["turn_started"], "fires once per silence episode");
   stop();
   await dispose();
 });
 
-test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time)", (t) => {
-  t.mock.timers.enable({ apis: ["setTimeout"] });
+test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time)", () => {
+  vi.useFakeTimers({ toFake: ["setTimeout"] });
   const seen: string[] = [];
   const envelope = { sessionId: "s", turnId: "t", seq: 0, receivedAt: 0 };
   const observer = aggregateDeltasSync((event) => {
@@ -76,9 +79,9 @@ test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time
   });
   observer({ ...envelope, kind: "text_delta", text: "a" });
   observer({ ...envelope, kind: "text_delta", text: "b" });
-  t.mock.timers.tick(99);
+  vi.advanceTimersByTime(99);
   assert.deepEqual(seen, [], "held while the stream is briefly quiet");
-  t.mock.timers.tick(1);
+  vi.advanceTimersByTime(1);
   assert.deepEqual(seen, ["ab"], "quiescence flush after maxHoldMs");
 });
 

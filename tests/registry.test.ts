@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 import { RuntimeRegistry, defineRuntime } from "../packages/oar/src/index.js";
 

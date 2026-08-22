@@ -40,13 +40,54 @@ function windowLabel(value: unknown): string {
   return `${minutes} minutes`;
 }
 
+function limitLabel(bucket: Record<string, unknown>): string | undefined {
+  const name = text(bucket.limitName);
+  if (name !== undefined) {
+    return name;
+  }
+  const id = text(bucket.limitId);
+  return id === "codex" ? "Codex" : id;
+}
+
+/**
+ * Mirrors Codex TUI's `app_server_rate_limit_snapshots` merge and deduplication.
+ * Source (2026-08-22):
+ * https://github.com/openai/codex/blob/4f39251a010a8bd7d692d25fb33832ff06f1635a/codex-rs/tui/src/app_server_session.rs#L2084-L2103
+ */
+function rateLimitBuckets(
+  historical: Record<string, unknown> | null,
+  indexed: Record<string, unknown> | null,
+): Record<string, unknown>[] {
+  const primaryLimitId = text(historical?.limitId);
+  const buckets = historical === null ? [] : [historical];
+  if (indexed === null) {
+    return buckets;
+  }
+  for (const [limitId, value] of Object.entries(indexed)) {
+    const bucket = asRecord(value);
+    if (bucket === null) {
+      continue;
+    }
+    if (primaryLimitId !== undefined
+      && (primaryLimitId === limitId || primaryLimitId === text(bucket.limitId))) {
+      continue;
+    }
+    buckets.push(bucket);
+  }
+  return buckets;
+}
+
 /**
  * Native evidence comes from `codex app-server --listen stdio://`, followed by
- * `initialize` and `account/rateLimits/read`. A representative response is:
+ * `initialize` and `account/rateLimits/read`. `rateLimits` is the
+ * backward-compatible single-bucket view; `rateLimitsByLimitId` is the
+ * optional multi-bucket view. A representative response is:
  *
  * ```json
  * {
  *   "rateLimits": {
+ *     "limitId": "codex",
+ *     "limitName": null,
  *     "primary": { "usedPercent": 50, "windowDurationMins": 10080, "resetsAt": 1787820410 },
  *     "secondary": null,
  *     "planType": "pro",
@@ -54,10 +95,19 @@ function windowLabel(value: unknown): string {
  *   },
  *   "rateLimitsByLimitId": {
  *     "codex_bengalfox": {
+ *       "limitId": "codex_bengalfox",
  *       "limitName": "GPT-5.3-Codex-Spark",
  *       "primary": { "usedPercent": 0, "windowDurationMins": 300, "resetsAt": 1787322278 },
  *       "secondary": { "usedPercent": 0, "windowDurationMins": 10080, "resetsAt": 1787909078 },
  *       "planType": "pro"
+ *     },
+ *     "codex": {
+ *       "limitId": "codex",
+ *       "limitName": null,
+ *       "primary": { "usedPercent": 50, "windowDurationMins": 10080, "resetsAt": 1787820410 },
+ *       "secondary": null,
+ *       "planType": "pro",
+ *       "rateLimitReachedType": null
  *     }
  *   }
  * }
@@ -67,17 +117,13 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
   const root = asRecord(result);
   const historical = asRecord(root?.rateLimits);
   const indexed = asRecord(root?.rateLimitsByLimitId);
-  const buckets = indexed !== null && Object.keys(indexed).length > 0
-    ? Object.values(indexed).map((value) => asRecord(value))
-    : [historical];
+  const buckets = rateLimitBuckets(historical, indexed);
   const windows: AccountUsageWindow[] = [];
   let rateLimited = false;
   let plan: string | undefined = undefined;
 
   for (const bucket of buckets) {
-    if (bucket === null) {
-      continue;
-    }
+    const sourceLabel = limitLabel(bucket);
     plan ??= text(bucket.planType);
     rateLimited ||= bucket.rateLimitReachedType !== null
       && bucket.rateLimitReachedType !== undefined;
@@ -92,8 +138,9 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
         continue;
       }
       const resetsAt = asEpochInstant(candidate.resetsAt);
+      const durationLabel = windowLabel(candidate.windowDurationMins);
       windows.push({
-        label: windowLabel(candidate.windowDurationMins),
+        label: sourceLabel === undefined ? durationLabel : `${sourceLabel} · ${durationLabel}`,
         usedRatio: Number((usedPercent / 100).toFixed(6)),
         ...(resetsAt === null ? {} : { resetsAt }),
       });

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
 import { resolveExecutable } from "../packages/oar/src/shared/executable/index.js";
