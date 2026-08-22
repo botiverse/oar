@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
+import { resolveExecutable, spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
 
 export type { LLMock } from "@copilotkit/aimock";
 
@@ -85,11 +85,20 @@ export async function startCodexAimock(
 }
 
 async function warmCodexHome(): Promise<void> {
-  const child = spawn("codex", ["app-server", "--listen", "stdio://"], {
-    env: process.env,
-    stdio: ["pipe", "ignore", "ignore"],
-  });
-  child.stdin.write(`${JSON.stringify({
+  // Resolve + spawn through the shared executable layer for the Windows
+  // details (npm shims are .cmd files a raw spawn can't start). If codex is
+  // not installed at all, skip warming — the suite itself will skip later.
+  const command = resolveExecutable("codex");
+  if (command === null) {
+    return;
+  }
+  const child = spawnLineProcess(command, ["app-server", "--listen", "stdio://"]);
+  try {
+    await child.spawned;
+  } catch {
+    return;
+  }
+  child.write(`${JSON.stringify({
     id: 1,
     method: "initialize",
     params: { clientInfo: { name: "oar-warmup", version: "0.0.0" }, capabilities: { experimentalApi: true } },
@@ -97,8 +106,6 @@ async function warmCodexHome(): Promise<void> {
   await new Promise((resolve) => {
     setTimeout(resolve, 2500);
   });
-  child.kill("SIGTERM");
-  await new Promise((resolve) => {
-    child.on("exit", resolve);
-  });
+  child.kill();
+  await child.exited;
 }

@@ -2,10 +2,22 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+/** The one execFileSync shape resolution needs — a typed seam for tests. */
+export type ExecFileSyncLike = (
+  command: string,
+  args: readonly string[],
+  options: {
+    readonly env: NodeJS.ProcessEnv;
+    readonly encoding: "utf8";
+    readonly stdio: readonly ["ignore", "pipe", "ignore"];
+    readonly timeout?: number;
+  },
+) => string | Buffer;
+
 export interface ExecutableResolveOptions {
   readonly platform?: NodeJS.Platform;
   readonly env?: NodeJS.ProcessEnv;
-  readonly execFileSyncFn?: typeof execFileSync;
+  readonly execFileSyncFn?: ExecFileSyncLike;
   readonly existsSyncFn?: (filePath: string) => boolean;
 }
 
@@ -17,20 +29,28 @@ function firstLine(value: string | Buffer): string | null {
 function resolveWindows(
   executable: string,
   env: NodeJS.ProcessEnv,
-  execFile: typeof execFileSync,
+  execFile: ExecFileSyncLike,
   exists: (filePath: string) => boolean,
 ): string | null {
+  // The name travels via env, NOT as a trailing argument: powershell -Command
+  // appends trailing arguments to the command string instead of binding $args,
+  // which silently resolved nothing (caught by CI once Windows ran for real).
   const script = [
-    "$cmd = Get-Command -Name $args[0] -ErrorAction Stop | Select-Object -First 1",
+    "$cmd = Get-Command -Name $env:OAR_RESOLVE_TARGET -ErrorAction Stop | Select-Object -First 1",
     "if ($cmd.Path) { $cmd.Path } elseif ($cmd.Source) { $cmd.Source }",
   ].join("; ");
   try {
     const resolved = firstLine(execFile(
       "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-Command", script, executable],
+      ["-NoProfile", "-NonInteractive", "-Command", script],
       // Cold powershell startup on CI runners routinely exceeds 1s; keep this
       // generous — resolution is rare and cached by callers, not hot-path.
-      { env, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15_000 },
+      {
+        env: { ...env, OAR_RESOLVE_TARGET: executable },
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 15_000,
+      },
     ));
     if (resolved === null || !resolved.toLowerCase().endsWith(".ps1")) {
       return resolved;
