@@ -22,3 +22,30 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run build
+
+  # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
+  # backend. aimock backends run the REAL claude/codex binaries against a
+  # scripted local provider — no login, no tokens — so they can run on every
+  # OS in CI. OAR_TEST selects the backend; an unavailable one skips.
+  behavior:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        backend: [claude-aimock, codex-aimock]
+    runs-on: ${{ matrix.os }}
+    env:
+      OAR_TEST: ${{ matrix.backend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g @anthropic-ai/claude-code
+        if: matrix.backend == 'claude-aimock'
+      - run: npm install -g @openai/codex
+        if: matrix.backend == 'codex-aimock'
+      - run: pnpm run sea-trial
