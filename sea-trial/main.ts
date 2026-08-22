@@ -1,5 +1,5 @@
 /**
- * Conformance entry, OpenDAL-style: the backend is selected by environment
+ * Behavior-test entry, OpenDAL-style: the backend is selected by environment
  * and an absent backend SKIPS rather than fails.
  *
  *   pnpm sea-trial                 # mock fixture (what CI also runs)

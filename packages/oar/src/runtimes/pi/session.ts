@@ -9,7 +9,7 @@ import { createSessionKernel, type KernelTurn } from "../../shared/session-kerne
  *   internal-turn boundary), abort() cancels cooperatively.
  * - steer `accepted` here means: the message entered pi's steering queue.
  *   No live steer probe yet (no provider key on this machine); generic
- *   behavior is covered by the mock conformance suite.
+ *   behavior is covered by the mock behavior suite.
  * - Events: message_update carries AssistantMessageEvent text/thinking deltas;
  *   tool_execution_start/end map to tool calls. Session-scoped events
  *   (compaction, queue updates) have no turn and are dropped in v1.

@@ -3,7 +3,7 @@ import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
 /**
- * The mock session runtime: conformance fixture and (later) load source. Its
+ * The mock session runtime: behavior-test fixture and (later) load source. Its
  * size is deliberate — the session contract is supposed to be implementable in
  * about one screenful, and this file is that acceptance test.
  */
