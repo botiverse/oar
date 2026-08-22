@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { requiresShell } from "./process.js";
 
 export interface ExecutableResult {
   readonly ok: boolean;
@@ -27,6 +28,9 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         env: options.env,
         timeout: options.timeoutMs ?? 5000,
         maxBuffer: 2 * 1024 * 1024,
+        // Same Windows .cmd-shim rule as spawnLineProcess: modern Node throws
+        // EINVAL (synchronously) on shell-less exec of .cmd/.bat.
+        shell: requiresShell(executable, process.platform),
       },
       (error, stdout, stderr) => {
         const exitCode = error !== null && "code" in error && typeof error.code === "number"

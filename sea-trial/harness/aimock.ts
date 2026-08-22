@@ -79,7 +79,13 @@ export async function startCodexAimock(
   return {
     stop: async () => {
       await mock.stop();
-      await rm(codexHome, { recursive: true, force: true });
+      try {
+        // codex leaves background writers (plugins clone) briefly alive after
+        // dispose; retry, and never fail a clean suite over teardown.
+        await rm(codexHome, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+      } catch (error) {
+        process.stderr.write(`codex home teardown left residue: ${String(error)}\n`);
+      }
     },
   };
 }
