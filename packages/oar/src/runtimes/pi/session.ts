@@ -1,3 +1,4 @@
+import type { CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { Session, StartSession, Turn } from "../../contracts/session.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
@@ -33,13 +34,26 @@ export const piSession: StartSession = async (installation, options) => {
     // wiring the id→file lookup waits for a consumer with configured pi.
     throw new Error("pi session resume is not implemented yet");
   }
-  if (options.env !== undefined) {
-    // In-process runtime: env is process-global here, so a per-session
-    // overlay cannot be honored — reject loudly rather than drop silently.
-    throw new Error("pi runs in-process and cannot take per-session env");
-  }
   const sdk = await import("@earendil-works/pi-coding-agent");
-  const { session: piAgentSession } = await sdk.createAgentSession({ cwd: options.cwd });
+  // Per-session env on an in-process runtime: the runtime itself has no own
+  // process, but the processes the AGENT spawns do — a bash tool built with a
+  // spawnHook overlaying the env replaces the builtin by name (custom tools
+  // win the SDK's tool registry). Provider config (keys, base URLs) does NOT
+  // travel this way for pi; that needs its native modelRuntime/agentDir
+  // channel. Tool-level spawn verified in SDK source, not yet live (no
+  // configured pi on this machine).
+  const overlay = options.env;
+  const envBashTool = (): NonNullable<CreateAgentSessionOptions["customTools"]> => {
+    const definition = sdk.createBashToolDefinition(options.cwd, {
+      spawnHook: (context) => ({ ...context, env: { ...context.env, ...overlay } }),
+    });
+    // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- SDK variance wart: customTools' erased element type (TDetails=unknown) cannot hold the narrowly-typed bash definition, though the registry accepts it (createAllToolDefinitions does the same erasure internally)
+    return [definition as NonNullable<CreateAgentSessionOptions["customTools"]>[number]];
+  };
+  const { session: piAgentSession } = await sdk.createAgentSession({
+    cwd: options.cwd,
+    ...(overlay === undefined ? {} : { customTools: envBashTool() }),
+  });
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
   let current: { turn: KernelTurn; abortRequested: boolean; adopted: boolean } | null = null;
