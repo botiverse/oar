@@ -8,6 +8,7 @@ export type {
   AccountUsageReadOptions,
   AccountUsageSnapshot,
   AccountUsageWindow,
+  UtcInstant,
 } from "./contracts/account-usage.js";
 export type {
   AvailableInstallation,
@@ -35,6 +36,7 @@ export type {
   Unsubscribe,
 } from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
+export { utcInstantFromDate } from "./shared/instant.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
 export { aggregateDeltas } from "./observe/aggregate-events.js";
 export {

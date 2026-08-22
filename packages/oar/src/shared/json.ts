@@ -1,3 +1,6 @@
+import type { UtcInstant } from "../contracts/account-usage.js";
+import { utcInstantFromDate } from "./instant.js";
+
 /** Narrowing helpers for untyped JSON coming from native runtime surfaces. */
 export type JsonRecord = Record<string, unknown>;
 
@@ -22,11 +25,11 @@ export function asNumber(value: unknown): number | null {
 }
 
 /** Narrow an epoch timestamp in seconds or milliseconds to an ISO-8601 instant. */
-export function asEpochInstant(value: unknown): string | null {
+export function asEpochInstant(value: unknown): UtcInstant | null {
   const raw = asNumber(value);
   if (raw === null) {
     return null;
   }
   const instant = new Date(raw >= 1_000_000_000_000 ? raw : raw * 1000);
-  return Number.isFinite(instant.getTime()) ? instant.toISOString() : null;
+  return utcInstantFromDate(instant);
 }

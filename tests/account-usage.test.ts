@@ -118,8 +118,10 @@ test("codex projection merges an extra-only indexed view", () => {
 
 test("claude projection accepts windows with and without reset text", () => {
   const snapshot = projectClaudeUsage(
-    "Current session: 7% used · resets Aug 21 at 7:39pm (Asia/Shanghai)\n"
-      + "Current week (Fable): 0% used",
+    "Current session: 7% used · resets Aug 22 at 5:59pm (Asia/Shanghai)\n"
+      + "Current week (all models): 14% used · resets Aug 28 at 2:59pm (Asia/Shanghai)\n"
+      + "Current week (Fable): 22% used",
+    new Date("2026-08-22T09:00:00.000Z"),
   );
   expect(snapshot).toMatchInlineSnapshot(`
     {
@@ -128,11 +130,37 @@ test("claude projection accepts windows with and without reset text", () => {
       "windows": [
         {
           "label": "Current session",
+          "resetsAt": "2026-08-22T09:59:00.000Z",
           "usedRatio": 0.07,
         },
         {
+          "label": "Current week (all models)",
+          "resetsAt": "2026-08-28T06:59:00.000Z",
+          "usedRatio": 0.14,
+        },
+        {
           "label": "Current week (Fable)",
-          "usedRatio": 0,
+          "usedRatio": 0.22,
+        },
+      ],
+    }
+  `);
+});
+
+test("claude projection resolves the next reset across a year boundary", () => {
+  const snapshot = projectClaudeUsage(
+    "Current week: 50% used · resets Jan 1 at 1:30am (America/Los_Angeles)",
+    new Date("2026-12-31T20:00:00.000Z"),
+  );
+  expect(snapshot).toMatchInlineSnapshot(`
+    {
+      "kind": "available",
+      "rateLimited": false,
+      "windows": [
+        {
+          "label": "Current week",
+          "resetsAt": "2027-01-01T09:30:00.000Z",
+          "usedRatio": 0.5,
         },
       ],
     }

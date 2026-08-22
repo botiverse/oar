@@ -2,19 +2,110 @@ import type {
   AccountUsageReader,
   AccountUsageSnapshot,
   AccountUsageWindow,
+  UtcInstant,
 } from "../../contracts/account-usage.js";
 import { runExecutable } from "../../shared/executable/index.js";
+import { utcInstantFromDate } from "../../shared/instant.js";
 import { asRecord, parseJson } from "../../shared/json.js";
+
+const MONTHS = new Map([
+  ["Jan", 0], ["Feb", 1], ["Mar", 2], ["Apr", 3], ["May", 4], ["Jun", 5],
+  ["Jul", 6], ["Aug", 7], ["Sep", 8], ["Oct", 9], ["Nov", 10], ["Dec", 11],
+]);
+
+interface LocalDateTime {
+  readonly year: number;
+  readonly month: number;
+  readonly day: number;
+  readonly hour: number;
+  readonly minute: number;
+}
+
+function zonedParts(instant: number, timeZone: string): LocalDateTime | null {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      calendar: "gregory",
+      numberingSystem: "latn",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(instant);
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const result = {
+      year: Number(values.year),
+      month: Number(values.month) - 1,
+      day: Number(values.day),
+      hour: Number(values.hour),
+      minute: Number(values.minute),
+    };
+    return Object.values(result).every((value) => Number.isFinite(value)) ? result : null;
+  } catch {
+    return null;
+  }
+}
+
+function localInstant(value: LocalDateTime, timeZone: string): number | null {
+  const target = Date.UTC(value.year, value.month, value.day, value.hour, value.minute);
+  let instant = target;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const observed = zonedParts(instant, timeZone);
+    if (observed === null) {
+      return null;
+    }
+    const correction = target
+      - Date.UTC(observed.year, observed.month, observed.day, observed.hour, observed.minute);
+    if (correction === 0) {
+      return instant;
+    }
+    instant += correction;
+  }
+  return null;
+}
+
+function resetInstant(resetText: string, referenceInstant: Date): UtcInstant | null {
+  const match = /^(\w{3}) (\d{1,2}) at (\d{1,2}):(\d{2})(am|pm) \(([^)]+)\)$/u.exec(resetText);
+  const month = MONTHS.get(match?.[1] ?? "");
+  const day = Number(match?.[2]);
+  const twelveHour = Number(match?.[3]);
+  const minute = Number(match?.[4]);
+  const meridiem = match?.[5];
+  const timeZone = match?.[6];
+  if (month === undefined || timeZone === undefined || day < 1 || day > 31
+    || twelveHour < 1 || twelveHour > 12 || minute < 0 || minute > 59
+    || (meridiem !== "am" && meridiem !== "pm")) {
+    return null;
+  }
+  const reference = zonedParts(referenceInstant.getTime(), timeZone);
+  if (reference === null) {
+    return null;
+  }
+  const hour = twelveHour % 12 + (meridiem === "pm" ? 12 : 0);
+  const cutoff = referenceInstant.getTime() - 60_000;
+  for (const year of [reference.year, reference.year + 1]) {
+    const instant = localInstant({ year, month, day, hour, minute }, timeZone);
+    if (instant !== null && instant >= cutoff) {
+      return utcInstantFromDate(new Date(instant));
+    }
+  }
+  return null;
+}
 
 function resultText(stdout: string): string | null {
   const result = asRecord(parseJson(stdout))?.result;
   return typeof result === "string" && result.trim().length > 0 ? result : null;
 }
 
-export function projectClaudeUsage(content: string): AccountUsageSnapshot {
+export function projectClaudeUsage(
+  content: string,
+  referenceInstant: Date = new Date(),
+): AccountUsageSnapshot {
   const windows: AccountUsageWindow[] = [];
   for (const line of content.split(/\r?\n/u)) {
-    const match = /^(.+?): (\d+(?:\.\d+)?)% used(?: · resets .+)?$/u.exec(line.trim());
+    const match = /^(.+?): (\d+(?:\.\d+)?)% used(?: · resets (.+))?$/u.exec(line.trim());
     const label = match?.[1];
     const percentage = match?.[2];
     if (label === undefined || percentage === undefined) {
@@ -24,9 +115,12 @@ export function projectClaudeUsage(content: string): AccountUsageSnapshot {
     if (!Number.isFinite(usedPercent) || usedPercent < 0 || usedPercent > 100) {
       continue;
     }
+    const resetText = match?.[3];
+    const resetsAt = resetText === undefined ? null : resetInstant(resetText, referenceInstant);
     windows.push({
       label,
       usedRatio: Number((usedPercent / 100).toFixed(6)),
+      ...(resetsAt === null ? {} : { resetsAt }),
     });
   }
   if (windows.length === 0) {
@@ -61,7 +155,8 @@ export function projectClaudeUsage(content: string): AccountUsageSnapshot {
  * }
  * ```
  *
- * Reset values are deliberately omitted until arbitrary IANA zones can be normalized reliably.
+ * Reset text has no year, so it is interpreted as the next occurrence in its
+ * named IANA time zone relative to when the command result is projected.
  */
 export const claudeAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
