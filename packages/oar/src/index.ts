@@ -16,7 +16,7 @@ export type {
   InstallationProbe,
   InstallationSnapshot,
 } from "./contracts/installation.js";
-export type { RunResult, Runtime, RuntimeSpec } from "./contracts/runtime.js";
+export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
   PromptResult,
@@ -34,7 +34,7 @@ export type {
   TurnQueue,
   Unsubscribe,
 } from "./contracts/session.js";
-export { defineRuntime } from "./shared/define-runtime.js";
+export { defineRuntime } from "./contracts/runtime.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
 export { aggregateDeltas } from "./observe/aggregate-events.js";
 export {

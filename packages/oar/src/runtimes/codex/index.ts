@@ -1,4 +1,4 @@
-import { defineRuntime } from "../../shared/define-runtime.js";
+import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAccountUsage } from "./account-usage.js";
 import { codexInstallation } from "./installation.js";
 import { codexSession } from "./session.js";
