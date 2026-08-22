@@ -27,10 +27,8 @@ export interface AimockEnv {
 function baseFixtures(mock: LLMock): void {
   // Enough model behavior for every current behavior case: any prompt gets a
   // short completion. Cases assert framing/invariants, not content.
-  // latency keeps the model pace realistic: instant (0ms) replies drive codex's
-  // internals through interleavings real providers never produce and its
-  // app-server can crash mid-turn (observed 2026-08-22) — that discovery
-  // belongs in a chaos experiment, not in the behavior baseline.
+  // A little latency keeps the model pace realistic; instant replies are a
+  // chaos-experiment configuration, not a behavior baseline.
   mock.onMessage(/[\s\S]*/u, { content: "ok" }, { latency: 80 });
 }
 
