@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { setTimeout as delay } from "node:timers/promises";
+import { aggregateDeltas } from "../packages/oar/src/observe/aggregate-events.js";
+import type { SessionObserver } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
+
+const aggregateDeltasSync = (observer: SessionObserver): SessionObserver =>
+  aggregateDeltas(observer, { maxHoldMs: 100 });
 
 
 async function runAggregated(): Promise<string[]> {
-  const { aggregateDeltas } = await import("../packages/oar/src/observe/aggregate-events.js");
+  const { aggregateDeltas: makeAggregate } = await import("../packages/oar/src/observe/aggregate-events.js");
   const session = await startMockSession(
     { kind: "available", via: "bundled" },
     { cwd: process.cwd() },
   );
   const merged: string[] = [];
-  session.subscribe(aggregateDeltas((event) => {
+  session.subscribe(makeAggregate((event) => {
     merged.push(event.kind === "text_delta" ? `text:${event.text}` : event.kind);
   }));
   const result = session.prompt("hello");
@@ -31,7 +35,7 @@ test("aggregateDeltas merges consecutive deltas and preserves order", async () =
   ]);
 });
 
-test("observeStalls reports a silent active turn", async () => {
+async function stallFixture(): Promise<{ stalls: string[]; stop: () => void; dispose: () => Promise<void> }> {
   const { observeStalls } = await import("../packages/oar/src/observe/stall-observer.js");
   const session = await startMockSession(
     { kind: "available", via: "bundled" },
@@ -41,15 +45,41 @@ test("observeStalls reports a silent active turn", async () => {
   const stop = observeStalls(session, {
     stallAfterMs: 50,
     onStall: (info) => {
-      stalls.push(`${info.lastEventKind}:${info.silentForMs >= 50}`);
+      stalls.push(info.lastEventKind);
     },
   });
-  const result = session.prompt("hang");
-  assert.equal(result.kind, "turn");
-  await delay(150);
-  assert.deepEqual(stalls, ["turn_started:true"]);
+  assert.equal(session.prompt("hang").kind, "turn");
+  return { stalls, stop, dispose: async () => session.dispose() };
+}
+
+test("observeStalls reports a silent active turn (virtual time)", async (t) => {
+  // Date is mocked too: stallOf re-derives silence from the wall clock, so
+  // virtual time must advance both the timer AND Date.now().
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const { stalls, stop, dispose } = await stallFixture();
+  t.mock.timers.tick(49);
+  assert.deepEqual(stalls, [], "must not fire before the threshold");
+  t.mock.timers.tick(2);
+  assert.deepEqual(stalls, ["turn_started"], "fires once past the threshold");
+  t.mock.timers.tick(500);
+  assert.deepEqual(stalls, ["turn_started"], "fires once per silence episode");
   stop();
-  await session.dispose();
+  await dispose();
+});
+
+test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time)", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const seen: string[] = [];
+  const envelope = { sessionId: "s", turnId: "t", seq: 0, receivedAt: 0 };
+  const observer = aggregateDeltasSync((event) => {
+    seen.push(event.kind === "text_delta" ? event.text : event.kind);
+  });
+  observer({ ...envelope, kind: "text_delta", text: "a" });
+  observer({ ...envelope, kind: "text_delta", text: "b" });
+  t.mock.timers.tick(99);
+  assert.deepEqual(seen, [], "held while the stream is briefly quiet");
+  t.mock.timers.tick(1);
+  assert.deepEqual(seen, ["ab"], "quiescence flush after maxHoldMs");
 });
 
 test("reduceStatus follows the documented transition table", async () => {
