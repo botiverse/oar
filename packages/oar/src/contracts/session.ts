@@ -33,12 +33,22 @@ export type StartSession = (
   options: SessionOptions,
 ) => Promise<Session>;
 
-export interface Session {
+/**
+ * The SPI face: what an adapter actually builds. Today every member is also
+ * public, so the API face extends this; if an SPI-internal member ever
+ * appears, the extends breaks into an explicit mapping inside sealSession —
+ * that seam is already the only place the two faces meet.
+ */
+export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity — pass to SessionOptions.resume to reattach later
   prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
   subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
   readonly queue?: TurnQueue; // next-turn input; absent only when a runtime cannot even hold input for later
   dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent
+}
+
+/** The API face: the SPI plus surfaces sealSession derives. */
+export interface Session extends AdapterSession {
   /**
    * DERIVED, not adapter-implemented: steer when the runtime can, fall back to
    * queueing, always report where the input landed. `rejected` means the input
@@ -46,9 +56,6 @@ export interface Session {
    */
   steerOrQueue(turn: Turn, input: string): Promise<SteerOrQueueResult>;
 }
-
-/** What an adapter actually builds; sealSession derives the rest. This is the SPI face of Session. */
-export type AdapterSession = Omit<Session, "steerOrQueue">;
 
 export type SteerOrQueueResult =
   | { readonly landed: "steered" }
