@@ -1,5 +1,6 @@
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
+import { record } from "./trace.js";
 
 /** What a behavior case runs against: one runtime plus how to open a session on it. */
 export interface RuntimeUnderTest {
@@ -25,12 +26,17 @@ export function runtimeUnderTest(
         throw new Error(`${runtime.id} is not available: ${installation.kind}`);
       }
       const model = process.env.OAR_TEST_MODEL;
-      return runtime.session(installation, {
+      const session = await runtime.session(installation, {
         cwd: process.cwd(),
         ...(model === undefined ? {} : { model }),
         ...(env === undefined ? {} : { env }),
         ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
       });
+      record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null });
+      session.subscribe((event) => {
+        record({ kind: "session_event", event });
+      });
+      return session;
     },
   };
 }

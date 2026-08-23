@@ -1,4 +1,5 @@
 import type { RuntimeUnderTest } from "./subject.js";
+import { record } from "./trace.js";
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
 
 export type RuntimeCapability = Exclude<keyof Runtime, "id">;
@@ -24,15 +25,15 @@ export async function runCase(testCase: TrialCase, subject: RuntimeUnderTest): P
   if (first !== undefined) {
     return { kind: "skipped", caseId: testCase.id, missing: [first, ...missing.slice(1)] };
   }
+  record({ kind: "case_started", caseId: testCase.id });
   try {
     await testCase.run(subject);
+    record({ kind: "case_passed", caseId: testCase.id });
     return { kind: "pass", caseId: testCase.id };
   } catch (error) {
-    return {
-      kind: "fail",
-      caseId: testCase.id,
-      reason: error instanceof Error ? error.message : String(error),
-    };
+    const reason = error instanceof Error ? error.message : String(error);
+    record({ kind: "case_failed", caseId: testCase.id, reason });
+    return { kind: "fail", caseId: testCase.id, reason };
   }
 }
 

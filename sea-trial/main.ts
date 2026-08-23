@@ -25,6 +25,7 @@ import { sessionCases } from "./cases/session.js";
 import { startMockSession } from "./fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./harness/aimock.js";
 import { runSuite } from "./harness/runner.js";
+import { openTrace } from "./harness/trace.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
 const target = process.env.OAR_TEST ?? "mock";
@@ -65,6 +66,7 @@ if (installation === undefined || installation.kind !== "available") {
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
 // OAR_TEST-gated) — the behavior CI job runs them right after this suite.
 const cases = [...installationCases, ...accountUsageCases, ...sessionCases];
+const tracePath = openTrace(target);
 const outcomes = await runSuite(cases, runtimeUnderTest(runtime, aimockEnv?.env));
 let failures = 0;
 for (const outcome of outcomes) {
@@ -76,5 +78,6 @@ for (const outcome of outcomes) {
   }
 }
 process.stdout.write(`${target}: ${outcomes.length - failures}/${outcomes.length} clean\n`);
+process.stdout.write(`trace: ${tracePath}\n`);
 await aimockEnv?.stop();
 process.exit(failures === 0 ? 0 : 1);
