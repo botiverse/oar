@@ -6,6 +6,7 @@ import type {
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
+import { classifyFailure } from "../../shared/failure-class.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
@@ -113,7 +114,8 @@ function settleFromResult(state: ClaudeSessionState, turn: KernelTurn, message: 
     const subtype = typeof message.subtype === "string" && message.subtype !== "success"
       ? message.subtype
       : undefined;
-    turn.settle({ kind: "failed", reason: text ?? subtype ?? "error" });
+    const reason = text ?? subtype ?? "error";
+    turn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
     return;
   }
   turn.settle({ kind: "completed" });
@@ -168,7 +170,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   child.onExit(() => {
     const active = kernel.active();
     if (active !== null && !state.disposed) {
-      active.settle({ kind: "failed", reason: "claude process exited" });
+      active.settle({ kind: "failed", reason: "claude process exited", failure: "runtime_exited" });
     }
   });
 

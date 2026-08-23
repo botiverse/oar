@@ -23,6 +23,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       }
       await expect(result.turn.outcome).resolves.toMatchInlineSnapshot(`
         {
+          "failure": "unknown",
           "kind": "failed",
           "reason": "failed",
         }

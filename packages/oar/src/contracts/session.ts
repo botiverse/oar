@@ -108,10 +108,20 @@ export interface Turn {
   readonly steer?: (input: string) => Promise<SteerResult>;
 }
 
+/** Coarse failure classification so applications can react (re-login, back off, report a bug) without parsing vendor error prose. Best-effort: adapters map what the runtime reveals; "unknown" is an honest answer. */
+export type FailureClass =
+  | "auth"
+  | "quota"
+  | "invalid_request"
+  | "overloaded"
+  | "provider"
+  | "runtime_exited"
+  | "unknown";
+
 export type TurnOutcome =
   | { readonly kind: "completed" }
   | { readonly kind: "aborted" }
-  | { readonly kind: "failed"; readonly reason: string };
+  | { readonly kind: "failed"; readonly reason: string; readonly failure: FailureClass };
 
 export type SteerResult =
   | { readonly kind: "accepted" }

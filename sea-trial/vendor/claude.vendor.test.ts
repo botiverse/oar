@@ -38,6 +38,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       }
       await expect(result.turn.outcome).resolves.toMatchInlineSnapshot(`
         {
+          "failure": "invalid_request",
           "kind": "failed",
           "reason": "API Error: 400 max_tokens exceeds model limit",
         }

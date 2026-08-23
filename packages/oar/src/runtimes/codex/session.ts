@@ -3,6 +3,7 @@ import type { Session, StartSession, Turn, TurnOutcome } from "../../contracts/s
 import { asRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
+import { classifyFailure } from "../../shared/failure-class.js";
 import { startAppServerClient } from "./app-server-client.js";
 
 /*
@@ -34,8 +35,12 @@ function outcomeFromStatus(status: unknown): TurnOutcome {
       return { kind: "aborted" };
     case "completed":
       return { kind: "completed" };
-    default:
-      return { kind: "failed", reason: typeof status === "string" ? status : "unknown" };
+    default: {
+      const reason = typeof status === "string" ? status : "unknown";
+      // codex's turn status carries no error detail (pinned by the codex
+      // vendor 400/429 snapshots: reason is the bare word "failed").
+      return { kind: "failed", reason, failure: classifyFailure(reason) };
+    }
   }
 }
 
@@ -132,7 +137,7 @@ export const codexSession: StartSession = async (installation, options) => {
   });
   client.onExit(() => {
     if (!disposed) {
-      kernel.active()?.settle({ kind: "failed", reason: "codex app-server exited" });
+      kernel.active()?.settle({ kind: "failed", reason: "codex app-server exited", failure: "runtime_exited" });
     }
   });
 
@@ -194,10 +199,8 @@ export const codexSession: StartSession = async (installation, options) => {
         try {
           await codexTurnId;
         } catch (error) {
-          kernelTurn.settle({
-            kind: "failed",
-            reason: error instanceof Error ? error.message : "turn/start failed",
-          });
+          const reason = error instanceof Error ? error.message : "turn/start failed";
+          kernelTurn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
         }
       })();
       const state: CodexTurnState = { kernelTurn, codexTurnId };

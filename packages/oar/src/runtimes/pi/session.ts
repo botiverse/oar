@@ -1,5 +1,6 @@
 import type { CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
-import type { Session, StartSession, Turn } from "../../contracts/session.js";
+import type { Session, StartSession, Turn, TurnOutcome } from "../../contracts/session.js";
+import { classifyFailure } from "../../shared/failure-class.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 
@@ -49,12 +50,12 @@ interface PiTurnState {
   providerError?: string;
 }
 
-function settledOutcome(state: PiTurnState): { kind: "aborted" } | { kind: "completed" } | { kind: "failed"; reason: string } {
+function settledOutcome(state: PiTurnState): TurnOutcome {
   if (state.abortRequested) {
     return { kind: "aborted" };
   }
   if (state.providerError !== undefined) {
-    return { kind: "failed", reason: state.providerError };
+    return { kind: "failed", reason: state.providerError, failure: classifyFailure(state.providerError) };
   }
   return { kind: "completed" };
 }
@@ -111,10 +112,8 @@ export const piSession: StartSession = async (installation, options) => {
       } catch (error) {
         // Never drop a taken-over delivery silently: surface the loss as a
         // failed turn if one can still be attributed.
-        kernel.begin()?.settle({
-          kind: "failed",
-          reason: error instanceof Error ? error.message : "queued prompt failed",
-        });
+        const reason = error instanceof Error ? error.message : "queued prompt failed";
+        kernel.begin()?.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
       }
     })();
   };
@@ -254,10 +253,8 @@ export const piSession: StartSession = async (installation, options) => {
           await piAgentSession.prompt(input);
           turn.settle(settledOutcome(state));
         } catch (error) {
-          turn.settle({
-            kind: "failed",
-            reason: error instanceof Error ? error.message : "pi prompt failed",
-          });
+          const reason = error instanceof Error ? error.message : "pi prompt failed";
+          turn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
         }
         drainHeld();
       })();
