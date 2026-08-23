@@ -136,6 +136,10 @@ export const claudeSession: StartSession = async (installation, options) => {
     "--verbose",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
+    // Variadic flag LAST so it cannot swallow later arguments.
+    ...(options.allowTools === undefined || options.allowTools.length === 0
+      ? []
+      : ["--allowedTools", ...options.allowTools]),
   ], {
     cwd: options.cwd,
     env: { ...process.env, CLAUDECODE: undefined, ...options.env },

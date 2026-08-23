@@ -27,12 +27,16 @@ export function toolRoundFixtures(
 }
 
 /** Structural skeleton of a turn: framing + tool lifecycle, deltas elided. On failure the error carries the mock's request journal — the CI flake's side of the story. */
-export async function structuralToolRound(session: Session, mock?: LLMock): Promise<readonly string[]> {
+export async function structuralToolRound(
+  session: Session,
+  mock?: LLMock,
+  prompt = "please run the tool as instructed",
+): Promise<readonly string[]> {
   const events: SessionEvent[] = [];
   session.subscribe((event) => {
     events.push(event);
   });
-  const result = session.prompt("please run the tool as instructed");
+  const result = session.prompt(prompt);
   assert.ok(result.kind === "turn", "expected a turn");
   const outcome = await result.turn.outcome;
   if (outcome.kind !== "completed" && mock !== undefined) {

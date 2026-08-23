@@ -23,6 +23,16 @@ export interface SessionOptions {
   readonly resume?: string;
   /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses — provider config needs the runtime's native channel there. */
   readonly env?: Readonly<Record<string, string>>;
+  /**
+   * Tool-permission grants for this session, in the RUNTIME'S NATIVE pattern
+   * syntax — an auditable, scoped alternative to skipping permissions
+   * wholesale. claude: passed as --allowedTools (e.g. "Bash(say:*)").
+   * Runtimes that never prompt under this adapter accept and ignore the
+   * grants as an honest no-op: codex runs approvalPolicy "never", pi's
+   * project-trust model already permits its tools once the cwd is trusted.
+   * Full permission SETTLEMENT (interactive approval flow) stays deferred.
+   */
+  readonly allowTools?: readonly string[];
 }
 
 /**

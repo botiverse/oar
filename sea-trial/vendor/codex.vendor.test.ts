@@ -60,27 +60,30 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     }
   }, 60_000);
 
-  // skipIf(win32): on Windows CI the scripted round stalls into codex's
-  // 5x-reconnect backoff and times out — exec_command behavior there is
-  // unverified (needs a Windows-side probe before this can assert anything).
-  test.skipIf(process.platform === "win32")("a scripted two-round tool conversation keeps tool framing", async () => {
+  test("a scripted two-round tool conversation keeps tool framing", async () => {
     const env = await startCodexAimock((mock) => {
       toolRoundFixtures(mock, (command) => ({ name: "exec_command", arguments: JSON.stringify({ cmd: command }) }));
     });
     try {
-      const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
-      const session = await runtimeUnderTest(runtime, env.env).startSession();
-      await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
-        [
-          "turn_started",
-          "tool_call_started:commandExecution",
-          "tool_call_ended",
-          "tool_call_started:commandExecution",
-          "tool_call_ended",
-          "turn_ended:completed",
-        ]
-      `);
-      await session.dispose();
+      // Full access ON PURPOSE: this test pins tool-call FRAMING, and
+      // sandboxed exec is platform-dependent (GitHub runners deny it — the
+      // echoed marker never reaches the tool result and the staged fixtures
+      // miss; root-caused via the request journal in CI run 32616926011).
+      await withProcessEnv({ OAR_CODEX_SANDBOX: "danger-full-access" }, async () => {
+        const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
+        const session = await runtimeUnderTest(runtime, env.env).startSession();
+        await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
+          [
+            "turn_started",
+            "tool_call_started:commandExecution",
+            "tool_call_ended",
+            "tool_call_started:commandExecution",
+            "tool_call_ended",
+            "turn_ended:completed",
+          ]
+        `);
+        await session.dispose();
+      });
     } finally {
       await env.stop();
     }
