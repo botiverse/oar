@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import type { Session, SessionEvent } from "../../packages/oar/src/contracts/session.js";
 import type { LLMock } from "../harness/aimock.js";
+import { openTrace } from "../harness/trace.js";
+
+// Vendor runs are runs too: their traces land in the same run directory the
+// CI behavior jobs upload, so a red vendor test ships its trajectory.
+openTrace(`vendor-${process.env.OAR_TEST ?? "unset"}`);
 
 /**
  * A scripted two-round tool conversation: the provider first demands a tool

@@ -77,6 +77,12 @@ export const codexSession: StartSession = async (installation, options) => {
   const kernel = createSessionKernel(threadId);
   let current: CodexTurnState | null = null;
   let disposed = false;
+  // codex broadcasts structured `error` notifications (message, codexErrorInfo,
+  // additionalDetails, willRetry) that its terminal turn status does NOT carry
+  // — turn/completed says only "failed". Remember the last one so a failed
+  // settle can say WHY (pinned need: CI tool-round failures were undebuggable
+  // with the bare word "failed").
+  let lastErrorDetail: string | null = null;
 
   client.onNotification((method, params) => {
     if (params.threadId !== threadId) {
@@ -128,7 +134,24 @@ export const codexSession: StartSession = async (installation, options) => {
         break;
       }
       case "turn/completed": {
-        turn.settle(outcomeFromStatus(asRecord(params.turn)?.status));
+        const outcome = outcomeFromStatus(asRecord(params.turn)?.status);
+        if (outcome.kind === "failed" && lastErrorDetail !== null) {
+          const reason = `${outcome.reason}: ${lastErrorDetail}`;
+          turn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
+        } else {
+          turn.settle(outcome);
+        }
+        lastErrorDetail = null;
+        break;
+      }
+      case "error": {
+        const error = asRecord(params.error);
+        const message = typeof error?.message === "string" ? error.message : "";
+        const details = typeof error?.additionalDetails === "string" ? error.additionalDetails : "";
+        const combined = [message, details].filter((part) => part.length > 0).join(" — ");
+        if (combined.length > 0) {
+          lastErrorDetail = combined;
+        }
         break;
       }
       default:

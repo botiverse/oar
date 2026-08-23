@@ -24,9 +24,9 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       }
       await expect(result.turn.outcome).resolves.toMatchInlineSnapshot(`
         {
-          "failure": "unknown",
+          "failure": "invalid_request",
           "kind": "failed",
-          "reason": "failed",
+          "reason": "failed: {"error":{"message":"max_tokens exceeds model limit","type":"invalid_request_error","param":null,"code":null}}",
         }
       `);
       await session.dispose();
