@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import type { Session, SessionEvent } from "../../packages/oar/src/contracts/session.js";
 import type { LLMock } from "../harness/aimock.js";
-import { openTrace } from "../harness/trace.js";
+import { openTrace, record } from "../harness/trace.js";
 
 // Vendor runs are runs too: their traces land in the same run directory the
 // CI behavior jobs upload, so a red vendor test ships its trajectory.
@@ -26,8 +26,8 @@ export function toolRoundFixtures(
   mock.on({ hasToolResult: true, toolResultContains: "oar-round-two" }, { content: "both rounds done" });
 }
 
-/** Structural skeleton of a turn: framing + tool lifecycle, deltas elided. */
-export async function structuralToolRound(session: Session): Promise<readonly string[]> {
+/** Structural skeleton of a turn: framing + tool lifecycle, deltas elided. On failure the error carries the mock's request journal — the CI flake's side of the story. */
+export async function structuralToolRound(session: Session, mock?: LLMock): Promise<readonly string[]> {
   const events: SessionEvent[] = [];
   session.subscribe((event) => {
     events.push(event);
@@ -35,6 +35,11 @@ export async function structuralToolRound(session: Session): Promise<readonly st
   const result = session.prompt("please run the tool as instructed");
   assert.ok(result.kind === "turn", "expected a turn");
   const outcome = await result.turn.outcome;
+  if (outcome.kind !== "completed" && mock !== undefined) {
+    const requests = mock.journal.getAll().map((entry) => JSON.stringify(entry).slice(0, 400));
+    record({ kind: "journal_dump", requests });
+    throw new Error(`turn ${JSON.stringify(outcome)}; journal:\n${requests.join("\n")}`);
+  }
   const skeleton = events
     .filter((event) => event.kind !== "text_delta" && event.kind !== "thinking_delta")
     .map((event) => {

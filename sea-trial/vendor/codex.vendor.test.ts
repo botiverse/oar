@@ -70,7 +70,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     try {
       const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      await expect(structuralToolRound(session)).resolves.toMatchInlineSnapshot(`
+      await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
         [
           "turn_started",
           "tool_call_started:commandExecution",

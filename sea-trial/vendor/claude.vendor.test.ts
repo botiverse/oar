@@ -121,7 +121,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      await expect(structuralToolRound(session)).resolves.toMatchInlineSnapshot(`
+      await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
         [
           "turn_started",
           "tool_call_started:Bash",

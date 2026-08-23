@@ -26,6 +26,8 @@ export type { LLMock } from "@copilotkit/aimock";
 export interface AimockEnv {
   /** Session env overlay pointing the runtime at this scripted provider (absent for in-process pi, which is re-pointed via OAR_PI_AGENT_DIR at startup). */
   readonly env?: Readonly<Record<string, string>>;
+  /** The scripted server itself — vendor tests read its journal when a run goes sideways. */
+  readonly mock: LLMock;
   stop(): Promise<void>;
 }
 
@@ -49,6 +51,7 @@ export async function startClaudeAimock(
   await mock.start();
   return {
     env: { ANTHROPIC_BASE_URL: mock.url, ANTHROPIC_API_KEY: "aimock" },
+    mock,
     stop: async () => {
       await mock.stop();
     },
@@ -83,6 +86,7 @@ export async function startCodexAimock(
   await warmCodexHome(env);
   return {
     env,
+    mock,
     stop: async () => {
       await mock.stop();
       try {
@@ -167,6 +171,7 @@ export async function startPiAimock(
   // machine; it must not leak into the pi under test.
   delete process.env.PI_PACKAGE_DIR;
   return {
+    mock,
     stop: async () => {
       await mock.stop();
       await rm(agentDir, { recursive: true, force: true });

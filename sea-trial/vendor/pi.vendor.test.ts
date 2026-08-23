@@ -40,7 +40,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
     try {
       const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
       const session = await runtimeUnderTest(runtime).startSession();
-      await expect(structuralToolRound(session)).resolves.toMatchInlineSnapshot(`
+      await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
         [
           "turn_started",
           "tool_call_started:bash",
