@@ -4,6 +4,7 @@ import { codexAccountUsage } from "../../packages/oar/src/runtimes/codex/index.j
 import { withProcessEnv } from "./env.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
 
 /** Vendor-specific error edges for the real codex app-server (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edges", () => {
@@ -58,4 +59,28 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       await env.stop();
     }
   }, 60_000);
+
+  test("a scripted two-round tool conversation keeps tool framing", async () => {
+    const env = await startCodexAimock((mock) => {
+      toolRoundFixtures(mock, (command) => ({ name: "exec_command", arguments: JSON.stringify({ cmd: command }) }));
+    });
+    try {
+      const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      await expect(structuralToolRound(session)).resolves.toMatchInlineSnapshot(`
+        [
+          "turn_started",
+          "tool_call_started:commandExecution",
+          "tool_call_ended",
+          "tool_call_started:commandExecution",
+          "tool_call_ended",
+          "turn_ended:completed",
+        ]
+      `);
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 120_000);
+
 });

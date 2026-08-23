@@ -6,6 +6,7 @@ import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index
 import { withProcessEnv } from "./env.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
 
 /**
  * Vendor-specific error edges: what the REAL claude harness does, driven by a
@@ -112,4 +113,28 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       await env.stop();
     }
   }, 60_000);
+
+  test("a scripted two-round tool conversation keeps tool framing", async () => {
+    const env = await startClaudeAimock((mock) => {
+      toolRoundFixtures(mock, (command) => ({ name: "Bash", arguments: JSON.stringify({ command }) }));
+    });
+    try {
+      const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      await expect(structuralToolRound(session)).resolves.toMatchInlineSnapshot(`
+        [
+          "turn_started",
+          "tool_call_started:Bash",
+          "tool_call_ended",
+          "tool_call_started:Bash",
+          "tool_call_ended",
+          "turn_ended:completed",
+        ]
+      `);
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 120_000);
+
 });

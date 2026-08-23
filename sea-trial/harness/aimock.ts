@@ -166,6 +166,10 @@ export async function startPiAimock(
       },
     },
   }));
+  // Pre-trust the suite cwd: pi gates tool execution on project trust, and a
+  // headless run has no UI to answer the prompt (a scripted tool round would
+  // hang forever on it).
+  await writeFile(path.join(agentDir, "trust.json"), JSON.stringify({ [process.cwd()]: true }));
   process.env.OAR_PI_AGENT_DIR = agentDir;
   // The Raft daemon injects its own PI_PACKAGE_DIR into shells on this
   // machine; it must not leak into the pi under test.
