@@ -73,3 +73,24 @@ jobs:
           name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: error
+
+  coxswain-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @botiverse/coxswain check
+      - run: pnpm --filter @botiverse/coxswain test
+      - run: pnpm --filter @botiverse/coxswain build
+      - run: xvfb-run -a pnpm --filter @botiverse/coxswain smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coxswain-smoke-linux
+          path: apps/coxswain/artifacts/coxswain-smoke.png
+          if-no-files-found: error

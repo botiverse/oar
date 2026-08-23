@@ -114,6 +114,37 @@
     },
     {
       "files": [
+        "apps/coxswain/**"
+      ],
+      "rules": {
+        "eslint/max-lines": "off",
+        "eslint/max-lines-per-function": "off",
+        "eslint/max-params": "off",
+        "eslint/max-statements": "off",
+        "eslint/no-nested-ternary": "off",
+        "eslint/no-await-in-loop": "off",
+        "eslint/no-negated-condition": "off",
+        "eslint/prefer-destructuring": "off",
+        "eslint/require-await": "off",
+        "eslint/sort-imports": "off",
+        "import/consistent-type-specifier-style": "off",
+        "import/no-nodejs-modules": "off",
+        "import/no-unassigned-import": "off",
+        "import/prefer-default-export": "off",
+        "promise/always-return": "off",
+        "promise/avoid-new": "off",
+        "promise/prefer-await-to-then": "off",
+        "promise/prefer-await-to-callbacks": "off",
+        "typescript/require-await": "off",
+        "unicorn/no-negated-condition": "off",
+        "unicorn/no-nested-ternary": "off",
+        "unicorn/prefer-global-this": "off",
+        "unicorn/prefer-top-level-await": "off",
+        "unicorn/prefer-ternary": "off"
+      }
+    },
+    {
+      "files": [
         "**/*.test.ts"
       ],
       "rules": {

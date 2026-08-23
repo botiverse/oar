@@ -2,9 +2,29 @@
   "name": "@botiverse/coxswain",
   "private": true,
   "version": "0.0.1",
-  "description": "oar dogfood cockpit — design assets committed; implementation per design sheet v1.2",
+  "description": "oar dogfood cockpit — one window, one agent, one run",
   "type": "module",
+  "main": "./out/main/index.cjs",
+  "scripts": {
+    "build": "pnpm --filter @botiverse/oar build && electron-vite build",
+    "check": "pnpm run typecheck && pnpm run lint",
+    "dev": "pnpm --filter @botiverse/oar build && electron-vite dev",
+    "lint": "oxlint --type-aware --deny-warnings src test/*.ts electron.vite.config.ts vitest.config.ts",
+    "smoke": "electron --no-sandbox --disable-gpu --disable-dev-shm-usage test/smoke.cjs",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
-    "electron": "^38.4.0"
+    "@botiverse/oar": "workspace:*",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^38.4.0",
+    "electron-vite": "^5.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "vite": "^7.3.6"
   }
 }
