@@ -1,0 +1,10 @@
+{
+  "name": "@botiverse/coxswain",
+  "private": true,
+  "version": "0.0.1",
+  "description": "oar dogfood cockpit — design assets committed; implementation per design sheet v1.2",
+  "type": "module",
+  "devDependencies": {
+    "electron": "^38.4.0"
+  }
+}

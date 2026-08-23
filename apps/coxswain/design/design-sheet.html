@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>coxswain — design sheet v1</title>
+<script src="tailwind-play.js"></script>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+      colors: {
+        ink: { 950: "#0b0e0d", 900: "#111514", 850: "#161b19", 800: "#1c2220", 700: "#28302d", 600: "#3a453f" },
+        oar: { 500: "#34d399", 600: "#2bb583", 700: "#1f8f68" },
+      },
+    },
+  },
+};
+</script>
+<style>
+  body { background: #070908; }
+  .artboard { box-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 64px rgb(0 0 0 / 0.6); }
+  .scrollfade { mask-image: linear-gradient(to bottom, transparent, black 12px); }
+</style>
+</head>
+<body class="font-sans text-zinc-300 antialiased">
+<div class="mx-auto max-w-[1400px] px-8 py-10 space-y-14">
+
+  <header class="space-y-1">
+    <h1 class="text-xl font-semibold text-zinc-100">coxswain <span class="text-zinc-500 font-normal">— oar dogfood cockpit · design sheet v1</span></h1>
+    <p class="text-sm text-zinc-500 max-w-3xl">The coxswain steers and commands; they don't row. One window, one agent, one run. Humans inject via <span class="font-mono text-zinc-400">prompt / steer</span>; the agent's words only exist when it runs the <span class="font-mono text-zinc-400">say</span> CLI. Raw model output never impersonates a message — it is activity, in the side panel.</p>
+  </header>
+
+  <!-- ══════════════ ARTBOARD 1: LAUNCH ══════════════ -->
+  <section class="space-y-3">
+    <h2 class="text-sm font-medium text-zinc-400 tracking-wide uppercase">1 · Launch</h2>
+    <div class="artboard rounded-xl overflow-hidden bg-ink-950" style="width:1280px; height:800px">
+      <div class="h-10 flex items-center px-4 border-b border-white/5 bg-ink-900">
+        <span class="text-sm font-semibold text-zinc-200 tracking-tight">coxswain</span>
+      </div>
+      <div class="flex items-center justify-center" style="height:760px">
+        <div class="w-[520px] rounded-xl bg-ink-900 border border-white/5 p-8 space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-zinc-100">Launch an agent</h3>
+            <p class="text-sm text-zinc-500 mt-1">One run per window. Close the window, the run is gone.</p>
+          </div>
+
+          <!-- runtime picker: probe results are the content, not decoration -->
+          <div class="space-y-2">
+            <div class="text-xs font-medium text-zinc-500 uppercase tracking-wide">Runtime</div>
+            <label class="flex items-center gap-3 rounded-lg border border-oar-600/60 bg-oar-500/5 px-4 py-3 cursor-pointer">
+              <span class="size-2 rounded-full bg-oar-500"></span>
+              <span class="font-medium text-zinc-100">claude</span>
+              <span class="font-mono text-xs text-zinc-500">2.1.237 · executable</span>
+              <span class="ml-auto text-xs text-oar-500">available</span>
+            </label>
+            <label class="flex items-center gap-3 rounded-lg border border-white/5 px-4 py-3 cursor-pointer hover:border-white/10">
+              <span class="size-2 rounded-full bg-ink-600"></span>
+              <span class="font-medium text-zinc-300">codex</span>
+              <span class="font-mono text-xs text-zinc-500">0.48.0 · executable</span>
+              <span class="ml-auto text-xs text-zinc-500">available</span>
+            </label>
+            <label class="flex items-center gap-3 rounded-lg border border-white/5 px-4 py-3 cursor-pointer hover:border-white/10">
+              <span class="size-2 rounded-full bg-ink-600"></span>
+              <span class="font-medium text-zinc-300">pi</span>
+              <span class="font-mono text-xs text-zinc-500">bundled sdk</span>
+              <span class="ml-auto text-xs text-zinc-500">available</span>
+            </label>
+          </div>
+
+          <!-- account usage: the selected runtime's real quota, read on selection -->
+          <div class="rounded-lg bg-ink-850 px-4 py-3 space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-zinc-500">current session</span>
+              <span class="font-mono text-zinc-400">7% · resets 19:39</span>
+            </div>
+            <div class="h-1 rounded bg-ink-700"><div class="h-1 rounded bg-oar-600" style="width:7%"></div></div>
+            <div class="flex justify-between text-xs pt-1">
+              <span class="text-zinc-500">week · all models</span>
+              <span class="font-mono text-zinc-400">32%</span>
+            </div>
+            <div class="h-1 rounded bg-ink-700"><div class="h-1 rounded bg-oar-600" style="width:32%"></div></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-zinc-500 uppercase tracking-wide">Model</span>
+              <input class="w-full rounded-lg bg-ink-850 border border-white/5 px-3 py-2 text-sm font-mono text-zinc-200 placeholder-zinc-600" placeholder="runtime default" value="haiku" />
+            </label>
+            <label class="space-y-1">
+              <span class="text-xs font-medium text-zinc-500 uppercase tracking-wide">Working dir</span>
+              <input class="w-full rounded-lg bg-ink-850 border border-white/5 px-3 py-2 text-sm font-mono text-zinc-200" value="~/play/oar-demo" />
+            </label>
+          </div>
+
+          <button class="w-full rounded-lg bg-oar-600 hover:bg-oar-500 text-ink-950 font-semibold py-2.5 text-sm">Launch</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ ARTBOARD 2: COCKPIT ══════════════ -->
+  <section class="space-y-3">
+    <h2 class="text-sm font-medium text-zinc-400 tracking-wide uppercase">2 · Cockpit — turn in flight</h2>
+    <div class="artboard rounded-xl overflow-hidden bg-ink-950 flex flex-col" style="width:1280px; height:800px">
+      <!-- top bar: identity + derived status (reduceStatus fold), never raw logs -->
+      <div class="h-10 flex items-center gap-3 px-4 border-b border-white/5 bg-ink-900 shrink-0">
+        <span class="text-sm font-semibold text-zinc-200 tracking-tight">coxswain</span>
+        <span class="font-mono text-xs text-zinc-600">claude · haiku · a7f2c9e1</span>
+        <span class="ml-auto flex items-center gap-2">
+          <span class="flex items-center gap-1.5 rounded-full bg-oar-500/10 text-oar-500 px-2.5 py-0.5 text-xs font-medium">
+            <span class="size-1.5 rounded-full bg-oar-500 animate-pulse"></span> tool · bash
+          </span>
+          <button class="text-xs text-zinc-500 hover:text-zinc-300 border border-white/10 rounded px-2 py-0.5">abort turn</button>
+        </span>
+      </div>
+
+      <div class="flex flex-1 min-h-0">
+        <!-- conversation: ONLY human input and say-delivered replies -->
+        <div class="flex-1 flex flex-col min-w-0 border-r border-white/5">
+          <ol class="flex-1 overflow-y-auto px-6 py-5 space-y-5 scrollfade">
+            <li class="flex justify-end">
+              <div class="max-w-[70%]">
+                <div class="text-[11px] text-zinc-600 text-right mb-1">you · 14:02</div>
+                <div class="rounded-2xl rounded-tr-sm bg-ink-700 px-4 py-2.5 text-sm text-zinc-200">Look at this repo and tell me what the test setup is.</div>
+              </div>
+            </li>
+            <li class="flex">
+              <div class="max-w-[70%]">
+                <div class="text-[11px] text-zinc-600 mb-1"><span class="text-oar-600 font-medium">agent</span> · via say · 14:02</div>
+                <div class="rounded-2xl rounded-tl-sm bg-ink-850 border border-white/5 px-4 py-2.5 text-sm text-zinc-300">On it — reading the workspace layout first.</div>
+              </div>
+            </li>
+            <li class="flex">
+              <div class="max-w-[70%]">
+                <div class="text-[11px] text-zinc-600 mb-1"><span class="text-oar-600 font-medium">agent</span> · via say · 14:03</div>
+                <div class="rounded-2xl rounded-tl-sm bg-ink-850 border border-white/5 px-4 py-2.5 text-sm text-zinc-300">Three layers: vitest unit tests, a behavior suite that instantiates per backend via OAR_TEST, and live probes under experiments/. Digging into the harness now.</div>
+              </div>
+            </li>
+            <li class="flex justify-end">
+              <div class="max-w-[70%]">
+                <div class="text-[11px] text-zinc-600 text-right mb-1">you · 14:03 · <span class="text-amber-500/80">steered</span></div>
+                <div class="rounded-2xl rounded-tr-sm bg-ink-700 px-4 py-2.5 text-sm text-zinc-200">Focus on how the fake provider works.</div>
+              </div>
+            </li>
+          </ol>
+          <!-- composer states its landing before you commit -->
+          <form class="px-6 pb-5 shrink-0">
+            <div class="rounded-xl bg-ink-850 border border-white/10 focus-within:border-oar-700 overflow-hidden">
+              <textarea rows="2" class="w-full bg-transparent px-4 pt-3 text-sm text-zinc-200 placeholder-zinc-600 resize-none outline-none" placeholder="speak to the agent…"></textarea>
+              <div class="flex items-center px-4 pb-2.5">
+                <span class="text-[11px] text-amber-500/80">turn in flight — this will steer, or queue if steering is refused</span>
+                <button class="ml-auto rounded-md bg-oar-600 hover:bg-oar-500 text-ink-950 text-xs font-semibold px-3 py-1.5">send</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- activity: the event stream, aggregated the observe-layer way -->
+        <aside class="w-[380px] flex flex-col bg-ink-900/60 shrink-0">
+          <div class="h-9 flex items-center px-4 text-xs font-medium text-zinc-500 uppercase tracking-wide border-b border-white/5 shrink-0">
+            Activity <span class="ml-auto font-mono normal-case text-zinc-600">seq 214</span>
+          </div>
+          <ol class="flex-1 overflow-y-auto px-4 py-3 space-y-0.5 font-mono text-[11.5px] leading-5 scrollfade">
+            <li class="text-zinc-600">183 · <span class="text-zinc-500">turn_started</span> t-04</li>
+            <li class="text-zinc-500">184 · thinking <span class="text-zinc-600">· 2.1s · 412 chars</span></li>
+            <li class="text-zinc-400">190 · text <span class="text-zinc-600">· "I'll check the harness dir…"</span></li>
+            <li class="text-sky-400/80">194 · tool_call_started <span class="text-zinc-500">bash</span> <span class="text-zinc-600">c-9f31</span></li>
+            <li class="text-zinc-500 pl-4 border-l border-white/5 ml-1">ls sea-trial/harness</li>
+            <li class="text-sky-400/60">201 · tool_call_ended <span class="text-zinc-600">c-9f31</span></li>
+            <li class="text-zinc-400">203 · text <span class="text-zinc-600">· "aimock.ts wires the fake provider…"</span></li>
+            <li class="text-amber-500/80">207 · steer accepted <span class="text-zinc-600">· "Focus on how the fake…"</span></li>
+            <li class="text-sky-400/80">209 · tool_call_started <span class="text-zinc-500">bash</span> <span class="text-zinc-600">c-a204</span></li>
+            <li class="text-zinc-500 pl-4 border-l border-white/5 ml-1">cat sea-trial/harness/aimock.ts</li>
+            <li class="text-sky-400/60">212 · tool_call_ended <span class="text-zinc-600">c-a204</span></li>
+            <li class="text-zinc-400">214 · text <span class="text-zinc-600">· "The mock declares two disjoint…"</span></li>
+            <li class="flex items-center gap-1.5 pt-2 text-oar-600"><span class="size-1 rounded-full bg-oar-500 animate-pulse"></span> live</li>
+          </ol>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ ARTBOARD 3: STATES ══════════════ -->
+  <section class="space-y-3">
+    <h2 class="text-sm font-medium text-zinc-400 tracking-wide uppercase">3 · State variants</h2>
+    <div class="grid grid-cols-3 gap-6" style="width:1280px">
+      <div class="artboard rounded-xl bg-ink-950 p-5 space-y-3">
+        <div class="text-xs text-zinc-500">status pill — one per AgentStatus fold state</div>
+        <div class="flex flex-wrap gap-2">
+          <span class="rounded-full bg-white/5 text-zinc-500 px-2.5 py-0.5 text-xs">idle</span>
+          <span class="rounded-full bg-oar-500/10 text-oar-500 px-2.5 py-0.5 text-xs">waiting model</span>
+          <span class="rounded-full bg-oar-500/10 text-oar-500 px-2.5 py-0.5 text-xs">thinking</span>
+          <span class="rounded-full bg-oar-500/10 text-oar-500 px-2.5 py-0.5 text-xs">responding</span>
+          <span class="rounded-full bg-sky-500/10 text-sky-400 px-2.5 py-0.5 text-xs">tool · bash</span>
+        </div>
+      </div>
+      <div class="artboard rounded-xl bg-ink-950 p-5 space-y-3">
+        <div class="text-xs text-zinc-500">stall — stallOf(status, now, 15s), from the observe layer</div>
+        <div class="flex items-center gap-2">
+          <span class="flex items-center gap-1.5 rounded-full bg-amber-500/10 text-amber-500 px-2.5 py-0.5 text-xs font-medium">⚠ silent for 24s</span>
+          <button class="text-xs text-zinc-400 border border-white/10 rounded px-2 py-0.5">abort turn</button>
+        </div>
+        <p class="text-[11px] text-zinc-600">Appears beside the status pill only while a turn is silent past threshold; disappears on the next event.</p>
+      </div>
+      <div class="artboard rounded-xl bg-ink-950 p-5 space-y-3">
+        <div class="text-xs text-zinc-500">turn outcome — a quiet marker in the conversation flow</div>
+        <div class="space-y-2">
+          <div class="text-center text-[11px] text-zinc-600">— turn completed · 41s · 3 tool calls —</div>
+          <div class="text-center text-[11px] text-rose-400/70">— turn failed · API Error: 400 max_tokens exceeds model limit —</div>
+          <div class="text-center text-[11px] text-zinc-600">— turn aborted by you —</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ ARTBOARD 4: AGENT STATUS BAR ══════════════ -->
+  <section class="space-y-3">
+    <h2 class="text-sm font-medium text-zinc-400 tracking-wide uppercase">4 · Agent status bar — strict projection of the status fold</h2>
+
+    <div class="artboard rounded-xl overflow-hidden bg-ink-950" style="width:1280px">
+      <div class="px-4 py-6 space-y-6">
+        <div class="text-xs text-zinc-500 max-w-4xl">The bar renders <span class="font-mono text-zinc-400">(AgentStatus, stallOf(status, now, 15s))</span> and NOTHING else — a pure function of the fold plus its one clock overlay. Every UI state below is one of those values; there is no third input and no invented state.</div>
+        <div class="h-8 flex items-center gap-3 px-3 rounded-lg bg-ink-900 border border-white/5 font-mono text-[11.5px]">
+          <span class="lamp rounded-full size-2.5 bg-oar-500" style="--pace: 1.6s"></span>
+          <span class="text-zinc-200 font-sans font-medium text-xs">thinking</span>
+          <span class="text-zinc-600">·</span>
+          <span class="text-zinc-500">turn t-04 · 0:41 · 12 events</span>
+          <span class="text-zinc-600">·</span>
+          <span class="text-amber-500/90">1 queued</span>
+          <span class="ml-auto text-zinc-600">claude · haiku · a7f2c9e1</span>
+        </div>
+        <div class="h-8 flex items-center gap-3 px-3 rounded-lg bg-ink-900 border border-amber-500/20 font-mono text-[11.5px]">
+          <span class="lamp rounded-full size-2.5 bg-amber-500" style="--pace: 2.4s; --glow: rgb(245 158 11 / .4)"></span>
+          <span class="text-zinc-200 font-sans font-medium text-xs">thinking</span>
+          <span class="text-amber-500 font-sans text-xs">· silent 24s</span>
+          <button class="text-[11px] font-sans text-zinc-300 border border-white/10 rounded px-2 py-0.5">abort turn</button>
+          <span class="ml-auto text-zinc-600">claude · haiku · a7f2c9e1</span>
+        </div>
+        <div class="h-8 flex items-center gap-3 px-3 rounded-lg bg-ink-900 border border-white/5 font-mono text-[11.5px]">
+          <span class="lamp rounded-full size-2.5 bg-oar-500" style="--pace: 5s"></span>
+          <span class="text-zinc-200 font-sans font-medium text-xs">idle</span>
+          <span class="text-zinc-600">·</span>
+          <span class="text-rose-400/80">last turn failed · API Error: 400 max_tokens exceeds model limit</span>
+          <span class="ml-auto text-zinc-600">claude · haiku · a7f2c9e1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="artboard rounded-xl bg-ink-950 p-6 space-y-5" style="width:1280px">
+      <div>
+        <div class="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">Layer 1 · the ontology — one lamp state per AgentStatus value, total</div>
+        <div class="grid grid-cols-5 gap-4 text-center">
+          <div class="space-y-2"><div class="flex justify-center pt-1"><span class="lamp rounded-full size-3 bg-oar-500" style="--pace: 5s"></span></div>
+            <div class="text-xs text-zinc-300 font-medium">idle</div><div class="text-[10.5px] font-mono text-zinc-600">kind: "idle" · 5s faint</div></div>
+          <div class="space-y-2"><div class="flex justify-center pt-1"><span class="lamp rounded-full size-3 bg-oar-500" style="--pace: 2.2s"></span></div>
+            <div class="text-xs text-zinc-300 font-medium">waiting model</div><div class="text-[10.5px] font-mono text-zinc-600">phase: "waiting_model" · 2.2s</div></div>
+          <div class="space-y-2"><div class="flex justify-center pt-1"><span class="lamp rounded-full size-3 bg-oar-500" style="--pace: 1.6s"></span></div>
+            <div class="text-xs text-zinc-300 font-medium">thinking</div><div class="text-[10.5px] font-mono text-zinc-600">phase: "thinking" · 1.6s</div></div>
+          <div class="space-y-2"><div class="flex justify-center pt-1"><span class="lamp rounded-full size-3 bg-oar-500" style="--pace: 0.9s"></span></div>
+            <div class="text-xs text-zinc-300 font-medium">responding</div><div class="text-[10.5px] font-mono text-zinc-600">phase: "responding" · 0.9s</div></div>
+          <div class="space-y-2"><div class="flex justify-center pt-1"><span class="lamp rounded-full size-3 bg-sky-400" style="--pace: 1.2s; --glow: rgb(56 189 248 / .35)"></span></div>
+            <div class="text-xs text-zinc-300 font-medium">tool · bash</div><div class="text-[10.5px] font-mono text-zinc-600">phase: {tool, callId} · sky 1.2s</div></div>
+        </div>
+      </div>
+      <div class="border-t border-white/5 pt-5">
+        <div class="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">Layer 2 · the overlay — fold × clock, presentation-only</div>
+        <div class="flex items-center gap-4">
+          <span class="lamp rounded-full size-3 bg-amber-500 shrink-0" style="--pace: 2.4s; --glow: rgb(245 158 11 / .4)"></span>
+          <p class="text-[11.5px] text-zinc-500 max-w-4xl"><span class="text-zinc-300">stallOf(status, now, 15s) ≠ null</span> recolors the lamp amber (2.4s) and appends "<span class="text-amber-500">· silent Ns</span>" after the UNCHANGED phase word. Stall never replaces the ontology word — the fold still says thinking; the clock says nothing has arrived. The next event updates lastEventAt and the overlay vanishes by construction.</p>
+        </div>
+      </div>
+      <div class="border-t border-white/5 pt-5">
+        <div class="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">Not a status — turn outcomes</div>
+        <p class="text-[11.5px] text-zinc-500 max-w-4xl">turn_ended folds to <span class="font-mono text-zinc-400">idle{lastTurnOutcome}</span>. The agent is ALIVE and idle after a failed turn, so there is no dead lamp and no rose lamp state — outcomes render as the idle bar's dim annotation (<span class="text-rose-400/80">last turn failed · reason</span> / completed / aborted) and as quiet markers in the conversation flow. Coloring the lamp by outcome would smuggle history into a presence indicator.</p>
+      </div>
+      <div class="border-t border-white/5 pt-5">
+        <div class="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-2">The transition table the bar inherits (verbatim from observe/agent-status.ts)</div>
+        <pre class="text-[11px] font-mono text-zinc-500 leading-5">turn_started      → running/waiting_model
+thinking_delta    → running/thinking
+text_delta        → running/responding
+tool_call_started → running/{tool, callId}
+tool_call_ended   → running/waiting_model   (the model consumes the result next)
+turn_ended        → idle{lastTurnOutcome}</pre>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-xs text-zinc-600 max-w-3xl space-y-1 pb-6">
+    <p>Type: Inter / ui-monospace · Surface: near-black greens (ink scale) · Accent: single green (oar-500 #34d399), amber reserved for stall/steer, sky for tool activity, rose for failure. No gradients, no glass, 1px white/5 hairlines.</p>
+  </footer>
+</div>
+</body>
+</html>
