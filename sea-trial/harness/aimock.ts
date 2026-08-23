@@ -34,7 +34,11 @@ function baseFixtures(mock: LLMock): void {
   // short completion. Cases assert framing/invariants, not content.
   // A little latency keeps the model pace realistic; instant replies are a
   // chaos-experiment configuration, not a behavior baseline.
-  mock.onMessage(/[\s\S]*/u, { content: "ok" }, { latency: 80 });
+  // Prompts mentioning "slow" get a LONG turn — the window the abort and
+  // mid-turn-steer cases need. The two patterns are disjoint because aimock
+  // picks among overlapping matches by turn position, not registration order.
+  mock.onMessage(/slow/u, { content: "ok" }, { latency: 1500 });
+  mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
 }
 
 export async function startClaudeAimock(

@@ -98,4 +98,109 @@ export const sessionCases: readonly TrialCase[] = [
       await session.dispose();
     },
   },
+  {
+    id: "session.multi-turn-conversation",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const events: SessionEvent[] = [];
+      session.subscribe((event) => {
+        events.push(event);
+      });
+      for (const input of ["one", "two", "three"]) {
+        const turn = expectTurn(session.prompt(input));
+        assert.deepEqual(await turn.outcome, { kind: "completed" });
+      }
+      const frames = events
+        .filter((event) => event.kind === "turn_started" || event.kind === "turn_ended")
+        .map((event) => event.kind);
+      assert.deepEqual(frames, [
+        "turn_started", "turn_ended",
+        "turn_started", "turn_ended",
+        "turn_started", "turn_ended",
+      ], "each turn is framed independently");
+      const turnIds = new Set(events.map((event) => event.turnId));
+      assert.equal(turnIds.size, 3, "three turns have three distinct ids");
+      for (const [index, event] of events.entries()) {
+        if (index > 0) {
+          assert.ok(event.seq > (events[index - 1]?.seq ?? Number.NaN), "seq stays strictly increasing across turns");
+        }
+      }
+      await session.dispose();
+    },
+  },
+  {
+    // Race-honest: on a real runtime the turn may end before the steer lands,
+    // so both accepted and not_steerable are lawful. What every runtime MUST
+    // honor: a mid-turn steer never throws, never corrupts the turn, and the
+    // turn still settles without failing. Strong acceptance/visibility claims
+    // live in the live experiments.
+    id: "session.steer-mid-turn",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const turn = expectTurn(session.prompt("please answer slow-ly"));
+      // The result is typed (accepted | not_steerable) at compile time; the
+      // runtime obligation under test is: resolve, never throw.
+      await turn.steer?.("mid-turn note");
+      const outcome = await turn.outcome;
+      assert.ok(outcome.kind !== "failed", `steer broke the turn: ${JSON.stringify(outcome)}`);
+      await session.dispose();
+    },
+  },
+  {
+    id: "session.queue-runs-after-turn",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      if (session.queue === undefined) {
+        return;
+      }
+      const ended: string[] = [];
+      session.subscribe((event) => {
+        if (event.kind === "turn_ended") {
+          ended.push(event.turnId);
+        }
+      });
+      const first = expectTurn(session.prompt("please answer slow-ly"));
+      await session.queue.add("and then this");
+      await first.outcome;
+      const deadline = Date.now() + 30_000;
+      while (ended.length < 2 && Date.now() < deadline) {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 100);
+        });
+      }
+      assert.equal(ended.length, 2, "the queued input runs as its own turn after the active one");
+      assert.notEqual(ended[0], ended[1], "the queued turn is a distinct turn");
+      await session.dispose();
+    },
+  },
+  {
+    // Resume is either real (same id, works after reopen) or a typed loud
+    // rejection (pi documents resume as not implemented) — never a silent
+    // fresh session pretending to be the old one.
+    id: "session.resume-or-loud-rejection",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const first = await subject.startSession();
+      const turn = expectTurn(first.prompt("remember me"));
+      await turn.outcome;
+      const sessionId = first.id;
+      await first.dispose();
+      const attempt = await subject.startSession({ resume: sessionId }).then(
+        (session) => ({ kind: "resumed" as const, session }),
+        (error: unknown) => ({ kind: "rejected" as const, error }),
+      );
+      if (attempt.kind === "rejected") {
+        assert.match(String(attempt.error), /resume/iu, "a runtime without resume must reject loudly, naming resume");
+        return;
+      }
+      const resumed = attempt.session;
+      assert.equal(resumed.id, sessionId, "a resumed session keeps the runtime-native id");
+      const again = expectTurn(resumed.prompt("hello again"));
+      assert.deepEqual(await again.outcome, { kind: "completed" });
+      await resumed.dispose();
+    },
+  },
 ];

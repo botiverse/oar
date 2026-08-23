@@ -6,7 +6,7 @@ export interface RuntimeUnderTest {
   readonly id: string;
   readonly runtime: Runtime;
   /** Probe installation, then open a session in the current directory. */
-  startSession(): Promise<Session>;
+  startSession(overrides?: { readonly resume?: string }): Promise<Session>;
 }
 
 export function runtimeUnderTest(
@@ -16,7 +16,7 @@ export function runtimeUnderTest(
   return {
     id: runtime.id,
     runtime,
-    async startSession() {
+    async startSession(overrides = {}) {
       if (runtime.installation === undefined) {
         throw new Error(`${runtime.id} lacks the installation capability`);
       }
@@ -29,6 +29,7 @@ export function runtimeUnderTest(
         cwd: process.cwd(),
         ...(model === undefined ? {} : { model }),
         ...(env === undefined ? {} : { env }),
+        ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
       });
     },
   };

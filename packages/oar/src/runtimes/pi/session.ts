@@ -91,6 +91,33 @@ export const piSession: StartSession = async (installation, options) => {
   const kernel = createSessionKernel(piAgentSession.sessionId);
   let current: PiTurnState | null = null;
   let disposed = false;
+  // Adapter-held queue, drained one input per turn end. pi's native followUp
+  // CONTINUES the active run (more internal turns, one agent_end), which
+  // would land the queued input inside the same OAR turn — the queue contract
+  // promises a later turn of its own, so the adapter owns the handoff.
+  const held: string[] = [];
+  const drainHeld = (): void => {
+    if (disposed || kernel.active() !== null) {
+      return;
+    }
+    const next = held.shift();
+    if (next === undefined) {
+      return;
+    }
+    // The run this starts is adopted as a spontaneous turn by agent_start.
+    void (async (): Promise<void> => {
+      try {
+        await piAgentSession.prompt(next);
+      } catch (error) {
+        // Never drop a taken-over delivery silently: surface the loss as a
+        // failed turn if one can still be attributed.
+        kernel.begin()?.settle({
+          kind: "failed",
+          reason: error instanceof Error ? error.message : "queued prompt failed",
+        });
+      }
+    })();
+  };
 
   piAgentSession.subscribe((event) => {
     if (event.type === "agent_start") {
@@ -114,6 +141,7 @@ export const piSession: StartSession = async (installation, options) => {
       case "agent_end": {
         if (state.adopted) {
           turn.settle(settledOutcome(state));
+          drainHeld();
         }
         break;
       }
@@ -231,6 +259,7 @@ export const piSession: StartSession = async (installation, options) => {
             reason: error instanceof Error ? error.message : "pi prompt failed",
           });
         }
+        drainHeld();
       })();
       return { kind: "turn", turn: makeTurn(state) };
     },
@@ -238,8 +267,9 @@ export const piSession: StartSession = async (installation, options) => {
     queue: {
       durable: false,
       add: async (input) => {
-        // followUp semantics: runs only when the agent would otherwise stop.
-        await piAgentSession.prompt(input, { streamingBehavior: "followUp" });
+        await Promise.resolve();
+        held.push(input);
+        drainHeld();
       },
     },
     dispose: async () => {
