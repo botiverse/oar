@@ -36,9 +36,23 @@ export async function structuralToolRound(session: Session, mock?: LLMock): Prom
   assert.ok(result.kind === "turn", "expected a turn");
   const outcome = await result.turn.outcome;
   if (outcome.kind !== "completed" && mock !== undefined) {
-    const requests = mock.journal.getAll().map((entry) => JSON.stringify(entry).slice(0, 400));
+    // Distill each request down to exactly what fixture matching consumes:
+    // the last user message and whether a tool result is present.
+    const requests = mock.journal.getAll().map((entry) => {
+      const messages = entry.body?.messages ?? [];
+      const lastUser = messages.findLast((message) => message.role === "user");
+      const lastRole = messages.at(-1)?.role ?? "none";
+      const text = typeof lastUser?.content === "string"
+        ? lastUser.content
+        : JSON.stringify(lastUser?.content ?? null);
+      return JSON.stringify({
+        lastRole,
+        hasToolResult: messages.some((message) => message.role === "tool"),
+        lastUser: text.slice(-220),
+      });
+    });
     record({ kind: "journal_dump", requests });
-    throw new Error(`turn ${JSON.stringify(outcome)}; journal:\n${requests.join("\n")}`);
+    throw new Error(`turn ${JSON.stringify(outcome)}; requests as the matcher saw them:\n${requests.join("\n")}`);
   }
   const skeleton = events
     .filter((event) => event.kind !== "text_delta" && event.kind !== "thinking_delta")
