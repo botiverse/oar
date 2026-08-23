@@ -69,6 +69,13 @@ export async function startCodexAimock(
     'model = "gpt-5.1"',
     'model_provider = "aimock"',
     'preferred_auth_method = "apikey"',
+    // Sandboxing off at CONFIG level: codex's exec runs under bubblewrap on
+    // Linux and GitHub runners forbid its netns setup ("bwrap: loopback:
+    // Failed RTM_NEWADDR: Operation not permitted" — pinned via tool-round
+    // journals, run 32617471968). The thread/start sandboxMode override was
+    // NOT honored by exec_command; the config key is. This backend tests
+    // harness behavior, not sandboxing.
+    'sandbox_mode = "danger-full-access"',
     "",
     "[model_providers.aimock]",
     'name = "aimock"',
