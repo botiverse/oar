@@ -3,18 +3,36 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 /**
- * Run trace: every session event and case boundary of one sea-trial run,
- * appended as JSONL. When a case fails, the mid-run trajectory is already on
- * disk — tracing for tests, not printf-after-the-fact. Location:
- * OAR_TRACE_DIR (default: <tmp>/oar-sea-trial), one file per run.
+ * Test artifacts, not scratch files. One RUN (a sea-trial invocation, or an
+ * all.ts batch, or a CI job) owns one directory; every backend in that run
+ * gets a subdirectory holding everything about it. Deterministic layout:
+ *
+ *   <run-dir>/                 OAR_TRIAL_RUN_DIR, or <tmp>/oar-sea-trial/run-<iso stamp>
+ *     <backend>/trace.jsonl    case boundaries + every session event
+ *     <backend>/output.log     full process output (written by all.ts)
+ *     report.json              batch summary (written by all.ts)
+ *
+ * all.ts and CI set OAR_TRIAL_RUN_DIR so all backends of one run land
+ * together; a bare `pnpm sea-trial` mints its own run directory.
  */
+
+export function resolveRunDir(): string {
+  const configured = process.env.OAR_TRIAL_RUN_DIR;
+  const dir = configured ?? path.join(
+    tmpdir(),
+    "oar-sea-trial",
+    `run-${new Date().toISOString().replaceAll(":", "-")}`,
+  );
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 let traceFile: string | null = null;
 
 export function openTrace(backend: string): string {
-  const dir = process.env.OAR_TRACE_DIR ?? path.join(tmpdir(), "oar-sea-trial");
+  const dir = path.join(resolveRunDir(), backend);
   mkdirSync(dir, { recursive: true });
-  traceFile = path.join(dir, `${backend}-${new Date().toISOString().replaceAll(":", "-")}-${process.pid}.jsonl`);
+  traceFile = path.join(dir, "trace.jsonl");
   record({ kind: "run_started", backend });
   return traceFile;
 }
