@@ -112,26 +112,18 @@ async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<voi
   } catch {
     return;
   }
-  const { promise: responded, resolve: markResponded } = Promise.withResolvers<void>();
-  child.onLine(() => {
-    markResponded();
-  });
   child.write(`${JSON.stringify({
     id: 1,
     method: "initialize",
     params: { clientInfo: { name: "oar-warmup", version: "0.0.0" }, capabilities: { experimentalApi: true } },
   })}\n`);
-  // The initialize RESPONSE means state init finished; a short grace covers
-  // post-init writers (skills install). Cap at the old blind 2.5s.
-  const graced = (async (): Promise<void> => {
-    await responded;
-    await new Promise((resolve) => {
-      setTimeout(resolve, 800);
-    });
-  })();
-  await Promise.race([graced, new Promise((resolve) => {
+  // Blind 2.5s on purpose. The response-driven version (initialize response
+  // + 800ms grace) reintroduced the fresh-home init race on cold CI runners:
+  // the response lands before the skills install finishes and fast-cycling
+  // sessions then crash with "app-server exited" (CI run 32615648735).
+  await new Promise((resolve) => {
     setTimeout(resolve, 2500);
-  })]);
+  });
   child.kill();
   await child.exited;
 }
