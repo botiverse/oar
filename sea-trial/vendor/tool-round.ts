@@ -45,14 +45,19 @@ export async function structuralToolRound(
     const requests = mock.journal.getAll().map((entry) => {
       const messages = entry.body?.messages ?? [];
       const lastUser = messages.findLast((message) => message.role === "user");
+      const lastTool = messages.findLast((message) => message.role === "tool");
       const lastRole = messages.at(-1)?.role ?? "none";
       const text = typeof lastUser?.content === "string"
         ? lastUser.content
         : JSON.stringify(lastUser?.content ?? null);
+      const toolText = lastTool === undefined
+        ? null
+        : (typeof lastTool.content === "string" ? lastTool.content : JSON.stringify(lastTool.content)).slice(-300);
       return JSON.stringify({
         lastRole,
-        hasToolResult: messages.some((message) => message.role === "tool"),
+        hasToolResult: lastTool !== undefined,
         lastUser: text.slice(-220),
+        toolResult: toolText,
       });
     });
     record({ kind: "journal_dump", requests });
