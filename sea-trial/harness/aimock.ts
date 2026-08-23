@@ -37,7 +37,7 @@ function baseFixtures(mock: LLMock): void {
   // Prompts mentioning "slow" get a LONG turn — the window the abort and
   // mid-turn-steer cases need. The two patterns are disjoint because aimock
   // picks among overlapping matches by turn position, not registration order.
-  mock.onMessage(/slow/u, { content: "ok" }, { latency: 1500 });
+  mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
   mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
 }
 
@@ -112,14 +112,26 @@ async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<voi
   } catch {
     return;
   }
+  const { promise: responded, resolve: markResponded } = Promise.withResolvers<void>();
+  child.onLine(() => {
+    markResponded();
+  });
   child.write(`${JSON.stringify({
     id: 1,
     method: "initialize",
     params: { clientInfo: { name: "oar-warmup", version: "0.0.0" }, capabilities: { experimentalApi: true } },
   })}\n`);
-  await new Promise((resolve) => {
+  // The initialize RESPONSE means state init finished; a short grace covers
+  // post-init writers (skills install). Cap at the old blind 2.5s.
+  const graced = (async (): Promise<void> => {
+    await responded;
+    await new Promise((resolve) => {
+      setTimeout(resolve, 800);
+    });
+  })();
+  await Promise.race([graced, new Promise((resolve) => {
     setTimeout(resolve, 2500);
-  });
+  })]);
   child.kill();
   await child.exited;
 }
