@@ -37,7 +37,7 @@ jobs:
     env:
       OAR_TEST: ${{ matrix.backend }}
       # runner context is not allowed in job-level env; workspace-relative works everywhere
-      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/.oar-trial-run
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -71,5 +71,5 @@ jobs:
         if: always()
         with:
           name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
-          path: ${{ github.workspace }}/.oar-trial-run
-          if-no-files-found: ignore
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: error
