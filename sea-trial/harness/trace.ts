@@ -1,5 +1,4 @@
 import { appendFileSync, mkdirSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 
 /**
@@ -7,7 +6,7 @@ import path from "node:path";
  * all.ts batch, or a CI job) owns one directory; every backend in that run
  * gets a subdirectory holding everything about it. Deterministic layout:
  *
- *   <run-dir>/                 OAR_TRIAL_RUN_DIR, or <tmp>/oar-sea-trial/run-<iso stamp>
+ *   <run-dir>/                 OAR_TRIAL_RUN_DIR, or ./oar-trial-run/run-<iso stamp> (gitignored)
  *     <backend>/trace.jsonl    case boundaries + every session event
  *     <backend>/output.log     full process output (written by all.ts)
  *     report.json              batch summary (written by all.ts)
@@ -19,8 +18,8 @@ import path from "node:path";
 export function resolveRunDir(): string {
   const configured = process.env.OAR_TRIAL_RUN_DIR;
   const dir = configured ?? path.join(
-    tmpdir(),
-    "oar-sea-trial",
+    process.cwd(),
+    "oar-trial-run",
     `run-${new Date().toISOString().replaceAll(":", "-")}`,
   );
   mkdirSync(dir, { recursive: true });
