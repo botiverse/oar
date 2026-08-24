@@ -46,15 +46,20 @@ test("exit fires exactly once with the exit code", async () => {
   assert.deepEqual(codes, [3]);
 });
 
-test("a missing executable rejects spawned and exits exactly once", async () => {
+test("a missing executable fails loudly and exits exactly once", async () => {
   const child = spawnLineProcess("/nonexistent/oar-fixture-binary", []);
   const codes: (number | null)[] = [];
   child.onExit((code) => {
     codes.push(code);
   });
-  await assert.rejects(child.spawned);
-  await delay(100);
-  assert.deepEqual(codes, [null]);
+  // Platform-honest: POSIX rejects `spawned` (ENOENT before a process
+  // exists); Windows under cross-spawn may start its shim wrapper first and
+  // surface the failure as a non-zero exit instead. Either way it must fail
+  // loudly, never look like a healthy process, and exit exactly once.
+  const spawnFailed = await child.spawned.then(() => false, () => true);
+  await delay(200);
+  assert.equal(codes.length, 1, "exit fires exactly once");
+  assert.ok(spawnFailed || codes[0] !== 0, "a missing executable must not look successful");
 });
 
 async function writeThenKill(child: ReturnType<typeof spawnLineProcess>): Promise<void> {

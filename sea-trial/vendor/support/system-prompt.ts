@@ -77,6 +77,7 @@ export function scrubSystem(system: string): string {
       .replaceAll(root.replaceAll("/", "\\"), mask);
   }
   return scrubbed
+    .replaceAll(/(<CWD>|<TMPDIR>)\\+/gu, "$1/")
     .replaceAll(/cc_version=[^;]+/gu, "cc_version=<VERSION>")
     .replaceAll(/\/tmp\/[\w-]+/gu, "<TMPDIR>")
     .replaceAll(/oar-(\w+)-aimock-\w+/gu, "oar-$1-aimock-<RAND>")
