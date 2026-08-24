@@ -63,17 +63,24 @@ function projectMessage(state: ClaudeSessionState, message: JsonRecord): void {
             break;
           }
           case "thinking": {
-            if (typeof block.thinking === "string") {
-              turn.emit({ kind: "thinking_delta", text: block.thinking });
-            }
+            const content = typeof block.thinking === "string" && block.thinking.length > 0
+              ? { kind: "text" as const, text: block.thinking }
+              : { kind: "empty" as const };
+            turn.emit({ kind: "reasoning", content });
+            break;
+          }
+          case "redacted_thinking": {
+            turn.emit({ kind: "reasoning", content: { kind: "redacted" } });
             break;
           }
           case "tool_use": {
-            turn.emit({
+            const started = {
               kind: "tool_call_started",
               callId: typeof block.id === "string" ? block.id : "unknown",
               tool: typeof block.name === "string" ? block.name : "unknown",
-            });
+            } as const;
+            const input = block.input === undefined ? undefined : JSON.stringify(block.input);
+            turn.emit(input === undefined ? started : { ...started, input });
             break;
           }
           default:
@@ -85,7 +92,10 @@ function projectMessage(state: ClaudeSessionState, message: JsonRecord): void {
     case "user": {
       for (const block of contentBlocks(message)) {
         if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-          turn.emit({ kind: "tool_call_ended", callId: block.tool_use_id });
+          const output = block.content === undefined ? undefined : JSON.stringify(block.content);
+          turn.emit(output === undefined
+            ? { kind: "tool_call_ended", callId: block.tool_use_id }
+            : { kind: "tool_call_ended", callId: block.tool_use_id, output });
         }
       }
       break;

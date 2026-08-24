@@ -24,8 +24,8 @@ describe("activityRows", () => {
   test("losslessly groups only adjacent deltas of the same kind and turn", () => {
     const events: readonly SessionEventView[] = [
       event(1, { kind: "turn_started" }),
-      event(2, { kind: "thinking_delta", text: "read" }),
-      event(3, { kind: "thinking_delta", text: "ing" }),
+      event(2, { kind: "reasoning", content: { kind: "text", text: "read" } }),
+      event(3, { kind: "reasoning", content: { kind: "text", text: "ing" } }),
       event(4, { kind: "text_delta", text: "hello" }),
       event(5, { kind: "text_delta", text: " world" }),
       event(6, { kind: "tool_call_started", callId: "call-1", tool: "bash" }),
@@ -36,7 +36,7 @@ describe("activityRows", () => {
       { kind: "event", event: events[0] },
       {
         kind: "delta",
-        deltaKind: "thinking_delta",
+        deltaKind: "reasoning",
         turnId: "turn-1",
         firstSeq: 2,
         lastSeq: 3,
@@ -46,7 +46,7 @@ describe("activityRows", () => {
       },
       {
         kind: "delta",
-        deltaKind: "text_delta",
+        deltaKind: "text",
         turnId: "turn-1",
         firstSeq: 4,
         lastSeq: 5,
@@ -57,7 +57,7 @@ describe("activityRows", () => {
       { kind: "event", event: events[5] },
       {
         kind: "delta",
-        deltaKind: "text_delta",
+        deltaKind: "text",
         turnId: "turn-1",
         firstSeq: 7,
         lastSeq: 7,
@@ -66,5 +66,43 @@ describe("activityRows", () => {
         text: "after tool",
       },
     ]);
+  });
+
+  test("preserves redacted and empty reasoning as explicit events", () => {
+    const events: readonly SessionEventView[] = [
+      event(1, { kind: "reasoning", content: { kind: "redacted" } }),
+      event(2, { kind: "reasoning", content: { kind: "empty" } }),
+    ];
+
+    expect(activityRows(events)).toMatchInlineSnapshot(`
+      [
+        {
+          "event": {
+            "content": {
+              "kind": "redacted",
+            },
+            "kind": "reasoning",
+            "receivedAt": 10,
+            "seq": 1,
+            "sessionId": "session-1",
+            "turnId": "turn-1",
+          },
+          "kind": "event",
+        },
+        {
+          "event": {
+            "content": {
+              "kind": "empty",
+            },
+            "kind": "reasoning",
+            "receivedAt": 20,
+            "seq": 2,
+            "sessionId": "session-1",
+            "turnId": "turn-1",
+          },
+          "kind": "event",
+        },
+      ]
+    `);
   });
 });

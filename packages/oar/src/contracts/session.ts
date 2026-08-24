@@ -148,10 +148,27 @@ export interface SessionEventEnvelope {
   readonly receivedAt: number;
 }
 
+export type ReasoningContent =
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "redacted" }
+  | { readonly kind: "empty" };
+
 export type SessionEventBody =
   | { readonly kind: "turn_started" }
   | { readonly kind: "text_delta"; readonly text: string }
-  | { readonly kind: "thinking_delta"; readonly text: string }
-  | { readonly kind: "tool_call_started"; readonly callId: string; readonly tool: string }
-  | { readonly kind: "tool_call_ended"; readonly callId: string }
+  /** A reasoning output item; its lifecycle remains observable without readable contents. */
+  | { readonly kind: "reasoning"; readonly content: ReasoningContent }
+  | {
+      readonly kind: "tool_call_started";
+      readonly callId: string;
+      readonly tool: string;
+      /** Best-effort human-readable invocation detail when the runtime exposes it. */
+      readonly input?: string;
+    }
+  | {
+      readonly kind: "tool_call_ended";
+      readonly callId: string;
+      /** Best-effort human-readable result detail when the runtime exposes it. */
+      readonly output?: string;
+    }
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome };

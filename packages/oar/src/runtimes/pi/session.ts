@@ -6,26 +6,17 @@ import { createSessionKernel, type KernelTurn } from "../../shared/session-kerne
 
 /*
  * Bundled pi SDK mapping (in-process, no fork — settled 2026-08-21):
- * - createAgentSession({cwd}) → AgentSession; prompt(text) resolves when the
- *   run settles, steer(text) enqueues into the active run (applied at the next
- *   internal-turn boundary), abort() cancels cooperatively.
- * - steer `accepted` here means: the message entered pi's steering queue.
- * - Events: deltas + tool_execution_start/end map to turn events; session-
- *   scoped events (compaction, queue updates) have no turn and are dropped.
- * - options.model is ignored for now: pi model selection needs its
- *   ModelRuntime objects, not a string; wire it when a consumer needs it.
- * - Process-global caveat: pi reads env like PI_PACKAGE_DIR lazily; an
- *   embedder hosting another in-process pi cannot safely run this adapter
- *   too. A missing provider key surfaces as a failed turn with the sdk's
- *   auth message.
+ * prompt resolves on settlement; steer acceptance means entry into pi's
+ * queue; abort is cooperative. Turn deltas/tools map, session events drop.
+ * Model selection needs ModelRuntime rather than options.model. Process-global
+ * lazy env reads mean another embedded pi cannot safely share this process.
  */
 
 /**
  * The bash tool that carries SessionOptions.env into the agent's spawned
  * processes: same builtin bash, plus a spawnHook overlaying the env. pi's
  * defineTool keeps the definition assignable to customTools, where it
- * replaces the builtin by name. Exported for the unit test that executes it
- * directly (no model needed to verify the overlay lands).
+ * replaces the builtin by name. Exported for direct unit verification.
  */
 export async function piEnvBashTool(
   cwd: string,
@@ -41,9 +32,9 @@ interface PiTurnState {
   turn: KernelTurn;
   abortRequested: boolean;
   adopted: boolean;
+  reasoningHadText: boolean;
   providerError?: string;
 }
-
 function settledOutcome(state: PiTurnState): TurnOutcome {
   if (state.abortRequested) {
     return { kind: "aborted" };
@@ -140,7 +131,7 @@ export const piSession: StartSession = async (installation, options) => {
       if (kernel.active() === null) {
         const kernelTurn = kernel.begin();
         if (kernelTurn !== null) {
-          current = { turn: kernelTurn, abortRequested: false, adopted: true };
+          current = { turn: kernelTurn, abortRequested: false, adopted: true, reasoningHadText: false };
         }
       }
       return;
@@ -165,7 +156,10 @@ export const piSession: StartSession = async (installation, options) => {
             turn.emit({ kind: "text_delta", text: inner.delta });
             break;
           case "thinking_delta":
-            turn.emit({ kind: "thinking_delta", text: inner.delta });
+            if (inner.delta.length > 0) {
+              state.reasoningHadText = true;
+              turn.emit({ kind: "reasoning", content: { kind: "text", text: inner.delta } });
+            }
             break;
           case "error": {
             // pi's prompt() RESOLVES even when the provider errored — the
@@ -179,11 +173,17 @@ export const piSession: StartSession = async (installation, options) => {
           case "done":
           case "text_start":
           case "text_end":
-          case "thinking_start":
-          case "thinking_end":
           case "toolcall_start":
           case "toolcall_delta":
           case "toolcall_end":
+            break;
+          case "thinking_start":
+            state.reasoningHadText = false;
+            break;
+          case "thinking_end":
+            if (!state.reasoningHadText) {
+              turn.emit({ kind: "reasoning", content: { kind: "empty" } });
+            }
             break;
         }
         break;
@@ -260,7 +260,7 @@ export const piSession: StartSession = async (installation, options) => {
       if (turn === null) {
         return { kind: "busy" };
       }
-      const state = { turn, abortRequested: false, adopted: false };
+      const state = { turn, abortRequested: false, adopted: false, reasoningHadText: false };
       current = state;
       void (async (): Promise<void> => {
         try {

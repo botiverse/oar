@@ -88,6 +88,43 @@ test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time
   assert.deepEqual(seen, ["ab"], "quiescence flush after maxHoldMs");
 });
 
+test("aggregateDeltas merges readable reasoning without swallowing redaction", () => {
+  const seen: unknown[] = [];
+  const envelope = { sessionId: "s", turnId: "t", receivedAt: 0 };
+  const observer = aggregateDeltas((event) => {
+    seen.push(event);
+  });
+  observer({ ...envelope, seq: 1, kind: "reasoning", content: { kind: "text", text: "read" } });
+  observer({ ...envelope, seq: 2, kind: "reasoning", content: { kind: "text", text: "ing" } });
+  observer({ ...envelope, seq: 3, kind: "reasoning", content: { kind: "redacted" } });
+
+  expect(seen).toMatchInlineSnapshot(`
+    [
+      {
+        "content": {
+          "kind": "text",
+          "text": "reading",
+        },
+        "kind": "reasoning",
+        "receivedAt": 0,
+        "seq": 2,
+        "sessionId": "s",
+        "turnId": "t",
+      },
+      {
+        "content": {
+          "kind": "redacted",
+        },
+        "kind": "reasoning",
+        "receivedAt": 0,
+        "seq": 3,
+        "sessionId": "s",
+        "turnId": "t",
+      },
+    ]
+  `);
+});
+
 test("reduceStatus follows the documented transition table", async () => {
   const { initialStatus, reduceStatus, stallOf } = await import(
     "../packages/oar/src/observe/agent-status.js"
@@ -104,7 +141,7 @@ test("reduceStatus follows the documented transition table", async () => {
   };
   expect(fold([
     { ...envelope, kind: "turn_started" },
-    { ...envelope, kind: "thinking_delta", text: "…" },
+    { ...envelope, kind: "reasoning", content: { kind: "redacted" } },
     { ...envelope, kind: "text_delta", text: "hi" },
     { ...envelope, kind: "tool_call_started", callId: "c1", tool: "bash" },
     { ...envelope, kind: "tool_call_ended", callId: "c1" },

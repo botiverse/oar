@@ -8,7 +8,7 @@ import type { SessionEvent, TurnOutcome } from "../contracts/session.js";
  *
  * Transition table (from the minimal v1 event union):
  *   turn_started      → running/waiting_model
- *   thinking_delta    → running/thinking
+ *   reasoning         → running/thinking
  *   text_delta        → running/responding
  *   tool_call_started → running/{tool, callId}
  *   tool_call_ended   → running/waiting_model   (the model consumes the result next)
@@ -43,7 +43,7 @@ export function reduceStatus(previous: AgentStatus, event: SessionEvent): AgentS
   switch (event.kind) {
     case "turn_started":
       return running(event, "waiting_model");
-    case "thinking_delta":
+    case "reasoning":
       return running(event, "thinking");
     case "text_delta":
       return running(event, "responding");

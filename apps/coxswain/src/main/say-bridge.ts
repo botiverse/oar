@@ -1,13 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { AddressInfo } from "node:net";
+import { constants } from "node:fs";
+import { access, chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, isAbsolute, join } from "node:path";
 
 const MAX_SAY_BYTES = 1024 * 1024;
+const POLL_INTERVAL_MS = 10;
+const REQUEST_SUFFIX = ".request";
+const ACK_SUFFIX = ".ack";
 
 export interface SayBridge {
+  /** Absolute executable path; use this instead of relying on PATH precedence. */
+  readonly command: string;
   readonly env: Readonly<Record<string, string>>;
   dispose(): Promise<void>;
 }
@@ -16,25 +20,10 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown say bridge error";
 }
 
-async function readBody(request: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    request.setEncoding("utf8");
-    request.on("data", (chunk: string) => {
-      body += chunk;
-      if (Buffer.byteLength(body, "utf8") > MAX_SAY_BYTES) {
-        reject(new Error("say payload is too large"));
-        request.destroy();
-      }
-    });
-    request.once("end", () => {
-      resolve(body);
-    });
-    request.once("error", reject);
-  });
-}
-
-function textFromBody(body: string): string {
+function textFromBody(body: string, token: string): string {
+  if (Buffer.byteLength(body, "utf8") > MAX_SAY_BYTES) {
+    throw new Error("say payload is too large");
+  }
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(body);
@@ -44,42 +33,62 @@ function textFromBody(body: string): string {
   if (typeof parsed !== "object" || parsed === null) {
     throw new Error("say payload must be an object");
   }
+  if (!("token" in parsed) || parsed.token !== token) {
+    throw new Error("say payload is unauthorized");
+  }
   if (!("text" in parsed) || typeof parsed.text !== "string" || parsed.text.trim().length === 0) {
     throw new Error("say text must be a non-empty string");
   }
   return parsed.text.trim();
 }
 
-async function handleRequest(
-  request: IncomingMessage,
-  response: ServerResponse,
+async function deliverRequest(
+  directory: string,
+  filename: string,
   token: string,
   onSay: (text: string) => void,
 ): Promise<void> {
-  if (request.method !== "POST" || request.url !== "/say") {
-    response.writeHead(404).end();
-    return;
-  }
-  if (request.headers.authorization !== `Bearer ${token}`) {
-    response.writeHead(401).end();
-    return;
-  }
+  const requestPath = join(directory, filename);
+  const acknowledgementPath = join(directory, `${filename.slice(0, -REQUEST_SUFFIX.length)}${ACK_SUFFIX}`);
+  let acknowledgement = "";
   try {
-    onSay(textFromBody(await readBody(request)));
-    response.writeHead(204).end();
+    onSay(textFromBody(await readFile(requestPath, "utf8"), token));
   } catch (error) {
-    response.writeHead(400, { "content-type": "application/json" });
-    response.end(JSON.stringify({ error: messageOf(error) }));
+    acknowledgement = messageOf(error);
   }
+  await writeFile(acknowledgementPath, acknowledgement, { mode: 0o600 });
+  await rm(requestPath, { force: true });
 }
 
 function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'"'"'`)}'`;
 }
 
-function sayClientSource(url: string, token: string): string {
+async function nodeExecutable(): Promise<string | null> {
+  const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === "path") ?? "PATH";
+  const executableName = process.platform === "win32" ? "node.exe" : "node";
+  const configured = [process.env.npm_node_execpath, process.env.NODE]
+    .filter((candidate): candidate is string => candidate !== undefined && isAbsolute(candidate));
+  const fromPath = (process.env[pathKey] ?? "")
+    .split(delimiter)
+    .filter((directory) => directory.length > 0)
+    .map((directory) => join(directory, executableName));
+  for (const candidate of [...configured, ...fromPath]) {
+    try {
+      await access(candidate, constants.X_OK);
+      return candidate;
+    } catch {
+      // Keep looking. Packaged apps commonly have no standalone Node binary.
+    }
+  }
+  return null;
+}
+
+function sayClientSource(directory: string, token: string): string {
   return `"use strict";
-const http = require("node:http");
+const { randomUUID } = require("node:crypto");
+const { existsSync, readFileSync, renameSync, rmSync, writeFileSync } = require("node:fs");
+const { join } = require("node:path");
 
 function stdinText() {
   return new Promise((resolve, reject) => {
@@ -99,30 +108,29 @@ function stdinText() {
     process.exitCode = 2;
     return;
   }
-  const payload = JSON.stringify({ text });
-  const request = http.request(${JSON.stringify(url)}, {
-    method: "POST",
-    headers: {
-      authorization: ${JSON.stringify(`Bearer ${token}`)},
-      "content-length": Buffer.byteLength(payload),
-      "content-type": "application/json",
-    },
-  }, (response) => {
-    let body = "";
-    response.setEncoding("utf8");
-    response.on("data", (chunk) => { body += chunk; });
-    response.once("end", () => {
-      if (response.statusCode !== 204) {
-        process.stderr.write(body.length > 0 ? body + "\\n" : "say failed\\n");
-        process.exitCode = 1;
-      }
-    });
-  });
-  request.once("error", (error) => {
-    process.stderr.write(error.message + "\\n");
-    process.exitCode = 1;
-  });
-  request.end(payload);
+  const payload = JSON.stringify({ text, token: ${JSON.stringify(token)} });
+  if (Buffer.byteLength(payload, "utf8") > ${String(MAX_SAY_BYTES)}) {
+    throw new Error("say payload is too large");
+  }
+  const id = [String(Date.now()), String(process.pid), randomUUID()].join("-");
+  const temporaryPath = join(${JSON.stringify(directory)}, id + ".tmp");
+  const requestPath = join(${JSON.stringify(directory)}, id + ${JSON.stringify(REQUEST_SUFFIX)});
+  const acknowledgementPath = join(${JSON.stringify(directory)}, id + ${JSON.stringify(ACK_SUFFIX)});
+  writeFileSync(temporaryPath, payload, { mode: 0o600 });
+  renameSync(temporaryPath, requestPath);
+  const deadline = Date.now() + 10_000;
+  while (!existsSync(acknowledgementPath)) {
+    if (Date.now() >= deadline) {
+      rmSync(requestPath, { force: true });
+      throw new Error("say bridge timed out");
+    }
+    await new Promise((resolve) => { setTimeout(resolve, ${String(POLL_INTERVAL_MS)}); });
+  }
+  const error = readFileSync(acknowledgementPath, "utf8");
+  rmSync(acknowledgementPath, { force: true });
+  if (error.length > 0) {
+    throw new Error(error);
+  }
 })().catch((error) => {
   process.stderr.write(String(error) + "\\n");
   process.exitCode = 1;
@@ -130,55 +138,48 @@ function stdinText() {
 `;
 }
 
-async function listen(server: ReturnType<typeof createServer>): Promise<AddressInfo> {
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      server.off("error", reject);
-      resolve();
-    });
-  });
-  const address = server.address();
-  if (address === null || typeof address === "string") {
-    throw new Error("say bridge did not receive a TCP address");
-  }
-  return address;
-}
-
-async function closeServer(server: ReturnType<typeof createServer>): Promise<void> {
-  if (!server.listening) {
-    return;
-  }
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error === undefined) {
-        resolve();
-      } else {
-        reject(error);
-      }
-    });
-  });
-}
-
 export async function createSayBridge(onSay: (text: string) => void): Promise<SayBridge> {
   const token = randomUUID();
-  const server = createServer((request, response) => {
-    void handleRequest(request, response, token, onSay);
-  });
   const directory = await mkdtemp(join(tmpdir(), "coxswain-say-"));
+  const standaloneNode = await nodeExecutable();
+  const clientRuntime = standaloneNode ?? process.execPath;
+  const needsElectronNodeMode = standaloneNode === null;
+  let disposed = false;
+  let scanInFlight: Promise<void> | null = null;
+  const scan = (): void => {
+    if (disposed || scanInFlight !== null) {
+      return;
+    }
+    scanInFlight = (async (): Promise<void> => {
+      const entries = await readdir(directory);
+      for (const entry of entries.filter((name) => name.endsWith(REQUEST_SUFFIX)).toSorted()) {
+        await deliverRequest(directory, entry, token, onSay);
+      }
+    })().finally(() => {
+      scanInFlight = null;
+    });
+    void scanInFlight.catch(() => null);
+  };
+  const awaitScan = async (): Promise<void> => {
+    const pending = scanInFlight;
+    if (pending !== null) {
+      await pending;
+    }
+  };
+  const poller = setInterval(scan, POLL_INTERVAL_MS);
+  poller.unref();
   try {
-    const address = await listen(server);
-    const url = `http://127.0.0.1:${address.port}/say`;
     const clientPath = join(directory, "say.cjs");
-    await writeFile(clientPath, sayClientSource(url, token), { mode: 0o600 });
+    await writeFile(clientPath, sayClientSource(directory, token), { mode: 0o600 });
 
+    const commandPath = join(directory, process.platform === "win32" ? "coxswain-say.cmd" : "coxswain-say");
     if (process.platform === "win32") {
-      const commandPath = join(directory, "say.cmd");
-      const command = `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${process.execPath}" "${clientPath}" %*\r\n`;
+      const nodeMode = needsElectronNodeMode ? "set ELECTRON_RUN_AS_NODE=1\r\n" : "";
+      const command = `@echo off\r\n${nodeMode}"${clientRuntime}" "${clientPath}" %*\r\n`;
       await writeFile(commandPath, command, { mode: 0o700 });
     } else {
-      const commandPath = join(directory, "say");
-      const command = `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${shellQuote(process.execPath)} ${shellQuote(clientPath)} "$@"\n`;
+      const nodeMode = needsElectronNodeMode ? "ELECTRON_RUN_AS_NODE=1 " : "";
+      const command = `#!/bin/sh\n${nodeMode}exec ${shellQuote(clientRuntime)} ${shellQuote(clientPath)} "$@"\n`;
       await writeFile(commandPath, command, { mode: 0o700 });
       await chmod(commandPath, 0o700);
     }
@@ -188,20 +189,23 @@ export async function createSayBridge(onSay: (text: string) => void): Promise<Sa
     const executablePath = inheritedPath === undefined
       ? directory
       : `${directory}${delimiter}${inheritedPath}`;
-    let disposed = false;
     return {
+      command: commandPath,
       env: { [pathKey]: executablePath },
       async dispose() {
         if (disposed) {
           return;
         }
         disposed = true;
-        await closeServer(server);
+        clearInterval(poller);
+        await awaitScan();
         await rm(directory, { force: true, recursive: true });
       },
     };
   } catch (error) {
-    await closeServer(server);
+    disposed = true;
+    clearInterval(poller);
+    await awaitScan();
     await rm(directory, { force: true, recursive: true });
     throw error;
   }

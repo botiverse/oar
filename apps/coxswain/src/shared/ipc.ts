@@ -1,3 +1,16 @@
+import {
+  utcInstantFromDate,
+  type AccountUsageSnapshot,
+  type AccountUsageWindow,
+  type AgentStatus,
+  type AgentView,
+  type InstallationSnapshot,
+  type RunningPhase,
+  type SessionEvent,
+  type SessionEventBody,
+  type TurnOutcome,
+} from "@botiverse/oar";
+
 export const IPC_CHANNELS = {
   abort: "coxswain:abort",
   event: "coxswain:event",
@@ -8,34 +21,10 @@ export const IPC_CHANNELS = {
   usage: "coxswain:usage",
 } as const;
 
-export type FailureClass =
-  | "auth"
-  | "quota"
-  | "invalid_request"
-  | "overloaded"
-  | "provider"
-  | "runtime_exited"
-  | "unknown";
+export type FailureClass = Extract<TurnOutcome, { readonly kind: "failed" }>["failure"];
+export type TurnOutcomeView = TurnOutcome;
 
-export type TurnOutcomeView =
-  | { readonly kind: "completed" }
-  | { readonly kind: "aborted" }
-  | {
-      readonly kind: "failed";
-      readonly reason: string;
-      readonly failure: FailureClass;
-    };
-
-export type InstallationView =
-  | {
-      readonly kind: "available";
-      readonly via: "executable";
-      readonly command: string;
-      readonly version?: string;
-    }
-  | { readonly kind: "available"; readonly via: "bundled" }
-  | { readonly kind: "not_found" }
-  | { readonly kind: "unsupported"; readonly reason: string }
+export type InstallationView = InstallationSnapshot
   | { readonly kind: "error"; readonly reason: string };
 
 export interface RuntimeInspection {
@@ -49,21 +38,8 @@ export interface InspectResult {
   readonly runtimes: readonly RuntimeInspection[];
 }
 
-export interface UsageWindowView {
-  readonly label: string;
-  readonly usedRatio: number;
-  readonly resetsAt?: string;
-}
-
-export type UsageSnapshotView =
-  | {
-      readonly kind: "available";
-      readonly plan?: string;
-      readonly rateLimited: boolean;
-      readonly windows: readonly UsageWindowView[];
-    }
-  | { readonly kind: "reauth_required" }
-  | { readonly kind: "unsupported" };
+export type UsageWindowView = AccountUsageWindow;
+export type UsageSnapshotView = AccountUsageSnapshot;
 
 export type UsageResult =
   | { readonly kind: "loaded"; readonly usage: UsageSnapshotView }
@@ -98,47 +74,15 @@ export interface AbortReceipt {
   readonly aborted: boolean;
 }
 
-export type RunningPhaseView =
-  | "waiting_model"
-  | "thinking"
-  | "responding"
-  | { readonly tool: string; readonly callId: string };
+export type RunningPhaseView = RunningPhase;
+export type AgentStatusView = AgentStatus;
 
-export type AgentStatusView =
-  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcomeView }
-  | {
-      readonly kind: "running";
-      readonly turnId: string;
-      readonly phase: RunningPhaseView;
-      readonly lastEventAt: number;
-    };
-
-export interface AgentViewUpdate {
-  readonly status: AgentStatusView;
-  readonly stall: { readonly turnId: string; readonly silentForMs: number } | null;
+export type AgentViewUpdate = AgentView & {
   readonly simple: "idle" | "busy" | "stuck" | "error";
-}
+};
 
-interface EventEnvelopeView {
-  readonly sessionId: string;
-  readonly turnId: string;
-  readonly seq: number;
-  readonly receivedAt: number;
-}
-
-export type SessionEventBodyView =
-  | { readonly kind: "turn_started" }
-  | { readonly kind: "text_delta"; readonly text: string }
-  | { readonly kind: "thinking_delta"; readonly text: string }
-  | {
-      readonly kind: "tool_call_started";
-      readonly callId: string;
-      readonly tool: string;
-    }
-  | { readonly kind: "tool_call_ended"; readonly callId: string }
-  | { readonly kind: "turn_ended"; readonly outcome: TurnOutcomeView };
-
-export type SessionEventView = EventEnvelopeView & SessionEventBodyView;
+export type SessionEventBodyView = SessionEventBody;
+export type SessionEventView = SessionEvent;
 
 export type ConversationEntry =
   | {
@@ -296,9 +240,15 @@ function parseUsageWindow(value: unknown): UsageWindowView {
   if (resetsAt !== undefined && typeof resetsAt !== "string") {
     throw new Error("usage reset must be a string");
   }
-  return resetsAt === undefined
+  const parsedReset = typeof resetsAt === "string"
+    ? utcInstantFromDate(new Date(resetsAt))
+    : undefined;
+  if (parsedReset === null || (typeof resetsAt === "string" && parsedReset !== resetsAt)) {
+    throw new Error("usage reset must be a canonical UTC instant");
+  }
+  return parsedReset === undefined
     ? { label, usedRatio: record.usedRatio }
-    : { label, usedRatio: record.usedRatio, resetsAt };
+    : { label, usedRatio: record.usedRatio, resetsAt: parsedReset };
 }
 
 function parseUsageSnapshot(value: unknown): UsageSnapshotView {

@@ -64,7 +64,7 @@ export async function structuralToolRound(
     throw new Error(`turn ${JSON.stringify(outcome)}; requests as the matcher saw them:\n${requests.join("\n")}`);
   }
   const skeleton = events
-    .filter((event) => event.kind !== "text_delta" && event.kind !== "thinking_delta")
+    .filter((event) => event.kind !== "text_delta" && event.kind !== "reasoning")
     .map((event) => {
       switch (event.kind) {
         case "tool_call_started":

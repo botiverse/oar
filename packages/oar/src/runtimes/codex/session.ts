@@ -5,6 +5,8 @@ import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { startAppServerClient } from "./app-server-client.js";
+import { codexItemInput, codexItemOutput } from "./item-detail.js";
+import { codexReasoningContent } from "./reasoning.js";
 
 /*
  * codex app-server v2 mapping:
@@ -75,6 +77,10 @@ export const codexSession: StartSession = async (installation, options) => {
         ...(options.model === undefined ? {} : { model: options.model }),
         approvalPolicy: "never",
         sandboxMode,
+        // Required in addition to initialize.experimentalApi. This exposes
+        // the completed Responses API reasoning item, whose encrypted_content
+        // lets us distinguish redaction from genuinely empty reasoning.
+        experimentalRawEvents: true,
         ...instructionParams,
       })
     : await client.request("thread/resume", {
@@ -129,8 +135,14 @@ export const codexSession: StartSession = async (installation, options) => {
       }
       case "item/reasoning/textDelta":
       case "item/reasoning/summaryTextDelta": {
-        if (typeof params.delta === "string") {
-          turn.emit({ kind: "thinking_delta", text: params.delta });
+        // The completed raw response item below is the source of truth: it
+        // distinguishes readable, encrypted/redacted, and genuinely empty.
+        break;
+      }
+      case "rawResponseItem/completed": {
+        const content = codexReasoningContent(asRecord(params.item));
+        if (content !== null) {
+          turn.emit({ kind: "reasoning", content });
         }
         break;
       }
@@ -141,9 +153,15 @@ export const codexSession: StartSession = async (installation, options) => {
         const itemId = typeof item?.id === "string" ? item.id : "unknown";
         if (TOOL_ITEM_TYPES.has(itemType)) {
           if (method === "item/started") {
-            turn.emit({ kind: "tool_call_started", callId: itemId, tool: itemType });
+            const input = item === null ? undefined : codexItemInput(item);
+            turn.emit(input === undefined
+              ? { kind: "tool_call_started", callId: itemId, tool: itemType }
+              : { kind: "tool_call_started", callId: itemId, tool: itemType, input });
           } else {
-            turn.emit({ kind: "tool_call_ended", callId: itemId });
+            const output = item === null ? undefined : codexItemOutput(item);
+            turn.emit(output === undefined
+              ? { kind: "tool_call_ended", callId: itemId }
+              : { kind: "tool_call_ended", callId: itemId, output });
           }
         }
         break;

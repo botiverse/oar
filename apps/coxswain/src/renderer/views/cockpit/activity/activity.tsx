@@ -32,11 +32,17 @@ function DeltaRow({ row }: { readonly row: Extract<ActivityRow, { readonly kind:
   const sequence = row.firstSeq === row.lastSeq
     ? String(row.lastSeq)
     : `${row.firstSeq}–${row.lastSeq}`;
-  if (row.deltaKind === "thinking_delta") {
+  if (row.deltaKind === "reasoning") {
     return (
-      <li className="text-zinc-500" title={row.text}>
-        <span className="text-zinc-600">{sequence}</span> · thinking
-        <span className="text-zinc-600"> · {duration(row.startedAt, row.lastAt)} · {row.text.length} chars</span>
+      <li className="text-zinc-500">
+        <details>
+          <summary className="cursor-pointer" title={row.text}>
+            <span className="text-zinc-600">{sequence}</span> · reasoning
+            <span className="text-zinc-600"> · {duration(row.startedAt, row.lastAt)}</span>
+            {row.text.length === 0 ? null : <span className="text-zinc-500"> · “{compactText(row.text)}”</span>}
+          </summary>
+          <pre className="ml-4 whitespace-pre-wrap break-words text-zinc-400">{row.text}</pre>
+        </details>
       </li>
     );
   }
@@ -59,16 +65,32 @@ function EventRow({ event }: { readonly event: SessionEventView }): React.JSX.El
     case "tool_call_started":
       return (
         <li className="text-sky-400/80">
-          <span className="text-zinc-600">{event.seq}</span> · tool_call_started
-          <span className="text-zinc-500"> · {event.tool}</span>
-          <span className="text-zinc-600"> · {shortId(event.callId)}</span>
+          <details>
+            <summary className={event.input === undefined ? "list-none" : "cursor-pointer"}>
+              <span className="text-zinc-600">{event.seq}</span> · tool_call_started
+              <span className="text-zinc-500"> · {event.tool}</span>
+              <span className="text-zinc-600"> · {shortId(event.callId)}</span>
+              {event.input === undefined ? null : <span className="text-sky-400/70"> · {compactText(event.input)}</span>}
+            </summary>
+            {event.input === undefined ? null : (
+              <pre className="ml-4 whitespace-pre-wrap break-words text-zinc-400">{event.input}</pre>
+            )}
+          </details>
         </li>
       );
     case "tool_call_ended":
       return (
         <li className="text-sky-400/60">
-          <span className="text-zinc-600">{event.seq}</span> · tool_call_ended
-          <span className="text-zinc-600"> · {shortId(event.callId)}</span>
+          <details>
+            <summary className={event.output === undefined ? "list-none" : "cursor-pointer"}>
+              <span className="text-zinc-600">{event.seq}</span> · tool_call_ended
+              <span className="text-zinc-600"> · {shortId(event.callId)}</span>
+              {event.output === undefined ? null : <span> · {compactText(event.output)}</span>}
+            </summary>
+            {event.output === undefined ? null : (
+              <pre className="ml-4 whitespace-pre-wrap break-words text-zinc-400">{event.output}</pre>
+            )}
+          </details>
         </li>
       );
     case "turn_ended":
@@ -79,8 +101,17 @@ function EventRow({ event }: { readonly event: SessionEventView }): React.JSX.El
         </li>
       );
     case "text_delta":
-    case "thinking_delta":
       return <li />;
+    case "reasoning":
+      if (event.content.kind === "text") {
+        return <li />;
+      }
+      return (
+        <li className="text-zinc-500">
+          <span className="text-zinc-600">{event.seq}</span> · reasoning
+          <span className="text-zinc-600"> · {event.content.kind}</span>
+        </li>
+      );
   }
   throw new Error("Unknown session event");
 }

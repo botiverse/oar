@@ -1,8 +1,27 @@
 import type { SessionEvent, SessionObserver } from "../contracts/session.js";
 
+function textOf(event: SessionEvent): string | null {
+  if (event.kind === "text_delta") {
+    return event.text;
+  }
+  return event.kind === "reasoning" && event.content.kind === "text"
+    ? event.content.text
+    : null;
+}
+
+function withText(event: SessionEvent, text: string): SessionEvent {
+  if (event.kind === "reasoning") {
+    return { ...event, content: { kind: "text", text } };
+  }
+  if (event.kind === "text_delta") {
+    return { ...event, text };
+  }
+  return event;
+}
+
 /**
  * Optional consumer-side aggregation: wrap an observer so consecutive
- * text/thinking deltas arrive as one merged event instead of a token stream.
+ * text/reasoning chunks arrive as one merged event instead of a token stream.
  * A merged event flushes when the delta kind changes, a non-delta event
  * arrives, the turn ends, or — when `maxHoldMs` is set — the stream goes
  * quiet for that long (a stalled model pause must not hold text hostage;
@@ -40,11 +59,12 @@ export function aggregateDeltas(
   };
 
   return (event) => {
-    if (event.kind === "text_delta" || event.kind === "thinking_delta") {
-      if (held !== null
-        && (held.kind === "text_delta" || held.kind === "thinking_delta")
+    const text = textOf(event);
+    if (text !== null) {
+      const previousText = held === null ? null : textOf(held);
+      if (held !== null && previousText !== null
         && held.kind === event.kind && held.turnId === event.turnId) {
-        held = { ...event, text: `${held.text}${event.text}` };
+        held = withText(event, `${previousText}${text}`);
         armHoldTimer();
         return;
       }

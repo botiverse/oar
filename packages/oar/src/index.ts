@@ -21,6 +21,7 @@ export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
   PromptResult,
+  ReasoningContent,
   Session,
   SessionEvent,
   SessionEventBody,

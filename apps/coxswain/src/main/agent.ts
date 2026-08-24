@@ -2,9 +2,9 @@ import {
   observeAgent,
   runtimes,
   simpleStateOf,
+  utcInstantFromDate,
   type AgentObserver,
   type AvailableInstallation,
-  type InstallationSnapshot,
   type Runtime,
   type Session,
   type Turn,
@@ -17,7 +17,6 @@ import type {
   AbortReceipt,
   HostEvent,
   InspectResult,
-  InstallationView,
   LaunchRequest,
   RuntimeInspection,
   SessionIdentity,
@@ -28,13 +27,21 @@ import type {
 import { createSayBridge, type SayBridge } from "./say-bridge.js";
 
 const STALL_AFTER_MS = 15_000;
+const SMOKE_RESET = utcInstantFromDate(new Date("2026-08-23T19:39:00.000Z"));
+if (SMOKE_RESET === null) {
+  throw new Error("Invalid smoke usage reset fixture");
+}
 
-const SAY_PROTOCOL = `You are running inside the coxswain OAR dogfood cockpit.
+function sayProtocol(command: string): string {
+  const executable = JSON.stringify(command);
+  return `You are running inside the coxswain OAR dogfood cockpit.
 The human-facing conversation shows only messages delivered through the injected \`say\` CLI. Raw assistant text is visible only as diagnostic activity.
-Whenever you want the human to see a reply or progress update, run \`say "your message"\` (or pipe text to \`say\`). Do not treat raw assistant text as a delivered reply.
+Whenever you want the human to see a reply or progress update, invoke this exact executable path: \`${executable}\`.
+For example, run \`${executable} "your message"\` (or pipe text to that path). Do not run bare \`say\`: on macOS that may resolve to the system speech command. Do not treat raw assistant text as a delivered reply.
 
 Human message:
 `;
+}
 
 const SMOKE_RUNTIMES: readonly RuntimeInspection[] = [
   {
@@ -69,69 +76,17 @@ const SMOKE_USAGE: UsageSnapshotView = {
   plan: "Max",
   rateLimited: false,
   windows: [
-    { label: "current session", usedRatio: 0.07, resetsAt: "2026-08-23T19:39:00.000Z" },
+    {
+      label: "current session",
+      usedRatio: 0.07,
+      resetsAt: SMOKE_RESET,
+    },
     { label: "week · all models", usedRatio: 0.32 },
   ],
 };
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown host error";
-}
-
-function installationView(snapshot: InstallationSnapshot): InstallationView {
-  switch (snapshot.kind) {
-    case "available":
-      if (snapshot.via === "bundled") {
-        return { kind: "available", via: "bundled" };
-      }
-      return snapshot.version === undefined
-        ? {
-            kind: "available",
-            via: "executable",
-            command: snapshot.command,
-          }
-        : {
-            kind: "available",
-            via: "executable",
-            command: snapshot.command,
-            version: snapshot.version,
-          };
-    case "not_found":
-      return { kind: "not_found" };
-    case "unsupported":
-      return { kind: "unsupported", reason: snapshot.reason };
-  }
-  throw new Error("Unknown installation state");
-}
-
-function usageView(usage: UsageSnapshotView): UsageSnapshotView {
-  if (usage.kind !== "available") {
-    return usage;
-  }
-  return usage.plan === undefined
-    ? {
-        kind: "available",
-        rateLimited: usage.rateLimited,
-        windows: usage.windows.map((window) => window.resetsAt === undefined
-          ? { label: window.label, usedRatio: window.usedRatio }
-          : {
-              label: window.label,
-              usedRatio: window.usedRatio,
-              resetsAt: window.resetsAt,
-            }),
-      }
-    : {
-        kind: "available",
-        plan: usage.plan,
-        rateLimited: usage.rateLimited,
-        windows: usage.windows.map((window) => window.resetsAt === undefined
-          ? { label: window.label, usedRatio: window.usedRatio }
-          : {
-              label: window.label,
-              usedRatio: window.usedRatio,
-              resetsAt: window.resetsAt,
-            }),
-      };
 }
 
 async function resolveWorkingDirectory(input: string): Promise<string> {
@@ -197,7 +152,7 @@ export class AgentHost {
       }
       return {
         id: runtime.id,
-        installation: installationView(installation),
+        installation,
         supportsUsage: runtime.accountUsage !== undefined,
       };
     } catch (error) {
@@ -253,7 +208,7 @@ export class AgentHost {
         return { kind: "unavailable", reason: `${runtimeId} is not available` };
       }
       const usage = await runtime.accountUsage(installation);
-      return { kind: "loaded", usage: usageView(usage) };
+      return { kind: "loaded", usage };
     } catch (error) {
       return { kind: "error", reason: messageOf(error) };
     }
@@ -271,7 +226,14 @@ export class AgentHost {
   }
 
   #wireInput(input: string): string {
-    return this.#protocolSent ? input : `${SAY_PROTOCOL}${input}`;
+    if (this.#protocolSent) {
+      return input;
+    }
+    const bridge = this.#sayBridge;
+    if (bridge === null) {
+      throw new Error("The say bridge is not available");
+    }
+    return `${sayProtocol(bridge.command)}${input}`;
   }
 
   #emitHuman(text: string, delivery: "prompted" | "steered" | "queued"): void {
