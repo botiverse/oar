@@ -52,12 +52,13 @@ export const codexSession: StartSession = async (installation, options) => {
   }
   // YOLO default (repo policy 2026-08-24): bypass the sandbox too, not just
   // approvals — OAR_CODEX_SANDBOX pins a stricter mode when a host wants one.
-  // HONEST LIMIT: codex's exec tool follows the CONFIG-level sandbox_mode
-  // (user's config.toml), not this thread-level param (pinned by the
-  // tool-round journals) — on a real login with a stricter user config, exec
-  // stays sandboxed and OAR does not override user configuration.
+  // Injected as a launch -c override because that is the only seam that
+  // governs codex's exec tool; thread/start.sandboxMode does NOT (pinned on a
+  // real login). A host that wants the user's own config to win can set
+  // OAR_CODEX_SANDBOX=inherit to skip the override entirely.
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
-  const client = startAppServerClient(installation.command, options.env);
+  const configOverrides = sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` };
+  const client = startAppServerClient(installation.command, options.env, configOverrides);
   await client.request("initialize", {
     clientInfo: { name: "oar", version: "0.0.0" },
     capabilities: { experimentalApi: true },
@@ -78,7 +79,6 @@ export const codexSession: StartSession = async (installation, options) => {
         cwd: options.cwd,
         ...(options.model === undefined ? {} : { model: options.model }),
         approvalPolicy: "never",
-        sandboxMode,
         // Required in addition to initialize.experimentalApi. This exposes
         // the completed Responses API reasoning item, whose encrypted_content
         // lets us distinguish redaction from genuinely empty reasoning.
@@ -89,7 +89,6 @@ export const codexSession: StartSession = async (installation, options) => {
         threadId: options.resume,
         cwd: options.cwd,
         approvalPolicy: "never",
-        sandboxMode,
         ...instructionParams,
       });
   const threadId = asRecord(started.thread)?.id;

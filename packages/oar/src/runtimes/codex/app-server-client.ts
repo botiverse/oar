@@ -24,10 +24,15 @@ interface Pending {
 export function startAppServerClient(
   command: string,
   env?: Readonly<Record<string, string>>,
+  configOverrides: Readonly<Record<string, string>> = {},
 ): AppServerClient {
+  // -c KEY=VALUE injects config at launch. This is the ONLY seam that reaches
+  // codex's exec tool: thread/start.sandboxMode does not (pinned on a real
+  // login — thread param honored for its own turns but exec follows config).
+  const overrideArgs = Object.entries(configOverrides).flatMap(([key, value]) => ["-c", `${key}=${value}`]);
   const child = spawnLineProcess(
     command,
-    ["app-server", "--listen", "stdio://"],
+    ["app-server", ...overrideArgs, "--listen", "stdio://"],
     env === undefined ? {} : { env: { ...process.env, ...env } },
   );
   const pending = new Map<number, Pending>();
