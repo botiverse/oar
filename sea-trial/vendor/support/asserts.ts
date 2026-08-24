@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { Session, Turn } from "../../packages/oar/src/contracts/session.js";
+import type { Session, Turn } from "../../../packages/oar/src/contracts/session.js";
 
 /** Run a body with process.env overlaid (readers read process.env, not SessionOptions.env), restoring the previous values afterwards. */
 export async function withProcessEnv(

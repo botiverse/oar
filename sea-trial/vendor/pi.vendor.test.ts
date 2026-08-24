@@ -2,9 +2,9 @@ import { describe, expect, test } from "vitest";
 import { piInstallation, piSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { promptTurn } from "./env.js";
-import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
-import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./system-prompt.js";
+import { promptTurn } from "./support/asserts.js";
+import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
+import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
 
 /** Vendor-specific error edges for the in-process pi SDK (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", () => {

@@ -8,53 +8,16 @@
  *   OAR_TEST=claude-aimock pnpm sea-trial # real binary, scripted provider, zero tokens
  *   OAR_TEST=codex-aimock pnpm sea-trial
  */
-import {
-  claudeInstallation,
-  claudeSession,
-  codexInstallation,
-  codexSession,
-  defineRuntime,
-  piInstallation,
-  piSession,
-  runtimes,
-  type Runtime,
-} from "../packages/oar/src/index.js";
 import { accountUsageCases } from "./cases/account-usage.js";
 import { installationCases } from "./cases/installation.js";
 import { sessionCases } from "./cases/session.js";
-import { startMockSession } from "./fixtures/mock-session.js";
-import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./harness/aimock.js";
+import { selectBackend } from "./harness/backends.js";
 import { runSuite } from "./harness/runner.js";
 import { openTrace } from "./harness/trace.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
 const target = process.env.OAR_TEST ?? "mock";
-let aimockEnv: AimockEnv | null = null;
-// oxlint-disable-next-line init-declarations -- assigned exactly once by the backend selector below
-let runtime: Runtime;
-if (target === "mock") {
-  runtime = defineRuntime({
-    id: "mock",
-    session: startMockSession,
-    installation: async () => {
-      await Promise.resolve();
-      return { kind: "available" as const, via: "bundled" as const };
-    },
-  });
-} else if (target === "claude-aimock") {
-  // Real binary + real adapter; only the model provider is scripted. Account
-  // usage stays off this composition — it would query the real service.
-  aimockEnv = await startClaudeAimock();
-  runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
-} else if (target === "codex-aimock") {
-  aimockEnv = await startCodexAimock();
-  runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
-} else if (target === "pi-aimock") {
-  aimockEnv = await startPiAimock();
-  runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
-} else {
-  runtime = runtimes.require(target);
-}
+const { runtime, aimock: aimockEnv } = await selectBackend(target);
 
 const installation = await runtime.installation?.();
 if (installation === undefined || installation.kind !== "available") {

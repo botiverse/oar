@@ -1,5 +1,14 @@
 # Working in this repo
 
+## The test estate — four kinds, where each goes
+
+| Kind | Lives in | Runs via | Write one when |
+|---|---|---|---|
+| Unit | `tests/*.test.ts` | `pnpm test` (vitest) | Pure logic and shared mechanisms: folds, resolvers, process plumbing. Virtual time via `vi.useFakeTimers` (mock `Date` too when clocks matter). |
+| Behavior | `sea-trial/cases/` | `OAR_TEST=<backend> pnpm sea-trial` | A contract promise every runtime must honor. Assert ONLY through the public Session API — the case must pass on real logins, aimock backends, and the mock fixture alike. Race-honest where runtimes may legitimately differ. |
+| Vendor | `sea-trial/vendor/*.vendor.test.ts` | `OAR_TEST=<backend> pnpm vitest run sea-trial/vendor` | Anything needing the scripted provider's view (request contents, error edges, scripted tool rounds) or vendor-specific triggers. Gated with `describe.skipIf(OAR_TEST !== ...)`; helpers in `vendor/support/`. |
+| Experiment | `experiments/` | `pnpm tsx experiments/<name>.ts` | A live probe answering one question about a real runtime, kept as evidence with its conclusion in the README table. Not run in CI. |
+
 ## Testing conventions
 
 - **Assert, don't `if + throw`.** Checks use `node:assert/strict` (or vitest

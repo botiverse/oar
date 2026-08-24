@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { tmpdir } from "node:os";
-import type { LLMock } from "../harness/aimock.js";
+import type { LLMock } from "../../harness/aimock.js";
 
 export const REPLACE_MARKER = "OAR-SYSTEM-REPLACE-MARKER";
 export const APPEND_MARKER = "OAR-SYSTEM-APPEND-MARKER";

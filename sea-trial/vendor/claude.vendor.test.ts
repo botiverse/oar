@@ -3,11 +3,11 @@ import { describe, expect, test } from "vitest";
 import type { SessionEvent } from "../../packages/oar/src/contracts/session.js";
 import { claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index.js";
-import { expectAvailable, promptTurn, withProcessEnv } from "./env.js";
+import { expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
-import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./system-prompt.js";
+import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
+import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
 
 /**
  * Vendor-specific error edges: what the REAL claude harness does, driven by a

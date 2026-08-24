@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import type { Session, SessionEvent } from "../../packages/oar/src/contracts/session.js";
-import type { LLMock } from "../harness/aimock.js";
-import { openTrace, record } from "../harness/trace.js";
+import type { Session, SessionEvent } from "../../../packages/oar/src/contracts/session.js";
+import type { LLMock } from "../../harness/aimock.js";
+import { openTrace, record } from "../../harness/trace.js";
 
 // Vendor runs are runs too: their traces land in the same run directory the
 // CI behavior jobs upload, so a red vendor test ships its trajectory.
