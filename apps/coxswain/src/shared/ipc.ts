@@ -1,14 +1,14 @@
-import {
-  utcInstantFromDate,
-  type AccountUsageSnapshot,
-  type AccountUsageWindow,
-  type AgentStatus,
-  type AgentView,
-  type InstallationSnapshot,
-  type RunningPhase,
-  type SessionEvent,
-  type SessionEventBody,
-  type TurnOutcome,
+import type {
+  AccountUsageSnapshot,
+  AccountUsageWindow,
+  AgentStatus,
+  AgentView,
+  InstallationSnapshot,
+  RunningPhase,
+  SessionEvent,
+  SessionEventBody,
+  TurnOutcome,
+  UtcInstant,
 } from "@botiverse/oar";
 
 export const IPC_CHANNELS = {
@@ -174,6 +174,16 @@ function requiredBoolean(record: Readonly<Record<string, unknown>>, key: string)
   return value;
 }
 
+function parseCanonicalUtcInstant(value: string): UtcInstant | null;
+function parseCanonicalUtcInstant(value: string): string | null {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return null;
+  }
+  const canonical = date.toISOString();
+  return canonical === value ? canonical : null;
+}
+
 function parseInstallation(value: unknown): InstallationView {
   const record = recordOf(value);
   if (record === null) {
@@ -241,9 +251,9 @@ function parseUsageWindow(value: unknown): UsageWindowView {
     throw new Error("usage reset must be a string");
   }
   const parsedReset = typeof resetsAt === "string"
-    ? utcInstantFromDate(new Date(resetsAt))
+    ? parseCanonicalUtcInstant(resetsAt)
     : undefined;
-  if (parsedReset === null || (typeof resetsAt === "string" && parsedReset !== resetsAt)) {
+  if (parsedReset === null) {
     throw new Error("usage reset must be a canonical UTC instant");
   }
   return parsedReset === undefined
