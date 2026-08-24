@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AgentViewUpdate, SessionEventView, TurnOutcomeView } from "../../../../shared/ipc.js";
 import { activityRows, type ActivityRow } from "./activity-model.js";
+import {
+  activityWidthLimit,
+  clampActivityWidth,
+  DEFAULT_ACTIVITY_WIDTH,
+  draggedActivityWidth,
+  MAX_ACTIVITY_WIDTH,
+  MIN_ACTIVITY_WIDTH,
+} from "./activity-size.js";
 
 function shortId(value: string): string {
   return value.slice(0, 8);
@@ -122,14 +130,135 @@ export function Activity(props: {
 }): React.JSX.Element {
   const rows = useMemo(() => activityRows(props.events), [props.events]);
   const bottom = useRef<HTMLLIElement | null>(null);
+  const panel = useRef<HTMLElement | null>(null);
+  const drag = useRef<{
+    readonly pointerId: number;
+    readonly startingClientX: number;
+    readonly startingWidth: number;
+    readonly containerWidth: number;
+    readonly previousCursor: string;
+    readonly previousUserSelect: string;
+  } | null>(null);
+  const [width, setWidth] = useState(DEFAULT_ACTIVITY_WIDTH);
   const lastSequence = props.events.at(-1)?.seq;
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [rows]);
 
+  useEffect(() => {
+    const fitToWindow = (): void => {
+      const containerWidth = panel.current?.parentElement?.clientWidth;
+      if (containerWidth !== undefined) {
+        setWidth((current) => clampActivityWidth(current, containerWidth));
+      }
+    };
+    fitToWindow();
+    window.addEventListener("resize", fitToWindow);
+    return (): void => {
+      window.removeEventListener("resize", fitToWindow);
+      const current = drag.current;
+      if (current !== null) {
+        document.body.style.cursor = current.previousCursor;
+        document.body.style.userSelect = current.previousUserSelect;
+        drag.current = null;
+      }
+    };
+  }, []);
+
+  const finishDrag = (target: HTMLDivElement, pointerId: number): void => {
+    const current = drag.current;
+    if (current === null || current.pointerId !== pointerId) {
+      return;
+    }
+    if (target.hasPointerCapture(pointerId)) {
+      target.releasePointerCapture(pointerId);
+    }
+    document.body.style.cursor = current.previousCursor;
+    document.body.style.userSelect = current.previousUserSelect;
+    drag.current = null;
+  };
+
   return (
-    <aside className="flex w-[380px] shrink-0 flex-col bg-ink-900/60">
+    <aside
+      className="relative flex shrink-0 flex-col bg-ink-900/60"
+      ref={panel}
+      style={{ width }}
+    >
+      <div
+        aria-label="Resize Activity panel"
+        aria-orientation="vertical"
+        aria-valuemax={MAX_ACTIVITY_WIDTH}
+        aria-valuemin={MIN_ACTIVITY_WIDTH}
+        aria-valuenow={width}
+        className="group absolute inset-y-0 left-0 z-10 w-2 -translate-x-1 cursor-col-resize touch-none outline-none"
+        onKeyDown={(event) => {
+          const containerWidth = event.currentTarget.parentElement?.parentElement?.clientWidth;
+          if (containerWidth === undefined) {
+            return;
+          }
+          switch (event.key) {
+            case "ArrowLeft":
+              setWidth((current) => clampActivityWidth(current + 16, containerWidth));
+              break;
+            case "ArrowRight":
+              setWidth((current) => clampActivityWidth(current - 16, containerWidth));
+              break;
+            case "Home":
+              setWidth(MIN_ACTIVITY_WIDTH);
+              break;
+            case "End":
+              setWidth(activityWidthLimit(containerWidth));
+              break;
+            default:
+              return;
+          }
+          event.preventDefault();
+        }}
+        onPointerCancel={(event) => {
+          finishDrag(event.currentTarget, event.pointerId);
+        }}
+        onPointerDown={(event) => {
+          if (!event.isPrimary || event.button !== 0) {
+            return;
+          }
+          const containerWidth = event.currentTarget.parentElement?.parentElement?.clientWidth;
+          if (containerWidth === undefined) {
+            return;
+          }
+          drag.current = {
+            pointerId: event.pointerId,
+            startingClientX: event.clientX,
+            startingWidth: width,
+            containerWidth,
+            previousCursor: document.body.style.cursor,
+            previousUserSelect: document.body.style.userSelect,
+          };
+          event.currentTarget.setPointerCapture(event.pointerId);
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        }}
+        onPointerMove={(event) => {
+          const current = drag.current;
+          if (current === null || current.pointerId !== event.pointerId) {
+            return;
+          }
+          setWidth(draggedActivityWidth(
+            current.startingWidth,
+            current.startingClientX,
+            event.clientX,
+            current.containerWidth,
+          ));
+        }}
+        onPointerUp={(event) => {
+          finishDrag(event.currentTarget, event.pointerId);
+        }}
+        role="separator"
+        tabIndex={0}
+        title="Drag to resize Activity"
+      >
+        <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/5 transition-colors group-hover:bg-oar-500/50 group-focus:bg-oar-500/50" />
+      </div>
       <div className="flex h-9 shrink-0 items-center border-b border-white/5 px-4 text-xs font-medium uppercase tracking-wide text-zinc-500">
         Activity
         <span className="ml-auto font-mono normal-case text-zinc-600">
