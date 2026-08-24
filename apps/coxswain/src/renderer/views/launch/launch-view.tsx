@@ -6,6 +6,7 @@ import type {
   UsageResult,
   UsageSnapshotView,
 } from "../../../shared/ipc.js";
+import { formatReset } from "./usage-model.js";
 
 interface LaunchViewProps {
   readonly onLaunch: (session: SessionIdentity) => void;
@@ -82,17 +83,6 @@ function RuntimeCard(props: {
       </span>
     </button>
   );
-}
-
-function formatReset(value: string | undefined): string {
-  if (value === undefined) {
-    return "";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return ` · resets ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 function UsageWindows({ usage }: { readonly usage: UsageSnapshotView }): React.JSX.Element {
