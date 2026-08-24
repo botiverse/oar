@@ -12,7 +12,7 @@ and deliberately avoid repo machinery where independence is the point.
 | `claude-session-adapter.ts` | adapter path: steer folds into the turn, abort exactly once, busy invariant | 2026-08-21, claude 2.1.237 |
 | `codex-handshake.ts` | app-server initialize handshake shape | 2026-08-06, codex 0.144.6 |
 | `codex-session-adapter.ts` | adapter path on codex: steer fold, abort, busy | 2026-08-21, codex 0.148.0 |
-| `coxswain-say-bridge.ts` | absolute bridge path delivers; Activity distinguishes redacted reasoning and exposes command input | 2026-08-24, codex 0.149.1 |
+| `coxswain-say-bridge.ts` | OAR_SAY env indirection delivers without PATH lookup; Activity distinguishes redacted reasoning and exposes command input | 2026-08-24, codex 0.148.0 |
 | `pi-sdk-import.ts` | the bundled sdk loads in-process; createAgentSession callable | 2026-08-21, pi sdk 0.84.2 |
 | `session-resume.ts <runtime>` | Session.id is runtime-native; resume keeps the transcript | 2026-08-21, claude+codex |
 | `session-queue.ts <runtime>` | queued input runs as an attributable spontaneous next turn | 2026-08-21, claude+codex |

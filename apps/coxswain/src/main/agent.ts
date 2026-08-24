@@ -25,22 +25,12 @@ import type {
   UsageSnapshotView,
 } from "../shared/ipc.js";
 import { createSayBridge, type SayBridge } from "./say-bridge.js";
+import { sayProtocol } from "./say-protocol.js";
 
 const STALL_AFTER_MS = 15_000;
 const SMOKE_RESET = utcInstantFromDate(new Date("2026-08-23T19:39:00.000Z"));
 if (SMOKE_RESET === null) {
   throw new Error("Invalid smoke usage reset fixture");
-}
-
-function sayProtocol(command: string): string {
-  const executable = JSON.stringify(command);
-  return `You are running inside the coxswain OAR dogfood cockpit.
-The human-facing conversation shows only messages delivered through the injected \`say\` CLI. Raw assistant text is visible only as diagnostic activity.
-Whenever you want the human to see a reply or progress update, invoke this exact executable path: \`${executable}\`.
-For example, run \`${executable} "your message"\` (or pipe text to that path). Do not run bare \`say\`: on macOS that may resolve to the system speech command. Do not treat raw assistant text as a delivered reply.
-
-Human message:
-`;
 }
 
 const SMOKE_RUNTIMES: readonly RuntimeInspection[] = [
@@ -229,11 +219,7 @@ export class AgentHost {
     if (this.#protocolSent) {
       return input;
     }
-    const bridge = this.#sayBridge;
-    if (bridge === null) {
-      throw new Error("The say bridge is not available");
-    }
-    return `${sayProtocol(bridge.command)}${input}`;
+    return `${sayProtocol()}\n\nHuman message:\n${input}`;
   }
 
   #emitHuman(text: string, delivery: "prompted" | "steered" | "queued"): void {

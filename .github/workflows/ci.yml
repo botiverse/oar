@@ -85,8 +85,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @botiverse/coxswain check
-      - run: pnpm --filter @botiverse/coxswain test
       - run: pnpm --filter @botiverse/coxswain build
+      - run: pnpm --filter @botiverse/coxswain test
       - run: xvfb-run -a pnpm --filter @botiverse/coxswain smoke
       - uses: actions/upload-artifact@v4
         if: always()

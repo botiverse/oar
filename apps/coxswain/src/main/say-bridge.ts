@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { access, chmod, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, isAbsolute, join } from "node:path";
+import { SAY_ENV_NAME } from "./say-protocol.js";
 
 const MAX_SAY_BYTES = 1024 * 1024;
 const POLL_INTERVAL_MS = 10;
@@ -10,7 +11,7 @@ const REQUEST_SUFFIX = ".request";
 const ACK_SUFFIX = ".ack";
 
 export interface SayBridge {
-  /** Absolute executable path; use this instead of relying on PATH precedence. */
+  /** Absolute host-side locator; agents receive it indirectly through OAR_SAY. */
   readonly command: string;
   readonly env: Readonly<Record<string, string>>;
   dispose(): Promise<void>;
@@ -191,7 +192,7 @@ export async function createSayBridge(onSay: (text: string) => void): Promise<Sa
       : `${directory}${delimiter}${inheritedPath}`;
     return {
       command: commandPath,
-      env: { [pathKey]: executablePath },
+      env: { [pathKey]: executablePath, [SAY_ENV_NAME]: commandPath },
       async dispose() {
         if (disposed) {
           return;
