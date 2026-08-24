@@ -26,7 +26,7 @@ export interface SessionOptions {
   readonly model?: string;
   /** Resume the runtime-native session identified by a previous Session.id. */
   readonly resume?: string;
-  /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses — provider config needs the runtime's native channel there. */
+  /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses — provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH — probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them. Injected CLIs should be invoked by ABSOLUTE path. */
   readonly env?: Readonly<Record<string, string>>;
   /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction — pinned per vendor. */
   readonly systemPrompt?: string;
