@@ -9,9 +9,12 @@ import type { AvailableInstallation } from "./installation.js";
  *   arbitration belongs to the application layer.
  * - Sessions run YOLO by default: adapters disable interactive permission
  *   gates (claude --dangerously-skip-permissions, codex approvalPolicy
- *   never, pi pre-trusted cwd). In embedded use nobody sits at an approval
- *   prompt — a gate is a hang, not safety; isolation belongs to sandboxing
- *   (codex sandboxMode / OAR_CODEX_SANDBOX), not approval flows.
+ *   never, pi pre-trusted cwd) AND default sandboxes off (codex
+ *   danger-full-access; claude/pi have none). In embedded use nobody sits
+ *   at an approval prompt — a gate is a hang, not safety. A host wanting
+ *   isolation opts in (OAR_CODEX_SANDBOX), and codex's exec follows the
+ *   USER's config-level sandbox_mode on real logins, which OAR never
+ *   overrides.
  * - v1 defers resume/persistence, interactive permission settlement, and any
  *   remote/multi-consumer model.
  * - pi emits session-scoped events (compaction_start/end, queue_update) that

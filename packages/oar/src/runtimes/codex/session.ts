@@ -50,11 +50,13 @@ export const codexSession: StartSession = async (installation, options) => {
   if (installation.via !== "executable") {
     throw new Error("The codex session adapter needs an executable installation");
   }
-  // OAR_CODEX_SANDBOX pins codex's sandbox mode (default workspace-write).
-  // Needed because sandboxed exec is platform-dependent: GitHub's ubuntu
-  // runners deny it (tool results come back as sandbox errors) while local
-  // Linux and macOS seatbelt allow it — pinned by the tool-round journals.
-  const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "workspace-write";
+  // YOLO default (repo policy 2026-08-24): bypass the sandbox too, not just
+  // approvals — OAR_CODEX_SANDBOX pins a stricter mode when a host wants one.
+  // HONEST LIMIT: codex's exec tool follows the CONFIG-level sandbox_mode
+  // (user's config.toml), not this thread-level param (pinned by the
+  // tool-round journals) — on a real login with a stricter user config, exec
+  // stays sandboxed and OAR does not override user configuration.
+  const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const client = startAppServerClient(installation.command, options.env);
   await client.request("initialize", {
     clientInfo: { name: "oar", version: "0.0.0" },
