@@ -134,12 +134,12 @@ export const claudeSession: StartSession = async (installation, options) => {
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose",
+    // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
+    // no human at an approval prompt — a permission gate is a hang, not
+    // safety. Isolation is the sandbox's job, not the approval flow's.
+    "--dangerously-skip-permissions",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
-    // Variadic flag LAST so it cannot swallow later arguments.
-    ...(options.allowTools === undefined || options.allowTools.length === 0
-      ? []
-      : ["--allowedTools", ...options.allowTools]),
   ], {
     cwd: options.cwd,
     env: { ...process.env, CLAUDECODE: undefined, ...options.env },

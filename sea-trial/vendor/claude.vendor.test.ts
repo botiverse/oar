@@ -138,7 +138,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
   }, 120_000);
 
 
-  test("allowTools pre-approves a command claude would otherwise gate", async () => {
+  test("YOLO default: claude runs an unknown command without any grant", async () => {
     const env = await startClaudeAimock((mock) => {
       mock.on({ userMessage: /run the say probe/u, hasToolResult: false }, {
         toolCalls: [{ name: "Bash", arguments: JSON.stringify({ command: "oar-say-probe hello" }) }],
@@ -147,11 +147,9 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     });
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
-      const session = await runtimeUnderTest(runtime, env.env).startSession({
-        allowTools: ["Bash(oar-say-probe:*)"],
-      });
-      // The binary does not exist — irrelevant: the grant means claude RUNS
-      // it (tool_call framing appears) instead of stopping for approval,
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      // The binary does not exist — irrelevant: under the YOLO default claude
+      // RUNS it (tool_call framing appears) instead of stopping for approval,
       // which is the coxswain say-bridge scenario in miniature.
       await expect(structuralToolRound(session, env.mock, "please run the say probe")).resolves.toMatchInlineSnapshot(`
         [

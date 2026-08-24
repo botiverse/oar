@@ -83,6 +83,11 @@ export const piSession: StartSession = async (installation, options) => {
   // how a host (or the pi-aimock behavior backend) points the in-process
   // model plane somewhere else.
   const agentDir = process.env.OAR_PI_AGENT_DIR;
+  // YOLO by default (repo policy): pi gates tool execution on project trust,
+  // which is an approval prompt no embedded host can answer — pre-trust the
+  // session cwd the same way pi's own Trust button would (auditable in
+  // <agentDir>/trust.json).
+  new sdk.ProjectTrustStore(agentDir ?? sdk.getAgentDir()).set(options.cwd, true);
   const { session: piAgentSession } = await sdk.createAgentSession({
     cwd: options.cwd,
     ...(agentDir === undefined ? {} : { agentDir }),

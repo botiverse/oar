@@ -28,7 +28,6 @@ import type {
 import { createSayBridge, type SayBridge } from "./say-bridge.js";
 
 const STALL_AFTER_MS = 15_000;
-const SAY_TOOL_GRANTS = ["Bash(say:*)"] as const;
 
 const SAY_PROTOCOL = `You are running inside the coxswain OAR dogfood cockpit.
 The human-facing conversation shows only messages delivered through the injected \`say\` CLI. Raw assistant text is visible only as diagnostic activity.
@@ -314,7 +313,9 @@ export class AgentHost {
     let session: Session | null = null;
     try {
       session = await runtime.session(installation, {
-        allowTools: SAY_TOOL_GRANTS,
+        // say needs no grant anymore: OAR sessions run YOLO by default
+        // (repo policy 2026-08-24) — SessionOptions.allowTools was removed
+        // with that change.
         cwd,
         env: sayBridge.env,
         ...(request.model === undefined ? {} : { model: request.model }),
