@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { piInstallation, piSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+import { promptTurn } from "./env.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
 import { APPEND_MARKER, REPLACE_MARKER, assertSystemPrompt, systemCapture } from "./system-prompt.js";
 
@@ -17,11 +18,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
     try {
       const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
       const session = await runtimeUnderTest(runtime).startSession();
-      const result = session.prompt("hello");
-      if (result.kind !== "turn") {
-        throw new Error("expected a turn");
-      }
-      await expect(result.turn.outcome).resolves.toMatchInlineSnapshot(`
+      const result = promptTurn(session, "hello");
+      await expect(result.outcome).resolves.toMatchInlineSnapshot(`
         {
           "failure": "invalid_request",
           "kind": "failed",
@@ -79,11 +77,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       const sdkEvents = session; // oar events do not carry compaction yet; rely on provider requests
       void sdkEvents;
       for (const input of ["topic one", "topic two", "topic three"]) {
-        const turn = session.prompt(input);
-        if (turn.kind !== "turn") {
-          throw new Error("expected a turn");
-        }
-        await turn.turn.outcome;
+        const turn = promptTurn(session, input);
+        await turn.outcome;
       }
       void events;
       // Threshold compaction fired during those turns (recipe pinned in the

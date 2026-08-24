@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { codexAccountUsage } from "../../packages/oar/src/runtimes/codex/index.js";
-import { withProcessEnv } from "./env.js";
+import { expectAvailable, promptTurn, withProcessEnv } from "./env.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
@@ -19,11 +19,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     try {
       const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const result = session.prompt("hello");
-      if (result.kind !== "turn") {
-        throw new Error("expected a turn");
-      }
-      await expect(result.turn.outcome).resolves.toMatchInlineSnapshot(`
+      const result = promptTurn(session, "hello");
+      await expect(result.outcome).resolves.toMatchInlineSnapshot(`
         {
           "failure": "invalid_request",
           "kind": "failed",
@@ -41,9 +38,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     try {
       await withProcessEnv(env.env ?? {}, async () => {
         const installation = await codexInstallation();
-        if (installation.kind !== "available") {
-          throw new Error("codex unavailable");
-        }
+        expectAvailable(installation, "codex");
         const outcome = await codexAccountUsage(installation, { timeoutMs: 30_000 }).then(
           (value) => ({ resolved: value }),
           (error: unknown) => ({ threw: String(error) }),
@@ -100,11 +95,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,
       });
-      const first = session.prompt("hello there");
-      if (first.kind !== "turn") {
-        throw new Error("expected a turn");
-      }
-      await first.turn.outcome;
+      const first = promptTurn(session, "hello there");
+      await first.outcome;
       // Compaction-survival for codex lands with the compact() capability:
       // thread/compact/start is not reachable through the Session API yet.
       assertSystemPrompt(capture.systems, "You are a coding agent running in the Codex CLI");

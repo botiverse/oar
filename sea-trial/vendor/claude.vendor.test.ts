@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { SessionEvent } from "../../packages/oar/src/contracts/session.js";
 import { claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index.js";
-import { withProcessEnv } from "./env.js";
+import { expectAvailable, promptTurn, withProcessEnv } from "./env.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
@@ -34,11 +34,8 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const result = session.prompt("hello");
-      if (result.kind !== "turn") {
-        throw new Error("expected a turn");
-      }
-      await expect(result.turn.outcome).resolves.toMatchInlineSnapshot(`
+      const result = promptTurn(session, "hello");
+      await expect(result.outcome).resolves.toMatchInlineSnapshot(`
         {
           "failure": "invalid_request",
           "kind": "failed",
@@ -56,9 +53,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     try {
       await withProcessEnv(env.env ?? {}, async () => {
         const installation = await claudeInstallation();
-        if (installation.kind !== "available") {
-          throw new Error("claude unavailable");
-        }
+        expectAvailable(installation, "claude");
         const outcome = await claudeAccountUsage(installation, { timeoutMs: 30_000 }).then(
           (value) => ({ resolved: value }),
           (error: unknown) => ({ threw: String(error) }),
@@ -90,12 +85,9 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       session.subscribe((event) => {
         events.push(event);
       });
-      const result = session.prompt("hello");
-      if (result.kind !== "turn") {
-        throw new Error("expected a turn");
-      }
+      const result = promptTurn(session, "hello");
       const settled = await Promise.race([
-        result.turn.outcome.then(() => true),
+        result.outcome.then(() => true),
         sleep(3000).then(() => false),
       ]);
       // turn_started is OUR kernel's framing; everything else would have to
@@ -175,24 +167,15 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
         systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,
       });
-      const first = session.prompt("hello there");
-      if (first.kind !== "turn") {
-        throw new Error("expected a turn");
-      }
-      await first.turn.outcome;
+      const first = promptTurn(session, "hello there");
+      await first.outcome;
       assertSystemPrompt(capture.systems, "the Codex CLI");
       // /compact runs as its own turn through the same stdin channel…
-      const compact = session.prompt("/compact");
-      if (compact.kind !== "turn") {
-        throw new Error("expected the compact turn");
-      }
-      await compact.turn.outcome;
+      const compact = promptTurn(session, "/compact");
+      await compact.outcome;
       // …and the prompt configuration must still govern the NEXT request.
-      const after = session.prompt("and after compaction?");
-      if (after.kind !== "turn") {
-        throw new Error("expected a post-compaction turn");
-      }
-      await after.turn.outcome;
+      const after = promptTurn(session, "and after compaction?");
+      await after.outcome;
       assertSystemPrompt(capture.systems, "the Codex CLI");
       await session.dispose();
     } finally {
