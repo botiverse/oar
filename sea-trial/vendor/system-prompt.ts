@@ -45,18 +45,30 @@ export function systemCapture(response?: Record<string, unknown>): {
 }
 
 /**
- * Assert both mechanisms on the LATEST agent request: the replacement marker
- * present, the append marker present, and the runtime's own base prompt gone
- * (replace is a replace, not a prepend). Internal side-requests that run
+ * The LATEST agent request's system text. Internal side-requests that run
  * their OWN prompts are skipped — pi's compaction summarizer ("context
  * summarization assistant") and claude's session-naming call ("naming a
  * coding session") are vendor facts, not agent prompts.
  */
-export function assertSystemPrompt(systems: readonly string[], defaultToken: string): void {
+export function lastAgentSystem(systems: readonly string[]): string {
   const last = systems.findLast((system) =>
     !system.includes("summarization assistant") && !system.includes("naming a coding session"));
   assert.ok(last !== undefined, "no agent request captured");
-  assert.ok(last.includes(REPLACE_MARKER), `replacement marker missing; system head: ${last.slice(0, 200)}`);
-  assert.ok(last.includes(APPEND_MARKER), `append marker missing; system head: ${last.slice(0, 200)}`);
-  assert.ok(!last.includes(defaultToken), `runtime's default prompt still present ("${defaultToken}")`);
+  return last;
+}
+
+/**
+ * Make a replaced system prompt inline-snapshot-stable: mask what varies by
+ * machine or vendor RELEASE (temp dirs, cwd, versions, codex's skill catalog,
+ * pi's embedded context-file bodies) while keeping the full structure — where
+ * the replacement lands, where the append lands, and every fixed harness
+ * addition around them.
+ */
+export function scrubSystem(system: string): string {
+  return system
+    .replaceAll(/cc_version=[^;]+/gu, "cc_version=<VERSION>")
+    .replaceAll(/\/tmp\/[\w-]+/gu, "<TMPDIR>")
+    .replaceAll(process.cwd(), "<CWD>")
+    .replace(/<skills_instructions>[\s\S]*?<\/skills_instructions>/u, "<skills_instructions>…(version-dependent skill catalog scrubbed)…</skills_instructions>")
+    .replaceAll(/<project_instructions path="([^"]+)">[\s\S]*?<\/project_instructions>/gu, '<project_instructions path="$1">…(file body scrubbed)…</project_instructions>');
 }

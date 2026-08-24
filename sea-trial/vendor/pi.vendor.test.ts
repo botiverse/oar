@@ -4,7 +4,7 @@ import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { promptTurn } from "./env.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
-import { APPEND_MARKER, REPLACE_MARKER, assertSystemPrompt, systemCapture } from "./system-prompt.js";
+import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./system-prompt.js";
 
 /** Vendor-specific error edges for the in-process pi SDK (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", () => {
@@ -85,7 +85,22 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       // compaction probes); the latest provider request — the compaction
       // summarization or the post-compaction turn — must still carry both
       // markers and none of pi's own base prompt.
-      assertSystemPrompt(capture.systems, "operating inside pi");
+      expect(scrubSystem(lastAgentSystem(capture.systems))).toMatchInlineSnapshot(`
+        "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
+
+        OAR-SYSTEM-APPEND-MARKER always be brief
+
+        <project_context>
+
+        Project-specific instructions and guidelines:
+
+        <project_instructions path="<CWD>/AGENTS.md">…(file body scrubbed)…</project_instructions>
+
+        </project_context>
+
+        Current working directory: <CWD>
+        "
+      `);
       await session.dispose();
     } finally {
       await env.stop();

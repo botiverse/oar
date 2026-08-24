@@ -5,7 +5,7 @@ import { expectAvailable, promptTurn, withProcessEnv } from "./env.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
-import { APPEND_MARKER, REPLACE_MARKER, assertSystemPrompt, systemCapture } from "./system-prompt.js";
+import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./system-prompt.js";
 
 /** Vendor-specific error edges for the real codex app-server (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edges", () => {
@@ -99,7 +99,13 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       await first.outcome;
       // Compaction-survival for codex lands with the compact() capability:
       // thread/compact/start is not reachable through the Session API yet.
-      assertSystemPrompt(capture.systems, "You are a coding agent running in the Codex CLI");
+      expect(scrubSystem(lastAgentSystem(capture.systems))).toMatchInlineSnapshot(`
+        "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
+        OAR-SYSTEM-APPEND-MARKER always be brief<skills_instructions>…(version-dependent skill catalog scrubbed)…</skills_instructions><permissions instructions>
+        Filesystem sandboxing defines which files can be read or written. \`sandbox_mode\` is \`danger-full-access\`: No filesystem sandboxing - all commands are permitted. Network access is enabled.
+        Approval policy is currently never. Do not provide the \`sandbox_permissions\` for any reason, commands will be rejected.
+        </permissions instructions>"
+      `);
       await session.dispose();
     } finally {
       await env.stop();

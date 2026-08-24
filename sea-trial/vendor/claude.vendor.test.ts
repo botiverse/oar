@@ -7,7 +7,7 @@ import { expectAvailable, promptTurn, withProcessEnv } from "./env.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
-import { APPEND_MARKER, REPLACE_MARKER, assertSystemPrompt, systemCapture } from "./system-prompt.js";
+import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./system-prompt.js";
 
 /**
  * Vendor-specific error edges: what the REAL claude harness does, driven by a
@@ -169,14 +169,20 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       });
       const first = promptTurn(session, "hello there");
       await first.outcome;
-      assertSystemPrompt(capture.systems, "the Codex CLI");
+      const before = scrubSystem(lastAgentSystem(capture.systems));
+      expect(before).toMatchInlineSnapshot(`
+        "x-anthropic-billing-header: cc_version=<VERSION>; cc_entrypoint=sdk-cli;You are Claude Code, Anthropic's official CLI for Claude, running within the Claude Agent SDK.OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
+
+        OAR-SYSTEM-APPEND-MARKER always be brief"
+      `);
       // /compact runs as its own turn through the same stdin channel…
       const compact = promptTurn(session, "/compact");
       await compact.outcome;
       // …and the prompt configuration must still govern the NEXT request.
       const after = promptTurn(session, "and after compaction?");
       await after.outcome;
-      assertSystemPrompt(capture.systems, "the Codex CLI");
+      // Compaction must not disturb the configured prompt: identical scrub.
+      expect(scrubSystem(lastAgentSystem(capture.systems))).toBe(before);
       await session.dispose();
     } finally {
       await env.stop();
