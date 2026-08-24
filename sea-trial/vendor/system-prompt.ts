@@ -21,10 +21,11 @@ function systemTextOf(request: NormalizedRequest): string {
 }
 
 /**
- * Capture the system text of every provider request via a catch-all response
- * factory — the mock's journal caps bodies at 64KB and real harness requests
- * exceed it, so the factory (which sees the full normalized request) is the
- * reliable tap. The factory responds with `response` for every request.
+ * Record the system text of every provider request, via a catch-all response
+ * fixture written as a function: aimock calls it per request with the
+ * NORMALIZED request object, we note the system text and return `response`.
+ * (Reading the journal instead would hit raw per-API shapes and its 64KB
+ * body cap.)
  */
 export function systemCapture(response?: Record<string, unknown>): {
   readonly systems: string[];
