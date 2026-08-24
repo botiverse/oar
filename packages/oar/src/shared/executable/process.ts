@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import spawn from "cross-spawn";
 
 /**
  * A long-lived child process spoken to line-by-line — the transport shape both
@@ -21,7 +21,7 @@ export interface LineProcess {
   kill(): void;
 }
 
-/** Windows npm shims are .cmd/.bat files, which modern Node refuses to spawn without a shell (EINVAL). */
+/** Windows npm shims are .cmd/.bat files, which modern Node refuses to spawn without a shell (EINVAL). Line processes go through cross-spawn instead (correct cmd arg quoting); this predicate remains for one-shot execFile calls, whose args must stay SINGLE-WORD on Windows because shell:true does not quote. */
 export function requiresShell(command: string, platform: NodeJS.Platform): boolean {
   return platform === "win32" && /\.(?:cmd|bat)$/iu.test(command);
 }
@@ -31,15 +31,22 @@ export function spawnLineProcess(
   args: readonly string[],
   options: { readonly cwd?: string; readonly env?: NodeJS.ProcessEnv } = {},
 ): LineProcess {
-  const needsShell = requiresShell(command, process.platform);
+  // cross-spawn, not node's spawn: Windows .cmd shims need a shell, and
+  // node's shell:true joins args UNQUOTED — a multi-word argument (e.g. a
+  // --system-prompt value) silently truncates at its first space (caught by
+  // the system-prompt snapshots on Windows CI). cross-spawn does the cmd
+  // escaping correctly and is a no-op wrapper elsewhere.
   const child = spawn(command, [...args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
     // OAR_CHILD_STDERR=inherit surfaces child stderr on the parent's — the
     // debugging knob for "the process died and nobody knows why".
     stdio: ["pipe", "pipe", process.env.OAR_CHILD_STDERR === "inherit" ? "inherit" : "ignore"],
-    shell: needsShell,
   });
+  const { stdin, stdout } = child;
+  if (stdin === null || stdout === null) {
+    throw new Error("line process stdio must be piped");
+  }
   const lineHandlers: ((line: string) => void)[] = [];
   const exitHandlers: ((code: number | null) => void)[] = [];
   let buffer = "";
@@ -57,7 +64,7 @@ export function spawnLineProcess(
     }
   };
 
-  child.stdout.on("data", (chunk: Buffer | string) => {
+  stdout.on("data", (chunk: Buffer | string) => {
     buffer += chunk.toString();
     const lines = buffer.split("\n");
     buffer = lines.pop() ?? "";
@@ -82,7 +89,7 @@ export function spawnLineProcess(
     spawned,
     exited,
     write(text) {
-      child.stdin.write(text);
+      stdin.write(text);
     },
     onLine(handler) {
       lineHandlers.push(handler);
@@ -91,7 +98,7 @@ export function spawnLineProcess(
       exitHandlers.push(handler);
     },
     kill() {
-      child.stdin.end();
+      stdin.end();
       child.kill("SIGTERM");
     },
   };
