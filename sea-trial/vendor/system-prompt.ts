@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { tmpdir } from "node:os";
 import type { LLMock } from "../harness/aimock.js";
 
 export const REPLACE_MARKER = "OAR-SYSTEM-REPLACE-MARKER";
@@ -65,10 +66,20 @@ export function lastAgentSystem(systems: readonly string[]): string {
  * addition around them.
  */
 export function scrubSystem(system: string): string {
-  return system
+  const cwd = process.cwd();
+  const temp = tmpdir();
+  let scrubbed = system.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+  // Both slash spellings of cwd/tmp appear on Windows.
+  for (const [root, mask] of [[cwd, "<CWD>"], [temp, "<TMPDIR>"]] as const) {
+    scrubbed = scrubbed
+      .replaceAll(root, mask)
+      .replaceAll(root.replaceAll("\\", "/"), mask)
+      .replaceAll(root.replaceAll("/", "\\"), mask);
+  }
+  return scrubbed
     .replaceAll(/cc_version=[^;]+/gu, "cc_version=<VERSION>")
     .replaceAll(/\/tmp\/[\w-]+/gu, "<TMPDIR>")
-    .replaceAll(process.cwd(), "<CWD>")
+    .replaceAll(/oar-(\w+)-aimock-\w+/gu, "oar-$1-aimock-<RAND>")
     .replace(/<skills_instructions>[\s\S]*?<\/skills_instructions>/u, "<skills_instructions>…(version-dependent skill catalog scrubbed)…</skills_instructions>")
     .replaceAll(/<project_instructions path="([^"]+)">[\s\S]*?<\/project_instructions>/gu, '<project_instructions path="$1">…(file body scrubbed)…</project_instructions>');
 }
