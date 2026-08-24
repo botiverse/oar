@@ -28,6 +28,10 @@ export interface SessionOptions {
   readonly resume?: string;
   /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses — provider config needs the runtime's native channel there. */
   readonly env?: Readonly<Record<string, string>>;
+  /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction — pinned per vendor. */
+  readonly systemPrompt?: string;
+  /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction — pinned per vendor. */
+  readonly appendSystemPrompt?: string;
 }
 
 /**

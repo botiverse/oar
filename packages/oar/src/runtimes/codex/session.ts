@@ -61,18 +61,28 @@ export const codexSession: StartSession = async (installation, options) => {
   client.notify("initialized", {});
   // Threads persist so a later SessionOptions.resume can reattach; the thread
   // id is the runtime-native identity and becomes Session.id.
+  // System prompt seams (probed 2026-08-24 via the aimock journal):
+  // baseInstructions REPLACES codex's base prompt; developerInstructions
+  // APPENDS as a developer message. "instructions"/"userInstructions" are
+  // silently ignored by thread/start.
+  const instructionParams = {
+    ...(options.systemPrompt === undefined ? {} : { baseInstructions: options.systemPrompt }),
+    ...(options.appendSystemPrompt === undefined ? {} : { developerInstructions: options.appendSystemPrompt }),
+  };
   const started = options.resume === undefined
     ? await client.request("thread/start", {
         cwd: options.cwd,
         ...(options.model === undefined ? {} : { model: options.model }),
         approvalPolicy: "never",
         sandboxMode,
+        ...instructionParams,
       })
     : await client.request("thread/resume", {
         threadId: options.resume,
         cwd: options.cwd,
         approvalPolicy: "never",
         sandboxMode,
+        ...instructionParams,
       });
   const threadId = asRecord(started.thread)?.id;
   if (typeof threadId !== "string") {

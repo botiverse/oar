@@ -140,6 +140,8 @@ export const claudeSession: StartSession = async (installation, options) => {
     "--dangerously-skip-permissions",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
+    ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
+    ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
   ], {
     cwd: options.cwd,
     env: { ...process.env, CLAUDECODE: undefined, ...options.env },

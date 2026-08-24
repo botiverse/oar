@@ -7,6 +7,7 @@ import { withProcessEnv } from "./env.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
+import { APPEND_MARKER, REPLACE_MARKER, assertSystemPrompt, systemCapture } from "./system-prompt.js";
 
 /**
  * Vendor-specific error edges: what the REAL claude harness does, driven by a
@@ -159,6 +160,40 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
           "turn_ended:completed",
         ]
       `);
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 120_000);
+
+  test("system prompt replace+append land and SURVIVE manual compaction", async () => {
+    const capture = systemCapture();
+    const env = await startClaudeAimock((mock) => { capture.configure(mock); });
+    try {
+      const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession({
+        systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
+        appendSystemPrompt: `${APPEND_MARKER} always be brief`,
+      });
+      const first = session.prompt("hello there");
+      if (first.kind !== "turn") {
+        throw new Error("expected a turn");
+      }
+      await first.turn.outcome;
+      assertSystemPrompt(capture.systems, "the Codex CLI");
+      // /compact runs as its own turn through the same stdin channel…
+      const compact = session.prompt("/compact");
+      if (compact.kind !== "turn") {
+        throw new Error("expected the compact turn");
+      }
+      await compact.turn.outcome;
+      // …and the prompt configuration must still govern the NEXT request.
+      const after = session.prompt("and after compaction?");
+      if (after.kind !== "turn") {
+        throw new Error("expected a post-compaction turn");
+      }
+      await after.turn.outcome;
+      assertSystemPrompt(capture.systems, "the Codex CLI");
       await session.dispose();
     } finally {
       await env.stop();

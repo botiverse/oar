@@ -10,20 +10,14 @@ import { createSessionKernel, type KernelTurn } from "../../shared/session-kerne
  *   run settles, steer(text) enqueues into the active run (applied at the next
  *   internal-turn boundary), abort() cancels cooperatively.
  * - steer `accepted` here means: the message entered pi's steering queue.
- *   No live steer probe yet (no provider key on this machine); generic
- *   behavior is covered by the mock behavior suite.
- * - Events: message_update carries AssistantMessageEvent text/thinking deltas;
- *   tool_execution_start/end map to tool calls. Session-scoped events
- *   (compaction, queue updates) have no turn and are dropped in v1.
+ * - Events: deltas + tool_execution_start/end map to turn events; session-
+ *   scoped events (compaction, queue updates) have no turn and are dropped.
  * - options.model is ignored for now: pi model selection needs its
  *   ModelRuntime objects, not a string; wire it when a consumer needs it.
- * - Process-global caveat: pi reads env like PI_PACKAGE_DIR lazily. An
- *   embedder already hosting another pi instance in the same process (e.g. a
- *   daemon that sets PI_PACKAGE_DIR for its own bundled pi) cannot safely run
- *   this adapter too — that is inherent to in-process SDKs, not worked around
- *   here.
- * - A missing provider key surfaces as the turn failing with the sdk's auth
- *   message — expected on machines that never configured pi.
+ * - Process-global caveat: pi reads env like PI_PACKAGE_DIR lazily; an
+ *   embedder hosting another in-process pi cannot safely run this adapter
+ *   too. A missing provider key surfaces as a failed turn with the sdk's
+ *   auth message.
  */
 
 /**
@@ -88,9 +82,24 @@ export const piSession: StartSession = async (installation, options) => {
   // session cwd the same way pi's own Trust button would (auditable in
   // <agentDir>/trust.json).
   new sdk.ProjectTrustStore(agentDir ?? sdk.getAgentDir()).set(options.cwd, true);
+  // System prompt seams: pi's DefaultResourceLoader natively supports both
+  // replace (systemPrompt) and append (appendSystemPrompt).
+  const wantsSystemPrompt = options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined;
+  const resourceLoader = wantsSystemPrompt
+    ? new sdk.DefaultResourceLoader({
+        cwd: options.cwd,
+        agentDir: agentDir ?? sdk.getAgentDir(),
+        ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
+        ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),
+      })
+    : undefined;
+  // A CALLER-provided loader is the caller's to load — createAgentSession
+  // only reloads the one it builds itself.
+  await resourceLoader?.reload();
   const { session: piAgentSession } = await sdk.createAgentSession({
     cwd: options.cwd,
     ...(agentDir === undefined ? {} : { agentDir }),
+    ...(resourceLoader === undefined ? {} : { resourceLoader }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
 

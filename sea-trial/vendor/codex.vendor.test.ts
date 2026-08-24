@@ -5,6 +5,7 @@ import { withProcessEnv } from "./env.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./tool-round.js";
+import { APPEND_MARKER, REPLACE_MARKER, assertSystemPrompt, systemCapture } from "./system-prompt.js";
 
 /** Vendor-specific error edges for the real codex app-server (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edges", () => {
@@ -89,4 +90,27 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     }
   }, 120_000);
 
+
+  test("system prompt replace+append land on the provider request", async () => {
+    const capture = systemCapture();
+    const env = await startCodexAimock((mock) => { capture.configure(mock); });
+    try {
+      const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession({
+        systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
+        appendSystemPrompt: `${APPEND_MARKER} always be brief`,
+      });
+      const first = session.prompt("hello there");
+      if (first.kind !== "turn") {
+        throw new Error("expected a turn");
+      }
+      await first.turn.outcome;
+      // Compaction-survival for codex lands with the compact() capability:
+      // thread/compact/start is not reachable through the Session API yet.
+      assertSystemPrompt(capture.systems, "You are a coding agent running in the Codex CLI");
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 120_000);
 });

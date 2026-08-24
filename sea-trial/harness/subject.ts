@@ -7,7 +7,11 @@ export interface RuntimeUnderTest {
   readonly id: string;
   readonly runtime: Runtime;
   /** Probe installation, then open a session in the current directory. */
-  startSession(overrides?: { readonly resume?: string }): Promise<Session>;
+  startSession(overrides?: {
+    readonly resume?: string;
+    readonly systemPrompt?: string;
+    readonly appendSystemPrompt?: string;
+  }): Promise<Session>;
 }
 
 export function runtimeUnderTest(
@@ -31,6 +35,8 @@ export function runtimeUnderTest(
         ...(model === undefined ? {} : { model }),
         ...(env === undefined ? {} : { env }),
         ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
+        ...(overrides.systemPrompt === undefined ? {} : { systemPrompt: overrides.systemPrompt }),
+        ...(overrides.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: overrides.appendSystemPrompt }),
       });
       record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null });
       session.subscribe((event) => {

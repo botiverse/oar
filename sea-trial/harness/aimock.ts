@@ -141,6 +141,12 @@ async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<voi
 
 export async function startPiAimock(
   configure: (mock: LLMock) => void = baseFixtures,
+  piOptions: {
+    /** Model contextWindow in the scripted models.json (default 200k). Shrink it plus report fat usage to trigger threshold auto-compaction deterministically. */
+    readonly contextWindow?: number;
+    /** Written as <agentDir>/settings.json when provided (e.g. compaction settings). */
+    readonly settings?: Readonly<Record<string, unknown>>;
+  } = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
   configure(mock);
@@ -163,12 +169,15 @@ export async function startPiAimock(
           reasoning: false,
           input: ["text"],
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          contextWindow: 200_000,
+          contextWindow: piOptions.contextWindow ?? 200_000,
           maxTokens: 16_384,
         }],
       },
     },
   }));
+  if (piOptions.settings !== undefined) {
+    await writeFile(path.join(agentDir, "settings.json"), JSON.stringify(piOptions.settings));
+  }
   process.env.OAR_PI_AGENT_DIR = agentDir;
   // The Raft daemon injects its own PI_PACKAGE_DIR into shells on this
   // machine; it must not leak into the pi under test.
