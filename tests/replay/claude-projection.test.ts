@@ -1,97 +1,75 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "vitest";
-import type { SessionEvent } from "../../packages/oar/src/contracts/session.js";
-import { ingestClaudeLine, type ClaudeProjectionState } from "../../packages/oar/src/runtimes/claude/projection.js";
-import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
+import {
+  claudePrompted,
+  foldClaudeStdout,
+  type ProjectionCommand,
+} from "../../packages/oar/src/runtimes/claude/projection.js";
+import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 /**
- * Record/replay: feed a REAL recorded claude stdout stream (fixtures/*.raw.jsonl,
- * captured from a live login and scrubbed to the fields we consume) through the
- * production projection seam, and snapshot the SessionEvents it emits. This is
- * the living "what the provider sends → how we project it" specimen, and a
- * regression net: if claude changes its wire shape or we change the mapping,
- * the snapshot moves and a human confirms it.
+ * Record/replay: fold a REAL recorded claude stdout stream (fixtures/*.raw.jsonl,
+ * captured from a live login by `pnpm sea-trial:record`, scrubbed to consumed
+ * fields) through the production projection fold and snapshot the result as a
+ * FILE beside the input — input is a file, so the output is too. The snapshot
+ * shows each raw frame next to the kernel commands it produced: the living
+ * "what the provider sends → how we project it" specimen and a regression net.
  */
 
 const here = import.meta.dirname;
+const scenarios = ["tool-round"];
 
-function replay(fixture: string): { raw: string[]; projected: string[] } {
-  const lines = readFileSync(path.join(here, "fixtures", fixture), "utf8")
-    .split("\n")
-    .filter((line) => line.trim().length > 0);
-  const kernel = createSessionKernel("replay");
-  const events: SessionEvent[] = [];
-  kernel.subscribe((event) => {
-    events.push(event);
-  });
-  // A recorded stream opens with system/init; the live adapter begins the
-  // first turn on the prompt write, so seed one turn to stand in for it.
-  const state: ClaudeProjectionState = { turn: kernel.begin(), abortPending: false };
-  for (const line of lines) {
-    ingestClaudeLine(kernel, state, line);
+function describeCommand(command: ProjectionCommand): string {
+  switch (command.kind) {
+    case "begin":
+      return "begin";
+    case "settle":
+      return `settle ${command.outcome.kind}`;
+    case "emit": {
+      const { body } = command;
+      if (body.kind === "tool_call_started") {
+        return `emit tool_call_started ${body.tool}`;
+      }
+      if (body.kind === "reasoning") {
+        return `emit reasoning ${body.content.kind}`;
+      }
+      return `emit ${body.kind}`;
+    }
+    default:
+      return "?";
   }
-  return {
-    raw: lines.map((line) => summarizeRaw(parseFrame(line))),
-    projected: events.map((event) => summarizeEvent(event)),
-  };
 }
 
-interface RawFrame { type?: string; subtype?: string; message?: { content?: { type?: string }[] } }
-
-function parseFrame(line: string): RawFrame {
-  const parsed: unknown = JSON.parse(line);
-  return typeof parsed === "object" && parsed !== null ? parsed : {};
-}
-
-function summarizeRaw(message: RawFrame): string {
+function summarizeFrame(message: { type?: string; subtype?: string; message?: { content?: { type?: string }[] } }): string {
   const blocks = message.message?.content?.map((block) => block.type).join(",") ?? "";
   return [message.type, message.subtype, blocks].filter((part) => part !== undefined && part !== "").join(" ");
 }
 
-function summarizeEvent(event: SessionEvent): string {
-  if (event.kind === "tool_call_started") {
-    return `tool_call_started ${event.tool}`;
+function foldFixture(lines: readonly string[]): string {
+  // Seed as if a prompt opened the first turn (the control-plane input the
+  // recorded stdout stream does not itself carry).
+  let state = claudePrompted();
+  const rows: string[] = [];
+  for (const line of lines) {
+    const message = asRecord(parseJson(line));
+    if (message !== null) {
+      const { state: next, commands } = foldClaudeStdout(state, message);
+      state = next;
+      const produced = commands.map((command) => describeCommand(command)).join(", ") || "—";
+      rows.push(`${summarizeFrame(message).padEnd(28)} │ ${produced}`);
+    }
   }
-  if (event.kind === "reasoning") {
-    return `reasoning ${event.content.kind}`;
-  }
-  if (event.kind === "turn_ended") {
-    return `turn_ended ${event.outcome.kind}`;
-  }
-  return event.kind;
+  return `${rows.join("\n")}\n`;
 }
 
-test("claude tool-round: recorded stdout projects to the expected SessionEvents", () => {
-  const { raw, projected } = replay("claude-tool-round.raw.jsonl");
-  // Left: the raw claude frames we consumed. Right: our projection.
-  expect({ raw, projected }).toMatchInlineSnapshot(`
-    {
-      "projected": [
-        "turn_started",
-        "reasoning text",
-        "tool_call_started Bash",
-        "tool_call_ended",
-        "reasoning text",
-        "text_delta",
-        "turn_ended completed",
-      ],
-      "raw": [
-        "system init",
-        "system thinking_tokens",
-        "system thinking_tokens",
-        "system thinking_tokens",
-        "system thinking_tokens",
-        "assistant thinking",
-        "assistant tool_use",
-        "user tool_result",
-        "system thinking_tokens",
-        "system thinking_tokens",
-        "system thinking_tokens",
-        "assistant thinking",
-        "assistant text",
-        "result success",
-      ],
-    }
-  `);
-});
+for (const scenario of scenarios) {
+  test(`claude ${scenario}: recorded stdout folds to the expected commands`, async () => {
+    const lines = readFileSync(path.join(here, "fixtures", `claude-${scenario}.raw.jsonl`), "utf8")
+      .split("\n")
+      .filter((line) => line.trim().length > 0);
+    await expect(foldFixture(lines)).toMatchFileSnapshot(
+      path.join(here, "fixtures", `claude-${scenario}.projected.txt`),
+    );
+  });
+}

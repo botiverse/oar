@@ -6,9 +6,16 @@ import type {
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
+import { asRecord, parseJson } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
-import { ingestClaudeLine } from "./projection.js";
+import {
+  claudeAbortRequested,
+  claudePrompted,
+  foldClaudeStdout,
+  initialClaudeProjection,
+  type ClaudeProjectionState,
+} from "./projection.js";
 
 /*
  * Live semantics this adapter is built on (drydock probes, 2026-08-21):
@@ -33,7 +40,7 @@ function userMessage(text: string): string {
 interface ClaudeSessionState {
   child: LineProcess;
   turn: KernelTurn | null;
-  abortPending: boolean;
+  projection: ClaudeProjectionState;
   disposed: boolean;
 }
 
@@ -65,15 +72,40 @@ export const claudeSession: StartSession = async (installation, options) => {
   await child.spawned;
 
   const kernel = createSessionKernel(sessionId);
-  const state: ClaudeSessionState = { child, turn: null, abortPending: false, disposed: false };
+  const state: ClaudeSessionState = { child, turn: null, projection: initialClaudeProjection, disposed: false };
   let interruptCounter = 0;
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end.
   const heldQueue: string[] = [];
 
+  // Drive the pure projection fold, applying its commands to the kernel. The
+  // fold owns turn framing and event translation; this owns only transport.
   child.onLine((line) => {
-    const resultAtIdle = ingestClaudeLine(kernel, state, line);
-    if (resultAtIdle && !state.disposed) {
+    const message = asRecord(parseJson(line));
+    if (message === null) {
+      return;
+    }
+    const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
+    state.projection = nextProjection;
+    let settled = false;
+    for (const command of commands) {
+      switch (command.kind) {
+        case "begin":
+          state.turn = kernel.begin();
+          break;
+        case "emit":
+          state.turn?.emit(command.body);
+          break;
+        case "settle":
+          state.turn?.settle(command.outcome);
+          state.turn = null;
+          settled = true;
+          break;
+        default:
+          break;
+      }
+    }
+    if (settled && !state.disposed) {
       const next = heldQueue.shift();
       if (next !== undefined) {
         child.write(userMessage(next));
@@ -94,7 +126,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       if (turn.settled()) {
         return;
       }
-      state.abortPending = true;
+      state.projection = claudeAbortRequested(state.projection);
       interruptCounter += 1;
       child.write(`${JSON.stringify({
         type: "control_request",
@@ -121,6 +153,7 @@ export const claudeSession: StartSession = async (installation, options) => {
         return { kind: "busy" };
       }
       state.turn = turn;
+      state.projection = claudePrompted();
       child.write(userMessage(input));
       return { kind: "turn", turn: makeTurn(turn) };
     },
