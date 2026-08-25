@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: [
       "tests/*.test.ts",
+      "tests/replay/*.test.ts",
       "sea-trial/vendor/*.test.ts",
       "apps/coxswain/test/*.test.ts",
     ],

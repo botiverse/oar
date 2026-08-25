@@ -6,10 +6,9 @@ import type {
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
-import { classifyFailure } from "../../shared/failure-class.js";
-import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
+import { ingestClaudeLine } from "./projection.js";
 
 /*
  * Live semantics this adapter is built on (drydock probes, 2026-08-21):
@@ -36,99 +35,6 @@ interface ClaudeSessionState {
   turn: KernelTurn | null;
   abortPending: boolean;
   disposed: boolean;
-}
-
-function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
-  const inner = asRecord(message.message);
-  const content = inner?.content;
-  if (!Array.isArray(content)) {
-    return [];
-  }
-  return content.map((block) => asRecord(block)).filter((block) => block !== null);
-}
-
-function projectMessage(state: ClaudeSessionState, message: JsonRecord): void {
-  const turn = state.turn;
-  if (turn === null || turn.settled()) {
-    return;
-  }
-  switch (String(message.type)) {
-    case "assistant": {
-      for (const block of contentBlocks(message)) {
-        switch (String(block.type)) {
-          case "text": {
-            if (typeof block.text === "string") {
-              turn.emit({ kind: "text_delta", text: block.text });
-            }
-            break;
-          }
-          case "thinking": {
-            const content = typeof block.thinking === "string" && block.thinking.length > 0
-              ? { kind: "text" as const, text: block.thinking }
-              : { kind: "empty" as const };
-            turn.emit({ kind: "reasoning", content });
-            break;
-          }
-          case "redacted_thinking": {
-            turn.emit({ kind: "reasoning", content: { kind: "redacted" } });
-            break;
-          }
-          case "tool_use": {
-            const started = {
-              kind: "tool_call_started",
-              callId: typeof block.id === "string" ? block.id : "unknown",
-              tool: typeof block.name === "string" ? block.name : "unknown",
-            } as const;
-            const input = block.input === undefined ? undefined : JSON.stringify(block.input);
-            turn.emit(input === undefined ? started : { ...started, input });
-            break;
-          }
-          default:
-            break;
-        }
-      }
-      break;
-    }
-    case "user": {
-      for (const block of contentBlocks(message)) {
-        if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-          const output = block.content === undefined ? undefined : JSON.stringify(block.content);
-          turn.emit(output === undefined
-            ? { kind: "tool_call_ended", callId: block.tool_use_id }
-            : { kind: "tool_call_ended", callId: block.tool_use_id, output });
-        }
-      }
-      break;
-    }
-    case "result": {
-      settleFromResult(state, turn, message);
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-function settleFromResult(state: ClaudeSessionState, turn: KernelTurn, message: JsonRecord): void {
-  if (state.abortPending) {
-    state.abortPending = false;
-    turn.settle({ kind: "aborted" });
-    return;
-  }
-  if (message.is_error === true) {
-    // Vendor quirk (pinned 2026-08-22): claude can report is_error=true with
-    // subtype "success" and put the actual error text in result.
-    const text = typeof message.result === "string" && message.result.length > 0
-      ? message.result
-      : undefined;
-    const subtype = typeof message.subtype === "string" && message.subtype !== "success"
-      ? message.subtype
-      : undefined;
-    const reason = text ?? subtype ?? "error";
-    turn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
-    return;
-  }
-  turn.settle({ kind: "completed" });
 }
 
 export const claudeSession: StartSession = async (installation, options) => {
@@ -166,17 +72,8 @@ export const claudeSession: StartSession = async (installation, options) => {
   const heldQueue: string[] = [];
 
   child.onLine((line) => {
-    const message = asRecord(parseJson(line));
-    if (message === null) {
-      return;
-    }
-    // A system/init with no active turn is claude starting a run on its own
-    // (a steer that landed past the turn's end) — surface it as a real turn.
-    if (message.type === "system" && message.subtype === "init" && kernel.active() === null) {
-      state.turn = kernel.begin();
-    }
-    projectMessage(state, message);
-    if (message.type === "result" && kernel.active() === null && !state.disposed) {
+    const resultAtIdle = ingestClaudeLine(kernel, state, line);
+    if (resultAtIdle && !state.disposed) {
       const next = heldQueue.shift();
       if (next !== undefined) {
         child.write(userMessage(next));

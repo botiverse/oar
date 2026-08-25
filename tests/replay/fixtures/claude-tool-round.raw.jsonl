@@ -1,0 +1,14 @@
+{"type": "system", "subtype": "init"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": "The user is asking me to run a bash command `echo oar-replay-marker` and then tell them I did it. This is a straightforward request.\n\nLet me run this bash command."}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "toolu_017HyMirpdBrytdFDjFY1HFW", "name": "Bash", "input": {"command": "echo oar-replay-marker", "description": "Echo the marker string"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "toolu_017HyMirpdBrytdFDjFY1HFW", "content": "oar-replay-marker"}]}}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "system", "subtype": "thinking_tokens"}
+{"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": "The command ran successfully and output \"oar-replay-marker\". Now I should tell the user I did it."}]}}
+{"type": "assistant", "message": {"content": [{"type": "text", "text": "Done! I ran the bash command `echo oar-replay-marker` and it output the marker."}]}}
+{"type": "result", "subtype": "success", "is_error": false}
