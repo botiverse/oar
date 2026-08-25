@@ -72,11 +72,13 @@ export async function startClaudeRecording(request: RecordRequest): Promise<Reco
       // fresh turn; steer prompts (leading "+") were sent on a timer instead.
       if (scrubbed?.type === "result") {
         const next = pending.find((p) => !p.startsWith("+"));
-        if (next !== undefined) {
+        if (next === undefined) {
+          // No more full-turn follow-ups (steers are sent on a timer, not
+          // queued here) — close stdin so the session ends.
+          child.stdin.end();
+        } else {
           pending.splice(pending.indexOf(next), 1);
           child.stdin.write(userLine(next));
-        } else if (pending.length === 0) {
-          child.stdin.end();
         }
       }
     }

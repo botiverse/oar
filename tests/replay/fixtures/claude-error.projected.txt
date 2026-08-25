@@ -1,0 +1,3 @@
+system init                  │ —
+assistant text               │ emit text_delta
+result success               │ settle failed
