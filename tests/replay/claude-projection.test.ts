@@ -18,7 +18,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  */
 
 const here = import.meta.dirname;
-const scenarios = ["tool-round"];
+const scenarios = ["tool-round", "multi-turn"];
 
 function describeCommand(command: ProjectionCommand): string {
   switch (command.kind) {

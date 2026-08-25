@@ -1,0 +1,41 @@
+turn/started                 │ —
+item/started                 │ —
+item/completed               │ —
+item/started                 │ —
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/completed               │ —
+item/started                 │ emit tool_call_started commandExecution
+item/completed               │ emit tool_call_ended
+item/started                 │ —
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/agentMessage/delta      │ emit text_delta
+item/completed               │ —
+turn/completed               │ settle completed

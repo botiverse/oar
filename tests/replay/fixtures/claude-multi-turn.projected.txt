@@ -1,0 +1,15 @@
+system init                  │ —
+rate_limit_event             │ —
+system thinking_tokens       │ —
+system thinking_tokens       │ —
+system thinking_tokens       │ —
+assistant thinking           │ emit reasoning text
+assistant text               │ emit text_delta
+result success               │ settle completed
+system init                  │ begin
+system thinking_tokens       │ —
+system thinking_tokens       │ —
+system thinking_tokens       │ —
+assistant thinking           │ emit reasoning text
+assistant text               │ emit text_delta
+result success               │ settle completed
