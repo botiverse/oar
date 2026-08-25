@@ -1,12 +1,16 @@
 import { randomUUID } from "node:crypto";
-import type { Session, StartSession, Turn, TurnOutcome } from "../../contracts/session.js";
+import type { Session, StartSession, Turn } from "../../contracts/session.js";
 import { asRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { startAppServerClient } from "./app-server-client.js";
-import { codexItemInput, codexItemOutput } from "./item-detail.js";
-import { codexReasoningContent } from "./reasoning.js";
+import {
+  codexPrompted,
+  foldCodexNotification,
+  initialCodexProjection,
+  type CodexProjectionState,
+} from "./projection.js";
 
 /*
  * codex app-server v2 mapping:
@@ -21,29 +25,9 @@ import { codexReasoningContent } from "./reasoning.js";
  * - abort: turn/interrupt {threadId, turnId}
  */
 
-const TOOL_ITEM_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch"]);
-
 interface CodexTurnState {
   readonly kernelTurn: KernelTurn;
   readonly codexTurnId: Promise<string>;
-}
-
-// The runtime's own status is the truth: an interrupt that landed reports
-// "interrupted"; an interrupt that lost the race to completion reports
-// "completed" — mapping a local abort flag over it would falsify the latter.
-function outcomeFromStatus(status: unknown): TurnOutcome {
-  switch (status) {
-    case "interrupted":
-      return { kind: "aborted" };
-    case "completed":
-      return { kind: "completed" };
-    default: {
-      const reason = typeof status === "string" ? status : "unknown";
-      // codex's turn status carries no error detail (pinned by the codex
-      // vendor 400/429 snapshots: reason is the bare word "failed").
-      return { kind: "failed", reason, failure: classifyFailure(reason) };
-    }
-  }
 }
 
 export const codexSession: StartSession = async (installation, options) => {
@@ -99,97 +83,39 @@ export const codexSession: StartSession = async (installation, options) => {
   const kernel = createSessionKernel(threadId);
   let current: CodexTurnState | null = null;
   let disposed = false;
-  // codex broadcasts structured `error` notifications (message, codexErrorInfo,
-  // additionalDetails, willRetry) that its terminal turn status does NOT carry
-  // — turn/completed says only "failed". Remember the last one so a failed
-  // settle can say WHY (pinned need: CI tool-round failures were undebuggable
-  // with the bare word "failed").
-  let lastErrorDetail: string | null = null;
+  let projection: CodexProjectionState = initialCodexProjection;
 
+  // Drive the pure projection fold, applying its commands to the kernel; the
+  // fold owns turn framing and event translation, this owns the transport-only
+  // codexTurnId (steer/abort identity).
   client.onNotification((method, params) => {
     if (params.threadId !== threadId) {
       return;
     }
-    if (method === "turn/started") {
-      // A turn we did not start (a drained queue submission) still becomes a
-      // real kernel turn so its events and completion are attributable.
-      if (kernel.active() === null) {
-        const startedTurn = asRecord(params.turn)?.id;
-        const kernelTurn = kernel.begin();
-        if (kernelTurn !== null && typeof startedTurn === "string") {
-          current = { kernelTurn, codexTurnId: Promise.resolve(startedTurn) };
-        }
-      }
-      return;
-    }
-    const state = current;
-    if (state === null || state.kernelTurn.settled()) {
-      return;
-    }
-    const turn = state.kernelTurn;
-    switch (method) {
-      case "item/agentMessage/delta": {
-        if (typeof params.delta === "string") {
-          turn.emit({ kind: "text_delta", text: params.delta });
-        }
-        break;
-      }
-      case "item/reasoning/textDelta":
-      case "item/reasoning/summaryTextDelta": {
-        // The completed raw response item below is the source of truth: it
-        // distinguishes readable, encrypted/redacted, and genuinely empty.
-        break;
-      }
-      case "rawResponseItem/completed": {
-        const content = codexReasoningContent(asRecord(params.item));
-        if (content !== null) {
-          turn.emit({ kind: "reasoning", content });
-        }
-        break;
-      }
-      case "item/started":
-      case "item/completed": {
-        const item = asRecord(params.item);
-        const itemType = typeof item?.type === "string" ? item.type : "";
-        const itemId = typeof item?.id === "string" ? item.id : "unknown";
-        if (TOOL_ITEM_TYPES.has(itemType)) {
-          if (method === "item/started") {
-            const input = item === null ? undefined : codexItemInput(item);
-            turn.emit(input === undefined
-              ? { kind: "tool_call_started", callId: itemId, tool: itemType }
-              : { kind: "tool_call_started", callId: itemId, tool: itemType, input });
-          } else {
-            const output = item === null ? undefined : codexItemOutput(item);
-            turn.emit(output === undefined
-              ? { kind: "tool_call_ended", callId: itemId }
-              : { kind: "tool_call_ended", callId: itemId, output });
+    const { state: nextProjection, commands } = foldCodexNotification(projection, method, params);
+    projection = nextProjection;
+    for (const command of commands) {
+      switch (command.kind) {
+        case "begin": {
+          // Spontaneous turn (a drained queue submission we did not prompt):
+          // adopt it, taking the runtime turn id from the notification.
+          const startedTurn = asRecord(params.turn)?.id;
+          const kernelTurn = kernel.begin();
+          if (kernelTurn !== null && typeof startedTurn === "string") {
+            current = { kernelTurn, codexTurnId: Promise.resolve(startedTurn) };
           }
+          break;
         }
-        break;
+        case "emit":
+          current?.kernelTurn.emit(command.body);
+          break;
+        case "settle":
+          current?.kernelTurn.settle(command.outcome);
+          current = null;
+          break;
+        default:
+          break;
       }
-      case "turn/completed": {
-        const outcome = outcomeFromStatus(asRecord(params.turn)?.status);
-        if (outcome.kind === "failed" && lastErrorDetail !== null) {
-          const reason = `${outcome.reason}: ${lastErrorDetail}`;
-          turn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
-        } else {
-          turn.settle(outcome);
-        }
-        lastErrorDetail = null;
-        break;
-      }
-      case "error": {
-        const error = asRecord(params.error);
-        const message = typeof error?.message === "string" ? error.message : "";
-        const details = typeof error?.additionalDetails === "string" ? error.additionalDetails : "";
-        const combined = [message, details].filter((part) => part.length > 0).join(" — ");
-        if (combined.length > 0) {
-          lastErrorDetail = combined;
-        }
-        break;
-      }
-      default:
-        break;
     }
   });
   client.onExit(() => {
@@ -262,6 +188,7 @@ export const codexSession: StartSession = async (installation, options) => {
       })();
       const state: CodexTurnState = { kernelTurn, codexTurnId };
       current = state;
+      projection = codexPrompted(projection);
       return { kind: "turn", turn: makeTurn(state) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
