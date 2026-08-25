@@ -15,17 +15,18 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { startClaudeRecording } from "./record/claude.js";
 import { startCodexRecording } from "./record/codex.js";
+import { startPiRecording } from "./record/pi.js";
 
 const [runtime, scenario, first, ...rest] = process.argv.slice(2);
 if (runtime === undefined || scenario === undefined || first === undefined) {
-  process.stderr.write("usage: tsx sea-trial/record.ts <claude|codex> <scenario> <prompt> [-- <more>...]\n");
+  process.stderr.write("usage: tsx sea-trial/record.ts <claude|codex|pi> <scenario> <prompt> [-- <more>...]\n");
   process.exit(2);
 }
 const separator = rest.indexOf("--");
 const followUps = separator === -1 ? [] : rest.slice(separator + 1);
 
-const recorders = { claude: startClaudeRecording, codex: startCodexRecording };
-const record = runtime === "claude" || runtime === "codex" ? recorders[runtime] : null;
+const recorders = { claude: startClaudeRecording, codex: startCodexRecording, pi: startPiRecording };
+const record = runtime === "claude" || runtime === "codex" || runtime === "pi" ? recorders[runtime] : null;
 if (record === null) {
   process.stderr.write(`unknown runtime: ${runtime}\n`);
   process.exit(2);

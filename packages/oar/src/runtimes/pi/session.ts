@@ -1,8 +1,16 @@
 import type { CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
-import type { Session, StartSession, Turn, TurnOutcome } from "../../contracts/session.js";
+import type { Session, StartSession, Turn } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
+import {
+  foldPiEvent,
+  initialPiProjection,
+  piAbortRequested,
+  piPrompted,
+  piSettledOutcome,
+  type PiProjectionState,
+} from "./projection.js";
 
 /*
  * Bundled pi SDK mapping (in-process, no fork — settled 2026-08-21):
@@ -26,23 +34,6 @@ export async function piEnvBashTool(
   return sdk.defineTool(sdk.createBashToolDefinition(cwd, {
     spawnHook: (context) => ({ ...context, env: { ...context.env, ...overlay } }),
   }));
-}
-
-interface PiTurnState {
-  turn: KernelTurn;
-  abortRequested: boolean;
-  adopted: boolean;
-  reasoningHadText: boolean;
-  providerError?: string;
-}
-function settledOutcome(state: PiTurnState): TurnOutcome {
-  if (state.abortRequested) {
-    return { kind: "aborted" };
-  }
-  if (state.providerError !== undefined) {
-    return { kind: "failed", reason: state.providerError, failure: classifyFailure(state.providerError) };
-  }
-  return { kind: "completed" };
 }
 
 export const piSession: StartSession = async (installation, options) => {
@@ -95,7 +86,8 @@ export const piSession: StartSession = async (installation, options) => {
   });
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
-  let current: PiTurnState | null = null;
+  let currentTurn: KernelTurn | null = null;
+  let projection: PiProjectionState = initialPiProjection;
   let disposed = false;
   // Adapter-held queue, drained one input per turn end. pi's native followUp
   // CONTINUES the active run (more internal turns, one agent_end), which
@@ -123,129 +115,44 @@ export const piSession: StartSession = async (installation, options) => {
     })();
   };
 
+  // Drive the pure projection fold, applying its commands to the kernel; the
+  // fold owns turn framing and event translation. Adopted turns settle in the
+  // fold (agent_end); prompt-initiated turns settle in prompt() below.
   piAgentSession.subscribe((event) => {
-    if (event.type === "agent_start") {
-      // A run pi starts that we did not prompt (a drained followUp) still
-      // becomes a real kernel turn; it settles on agent_end since no prompt
-      // promise is attached to it.
-      if (kernel.active() === null) {
-        const kernelTurn = kernel.begin();
-        if (kernelTurn !== null) {
-          current = { turn: kernelTurn, abortRequested: false, adopted: true, reasoningHadText: false };
-        }
-      }
-      return;
-    }
-    const state = current;
-    if (state === null || state.turn.settled()) {
-      return;
-    }
-    const turn = state.turn;
-    switch (event.type) {
-      case "agent_end": {
-        if (state.adopted) {
-          turn.settle(settledOutcome(state));
+    const { state: nextProjection, commands } = foldPiEvent(projection, event);
+    projection = nextProjection;
+    for (const command of commands) {
+      switch (command.kind) {
+        case "begin":
+          currentTurn = kernel.begin();
+          break;
+        case "emit":
+          currentTurn?.emit(command.body);
+          break;
+        case "settle":
+          currentTurn?.settle(command.outcome);
+          currentTurn = null;
           drainHeld();
-        }
-        break;
+          break;
+        default:
+          break;
       }
-      case "message_update": {
-        const inner = event.assistantMessageEvent;
-        switch (inner.type) {
-          case "text_delta":
-            turn.emit({ kind: "text_delta", text: inner.delta });
-            break;
-          case "thinking_delta":
-            if (inner.delta.length > 0) {
-              state.reasoningHadText = true;
-              turn.emit({ kind: "reasoning", content: { kind: "text", text: inner.delta } });
-            }
-            break;
-          case "error": {
-            // pi's prompt() RESOLVES even when the provider errored — the
-            // failure only surfaces here (pinned by the pi vendor 400 test).
-            state.providerError = inner.error.errorMessage ?? inner.reason;
-            break;
-          }
-          // Explicitly dropped: only deltas map to v1 turn events; block
-          // boundaries and toolcall framing arrive via the outer events.
-          case "start":
-          case "done":
-          case "text_start":
-          case "text_end":
-          case "toolcall_start":
-          case "toolcall_delta":
-          case "toolcall_end":
-            break;
-          case "thinking_start":
-            state.reasoningHadText = false;
-            break;
-          case "thinking_end":
-            if (!state.reasoningHadText) {
-              turn.emit({ kind: "reasoning", content: { kind: "empty" } });
-            }
-            break;
-        }
-        break;
-      }
-      case "tool_execution_start": {
-        turn.emit({
-          kind: "tool_call_started",
-          callId: event.toolCallId,
-          tool: event.toolName,
-        });
-        break;
-      }
-      case "tool_execution_end": {
-        turn.emit({ kind: "tool_call_ended", callId: event.toolCallId });
-        break;
-      }
-      case "turn_end": {
-        // A provider failure does NOT reject prompt() and does NOT emit an
-        // inner error event — it only shows as stopReason "error" on the
-        // turn's final assistant message (pinned by the pi vendor 400 test).
-        if (event.message.role === "assistant" && event.message.stopReason === "error") {
-          state.providerError = event.message.errorMessage ?? "provider error";
-        }
-        break;
-      }
-      // Explicitly dropped: session-scoped events with no turn mapping in v1
-      // (an exhaustive switch makes a NEW pi event type a compile error, so
-      // each future addition gets a conscious mapped-or-dropped decision).
-      case "agent_settled":
-      case "turn_start":
-      case "message_start":
-      case "message_end":
-      case "tool_execution_update":
-      case "bash_execution_update":
-      case "compaction_start":
-      case "compaction_end":
-      case "queue_update":
-      case "entry_appended":
-      case "session_info_changed":
-      case "thinking_level_changed":
-      case "auto_retry_start":
-      case "auto_retry_end":
-      case "summarization_retry_scheduled":
-      case "summarization_retry_attempt_start":
-      case "summarization_retry_finished":
-        break;
     }
   });
 
-  const makeTurn = (state: PiTurnState): Turn => ({
-    id: state.turn.id,
-    outcome: state.turn.outcome,
+  const makeTurn = (turn: KernelTurn): Turn => ({
+    id: turn.id,
+    outcome: turn.outcome,
     abort: async () => {
-      if (state.turn.settled()) {
+      if (turn.settled()) {
         return;
       }
-      state.abortRequested = true;
+      projection = piAbortRequested(projection);
       await piAgentSession.abort();
-      await state.turn.outcome;
+      await turn.outcome;
     },
     steer: async (input) => {
-      if (state.turn.settled()) {
+      if (turn.settled()) {
         return { kind: "not_steerable", reason: "turn already ended" };
       }
       await piAgentSession.steer(input);
@@ -260,19 +167,21 @@ export const piSession: StartSession = async (installation, options) => {
       if (turn === null) {
         return { kind: "busy" };
       }
-      const state = { turn, abortRequested: false, adopted: false, reasoningHadText: false };
-      current = state;
+      currentTurn = turn;
+      projection = piPrompted();
       void (async (): Promise<void> => {
         try {
           await piAgentSession.prompt(input);
-          turn.settle(settledOutcome(state));
+          turn.settle(piSettledOutcome(projection));
         } catch (error) {
           const reason = error instanceof Error ? error.message : "pi prompt failed";
           turn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
         }
+        projection = initialPiProjection;
+        currentTurn = null;
         drainHeld();
       })();
-      return { kind: "turn", turn: makeTurn(state) };
+      return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
     queue: {

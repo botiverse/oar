@@ -1,0 +1,40 @@
+agent_start                    │ —
+turn_start                     │ —
+message_start                  │ —
+message_end                    │ —
+message_start                  │ —
+message_update:toolcall_start  │ —
+message_update:toolcall_delta  │ —
+message_update:toolcall_delta  │ —
+message_update:toolcall_end    │ —
+message_end                    │ —
+tool_execution_start           │ emit tool_call_started bash
+tool_execution_update          │ —
+tool_execution_update          │ —
+tool_execution_end             │ emit tool_call_ended
+message_start                  │ —
+message_end                    │ —
+turn_end                       │ —
+turn_start                     │ —
+message_start                  │ —
+message_update:toolcall_start  │ —
+message_update:toolcall_delta  │ —
+message_update:toolcall_delta  │ —
+message_update:toolcall_end    │ —
+message_end                    │ —
+tool_execution_start           │ emit tool_call_started bash
+tool_execution_update          │ —
+tool_execution_update          │ —
+tool_execution_end             │ emit tool_call_ended
+message_start                  │ —
+message_end                    │ —
+turn_end                       │ —
+turn_start                     │ —
+message_start                  │ —
+message_update:text_start      │ —
+message_update:text_delta      │ emit text_delta
+message_update:text_end        │ —
+message_end                    │ —
+turn_end                       │ —
+agent_end                      │ —
+agent_settled                  │ —
