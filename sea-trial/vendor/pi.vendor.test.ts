@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { piInstallation, piSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { promptTurn } from "./support/asserts.js";
+import { assertContextUsage, promptTurn } from "./support/asserts.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
 import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
 
@@ -106,4 +106,18 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       await env.stop();
     }
   }, 120_000);
+
+  test("contextUsage() returns a well-formed snapshot after a turn", async () => {
+    const env = await startPiAimock();
+    try {
+      const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
+      const session = await runtimeUnderTest(runtime, undefined).startSession();
+      const turn = promptTurn(session, "say hi");
+      await turn.outcome;
+      assertContextUsage(session.contextUsage?.());
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 60_000);
 });

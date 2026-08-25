@@ -58,7 +58,20 @@ export interface AdapterSession {
   prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
   subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
   readonly queue?: TurnQueue; // next-turn input; absent only when a runtime cannot even hold input for later
+  contextUsage?(): ContextUsage | null; // CURRENT context fullness snapshot — a query, not a fold: after compaction/pruning it is genuinely unknown (tokens null), so it is the runtime's latest authoritative value (pi delegates getContextUsage; claude/codex cache the newest usage from the event stream). Absent when the runtime never reports it.
   dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent
+}
+
+/**
+ * Current context fullness — borrowed from pi's shape because it already
+ * models the hard case: `tokens` is null when unknown (right after compaction,
+ * before the next model response), and `percent` follows. NOT a running sum of
+ * usage deltas; the latest authoritative snapshot the runtime reported.
+ */
+export interface ContextUsage {
+  readonly tokens: number | null;
+  readonly contextWindow: number | null;
+  readonly percent: number | null;
 }
 
 /** The API face: the SPI plus surfaces sealSession derives. */

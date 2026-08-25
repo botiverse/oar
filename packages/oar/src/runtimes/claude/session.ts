@@ -1,4 +1,5 @@
 import type {
+  ContextUsage,
   PromptResult,
   Session,
   StartSession,
@@ -7,6 +8,7 @@ import type {
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
+import { claudeContextUsageFromResult } from "./context-usage.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 import {
@@ -77,6 +79,8 @@ export const claudeSession: StartSession = async (installation, options) => {
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end.
   const heldQueue: string[] = [];
+  // Current context fullness snapshot (last-write-wins from the result frame).
+  let latestContextUsage: ContextUsage | null = null;
 
   // Drive the pure projection fold, applying its commands to the kernel. The
   // fold owns turn framing and event translation; this owns only transport.
@@ -84,6 +88,9 @@ export const claudeSession: StartSession = async (installation, options) => {
     const message = asRecord(parseJson(line));
     if (message === null) {
       return;
+    }
+    if (message.type === "result") {
+      latestContextUsage = claudeContextUsageFromResult(message) ?? latestContextUsage;
     }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
     state.projection = nextProjection;
@@ -158,6 +165,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    contextUsage: () => latestContextUsage,
     queue: {
       durable: false,
       add: async (input) => {

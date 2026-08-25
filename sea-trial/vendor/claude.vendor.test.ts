@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { SessionEvent } from "../../packages/oar/src/contracts/session.js";
 import { claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index.js";
-import { expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
+import { assertContextUsage, expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
@@ -188,4 +188,18 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       await env.stop();
     }
   }, 120_000);
+
+  test("contextUsage() returns a well-formed snapshot after a turn", async () => {
+    const env = await startClaudeAimock();
+    try {
+      const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      const turn = promptTurn(session, "say hi");
+      await turn.outcome;
+      assertContextUsage(session.contextUsage?.());
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 60_000);
 });

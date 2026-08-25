@@ -184,6 +184,14 @@ export const piSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    contextUsage: () => {
+      // pi is authoritative: getContextUsage() returns tokens (null right
+      // after compaction, before the next response), contextWindow, percent.
+      const usage = piAgentSession.getContextUsage();
+      return usage === undefined
+        ? null
+        : { tokens: usage.tokens, contextWindow: usage.contextWindow, percent: usage.percent };
+    },
     queue: {
       durable: false,
       add: async (input) => {

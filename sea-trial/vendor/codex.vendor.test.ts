@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { codexAccountUsage } from "../../packages/oar/src/runtimes/codex/index.js";
-import { expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
+import { assertContextUsage, expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
@@ -111,4 +111,18 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       await env.stop();
     }
   }, 120_000);
+
+  test("contextUsage() returns a well-formed snapshot after a turn", async () => {
+    const env = await startCodexAimock();
+    try {
+      const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      const turn = promptTurn(session, "say hi");
+      await turn.outcome;
+      assertContextUsage(session.contextUsage?.());
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 60_000);
 });

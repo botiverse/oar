@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { Session, StartSession, Turn } from "../../contracts/session.js";
+import type { ContextUsage, Session, StartSession, Turn } from "../../contracts/session.js";
 import { asRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { startAppServerClient } from "./app-server-client.js";
+import { codexContextUsageFromNotification } from "./context-usage.js";
 import {
   codexPrompted,
   foldCodexNotification,
@@ -84,6 +85,7 @@ export const codexSession: StartSession = async (installation, options) => {
   let current: CodexTurnState | null = null;
   let disposed = false;
   let projection: CodexProjectionState = initialCodexProjection;
+  let latestContextUsage: ContextUsage | null = null;
 
   // Drive the pure projection fold, applying its commands to the kernel; the
   // fold owns turn framing and event translation, this owns the transport-only
@@ -91,6 +93,9 @@ export const codexSession: StartSession = async (installation, options) => {
   client.onNotification((method, params) => {
     if (params.threadId !== threadId) {
       return;
+    }
+    if (method === "thread/tokenUsage/updated") {
+      latestContextUsage = codexContextUsageFromNotification(params) ?? latestContextUsage;
     }
     const { state: nextProjection, commands } = foldCodexNotification(projection, method, params);
     projection = nextProjection;
@@ -192,6 +197,7 @@ export const codexSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(state) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    contextUsage: () => latestContextUsage,
     queue: {
       durable: true,
       add: async (input) => {
