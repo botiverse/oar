@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { join } from "node:path";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
@@ -6,159 +9,159 @@ import type {
 } from "../../contracts/account-usage.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
-import { asRecord, parseJson } from "../../shared/json.js";
+import { asNumber, asRecord, parseJson } from "../../shared/json.js";
 
-const MONTHS = new Map([
-  ["Jan", 0], ["Feb", 1], ["Mar", 2], ["Apr", 3], ["May", 4], ["Jun", 5],
-  ["Jul", 6], ["Aug", 7], ["Sep", 8], ["Oct", 9], ["Nov", 10], ["Dec", 11],
-]);
+const USAGE_ENDPOINT = "https://api.anthropic.com/api/oauth/usage";
+// The structured usage endpoint is gated behind the OAuth beta and requires a
+// full `/login` token carrying the `user:profile` scope. Inference-only tokens
+// (env CLAUDE_CODE_OAUTH_TOKEN / injected FDs) lack that scope, so this reader
+// only consults the persisted login credential.
+const OAUTH_BETA = "oauth-2025-04-20";
+const PROFILE_SCOPE = "user:profile";
 
-interface LocalDateTime {
-  readonly year: number;
-  readonly month: number;
-  readonly day: number;
-  readonly hour: number;
-  readonly minute: number;
+interface StoredOAuth {
+  readonly accessToken: string;
+  readonly hasProfileScope: boolean;
 }
 
-function zonedParts(instant: number, timeZone: string): LocalDateTime | null {
+function parseStoredOAuth(raw: string): StoredOAuth | null {
+  const oauth = asRecord(asRecord(parseJson(raw))?.claudeAiOauth);
+  const accessToken = oauth?.accessToken;
+  if (typeof accessToken !== "string" || accessToken.length === 0) {
+    return null;
+  }
+  const scopes = oauth?.scopes;
+  const hasProfileScope = Array.isArray(scopes) && scopes.includes(PROFILE_SCOPE);
+  return { accessToken, hasProfileScope };
+}
+
+function credentialsFilePath(): string {
+  const base = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
+  return join(base, ".credentials.json");
+}
+
+/**
+ * Read Claude Code's persisted `/login` OAuth credential, mirroring the
+ * `getClaudeAIOAuthTokens()` fallback: the plaintext credentials file (Linux,
+ * and the macOS/Windows fallback), then the macOS Keychain, which stores the
+ * same JSON blob. Any failure degrades to `null` — never throws.
+ */
+async function readStoredOAuth(timeoutMs: number): Promise<StoredOAuth | null> {
   try {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      calendar: "gregory",
-      numberingSystem: "latn",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(instant);
-    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    const result = {
-      year: Number(values.year),
-      month: Number(values.month) - 1,
-      day: Number(values.day),
-      hour: Number(values.hour),
-      minute: Number(values.minute),
-    };
-    return Object.values(result).every((value) => Number.isFinite(value)) ? result : null;
+    return parseStoredOAuth(readFileSync(credentialsFilePath(), "utf8"));
   } catch {
-    return null;
+    // No file (or unreadable): fall through to the platform keystore.
   }
-}
-
-function localInstant(value: LocalDateTime, timeZone: string): number | null {
-  const target = Date.UTC(value.year, value.month, value.day, value.hour, value.minute);
-  let instant = target;
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const observed = zonedParts(instant, timeZone);
-    if (observed === null) {
-      return null;
-    }
-    const correction = target
-      - Date.UTC(observed.year, observed.month, observed.day, observed.hour, observed.minute);
-    if (correction === 0) {
-      return instant;
-    }
-    instant += correction;
-  }
-  return null;
-}
-
-function resetInstant(resetText: string, referenceInstant: Date): UtcInstant | null {
-  const match = /^(\w{3}) (\d{1,2}) at (\d{1,2}):(\d{2})(am|pm) \(([^)]+)\)$/u.exec(resetText);
-  const month = MONTHS.get(match?.[1] ?? "");
-  const day = Number(match?.[2]);
-  const twelveHour = Number(match?.[3]);
-  const minute = Number(match?.[4]);
-  const meridiem = match?.[5];
-  const timeZone = match?.[6];
-  if (month === undefined || timeZone === undefined || day < 1 || day > 31
-    || twelveHour < 1 || twelveHour > 12 || minute < 0 || minute > 59
-    || (meridiem !== "am" && meridiem !== "pm")) {
-    return null;
-  }
-  const reference = zonedParts(referenceInstant.getTime(), timeZone);
-  if (reference === null) {
-    return null;
-  }
-  const hour = twelveHour % 12 + (meridiem === "pm" ? 12 : 0);
-  const cutoff = referenceInstant.getTime() - 60_000;
-  for (const year of [reference.year, reference.year + 1]) {
-    const instant = localInstant({ year, month, day, hour, minute }, timeZone);
-    if (instant !== null && instant >= cutoff) {
-      return utcInstantFromDate(new Date(instant));
+  if (platform() === "darwin") {
+    const keychain = await runExecutable(
+      "security",
+      ["find-generic-password", "-w", "-s", "Claude Code-credentials"],
+      { timeoutMs },
+    );
+    if (keychain.ok) {
+      try {
+        return parseStoredOAuth(keychain.stdout);
+      } catch {
+        return null;
+      }
     }
   }
   return null;
 }
 
-function resultText(stdout: string): string | null {
-  const result = asRecord(parseJson(stdout))?.result;
-  return typeof result === "string" && result.trim().length > 0 ? result : null;
+function usageWindowLabel(kind: unknown, scope: Record<string, unknown> | null): string {
+  const modelName = asRecord(scope?.model)?.display_name;
+  switch (kind) {
+    case "session":
+      return "Current session";
+    case "weekly_all":
+      return "Current week (all models)";
+    case "weekly_scoped":
+      return typeof modelName === "string" ? `Current week (${modelName})` : "Current week";
+    default:
+      return typeof kind === "string" && kind.length > 0 ? kind : "Usage limit";
+  }
 }
 
-export function projectClaudeUsage(
-  content: string,
-  referenceInstant: Date = new Date(),
-  email?: string,
-): AccountUsageSnapshot {
-  const windows: AccountUsageWindow[] = [];
-  for (const line of content.split(/\r?\n/u)) {
-    const match = /^(.+?): (\d+(?:\.\d+)?)% used(?: · resets (.+))?$/u.exec(line.trim());
-    const label = match?.[1];
-    const percentage = match?.[2];
-    if (label === undefined || percentage === undefined) {
-      continue;
-    }
-    const usedPercent = Number(percentage);
-    if (!Number.isFinite(usedPercent) || usedPercent < 0 || usedPercent > 100) {
-      continue;
-    }
-    const resetText = match?.[3];
-    const resetsAt = resetText === undefined ? null : resetInstant(resetText, referenceInstant);
-    windows.push({
-      label,
-      usedRatio: Number((usedPercent / 100).toFixed(6)),
-      ...(resetsAt === null ? {} : { resetsAt }),
+async function fetchUsage(accessToken: string, version: string, timeoutMs: number): Promise<Response> {
+  try {
+    return await fetch(USAGE_ENDPOINT, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "anthropic-beta": OAUTH_BETA,
+        "Content-Type": "application/json",
+        "User-Agent": `claude-code/${version}`,
+      },
+      signal: AbortSignal.timeout(Math.min(timeoutMs, 5000)),
     });
+  } catch (error) {
+    throw new Error("Failed to reach Claude usage endpoint", { cause: error });
+  }
+}
+
+function resetInstant(value: unknown): UtcInstant | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : utcInstantFromDate(date);
+}
+
+/**
+ * Project the `/api/oauth/usage` payload. The authoritative shape is its
+ * `limits` array; a representative (subscription) response is:
+ *
+ * ```json
+ * {
+ *   "limits": [
+ *     { "kind": "session", "group": "session", "percent": 17, "severity": "normal",
+ *       "resets_at": "2026-08-26T13:49:59.725522+00:00", "scope": null, "is_active": false },
+ *     { "kind": "weekly_all", "group": "weekly", "percent": 72, "severity": "normal",
+ *       "resets_at": "2026-08-28T06:59:59.725547+00:00", "scope": null, "is_active": false },
+ *     { "kind": "weekly_scoped", "group": "weekly", "percent": 100, "severity": "critical",
+ *       "resets_at": "2026-08-28T06:59:59.725963+00:00",
+ *       "scope": { "model": { "display_name": "Fable" } }, "is_active": true }
+ *   ]
+ * }
+ * ```
+ */
+export function projectClaudeUsage(payload: unknown, email?: string): AccountUsageSnapshot {
+  const limits = asRecord(payload)?.limits;
+  const windows: AccountUsageWindow[] = [];
+  let rateLimited = false;
+  if (Array.isArray(limits)) {
+    for (const entry of limits) {
+      const limit = asRecord(entry);
+      const percent = asNumber(limit?.percent);
+      if (limit === null || percent === null || percent < 0) {
+        continue;
+      }
+      const resetsAt = resetInstant(limit.resets_at);
+      windows.push({
+        label: usageWindowLabel(limit.kind, asRecord(limit.scope)),
+        usedRatio: Number((percent / 100).toFixed(6)),
+        ...(resetsAt === null ? {} : { resetsAt }),
+      });
+      rateLimited ||= limit.severity === "critical" || percent >= 100;
+    }
   }
   if (windows.length === 0) {
-    throw new Error("Claude returned no usable account usage windows");
+    throw new Error("Claude usage endpoint returned no usable windows");
   }
   return {
     kind: "available",
     ...(email === undefined ? {} : { email }),
-    rateLimited: windows.some((window) => window.usedRatio >= 1),
+    rateLimited,
     windows,
   };
 }
 
 /**
- * `claude -p /usage --output-format json` has two observed shapes.
- * Without login, `result` is only an invocation summary:
- *
- * ```json
- * {
- *   "type": "result",
- *   "total_cost_usd": 0,
- *   "usage": { "input_tokens": 0, "output_tokens": 0 },
- *   "result": "Total cost: $0.0000\nUsage: 0 input, 0 output, 0 cache read, 0 cache write"
- * }
- * ```
- *
- * With a subscription login, `result` contains account usage windows:
- *
- * ```json
- * {
- *   "type": "result",
- *   "result": "You are currently using your subscription to power your Claude Code usage\n\nCurrent session: 7% used · resets Aug 21 at 7:39pm (Asia/Shanghai)\nCurrent week (all models): 0% used · resets Aug 28 at 2:59pm (Asia/Shanghai)\nCurrent week (Fable): 0% used"
- * }
- * ```
- *
- * Reset text has no year, so it is interpreted as the next occurrence in its
- * named IANA time zone relative to when the command result is projected.
+ * Reads Claude account usage in two steps: `claude auth status --json` for the
+ * login gate and account email, then a single read-only request to Anthropic's
+ * structured usage endpoint using the persisted `/login` OAuth token. This
+ * replaces the older `claude -p /usage` subprocess, which was slower and only
+ * returned pre-rendered text.
  */
 export const claudeAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
@@ -181,29 +184,25 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
     ? authStatus.email
     : undefined;
   if (typeof authStatus?.apiKeySource === "string") {
-    // An API key takes precedence over any claude.ai login, and API-key
-    // billing has no subscription usage windows — /usage would return only a
-    // cost report (pinned by the claude vendor usage test).
+    // An API key takes precedence over any claude.ai login, and API-key billing
+    // has no subscription usage windows.
     return { kind: "unsupported" };
   }
 
-  const usage = await runExecutable(command, ["-p", "/usage", "--output-format", "json"], {
-    env,
-    timeoutMs,
-  });
-  if (!usage.ok && usage.exitCode === null) {
-    throw new Error("Failed to execute Claude account usage");
+  const stored = await readStoredOAuth(timeoutMs);
+  if (stored === null || !stored.hasProfileScope) {
+    // No persisted profile-scoped login token means the usage endpoint would
+    // reject the request; treat it as needing a fresh `/login`.
+    return { kind: "reauth_required" };
   }
-  if (!usage.ok) {
-    const output = `${usage.stdout}\n${usage.stderr}`;
-    if (/auth(?:entication)?\s*(?:missing|required)|log(?:ged)?\s*in/iu.test(output)) {
-      return { kind: "reauth_required" };
-    }
-    throw new Error("Claude account usage command failed");
+
+  const response = await fetchUsage(stored.accessToken, installation.version ?? "0.0.0", timeoutMs);
+  if (response.status === 401 || response.status === 403) {
+    return { kind: "reauth_required" };
   }
-  const content = resultText(usage.stdout);
-  if (content === null) {
-    throw new Error("Claude returned no account usage result");
+  if (!response.ok) {
+    throw new Error(`Claude usage endpoint returned HTTP ${response.status}`);
   }
-  return projectClaudeUsage(content, new Date(), email);
+  const payload: unknown = parseJson(await response.text());
+  return projectClaudeUsage(payload, email);
 };

@@ -116,17 +116,19 @@ test("codex projection merges an extra-only indexed view", () => {
   `);
 });
 
-test("claude projection accepts windows with and without reset text", () => {
-  const snapshot = projectClaudeUsage(
-    "Current session: 7% used · resets Aug 22 at 5:59pm (Asia/Shanghai)\n"
-      + "Current week (all models): 14% used · resets Aug 28 at 2:59pm (Asia/Shanghai)\n"
-      + "Current week (Fable): 22% used",
-    new Date("2026-08-22T09:00:00.000Z"),
-  );
+test("claude projection maps the usage endpoint's limits array", () => {
+  const snapshot = projectClaudeUsage({
+    limits: [
+      { kind: "session", percent: 7, severity: "normal", resets_at: "2026-08-22T09:59:00.000Z", scope: null },
+      { kind: "weekly_all", percent: 14, severity: "normal", resets_at: "2026-08-28T06:59:00.000Z", scope: null },
+      { kind: "weekly_scoped", percent: 100, severity: "critical", resets_at: null,
+        scope: { model: { display_name: "Fable" } } },
+    ],
+  });
   expect(snapshot).toMatchInlineSnapshot(`
     {
       "kind": "available",
-      "rateLimited": false,
+      "rateLimited": true,
       "windows": [
         {
           "label": "Current session",
@@ -140,7 +142,7 @@ test("claude projection accepts windows with and without reset text", () => {
         },
         {
           "label": "Current week (Fable)",
-          "usedRatio": 0.22,
+          "usedRatio": 1,
         },
       ],
     }
@@ -166,29 +168,14 @@ test("codex accountEmail accepts only a chatgpt account", () => {
 
 test("claude projection includes the account email when supplied", () => {
   const snapshot = projectClaudeUsage(
-    "Current week (Fable): 22% used",
-    new Date("2026-08-22T09:00:00.000Z"),
+    { limits: [{ kind: "weekly_scoped", percent: 22, severity: "normal", resets_at: null,
+      scope: { model: { display_name: "Fable" } } }] },
     "person@example.com",
   );
   expect(snapshot).toMatchObject({ kind: "available", email: "person@example.com" });
 });
 
-test("claude projection resolves the next reset across a year boundary", () => {
-  const snapshot = projectClaudeUsage(
-    "Current week: 50% used · resets Jan 1 at 1:30am (America/Los_Angeles)",
-    new Date("2026-12-31T20:00:00.000Z"),
-  );
-  expect(snapshot).toMatchInlineSnapshot(`
-    {
-      "kind": "available",
-      "rateLimited": false,
-      "windows": [
-        {
-          "label": "Current week",
-          "resetsAt": "2027-01-01T09:30:00.000Z",
-          "usedRatio": 0.5,
-        },
-      ],
-    }
-  `);
+test("claude projection throws when the endpoint reports no limits", () => {
+  expect(() => projectClaudeUsage({ limits: [] })).toThrow(/no usable windows/u);
+  expect(() => projectClaudeUsage({})).toThrow(/no usable windows/u);
 });
