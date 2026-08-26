@@ -17,6 +17,14 @@ export type {
   InstallationProbe,
   InstallationSnapshot,
 } from "./contracts/installation.js";
+export type {
+  ProviderAuthFacade,
+  ProviderAuthStatus,
+  ProviderLoginEvent,
+  ProviderLoginInteraction,
+  ProviderLoginMethod,
+  ProviderLoginPrompt,
+} from "./contracts/provider-auth.js";
 export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
@@ -58,6 +66,8 @@ export { claudeInstallation } from "./runtimes/claude/installation.js";
 export { codexRuntime } from "./runtimes/codex/index.js";
 export { codexSession } from "./runtimes/codex/session.js";
 export { codexInstallation } from "./runtimes/codex/installation.js";
+export { createPiProviderAuth } from "./providers/pi/auth.js";
+export type { PiProviderAuthOptions } from "./providers/pi/auth.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 export { piSession } from "./runtimes/pi/session.js";
 export { piInstallation } from "./runtimes/pi/installation.js";
