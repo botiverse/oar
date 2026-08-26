@@ -4,6 +4,11 @@ import { readExecutableVersion, resolveExecutable, runExecutable } from "./execu
 
 // An entry with a path separator is a pinned path: it must exist as given and
 // never silently falls back to a different binary. A bare name resolves on PATH.
+export interface ExecutableInstallationOptions {
+  readonly readinessTimeoutMs?: number;
+  readonly versionTimeoutMs?: number;
+}
+
 function usable(entry: string): string | null {
   if (entry.includes("/") || entry.includes("\\")) {
     return existsSync(entry) ? entry : null;
@@ -11,8 +16,11 @@ function usable(entry: string): string | null {
   return resolveExecutable(entry);
 }
 
-async function versionSnapshot(command: string): Promise<InstallationSnapshot> {
-  const version = await readExecutableVersion(command);
+async function versionSnapshot(
+  command: string,
+  timeoutMs?: number,
+): Promise<InstallationSnapshot> {
+  const version = await readExecutableVersion(command, timeoutMs);
   return version === undefined
     ? { kind: "available", via: "executable", command }
     : { kind: "available", via: "executable", command, version };
@@ -29,6 +37,7 @@ export function executableInstallation(
   command: string,
   fallbacks: readonly string[] = [],
   readiness?: readonly string[],
+  options: ExecutableInstallationOptions = {},
 ): InstallationProbe {
   return async (): Promise<InstallationSnapshot> => {
     const pinned = process.env[envVar];
@@ -47,16 +56,22 @@ export function executableInstallation(
       return { kind: "not_found" };
     }
     if (readiness === undefined) {
-      return versionSnapshot(first);
+      return versionSnapshot(first, options.versionTimeoutMs);
     }
 
     for (const candidate of found) {
-      const result = await runExecutable(candidate, readiness);
+      const result = await runExecutable(
+        candidate,
+        readiness,
+        options.readinessTimeoutMs === undefined ? {} : {
+          timeoutMs: options.readinessTimeoutMs,
+        },
+      );
       if (!result.ok && result.exitCode === null) {
         throw new Error(`Failed to run ${candidate} ${readiness.join(" ")}`);
       }
       if (result.ok) {
-        return versionSnapshot(candidate);
+        return versionSnapshot(candidate, options.versionTimeoutMs);
       }
     }
     return { kind: "unsupported", reason: `${readiness.join(" ")} failed` };

@@ -1,6 +1,8 @@
 import { RuntimeRegistry } from "./registry.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
+import { grokRuntime } from "./runtimes/grok/index.js";
+import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
 
 export type {
@@ -77,8 +79,20 @@ export { createPiProviderAuth } from "./providers/pi/auth.js";
 export type { PiProviderAuthOptions } from "./providers/pi/auth.js";
 export { createPiModelCatalog } from "./providers/pi/catalog.js";
 export type { PiModelCatalogOptions } from "./providers/pi/catalog.js";
+export { grokRuntime } from "./runtimes/grok/index.js";
+export { grokSession } from "./runtimes/grok/session.js";
+export { grokInstallation } from "./runtimes/grok/installation.js";
+export { kimiRuntime } from "./runtimes/kimi/index.js";
+export { kimiSession } from "./runtimes/kimi/session.js";
+export { kimiInstallation } from "./runtimes/kimi/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 export { piSession } from "./runtimes/pi/session.js";
 export { piInstallation } from "./runtimes/pi/installation.js";
 
-export const runtimes = new RuntimeRegistry([claudeRuntime, codexRuntime, piRuntime]);
+export const runtimes = new RuntimeRegistry([
+  claudeRuntime,
+  codexRuntime,
+  grokRuntime,
+  kimiRuntime,
+  piRuntime,
+]);

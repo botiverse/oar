@@ -1,22 +1,31 @@
 # oar
 
-`@botiverse/oar` defines provider-independent contracts for observing agent runtimes.
+`@botiverse/oar` defines provider-independent contracts for controlling and observing agent runtimes.
 
 The clean first surface intentionally contains two independent optional capabilities:
 
-- `installation.probe()` observes local installation/version facts without login or usage I/O.
-- `accountUsage.read()` observes credentialed account usage without being coupled to installation detection.
+- `runtime.installation()` observes local installation/version facts without login or usage I/O.
+- `runtime.accountUsage(installation)` observes credentialed account usage without coupling it to installation detection.
 
-Codex and Claude are the first built-in runtime implementations.
+Claude, Codex, Grok, Kimi, and Pi are built-in runtime implementations. Grok and Kimi share a private ACP v1 transport and session kernel while remaining distinct public runtimes; there is intentionally no generic `acp` runtime identity.
 
 ## Library
 
 ```ts
 import { runtimes } from "@botiverse/oar";
 
-const codex = runtimes.require("codex");
-const installation = await codex.installation?.probe();
-const usage = await codex.accountUsage?.read();
+const grok = runtimes.require("grok");
+const installation = await grok.installation?.();
+
+if (installation?.kind === "available") {
+  const session = await grok.session(installation, { cwd: process.cwd() });
+  const result = session.prompt("Inspect this repository");
+  if (result.kind === "turn") {
+    console.log(await result.turn.outcome);
+  }
+  console.log(await grok.accountUsage?.(installation));
+  await session.dispose();
+}
 ```
 
 The source ownership model is documented in [`packages/oar/src/AGENTS.md`](packages/oar/src/AGENTS.md):
@@ -40,4 +49,4 @@ oar installation codex
 oar usage claude
 ```
 
-The package is ESM-only, requires Node.js 20 or newer, and is licensed under Apache-2.0.
+The package is ESM-only, requires Node.js 24 or newer, and is licensed under Apache-2.0.

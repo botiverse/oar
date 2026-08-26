@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import { projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { accountEmail, projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
+import { projectGrokUsage } from "../packages/oar/src/runtimes/grok/account-usage.js";
 
 const separateLimits = {
   rateLimits: {
@@ -178,4 +179,58 @@ test("claude projection includes the account email when supplied", () => {
 test("claude projection throws when the endpoint reports no limits", () => {
   expect(() => projectClaudeUsage({ limits: [] })).toThrow(/no usable windows/u);
   expect(() => projectClaudeUsage({})).toThrow(/no usable windows/u);
+});
+
+test("grok projection preserves the vendor billing window without leaking its transport", () => {
+  const snapshot = projectGrokUsage({
+    config: {
+      creditUsagePercent: 22.5,
+      currentPeriod: {
+        type: "USAGE_PERIOD_TYPE_WEEKLY",
+        start: "2026-08-24T00:00:00Z",
+        end: "2026-08-31T00:00:00Z",
+      },
+      prepaidBalance: { val: 500 },
+      isUnifiedBillingUser: true,
+    },
+    onDemandEnabled: true,
+    subscriptionTier: "SuperGrok",
+  });
+  expect(snapshot).toMatchInlineSnapshot(`
+    {
+      "kind": "available",
+      "plan": "SuperGrok",
+      "rateLimited": false,
+      "windows": [
+        {
+          "label": "Weekly included usage",
+          "resetsAt": "2026-08-31T00:00:00.000Z",
+          "usedRatio": 0.225,
+        },
+      ],
+    }
+  `);
+});
+
+test("grok projection falls back to legacy used/limit cents", () => {
+  expect(projectGrokUsage({
+    config: {
+      used: { val: 250 },
+      monthlyLimit: { val: 1000 },
+      billingPeriodEnd: "2026-09-01T00:00:00Z",
+    },
+  })).toMatchInlineSnapshot(`
+    {
+      "kind": "available",
+      "rateLimited": false,
+      "windows": [
+        {
+          "label": "Included usage",
+          "resetsAt": "2026-09-01T00:00:00.000Z",
+          "usedRatio": 0.25,
+        },
+      ],
+    }
+  `);
+  expect(projectGrokUsage({ config: null })).toEqual({ kind: "unsupported" });
 });

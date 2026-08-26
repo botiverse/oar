@@ -4,8 +4,15 @@ import { runExecutable } from "./run.js";
  * Read one executable's `--version` first line.
  * Returns undefined when the executable rejects the flag; throws only when it cannot be spawned.
  */
-export async function readExecutableVersion(executable: string): Promise<string | undefined> {
-  const result = await runExecutable(executable, ["--version"]);
+export async function readExecutableVersion(
+  executable: string,
+  timeoutMs?: number,
+): Promise<string | undefined> {
+  const result = await runExecutable(
+    executable,
+    ["--version"],
+    timeoutMs === undefined ? {} : { timeoutMs },
+  );
   if (!result.ok && result.exitCode === null) {
     throw new Error(`Failed to run ${executable} --version`);
   }

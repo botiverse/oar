@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
+import { grokInstallation } from "../packages/oar/src/runtimes/grok/installation.js";
+import { kimiInstallation } from "../packages/oar/src/runtimes/kimi/installation.js";
 import { resolveExecutable } from "../packages/oar/src/shared/executable/index.js";
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
 import { piInstallation } from "../packages/oar/src/runtimes/pi/installation.js";
@@ -108,6 +110,20 @@ test("claude and codex probe through their pin env vars", async () => {
     async () => codexInstallation(),
   );
   assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
+});
+
+test("grok and kimi gate their ACP entrypoints", async () => {
+  const grok = await withEnv(
+    { OAR_GROK_BIN: process.execPath },
+    async () => grokInstallation(),
+  );
+  assert.deepEqual(grok, { kind: "unsupported", reason: "agent stdio --help failed" });
+
+  const kimi = await withEnv(
+    { OAR_KIMI_BIN: process.execPath },
+    async () => kimiInstallation(),
+  );
+  assert.deepEqual(kimi, { kind: "unsupported", reason: "acp --help failed" });
 });
 
 test("pi installation reports a versionless bundled availability", async () => {

@@ -5,6 +5,8 @@
  *   pnpm sea-trial                        # mock fixture (what CI also runs)
  *   OAR_TEST=codex pnpm sea-trial         # the real, logged-in codex
  *   OAR_TEST=claude OAR_TEST_MODEL=haiku pnpm sea-trial
+ *   OAR_TEST=grok pnpm sea-trial          # real Grok Build ACP
+ *   OAR_TEST=kimi pnpm sea-trial          # real Kimi Code ACP
  *   OAR_TEST=claude-aimock pnpm sea-trial # real binary, scripted provider, zero tokens
  *   OAR_TEST=codex-aimock pnpm sea-trial
  */
