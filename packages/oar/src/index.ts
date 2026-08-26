@@ -49,6 +49,8 @@ export type { AgentStatus, RunningPhase } from "./observe/agent-status.js";
 export { observeStalls } from "./observe/stall-observer.js";
 export type { StallInfo } from "./observe/stall-observer.js";
 export { observeAgent, simpleStateOf } from "./observe/observe-agent.js";
+export { classifyTool, toolActionLabel } from "./observe/tool-activity.js";
+export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { claudeSession } from "./runtimes/claude/session.js";
