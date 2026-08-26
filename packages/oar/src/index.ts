@@ -25,6 +25,13 @@ export type {
   ProviderLoginMethod,
   ProviderLoginPrompt,
 } from "./contracts/provider-auth.js";
+export type {
+  CatalogModel,
+  CatalogProvider,
+  CatalogRefreshOptions,
+  CatalogRefreshResult,
+  ModelCatalogFacade,
+} from "./contracts/model-catalog.js";
 export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
@@ -68,6 +75,8 @@ export { codexSession } from "./runtimes/codex/session.js";
 export { codexInstallation } from "./runtimes/codex/installation.js";
 export { createPiProviderAuth } from "./providers/pi/auth.js";
 export type { PiProviderAuthOptions } from "./providers/pi/auth.js";
+export { createPiModelCatalog } from "./providers/pi/catalog.js";
+export type { PiModelCatalogOptions } from "./providers/pi/catalog.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 export { piSession } from "./runtimes/pi/session.js";
 export { piInstallation } from "./runtimes/pi/installation.js";
