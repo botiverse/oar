@@ -5,7 +5,8 @@
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "noEmit": true,
     "paths": {
-      "@botiverse/oar": ["../../packages/oar/src/index.ts"]
+      "@botiverse/oar": ["../../packages/oar/src/index.ts"],
+      "@botiverse/oar/observe": ["../../packages/oar/src/observe/index.ts"]
     },
     "types": ["node", "vite/client"]
   },
