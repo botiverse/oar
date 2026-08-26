@@ -27,7 +27,11 @@ export function CockpitView(props: CockpitViewProps): React.JSX.Element {
       )}
       <div className="flex min-h-0 flex-1">
         <Conversation agentView={props.agentView} entries={props.conversation} />
-        <Activity agentView={props.agentView} events={props.activity} />
+        <Activity
+          agentView={props.agentView}
+          events={props.activity}
+          runtimeId={props.session.runtimeId}
+        />
       </div>
     </main>
   );
