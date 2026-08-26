@@ -1,11 +1,25 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import { runtimes, type Runtime } from "@botiverse/oar";
+
+// Read the version from this package's own manifest so `--version` can never
+// drift from package.json. `../package.json` resolves to the package root in
+// both src (packages/cli) and the published tarball (package/dist -> package).
+function packageVersion(): string {
+  const parsed: unknown = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  return typeof parsed === "object" && parsed !== null && "version" in parsed
+    && typeof parsed.version === "string"
+    ? parsed.version
+    : "0.0.0";
+}
 
 const program = new Command()
   .name("oar")
   .description("Observe installed agent runtimes and account usage")
-  .version("0.0.1");
+  .version(packageVersion());
 
 function selected(id: string | undefined): readonly Runtime[] {
   return id === undefined || id === "all" ? runtimes.list() : [runtimes.require(id)];
