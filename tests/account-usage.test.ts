@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
-import { projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
+import { accountEmail, projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
 
 const separateLimits = {
   rateLimits: {
@@ -145,6 +145,32 @@ test("claude projection accepts windows with and without reset text", () => {
       ],
     }
   `);
+});
+
+test("codex projection includes the account email when supplied", () => {
+  const snapshot = projectCodexUsage(
+    { rateLimits: { planType: "pro", primary: { usedPercent: 10, windowDurationMins: 300 } } },
+    "person@example.com",
+  );
+  expect(snapshot).toMatchObject({ kind: "available", plan: "pro", email: "person@example.com" });
+});
+
+test("codex accountEmail accepts only a chatgpt account", () => {
+  expect(accountEmail({ account: { type: "chatgpt", email: "person@example.com" } }))
+    .toBe("person@example.com");
+  expect(accountEmail({ account: { type: "apikey", email: "person@example.com" } }))
+    .toBeUndefined();
+  expect(accountEmail({ account: { type: "chatgpt", email: 42 } })).toBeUndefined();
+  expect(accountEmail({})).toBeUndefined();
+});
+
+test("claude projection includes the account email when supplied", () => {
+  const snapshot = projectClaudeUsage(
+    "Current week (Fable): 22% used",
+    new Date("2026-08-22T09:00:00.000Z"),
+    "person@example.com",
+  );
+  expect(snapshot).toMatchObject({ kind: "available", email: "person@example.com" });
 });
 
 test("claude projection resolves the next reset across a year boundary", () => {

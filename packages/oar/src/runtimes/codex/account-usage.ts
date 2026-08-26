@@ -7,7 +7,7 @@ import { startAppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 
 type ReadOutcome =
-  | { readonly kind: "ok"; readonly result: unknown }
+  | { readonly kind: "ok"; readonly result: unknown; readonly email: string | undefined }
   | { readonly kind: "reauth_required" }
   | { readonly kind: "unsupported" }
   | { readonly kind: "error" };
@@ -113,7 +113,7 @@ function rateLimitBuckets(
  * }
  * ```
  */
-export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
+export function projectCodexUsage(result: unknown, email?: string): AccountUsageSnapshot {
   const root = asRecord(result);
   const historical = asRecord(root?.rateLimits);
   const indexed = asRecord(root?.rateLimitsByLimitId);
@@ -154,9 +154,29 @@ export function projectCodexUsage(result: unknown): AccountUsageSnapshot {
   return {
     kind: "available",
     ...(plan === undefined ? {} : { plan }),
+    ...(email === undefined ? {} : { email }),
     rateLimited,
     windows,
   };
+}
+
+/**
+ * Native evidence from `account/read` on the same app-server session:
+ *
+ * ```json
+ * { "account": { "type": "chatgpt", "email": "user@example.com", "planType": "pro" },
+ *   "requiresOpenaiAuth": true }
+ * ```
+ *
+ * Only a ChatGPT (subscription) login carries a meaningful account email; an
+ * API-key account is dropped per the owner's `type === "chatgpt"` requirement.
+ */
+export function accountEmail(result: unknown): string | undefined {
+  const account = asRecord(asRecord(result)?.account);
+  if (account?.type !== "chatgpt" || typeof account.email !== "string") {
+    return undefined;
+  }
+  return account.email;
 }
 
 async function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutcome> {
@@ -171,7 +191,16 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
     });
     client.notify("initialized", {});
     const result = await client.request("account/rateLimits/read", {});
-    return { kind: "ok", result };
+    // Account identity is a best-effort add-on: a failure here (older
+    // app-server without the method, or a transient error) must not lose the
+    // rate-limit snapshot we already have.
+    let email: string | undefined = undefined;
+    try {
+      email = accountEmail(await client.request("account/read", {}));
+    } catch {
+      email = undefined;
+    }
+    return { kind: "ok", result, email };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (/authentication required/iu.test(message)) {
@@ -194,7 +223,7 @@ export const codexAccountUsage: AccountUsageReader = async (installation, option
   const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000);
   switch (outcome.kind) {
     case "ok":
-      return projectCodexUsage(outcome.result);
+      return projectCodexUsage(outcome.result, outcome.email);
     case "reauth_required":
       return { kind: "reauth_required" };
     case "unsupported":

@@ -21,6 +21,8 @@ export type AccountUsageSnapshot =
   | {
       readonly kind: "available";
       readonly plan?: string;
+      /** Signed-in account email; omitted when the runtime does not expose one. */
+      readonly email?: string;
       readonly rateLimited: boolean;
       readonly windows: readonly AccountUsageWindow[];
     }

@@ -102,6 +102,7 @@ function resultText(stdout: string): string | null {
 export function projectClaudeUsage(
   content: string,
   referenceInstant: Date = new Date(),
+  email?: string,
 ): AccountUsageSnapshot {
   const windows: AccountUsageWindow[] = [];
   for (const line of content.split(/\r?\n/u)) {
@@ -128,6 +129,7 @@ export function projectClaudeUsage(
   }
   return {
     kind: "available",
+    ...(email === undefined ? {} : { email }),
     rateLimited: windows.some((window) => window.usedRatio >= 1),
     windows,
   };
@@ -173,6 +175,11 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (!auth.ok || authStatus?.loggedIn === false) {
     return { kind: "reauth_required" };
   }
+  // Only a confirmed login exposes an account email (pinned by the owner's
+  // `loggedIn === true` requirement); an absent or non-string email is dropped.
+  const email = authStatus?.loggedIn === true && typeof authStatus.email === "string"
+    ? authStatus.email
+    : undefined;
   if (typeof authStatus?.apiKeySource === "string") {
     // An API key takes precedence over any claude.ai login, and API-key
     // billing has no subscription usage windows — /usage would return only a
@@ -198,5 +205,5 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (content === null) {
     throw new Error("Claude returned no account usage result");
   }
-  return projectClaudeUsage(content);
+  return projectClaudeUsage(content, new Date(), email);
 };
