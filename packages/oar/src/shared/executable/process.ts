@@ -1,4 +1,20 @@
 import spawn from "cross-spawn";
+import type { Readable, Writable } from "node:stream";
+
+interface ProcessOptions {
+  readonly cwd?: string;
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+/** A long-lived child process whose piped stdio is consumed by a protocol SDK. */
+export interface StreamProcess {
+  readonly spawned: Promise<void>;
+  readonly exited: Promise<number | null>;
+  readonly stdin: Writable;
+  readonly stdout: Readable;
+  onExit(handler: (code: number | null) => void): void;
+  kill(): void;
+}
 
 /**
  * A long-lived child process spoken to line-by-line — the transport shape both
@@ -29,8 +45,54 @@ export function requiresShell(command: string, platform: NodeJS.Platform): boole
 export function spawnLineProcess(
   command: string,
   args: readonly string[],
-  options: { readonly cwd?: string; readonly env?: NodeJS.ProcessEnv } = {},
+  options: ProcessOptions = {},
 ): LineProcess {
+  const process = spawnStreamProcess(command, args, options);
+  const { stdin, stdout } = process;
+  const lineHandlers: ((line: string) => void)[] = [];
+  let buffer = "";
+  stdout.on("data", (chunk: Buffer | string) => {
+    buffer += chunk.toString();
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (line.length > 0) {
+        for (const handler of lineHandlers) {
+          handler(line);
+        }
+      }
+    }
+  });
+
+  return {
+    spawned: process.spawned,
+    exited: process.exited,
+    write(text) {
+      stdin.write(text);
+    },
+    onLine(handler) {
+      lineHandlers.push(handler);
+    },
+    onExit: (handler) => {
+      process.onExit(handler);
+    },
+    kill: () => {
+      process.kill();
+    },
+  };
+}
+
+/**
+ * Spawn a child with raw piped stdin/stdout. Protocol framing deliberately
+ * belongs to the caller's SDK; this helper owns only cross-platform process
+ * launch and lifecycle fan-out.
+ */
+export function spawnStreamProcess(
+  command: string,
+  args: readonly string[],
+  options: ProcessOptions = {},
+): StreamProcess {
   // cross-spawn, not node's spawn: Windows .cmd shims need a shell, and
   // node's shell:true joins args UNQUOTED — a multi-word argument (e.g. a
   // --system-prompt value) silently truncates at its first space (caught by
@@ -45,18 +107,18 @@ export function spawnLineProcess(
   });
   const { stdin, stdout } = child;
   if (stdin === null || stdout === null) {
-    throw new Error("line process stdio must be piped");
+    throw new Error("stream process stdio must be piped");
   }
-  const lineHandlers: ((line: string) => void)[] = [];
   const exitHandlers: ((code: number | null) => void)[] = [];
-  let buffer = "";
   let ended = false;
+  let exitCode: number | null = null;
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
   const { promise: exited, resolve: exitDone } = Promise.withResolvers<number | null>();
   child.once("spawn", spawnOk);
   const end = (code: number | null): void => {
     if (!ended) {
       ended = true;
+      exitCode = code;
       for (const handler of exitHandlers) {
         handler(code);
       }
@@ -64,19 +126,6 @@ export function spawnLineProcess(
     }
   };
 
-  stdout.on("data", (chunk: Buffer | string) => {
-    buffer += chunk.toString();
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-    for (const raw of lines) {
-      const line = raw.trim();
-      if (line.length > 0) {
-        for (const handler of lineHandlers) {
-          handler(line);
-        }
-      }
-    }
-  });
   child.on("exit", (code) => {
     end(code);
   });
@@ -88,14 +137,16 @@ export function spawnLineProcess(
   return {
     spawned,
     exited,
-    write(text) {
-      stdin.write(text);
-    },
-    onLine(handler) {
-      lineHandlers.push(handler);
-    },
+    stdin,
+    stdout,
     onExit(handler) {
-      exitHandlers.push(handler);
+      if (ended) {
+        queueMicrotask(() => {
+          handler(exitCode);
+        });
+      } else {
+        exitHandlers.push(handler);
+      }
     },
     kill() {
       stdin.end();

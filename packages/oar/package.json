@@ -40,6 +40,7 @@
     "@earendil-works/pi-coding-agent": "^0.84.2"
   },
   "dependencies": {
+    "@agentclientprotocol/sdk": "^1.4.0",
     "cross-spawn": "^7.0.6",
     "proper-lockfile": "^4.1.2"
   },

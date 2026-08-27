@@ -1,4 +1,4 @@
-export type AcpErrorKind = "rpc" | "timeout" | "process_exited" | "protocol";
+export type AcpErrorKind = "rpc" | "timeout" | "process_exited";
 
 /** One transport error class with a discriminant instead of four nominal wrappers. */
 export class AcpError extends Error {
@@ -48,8 +48,4 @@ export function acpProcessExitedError(exitCode: number | null): AcpError {
     exitCode === null ? "ACP process exited" : `ACP process exited with code ${exitCode}`,
     { exitCode },
   );
-}
-
-export function acpProtocolError(message: string): AcpError {
-  return new AcpError("protocol", message);
 }

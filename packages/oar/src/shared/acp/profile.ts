@@ -1,3 +1,4 @@
+import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { acpRpcError } from "./errors.js";
@@ -61,8 +62,8 @@ async function initialize(
 ): Promise<JsonRecord> {
   await client.spawned;
   const meta = profile.initializeMeta?.(options);
-  const initialized = await client.request("initialize", {
-    protocolVersion: 1,
+  const initialized = await client.request(methods.agent.initialize, {
+    protocolVersion: PROTOCOL_VERSION,
     clientCapabilities: {
       fs: { readTextFile: false, writeTextFile: false },
       terminal: true,
@@ -72,7 +73,7 @@ async function initialize(
   });
   const authMethod = profile.selectAuthMethod?.(initialized);
   if (authMethod !== undefined) {
-    await client.request("authenticate", { methodId: authMethod });
+    await client.request(methods.agent.authenticate, { methodId: authMethod });
   }
   return initialized;
 }
@@ -94,15 +95,15 @@ async function createOrResume(
     const sessionId = options.resume;
     const params = { ...baseParams, sessionId };
     if (hasAcpCapability(sessionCapabilities?.resume)) {
-      return { response: await client.request("session/resume", params), sessionId };
+      return { response: await client.request(methods.agent.session.resume, params), sessionId };
     }
     if (capabilities?.loadSession === true) {
-      return { response: await client.request("session/load", params), sessionId };
+      return { response: await client.request(methods.agent.session.load, params), sessionId };
     }
     throw new Error("ACP runtime does not support session resume");
   }
 
-  const response = await client.request("session/new", baseParams);
+  const response = await client.request(methods.agent.session.new, baseParams);
   const sessionId = response.sessionId;
   if (typeof sessionId !== "string" || sessionId.length === 0) {
     throw new TypeError("ACP session/new returned no session id");

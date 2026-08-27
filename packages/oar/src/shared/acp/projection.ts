@@ -62,6 +62,9 @@ function detail(value: unknown): string | undefined {
 }
 
 function toolName(update: JsonRecord): string {
+  if (typeof update.name === "string") {
+    return update.name;
+  }
   if (typeof update.toolName === "string") {
     return update.toolName;
   }

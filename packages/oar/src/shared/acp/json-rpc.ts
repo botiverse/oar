@@ -1,249 +1,243 @@
-import { spawnLineProcess } from "../executable/index.js";
-import { asRecord, parseJson, type JsonRecord } from "../json.js";
+import {
+  methods,
+  ndJsonStream,
+  RequestError,
+  type AgentNotificationMethod,
+  type AgentNotificationParamsByMethod,
+  type AgentRequestMethod,
+  type AgentRequestParamsByMethod,
+  type AgentRequestResponsesByMethod,
+  type ClientConnection,
+} from "@agentclientprotocol/sdk";
+import { Readable, Writable } from "node:stream";
+import { spawnStreamProcess, type StreamProcess } from "../executable/index.js";
+import type { JsonRecord } from "../json.js";
 import {
   AcpError,
   acpProcessExitedError,
-  acpProtocolError,
   acpRequestTimeoutError,
   acpRpcError,
 } from "./errors.js";
+import { createAcpSdkClient, type AcpSdkClientOptions } from "./sdk-client.js";
 
-type RpcId = number | string;
+export { methods as acpMethods } from "@agentclientprotocol/sdk";
 
 export interface AcpRequestOptions {
   /** Null disables the deadline for long-running requests such as session/prompt. */
   readonly timeoutMs?: number | null;
 }
 
-export interface AcpClientOptions {
+export interface AcpClientOptions extends AcpSdkClientOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
   readonly requestTimeoutMs?: number;
-  readonly reverseRequest?: (method: string, params: JsonRecord) => JsonRecord | Promise<JsonRecord>;
 }
 
 export interface AcpJsonRpcClient {
   readonly spawned: Promise<void>;
   readonly exited: Promise<number | null>;
   readonly closed: boolean;
-  request(method: string, params: JsonRecord, options?: AcpRequestOptions): Promise<JsonRecord>;
-  notify(method: string, params: JsonRecord): void;
+  request<Method extends AgentRequestMethod>(
+    method: Method,
+    params: AgentRequestParamsByMethod[Method],
+    options?: AcpRequestOptions,
+  ): Promise<AgentRequestResponsesByMethod[Method]>;
+  request<Response = JsonRecord>(
+    method: string,
+    params: unknown,
+    options?: AcpRequestOptions,
+  ): Promise<Response>;
+  notify<Method extends AgentNotificationMethod>(
+    method: Method,
+    params: AgentNotificationParamsByMethod[Method],
+  ): Promise<void>;
+  notify(method: string, params: unknown): Promise<void>;
   onNotification(handler: (method: string, params: JsonRecord) => void): void;
   onExit(handler: (code: number | null) => void): void;
   kill(): void;
 }
 
-interface PendingRequest {
-  readonly resolve: (result: JsonRecord) => void;
-  readonly reject: (error: Error) => void;
-  readonly timer?: NodeJS.Timeout;
+interface Deadline {
+  readonly promise: Promise<never>;
+  readonly timer: NodeJS.Timeout;
 }
 
-function errorMessage(value: unknown): string {
-  const error = asRecord(value);
-  return typeof error?.message === "string" && error.message.trim().length > 0
-    ? error.message
-    : "ACP request failed";
+function deadline(method: string, timeoutMs: number, controller: AbortController): Deadline {
+  const { promise, reject } = Promise.withResolvers<never>();
+  const timer = setTimeout(() => {
+    controller.abort();
+    reject(acpRequestTimeoutError(method, timeoutMs));
+  }, timeoutMs);
+  timer.unref();
+  return { promise, timer };
 }
 
-function rpcId(value: unknown): RpcId | null {
-  return typeof value === "number" || typeof value === "string" ? value : null;
+function mapRequestError(
+  error: unknown,
+  connectionClosed: boolean,
+  exitCode: number | null,
+): Error {
+  if (error instanceof AcpError) {
+    return error;
+  }
+  if (error instanceof RequestError) {
+    return acpRpcError(error.code, error.message, error.data);
+  }
+  if (connectionClosed) {
+    return acpProcessExitedError(exitCode);
+  }
+  return error instanceof Error ? error : new Error("ACP request failed");
+}
+
+/** Official-SDK-backed ACP v1 connection with OAR-owned process lifecycle. */
+class SdkAcpJsonRpcClient implements AcpJsonRpcClient {
+  readonly spawned: Promise<void>;
+  readonly exited: Promise<number | null>;
+  private readonly child: StreamProcess;
+  private readonly connection: ClientConnection;
+  private readonly requestTimeoutMs: number;
+  private readonly notificationHandlers: ((method: string, params: JsonRecord) => void)[] = [];
+  private readonly exitHandlers: ((code: number | null) => void)[] = [];
+  private ended = false;
+  private exitCode: number | null = null;
+
+  constructor(command: string, args: readonly string[], options: AcpClientOptions) {
+    this.child = spawnStreamProcess(command, args, {
+      ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+      ...(options.env === undefined ? {} : { env: options.env }),
+    });
+    this.spawned = this.child.spawned;
+    this.exited = this.child.exited;
+    this.requestTimeoutMs = options.requestTimeoutMs ?? 15_000;
+    const app = createAcpSdkClient(options, (method, params) => {
+      for (const handler of this.notificationHandlers) {
+        handler(method, params);
+      }
+    });
+    // Node's stream/web declarations and TypeScript's DOM declarations model
+    // the same WHATWG byte streams with incompatible generic constraints.
+    // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Runtime values are the native WHATWG streams expected by the SDK.
+    const output = Writable.toWeb(this.child.stdin) as Parameters<typeof ndJsonStream>[0];
+    // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Runtime values are the native WHATWG streams expected by the SDK.
+    const input = Readable.toWeb(this.child.stdout) as Parameters<typeof ndJsonStream>[1];
+    this.connection = app.connect(ndJsonStream(output, input));
+    this.child.onExit((code) => {
+      this.ended = true;
+      this.exitCode = code;
+      this.connection.close(acpProcessExitedError(code));
+      for (const handler of this.exitHandlers) {
+        handler(code);
+      }
+    });
+  }
+
+  get closed(): boolean {
+    return this.ended || this.connection.signal.aborted;
+  }
+
+  request<Method extends AgentRequestMethod>(
+    method: Method,
+    params: AgentRequestParamsByMethod[Method],
+    options?: AcpRequestOptions,
+  ): Promise<AgentRequestResponsesByMethod[Method]>;
+  request<Response = JsonRecord>(
+    method: string,
+    params: unknown,
+    options?: AcpRequestOptions,
+  ): Promise<Response>;
+  async request(
+    method: string,
+    params: unknown,
+    options: AcpRequestOptions = {},
+  ): Promise<unknown> {
+    await this.spawned;
+    if (this.closed) {
+      throw acpProcessExitedError(this.exitCode);
+    }
+    const timeoutMs = options.timeoutMs === undefined ? this.requestTimeoutMs : options.timeoutMs;
+    const controller = timeoutMs === null ? undefined : new AbortController();
+    const requestOptions = controller === undefined
+      ? undefined
+      : { cancellationSignal: controller.signal };
+    const sdkRequest = this.connection.agent.request(method, params, requestOptions);
+    const limit = timeoutMs === null || controller === undefined
+      ? undefined
+      : deadline(method, timeoutMs, controller);
+    try {
+      const response = await (limit === undefined
+        ? sdkRequest
+        : Promise.race([sdkRequest, limit.promise]));
+      if (method === methods.agent.session.prompt) {
+        await new Promise<void>((resolve) => {
+          setImmediate(resolve);
+        });
+      }
+      return response;
+    } catch (error) {
+      if (!(error instanceof AcpError && error.kind === "timeout")) {
+        await this.captureExit();
+      }
+      throw mapRequestError(error, this.closed, this.exitCode);
+    } finally {
+      if (limit !== undefined) {
+        clearTimeout(limit.timer);
+      }
+    }
+  }
+
+  notify<Method extends AgentNotificationMethod>(
+    method: Method,
+    params: AgentNotificationParamsByMethod[Method],
+  ): Promise<void>;
+  notify(method: string, params: unknown): Promise<void>;
+  async notify(method: string, params: unknown): Promise<void> {
+    if (this.closed) {
+      throw acpProcessExitedError(this.exitCode);
+    }
+    try {
+      await this.connection.agent.notify(method, params);
+    } catch (error) {
+      await this.captureExit();
+      throw mapRequestError(error, this.closed, this.exitCode);
+    }
+  }
+
+  onNotification(handler: (method: string, params: JsonRecord) => void): void {
+    this.notificationHandlers.push(handler);
+  }
+
+  onExit(handler: (code: number | null) => void): void {
+    if (this.ended) {
+      queueMicrotask(() => {
+        handler(this.exitCode);
+      });
+    } else {
+      this.exitHandlers.push(handler);
+    }
+  }
+
+  kill(): void {
+    if (!this.ended) {
+      this.connection.close(acpProcessExitedError(null));
+      this.child.kill();
+    }
+  }
+
+  private async captureExit(): Promise<void> {
+    if (this.connection.signal.aborted && !this.ended) {
+      await this.exited;
+    }
+  }
 }
 
 /**
- * Private ACP v1 transport: newline-delimited JSON-RPC 2.0 over a child
- * process. Runtime identities and compatibility policy belong in the thin
- * profiles above this mechanism.
+ * Private ACP v1 client backed by the official TypeScript SDK. The SDK owns
+ * NDJSON, JSON-RPC, cancellation, schemas, and wire types; OAR owns the child.
  */
 export function startAcpJsonRpcClient(
   command: string,
   args: readonly string[],
   options: AcpClientOptions = {},
 ): AcpJsonRpcClient {
-  const child = spawnLineProcess(command, args, {
-    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-    ...(options.env === undefined ? {} : { env: options.env }),
-  });
-  const pending = new Map<RpcId, PendingRequest>();
-  const notificationHandlers: ((method: string, params: JsonRecord) => void)[] = [];
-  const exitHandlers: ((code: number | null) => void)[] = [];
-  let nextId = 1;
-  let ended = false;
-  let exitCode: number | null = null;
-  let terminalError: Error | null = null;
-
-  const write = (message: JsonRecord): void => {
-    if (ended) {
-      throw terminalError ?? acpProcessExitedError(null);
-    }
-    child.write(`${JSON.stringify(message)}\n`);
-  };
-
-  const rejectPending = (error: Error): void => {
-    terminalError ??= error;
-    for (const waiter of pending.values()) {
-      if (waiter.timer !== undefined) {
-        clearTimeout(waiter.timer);
-      }
-      waiter.reject(error);
-    }
-    pending.clear();
-  };
-
-  const failProtocol = (message: string): void => {
-    if (!ended) {
-      rejectPending(acpProtocolError(message));
-      child.kill();
-    }
-  };
-
-  const replyToReverseRequest = async (
-    id: RpcId,
-    method: string,
-    params: JsonRecord,
-  ): Promise<void> => {
-    try {
-      if (options.reverseRequest === undefined) {
-        throw acpRpcError(-32_601, `ACP client method not found: ${method}`);
-      }
-      const result = await options.reverseRequest(method, params);
-      write({ jsonrpc: "2.0", id, result: asRecord(result) ?? {} });
-    } catch (error) {
-      const rpcError = error instanceof AcpError && error.kind === "rpc"
-        ? error
-        : acpRpcError(-32_603, "ACP client request failed");
-      try {
-        write({
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: rpcError.code,
-            message: rpcError.message,
-            ...(rpcError.data === undefined ? {} : { data: rpcError.data }),
-          },
-        });
-      } catch {
-        // The process exited while the reverse request was being handled.
-      }
-    }
-  };
-
-  child.onLine((line) => {
-    const message = asRecord(parseJson(line));
-    if (message === null) {
-      failProtocol("ACP process emitted invalid JSON");
-      return;
-    }
-    const id = rpcId(message.id);
-    const method = typeof message.method === "string" ? message.method : null;
-    if (id !== null && (Object.hasOwn(message, "result") || Object.hasOwn(message, "error"))) {
-      const waiter = pending.get(id);
-      if (waiter === undefined) {
-        return;
-      }
-      pending.delete(id);
-      if (waiter.timer !== undefined) {
-        clearTimeout(waiter.timer);
-      }
-      const error = asRecord(message.error);
-      if (error !== null) {
-        const code = typeof error.code === "number" ? error.code : -32_603;
-        waiter.reject(acpRpcError(code, errorMessage(error), error.data));
-      } else {
-        waiter.resolve(asRecord(message.result) ?? {});
-      }
-      return;
-    }
-    if (id !== null && method !== null) {
-      void replyToReverseRequest(id, method, asRecord(message.params) ?? {});
-      return;
-    }
-    if (id === null && method !== null) {
-      const params = asRecord(message.params) ?? {};
-      for (const handler of notificationHandlers) {
-        handler(method, params);
-      }
-      return;
-    }
-    failProtocol("ACP process emitted an invalid JSON-RPC message");
-  });
-
-  child.onExit((code) => {
-    ended = true;
-    exitCode = code;
-    rejectPending(terminalError ?? acpProcessExitedError(code));
-    for (const handler of exitHandlers) {
-      handler(code);
-    }
-  });
-
-  return {
-    spawned: child.spawned,
-    exited: child.exited,
-    get closed() {
-      return ended;
-    },
-    async request(method, params, requestOptions = {}): Promise<JsonRecord> {
-      const id = nextId;
-      nextId += 1;
-      const timeoutMs = requestOptions.timeoutMs === undefined
-        ? (options.requestTimeoutMs ?? 15_000)
-        : requestOptions.timeoutMs;
-      // oxlint-disable-next-line promise/avoid-new -- settlement is driven by the response pump
-      const promise = new Promise<JsonRecord>((resolve, reject) => {
-        const timer = timeoutMs === null
-          ? undefined
-          : setTimeout(() => {
-              pending.delete(id);
-              try {
-                write({
-                  jsonrpc: "2.0",
-                  method: "$/cancel_request",
-                  params: { requestId: id },
-                });
-              } catch {
-                // The exit path already rejected everything still pending.
-              }
-              reject(acpRequestTimeoutError(method, timeoutMs));
-            }, timeoutMs);
-        timer?.unref();
-        pending.set(id, {
-          resolve,
-          reject,
-          ...(timer === undefined ? {} : { timer }),
-        });
-        try {
-          write({ jsonrpc: "2.0", id, method, params });
-        } catch (error) {
-          pending.delete(id);
-          if (timer !== undefined) {
-            clearTimeout(timer);
-          }
-          reject(error instanceof Error ? error : new Error("ACP request write failed"));
-        }
-      });
-      // oxlint-disable-next-line typescript/return-await -- `request` must be async by policy while settlement is pump-driven.
-      return await promise;
-    },
-    notify(method, params) {
-      write({ jsonrpc: "2.0", method, params });
-    },
-    onNotification(handler) {
-      notificationHandlers.push(handler);
-    },
-    onExit(handler) {
-      if (ended) {
-        queueMicrotask(() => {
-          handler(exitCode);
-        });
-      } else {
-        exitHandlers.push(handler);
-      }
-    },
-    kill() {
-      if (!ended) {
-        child.kill();
-      }
-    },
-  };
+  return new SdkAcpJsonRpcClient(command, args, options);
 }

@@ -4,7 +4,7 @@ import { asRecord, type JsonRecord } from "../json.js";
 import { sealSession } from "../seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
-import { startAcpJsonRpcClient } from "./json-rpc.js";
+import { acpMethods as methods, startAcpJsonRpcClient } from "./json-rpc.js";
 import {
   defaultAcpReverseRequest,
   hasAcpCapability,
@@ -95,7 +95,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       }
     };
     client.onNotification((method, params) => {
-      if (method !== "session/update" || params.sessionId !== opened.sessionId) {
+      if (method !== methods.client.session.update || params.sessionId !== opened.sessionId) {
         return;
       }
       const update = asRecord(params.update);
@@ -139,7 +139,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       state.pending.add(requestNumber);
       void (async (): Promise<void> => {
         try {
-          const result = await client.request("session/prompt", {
+          const result = await client.request(methods.agent.session.prompt, {
             sessionId: opened.sessionId,
             prompt: [{ type: "text", text: input }],
             ...extraParams,
@@ -171,7 +171,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
           if (!state.abortRequested) {
             state.abortRequested = true;
             try {
-              client.notify("session/cancel", { sessionId: opened.sessionId });
+              await client.notify(methods.agent.session.cancel, { sessionId: opened.sessionId });
             } catch (error) {
               settle(state, acpFailureOutcome(error));
             }
@@ -278,7 +278,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         held.splice(0);
         if (active !== null && !active.kernelTurn.settled()) {
           try {
-            client.notify("session/cancel", { sessionId: opened.sessionId });
+            await client.notify(methods.agent.session.cancel, { sessionId: opened.sessionId });
           } catch {
             // Local settlement below is authoritative during disposal.
           }
@@ -286,7 +286,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         }
         if (supportsClose && !client.closed) {
           await client.request(
-            "session/close",
+            methods.agent.session.close,
             { sessionId: opened.sessionId },
             { timeoutMs: 2000 },
           ).catch(() => {});

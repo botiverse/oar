@@ -1,3 +1,4 @@
+import { methods } from "@agentclientprotocol/sdk";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
@@ -253,19 +254,19 @@ export function createAcpTerminalHost(
     handles: (method) => method.startsWith("terminal/"),
     async request(method, params) {
       switch (method) {
-        case "terminal/create": {
+        case methods.client.terminal.create: {
           const result = await create(params);
           return result;
         }
-        case "terminal/output":
+        case methods.client.terminal.output:
           return output(params);
-        case "terminal/wait_for_exit": {
+        case methods.client.terminal.waitForExit: {
           const result = await waitForExit(params);
           return result;
         }
-        case "terminal/kill":
+        case methods.client.terminal.kill:
           return kill(params);
-        case "terminal/release": {
+        case methods.client.terminal.release: {
           const result = await release(params);
           return result;
         }

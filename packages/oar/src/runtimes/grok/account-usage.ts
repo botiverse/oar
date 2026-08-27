@@ -1,3 +1,4 @@
+import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
@@ -85,8 +86,8 @@ async function readBilling(command: string, timeoutMs: number): Promise<JsonReco
   );
   try {
     await client.spawned;
-    const initialized = await client.request("initialize", {
-      protocolVersion: 1,
+    const initialized = await client.request(methods.agent.initialize, {
+      protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: {
         fs: { readTextFile: false, writeTextFile: false },
         terminal: false,
@@ -96,7 +97,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<JsonReco
     });
     const method = selectGrokAuthMethod(initialized);
     if (method !== undefined) {
-      await client.request("authenticate", { methodId: method });
+      await client.request(methods.agent.authenticate, { methodId: method });
     }
     return await client.request("_x.ai/billing", {});
   } finally {

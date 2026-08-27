@@ -26,6 +26,8 @@ afterEach(async () => {
 test("ACP JSON-RPC frames requests, notifications, and reverse requests", async () => {
   const client = start({
     reverseRequest: (method, params) => ({ method, answer: params.question }),
+    reverseRequestMethods: ["fixture/reverse"],
+    notificationMethods: ["fixture/notification"],
   });
   await client.spawned;
   assert.deepEqual(await client.request("test/echo", { value: 42 }), { value: 42 });
@@ -86,13 +88,11 @@ test("ACP JSON-RPC process exit rejects in-flight work with the exit code", asyn
   assert.equal(client.closed, true);
 });
 
-test("invalid stdout is a fatal ACP protocol error", async () => {
+test("the SDK recovers after an invalid NDJSON frame", async () => {
   const client = start();
-  await assert.rejects(
-    client.request("test/invalid", {}),
-    (error: unknown) => error instanceof AcpError
-      && error.kind === "protocol"
-      && error.message === "ACP process emitted invalid JSON",
+  assert.deepEqual(
+    await client.request("test/invalid", {}, { timeoutMs: 500 }),
+    { recovered: true },
   );
-  await client.exited;
+  assert.equal(client.closed, false);
 });

@@ -73,6 +73,7 @@ function handleRpcRequest(message) {
       break;
     case "test/invalid":
       process.stdout.write("this is not json\n");
+      result(message.id, { recovered: true });
       break;
     default:
       error(message.id, -32601, `unknown test method: ${message.method}`);
@@ -106,7 +107,7 @@ function handleSessionPrompt(message) {
     update({
       sessionUpdate: "tool_call",
       toolCallId: "call-read",
-      toolName: "Read",
+      name: "Read",
       kind: "read",
       title: "Read input.txt",
       status: "pending",
@@ -141,6 +142,12 @@ function handleSessionPrompt(message) {
       method: "session/request_permission",
       params: {
         sessionId: "fake-session",
+        toolCall: {
+          toolCallId: "permission-tool",
+          title: "Permission fixture",
+          kind: "execute",
+          status: "pending",
+        },
         options: [
           { optionId: "once", kind: "allow_once", name: "Allow once" },
           { optionId: "always", kind: "allow_always", name: "Always allow" },
