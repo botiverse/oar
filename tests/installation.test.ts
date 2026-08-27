@@ -2,8 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
-import { grokInstallation } from "../packages/oar/src/runtimes/grok/installation.js";
-import { kimiInstallation } from "../packages/oar/src/runtimes/kimi/installation.js";
+import {
+  grokInstallation,
+  grokInstalledExecutableCandidates,
+} from "../packages/oar/src/runtimes/grok/installation.js";
+import {
+  kimiInstallation,
+  kimiInstalledExecutableCandidates,
+} from "../packages/oar/src/runtimes/kimi/installation.js";
 import { resolveExecutable } from "../packages/oar/src/shared/executable/index.js";
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
 import { piInstallation } from "../packages/oar/src/runtimes/pi/installation.js";
@@ -51,6 +57,23 @@ test("a missing fallback path contributes no candidate", async () => {
   });
 });
 
+test("executable installation evaluates fallback factories at probe time", async () => {
+  let fallback = "/nonexistent/oar-fixture";
+  const installation = executableInstallation(
+    "OAR_FIXTURE_BIN",
+    "oar-fixture-missing",
+    () => [fallback],
+  );
+  fallback = process.execPath;
+
+  assert.deepEqual(await installation(), {
+    kind: "available",
+    via: "executable",
+    command: process.execPath,
+    version: process.version,
+  });
+});
+
 test("a pinned env var is exclusive and must exist as given", async () => {
   const installation = executableInstallation("OAR_FIXTURE_BIN", "node");
   const pinnedMissing = await withEnv(
@@ -69,6 +92,78 @@ test("a pinned env var is exclusive and must exist as given", async () => {
     command: process.execPath,
     version: process.version,
   });
+});
+
+test("a pinned env var does not evaluate fallback factories", async () => {
+  let evaluated = false;
+  const installation = executableInstallation(
+    "OAR_FIXTURE_BIN",
+    "node",
+    () => {
+      evaluated = true;
+      return [];
+    },
+  );
+  const snapshot = await withEnv(
+    { OAR_FIXTURE_BIN: process.execPath },
+    async () => installation(),
+  );
+
+  assert.equal(evaluated, false);
+  assert.deepEqual(snapshot, {
+    kind: "available",
+    via: "executable",
+    command: process.execPath,
+    version: process.version,
+  });
+});
+
+test("grok candidates match the official script and npm layouts", () => {
+  assert.deepEqual(
+    grokInstalledExecutableCandidates("linux", "/home/oar", {
+      GROK_BIN_DIR: "/opt/grok-cli",
+      GROK_HOME: "/var/lib/grok",
+    }),
+    [
+      "/opt/grok-cli/grok",
+      "/var/lib/grok/bin/grok",
+      "/home/oar/.grok/bin/grok",
+    ],
+  );
+  assert.deepEqual(
+    grokInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, {
+      GROK_BIN_DIR: String.raw`D:\Grok CLI`,
+      GROK_HOME: String.raw`D:\Grok Home`,
+    }),
+    [
+      String.raw`D:\Grok CLI\grok.exe`,
+      String.raw`D:\Grok Home\bin\grok.exe`,
+      String.raw`C:\Users\oar\.grok\bin\grok.exe`,
+    ],
+  );
+});
+
+test("kimi candidates match the official native-installer layouts", () => {
+  assert.deepEqual(
+    kimiInstalledExecutableCandidates("darwin", "/Users/oar", {
+      KIMI_INSTALL_DIR: "/opt/kimi-code",
+    }),
+    [
+      "/opt/kimi-code/bin/kimi",
+      "/Users/oar/.kimi-code/bin/kimi",
+      "kimi-code",
+    ],
+  );
+  assert.deepEqual(
+    kimiInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, {
+      KIMI_INSTALL_DIR: String.raw`D:\Kimi Code`,
+    }),
+    [
+      String.raw`D:\Kimi Code\bin\kimi.exe`,
+      String.raw`C:\Users\oar\.kimi-code\bin\kimi.exe`,
+      "kimi-code",
+    ],
+  );
 });
 
 test("readiness gates each candidate", async () => {

@@ -9,6 +9,8 @@ export interface ExecutableInstallationOptions {
   readonly versionTimeoutMs?: number;
 }
 
+export type ExecutableFallbacks = readonly string[] | (() => readonly string[]);
+
 function usable(entry: string): string | null {
   if (entry.includes("/") || entry.includes("\\")) {
     return existsSync(entry) ? entry : null;
@@ -35,13 +37,15 @@ async function versionSnapshot(
 export function executableInstallation(
   envVar: string,
   command: string,
-  fallbacks: readonly string[] = [],
+  fallbacks: ExecutableFallbacks = [],
   readiness?: readonly string[],
   options: ExecutableInstallationOptions = {},
 ): InstallationProbe {
   return async (): Promise<InstallationSnapshot> => {
     const pinned = process.env[envVar];
-    const entries = pinned !== undefined && pinned !== "" ? [pinned] : [command, ...fallbacks];
+    const entries = pinned !== undefined && pinned !== ""
+      ? [pinned]
+      : [command, ...(typeof fallbacks === "function" ? fallbacks() : fallbacks)];
 
     const found: string[] = [];
     for (const entry of entries) {
