@@ -2,10 +2,10 @@
  * LIVE RUN OF THE PUBLIC GROK/KIMI RUNTIME ADAPTER.
  *
  * Pins the real executable handshake, one shell-tool turn, OAR event framing,
- * and (for Grok) the vendor account-usage extension. It prints only a
+ * and the vendor account-usage surface. It prints only a
  * structural summary: no prompt text, tool input/output, paths, or tokens.
  *
- * Observed 2026-08-26: grok 1.0.5, kimi 0.38.0.
+ * Observed 2026-08-27: grok 1.0.5, kimi 0.38.0.
  *
  * Run:
  *   OAR_GROK_BIN=/path/to/grok GROK_HOME=/isolated/home pnpm tsx experiments/acp-runtime.ts grok

@@ -234,3 +234,40 @@ test("grok projection falls back to legacy used/limit cents", () => {
   `);
   expect(projectGrokUsage({ config: null })).toEqual({ kind: "unsupported" });
 });
+
+test("grok projection keeps paid headroom distinct from included usage", () => {
+  expect(projectGrokUsage({
+    config: {
+      creditUsagePercent: 100,
+      currentPeriod: {
+        type: "USAGE_PERIOD_TYPE_MONTHLY",
+        end: "2026-09-01T00:00:00Z",
+      },
+      onDemandCap: { val: 5000 },
+      onDemandUsed: { val: 1250 },
+    },
+  })).toMatchInlineSnapshot(`
+    {
+      "kind": "available",
+      "rateLimited": false,
+      "windows": [
+        {
+          "label": "Monthly included usage",
+          "resetsAt": "2026-09-01T00:00:00.000Z",
+          "usedRatio": 1,
+        },
+        {
+          "label": "Pay-as-you-go",
+          "resetsAt": "2026-09-01T00:00:00.000Z",
+          "usedRatio": 0.25,
+        },
+      ],
+    }
+  `);
+  expect(projectGrokUsage({
+    config: { creditUsagePercent: 100, prepaidBalance: { val: -500 } },
+  })).toMatchObject({ kind: "available", rateLimited: false });
+  expect(projectGrokUsage({
+    config: { creditUsagePercent: 100, onDemandCap: { val: 1000 }, onDemandUsed: { val: 1000 } },
+  })).toMatchObject({ kind: "available", rateLimited: true });
+});

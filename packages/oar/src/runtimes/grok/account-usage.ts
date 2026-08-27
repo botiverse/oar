@@ -44,18 +44,36 @@ export function projectGrokUsage(result: unknown): AccountUsageSnapshot {
   }
   const period = asRecord(config.currentPeriod);
   const resetsAt = resetInstant(period?.end ?? config.billingPeriodEnd);
+  const prepaidBalance = Math.abs(centValue(config.prepaidBalance) ?? 0);
+  const onDemandCap = centValue(config.onDemandCap) ?? 0;
+  const legacyOnDemandUsed = used !== null && limit !== null ? Math.max(0, used - limit) : 0;
+  const onDemandUsed = centValue(config.onDemandUsed) ?? legacyOnDemandUsed;
+  const onDemandRatio = onDemandCap > 0
+    ? Math.max(0, Math.min(1, onDemandUsed / onDemandCap))
+    : null;
+  const windows = [{
+    label: periodLabel(period?.type),
+    usedRatio: Number(Math.min(1, usedPercent / 100).toFixed(6)),
+    ...(resetsAt === undefined ? {} : { resetsAt }),
+  }, ...(onDemandRatio === null ? [] : [{
+    label: "Pay-as-you-go",
+    usedRatio: Number(onDemandRatio.toFixed(6)),
+    ...(resetsAt === undefined ? {} : { resetsAt }),
+  }])];
   const plan = typeof root?.subscriptionTier === "string" && root.subscriptionTier.length > 0
     ? root.subscriptionTier
     : undefined;
+  // Grok's own credit-bar projection treats a positive prepaid balance or an
+  // unexhausted on-demand cap as usable headroom after included usage reaches
+  // 100%; do not report the account as rate-limited while either remains.
+  const rateLimited = usedPercent >= 100
+    && prepaidBalance === 0
+    && (onDemandRatio === null || onDemandRatio >= 1);
   return {
     kind: "available",
     ...(plan === undefined ? {} : { plan }),
-    rateLimited: usedPercent >= 100,
-    windows: [{
-      label: periodLabel(period?.type),
-      usedRatio: Number(Math.min(1, usedPercent / 100).toFixed(6)),
-      ...(resetsAt === undefined ? {} : { resetsAt }),
-    }],
+    rateLimited,
+    windows,
   };
 }
 
