@@ -19,8 +19,12 @@ function profile(overrides: Partial<AcpSessionProfile> = {}): AcpSessionProfile 
     args: [fixture, "session"],
     selectAuthMethod: () => "cached",
     abortTimeoutMs: 500,
-    configureSession: async ({ client, sessionId }) => {
-      await client.request("session/set_mode", { sessionId, modeId: "yolo" });
+    configureSession: async ({ connection, sessionId, requestOptions }) => {
+      await connection.agent.request(
+        "session/set_mode",
+        { sessionId, modeId: "yolo" },
+        requestOptions,
+      );
     },
     ...overrides,
   };

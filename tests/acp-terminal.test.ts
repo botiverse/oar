@@ -22,7 +22,7 @@ afterEach(async () => {
 
 test("ACP terminal runs with cwd/env and truncates UTF-8 output at a character boundary", async () => {
   const terminal = host();
-  const created = await terminal.request("terminal/create", {
+  const created = await terminal.create({
     sessionId: "session-one",
     command: process.execPath,
     args: ["-e", "process.stdout.write((process.env.OAR_TERMINAL_VALUE ?? '') + ':αβγ')"],
@@ -32,22 +32,22 @@ test("ACP terminal runs with cwd/env and truncates UTF-8 output at a character b
   });
   assert.equal(typeof created.terminalId, "string");
   const identity = { sessionId: "session-one", terminalId: created.terminalId };
-  assert.deepEqual(await terminal.request("terminal/wait_for_exit", identity), {
+  assert.deepEqual(await terminal.waitForExit(identity), {
     exitCode: 0,
     signal: null,
   });
-  assert.deepEqual(await terminal.request("terminal/output", identity), {
+  assert.deepEqual(terminal.output(identity), {
     output: ":αβγ",
     truncated: true,
     exitStatus: { exitCode: 0, signal: null },
   });
-  assert.deepEqual(await terminal.request("terminal/release", identity), {});
-  await assert.rejects(terminal.request("terminal/output", identity), /Unknown ACP terminal/u);
+  assert.deepEqual(await terminal.release(identity), {});
+  assert.throws(() => terminal.output(identity), /Unknown ACP terminal/u);
 });
 
 test("disposing the ACP terminal host kills unreleased commands", async () => {
   const terminal = host();
-  await terminal.request("terminal/create", {
+  await terminal.create({
     sessionId: "session-two",
     command: process.execPath,
     args: ["-e", "setInterval(() => {}, 1000)"],
@@ -57,13 +57,13 @@ test("disposing the ACP terminal host kills unreleased commands", async () => {
 
 test("ACP terminal supports Grok's full shell line compatibility mode", async () => {
   const terminal = host({ shellCommand: true });
-  const created = await terminal.request("terminal/create", {
+  const created = await terminal.create({
     sessionId: "session-shell",
     command: `"${process.execPath}" -e "process.stdout.write('shell-ok')"`,
   });
   const identity = { sessionId: "session-shell", terminalId: created.terminalId };
-  await terminal.request("terminal/wait_for_exit", identity);
-  assert.deepEqual(await terminal.request("terminal/output", identity), {
+  await terminal.waitForExit(identity);
+  assert.deepEqual(terminal.output(identity), {
     output: "shell-ok",
     truncated: false,
     exitStatus: { exitCode: 0, signal: null },

@@ -1,11 +1,16 @@
-import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
+/* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
+import {
+  client as createClient,
+  methods,
+  PROTOCOL_VERSION,
+  RequestError,
+} from "@agentclientprotocol/sdk";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
   UtcInstant,
 } from "../../contracts/account-usage.js";
-import { AcpError } from "../../shared/acp/errors.js";
-import { startAcpJsonRpcClient } from "../../shared/acp/json-rpc.js";
+import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { grokInitializeMeta, selectGrokAuthMethod } from "./session.js";
@@ -79,30 +84,57 @@ export function projectGrokUsage(result: unknown): AccountUsageSnapshot {
 }
 
 async function readBilling(command: string, timeoutMs: number): Promise<JsonRecord> {
-  const client = startAcpJsonRpcClient(
+  const runtime = startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
-    { env: process.env, requestTimeoutMs: timeoutMs },
+    createClient({ name: "oar" }),
+    { env: process.env },
   );
   try {
-    await client.spawned;
-    const initialized = await client.request(methods.agent.initialize, {
-      protocolVersion: PROTOCOL_VERSION,
-      clientCapabilities: {
-        fs: { readTextFile: false, writeTextFile: false },
-        terminal: false,
-      },
-      clientInfo: { name: "oar", version: "0.0.0" },
-      _meta: grokInitializeMeta({ cwd: process.cwd() }),
-    });
+    const initialize = methods.agent.initialize;
+    const response = await withAcpDeadline(
+      runtime,
+      initialize,
+      timeoutMs,
+      (requestOptions) => runtime.connection.agent.request(initialize, {
+        protocolVersion: PROTOCOL_VERSION,
+        clientCapabilities: {
+          fs: { readTextFile: false, writeTextFile: false },
+          terminal: false,
+        },
+        clientInfo: { name: "oar", version: "0.0.0" },
+        _meta: grokInitializeMeta({ cwd: process.cwd() }),
+      }, requestOptions),
+    );
+    const initialized = asRecord(response) ?? {};
     const method = selectGrokAuthMethod(initialized);
     if (method !== undefined) {
-      await client.request(methods.agent.authenticate, { methodId: method });
+      const authenticate = methods.agent.authenticate;
+      await withAcpDeadline(
+        runtime,
+        authenticate,
+        timeoutMs,
+        (requestOptions) => runtime.connection.agent.request(
+          authenticate,
+          { methodId: method },
+          requestOptions,
+        ),
+      );
     }
-    return await client.request("_x.ai/billing", {});
+    const billing = await withAcpDeadline(
+      runtime,
+      "_x.ai/billing",
+      timeoutMs,
+      (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+        "_x.ai/billing",
+        {},
+        requestOptions,
+      ),
+    );
+    return billing;
   } finally {
-    client.kill();
-    await client.exited;
+    runtime.kill();
+    await runtime.exited;
   }
 }
 
@@ -113,7 +145,7 @@ export const grokAccountUsage: AccountUsageReader = async (installation, options
   try {
     return projectGrokUsage(await readBilling(installation.command, options.timeoutMs ?? 10_000));
   } catch (error) {
-    if (error instanceof AcpError && error.kind === "rpc") {
+    if (error instanceof RequestError) {
       if (error.code === -32_601) {
         return { kind: "unsupported" };
       }

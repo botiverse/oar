@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/promise-function-async -- SDK handlers deliberately return terminal promises directly. */
 /**
  * REAL ACP WIRE SNAPSHOT RECORDER.
  *
@@ -13,12 +14,17 @@ import { grokInstallation } from "../packages/oar/src/runtimes/grok/installation
 import { grokAcpProfile } from "../packages/oar/src/runtimes/grok/session.js";
 import { kimiInstallation } from "../packages/oar/src/runtimes/kimi/installation.js";
 import { kimiAcpProfile } from "../packages/oar/src/runtimes/kimi/session.js";
-import { startAcpJsonRpcClient } from "../packages/oar/src/shared/acp/json-rpc.js";
 import {
-  defaultAcpReverseRequest,
+  closeAcpSession,
   openAcpSession,
+  promptAcp,
   type AcpSessionProfile,
 } from "../packages/oar/src/shared/acp/profile.js";
+import {
+  createAcpClient,
+  methods,
+  startAcpProcess,
+} from "../packages/oar/src/shared/acp/process.js";
 import { createAcpTerminalHost } from "../packages/oar/src/shared/acp/terminal.js";
 import { asRecord, type JsonRecord } from "../packages/oar/src/shared/json.js";
 
@@ -77,53 +83,69 @@ const args = typeof target.profile.args === "function"
   : target.profile.args;
 const permissionRequests: JsonRecord[] = [];
 const terminalRequests: JsonRecord[] = [];
+const tools: JsonRecord[] = [];
+let lastToolSummary = "";
 const terminalHost = createAcpTerminalHost(options.cwd, process.env, {
   shellCommand: target.profile.terminalShellCommand === true,
 });
-const client = startAcpJsonRpcClient(installation.command, args, {
+const observeTerminal = (method: string, params: object): void => {
+  terminalRequests.push({ method, paramKeys: Object.keys(params).toSorted() });
+};
+const app = createAcpClient({ name: "oar-snapshot" })
+  .onRequest(methods.client.session.requestPermission, ({ params }) => {
+    permissionRequests.push({
+      method: methods.client.session.requestPermission,
+      optionKinds: params.options.map(({ kind }) => kind),
+    });
+    const selected = params.options.find(({ kind }) => kind === "allow_always")
+      ?? params.options.find(({ kind }) => kind === "allow_once");
+    return selected === undefined
+      ? { outcome: { outcome: "cancelled" as const } }
+      : { outcome: { outcome: "selected" as const, optionId: selected.optionId } };
+  })
+  .onRequest(methods.client.terminal.create, ({ params }) => {
+    observeTerminal(methods.client.terminal.create, params);
+    return terminalHost.create(params);
+  })
+  .onRequest(methods.client.terminal.output, ({ params }) => {
+    observeTerminal(methods.client.terminal.output, params);
+    return terminalHost.output(params);
+  })
+  .onRequest(methods.client.terminal.waitForExit, ({ params }) => {
+    observeTerminal(methods.client.terminal.waitForExit, params);
+    return terminalHost.waitForExit(params);
+  })
+  .onRequest(methods.client.terminal.kill, ({ params }) => {
+    observeTerminal(methods.client.terminal.kill, params);
+    return terminalHost.kill(params);
+  })
+  .onRequest(methods.client.terminal.release, ({ params }) => {
+    observeTerminal(methods.client.terminal.release, params);
+    return terminalHost.release(params);
+  })
+  .onNotification(methods.client.session.update, ({ params }) => {
+    const update = asRecord(params.update);
+    const summary = update === null ? null : summarizeTool(update);
+    if (summary !== null) {
+      const serialized = JSON.stringify(summary);
+      if (serialized !== lastToolSummary) {
+        tools.push(summary);
+        lastToolSummary = serialized;
+      }
+    }
+  });
+const runtime = startAcpProcess(installation.command, args, app, {
   cwd: options.cwd,
   env: process.env,
-  requestTimeoutMs: 30_000,
-  reverseRequest: (method, params): JsonRecord | Promise<JsonRecord> => {
-    if (terminalHost.handles(method)) {
-      terminalRequests.push({ method, paramKeys: Object.keys(params).toSorted() });
-      return terminalHost.request(method, params);
-    }
-    permissionRequests.push({
-      method,
-      optionKinds: (Array.isArray(params.options) ? params.options : [])
-        .map((item) => asRecord(item)?.kind)
-        .filter((item): item is string => typeof item === "string"),
-    });
-    return defaultAcpReverseRequest(method, params);
-  },
-});
-const tools: JsonRecord[] = [];
-let lastToolSummary = "";
-client.onNotification((method, params) => {
-  if (method !== "session/update") {
-    return;
-  }
-  const update = asRecord(params.update);
-  const summary = update === null ? null : summarizeTool(update);
-  if (summary !== null) {
-    const serialized = JSON.stringify(summary);
-    if (serialized !== lastToolSummary) {
-      tools.push(summary);
-      lastToolSummary = serialized;
-    }
-  }
 });
 
 try {
-  const opened = await openAcpSession(client, target.profile, options);
-  const result = await client.request("session/prompt", {
-    sessionId: opened.sessionId,
-    prompt: [{
-      type: "text",
-      text: "Use the shell tool to run `printf OAR_ACP_SNAPSHOT_OK`, then reply done.",
-    }],
-  }, { timeoutMs: null });
+  const opened = await openAcpSession(runtime, target.profile, options);
+  const result = await promptAcp(
+    runtime,
+    opened.sessionId,
+    "Use the shell tool to run `printf OAR_ACP_SNAPSHOT_OK`, then reply done.",
+  );
   const capabilities = asRecord(opened.initialized.agentCapabilities);
   const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
@@ -159,10 +181,10 @@ try {
     },
   }, null, 2)}\n`);
   if (sessionCapabilities?.close !== undefined) {
-    await client.request("session/close", { sessionId: opened.sessionId }, { timeoutMs: 2000 });
+    await closeAcpSession(runtime, opened.sessionId);
   }
 } finally {
-  client.kill();
-  await client.exited;
+  runtime.kill();
+  await runtime.exited;
   await terminalHost.dispose();
 }

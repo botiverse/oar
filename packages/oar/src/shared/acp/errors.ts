@@ -1,10 +1,8 @@
-export type AcpErrorKind = "rpc" | "timeout" | "process_exited";
+export type AcpErrorKind = "timeout" | "process_exited";
 
 /** One transport error class with a discriminant instead of four nominal wrappers. */
 export class AcpError extends Error {
   readonly kind: AcpErrorKind;
-  readonly code: number | null;
-  readonly data: unknown;
   readonly exitCode: number | null;
   readonly method: string | null;
   readonly timeoutMs: number | null;
@@ -13,8 +11,6 @@ export class AcpError extends Error {
     kind: AcpErrorKind,
     message: string,
     fields: {
-      readonly code?: number;
-      readonly data?: unknown;
       readonly exitCode?: number | null;
       readonly method?: string;
       readonly timeoutMs?: number;
@@ -23,16 +19,10 @@ export class AcpError extends Error {
     super(message);
     this.name = "AcpError";
     this.kind = kind;
-    this.code = fields.code ?? null;
-    this.data = fields.data;
     this.exitCode = fields.exitCode ?? null;
     this.method = fields.method ?? null;
     this.timeoutMs = fields.timeoutMs ?? null;
   }
-}
-
-export function acpRpcError(code: number, message: string, data?: unknown): AcpError {
-  return new AcpError("rpc", message, { code, data });
 }
 
 export function acpRequestTimeoutError(method: string, timeoutMs: number): AcpError {

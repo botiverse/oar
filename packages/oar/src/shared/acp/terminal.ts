@@ -1,10 +1,27 @@
-import { methods } from "@agentclientprotocol/sdk";
+/* oxlint-disable typescript/promise-function-async -- SDK handlers deliberately return terminal promises directly. */
+import {
+  client as createClient,
+  methods,
+  RequestError,
+  type ClientApp,
+  type CreateTerminalRequest,
+  type CreateTerminalResponse,
+  type KillTerminalRequest,
+  type KillTerminalResponse,
+  type ReleaseTerminalRequest,
+  type ReleaseTerminalResponse,
+  type RequestPermissionRequest,
+  type RequestPermissionResponse,
+  type SessionNotification,
+  type TerminalOutputRequest,
+  type TerminalOutputResponse,
+  type WaitForTerminalExitRequest,
+  type WaitForTerminalExitResponse,
+} from "@agentclientprotocol/sdk";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
-import { asNumber, asRecord, type JsonRecord } from "../json.js";
-import { acpRpcError } from "./errors.js";
 
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024;
 const MAX_OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -28,9 +45,11 @@ interface TerminalState {
 }
 
 export interface AcpTerminalHost {
-  readonly enabled: true;
-  handles(method: string): boolean;
-  request(method: string, params: JsonRecord): Promise<JsonRecord>;
+  create(params: CreateTerminalRequest): Promise<CreateTerminalResponse>;
+  output(params: TerminalOutputRequest): TerminalOutputResponse;
+  waitForExit(params: WaitForTerminalExitRequest): Promise<WaitForTerminalExitResponse>;
+  kill(params: KillTerminalRequest): KillTerminalResponse;
+  release(params: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse>;
   dispose(): Promise<void>;
 }
 
@@ -38,60 +57,43 @@ export interface AcpTerminalHostOptions {
   readonly shellCommand?: boolean;
 }
 
+function allowPermission(request: RequestPermissionRequest): RequestPermissionResponse {
+  const selected = request.options.find((option) => option.kind === "allow_always")
+    ?? request.options.find((option) => option.kind === "allow_once");
+  return selected === undefined
+    ? { outcome: { outcome: "cancelled" } }
+    : { outcome: { outcome: "selected", optionId: selected.optionId } };
+}
+
+/** Compose OAR's typed ACP client handlers directly on the official SDK app. */
+export function createAcpClientApp(
+  terminal: AcpTerminalHost,
+  update: (notification: SessionNotification) => void,
+): ClientApp {
+  return createClient({ name: "oar" })
+    .onRequest(methods.client.session.requestPermission, ({ params }) => allowPermission(params))
+    .onRequest(methods.client.terminal.create, ({ params }) => terminal.create(params))
+    .onRequest(methods.client.terminal.output, ({ params }) => terminal.output(params))
+    .onRequest(methods.client.terminal.waitForExit, ({ params }) => terminal.waitForExit(params))
+    .onRequest(methods.client.terminal.kill, ({ params }) => terminal.kill(params))
+    .onRequest(methods.client.terminal.release, ({ params }) => terminal.release(params))
+    .onNotification(methods.client.session.update, ({ params }) => {
+      update(params);
+    });
+}
+
 function invalid(message: string): never {
-  throw acpRpcError(-32_602, message);
+  throw RequestError.invalidParams(undefined, message);
 }
 
-function requiredString(params: JsonRecord, name: string): string {
-  const value = params[name];
-  if (typeof value !== "string" || value.length === 0) {
-    invalid(`ACP terminal request requires ${name}`);
-  }
-  return value;
-}
-
-function stringArray(value: unknown): string[] {
-  if (value === undefined) {
-    return [];
-  }
-  if (!Array.isArray(value)) {
-    invalid("ACP terminal args must be strings");
-  }
-  return value.map((item) => {
-    if (typeof item !== "string") {
-      invalid("ACP terminal args must be strings");
-    }
-    return item;
-  });
-}
-
-function requestedEnvironment(value: unknown): NodeJS.ProcessEnv {
-  if (value === undefined) {
-    return {};
-  }
-  if (!Array.isArray(value)) {
-    invalid("ACP terminal env must be an array");
-  }
-  const environment: NodeJS.ProcessEnv = {};
-  for (const item of value) {
-    const variable = asRecord(item);
-    if (typeof variable?.name !== "string" || typeof variable.value !== "string") {
-      invalid("ACP terminal env entries require string name and value");
-    }
-    environment[variable.name] = variable.value;
-  }
-  return environment;
-}
-
-function outputLimit(value: unknown): number {
-  const requested = asNumber(value);
-  if (requested === null) {
+function outputLimit(value: number | null | undefined): number {
+  if (value === undefined || value === null) {
     return DEFAULT_OUTPUT_LIMIT;
   }
-  if (requested < 0) {
-    invalid("ACP terminal outputByteLimit cannot be negative");
+  if (!Number.isFinite(value) || value < 0) {
+    invalid("ACP terminal outputByteLimit must be finite and nonnegative");
   }
-  return Math.min(Math.floor(requested), MAX_OUTPUT_LIMIT);
+  return Math.min(Math.floor(value), MAX_OUTPUT_LIMIT);
 }
 
 function tailAtCharacterBoundary(value: string, limit: number): string {
@@ -125,13 +127,11 @@ function appendOutput(state: TerminalState, text: string): void {
 
 function terminalFor(
   terminals: ReadonlyMap<string, TerminalState>,
-  params: JsonRecord,
+  params: TerminalOutputRequest,
 ): TerminalState {
-  const terminalId = requiredString(params, "terminalId");
-  const sessionId = requiredString(params, "sessionId");
-  const terminal = terminals.get(terminalId);
-  if (terminal === undefined || terminal.sessionId !== sessionId) {
-    invalid(`Unknown ACP terminal: ${terminalId}`);
+  const terminal = terminals.get(params.terminalId);
+  if (terminal === undefined || terminal.sessionId !== params.sessionId) {
+    invalid(`Unknown ACP terminal: ${params.terminalId}`);
   }
   return terminal;
 }
@@ -143,7 +143,7 @@ async function stopTerminal(state: TerminalState): Promise<void> {
   await state.exited;
 }
 
-/** Host implementation of ACP v1's terminal reverse-RPC surface. */
+/** Host implementation of ACP v1's typed terminal reverse-RPC surface. */
 export function createAcpTerminalHost(
   cwd: string,
   environment: NodeJS.ProcessEnv,
@@ -151,24 +151,27 @@ export function createAcpTerminalHost(
 ): AcpTerminalHost {
   const terminals = new Map<string, TerminalState>();
 
-  const create = async (params: JsonRecord): Promise<JsonRecord> => {
-    const sessionId = requiredString(params, "sessionId");
-    const command = requiredString(params, "command");
-    const requestedCwd = params.cwd;
-    if (requestedCwd !== undefined && (typeof requestedCwd !== "string" || !path.isAbsolute(requestedCwd))) {
+  const create = async (params: CreateTerminalRequest): Promise<CreateTerminalResponse> => {
+    if (params.command.length === 0) {
+      invalid("ACP terminal request requires command");
+    }
+    if (params.cwd !== undefined && params.cwd !== null && !path.isAbsolute(params.cwd)) {
       invalid("ACP terminal cwd must be an absolute path");
     }
     const terminalId = randomUUID();
-    const child = spawn(command, stringArray(params.args), {
-      cwd: requestedCwd ?? cwd,
-      env: { ...environment, ...requestedEnvironment(params.env) },
+    const child = spawn(params.command, params.args ?? [], {
+      cwd: params.cwd ?? cwd,
+      env: {
+        ...environment,
+        ...Object.fromEntries((params.env ?? []).map(({ name, value }) => [name, value])),
+      },
       shell: options.shellCommand === true && params.args === undefined,
       stdio: ["ignore", "pipe", "pipe"],
     });
     const { stdout, stderr } = child;
     if (stdout === null || stderr === null) {
       child.kill("SIGKILL");
-      throw acpRpcError(-32_603, "ACP terminal process has no output streams");
+      throw RequestError.internalError(undefined, "ACP terminal process has no output streams");
     }
     const { promise: spawned, resolve: resolveSpawned, reject: rejectSpawned } =
       Promise.withResolvers<void>();
@@ -176,7 +179,7 @@ export function createAcpTerminalHost(
     const state: TerminalState = {
       child,
       exited,
-      sessionId,
+      sessionId: params.sessionId,
       stderrDecoder: new StringDecoder("utf8"),
       stdoutDecoder: new StringDecoder("utf8"),
       terminalId,
@@ -213,15 +216,15 @@ export function createAcpTerminalHost(
       await spawned;
     } catch (error) {
       terminals.delete(terminalId);
-      throw acpRpcError(
-        -32_603,
+      throw RequestError.internalError(
+        undefined,
         error instanceof Error ? error.message : "Failed to create ACP terminal",
       );
     }
     return { terminalId };
   };
 
-  const output = (params: JsonRecord): JsonRecord => {
+  const output = (params: TerminalOutputRequest): TerminalOutputResponse => {
     const state = terminalFor(terminals, params);
     return {
       output: state.output,
@@ -230,11 +233,13 @@ export function createAcpTerminalHost(
     };
   };
 
-  const waitForExit = async (params: JsonRecord): Promise<JsonRecord> => ({
+  const waitForExit = async (
+    params: WaitForTerminalExitRequest,
+  ): Promise<WaitForTerminalExitResponse> => ({
     ...await terminalFor(terminals, params).exited,
   });
 
-  const kill = (params: JsonRecord): JsonRecord => {
+  const kill = (params: KillTerminalRequest): KillTerminalResponse => {
     const state = terminalFor(terminals, params);
     if (state.exitStatus === null) {
       state.child.kill("SIGTERM");
@@ -242,7 +247,7 @@ export function createAcpTerminalHost(
     return {};
   };
 
-  const release = async (params: JsonRecord): Promise<JsonRecord> => {
+  const release = async (params: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> => {
     const state = terminalFor(terminals, params);
     terminals.delete(state.terminalId);
     await stopTerminal(state);
@@ -250,30 +255,11 @@ export function createAcpTerminalHost(
   };
 
   return {
-    enabled: true,
-    handles: (method) => method.startsWith("terminal/"),
-    async request(method, params) {
-      switch (method) {
-        case methods.client.terminal.create: {
-          const result = await create(params);
-          return result;
-        }
-        case methods.client.terminal.output:
-          return output(params);
-        case methods.client.terminal.waitForExit: {
-          const result = await waitForExit(params);
-          return result;
-        }
-        case methods.client.terminal.kill:
-          return kill(params);
-        case methods.client.terminal.release: {
-          const result = await release(params);
-          return result;
-        }
-        default:
-          throw acpRpcError(-32_601, `ACP client method not found: ${method}`);
-      }
-    },
+    create,
+    output,
+    waitForExit,
+    kill,
+    release,
     async dispose() {
       const active = [...terminals.values()];
       terminals.clear();

@@ -1,22 +1,24 @@
+/* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { ContextUsage, Session, SessionOptions, StartSession, SteerResult, Turn, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { sealSession } from "../seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
-import { acpMethods as methods, startAcpJsonRpcClient } from "./json-rpc.js";
 import {
-  defaultAcpReverseRequest,
+  closeAcpSession,
   hasAcpCapability,
   openAcpSession,
+  promptAcp,
   type AcpSessionProfile,
 } from "./profile.js";
+import { methods, startAcpProcess, type SessionNotification } from "./process.js";
 import {
   acpFailureOutcome, acpRuntimeExitedOutcome, createAcpProjectionState,
   defaultAcpPromptOutcome, finishAcpTools, projectAcpUpdate,
   type AcpProjectionState,
 } from "./projection.js";
-import { createAcpTerminalHost } from "./terminal.js";
+import { createAcpClientApp, createAcpTerminalHost } from "./terminal.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 
@@ -29,6 +31,7 @@ interface ActiveTurn {
   latestRequest: number;
 }
 
+function ignoreUpdate(_notification: SessionNotification): void {}
 export function acpSession(profile: AcpSessionProfile): StartSession {
   return async (installation: AvailableInstallation, options: SessionOptions): Promise<Session> => {
     if (installation.via !== "executable") {
@@ -40,24 +43,21 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const terminalHost = createAcpTerminalHost(options.cwd, environment, {
       shellCommand: profile.terminalShellCommand === true,
     });
-    const client = startAcpJsonRpcClient(installation.command, args, {
+    let receiveUpdate: (notification: SessionNotification) => void = ignoreUpdate;
+    const runtime = startAcpProcess(
+      installation.command,
+      args,
+      createAcpClientApp(terminalHost, (notification) => {
+        receiveUpdate(notification);
+      }),
+      {
       cwd: options.cwd,
       env: environment,
-      ...(profile.requestTimeoutMs === undefined ? {} : {
-        requestTimeoutMs: profile.requestTimeoutMs,
-      }),
-      reverseRequest: (method, params): JsonRecord | Promise<JsonRecord> => {
-        if (terminalHost.handles(method)) {
-          return terminalHost.request(method, params);
-        }
-        return profile.reverseRequest === undefined
-          ? defaultAcpReverseRequest(method, params)
-          : profile.reverseRequest(method, params);
       },
-    });
-    const opened = await openAcpSession(client, profile, options).catch(async (error: unknown) => {
-      client.kill();
-      await client.exited;
+    );
+    const opened = await openAcpSession(runtime, profile, options).catch(async (error: unknown) => {
+      runtime.kill();
+      await runtime.exited;
       await terminalHost.dispose();
       throw error;
     });
@@ -94,11 +94,11 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         });
       }
     };
-    client.onNotification((method, params) => {
-      if (method !== methods.client.session.update || params.sessionId !== opened.sessionId) {
+    receiveUpdate = (notification): void => {
+      if (notification.sessionId !== opened.sessionId) {
         return;
       }
-      const update = asRecord(params.update);
+      const update = asRecord(notification.update);
       if (update === null) {
         return;
       }
@@ -113,7 +113,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
           state.kernelTurn.emit(body);
         }
       }
-    });
+    };
     const finishRequest = (
       state: ActiveTurn,
       requestNumber: number,
@@ -139,11 +139,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       state.pending.add(requestNumber);
       void (async (): Promise<void> => {
         try {
-          const result = await client.request(methods.agent.session.prompt, {
-            sessionId: opened.sessionId,
-            prompt: [{ type: "text", text: input }],
-            ...extraParams,
-          }, { timeoutMs: null });
+          const result = await promptAcp(runtime, opened.sessionId, input, extraParams);
           contextUsage = profile.promptContextUsage?.(result) ?? contextUsage;
           finishRequest(
             state,
@@ -171,7 +167,10 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
           if (!state.abortRequested) {
             state.abortRequested = true;
             try {
-              await client.notify(methods.agent.session.cancel, { sessionId: opened.sessionId });
+              await runtime.connection.agent.notify(
+                methods.agent.session.cancel,
+                { sessionId: opened.sessionId },
+              );
             } catch (error) {
               settle(state, acpFailureOutcome(error));
             }
@@ -181,7 +180,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
             if (!state.kernelTurn.settled()) {
               dead = true;
               settle(state, { kind: "aborted" });
-              client.kill();
+              runtime.kill();
             }
           }, timeoutMs);
           fallback.unref();
@@ -190,15 +189,15 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         },
         ...(steerParams === undefined ? {} : {
           steer: async (input: string): Promise<SteerResult> => {
-            await client.spawned;
+            await runtime.spawned;
             if (state.kernelTurn.settled() || active !== state) {
               return {
                 kind: "not_steerable" as const,
                 reason: "turn already ended",
               };
             }
-            if (client.closed) {
-              throw acpProcessExitedError(null);
+            if (runtime.closed) {
+              throw acpProcessExitedError(runtime.exitCode);
             }
             startVendorPrompt(state, input, steerParams(input));
             return { kind: "accepted" as const };
@@ -220,7 +219,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         latestRequest: 0,
       };
       active = state;
-      if (dead || client.closed) {
+      if (dead || runtime.closed) {
         settle(state, acpRuntimeExitedOutcome(null));
       } else {
         startVendorPrompt(state, input);
@@ -231,7 +230,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       if (disposed || active !== null) {
         return;
       }
-      if (dead || client.closed) {
+      if (dead || runtime.closed) {
         failHeld();
         return;
       }
@@ -240,7 +239,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         beginInput(input);
       }
     }
-    client.onExit((code) => {
+    const onRuntimeExit = (code: number | null): void => {
       void terminalHost.dispose();
       if (disposed) {
         return;
@@ -250,7 +249,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         settle(active, acpRuntimeExitedOutcome(code));
       }
       failHeld();
-    });
+    };
+    // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
+    void runtime.exited.then(onRuntimeExit);
     return sealSession({
       id: kernel.sessionId,
       prompt(input) {
@@ -262,9 +263,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       queue: {
         durable: false,
         add: async (input): Promise<void> => {
-          await client.spawned;
-          if (disposed || dead || client.closed) {
-            throw acpProcessExitedError(null);
+          await runtime.spawned;
+          if (disposed || dead || runtime.closed) {
+            throw acpProcessExitedError(runtime.exitCode);
           }
           held.push(input);
           queueMicrotask(drainHeld);
@@ -278,21 +279,20 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         held.splice(0);
         if (active !== null && !active.kernelTurn.settled()) {
           try {
-            await client.notify(methods.agent.session.cancel, { sessionId: opened.sessionId });
+            await runtime.connection.agent.notify(
+              methods.agent.session.cancel,
+              { sessionId: opened.sessionId },
+            );
           } catch {
             // Local settlement below is authoritative during disposal.
           }
           settle(active, { kind: "aborted" });
         }
-        if (supportsClose && !client.closed) {
-          await client.request(
-            methods.agent.session.close,
-            { sessionId: opened.sessionId },
-            { timeoutMs: 2000 },
-          ).catch(() => {});
+        if (supportsClose && !runtime.closed) {
+          await closeAcpSession(runtime, opened.sessionId).catch(() => {});
         }
-        client.kill();
-        await client.exited;
+        runtime.kill();
+        await runtime.exited;
         await terminalHost.dispose();
       },
     });

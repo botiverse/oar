@@ -34,9 +34,13 @@ export const kimiAcpProfile: AcpSessionProfile = {
   requestTimeoutMs: 30_000,
   selectAuthMethod: selectKimiAuthMethod,
   validateOptions: validateKimiOptions,
-  configureSession: async ({ client, sessionId, response }) => {
+  configureSession: async ({ connection, sessionId, response, requestOptions }) => {
     if (supportsKimiYolo(response)) {
-      await client.request("session/set_mode", { sessionId, modeId: "yolo" });
+      await connection.agent.request(
+        "session/set_mode",
+        { sessionId, modeId: "yolo" },
+        requestOptions,
+      );
     }
   },
 };
