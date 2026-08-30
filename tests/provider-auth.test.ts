@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { toLoginEvent, toLoginPrompt } from "../packages/oar/src/providers/pi/auth.js";
+import { toLoginEvent, toLoginPrompt } from "../packages/oar/src/runtimes/pi/auth.js";
 
 test("device_code and auth_url events surface the login link", () => {
   expect(toLoginEvent({
