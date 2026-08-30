@@ -2,7 +2,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { createPiModelCatalog } from "../packages/oar/src/providers/pi/catalog.js";
+import { createPiModelCatalog } from "../packages/oar/src/runtimes/pi/catalog.js";
 
 // Exercises the real Pi model catalog (built-in providers load without network
 // or credentials), asserting the provider-independent shape we expose.
