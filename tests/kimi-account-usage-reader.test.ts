@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -7,11 +7,7 @@ import type {
   ExecutableRunOptions,
 } from "../packages/oar/src/shared/executable/index.js";
 import { kimiAccountUsage } from "../packages/oar/src/runtimes/kimi/account-usage.js";
-import {
-  resolveKimiAuth,
-  type KimiAuthContext,
-} from "../packages/oar/src/runtimes/kimi/auth-config.js";
-import { freshKimiAccessToken } from "../packages/oar/src/runtimes/kimi/oauth-token.js";
+import { resolveKimiAuth } from "../packages/oar/src/runtimes/kimi/auth-config.js";
 
 const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ runExecutable }));
@@ -144,40 +140,38 @@ test("kimi auth resolution scopes environment overrides to their own credential"
   expect(auth?.credentialPath).toBe(join(home, "credentials", `${auth?.storageName}.json`));
 });
 
-test("kimi OAuth refresh shares the runtime lock and atomically rotates its token", async () => {
+test("kimi reader sends the stored token as-is and maps a stale 401 to reauth", async () => {
   const home = await temporaryKimiHome();
-  const credentialPath = await writeToken(home, Math.floor(Date.now() / 1000) - 60);
-  const auth: KimiAuthContext = {
-    baseUrl: "https://api.kimi.com/coding/v1",
-    oauthHost: "https://auth.kimi.com",
-    storage: "file",
-    storageName: "kimi-code",
-    home,
-    credentialPath,
-  };
+  vi.stubEnv("KIMI_CODE_HOME", home);
+  await writeToken(home, Math.floor(Date.now() / 1000) - 60);
+  mockDefaultProviderList();
   const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
-    expect([input, init?.body]).toEqual([
-      "https://auth.kimi.com/api/oauth/token",
-      "client_id=17e5f671-d194-4dfb-9706-5516cb48c098&grant_type=refresh_token"
-        + "&refresh_token=old-refresh",
-    ]);
-    return Response.json({
-      access_token: "new-access",
-      refresh_token: "new-refresh",
-      expires_in: 7200,
-      scope: "openid",
-      token_type: "Bearer",
-    });
+    expect(new URL(input.toString()).origin).toBe("https://api.kimi.com");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer old-access");
+    return new Response("expired", { status: 401 });
   });
   vi.stubGlobal("fetch", fetchMock);
 
-  await expect(freshKimiAccessToken(auth, "0.38.0", Date.now() + 5000))
-    .resolves.toBe("new-access");
-  expect(JSON.parse(await readFile(credentialPath, "utf8"))).toMatchObject({
-    access_token: "new-access",
-    refresh_token: "new-refresh",
-    expires_in: 7200,
-  });
-  await expect(stat(join(home, "oauth", "kimi-code.lock")))
-    .rejects.toMatchObject({ code: "ENOENT" });
+  await expect(kimiAccountUsage({
+    kind: "available",
+    via: "executable",
+    command: "kimi",
+    version: "0.38.0",
+  })).resolves.toEqual({ kind: "reauth_required" });
+});
+
+test("kimi reader reports reauth without any request when no token is stored", async () => {
+  const home = await temporaryKimiHome();
+  vi.stubEnv("KIMI_CODE_HOME", home);
+  mockDefaultProviderList();
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(kimiAccountUsage({
+    kind: "available",
+    via: "executable",
+    command: "kimi",
+    version: "0.38.0",
+  })).resolves.toEqual({ kind: "reauth_required" });
+  expect(fetchMock).not.toHaveBeenCalled();
 });
