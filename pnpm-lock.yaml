@@ -86,10 +86,16 @@ importers:
       cross-spawn:
         specifier: ^7.0.6
         version: 7.0.6
+      which:
+        specifier: ^2.0.2
+        version: 2.0.2
     devDependencies:
       '@types/cross-spawn':
         specifier: ^6.0.6
         version: 6.0.6
+      '@types/which':
+        specifier: ^2.0.2
+        version: 2.0.2
     optionalDependencies:
       '@earendil-works/pi-coding-agent':
         specifier: ^0.84.2
@@ -1370,6 +1376,9 @@ packages:
 
   '@types/retry@0.12.0':
     resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
+
+  '@types/which@2.0.2':
+    resolution: {integrity: sha512-113D3mDkZDjo+EeUEHCFy0qniNc1ZpecGiAU7WSo7YDoSzolZIQKpYFHrPpjkB2nuyahcKfrmLXeQlh7gqJYdw==}
 
   '@vitejs/plugin-react@5.2.0':
     resolution: {integrity: sha512-YmKkfhOAi3wsB1PhJq5Scj3GXMn3WvtQ/JC0xoopuHoXSdmtdStOpFrYaT1kie2YgFBcIe64ROzMYRjCrYOdYw==}
@@ -3309,6 +3318,8 @@ snapshots:
       csstype: 3.2.3
 
   '@types/retry@0.12.0': {}
+
+  '@types/which@2.0.2': {}
 
   '@vitejs/plugin-react@5.2.0(vite@7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.12)(yaml@2.9.0))':
     dependencies:
