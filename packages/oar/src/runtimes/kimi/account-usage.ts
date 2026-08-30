@@ -7,7 +7,7 @@ import type {
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
 import { kimiRemainingMs, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
-import { freshKimiAccessToken, KimiReauthError } from "./oauth-token.js";
+import { KimiReauthError, storedKimiAccessToken } from "./oauth-token.js";
 
 interface UsageWindowSpec {
   readonly duration: number;
@@ -252,7 +252,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     return { kind: "unsupported" };
   }
   try {
-    const accessToken = await freshKimiAccessToken(auth, installation.version, deadline);
+    const accessToken = await storedKimiAccessToken(auth);
     const [response, email] = await Promise.all([
       fetchUsage(auth, accessToken, deadline),
       fetchAccountEmail(auth, accessToken, deadline),
