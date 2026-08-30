@@ -125,7 +125,11 @@ function resetInstant(value: unknown): UtcInstant | null {
  * }
  * ```
  */
-export function projectClaudeUsage(payload: unknown, email?: string): AccountUsageSnapshot {
+export function projectClaudeUsage(
+  payload: unknown,
+  email?: string,
+  plan?: string,
+): AccountUsageSnapshot {
   const limits = asRecord(payload)?.limits;
   const windows: AccountUsageWindow[] = [];
   let rateLimited = false;
@@ -150,10 +154,21 @@ export function projectClaudeUsage(payload: unknown, email?: string): AccountUsa
   }
   return {
     kind: "available",
+    ...(plan === undefined ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
     rateLimited,
     windows,
   };
+}
+
+/** Extract Claude Code's explicit subscription tier from a confirmed login. */
+export function claudeAccountPlan(payload: unknown): string | undefined {
+  const authStatus = asRecord(payload);
+  if (authStatus?.loggedIn !== true || typeof authStatus.subscriptionType !== "string") {
+    return undefined;
+  }
+  const plan = authStatus.subscriptionType.trim();
+  return plan.length > 0 ? plan : undefined;
 }
 
 /**
@@ -183,6 +198,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   const email = authStatus?.loggedIn === true && typeof authStatus.email === "string"
     ? authStatus.email
     : undefined;
+  const plan = claudeAccountPlan(authStatus);
   if (typeof authStatus?.apiKeySource === "string") {
     // An API key takes precedence over any claude.ai login, and API-key billing
     // has no subscription usage windows.
@@ -204,5 +220,5 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
     throw new Error(`Claude usage endpoint returned HTTP ${response.status}`);
   }
   const payload: unknown = parseJson(await response.text());
-  return projectClaudeUsage(payload, email);
+  return projectClaudeUsage(payload, email, plan);
 };

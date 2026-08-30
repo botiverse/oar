@@ -77,7 +77,11 @@ test("kimi reader follows the CLI's resolved provider and stored token", async (
   const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer old-access");
     return input === "https://api.kimi.com/coding/v1/me"
-      ? Response.json({ user_id: "user-1", email: "person@example.com" })
+      ? Response.json({
+          user_id: "user-1",
+          email: "person@example.com",
+          user_level_name: "Vivace",
+        })
       : Response.json({
           usage: { used: "25", limit: "100", resetTime: "2030-01-01T00:00:00Z" },
         });
@@ -92,6 +96,7 @@ test("kimi reader follows the CLI's resolved provider and stored token", async (
   })).resolves.toMatchObject({
     kind: "available",
     email: "person@example.com",
+    plan: "Vivace",
     rateLimited: false,
     windows: [{ label: "Weekly limit", usedRatio: 0.25 }],
   });

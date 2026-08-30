@@ -20,6 +20,7 @@ export interface AccountUsageWindow {
 export type AccountUsageSnapshot =
   | {
       readonly kind: "available";
+      /** Runtime-reported subscription plan or tier; omitted when not exposed. */
       readonly plan?: string;
       /** Signed-in account email; omitted when the runtime does not expose one. */
       readonly email?: string;

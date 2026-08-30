@@ -28,6 +28,11 @@ interface BoosterWallet {
   readonly monthlyUsed: number;
 }
 
+interface KimiAccountIdentity {
+  readonly email?: string;
+  readonly plan?: string;
+}
+
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -152,8 +157,18 @@ export function kimiAccountEmail(payload: unknown): string | undefined {
   return text(profile?.user_id) === undefined ? undefined : text(profile?.email);
 }
 
+/** Extract the human-readable membership level reported by Kimi's `/me` profile. */
+export function kimiAccountPlan(payload: unknown): string | undefined {
+  const profile = asRecord(payload);
+  return text(profile?.user_id) === undefined ? undefined : text(profile?.user_level_name);
+}
+
 /** Project the same managed quota rows that Kimi Code 0.38.0 renders in `/usage`. */
-export function projectKimiUsage(payload: unknown, email?: string): AccountUsageSnapshot {
+export function projectKimiUsage(
+  payload: unknown,
+  email?: string,
+  plan?: string,
+): AccountUsageSnapshot {
   const root = asRecord(payload);
   const rows: UsageRow[] = [];
   const summary = usageRow(root?.usage, { window: { duration: 1, unit: "week" } });
@@ -192,6 +207,7 @@ export function projectKimiUsage(payload: unknown, email?: string): AccountUsage
     && (extraUsage.monthlyLimit === null || extraUsage.monthlyUsed < extraUsage.monthlyLimit);
   return {
     kind: "available",
+    ...(plan === undefined ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
     rateLimited: rows.some((row) => projectWindow(row)?.usedRatio === 1) && !extraUsageHeadroom,
     windows,
@@ -216,11 +232,11 @@ async function fetchUsage(
   }
 }
 
-async function fetchAccountEmail(
+async function fetchAccountIdentity(
   auth: KimiAuthContext,
   accessToken: string,
   deadline: number,
-): Promise<string | undefined> {
+): Promise<KimiAccountIdentity> {
   try {
     const response = await fetch(`${auth.baseUrl}/me`, {
       headers: {
@@ -230,13 +246,19 @@ async function fetchAccountEmail(
       signal: AbortSignal.timeout(kimiRemainingMs(deadline)),
     });
     if (!response.ok) {
-      return undefined;
+      return {};
     }
-    return kimiAccountEmail(parseJson(await response.text()));
+    const profile = parseJson(await response.text());
+    const email = kimiAccountEmail(profile);
+    const plan = kimiAccountPlan(profile);
+    return {
+      ...(email === undefined ? {} : { email }),
+      ...(plan === undefined ? {} : { plan }),
+    };
   } catch {
     // Identity is a best-effort add-on: a missing/older profile endpoint or a
     // transient failure must not discard an otherwise valid quota snapshot.
-    return undefined;
+    return {};
   }
 }
 
@@ -253,9 +275,9 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
   }
   try {
     const accessToken = await storedKimiAccessToken(auth);
-    const [response, email] = await Promise.all([
+    const [response, identity] = await Promise.all([
       fetchUsage(auth, accessToken, deadline),
-      fetchAccountEmail(auth, accessToken, deadline),
+      fetchAccountIdentity(auth, accessToken, deadline),
     ]);
     if (response.status === 401 || response.status === 403) {
       return { kind: "reauth_required" };
@@ -266,7 +288,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     if (!response.ok) {
       throw new Error(`Kimi usage endpoint returned HTTP ${response.status}`);
     }
-    return projectKimiUsage(parseJson(await response.text()), email);
+    return projectKimiUsage(parseJson(await response.text()), identity.email, identity.plan);
   } catch (error) {
     if (error instanceof KimiReauthError) {
       return { kind: "reauth_required" };

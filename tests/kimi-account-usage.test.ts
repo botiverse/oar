@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   kimiAccountEmail,
+  kimiAccountPlan,
   projectKimiUsage,
 } from "../packages/oar/src/runtimes/kimi/account-usage.js";
 
@@ -37,11 +38,12 @@ const managedUsageFixture = {
 };
 
 test("kimi projection mirrors the managed quota rows rendered by /usage", () => {
-  const snapshot = projectKimiUsage(managedUsageFixture, "person@example.com");
+  const snapshot = projectKimiUsage(managedUsageFixture, "person@example.com", "Vivace");
   expect(snapshot).toMatchInlineSnapshot(`
     {
       "email": "person@example.com",
       "kind": "available",
+      "plan": "Vivace",
       "rateLimited": false,
       "windows": [
         {
@@ -72,6 +74,14 @@ test("kimi account email requires an authenticated profile shape", () => {
     .toBe("person@example.com");
   expect(kimiAccountEmail({ email: "person@example.com" })).toBeUndefined();
   expect(kimiAccountEmail({ user_id: "user-1", email: "" })).toBeUndefined();
+});
+
+test("kimi account plan requires the authenticated profile's named membership level", () => {
+  expect(kimiAccountPlan({ user_id: "user-1", user_level_name: " Vivace " }))
+    .toBe("Vivace");
+  expect(kimiAccountPlan({ user_level_name: "Vivace" })).toBeUndefined();
+  expect(kimiAccountPlan({ user_id: "user-1", user_level_name: "" })).toBeUndefined();
+  expect(kimiAccountPlan({ user_id: "user-1", user_level: 4 })).toBeUndefined();
 });
 
 test("kimi projection clamps exhausted windows and skips unusable limits", () => {

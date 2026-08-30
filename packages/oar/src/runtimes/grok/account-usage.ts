@@ -76,8 +76,12 @@ export function projectGrokUsage(result: unknown, email?: string): AccountUsageS
     usedRatio: Number(onDemandRatio.toFixed(6)),
     ...(resetsAt === undefined ? {} : { resetsAt }),
   }])];
-  const plan = typeof root?.subscriptionTier === "string" && root.subscriptionTier.length > 0
-    ? root.subscriptionTier
+  // The current ACP extension serializes its Rust top-level field as
+  // `subscription_tier`; accept the earlier camel-case spelling as a
+  // compatibility fallback. Nested billing config fields remain camel-case.
+  const rawPlan = root?.subscription_tier ?? root?.subscriptionTier;
+  const plan = typeof rawPlan === "string" && rawPlan.trim().length > 0
+    ? rawPlan.trim()
     : undefined;
   // Grok's own credit-bar projection treats a positive prepaid balance or an
   // unexhausted on-demand cap as usable headroom after included usage reaches

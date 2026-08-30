@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
+import {
+  claudeAccountPlan,
+  projectClaudeUsage,
+} from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { accountEmail, projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
 import {
   grokAccountEmail,
@@ -170,13 +173,25 @@ test("codex accountEmail accepts only a chatgpt account", () => {
   expect(accountEmail({})).toBeUndefined();
 });
 
-test("claude projection includes the account email when supplied", () => {
+test("claude projection includes the account identity when supplied", () => {
   const snapshot = projectClaudeUsage(
     { limits: [{ kind: "weekly_scoped", percent: 22, severity: "normal", resets_at: null,
       scope: { model: { display_name: "Fable" } } }] },
     "person@example.com",
+    "max",
   );
-  expect(snapshot).toMatchObject({ kind: "available", email: "person@example.com" });
+  expect(snapshot).toMatchObject({
+    kind: "available",
+    email: "person@example.com",
+    plan: "max",
+  });
+});
+
+test("claude account plan accepts only an explicit confirmed-login tier", () => {
+  expect(claudeAccountPlan({ loggedIn: true, subscriptionType: " max " })).toBe("max");
+  expect(claudeAccountPlan({ loggedIn: false, subscriptionType: "max" })).toBeUndefined();
+  expect(claudeAccountPlan({ loggedIn: true, subscriptionType: "" })).toBeUndefined();
+  expect(claudeAccountPlan({ loggedIn: true, subscriptionType: 42 })).toBeUndefined();
 });
 
 test("claude projection throws when the endpoint reports no limits", () => {
@@ -197,7 +212,7 @@ test("grok projection preserves the vendor billing window and authenticated emai
       isUnifiedBillingUser: true,
     },
     onDemandEnabled: true,
-    subscriptionTier: "SuperGrok",
+    subscription_tier: "SuperGrok",
   }, "person@example.com");
   expect(snapshot).toMatchInlineSnapshot(`
     {

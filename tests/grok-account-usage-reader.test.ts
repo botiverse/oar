@@ -38,7 +38,7 @@ const installation = {
 function billing(): unknown {
   return {
     config: { creditUsagePercent: 25 },
-    subscriptionTier: "SuperGrok",
+    subscription_tier: "SuperGrok",
   };
 }
 
