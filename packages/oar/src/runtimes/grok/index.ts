@@ -10,5 +10,5 @@ export const grokRuntime = defineRuntime({
   session: grokSession,
 });
 
-export { grokAccountUsage, projectGrokUsage } from "./account-usage.js";
+export { grokAccountEmail, grokAccountUsage, projectGrokUsage } from "./account-usage.js";
 export { grokSession } from "./session.js";

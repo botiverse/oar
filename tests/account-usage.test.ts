@@ -1,7 +1,10 @@
 import { expect, test } from "vitest";
 import { projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { accountEmail, projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
-import { projectGrokUsage } from "../packages/oar/src/runtimes/grok/account-usage.js";
+import {
+  grokAccountEmail,
+  projectGrokUsage,
+} from "../packages/oar/src/runtimes/grok/account-usage.js";
 
 const separateLimits = {
   rateLimits: {
@@ -181,7 +184,7 @@ test("claude projection throws when the endpoint reports no limits", () => {
   expect(() => projectClaudeUsage({})).toThrow(/no usable windows/u);
 });
 
-test("grok projection preserves the vendor billing window without leaking its transport", () => {
+test("grok projection preserves the vendor billing window and authenticated email", () => {
   const snapshot = projectGrokUsage({
     config: {
       creditUsagePercent: 22.5,
@@ -195,9 +198,10 @@ test("grok projection preserves the vendor billing window without leaking its tr
     },
     onDemandEnabled: true,
     subscriptionTier: "SuperGrok",
-  });
+  }, "person@example.com");
   expect(snapshot).toMatchInlineSnapshot(`
     {
+      "email": "person@example.com",
       "kind": "available",
       "plan": "SuperGrok",
       "rateLimited": false,
@@ -210,6 +214,12 @@ test("grok projection preserves the vendor billing window without leaking its tr
       ],
     }
   `);
+});
+
+test("grok account email accepts only a non-empty auth-info field", () => {
+  expect(grokAccountEmail({ email: " person@example.com " })).toBe("person@example.com");
+  expect(grokAccountEmail({ email: "" })).toBeUndefined();
+  expect(grokAccountEmail({ email: 42 })).toBeUndefined();
 });
 
 test("grok projection falls back to legacy used/limit cents", () => {

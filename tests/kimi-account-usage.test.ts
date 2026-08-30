@@ -1,5 +1,8 @@
 import { expect, test } from "vitest";
-import { projectKimiUsage } from "../packages/oar/src/runtimes/kimi/account-usage.js";
+import {
+  kimiAccountEmail,
+  projectKimiUsage,
+} from "../packages/oar/src/runtimes/kimi/account-usage.js";
 
 const managedUsageFixture = {
   usage: {
@@ -34,9 +37,10 @@ const managedUsageFixture = {
 };
 
 test("kimi projection mirrors the managed quota rows rendered by /usage", () => {
-  const snapshot = projectKimiUsage(managedUsageFixture);
+  const snapshot = projectKimiUsage(managedUsageFixture, "person@example.com");
   expect(snapshot).toMatchInlineSnapshot(`
     {
+      "email": "person@example.com",
       "kind": "available",
       "rateLimited": false,
       "windows": [
@@ -61,6 +65,13 @@ test("kimi projection mirrors the managed quota rows rendered by /usage", () => 
       ],
     }
   `);
+});
+
+test("kimi account email requires an authenticated profile shape", () => {
+  expect(kimiAccountEmail({ user_id: "user-1", email: " person@example.com " }))
+    .toBe("person@example.com");
+  expect(kimiAccountEmail({ email: "person@example.com" })).toBeUndefined();
+  expect(kimiAccountEmail({ user_id: "user-1", email: "" })).toBeUndefined();
 });
 
 test("kimi projection clamps exhausted windows and skips unusable limits", () => {

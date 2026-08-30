@@ -146,8 +146,14 @@ function boosterWallet(value: unknown): BoosterWallet | null {
   };
 }
 
+/** Extract identity only from Kimi's authenticated `/me` profile shape. */
+export function kimiAccountEmail(payload: unknown): string | undefined {
+  const profile = asRecord(payload);
+  return text(profile?.user_id) === undefined ? undefined : text(profile?.email);
+}
+
 /** Project the same managed quota rows that Kimi Code 0.38.0 renders in `/usage`. */
-export function projectKimiUsage(payload: unknown): AccountUsageSnapshot {
+export function projectKimiUsage(payload: unknown, email?: string): AccountUsageSnapshot {
   const root = asRecord(payload);
   const rows: UsageRow[] = [];
   const summary = usageRow(root?.usage, { window: { duration: 1, unit: "week" } });
@@ -186,6 +192,7 @@ export function projectKimiUsage(payload: unknown): AccountUsageSnapshot {
     && (extraUsage.monthlyLimit === null || extraUsage.monthlyUsed < extraUsage.monthlyLimit);
   return {
     kind: "available",
+    ...(email === undefined ? {} : { email }),
     rateLimited: rows.some((row) => projectWindow(row)?.usedRatio === 1) && !extraUsageHeadroom,
     windows,
   };
@@ -209,6 +216,30 @@ async function fetchUsage(
   }
 }
 
+async function fetchAccountEmail(
+  auth: KimiAuthContext,
+  accessToken: string,
+  deadline: number,
+): Promise<string | undefined> {
+  try {
+    const response = await fetch(`${auth.baseUrl}/me`, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Accept": "application/json",
+      },
+      signal: AbortSignal.timeout(kimiRemainingMs(deadline)),
+    });
+    if (!response.ok) {
+      return undefined;
+    }
+    return kimiAccountEmail(parseJson(await response.text()));
+  } catch {
+    // Identity is a best-effort add-on: a missing/older profile endpoint or a
+    // transient failure must not discard an otherwise valid quota snapshot.
+    return undefined;
+  }
+}
+
 export const kimiAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported" };
@@ -222,7 +253,10 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
   }
   try {
     const accessToken = await freshKimiAccessToken(auth, installation.version, deadline);
-    const response = await fetchUsage(auth, accessToken, deadline);
+    const [response, email] = await Promise.all([
+      fetchUsage(auth, accessToken, deadline),
+      fetchAccountEmail(auth, accessToken, deadline),
+    ]);
     if (response.status === 401 || response.status === 403) {
       return { kind: "reauth_required" };
     }
@@ -232,7 +266,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     if (!response.ok) {
       throw new Error(`Kimi usage endpoint returned HTTP ${response.status}`);
     }
-    return projectKimiUsage(parseJson(await response.text()));
+    return projectKimiUsage(parseJson(await response.text()), email);
   } catch (error) {
     if (error instanceof KimiReauthError) {
       return { kind: "reauth_required" };

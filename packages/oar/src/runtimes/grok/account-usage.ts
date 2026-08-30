@@ -34,7 +34,17 @@ function periodLabel(value: unknown): string {
   return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)} included usage`;
 }
 
-export function projectGrokUsage(result: unknown): AccountUsageSnapshot {
+/** Extract identity only from Grok's authenticated `_x.ai/auth/info` result. */
+export function grokAccountEmail(result: unknown): string | undefined {
+  const email = asRecord(result)?.email;
+  if (typeof email !== "string") {
+    return undefined;
+  }
+  const trimmed = email.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function projectGrokUsage(result: unknown, email?: string): AccountUsageSnapshot {
   const root = asRecord(result);
   const config = asRecord(root?.config);
   if (config === null) {
@@ -78,12 +88,18 @@ export function projectGrokUsage(result: unknown): AccountUsageSnapshot {
   return {
     kind: "available",
     ...(plan === undefined ? {} : { plan }),
+    ...(email === undefined ? {} : { email }),
     rateLimited,
     windows,
   };
 }
 
-async function readBilling(command: string, timeoutMs: number): Promise<JsonRecord> {
+interface GrokAccountPayload {
+  readonly billing: JsonRecord;
+  readonly email?: string;
+}
+
+async function readBilling(command: string, timeoutMs: number): Promise<GrokAccountPayload> {
   const runtime = startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
@@ -131,7 +147,25 @@ async function readBilling(command: string, timeoutMs: number): Promise<JsonReco
         requestOptions,
       ),
     );
-    return billing;
+    let email: string | undefined = undefined;
+    try {
+      const authInfo = await withAcpDeadline(
+        runtime,
+        "_x.ai/auth/info",
+        timeoutMs,
+        (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+          "_x.ai/auth/info",
+          {},
+          requestOptions,
+        ),
+      );
+      email = grokAccountEmail(authInfo);
+    } catch {
+      // Older Grok builds and transient identity failures must not hide the
+      // billing result that was already read successfully.
+      email = undefined;
+    }
+    return { billing, ...(email === undefined ? {} : { email }) };
   } finally {
     runtime.kill();
     await runtime.exited;
@@ -143,7 +177,8 @@ export const grokAccountUsage: AccountUsageReader = async (installation, options
     return { kind: "unsupported" };
   }
   try {
-    return projectGrokUsage(await readBilling(installation.command, options.timeoutMs ?? 10_000));
+    const payload = await readBilling(installation.command, options.timeoutMs ?? 10_000);
+    return projectGrokUsage(payload.billing, payload.email);
   } catch (error) {
     if (error instanceof RequestError) {
       if (error.code === -32_601) {

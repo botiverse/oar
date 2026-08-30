@@ -79,11 +79,12 @@ test("kimi reader follows the CLI's resolved provider and stored token", async (
   await writeToken(home, Math.floor(Date.now() / 1000) + 3600);
   mockDefaultProviderList();
   const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
-    expect(input).toBe("https://api.kimi.com/coding/v1/usages");
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer old-access");
-    return Response.json({
-      usage: { used: "25", limit: "100", resetTime: "2030-01-01T00:00:00Z" },
-    });
+    return input === "https://api.kimi.com/coding/v1/me"
+      ? Response.json({ user_id: "user-1", email: "person@example.com" })
+      : Response.json({
+          usage: { used: "25", limit: "100", resetTime: "2030-01-01T00:00:00Z" },
+        });
   });
   vi.stubGlobal("fetch", fetchMock);
 
@@ -94,10 +95,35 @@ test("kimi reader follows the CLI's resolved provider and stored token", async (
     version: "0.38.0",
   })).resolves.toMatchObject({
     kind: "available",
+    email: "person@example.com",
     rateLimited: false,
     windows: [{ label: "Weekly limit", usedRatio: 0.25 }],
   });
-  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(fetchMock.mock.calls.map(([input]) => input)).toEqual([
+    "https://api.kimi.com/coding/v1/usages",
+    "https://api.kimi.com/coding/v1/me",
+  ]);
+});
+
+test("kimi reader keeps usage when the optional identity endpoint fails", async () => {
+  const home = await temporaryKimiHome();
+  vi.stubEnv("KIMI_CODE_HOME", home);
+  await writeToken(home, Math.floor(Date.now() / 1000) + 3600);
+  mockDefaultProviderList();
+  vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => input.toString().endsWith("/me")
+    ? new Response("unavailable", { status: 503 })
+    : Response.json({ usage: { used: "25", limit: "100" } })));
+
+  await expect(kimiAccountUsage({
+    kind: "available",
+    via: "executable",
+    command: "kimi",
+    version: "0.38.0",
+  })).resolves.toEqual({
+    kind: "available",
+    rateLimited: false,
+    windows: [{ label: "Weekly limit", usedRatio: 0.25 }],
+  });
 });
 
 test("kimi auth resolution scopes environment overrides to their own credential", async () => {
