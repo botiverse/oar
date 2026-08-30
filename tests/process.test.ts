@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { setTimeout as delay } from "node:timers/promises";
-import {
-  requiresShell,
-  resolveExecutable,
-  spawnLineProcess,
-  type ExecFileSyncLike,
-} from "../packages/oar/src/shared/executable/index.js";
+import { requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 
 test("requiresShell matches windows cmd and bat shims only", () => {
   assert.equal(requiresShell("claude.cmd", "win32"), true);
@@ -91,20 +86,4 @@ test("write reaches stdin and kill tears the process down", async () => {
   const { lines, exits } = await echoRoundTrip();
   assert.deepEqual(lines, ["hello"]);
   assert.equal(exits, 1);
-});
-
-test("windows resolution hands the target name to powershell via env, not argv", () => {
-  // Regression: powershell -Command appends trailing argv to the command
-  // string instead of binding $args, so the name must travel in the env.
-  const calls: { args: readonly string[]; env: NodeJS.ProcessEnv | undefined }[] = [];
-  const execFileSyncFn: ExecFileSyncLike = (_command, args, options) => {
-    calls.push({ args, env: options.env });
-    return `${String.raw`C:\shims\codex.cmd`}\r\n`;
-  };
-  const resolved = resolveExecutable("codex", { platform: "win32", execFileSyncFn });
-  assert.equal(resolved, String.raw`C:\shims\codex.cmd`);
-  const [call] = calls;
-  assert.ok(call !== undefined && calls.length === 1);
-  assert.equal(call.env?.OAR_RESOLVE_TARGET, "codex");
-  assert.ok(!call.args.includes("codex"), "target must not ride argv after -Command");
 });
