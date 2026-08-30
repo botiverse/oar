@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { grokAccountUsage } from "../packages/oar/src/runtimes/grok/account-usage.js";
+import { grokAccountUsage } from "../../packages/oar/src/runtimes/grok/account-usage.js";
 
 const acp = vi.hoisted(() => ({
   kill: vi.fn<() => void>(),
@@ -10,7 +10,7 @@ const acp = vi.hoisted(() => ({
   ) => Promise<unknown>>(),
 }));
 
-vi.mock("../packages/oar/src/shared/acp/process.js", () => ({
+vi.mock("../../packages/oar/src/shared/acp/process.js", () => ({
   startAcpProcess: vi.fn(() => ({
     connection: { agent: { request: acp.request } },
     spawned: Promise.resolve(),

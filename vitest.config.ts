@@ -3,8 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: [
-      "tests/*.test.ts",
-      "tests/replay/*.test.ts",
+      "tests/**/*.test.ts",
       "sea-trial/vendor/*.test.ts",
       "apps/coxswain/test/*.test.ts",
     ],

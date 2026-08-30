@@ -4,7 +4,7 @@ import {
   createAcpTerminalHost,
   type AcpTerminalHost,
   type AcpTerminalHostOptions,
-} from "../packages/oar/src/shared/acp/terminal.js";
+} from "../../packages/oar/src/shared/acp/terminal.js";
 
 const hosts: AcpTerminalHost[] = [];
 

@@ -5,12 +5,12 @@ import { afterEach, expect, test, vi } from "vitest";
 import type {
   ExecutableRunner,
   ExecutableRunOptions,
-} from "../packages/oar/src/shared/executable/index.js";
-import { kimiAccountUsage } from "../packages/oar/src/runtimes/kimi/account-usage.js";
-import { resolveKimiAuth } from "../packages/oar/src/runtimes/kimi/auth-config.js";
+} from "../../packages/oar/src/shared/executable/index.js";
+import { kimiAccountUsage } from "../../packages/oar/src/runtimes/kimi/account-usage.js";
+import { resolveKimiAuth } from "../../packages/oar/src/runtimes/kimi/auth-config.js";
 
 const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
-vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ runExecutable }));
+vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ runExecutable }));
 
 const temporaryDirectories: string[] = [];
 const defaultProviderList = {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { codexReasoningContent } from "../packages/oar/src/runtimes/codex/reasoning.js";
+import { codexReasoningContent } from "../../packages/oar/src/runtimes/codex/reasoning.js";
 
 describe("codex reasoning projection", () => {
   test("distinguishes readable, encrypted, empty, and unrelated items", () => {
