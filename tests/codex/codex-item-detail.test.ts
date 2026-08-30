@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   codexItemInput,
   codexItemOutput,
-} from "../packages/oar/src/runtimes/codex/item-detail.js";
+} from "../../packages/oar/src/runtimes/codex/item-detail.js";
 
 describe("codex item diagnostics", () => {
   test("projects command and MCP invocation details", () => {

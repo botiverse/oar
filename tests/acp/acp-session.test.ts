@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
-import type { Session, SessionEvent, Turn } from "../packages/oar/src/contracts/session.js";
+import type { Session, SessionEvent, Turn } from "../../packages/oar/src/contracts/session.js";
 import {
   acpSession,
   type AcpSessionProfile,
-} from "../packages/oar/src/shared/acp/session.js";
+} from "../../packages/oar/src/shared/acp/session.js";
 
-const fixture = fileURLToPath(new URL("fixtures/fake-acp-agent.mjs", import.meta.url));
+const fixture = fileURLToPath(new URL("../fixtures/fake-acp-agent.mjs", import.meta.url));
 const installation = {
   kind: "available",
   via: "executable",

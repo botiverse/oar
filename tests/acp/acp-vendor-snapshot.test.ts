@@ -4,13 +4,13 @@ import { expect, test } from "vitest";
 import {
   grokAcpProfile,
   selectGrokAuthMethod,
-} from "../packages/oar/src/runtimes/grok/session.js";
+} from "../../packages/oar/src/runtimes/grok/session.js";
 import {
   kimiAcpProfile,
   selectKimiAuthMethod,
   supportsKimiYolo,
-} from "../packages/oar/src/runtimes/kimi/session.js";
-import { asRecord, parseJson, type JsonRecord } from "../packages/oar/src/shared/json.js";
+} from "../../packages/oar/src/runtimes/kimi/session.js";
+import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
 function record(value: unknown): JsonRecord {
   const result = asRecord(value);
@@ -24,7 +24,7 @@ function strings(value: unknown): string[] {
 }
 
 function loadSnapshot(name: "grok" | "kimi"): JsonRecord {
-  const text = readFileSync(new URL(`replay/fixtures/${name}-acp-v1.vendor.json`, import.meta.url), "utf8");
+  const text = readFileSync(new URL(`../replay/fixtures/${name}-acp-v1.vendor.json`, import.meta.url), "utf8");
   return record(parseJson(text));
 }
 

@@ -2,16 +2,16 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vitest";
-import { AcpError } from "../packages/oar/src/shared/acp/errors.js";
+import { AcpError } from "../../packages/oar/src/shared/acp/errors.js";
 import {
   createAcpClient,
   startAcpProcess,
   withAcpDeadline,
   type AcpProcess,
-} from "../packages/oar/src/shared/acp/process.js";
-import { asRecord, type JsonRecord } from "../packages/oar/src/shared/json.js";
+} from "../../packages/oar/src/shared/acp/process.js";
+import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
-const fixture = fileURLToPath(new URL("fixtures/fake-acp-agent.mjs", import.meta.url));
+const fixture = fileURLToPath(new URL("../fixtures/fake-acp-agent.mjs", import.meta.url));
 const runtimes: AcpProcess[] = [];
 
 function record(value: unknown): JsonRecord {

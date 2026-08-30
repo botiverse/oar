@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { piEnvBashTool } from "../packages/oar/src/runtimes/pi/session.js";
+import { piEnvBashTool } from "../../packages/oar/src/runtimes/pi/session.js";
 
 // No model in the loop: the tool definition is executed directly, which is
 // exactly what pi's agent loop does with it once the registry override lands

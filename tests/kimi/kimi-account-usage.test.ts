@@ -3,7 +3,7 @@ import {
   kimiAccountEmail,
   kimiAccountPlan,
   projectKimiUsage,
-} from "../packages/oar/src/runtimes/kimi/account-usage.js";
+} from "../../packages/oar/src/runtimes/kimi/account-usage.js";
 
 const managedUsageFixture = {
   usage: {
