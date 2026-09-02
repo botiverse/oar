@@ -65,3 +65,43 @@ test("claude reader merges the explicit auth-status subscription tier", async ()
   );
   expect(fetchMock).toHaveBeenCalledOnce();
 });
+
+test.each([
+  {
+    label: "API key",
+    authStatus: {
+      loggedIn: true,
+      authMethod: "claude.ai",
+      apiProvider: "firstParty",
+      apiKeySource: "ANTHROPIC_API_KEY",
+    },
+  },
+  {
+    label: "custom API auth token",
+    authStatus: {
+      loggedIn: true,
+      authMethod: "oauth_token",
+      apiProvider: "firstParty",
+    },
+  },
+])("claude reader treats $label as valid non-subscription mode", async ({ authStatus }) => {
+  const config = await mkdtemp(join(tmpdir(), "oar-claude-usage-"));
+  temporaryDirectories.push(config);
+  vi.stubEnv("CLAUDE_CONFIG_DIR", config);
+  runExecutable.mockResolvedValue({
+    ok: true,
+    stdout: JSON.stringify(authStatus),
+    stderr: "",
+    exitCode: 0,
+  });
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(claudeAccountUsage({
+    kind: "available",
+    via: "executable",
+    command: "claude",
+    version: "2.1.233",
+  })).resolves.toEqual({ kind: "unsupported" });
+  expect(fetchMock).not.toHaveBeenCalled();
+});

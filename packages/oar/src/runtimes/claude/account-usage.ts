@@ -171,6 +171,17 @@ export function claudeAccountPlan(payload: unknown): string | undefined {
   return plan.length > 0 ? plan : undefined;
 }
 
+function isConfirmedNonSubscriptionLogin(authStatus: Record<string, unknown>): boolean {
+  if (typeof authStatus.apiKeySource === "string") {
+    return true;
+  }
+  // Claude Code reports externally supplied auth tokens (including custom API
+  // endpoints) as `oauth_token`. They authenticate inference, not a claude.ai
+  // subscription, so the profile-scoped usage endpoint is inapplicable.
+  return typeof authStatus.authMethod === "string"
+    && authStatus.authMethod !== "claude.ai";
+}
+
 /**
  * Reads Claude account usage in two steps: `claude auth status --json` for the
  * login gate and account email, then a single read-only request to Anthropic's
@@ -199,9 +210,9 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
     ? authStatus.email
     : undefined;
   const plan = claudeAccountPlan(authStatus);
-  if (typeof authStatus?.apiKeySource === "string") {
-    // An API key takes precedence over any claude.ai login, and API-key billing
-    // has no subscription usage windows.
+  if (authStatus?.loggedIn === true && isConfirmedNonSubscriptionLogin(authStatus)) {
+    // Inference credentials take precedence over any claude.ai login, and
+    // non-subscription billing has no profile usage windows.
     return { kind: "unsupported" };
   }
 
