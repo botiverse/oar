@@ -167,7 +167,7 @@ test("codex projection includes the account email when supplied", () => {
 test("codex accountEmail accepts only a chatgpt account", () => {
   expect(accountEmail({ account: { type: "chatgpt", email: "person@example.com" } }))
     .toBe("person@example.com");
-  expect(accountEmail({ account: { type: "apikey", email: "person@example.com" } }))
+  expect(accountEmail({ account: { type: "apiKey", email: "person@example.com" } }))
     .toBeUndefined();
   expect(accountEmail({ account: { type: "chatgpt", email: 42 } })).toBeUndefined();
   expect(accountEmail({})).toBeUndefined();

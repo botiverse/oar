@@ -3,7 +3,7 @@ import type {
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
-import { startAppServerClient } from "./app-server-client.js";
+import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 
 type ReadOutcome =
@@ -11,6 +11,8 @@ type ReadOutcome =
   | { readonly kind: "reauth_required" }
   | { readonly kind: "unsupported" }
   | { readonly kind: "error" };
+
+type StartAppServerClient = (command: string) => AppServerClient;
 
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -179,8 +181,25 @@ export function accountEmail(result: unknown): string | undefined {
   return account.email;
 }
 
-async function readFromAppServer(command: string, timeoutMs: number): Promise<ReadOutcome> {
-  const client = startAppServerClient(command);
+/**
+ * Codex exposes ChatGPT rate-limit windows only for a ChatGPT account. API-key
+ * and provider-managed runtimes are valid, but have no subscription usage for
+ * this capability to report.
+ */
+export function isNonSubscriptionAccount(result: unknown): boolean {
+  const root = asRecord(result);
+  const account = asRecord(root?.account);
+  return account?.type === "apiKey"
+    || account?.type === "amazonBedrock"
+    || root?.requiresOpenaiAuth === false;
+}
+
+export async function readFromAppServer(
+  command: string,
+  timeoutMs: number,
+  startClient: StartAppServerClient = startAppServerClient,
+): Promise<ReadOutcome> {
+  const client = startClient(command);
   const deadline = setTimeout(() => {
     client.kill();
   }, timeoutMs);
@@ -190,17 +209,24 @@ async function readFromAppServer(command: string, timeoutMs: number): Promise<Re
       capabilities: { experimentalApi: true },
     });
     client.notify("initialized", {});
-    const result = await client.request("account/rateLimits/read", {});
-    // Account identity is a best-effort add-on: a failure here (older
-    // app-server without the method, or a transient error) must not lose the
-    // rate-limit snapshot we already have.
-    let email: string | undefined = undefined;
+
+    // Read auth mode before the ChatGPT-only rate-limit endpoint. In API-key
+    // mode that endpoint rejects with "ChatGPT authentication required" even
+    // though Codex itself is correctly authenticated; treating that as expired
+    // OAuth would tell the user to perform a login that cannot fix the state.
+    let account: unknown = undefined;
     try {
-      email = accountEmail(await client.request("account/read", {}));
+      account = await client.request("account/read", {});
     } catch {
-      email = undefined;
+      // Older app-servers may not expose account/read. Preserve the existing
+      // rate-limit read in that case instead of making identity mandatory.
     }
-    return { kind: "ok", result, email };
+    if (isNonSubscriptionAccount(account)) {
+      return { kind: "unsupported" };
+    }
+
+    const result = await client.request("account/rateLimits/read", {});
+    return { kind: "ok", result, email: accountEmail(account) };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (/authentication required/iu.test(message)) {

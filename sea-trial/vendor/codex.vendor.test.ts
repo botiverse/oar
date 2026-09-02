@@ -46,7 +46,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         expect(outcome).toMatchInlineSnapshot(`
           {
             "resolved": {
-              "kind": "reauth_required",
+              "kind": "unsupported",
             },
           }
         `);
