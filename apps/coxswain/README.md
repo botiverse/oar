@@ -8,6 +8,9 @@ Activity panel: Friendly is the default semantic timeline and folds each tool
 call into one running/done row; Raw keeps every OAR event one-for-one with its
 complete JSON available on expansion.
 
+Where the cockpit is headed — the ambitious dogfooding-and-verification
+feature set and its build order — lives in [`ROADMAP.md`](ROADMAP.md).
+
 ## Run
 
 ```sh
