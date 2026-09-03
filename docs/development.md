@@ -1,7 +1,34 @@
 # Development
 
-How to work in this repo: where each kind of test lives, the assertion
-conventions, and the commit gate. Linked from the root `README.md` index.
+How to work in this repo: how to run the tests, where each kind of test
+lives, the assertion conventions, and the commit gate. Linked from the root
+`README.md` index.
+
+## How to test
+
+Setup: Node.js 24+, `pnpm install`. Then, from cheapest to broadest:
+
+```bash
+pnpm test                                    # unit tests (vitest)
+pnpm sea-trial                               # behavior suite on the in-process mock
+OAR_TEST=pi-aimock pnpm sea-trial            # behavior suite on one backend
+OAR_TEST=pi-aimock pnpm vitest run sea-trial/vendor   # vendor tests for that backend
+pnpm tsx sea-trial/all.ts                    # mock + all three aimock backends concurrently
+pnpm run check                               # the full commit gate (see below)
+```
+
+`OAR_TEST` selects the backend (`sea-trial/harness/backends.ts`):
+
+- `mock` (the default) — the in-process fixture; no binaries, no network.
+- `claude-aimock` / `codex-aimock` / `pi-aimock` — the real binary and
+  adapter, with only the model provider scripted. No login needed.
+- Any real runtime id (`claude`, `codex`, `grok`, `kimi`, `pi`) — runs
+  against your actual local installation and login. Costs quota; run
+  deliberately.
+
+`pnpm run check` is the gate for every commit: coxswain check, typecheck,
+lint, unit tests, and the mock behavior suite. Vendor tests are not part of
+it — run them for the backend you touched.
 
 ## The test estate — four kinds, where each goes
 
