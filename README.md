@@ -2,6 +2,8 @@
 
 `@botiverse/oar` defines provider-independent contracts for controlling and observing agent runtimes.
 
+Why the project exists, who it is for, and which design problems it treats as load-bearing: [`docs/design/`](docs/design/README.md).
+
 The clean first surface intentionally contains two independent optional capabilities:
 
 - `runtime.installation()` observes local installation/version facts without login or usage I/O.
