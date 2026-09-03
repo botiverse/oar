@@ -13,7 +13,22 @@ probes and their conclusions.
 
 ## How to test
 
-Setup: Node.js 24+, `pnpm install`. Then, from cheapest to broadest:
+Setup: Node.js 24+, `pnpm install`.
+
+The tests exist so that whoever makes a change — human or coding agent — can
+also verify it, end to end, on their own: run the relevant test, read the
+failure, fix, rerun, and keep going until green. A change is done when the
+tests prove it, not when a human has eyeballed it; that is what lets work
+proceed without a person as the verification bottleneck. The suite carries a
+second load: it is the proof that oar's foundation is solid — that the
+contracts actually hold on every runtime. Both loads collapse if the tests
+stop being trusted, so never weaken an assertion to get past a failure. A
+red test means the work is not done, not that the test is in the way.
+
+There are several ways to run tests because each answers a different
+question at a different cost. Run the cheapest one that can catch the
+mistake you might just have made, escalate as the change gets riskier, and
+finish with the full gate:
 
 ```bash
 pnpm test                                    # unit tests (vitest)
@@ -24,14 +39,32 @@ pnpm tsx sea-trial/all.ts                    # mock + all three aimock backends 
 pnpm run check                               # the full commit gate (see below)
 ```
 
-`OAR_TEST` selects the backend (`sea-trial/harness/backends.ts`):
+`OAR_TEST` selects the backend (`sea-trial/harness/backends.ts`). When and
+why to reach for each rung:
 
-- `mock` (the default) — the in-process fixture; no binaries, no network.
-- `claude-aimock` / `codex-aimock` / `pi-aimock` — the real binary and
-  adapter, with only the model provider scripted. No login needed.
-- Any real runtime id (`claude`, `codex`, `grok`, `kimi`, `pi`) — runs
-  against your actual local installation and login. Costs quota; run
-  deliberately.
+- `pnpm test` — is the pure logic right (folds, resolvers, process
+  plumbing)? Seconds, no binaries. The inner loop while iterating on shared
+  mechanisms.
+- `pnpm sea-trial` — does the public contract still hold? Runs the behavior
+  suite against the in-process mock fixture: fast, deterministic, no
+  binaries or network. The default verification for any change to contracts
+  or session behavior.
+- `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock` /
+  `codex-aimock` / `pi-aimock`) — same contract, but through the real vendor
+  binary and adapter, with only the model provider scripted; no login
+  needed. Use when you touched a specific runtime's adapter — it catches
+  real-process integration mistakes the mock cannot.
+- `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor` — the vendor
+  tests see the scripted provider's side (request contents, error edges,
+  tool rounds). Use when your change affects what a runtime sends upstream
+  or how it handles vendor-specific behavior.
+- `pnpm tsx sea-trial/all.ts` — mock plus all three aimock backends
+  concurrently. Use before pushing a change to shared runtime machinery, to
+  prove no backend regressed.
+- `OAR_TEST=<real id>` (`claude`, `codex`, `grok`, `kimi`, `pi`) — the same
+  suites against your actual local installation and login. The final word
+  when vendor reality itself is in doubt, but it costs quota — run
+  deliberately, never by default.
 
 `pnpm run check` is the gate for every commit: coxswain check, typecheck,
 lint, unit tests, and the mock behavior suite. Vendor tests are not part of
