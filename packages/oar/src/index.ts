@@ -56,6 +56,15 @@ export type {
 export { defineRuntime } from "./contracts/runtime.js";
 export { utcInstantFromDate } from "./shared/instant.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
+export {
+  VOYAGE_FORMAT,
+  endLine,
+  eventLine,
+  headerLine,
+  openVoyage,
+  submissionLine,
+} from "./voyage.js";
+export type { SubmissionVia, VoyageHeader, VoyageRecorder } from "./voyage.js";
 export { aggregateDeltas } from "./observe/aggregate-events.js";
 export {
   initialStatus,

@@ -3,14 +3,14 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
-import type { SessionEvent } from "../packages/oar/src/index.js";
 import {
   endLine,
   eventLine,
   headerLine,
   openVoyage,
   submissionLine,
-} from "../packages/cli/src/voyage.js";
+  type SessionEvent,
+} from "../packages/oar/src/index.js";
 
 afterEach(() => {
   vi.useRealTimers();

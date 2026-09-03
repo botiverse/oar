@@ -4,6 +4,7 @@
 src/
   index.ts                 # public exports + built-in composition
   registry.ts              # runtime collection and lookup
+  voyage.ts                # oar-voyage/1 evidence log: line builders + recorder
   contracts/               # provider-independent agreements
   runtimes/<id>/           # one runtime, split by capability
   shared/                  # mechanisms + shared contract implementations

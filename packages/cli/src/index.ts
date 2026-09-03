@@ -3,12 +3,12 @@ import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import {
   aggregateDeltas,
+  openVoyage,
   runtimes,
   type Runtime,
   type SessionObserver,
 } from "@botiverse/oar";
 import { createProgressRenderer } from "./progress.js";
-import { openVoyage } from "./voyage.js";
 
 // Read the version from this package's own manifest so `--version` can never
 // drift from package.json. `../package.json` resolves to the package root in

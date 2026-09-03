@@ -1,5 +1,5 @@
 import { closeSync, openSync, writeSync } from "node:fs";
-import type { SessionEvent } from "@botiverse/oar";
+import type { SessionEvent } from "./contracts/session.js";
 
 // The oar-voyage/1 JSONL format: one JSON object per line, discriminated by
 // `kind`. Line 1 is `header`; `submission` marks each human input; `event`
