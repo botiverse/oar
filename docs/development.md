@@ -1,7 +1,8 @@
 # Development
 
-How to work in this repo: how to validate your changes, the testing
-conventions, and the commit gate. Linked from the root `README.md` index.
+How to work in this repo: how to validate your changes, how to add a
+runtime or fix a runtime bug, the testing conventions, and the commit gate.
+Linked from the root `README.md` index.
 
 Deeper detail lives next to the code it describes:
 [`packages/oar/src/README.md`](../packages/oar/src/README.md) for the source
@@ -91,6 +92,51 @@ the open question.
 `pnpm run check` is the gate for every commit: coxswain check, typecheck,
 lint, unit tests, and the mock behavior suite. Vendor tests are not part of
 it — run them for the backend you touched.
+
+## How to add a new runtime
+
+1. **Probe reality first.** Write an experiment (`experiments/`) that answers
+   how the vendor actually behaves — session lifecycle, event stream, error
+   shapes — and record the conclusion in the experiments README table. The
+   adapter gets built on that evidence, not on the vendor's docs.
+2. **Implement it in `packages/oar/src/runtimes/<id>/`.** `index.ts` declares
+   the runtime via `defineRuntime({ id, ... })`, listing only the
+   capabilities the runtime honestly supports — an absent capability is
+   correct, a faked one is not. Keep parsing, compatibility policy, and
+   protocol details in that directory; reuse `shared/` mechanisms freely but
+   never add runtime identity to `shared/`
+   ([source layout](../packages/oar/src/README.md) has the import rules).
+3. **Register it in `src/index.ts`** — the only composition root: import,
+   add to the built-in registry, re-export.
+4. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
+   against your real local installation. The cases in `sea-trial/cases/` are
+   the contract: make the runtime pass them, don't loosen them to fit the
+   runtime.
+5. **Add an aimock backend if feasible** (`sea-trial/harness/aimock.ts` +
+   `backends.ts`) so the contract stays verifiable without a login, and add
+   vendor tests for the provider-side specifics worth pinning.
+6. **Update the docs in the same commit**: the runtime list in the root
+   README, and the experiments README table for any probes you added.
+
+## How to fix a runtime bug
+
+1. **Locate the layer; that picks the test.** Wrong behavior visible through
+   the public Session API → behavior case (if it is a promise every runtime
+   must honor). Wrong request sent to the vendor, or a mishandled
+   vendor-specific edge → vendor test. A pure-logic mistake in a fold or
+   resolver → unit test.
+2. **If the vendor's actual behavior is the open question, probe it first**
+   with an experiment and record the conclusion — don't derive the fix from
+   documentation guesses.
+3. **Write the failing test before the fix**, at the cheapest layer that can
+   express it. `OAR_TEST=<runtime>-aimock` reproduces most integration bugs
+   without a login.
+4. **Fix at the right level.** Runtime-specific policy belongs in
+   `runtimes/<id>/`; touch `shared/` only when the mistake is genuinely
+   runtime-independent — and then run `pnpm tsx sea-trial/all.ts`, because
+   every backend is affected.
+5. **Validate with the ladder above and finish with `pnpm run check`.** The
+   reproducing test stays in the suite as the regression proof.
 
 ## Testing conventions
 
