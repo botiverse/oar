@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
-import type { AgentViewUpdate, ConversationEntry, TurnOutcomeView } from "../../../../shared/ipc.js";
+import type {
+  AgentViewUpdate,
+  ConversationEntry,
+  SubmitReceipt,
+  TurnOutcomeView,
+} from "../../../../shared/ipc.js";
 
 function clockTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -21,7 +26,7 @@ function outcomeCopy(outcome: TurnOutcomeView): { readonly text: string; readonl
   throw new Error("Unknown turn outcome");
 }
 
-function ConversationItem({ entry }: { readonly entry: ConversationEntry }): React.JSX.Element {
+export function ConversationItem({ entry }: { readonly entry: ConversationEntry }): React.JSX.Element {
   if (entry.kind === "outcome") {
     const outcome = outcomeCopy(entry.outcome);
     return (
@@ -60,18 +65,20 @@ function ConversationItem({ entry }: { readonly entry: ConversationEntry }): Rea
   );
 }
 
-export function Conversation(props: {
-  readonly entries: readonly ConversationEntry[];
-  readonly agentView: AgentViewUpdate;
-}): React.JSX.Element {
+export interface ConversationComposerProps {
+  readonly onSubmit: (text: string) => Promise<SubmitReceipt>;
+  readonly disabled?: boolean;
+  readonly agentView?: AgentViewUpdate;
+}
+
+/**
+ * The ordinary one-lane composer. Regatta reuses the same interaction shape
+ * with a broadcast callback, keeping the lane conversation itself read-only.
+ */
+export function ConversationComposer(props: ConversationComposerProps): React.JSX.Element {
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const bottom = useRef<HTMLLIElement | null>(null);
-
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [props.entries]);
 
   const send = async (): Promise<void> => {
     const message = text.trim();
@@ -81,7 +88,7 @@ export function Conversation(props: {
     setPending(true);
     setSendError(null);
     try {
-      const receipt = await window.coxswain.submit({ text: message });
+      const receipt = await props.onSubmit(message);
       if (receipt.landed === "rejected") {
         setSendError(receipt.reason);
       } else {
@@ -106,7 +113,58 @@ export function Conversation(props: {
     }
   };
 
-  const running = props.agentView.status.kind === "running";
+  const running = props.agentView?.status.kind === "running";
+  return (
+    <form className="shrink-0 px-6 pb-5" onSubmit={submit}>
+      <div className="overflow-hidden rounded-xl border border-white/10 bg-ink-850 focus-within:border-oar-700">
+        <textarea
+          aria-label="Speak to the agent"
+          className="w-full resize-none bg-transparent px-4 pt-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 disabled:opacity-60"
+          data-role="composer"
+          disabled={pending || props.disabled === true}
+          onChange={(event) => {
+            setText(event.target.value);
+          }}
+          onKeyDown={keyDown}
+          placeholder="speak to the agent…"
+          rows={2}
+          value={text}
+        />
+        <div className="flex min-h-8 items-center px-4 pb-2.5">
+          <span className={`text-[11px] ${running ? "text-amber-500/80" : "text-zinc-600"}`}>
+            {running
+              ? "turn in flight — this will steer, or queue if steering is refused"
+              : "starts a new turn — agent replies arrive only via say"}
+          </span>
+          <button
+            className="ml-auto rounded-md bg-oar-600 px-3 py-1.5 text-xs font-semibold text-ink-950 hover:bg-oar-500 disabled:opacity-40"
+            data-action="send"
+            disabled={pending || props.disabled === true || text.trim().length === 0}
+            type="submit"
+          >
+            {pending ? "sending…" : "send"}
+          </button>
+        </div>
+      </div>
+      {sendError === null ? null : <p className="mt-2 text-xs text-rose-400/80">not delivered · {sendError}</p>}
+    </form>
+  );
+}
+
+export function Conversation(props: {
+  readonly entries: readonly ConversationEntry[];
+  readonly agentView: AgentViewUpdate;
+  /** Omit to use the normal un-targeted IPC submit path. */
+  readonly onSubmit?: (text: string) => Promise<SubmitReceipt>;
+  /** Regatta uses the lane timeline as a read-only column. */
+  readonly showComposer?: boolean;
+}): React.JSX.Element {
+  const bottom = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ block: "end" });
+  }, [props.entries]);
+
   return (
     <section className="flex min-w-0 flex-1 flex-col border-r border-white/5">
       <ol className="scrollfade min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
@@ -122,39 +180,13 @@ export function Conversation(props: {
         ) : props.entries.map((entry) => <ConversationItem entry={entry} key={entry.id} />)}
         <li ref={bottom} />
       </ol>
-      <form className="shrink-0 px-6 pb-5" onSubmit={submit}>
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-ink-850 focus-within:border-oar-700">
-          <textarea
-            aria-label="Speak to the agent"
-            className="w-full resize-none bg-transparent px-4 pt-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 disabled:opacity-60"
-            data-role="composer"
-            disabled={pending}
-            onChange={(event) => {
-              setText(event.target.value);
-            }}
-            onKeyDown={keyDown}
-            placeholder="speak to the agent…"
-            rows={2}
-            value={text}
-          />
-          <div className="flex min-h-8 items-center px-4 pb-2.5">
-            <span className={`text-[11px] ${running ? "text-amber-500/80" : "text-zinc-600"}`}>
-              {running
-                ? "turn in flight — this will steer, or queue if steering is refused"
-                : "starts a new turn — agent replies arrive only via say"}
-            </span>
-            <button
-              className="ml-auto rounded-md bg-oar-600 px-3 py-1.5 text-xs font-semibold text-ink-950 hover:bg-oar-500 disabled:opacity-40"
-              data-action="send"
-              disabled={pending || text.trim().length === 0}
-              type="submit"
-            >
-              {pending ? "sending…" : "send"}
-            </button>
-          </div>
-        </div>
-        {sendError === null ? null : <p className="mt-2 text-xs text-rose-400/80">not delivered · {sendError}</p>}
-      </form>
+      {props.showComposer === false ? null : (
+        <ConversationComposer
+          agentView={props.agentView}
+          onSubmit={props.onSubmit ?? (async (text: string): Promise<SubmitReceipt> =>
+            window.coxswain.submit({ text }))}
+        />
+      )}
     </section>
   );
 }

@@ -33,10 +33,10 @@ async function captureSmokeScreenshot(window: BrowserWindow, outputPath: string)
   app.quit();
 }
 
-async function loadRenderer(window: BrowserWindow): Promise<void> {
+async function loadRenderer(window: BrowserWindow, smoke: boolean): Promise<void> {
   const developmentUrl = process.env.ELECTRON_RENDERER_URL;
   if (developmentUrl === undefined) {
-    await window.loadFile(join(__dirname, "../renderer/index.html"));
+    await window.loadFile(join(__dirname, "../renderer/index.html"), smoke ? { hash: "smoke" } : undefined);
   } else {
     await window.loadURL(developmentUrl);
   }
@@ -90,7 +90,7 @@ function createWindow(): void {
       host = null;
     }
   });
-  void loadRenderer(window).catch((error: unknown) => {
+  void loadRenderer(window, smokeOutput !== undefined).catch((error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : "Renderer failed to load"}\n`);
     app.exit(1);
   });
