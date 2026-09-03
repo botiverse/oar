@@ -93,6 +93,27 @@ the open question.
 lint, unit tests, and the mock behavior suite. Vendor tests are not part of
 it — run them for the backend you touched.
 
+## Ad-hoc runs while developing
+
+Not every check starts life as a test. While shaping a change it is often
+fastest to run the real thing and look: drive the CLI (`oar list`,
+`oar installation <id>`, `oar usage <id>`), point a scratch `pnpm tsx`
+script at the public Session API, or reuse an experiment. This ad-hoc
+run-and-verify loop is a legitimate part of development — it is how you
+find out what correct even looks like before pinning it.
+
+Two rules keep it honest:
+
+- **Ad-hoc evidence never closes a change.** Once the behavior is
+  understood, encode it at the cheapest test layer that can catch a
+  regression (the ladder above); the commit gate stays the arbiter. A
+  scratch script that earned its keep becomes a test — or an experiment
+  with its conclusion recorded — rather than a loose committed file.
+- **Real logins cost quota.** Repeatable ad-hoc runs belong on the mock or
+  aimock backends; reach for a real installation deliberately, the same
+  way `OAR_TEST=<real id>` is reserved for when vendor reality is in
+  doubt.
+
 ## How to add a new runtime
 
 1. **Probe reality first.** Write an experiment (`experiments/`) that answers
