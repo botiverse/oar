@@ -16,11 +16,23 @@ import {
   MAX_ACTIVITY_WIDTH,
   MIN_ACTIVITY_WIDTH,
 } from "./activity-size.js";
+import {
+  contractLensForEvents,
+  invariantLabel,
+  type ContractAlarm,
+} from "../../contract-lens/contract-lens-model.js";
 
 type ActivityView = "friendly" | "raw";
 type PhaseRow = Extract<FriendlyActivityRow, { readonly kind: "phase" }>;
 type ToolRow = Extract<FriendlyActivityRow, { readonly kind: "tool" }>;
 type TurnRow = Extract<FriendlyActivityRow, { readonly kind: "turn" }>;
+type RawActivityItem =
+  | { readonly kind: "event"; readonly event: SessionEventView; readonly order: number }
+  | { readonly kind: "alarm"; readonly alarm: ContractAlarm; readonly order: number };
+
+function rawItemSeq(item: RawActivityItem): number {
+  return item.kind === "event" ? item.event.seq : item.alarm.seq;
+}
 
 function shortId(value: string): string {
   return value.slice(0, 8);
@@ -101,6 +113,26 @@ function RawEventRow({ event }: { readonly event: SessionEventView }): React.JSX
         </summary>
         <pre className="ml-4 mt-1 whitespace-pre-wrap break-words border-l border-white/5 pl-3 text-[10.5px] leading-4 text-zinc-500">
           {JSON.stringify(event, null, 2)}
+        </pre>
+      </details>
+    </li>
+  );
+}
+
+function ContractAlarmRow({ alarm }: { readonly alarm: ContractAlarm }): React.JSX.Element {
+  return (
+    <li
+      className="border-l border-amber-500/30 py-1 pl-2 text-amber-400/85"
+      data-contract-alarm={alarm.invariant}
+      title={alarm.message}
+    >
+      <details>
+        <summary className="cursor-pointer">
+          <span className="text-amber-500">⚠ contract</span> · seq {alarm.seq} · {invariantLabel(alarm.invariant)}
+        </summary>
+        <div className="mt-1 text-[10px] leading-4 text-amber-500/70">{alarm.message}</div>
+        <pre className="mt-1 whitespace-pre-wrap break-words border-l border-amber-500/15 pl-2 text-[10px] leading-4 text-zinc-500">
+          {JSON.stringify(alarm, null, 2)}
         </pre>
       </details>
     </li>
@@ -313,6 +345,8 @@ export function Activity(props: {
   readonly events: readonly SessionEventView[];
   readonly agentView: AgentViewUpdate;
   readonly runtimeId: string;
+  /** Stable lane identity used to attribute Contract lens alarms. */
+  readonly laneId?: string;
   /** Compact lane column mode used by the Regatta view. */
   readonly compact?: boolean;
 }): React.JSX.Element {
@@ -320,6 +354,15 @@ export function Activity(props: {
     () => friendlyActivityRows(props.runtimeId, props.events),
     [props.events, props.runtimeId],
   );
+  const contractLens = useMemo(
+    () => contractLensForEvents(props.events, props.laneId),
+    [props.events, props.laneId],
+  );
+  const rawItems = useMemo<readonly RawActivityItem[]>(() => [
+    ...props.events.map((event): RawActivityItem => ({ kind: "event", event, order: 0 })),
+    ...contractLens.alarms.map((alarm): RawActivityItem => ({ kind: "alarm", alarm, order: 1 })),
+  ].toSorted((left, right) => rawItemSeq(left) - rawItemSeq(right) || left.order - right.order),
+  [contractLens.alarms, props.events]);
   const bottom = useRef<HTMLLIElement | null>(null);
   const panel = useRef<HTMLElement | null>(null);
   const drag = useRef<{
@@ -330,7 +373,8 @@ export function Activity(props: {
     readonly previousCursor: string;
     readonly previousUserSelect: string;
   } | null>(null);
-  const [view, setView] = useState<ActivityView>("friendly");
+  const [view, setView] = useState<ActivityView>(() =>
+    contractLens.alarms.length === 0 ? "friendly" : "raw");
   const [width, setWidth] = useState(DEFAULT_ACTIVITY_WIDTH);
   const lastSequence = props.events.at(-1)?.seq;
 
@@ -371,7 +415,7 @@ export function Activity(props: {
     drag.current = null;
   };
 
-  const isEmpty = view === "friendly" ? rows.length === 0 : props.events.length === 0;
+  const isEmpty = view === "friendly" ? rows.length === 0 : rawItems.length === 0;
 
   return (
     <aside
@@ -457,6 +501,15 @@ export function Activity(props: {
       <div className="flex h-9 shrink-0 items-center border-b border-white/5 px-4 text-xs font-medium uppercase tracking-wide text-zinc-500">
         Activity
         <ViewSwitch onChange={setView} view={view} />
+        {contractLens.alarms.length === 0 ? null : (
+          <span
+            className="ml-2 font-mono normal-case text-amber-500/80"
+            data-contract-alarm-count={contractLens.alarms.length}
+            title="Contract lens alarms"
+          >
+            ⚠ {contractLens.alarms.length}
+          </span>
+        )}
         <span className={`ml-auto font-mono normal-case text-zinc-600 ${props.compact === true ? "hidden" : ""}`}>
           {lastSequence === undefined ? "waiting" : `seq ${lastSequence}`}
         </span>
@@ -479,9 +532,12 @@ export function Activity(props: {
                 : `turn-${row.turnId}-${row.seq}`}
             row={row}
           />
-        )) : props.events.map((event) => (
-          <RawEventRow event={event} key={`raw-${event.seq}`} />
-        ))}
+        )) : rawItems.map((item, index) => item.kind === "event"
+          ? <RawEventRow event={item.event} key={`raw-${item.event.seq}`} />
+          : <ContractAlarmRow
+              alarm={item.alarm}
+              key={`contract-${item.alarm.seq}-${item.alarm.invariant}-${index}`}
+            />)}
         <li className={`flex items-center gap-1.5 pt-2 text-[10px] ${
           props.agentView.status.kind === "running" ? "text-oar-600" : "text-zinc-600"
         }`} ref={bottom}>

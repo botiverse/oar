@@ -136,6 +136,16 @@ const events: readonly HostEvent[] = [
     }),
   },
   {
+    // The deterministic smoke deliberately carries one contract breach so
+    // the Codex lane opens Raw Activity and visually covers its alarm row.
+    kind: "activity",
+    laneId: "codex",
+    event: event(codexIdentity, codexTurn, 3, SMOKE_STARTED + 205, {
+      kind: "text_delta",
+      text: "late fixture event",
+    }),
+  },
+  {
     kind: "conversation",
     laneId: "codex",
     entry: {
