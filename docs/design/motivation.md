@@ -32,8 +32,8 @@ See [hard-problems.md](hard-problems.md) for the full inventory.
    is driven via SDK, CLI, subprocess, or app-server.
 2. **The engineering is high quality.** Self-explanatory structure, per-seam
    tests plus whole-system behavior suites, conformance-proven behavior
-   rather than assumptions (see the repo-root
-   [`AGENTS.md`](../../AGENTS.md)).
+   rather than assumptions (see
+   [`docs/development.md`](../development.md)).
 
 ## Target users
 

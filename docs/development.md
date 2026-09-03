@@ -1,4 +1,7 @@
-# Working in this repo
+# Development
+
+How to work in this repo: where each kind of test lives, the assertion
+conventions, and the commit gate. Linked from the root `README.md` index.
 
 ## The test estate — four kinds, where each goes
 

@@ -16,8 +16,8 @@ stands alone if you only need one answer.
 Related material elsewhere in the repo:
 
 - [`../spec/`](../spec/README.md) — the concrete v2 contract (record shapes, attribution, session graph, cursor), deliberately separate: design records *why*, spec records *what*.
-- [`../../packages/oar/src/AGENTS.md`](../../packages/oar/src/AGENTS.md) — source ownership model (contracts / runtimes / shared / observe).
-- [`../../AGENTS.md`](../../AGENTS.md) — the test estate and verification discipline that back the claims here.
+- [`../../packages/oar/src/README.md`](../../packages/oar/src/README.md) — source ownership model (contracts / runtimes / shared / observe).
+- [`../development.md`](../development.md) — the test estate and verification discipline that back the claims here.
 - [`../../experiments/README.md`](../../experiments/README.md) — live probes with conclusions; the empirical evidence base.
 
 ## How to maintain these docs

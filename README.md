@@ -2,16 +2,30 @@
 
 `@botiverse/oar` defines provider-independent contracts for controlling and observing agent runtimes.
 
-Why the project exists, who it is for, and which design problems it treats as load-bearing: [`docs/design/`](docs/design/README.md).
-
-The concrete v2 record-stream contract (record shapes, attribution, session graph, cursor) — currently a draft under review, kept deliberately separate from the design principles: [`docs/spec/`](docs/spec/README.md). Each directory's README states how to keep its pages in sync with the code.
-
 The clean first surface intentionally contains two independent optional capabilities:
 
 - `runtime.installation()` observes local installation/version facts without login or usage I/O.
 - `runtime.accountUsage(installation)` observes credentialed account usage without coupling it to installation detection.
 
 Claude, Codex, Grok, Kimi, and Pi are built-in runtime implementations. Grok and Kimi share a private ACP v1 transport and session kernel while remaining distinct public runtimes; there is intentionally no generic `acp` runtime identity.
+
+## Repo knowledge index
+
+This README is the canonical entry point to repo knowledge. It stays a
+concise index; each area keeps its detail in its own file, and adding or
+removing one of those files updates this table in the same commit.
+
+| Read | To answer |
+|---|---|
+| [`docs/design/`](docs/design/README.md) | Why oar exists, who it is for, and which design problems it treats as load-bearing |
+| [`docs/spec/`](docs/spec/README.md) | The concrete v2 record-stream contract (record shapes, attribution, session graph, cursor) — a draft under review, kept deliberately separate from the design principles |
+| [`docs/development.md`](docs/development.md) | Working in this repo: the test estate, testing conventions, and the commit gate |
+| [`packages/oar/src/README.md`](packages/oar/src/README.md) | Source layout and ownership: contracts / runtimes / shared / observe |
+| [`sea-trial/README.md`](sea-trial/README.md) | The behavior/conformance suite: cases, harness, fixtures, vendor tests |
+| [`experiments/README.md`](experiments/README.md) | Live probes with conclusions; the empirical evidence base |
+| [`apps/coxswain/README.md`](apps/coxswain/README.md) | The Electron cockpit for dogfooding oar |
+
+The CLI lives in [`packages/cli/`](packages/cli/README.md) so library consumers do not install Commander.
 
 ## Library
 
@@ -32,18 +46,9 @@ if (installation?.kind === "available") {
 }
 ```
 
-The source ownership model is documented in [`packages/oar/src/AGENTS.md`](packages/oar/src/AGENTS.md):
-
-- `packages/oar/src/contracts/` — stable provider-independent agreements.
-- `packages/oar/src/runtimes/<id>/` — concrete implementations split by capability.
-- `packages/oar/src/shared/` — policy-free reusable mechanisms.
-- `packages/cli/` — the separately installable CLI and its Commander dependency.
-- `drydock/` — daemon-free execution vehicle.
-- `sea-trial/` — shared behavior/conformance judgments.
-
 ## CLI
 
-The CLI is published separately as `@botiverse/oar-cli`, so library consumers do not install Commander.
+The CLI is published separately as `@botiverse/oar-cli`.
 
 ```bash
 npx @botiverse/oar-cli list

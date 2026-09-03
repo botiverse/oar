@@ -89,15 +89,6 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
         "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
 
         OAR-SYSTEM-APPEND-MARKER always be brief
-
-        <project_context>
-
-        Project-specific instructions and guidelines:
-
-        <project_instructions path="<CWD>/AGENTS.md">…(file body scrubbed)…</project_instructions>
-
-        </project_context>
-
         Current working directory: <CWD>
         "
       `);

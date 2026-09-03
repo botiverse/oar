@@ -12,5 +12,5 @@
                    runner.ts / subject.ts / trace.ts
     fixtures/      the in-process mock runtime (contract-in-one-screenful)
 
-Layer rule (see AGENTS.md): the assertion channel decides where a test
+Layer rule (see docs/development.md): the assertion channel decides where a test
 lives. Artifacts land under ./oar-trial-run/ per run.
