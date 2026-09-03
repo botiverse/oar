@@ -15,10 +15,19 @@ stands alone if you only need one answer.
 
 Related material elsewhere in the repo:
 
+- [`../spec/`](../spec/README.md) — the concrete v2 contract (record shapes, attribution, session graph, cursor), deliberately separate: design records *why*, spec records *what*.
 - [`../../packages/oar/src/AGENTS.md`](../../packages/oar/src/AGENTS.md) — source ownership model (contracts / runtimes / shared / observe).
 - [`../../AGENTS.md`](../../AGENTS.md) — the test estate and verification discipline that back the claims here.
 - [`../../experiments/README.md`](../../experiments/README.md) — live probes with conclusions; the empirical evidence base.
 
-Maintenance rule: these pages record settled design positions, not status.
-When a position changes, change the page in the same commit as the code that
-changes it — a stale design doc is worse than none.
+## How to maintain these docs
+
+- These pages record settled design positions, not status. When a
+  position changes, change the page in the same commit as the code that
+  changes it — a stale design doc is worse than none.
+- Routing: *why* a position holds (principles, evidence, what must not go
+  wrong) belongs here; *what* the contract is (record shapes, envelope,
+  semantics) belongs in [`../spec/`](../spec/README.md). Don't restate
+  contract shapes here — link to the spec page instead.
+- Adding or removing a page means updating the table above and the
+  pointer in the root `README.md` in the same commit.

@@ -4,6 +4,8 @@
 
 Why the project exists, who it is for, and which design problems it treats as load-bearing: [`docs/design/`](docs/design/README.md).
 
+The concrete v2 record-stream contract (record shapes, attribution, session graph, cursor) — currently a draft under review, kept deliberately separate from the design principles: [`docs/spec/`](docs/spec/README.md). Each directory's README states how to keep its pages in sync with the code.
+
 The clean first surface intentionally contains two independent optional capabilities:
 
 - `runtime.installation()` observes local installation/version facts without login or usage I/O.
