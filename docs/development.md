@@ -4,6 +4,13 @@ How to work in this repo: how to run the tests, where each kind of test
 lives, the assertion conventions, and the commit gate. Linked from the root
 `README.md` index.
 
+Deeper detail lives next to the code it describes:
+[`packages/oar/src/README.md`](../packages/oar/src/README.md) for the source
+layout, import rules, and ownership;
+[`sea-trial/README.md`](../sea-trial/README.md) for the behavior-suite layout
+and harness; [`experiments/README.md`](../experiments/README.md) for live
+probes and their conclusions.
+
 ## How to test
 
 Setup: Node.js 24+, `pnpm install`. Then, from cheapest to broadest:
