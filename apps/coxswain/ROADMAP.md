@@ -49,7 +49,7 @@ and per-lane `oar-voyage/1` capture. The renderer's existing one-lane launch
 flow remains as a compatibility consumer while the fleet API is exercised by
 the next UI slices.
 
-### 1. Regatta — one prompt, every runtime, side by side
+### 1. Regatta — one prompt, every runtime, side by side (first slice landed)
 
 Run the same prompt simultaneously against several runtimes (claude, codex,
 pi, …) in one window, each lane with its own conversation, Friendly/Raw
@@ -61,7 +61,15 @@ activity, and status lamp; lanes are individually steerable and abortable.
   prompts* — the interactive counterpart of running one sea-trial case on
   every backend. Divergence you can see (one lane's timeline missing a
   phase another lane has) is a contract finding.
-- **First slice**: two fixed lanes, prompt broadcast, no per-lane steering.
+- **Landed first slice**: two fixed lanes selected from the available
+  runtimes, prompt broadcast with per-lane delivery reporting, independent
+  conversation/Friendly+Raw Activity/status columns, and lane-targeted abort.
+  The deterministic two-lane fixture is part of the Xvfb screenshot smoke;
+  implementation details and the manual dogfood path live in the
+  [README](README.md).
+- **Deferred**: per-lane steering from the Regatta view remains a later slice;
+  the shared composer waits for all lanes to be idle so the first slice keeps
+  one synchronized turn per prompt.
 
 ### 2. Contract lens — live invariant checking on the event stream
 
@@ -150,8 +158,8 @@ a failure with the right class, dispose still completes cleanly).
   and land the voyage recorder's capture half. The implementation and capture
   location are documented in the [README](README.md).
 - **Milestone 2 — parallel tracks** (independent once M1 lands): Regatta
-  view · Contract lens · Usage helm. Three lanes with no shared files
-  beyond M1's host — suitable for concurrent tasks.
+  view (first slice landed) · Contract lens · Usage helm. Three lanes with no
+  shared files beyond M1's host — suitable for concurrent tasks.
 - **Milestone 3 — the deep end**: voyage replay + export-to-test · session
   graph (pace with the v2 spec) · drills.
 

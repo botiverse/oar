@@ -313,6 +313,8 @@ export function Activity(props: {
   readonly events: readonly SessionEventView[];
   readonly agentView: AgentViewUpdate;
   readonly runtimeId: string;
+  /** Compact lane column mode used by the Regatta view. */
+  readonly compact?: boolean;
 }): React.JSX.Element {
   const rows = useMemo(
     () => friendlyActivityRows(props.runtimeId, props.events),
@@ -374,10 +376,11 @@ export function Activity(props: {
   return (
     <aside
       className="relative flex shrink-0 flex-col bg-ink-900/60"
+      data-compact={props.compact === true ? "true" : undefined}
       ref={panel}
-      style={{ width }}
+      style={{ width: props.compact === true ? 220 : width }}
     >
-      <div
+      {props.compact === true ? null : <div
         aria-label="Resize Activity panel"
         aria-orientation="vertical"
         aria-valuemax={MAX_ACTIVITY_WIDTH}
@@ -450,11 +453,11 @@ export function Activity(props: {
         title="Drag to resize Activity"
       >
         <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-white/5 transition-colors group-hover:bg-oar-500/50 group-focus:bg-oar-500/50" />
-      </div>
+      </div>}
       <div className="flex h-9 shrink-0 items-center border-b border-white/5 px-4 text-xs font-medium uppercase tracking-wide text-zinc-500">
         Activity
         <ViewSwitch onChange={setView} view={view} />
-        <span className="ml-auto font-mono normal-case text-zinc-600">
+        <span className={`ml-auto font-mono normal-case text-zinc-600 ${props.compact === true ? "hidden" : ""}`}>
           {lastSequence === undefined ? "waiting" : `seq ${lastSequence}`}
         </span>
       </div>
