@@ -71,7 +71,7 @@ activity, and status lamp; lanes are individually steerable and abortable.
   the shared composer waits for all lanes to be idle so the first slice keeps
   one synchronized turn per prompt.
 
-### 2. Contract lens — live invariant checking on the event stream
+### 2. Contract lens — live invariant checking on the event stream (first slice landed)
 
 A checker subscribed to each session's raw event stream that continuously
 asserts the stream-level invariants the spec promises (event ordering,
@@ -85,9 +85,17 @@ warning.
 - **Verifies**: the invariants themselves, on live traffic. The sea-trial
   suite checks them on scripted scenarios; the lens checks them on
   everything anyone ever does in the cockpit.
-- **First slice**: three invariants (a turn ends exactly once; no events
-  attributed to a turn after its `turn_ended`; monotonic `receivedAt`
-  within a turn), alarm row in Raw view.
+- **Landed first slice**: a public-event reducer checks for duplicate
+  `turn_ended`, events attributed after `turn_ended`, and backwards
+  `receivedAt` within a session/turn. Violations carry lane/session/turn/event
+  attribution, appear as expandable alarm rows beside the offending event in
+  Raw Activity, and remain visible as a warning count from Friendly Activity.
+  The deterministic smoke injects one late event so the alarm presentation is
+  covered without a runtime login.
+- **Deferred**: missing terminal events require a trustworthy session-close
+  observation; cursor and session-graph invariants arrive with the v2 public
+  record-stream surfaces. `tool_call_ended` currently exposes no outcome bit,
+  so the lens does not guess whether a tool succeeded or failed.
 
 ### 3. Voyage recorder — record, replay, export as a test
 
@@ -158,8 +166,9 @@ a failure with the right class, dispose still completes cleanly).
   and land the voyage recorder's capture half. The implementation and capture
   location are documented in the [README](README.md).
 - **Milestone 2 — parallel tracks** (independent once M1 lands): Regatta
-  view (first slice landed) · Contract lens · Usage helm. Three lanes with no
-  shared files beyond M1's host — suitable for concurrent tasks.
+  view (first slice landed) · Contract lens (first slice landed) · Usage helm.
+  Three lanes with no shared files beyond M1's host — suitable for concurrent
+  tasks.
 - **Milestone 3 — the deep end**: voyage replay + export-to-test · session
   graph (pace with the v2 spec) · drills.
 

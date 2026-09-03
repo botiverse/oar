@@ -66,6 +66,21 @@ uses a deterministic Claude/Codex fixture, including one running lane and one
 completed lane, so the two-column view is covered by the Xvfb screenshot smoke
 without a login.
 
+## Contract lens first slice
+
+Every Activity panel continuously folds its untouched public `SessionEvent`
+values through a consumer-side Contract lens. The first slice reports three
+stream violations: a duplicate `turn_ended`, any event attributed to a turn
+after its `turn_ended`, and a `receivedAt` timestamp that moves backwards
+within one session/turn. It uses no runtime internals and deliberately does not
+infer tool success or failure because `tool_call_ended` exposes no outcome bit.
+
+An alarm count remains visible in the Activity header from either view. Switch
+to Raw to see each expandable alarm directly after its offending event, with
+lane, session, turn, sequence, timestamp, and invariant details. The
+deterministic smoke fixture injects one late Codex event; that lane opens in Raw
+so the alarm row is covered by the screenshot smoke without a login.
+
 ## Checks
 
 ```sh
@@ -88,6 +103,8 @@ The screenshot is written to `artifacts/coxswain-smoke.png`.
 1. Launch a locally logged-in Claude installation.
 2. Send a prompt and verify that Friendly Activity uses semantic action labels
    while Raw shows the complete event stream one-for-one.
-3. Verify that messages emitted with `say` appear in the conversation.
-4. Send another input while the turn runs and inspect its steered/queued marker.
-5. Watch the status lamp follow the OAR observer, then abort the turn.
+3. If a Contract lens warning appears, open Raw and verify that the alarm is
+   attributed to the offending event, session, turn, and lane.
+4. Verify that messages emitted with `say` appear in the conversation.
+5. Send another input while the turn runs and inspect its steered/queued marker.
+6. Watch the status lamp follow the OAR observer, then abort the turn.

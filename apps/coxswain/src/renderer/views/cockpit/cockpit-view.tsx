@@ -30,6 +30,7 @@ export function CockpitView(props: CockpitViewProps): React.JSX.Element {
         <Activity
           agentView={props.agentView}
           events={props.activity}
+          laneId={props.session.laneId}
           runtimeId={props.session.runtimeId}
         />
       </div>

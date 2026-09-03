@@ -218,6 +218,7 @@ function LaneColumn(props: {
           agentView={props.lane.agentView}
           compact
           events={props.lane.activity}
+          laneId={props.lane.identity.laneId}
           runtimeId={props.lane.identity.runtimeId}
         />
       </div>
