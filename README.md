@@ -54,6 +54,8 @@ oar list
 oar installation
 oar installation codex
 oar usage claude
+oar run claude "What does this repo do?"
+oar run claude "Summarize the tests" --record run.jsonl
 ```
 
 The package is ESM-only, requires Node.js 24 or newer, and is licensed under Apache-2.0.

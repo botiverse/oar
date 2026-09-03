@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { Command } from "commander";
-import { runtimes, type Runtime } from "@botiverse/oar";
+import {
+  aggregateDeltas,
+  runtimes,
+  type Runtime,
+  type SessionObserver,
+} from "@botiverse/oar";
+import { createProgressRenderer } from "./progress.js";
+import { openVoyage } from "./voyage.js";
 
 // Read the version from this package's own manifest so `--version` can never
 // drift from package.json. `../package.json` resolves to the package root in
@@ -68,11 +75,32 @@ program
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 
+const jsonObserver: SessionObserver = (event) => {
+  process.stdout.write(`${JSON.stringify(event)}\n`);
+};
+
+function progressObserver(runtimeId: string): SessionObserver {
+  const render = createProgressRenderer(runtimeId);
+  const renderTo: SessionObserver = (event) => {
+    const line = render(event);
+    if (line !== null) {
+      process.stdout.write(`${line}\n`);
+    }
+  };
+  return aggregateDeltas(renderTo, { maxHoldMs: 250 });
+}
+
 program
   .command("run <runtime> <prompt>")
-  .description("Run one turn in a fresh session and stream its events")
+  .description("Run one turn in a fresh session and show its progress")
   .option("--model <model>", "runtime-native model identifier")
-  .action(async (id: string, prompt: string, flags: { model?: string }) => {
+  .option("--json", "print raw session events as JSON lines instead of progress")
+  .option("--record <file>", "write the run as an oar-voyage/1 JSONL log")
+  .action(async (
+    id: string,
+    prompt: string,
+    flags: { model?: string; json?: boolean; record?: string },
+  ) => {
     const runtime = runtimes.require(id);
     if (runtime.installation === undefined) {
       process.stderr.write(`${id} has no installation capability\n`);
@@ -89,18 +117,36 @@ program
       cwd: process.cwd(),
       ...(flags.model === undefined ? {} : { model: flags.model }),
     });
+    const recorder = flags.record === undefined
+      ? undefined
+      : openVoyage(flags.record, {
+          runtime: id,
+          ...(flags.model === undefined ? {} : { model: flags.model }),
+          cwd: process.cwd(),
+          sessionId: session.id,
+          startedAt: Date.now(),
+          recorder: `oar-cli/${packageVersion()}`,
+        });
+    const print = flags.json === true ? jsonObserver : progressObserver(id);
     session.subscribe((event) => {
-      process.stdout.write(`${JSON.stringify(event)}\n`);
+      recorder?.event(event);
+      print(event);
     });
+    recorder?.submission("prompt", prompt);
     const result = session.prompt(prompt);
     if (result.kind !== "turn") {
       process.stderr.write("session is busy\n");
+      await session.dispose();
+      recorder?.end("disposed");
       process.exitCode = 1;
       return;
     }
     const outcome = await result.turn.outcome;
     await session.dispose();
-    process.stdout.write(`${JSON.stringify({ outcome })}\n`);
+    recorder?.end("disposed");
+    if (flags.json === true) {
+      process.stdout.write(`${JSON.stringify({ outcome })}\n`);
+    }
     process.exitCode = outcome.kind === "completed" ? 0 : 1;
   });
 

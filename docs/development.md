@@ -1,8 +1,8 @@
 # Development
 
-How to work in this repo: how to validate your changes, how to add a
-runtime or fix a runtime bug, the testing conventions, and the commit gate.
-Linked from the root `README.md` index.
+How to work in this repo: the ad-hoc run-first loop, how to validate your
+changes, how to add a runtime or fix a runtime bug, the testing
+conventions, and the commit gate. Linked from the root `README.md` index.
 
 Deeper detail lives next to the code it describes:
 [`packages/oar/src/README.md`](../packages/oar/src/README.md) for the source
@@ -17,6 +17,41 @@ surface or revisiting an existing design decision — it explains why oar is
 shaped the way it is; read [`docs/spec/`](spec/README.md) when a change
 touches the v2 record-stream contract (record shapes, attribution, the
 session graph, the cursor).
+
+## Ad-hoc runs while developing
+
+Run first, test second. Not every check starts life as a test: while shaping
+a change it is usually fastest to run the real thing and look. Drive the CLI
+(`oar run <runtime> "<prompt>"` shows a turn's progress live — add
+`--record <file>` to keep the run as an `oar-voyage/1` JSONL log; `oar list`,
+`oar installation <id>`, `oar usage <id>` cover the observation surfaces),
+point a scratch `pnpm tsx` script at the public Session API, or reuse an
+experiment. This ad-hoc run-and-verify loop is a legitimate part of
+development — it is how you find out what correct even looks like before
+pinning it.
+
+Don't stay confined to the tools that already exist. When the check you need
+has no tool — a CLI flag that would show the thing you are staring at, a
+script that would replay a recorded run — build it or extend the oar CLI on
+the spot; that is ordinary development, not a separate project. The tool
+that does the work is also what proves it: a command someone else can rerun
+turns "trust me, I checked" into "run this and see".
+
+Three rules keep the loop honest:
+
+- **Ad-hoc evidence never closes a change.** Once the behavior is
+  understood, encode it at the cheapest test layer that can catch a
+  regression (the ladder below); the commit gate stays the arbiter.
+- **Leave the lever behind.** A run should leave more than a conclusion. A
+  scratch script that earned its keep becomes a test — or an experiment
+  with its conclusion recorded — rather than a loose file; and if you built
+  or extended a tool to get the run done, polish and commit that
+  improvement as part of finishing the change, so the next run starts
+  further ahead.
+- **Real logins cost quota.** Repeatable ad-hoc runs belong on the mock or
+  aimock backends; reach for a real installation deliberately, the same
+  way `OAR_TEST=<real id>` is reserved for when vendor reality is in
+  doubt.
 
 ## How to validate the changes
 
@@ -92,27 +127,6 @@ the open question.
 `pnpm run check` is the gate for every commit: coxswain check, typecheck,
 lint, unit tests, and the mock behavior suite. Vendor tests are not part of
 it — run them for the backend you touched.
-
-## Ad-hoc runs while developing
-
-Not every check starts life as a test. While shaping a change it is often
-fastest to run the real thing and look: drive the CLI (`oar list`,
-`oar installation <id>`, `oar usage <id>`), point a scratch `pnpm tsx`
-script at the public Session API, or reuse an experiment. This ad-hoc
-run-and-verify loop is a legitimate part of development — it is how you
-find out what correct even looks like before pinning it.
-
-Two rules keep it honest:
-
-- **Ad-hoc evidence never closes a change.** Once the behavior is
-  understood, encode it at the cheapest test layer that can catch a
-  regression (the ladder above); the commit gate stays the arbiter. A
-  scratch script that earned its keep becomes a test — or an experiment
-  with its conclusion recorded — rather than a loose committed file.
-- **Real logins cost quota.** Repeatable ad-hoc runs belong on the mock or
-  aimock backends; reach for a real installation deliberately, the same
-  way `OAR_TEST=<real id>` is reserved for when vendor reality is in
-  doubt.
 
 ## How to add a new runtime
 
