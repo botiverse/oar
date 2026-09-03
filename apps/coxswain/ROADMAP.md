@@ -1,8 +1,7 @@
 # Coxswain roadmap
 
-Where the cockpit is headed. Today coxswain is an intentionally small
-one-agent-per-window cockpit ([README](README.md)); this document is the
-ambitious end state: coxswain as oar's **live verification instrument** —
+Where the cockpit is headed. Coxswain is oar's **live verification
+instrument** —
 the place where dogfooding and contract verification become the same
 activity. It is the standing backlog for coxswain development.
 
@@ -40,6 +39,15 @@ same way, does not belong here.
   that can catch the mistake, `pnpm run check` green before every commit.
 
 ## The features
+
+### Foundations landed (Milestone 1)
+
+The host and capture foundation is now implemented and documented in the
+[README](README.md): concurrent session lanes with stable identities,
+lane-tagged global/per-lane event fan-out, lane-targeted lifecycle operations,
+and per-lane `oar-voyage/1` capture. The renderer's existing one-lane launch
+flow remains as a compatibility consumer while the fleet API is exercised by
+the next UI slices.
 
 ### 1. Regatta — one prompt, every runtime, side by side
 
@@ -137,10 +145,10 @@ a failure with the right class, dispose still completes cleanly).
 
 ## Build order
 
-- **Milestone 1 — foundations** (do first; everything depends on it):
-  generalize the single `AgentHost` into a fleet host (N sessions, stable
-  lane identity, per-lane event fan-out), and land the voyage recorder's
-  capture half. Small surface, mostly main-process work.
+- **Milestone 1 — foundations** (landed): generalize the single `AgentHost`
+  into a fleet host (N sessions, stable lane identity, per-lane event fan-out),
+  and land the voyage recorder's capture half. The implementation and capture
+  location are documented in the [README](README.md).
 - **Milestone 2 — parallel tracks** (independent once M1 lands): Regatta
   view · Contract lens · Usage helm. Three lanes with no shared files
   beyond M1's host — suitable for concurrent tasks.

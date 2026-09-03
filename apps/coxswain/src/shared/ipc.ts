@@ -13,9 +13,12 @@ import type {
 
 export const IPC_CHANNELS = {
   abort: "coxswain:abort",
+  closeLane: "coxswain:close-lane",
   event: "coxswain:event",
+  fleet: "coxswain:fleet",
   inspect: "coxswain:inspect",
   launch: "coxswain:launch",
+  launchFleet: "coxswain:launch-fleet",
   rendererReady: "coxswain:renderer-ready",
   submit: "coxswain:submit",
   usage: "coxswain:usage",
@@ -49,18 +52,44 @@ export type UsageResult =
 export interface LaunchRequest {
   readonly runtimeId: string;
   readonly cwd: string;
+  /** Optional caller-selected lane id; omitted ids are allocated by the host. */
+  readonly laneId?: string;
   readonly model?: string;
 }
 
 export interface SessionIdentity {
+  /** Stable Coxswain lane identity (always present on host responses). */
+  readonly laneId: string;
   readonly runtimeId: string;
   readonly sessionId: string;
   readonly cwd: string;
   readonly model?: string;
+  /** Absolute path to the append-only voyage log for this lane. */
+  readonly voyagePath?: string;
+}
+
+export interface LaneSnapshot {
+  readonly identity: SessionIdentity;
+  readonly activeTurnId?: string;
+  readonly view: AgentViewUpdate;
+}
+
+export interface FleetSnapshot {
+  readonly lanes: readonly LaneSnapshot[];
+}
+
+export interface LaunchFleetRequest {
+  readonly lanes: readonly LaunchRequest[];
+}
+
+export interface LaneRequest {
+  readonly laneId: string;
 }
 
 export interface SubmitRequest {
   readonly text: string;
+  /** Omitted for backwards compatibility; targets the host's active lane. */
+  readonly laneId?: string;
 }
 
 export type SubmitReceipt =
@@ -107,17 +136,20 @@ export type ConversationEntry =
     };
 
 export type HostEvent =
-  | { readonly kind: "activity"; readonly event: SessionEventView }
-  | { readonly kind: "agent_view"; readonly view: AgentViewUpdate }
-  | { readonly kind: "conversation"; readonly entry: ConversationEntry }
-  | { readonly kind: "host_error"; readonly message: string };
+  | { readonly kind: "activity"; readonly laneId: string; readonly event: SessionEventView }
+  | { readonly kind: "agent_view"; readonly laneId: string; readonly view: AgentViewUpdate }
+  | { readonly kind: "conversation"; readonly laneId: string; readonly entry: ConversationEntry }
+  | { readonly kind: "host_error"; readonly laneId?: string; readonly message: string };
 
 export interface CoxswainApi {
   inspect(): Promise<InspectResult>;
   readUsage(runtimeId: string): Promise<UsageResult>;
   launch(request: LaunchRequest): Promise<SessionIdentity>;
+  launchFleet(request: LaunchFleetRequest): Promise<readonly SessionIdentity[]>;
+  fleet(): Promise<FleetSnapshot>;
   submit(request: SubmitRequest): Promise<SubmitReceipt>;
-  abort(): Promise<AbortReceipt>;
+  abort(request?: LaneRequest): Promise<AbortReceipt>;
+  closeLane(request: LaneRequest): Promise<void>;
   rendererReady(): Promise<void>;
   onHostEvent(listener: (event: HostEvent) => void): () => void;
 }
@@ -150,12 +182,30 @@ export function parseLaunchRequest(value: unknown): LaunchRequest {
   }
   const runtimeId = requiredString(record, "runtimeId");
   const cwd = requiredString(record, "cwd");
+  const laneValue = record.laneId;
+  if (laneValue !== undefined && typeof laneValue !== "string") {
+    throw new Error("laneId must be a string when provided");
+  }
+  const laneId = typeof laneValue === "string" ? laneValue.trim() : "";
   const modelValue = record.model;
   if (modelValue !== undefined && typeof modelValue !== "string") {
     throw new Error("model must be a string when provided");
   }
   const model = typeof modelValue === "string" ? modelValue.trim() : "";
-  return model.length === 0 ? { runtimeId, cwd } : { runtimeId, cwd, model };
+  return {
+    runtimeId,
+    cwd,
+    ...(laneId.length === 0 ? {} : { laneId }),
+    ...(model.length === 0 ? {} : { model }),
+  };
+}
+
+export function parseLaunchFleetRequest(value: unknown): LaunchFleetRequest {
+  const record = recordOf(value);
+  if (record === null || !Array.isArray(record.lanes) || record.lanes.length === 0) {
+    throw new Error("launch fleet request must contain lanes");
+  }
+  return { lanes: record.lanes.map(parseLaunchRequest) };
 }
 
 export function parseSubmitRequest(value: unknown): SubmitRequest {
@@ -163,7 +213,22 @@ export function parseSubmitRequest(value: unknown): SubmitRequest {
   if (record === null) {
     throw new Error("submit request must be an object");
   }
-  return { text: requiredString(record, "text") };
+  const laneValue = record.laneId;
+  if (laneValue !== undefined && typeof laneValue !== "string") {
+    throw new Error("laneId must be a string when provided");
+  }
+  const laneId = typeof laneValue === "string" ? laneValue.trim() : "";
+  return laneId.length === 0
+    ? { text: requiredString(record, "text") }
+    : { text: requiredString(record, "text"), laneId };
+}
+
+export function parseLaneRequest(value: unknown): LaneRequest {
+  const record = recordOf(value);
+  if (record === null) {
+    throw new Error("lane request must be an object");
+  }
+  return { laneId: requiredString(record, "laneId") };
 }
 
 function requiredBoolean(record: Readonly<Record<string, unknown>>, key: string): boolean {
@@ -313,6 +378,16 @@ export function parseSessionIdentity(value: unknown): SessionIdentity {
   if (record === null) {
     throw new Error("session identity must be an object");
   }
+  // Older renderers did not carry a lane field. Treat those responses as the
+  // original single-session lane while keeping every new host response
+  // explicit and stable.
+  const laneValue = record.laneId;
+  if (laneValue !== undefined && typeof laneValue !== "string") {
+    throw new Error("laneId must be a string when provided");
+  }
+  const laneId = typeof laneValue === "string" && laneValue.trim().length > 0
+    ? laneValue.trim()
+    : "lane-1";
   const runtimeId = requiredString(record, "runtimeId");
   const sessionId = requiredString(record, "sessionId");
   const cwd = requiredString(record, "cwd");
@@ -320,9 +395,164 @@ export function parseSessionIdentity(value: unknown): SessionIdentity {
   if (model !== undefined && typeof model !== "string") {
     throw new Error("session model must be a string");
   }
-  return model === undefined
-    ? { runtimeId, sessionId, cwd }
-    : { runtimeId, sessionId, cwd, model };
+  const voyagePath = record.voyagePath;
+  if (voyagePath !== undefined && typeof voyagePath !== "string") {
+    throw new Error("voyagePath must be a string when provided");
+  }
+  return {
+    laneId,
+    runtimeId,
+    sessionId,
+    cwd,
+    ...(model === undefined ? {} : { model }),
+    ...(voyagePath === undefined ? {} : { voyagePath }),
+  };
+}
+
+function parseTurnOutcome(value: unknown): TurnOutcome {
+  const record = recordOf(value);
+  if (record === null || typeof record.kind !== "string") {
+    throw new Error("invalid turn outcome");
+  }
+  switch (record.kind) {
+    case "completed":
+      return { kind: "completed" };
+    case "aborted":
+      return { kind: "aborted" };
+    case "failed": {
+      const reason = requiredString(record, "reason");
+      const failure = record.failure;
+      switch (failure) {
+        case "auth":
+        case "quota":
+        case "invalid_request":
+        case "overloaded":
+        case "provider":
+        case "runtime_exited":
+        case "unknown":
+          return { kind: "failed", reason, failure };
+        default:
+          throw new Error("invalid turn failure class");
+      }
+    }
+    default:
+      throw new Error("unknown turn outcome kind");
+  }
+}
+
+function parseRunningPhase(value: unknown): RunningPhase {
+  if (typeof value === "string") {
+    switch (value) {
+      case "waiting_model":
+      case "thinking":
+      case "responding":
+        return value;
+      default:
+        throw new Error("unknown agent phase");
+    }
+  }
+  const record = recordOf(value);
+  if (record === null) {
+    throw new Error("invalid agent phase");
+  }
+  return {
+    tool: requiredString(record, "tool"),
+    callId: requiredString(record, "callId"),
+  };
+}
+
+function parseAgentView(value: unknown): AgentViewUpdate {
+  const record = recordOf(value);
+  if (record === null || typeof record.simple !== "string") {
+    throw new Error("fleet lane view must be an agent view");
+  }
+  let simple: AgentViewUpdate["simple"] = "idle";
+  switch (record.simple) {
+    case "idle":
+    case "busy":
+    case "stuck":
+    case "error":
+      simple = record.simple;
+      break;
+    default:
+      throw new Error("unknown simple agent state");
+  }
+  const statusRecord = recordOf(record.status);
+  if (statusRecord === null || typeof statusRecord.kind !== "string") {
+    throw new Error("agent view must contain a status");
+  }
+  const stallRecord = record.stall;
+  const stall = stallRecord === null
+    ? null
+    : ((): { readonly turnId: string; readonly silentForMs: number } => {
+        const parsed = recordOf(stallRecord);
+        if (parsed === null) {
+          throw new Error("agent view contains an invalid stall");
+        }
+        return {
+          turnId: requiredString(parsed, "turnId"),
+          silentForMs: typeof parsed.silentForMs === "number"
+            ? parsed.silentForMs
+            : ((): number => { throw new Error("stall duration must be a number"); })(),
+        };
+      })();
+  switch (statusRecord.kind) {
+    case "idle": {
+      const outcome = statusRecord.lastTurnOutcome;
+      return {
+        status: outcome === undefined
+          ? { kind: "idle" }
+          : { kind: "idle", lastTurnOutcome: parseTurnOutcome(outcome) },
+        stall,
+        simple,
+      };
+    }
+    case "running":
+      return {
+        status: {
+          kind: "running",
+          turnId: requiredString(statusRecord, "turnId"),
+          phase: parseRunningPhase(statusRecord.phase),
+          lastEventAt: typeof statusRecord.lastEventAt === "number"
+            ? statusRecord.lastEventAt
+            : (() => { throw new Error("last event time must be a number"); })(),
+        },
+        stall,
+        simple,
+      };
+    default:
+      throw new Error("unknown agent status kind");
+  }
+}
+
+export function parseFleetSnapshot(value: unknown): FleetSnapshot {
+  const record = recordOf(value);
+  if (record === null || !Array.isArray(record.lanes)) {
+    throw new Error("fleet response must contain lanes");
+  }
+  const lanes: LaneSnapshot[] = record.lanes.map((laneValue): LaneSnapshot => {
+    const lane = recordOf(laneValue);
+    if (lane === null) {
+      throw new Error("fleet lane must be an object");
+    }
+    const activeTurnId = lane.activeTurnId;
+    if (activeTurnId !== undefined && typeof activeTurnId !== "string") {
+      throw new Error("activeTurnId must be a string when provided");
+    }
+    const view = lane.view;
+    if (typeof view !== "object" || view === null) {
+      throw new Error("fleet lane must contain a view");
+    }
+    const snapshot: LaneSnapshot = {
+      identity: parseSessionIdentity(lane.identity),
+      view: parseAgentView(view),
+    };
+    if (activeTurnId !== undefined) {
+      return Object.assign(snapshot, { activeTurnId });
+    }
+    return snapshot;
+  });
+  return { lanes };
 }
 
 export function parseSubmitReceipt(value: unknown): SubmitReceipt {

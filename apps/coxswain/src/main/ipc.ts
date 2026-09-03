@@ -1,6 +1,8 @@
 import { ipcMain, type IpcMainInvokeEvent, type WebContents } from "electron";
 import {
   IPC_CHANNELS,
+  parseLaneRequest,
+  parseLaunchFleetRequest,
   parseLaunchRequest,
   parseRuntimeId,
   parseSubmitRequest,
@@ -47,15 +49,31 @@ export function registerIpc(options: RegisterIpcOptions): () => void {
     },
   );
   ipcMain.handle(
+    IPC_CHANNELS.launchFleet,
+    async (event: IpcMainInvokeEvent, request: unknown) => {
+      assertTrustedSender(event, options.webContents);
+      return options.host.launchFleet(parseLaunchFleetRequest(request));
+    },
+  );
+  ipcMain.handle(IPC_CHANNELS.fleet, (event: IpcMainInvokeEvent) => {
+    assertTrustedSender(event, options.webContents);
+    return options.host.fleet();
+  });
+  ipcMain.handle(
     IPC_CHANNELS.submit,
     async (event: IpcMainInvokeEvent, request: unknown) => {
       assertTrustedSender(event, options.webContents);
-      return options.host.submit(parseSubmitRequest(request).text);
+      const parsed = parseSubmitRequest(request);
+      return options.host.submit(parsed.text, parsed.laneId);
     },
   );
-  ipcMain.handle(IPC_CHANNELS.abort, async (event: IpcMainInvokeEvent) => {
+  ipcMain.handle(IPC_CHANNELS.abort, async (event: IpcMainInvokeEvent, request: unknown) => {
     assertTrustedSender(event, options.webContents);
-    return options.host.abort();
+    return options.host.abort(request === undefined ? undefined : parseLaneRequest(request).laneId);
+  });
+  ipcMain.handle(IPC_CHANNELS.closeLane, async (event: IpcMainInvokeEvent, request: unknown) => {
+    assertTrustedSender(event, options.webContents);
+    await options.host.closeLane(parseLaneRequest(request).laneId);
   });
   ipcMain.handle(IPC_CHANNELS.rendererReady, async (event: IpcMainInvokeEvent) => {
     assertTrustedSender(event, options.webContents);
@@ -67,8 +85,11 @@ export function registerIpc(options: RegisterIpcOptions): () => void {
     ipcMain.removeHandler(IPC_CHANNELS.inspect);
     ipcMain.removeHandler(IPC_CHANNELS.usage);
     ipcMain.removeHandler(IPC_CHANNELS.launch);
+    ipcMain.removeHandler(IPC_CHANNELS.launchFleet);
+    ipcMain.removeHandler(IPC_CHANNELS.fleet);
     ipcMain.removeHandler(IPC_CHANNELS.submit);
     ipcMain.removeHandler(IPC_CHANNELS.abort);
+    ipcMain.removeHandler(IPC_CHANNELS.closeLane);
     ipcMain.removeHandler(IPC_CHANNELS.rendererReady);
   };
 }

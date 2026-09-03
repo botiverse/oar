@@ -1,12 +1,18 @@
 # coxswain
 
 An intentionally small Electron cockpit for dogfooding `@botiverse/oar`.
-It runs one local agent per window: humans inject through `prompt` or
-`steerOrQueue`, while agent replies enter the conversation only through the
-temporary `say` CLI. The complete OAR event stream remains visible in the
-Activity panel: Friendly is the default semantic timeline and folds each tool
-call into one running/done row; Raw keeps every OAR event one-for-one with its
-complete JSON available on expansion.
+Each window owns an `AgentHost` that can run one or more independent session
+lanes. Humans inject through `prompt` or `steerOrQueue`, while agent replies
+enter the conversation only through the temporary `say` CLI. Every lane has a
+stable id, its own turn/observer state, lane-tagged host events, and an
+append-only `oar-voyage/1` JSONL capture. The current renderer keeps the
+single-lane launch flow for compatibility; fleet callers can use the explicit
+IPC/API operations described below.
+
+The complete OAR event stream remains visible in the Activity panel: Friendly
+is the default semantic timeline and folds each tool call into one running/done
+row; Raw keeps every OAR event one-for-one with its complete JSON available on
+expansion.
 
 Where the cockpit is headed — the ambitious dogfooding-and-verification
 feature set and its build order — lives in [`ROADMAP.md`](ROADMAP.md).
@@ -19,7 +25,30 @@ pnpm --filter @botiverse/coxswain dev
 
 Choose an available runtime, optionally provide its native model identifier,
 and choose an existing working directory. Closing the window disposes the
-session and removes the temporary `say` bridge.
+all lanes and removes their temporary `say` bridges. Voyage files default to
+`.coxswain/voyages` in the working directory; set `COXSWAIN_VOYAGE_DIR` to
+choose another directory.
+
+## Fleet and voyage foundations
+
+The main-process host exposes these lane-scoped operations:
+
+- `launch({ runtimeId, cwd, laneId? })` starts one lane and allocates a
+  `lane-N` id when `laneId` is omitted.
+- `launchFleet({ lanes })` reserves all ids and starts lanes concurrently; a
+  failed launch rolls back the whole fleet.
+- `fleet()` returns stable lane identities, current observer views, and active
+  turn ids. `submit`, `abort`, and `closeLane` accept a lane id (the omitted
+  lane on `submit`/`abort` targets the most recently launched lane for legacy
+  callers).
+- `subscribeLane(id, listener)` receives only that lane's events; the normal
+  host subscription receives every event with its `laneId` attached.
+
+Every launched lane gets one voyage file. Its four record kinds are owned by
+`@botiverse/oar`: a header, each human submission, each untouched public
+`SessionEvent`, and a final end marker. The recorder buffers events around an
+asynchronous steer/queue decision so a submission is always written first;
+vendor-native raw output and debug logs remain separate concerns.
 
 ## Checks
 
