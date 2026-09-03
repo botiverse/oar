@@ -1,8 +1,7 @@
 # Development
 
-How to work in this repo: how to run the tests, where each kind of test
-lives, the assertion conventions, and the commit gate. Linked from the root
-`README.md` index.
+How to work in this repo: how to validate your changes, the testing
+conventions, and the commit gate. Linked from the root `README.md` index.
 
 Deeper detail lives next to the code it describes:
 [`packages/oar/src/README.md`](../packages/oar/src/README.md) for the source
@@ -11,7 +10,14 @@ layout, import rules, and ownership;
 and harness; [`experiments/README.md`](../experiments/README.md) for live
 probes and their conclusions.
 
-## How to test
+The other two indexed docs are background, not required reading for routine
+changes: read [`docs/design/`](design/README.md) before changing a public
+surface or revisiting an existing design decision — it explains why oar is
+shaped the way it is; read [`docs/spec/`](spec/README.md) when a change
+touches the v2 record-stream contract (record shapes, attribution, the
+session graph, the cursor).
+
+## How to validate the changes
 
 Setup: Node.js 24+, `pnpm install`.
 
@@ -25,59 +31,66 @@ contracts actually hold on every runtime. Both loads collapse if the tests
 stop being trusted, so never weaken an assertion to get past a failure. A
 red test means the work is not done, not that the test is in the way.
 
-There are several ways to run tests because each answers a different
-question at a different cost. Run the cheapest one that can catch the
-mistake you might just have made, escalate as the change gets riskier, and
-finish with the full gate:
+There are four kinds of tests. Each validates a different layer of a change
+at a different cost; run the cheapest kind that can catch the mistake you
+might just have made, escalate as the change gets riskier, and finish with
+the commit gate.
 
-```bash
-pnpm test                                    # unit tests (vitest)
-pnpm sea-trial                               # behavior suite on the in-process mock
-OAR_TEST=pi-aimock pnpm sea-trial            # behavior suite on one backend
-OAR_TEST=pi-aimock pnpm vitest run sea-trial/vendor   # vendor tests for that backend
-pnpm tsx sea-trial/all.ts                    # mock + all three aimock backends concurrently
-pnpm run check                               # the full commit gate (see below)
-```
+### Unit — is the pure logic right?
 
-`OAR_TEST` selects the backend (`sea-trial/harness/backends.ts`). When and
-why to reach for each rung:
+Lives in `tests/*.test.ts`; runs via `pnpm test` (vitest). Seconds, no
+binaries. The inner loop while iterating on shared mechanisms: folds,
+resolvers, process plumbing. Write one for pure logic; virtual time via
+`vi.useFakeTimers` (mock `Date` too when clocks matter).
 
-- `pnpm test` — is the pure logic right (folds, resolvers, process
-  plumbing)? Seconds, no binaries. The inner loop while iterating on shared
-  mechanisms.
-- `pnpm sea-trial` — does the public contract still hold? Runs the behavior
-  suite against the in-process mock fixture: fast, deterministic, no
-  binaries or network. The default verification for any change to contracts
+### Behavior — does the public contract still hold?
+
+One suite in `sea-trial/cases/`, run against interchangeable backends;
+`OAR_TEST` selects the backend (`sea-trial/harness/backends.ts`). Write a
+case for a contract promise every runtime must honor: it asserts only
+through the public Session API and must pass on the mock, the aimock
+backends, and real logins alike — race-honest where runtimes may
+legitimately differ. Which backend to run, when:
+
+- `pnpm sea-trial` — the in-process mock fixture: fast, deterministic, no
+  binaries or network. The default validation for any change to contracts
   or session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock` /
   `codex-aimock` / `pi-aimock`) — same contract, but through the real vendor
   binary and adapter, with only the model provider scripted; no login
   needed. Use when you touched a specific runtime's adapter — it catches
   real-process integration mistakes the mock cannot.
-- `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor` — the vendor
-  tests see the scripted provider's side (request contents, error edges,
-  tool rounds). Use when your change affects what a runtime sends upstream
-  or how it handles vendor-specific behavior.
 - `pnpm tsx sea-trial/all.ts` — mock plus all three aimock backends
   concurrently. Use before pushing a change to shared runtime machinery, to
   prove no backend regressed.
-- `OAR_TEST=<real id>` (`claude`, `codex`, `grok`, `kimi`, `pi`) — the same
-  suites against your actual local installation and login. The final word
-  when vendor reality itself is in doubt, but it costs quota — run
-  deliberately, never by default.
+- `OAR_TEST=<real id>` (`claude`, `codex`, `grok`, `kimi`, `pi`) — your
+  actual local installation and login. The final word when vendor reality
+  itself is in doubt, but it costs quota — run deliberately, never by
+  default.
+
+### Vendor — is the runtime-specific integration right?
+
+Lives in `sea-trial/vendor/*.vendor.test.ts`; runs via
+`OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. Vendor tests
+see the scripted provider's side — request contents, error edges, scripted
+tool rounds. Run them when your change affects what a runtime sends
+upstream or how it handles vendor-specific behavior; write one for anything
+that needs the provider's view or a vendor-specific trigger. Gated with
+`describe.skipIf(OAR_TEST !== ...)`; helpers in `vendor/support/`.
+
+### Experiment — what does the real runtime actually do?
+
+Lives in `experiments/`; runs via `pnpm tsx experiments/<name>.ts`. A live
+probe answering one question about a real runtime, kept as evidence with
+its conclusion in the README table. Not run in CI and not part of
+validating a change — reach for one when the vendor's actual behavior is
+the open question.
+
+### The commit gate
 
 `pnpm run check` is the gate for every commit: coxswain check, typecheck,
 lint, unit tests, and the mock behavior suite. Vendor tests are not part of
 it — run them for the backend you touched.
-
-## The test estate — four kinds, where each goes
-
-| Kind | Lives in | Runs via | Write one when |
-|---|---|---|---|
-| Unit | `tests/*.test.ts` | `pnpm test` (vitest) | Pure logic and shared mechanisms: folds, resolvers, process plumbing. Virtual time via `vi.useFakeTimers` (mock `Date` too when clocks matter). |
-| Behavior | `sea-trial/cases/` | `OAR_TEST=<backend> pnpm sea-trial` | A contract promise every runtime must honor. Assert ONLY through the public Session API — the case must pass on real logins, aimock backends, and the mock fixture alike. Race-honest where runtimes may legitimately differ. |
-| Vendor | `sea-trial/vendor/*.vendor.test.ts` | `OAR_TEST=<backend> pnpm vitest run sea-trial/vendor` | Anything needing the scripted provider's view (request contents, error edges, scripted tool rounds) or vendor-specific triggers. Gated with `describe.skipIf(OAR_TEST !== ...)`; helpers in `vendor/support/`. |
-| Experiment | `experiments/` | `pnpm tsx experiments/<name>.ts` | A live probe answering one question about a real runtime, kept as evidence with its conclusion in the README table. Not run in CI. |
 
 ## Testing conventions
 

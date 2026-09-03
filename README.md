@@ -19,7 +19,7 @@ removing one of those files updates this table in the same commit.
 |---|---|
 | [`docs/design/`](docs/design/README.md) | Why oar exists, who it is for, and which design problems it treats as load-bearing |
 | [`docs/spec/`](docs/spec/README.md) | The concrete v2 record-stream contract (record shapes, attribution, session graph, cursor) — a draft under review, kept deliberately separate from the design principles |
-| [`docs/development.md`](docs/development.md) | Working in this repo: how to test, the test estate, conventions, the commit gate — and pointers to the source-layout and test-suite docs that live next to the code |
+| [`docs/development.md`](docs/development.md) | Working in this repo: how to validate changes, testing conventions, the commit gate — and pointers to the source-layout and test-suite docs that live next to the code |
 
 The CLI lives in [`packages/cli/`](packages/cli/README.md) so library consumers do not install Commander. [`apps/coxswain/`](apps/coxswain/README.md) is an Electron cockpit for dogfooding the library.
 
