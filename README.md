@@ -1,5 +1,7 @@
 # oar
 
+<img src="assets/logo.png" alt="OAR logo" width="240">
+
 `@botiverse/oar` defines provider-independent contracts for controlling and observing agent runtimes.
 
 The clean first surface intentionally contains two independent optional capabilities:
