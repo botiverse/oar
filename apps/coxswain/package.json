@@ -2,7 +2,7 @@
   "name": "@botiverse/coxswain",
   "private": true,
   "version": "0.0.1",
-  "description": "oar dogfood cockpit — one window, one agent, one run",
+  "description": "oar dogfood cockpit — fleet lanes and live voyage capture",
   "type": "module",
   "main": "./out/main/index.cjs",
   "scripts": {

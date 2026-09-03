@@ -2,8 +2,13 @@ import { contextBridge, ipcRenderer } from "electron";
 import {
   IPC_CHANNELS,
   parseAbortReceipt,
+  parseFleetSnapshot,
   parseInspectResult,
+  parseLaunchFleetRequest,
+  parseLaunchRequest,
+  parseLaneRequest,
   parseSessionIdentity,
+  parseSubmitRequest,
   parseSubmitReceipt,
   parseUsageResult,
   type CoxswainApi,
@@ -22,16 +27,34 @@ const api: CoxswainApi = {
     return parseUsageResult(result);
   },
   async launch(request: LaunchRequest) {
-    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.launch, request);
+    const parsed = parseLaunchRequest(request);
+    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.launch, parsed);
     return parseSessionIdentity(result);
   },
+  async launchFleet(request) {
+    const parsed = parseLaunchFleetRequest(request);
+    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.launchFleet, parsed);
+    if (!Array.isArray(result)) {
+      throw new TypeError("launch fleet response must be an array");
+    }
+    return result.map((value) => parseSessionIdentity(value));
+  },
+  async fleet() {
+    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.fleet);
+    return parseFleetSnapshot(result);
+  },
   async submit(request: SubmitRequest) {
-    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.submit, request);
+    const parsed = parseSubmitRequest(request);
+    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.submit, parsed);
     return parseSubmitReceipt(result);
   },
-  async abort() {
-    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.abort);
+  async abort(request) {
+    const parsed = request === undefined ? undefined : parseLaneRequest(request);
+    const result: unknown = await ipcRenderer.invoke(IPC_CHANNELS.abort, parsed);
     return parseAbortReceipt(result);
+  },
+  async closeLane(request) {
+    await ipcRenderer.invoke(IPC_CHANNELS.closeLane, parseLaneRequest(request));
   },
   async rendererReady() {
     await ipcRenderer.invoke(IPC_CHANNELS.rendererReady);
