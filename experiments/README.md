@@ -18,3 +18,7 @@ and deliberately avoid repo machinery where independence is the point.
 | `pi-sdk-import.ts` | the bundled sdk loads in-process; createAgentSession callable | 2026-08-21, pi sdk 0.84.2 |
 | `session-resume.ts <runtime>` | Session.id is runtime-native; resume keeps the transcript | 2026-08-21, claude+codex |
 | `session-queue.ts <runtime>` | queued input runs as an attributable spontaneous next turn | 2026-08-21, claude+codex |
+| `codex-list-models.ts` | `codex debug models` = usable-now list from the active provider; slug is identity, display_name is not; ~1.8MB payload forces field projection | 2026-09-04, codex 0.149.0 |
+| `claude-list-models.ts` | stream-json `list_models` control request; selector `value` vs `resolvedModel`; disabled entries prove login/CLI-version awareness | 2026-09-04, claude 2.1.237 |
+| `pi-list-models.ts` | `pi --list-models` = live ModelRegistry (extension-registered, credential-scoped, volatile); `pi auth check` is typed but differently scoped | 2026-09-04, pi (local install) |
+| `grok-list-models.ts` | ACP ext method `_x.ai/models/list` → SessionModelState with currentModelId; usable-now filtering + BYOK merge (pinned from source; script is the live re-check) | 2026-09-04, xai-grok-shell 1.0.12 source (bc7f02e) |
