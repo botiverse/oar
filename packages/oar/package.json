@@ -1,6 +1,6 @@
 {
   "name": "@botiverse/oar",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Provider-independent contracts for observing agent runtimes",
   "type": "module",
   "main": "./dist/index.js",
