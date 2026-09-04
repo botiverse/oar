@@ -5,7 +5,7 @@ small and links deeper instead of inlining.
 
 | Read | To answer |
 |---|---|
-| [motivation.md](motivation.md) | Why does oar exist? Who is it for? Why not use each harness directly? |
+| [motivation.md](motivation.md) | Why does oar exist? What is the bet behind it? Who is it for? Why not use each harness directly? |
 | [hard-problems.md](hard-problems.md) | What exactly is hard about integrating an agent runtime? (15 problems, each with a real-runtime counterexample) |
 | [foundations.md](foundations.md) | Which of those problems are merely work, and which are foundations where an early mistake breaks consumers forever? |
 | [liveness.md](liveness.md) | "Is this agent alive or dead, and why?" — the stability question every multi-agent application hits |
