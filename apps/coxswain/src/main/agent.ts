@@ -4,6 +4,7 @@ import {
   simpleStateOf,
   utcInstantFromDate,
   type AgentObserver,
+  type AccountUsageSnapshot,
   type AgentView,
   type AvailableInstallation,
   type Runtime,
@@ -28,6 +29,7 @@ import type {
   SessionEventView,
   SessionIdentity,
   SubmitReceipt,
+  UsageBoundaryView,
   UsageResult,
 } from "../shared/ipc.js";
 import { createSayBridge, type SayBridge } from "./say-bridge.js";
@@ -35,6 +37,7 @@ import { sayProtocol } from "./say-protocol.js";
 import { createVoyageRecorder, type CoxswainVoyageRecorder } from "./voyage-recorder.js";
 
 const STALL_AFTER_MS = 15_000;
+const USAGE_CLOSE_REASON = "lane closed before usage read completed";
 const SMOKE_RESET = utcInstantFromDate(new Date("2026-08-23T19:39:00.000Z"));
 if (SMOKE_RESET === null) {
   throw new Error("Invalid smoke usage reset fixture");
@@ -68,8 +71,8 @@ const SMOKE_RUNTIMES: readonly RuntimeInspection[] = [
   },
 ];
 
-const SMOKE_USAGE = {
-  kind: "available" as const,
+const SMOKE_USAGE: AccountUsageSnapshot = {
+  kind: "available",
   plan: "Max",
   rateLimited: false,
   windows: [
@@ -131,6 +134,11 @@ interface Lane {
   unsubscribeAgent: () => void;
   closePromise: Promise<void> | null;
   submitTail: Promise<void>;
+  /** Usage boundary probes are serialized with turn finalization. */
+  usageTail: Promise<void>;
+  readonly usageBefore: Map<string, UsageBoundaryView>;
+  readonly usageAfter: Set<string>;
+  pendingPromptUsageBefore: UsageBoundaryView | null;
   turn: Turn | null;
   protocolSent: boolean;
   view: AgentViewUpdate;
@@ -141,6 +149,7 @@ type LaneHostEvent =
   | { readonly kind: "activity"; readonly event: SessionEventView }
   | { readonly kind: "agent_view"; readonly view: AgentViewUpdate }
   | { readonly kind: "conversation"; readonly entry: ConversationEntry }
+  | { readonly kind: "usage"; readonly boundary: UsageBoundaryView }
   | { readonly kind: "host_error"; readonly message: string };
 
 const initialAgentView = (): AgentViewUpdate => ({
@@ -302,6 +311,108 @@ export class AgentHost {
     }
   }
 
+  async #usageBoundary(
+    lane: Lane,
+    turnId: string,
+    phase: UsageBoundaryView["phase"],
+  ): Promise<UsageBoundaryView> {
+    const result = await this.readUsage(lane.identity.runtimeId).catch((error: unknown): UsageResult => ({
+      // Keep the boundary observable even if an unexpected adapter error
+      // escapes readUsage; a missing sample would look like a stuck helm.
+      kind: "error",
+      reason: messageOf(error),
+    }));
+    return { turnId, phase, sampledAt: this.#now(), result };
+  }
+
+  #usageCloseBoundary(
+    turnId: string,
+    phase: UsageBoundaryView["phase"],
+  ): UsageBoundaryView {
+    return {
+      turnId,
+      phase,
+      sampledAt: this.#now(),
+      result: { kind: "error", reason: USAGE_CLOSE_REASON },
+    };
+  }
+
+  #laneIsClosing(lane: Lane): boolean {
+    return lane.closing;
+  }
+
+  async #usageBoundaryOrClose(
+    lane: Lane,
+    turnId: string,
+    phase: UsageBoundaryView["phase"],
+  ): Promise<UsageBoundaryView> {
+    if (this.#laneIsClosing(lane)) {
+      return this.#usageCloseBoundary(turnId, phase);
+    }
+    const probe = this.#usageBoundary(lane, turnId, phase);
+    const close = lane.closeStarted.then(() => this.#usageCloseBoundary(turnId, phase));
+    return Promise.race([probe, close]);
+  }
+
+  /** Queue a usage read behind any earlier boundary on this lane. */
+  async #usageBoundaryInOrder(
+    lane: Lane,
+    turnId: string,
+    phase: UsageBoundaryView["phase"],
+  ): Promise<UsageBoundaryView> {
+    const operation = lane.usageTail.then(async () => this.#usageBoundaryOrClose(lane, turnId, phase));
+    // Keep the lane chain alive after an unexpected implementation failure;
+    // the boundary itself normally resolves with an explicit error result.
+    lane.usageTail = operation.then(() => {}, () => {});
+    return operation;
+  }
+
+  #emitUsageBoundary(lane: Lane, boundary: UsageBoundaryView): void {
+    this.#emitLane(lane.id, { kind: "usage", boundary });
+  }
+
+  #queueUsageAfter(lane: Lane, event: Extract<SessionEventView, { readonly kind: "turn_ended" }>): void {
+    if (lane.usageAfter.has(event.turnId)) {
+      return;
+    }
+    lane.usageAfter.add(event.turnId);
+    const operation = this.#usageBoundaryInOrder(lane, event.turnId, "after").then((boundary) => {
+      this.#emitUsageBoundary(lane, boundary);
+      lane.usageBefore.delete(event.turnId);
+    });
+    lane.usageTail = operation.catch((error: unknown) => {
+      this.#emitLane(lane.id, { kind: "host_error", message: messageOf(error) });
+    });
+  }
+
+  #queueSpontaneousUsageBefore(lane: Lane, turnId: string): void {
+    if (lane.usageBefore.has(turnId) || lane.usageAfter.has(turnId)) {
+      return;
+    }
+    lane.usageBefore.set(turnId, {
+      // The placeholder prevents duplicate probes while the serialized read
+      // is pending. It is never emitted; the concrete boundary replaces it.
+      turnId,
+      phase: "before",
+      sampledAt: 0,
+      result: { kind: "error", reason: "usage read pending" },
+    });
+    const operation = this.#usageBoundaryInOrder(lane, turnId, "before");
+    lane.usageTail = operation.then((boundary) => {
+      lane.usageBefore.set(turnId, boundary);
+      this.#emitUsageBoundary(lane, boundary);
+    }).catch((error: unknown) => {
+      this.#emitLane(lane.id, { kind: "host_error", message: messageOf(error) });
+    });
+  }
+
+  async #promptUsageBefore(lane: Lane): Promise<UsageBoundaryView> {
+    // A prompt does not reveal its turn id until it returns. Keep this sample
+    // private until #submitLane can attach the real id, while still making the
+    // accountUsage read happen before the runtime sees the prompt.
+    return this.#usageBoundaryInOrder(lane, "pending", "before");
+  }
+
   #reserveLaneId(requested: string | undefined): string {
     const trimmed = requested?.trim() ?? "";
     if (trimmed.length > 0) {
@@ -440,12 +551,22 @@ export class AgentHost {
     };
     let unsubscribeEvents: (() => void) | null = null;
     let agentObserver: AgentObserver | null = null;
-    let lane: Lane | null = null;
+    let registeredLane: Lane | null = null;
     try {
       unsubscribeEvents = session.subscribe((event) => {
         // Record the exact public event before deriving any host/UI projection.
         recorder.recordEvent(event);
         this.#emitLane(laneId, { kind: "activity", event });
+        const currentLane = this.#lanes.get(laneId);
+        if (event.kind === "turn_started"
+          && currentLane !== undefined
+          && currentLane.pendingPromptUsageBefore === null
+          && currentLane.turn === null) {
+          // Some runtimes autonomously start a queued turn after the previous
+          // one ends. There is no prompt call to own its baseline, so probe it
+          // from the public event boundary instead.
+          this.#queueSpontaneousUsageBefore(currentLane, event.turnId);
+        }
         if (event.kind === "turn_ended") {
           this.#emitLane(laneId, {
             kind: "conversation",
@@ -457,15 +578,21 @@ export class AgentHost {
               outcome: event.outcome,
             },
           });
-          const currentLane = this.#lanes.get(laneId);
           if (currentLane?.turn?.id === event.turnId) {
             currentLane.turn = null;
+          }
+          if (currentLane !== undefined) {
+            // Reserve this operation immediately, before a runtime can drain
+            // a queued turn from inside its turn_ended notification. The read
+            // itself resumes in a microtask, after prompt() has attached a
+            // synchronously-emitted turn's baseline.
+            this.#queueUsageAfter(currentLane, event);
           }
         }
       });
       agentObserver = observeAgent(session, { now: this.#now, stallAfterMs: STALL_AFTER_MS });
       const closeSignal = Promise.withResolvers<void>();
-      lane = {
+      const lane: Lane = {
         id: laneId,
         order: this.#laneOrders.get(laneId) ?? this.#laneOrderCounter,
         identity,
@@ -484,12 +611,17 @@ export class AgentHost {
         unsubscribeAgent: (): void => {},
         closePromise: null,
         submitTail: Promise.resolve(),
+        usageTail: Promise.resolve(),
+        usageBefore: new Map(),
+        usageAfter: new Set(),
+        pendingPromptUsageBefore: null,
         turn: null,
         protocolSent: false,
         view: initialAgentView(),
         closing: false,
       };
       this.#lanes.set(laneId, lane);
+      registeredLane = lane;
       this.#releaseLaneReservation(laneId);
       const unsubscribeAgent = agentObserver.subscribe((view: AgentView) => {
         const currentLane = this.#lanes.get(laneId);
@@ -510,7 +642,7 @@ export class AgentHost {
       }
       return identity;
     } catch (error) {
-      if (lane !== null) {
+      if (registeredLane !== null) {
         this.#lanes.delete(laneId);
       }
       unsubscribeEvents?.();
@@ -591,7 +723,7 @@ export class AgentHost {
   }
 
   async #submitLane(lane: Lane, text: string): Promise<SubmitReceipt> {
-    if (lane.closing) {
+    if (this.#laneIsClosing(lane)) {
       return { landed: "rejected", reason: "The agent lane is closing" };
     }
     const wireInput = this.#wireInput(lane, text);
@@ -639,19 +771,52 @@ export class AgentHost {
       }
     }
 
+    // Mark the prompt boundary before awaiting the read. This prevents a
+    // simultaneous public turn_started notification from being misclassified
+    // as an autonomous turn while the baseline probe is in flight.
+    lane.pendingPromptUsageBefore = {
+      turnId: "pending",
+      phase: "before",
+      sampledAt: 0,
+      result: { kind: "error", reason: "usage read pending" },
+    };
+    const beforeBoundary = await this.#promptUsageBefore(lane).catch((error: unknown): UsageBoundaryView => ({
+      // Usage is an observability side-channel. An unexpected probe failure
+      // must not prevent a prompt from being delivered; expose it as a normal
+      // usage error boundary when possible and continue the turn.
+      turnId: "pending",
+      phase: "before",
+      sampledAt: this.#now(),
+      result: { kind: "error", reason: messageOf(error) },
+    }));
+    lane.pendingPromptUsageBefore = beforeBoundary;
+    if (lane.closing) {
+      lane.pendingPromptUsageBefore = null;
+      ticket.complete({ via: "prompt" });
+      return { landed: "rejected", reason: "The agent lane is closing" };
+    }
     try {
       const result = lane.session.prompt(wireInput);
       if (result.kind === "busy") {
+        lane.pendingPromptUsageBefore = null;
         const reason = "The runtime is busy without a controllable turn handle";
         ticket.complete({ via: "prompt" });
         return { landed: "rejected", reason };
       }
+      const attachedBefore: UsageBoundaryView = {
+        ...beforeBoundary,
+        turnId: result.turn.id,
+      };
+      lane.usageBefore.set(result.turn.id, attachedBefore);
+      this.#emitUsageBoundary(lane, attachedBefore);
       lane.protocolSent = true;
       this.#watchTurn(lane, result.turn);
+      lane.pendingPromptUsageBefore = null;
       ticket.complete({ via: "prompt" });
       this.#emitHuman(lane, text, "prompted");
       return { landed: "prompted", turnId: result.turn.id };
     } catch (error) {
+      lane.pendingPromptUsageBefore = null;
       const reason = messageOf(error);
       ticket.complete({ via: "prompt" });
       this.#emitLane(lane.id, { kind: "host_error", message: reason });
@@ -710,9 +875,11 @@ export class AgentHost {
       this.#emitLane(lane.id, { kind: "host_error", message: messageOf(error) });
     } finally {
       // Disposal aborts an active turn and releases any steer/queue wait. Let
-      // the in-flight renderer submission finish its recorder barrier before
-      // writing the final end marker.
+      // the in-flight renderer submission and usage probes finish before
+      // writing the final end marker. Usage boundaries are emitted before the
+      // lane is removed so a renderer cannot miss the matching after sample.
       await lane.submitTail;
+      await lane.usageTail;
       lane.unsubscribeAgent();
       lane.agentObserver.dispose();
       lane.unsubscribeEvents();

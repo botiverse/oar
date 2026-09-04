@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   defineRuntime,
+  type AccountUsageSnapshot,
   type AvailableInstallation,
   type Runtime,
   type Session,
@@ -16,6 +17,7 @@ import {
   type TurnOutcome,
 } from "@botiverse/oar";
 import { AgentHost, type RuntimeCatalog } from "../src/main/agent.js";
+import type { UsageBoundaryView } from "../src/shared/ipc.js";
 
 interface FakeTurn {
   readonly turn: Turn;
@@ -27,6 +29,7 @@ interface FakeSession extends Session {
   readonly emitted: readonly SessionEvent[];
   readonly prompts: readonly string[];
   readonly active: () => FakeTurn | null;
+  readonly spontaneous: () => FakeTurn | null;
 }
 
 function fakeSession(id: string, options: SessionOptions): FakeSession {
@@ -128,6 +131,7 @@ function fakeSession(id: string, options: SessionOptions): FakeSession {
     emitted,
     prompts,
     active: () => active,
+    spontaneous: () => start("spontaneous"),
   };
 }
 
@@ -135,6 +139,7 @@ function fakeCatalog(
   sessions: FakeSession[],
   failIds: ReadonlySet<string> = new Set(),
   wrapSession: (session: FakeSession) => Session = (session) => session,
+  usageReader?: () => Promise<AccountUsageSnapshot>,
 ): RuntimeCatalog {
   const remainingFailures = new Set(failIds);
   const runtime: Runtime = defineRuntime({
@@ -149,6 +154,7 @@ function fakeCatalog(
       sessions.push(session);
       return wrapSession(session);
     },
+    ...(usageReader === undefined ? {} : { accountUsage: usageReader }),
   });
   return {
     get: (id) => id === runtime.id ? runtime : undefined,
@@ -310,6 +316,214 @@ describe("AgentHost fleet", () => {
       "event",
       "end",
     ]);
+  });
+});
+
+describe("AgentHost usage boundaries", () => {
+  test("samples account usage around a prompted turn and keeps steering out of the boundary pair", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "coxswain-usage-"));
+    tempDirectories.push(directory);
+    const sessions: FakeSession[] = [];
+    const calls: string[] = [];
+    let read = 0;
+    const host = new AgentHost({
+      voyageDirectory: directory,
+      now: () => 1000 + read,
+      runtimeRegistry: fakeCatalog(sessions, new Set(), (session) => {
+        const originalPrompt = session.prompt.bind(session);
+        return {
+          ...session,
+          prompt(input) {
+            calls.push("prompt");
+            return originalPrompt(input);
+          },
+        };
+      }, async () => {
+        calls.push("usage");
+        const current = read;
+        read += 1;
+        return {
+          kind: "available",
+          rateLimited: false,
+          windows: [{ label: "session", usedRatio: current === 0 ? 0.2 : 0.3 }],
+        };
+      }),
+    });
+    const usage: UsageBoundaryView[] = [];
+    host.subscribe((event) => {
+      if (event.kind === "usage") {
+        usage.push(event.boundary);
+      }
+    });
+
+    await host.launch({ runtimeId: "fake", cwd: process.cwd(), laneId: "usage" });
+    const receipt = await host.submitToLane("usage", "hello");
+    expect(receipt).toMatchObject({ landed: "prompted" });
+    expect(calls.slice(0, 2)).toEqual(["usage", "prompt"]);
+    const turn = sessions[0]?.active();
+    if (turn === undefined || turn === null) {
+      throw new Error("fake turn did not start");
+    }
+    const steer = await host.submitToLane("usage", "follow up");
+    expect(steer).toMatchObject({ landed: "steered" });
+    turn.settle({ kind: "completed" });
+    await turn.turn.outcome;
+    await host.closeLane("usage");
+
+    expect(usage.map(({ phase, turnId }) => ({ phase, turnId }))).toEqual([
+      { phase: "before", turnId: "session-1-turn-2" },
+      { phase: "after", turnId: "session-1-turn-2" },
+    ]);
+    expect(calls).toEqual(["usage", "prompt", "usage"]);
+    await host.dispose();
+  });
+
+  test("represents usage reader failures as an error boundary without blocking the turn", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "coxswain-usage-"));
+    tempDirectories.push(directory);
+    const sessions: FakeSession[] = [];
+    const host = new AgentHost({
+      voyageDirectory: directory,
+      runtimeRegistry: fakeCatalog(sessions, new Set(), (session) => session, async () => {
+        throw new Error("quota endpoint unavailable");
+      }),
+    });
+    const usage: UsageBoundaryView[] = [];
+    host.subscribe((event) => {
+      if (event.kind === "usage") {
+        usage.push(event.boundary);
+      }
+    });
+    await host.launch({ runtimeId: "fake", cwd: process.cwd(), laneId: "failure" });
+    await expect(host.submitToLane("failure", "hello")).resolves.toMatchObject({ landed: "prompted" });
+    const turn = sessions[0]?.active();
+    turn?.settle({ kind: "completed" });
+    await turn?.turn.outcome;
+    await host.closeLane("failure");
+    expect(usage).toHaveLength(2);
+    expect(usage.every(({ result }) => result.kind === "error")).toBe(true);
+    expect(usage.map(({ phase }) => phase)).toEqual(["before", "after"]);
+    await host.dispose();
+  });
+
+  test("lets lane close win over a usage reader that never settles", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "coxswain-usage-"));
+    tempDirectories.push(directory);
+    const sessions: FakeSession[] = [];
+    const usageStarted = Promise.withResolvers<void>();
+    const host = new AgentHost({
+      voyageDirectory: directory,
+      runtimeRegistry: fakeCatalog(sessions, new Set(), (session) => session, async () => {
+        usageStarted.resolve();
+        return new Promise<AccountUsageSnapshot>(() => {});
+      }),
+    });
+    const usage: UsageBoundaryView[] = [];
+    host.subscribe((event) => {
+      if (event.kind === "usage") {
+        usage.push(event.boundary);
+      }
+    });
+
+    await host.launch({ runtimeId: "fake", cwd: process.cwd(), laneId: "hung-usage" });
+    const pending = host.submitToLane("hung-usage", "hello");
+    await usageStarted.promise;
+    await expect(host.closeLane("hung-usage")).resolves.toBeUndefined();
+    await expect(pending).resolves.toEqual({
+      landed: "rejected",
+      reason: "The agent lane is closing",
+    });
+    expect(usage).toEqual([]);
+    expect(host.fleet()).toEqual({ lanes: [] });
+    await host.dispose();
+  });
+
+  test("samples a spontaneous turn from public turn boundaries", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "coxswain-usage-"));
+    tempDirectories.push(directory);
+    const sessions: FakeSession[] = [];
+    let read = 0;
+    const usageStarted = Promise.withResolvers<void>();
+    const host = new AgentHost({
+      voyageDirectory: directory,
+      now: () => 10_000 + read * 60_000,
+      runtimeRegistry: fakeCatalog(sessions, new Set(), (session) => session, async () => {
+        usageStarted.resolve();
+        const current = read;
+        read += 1;
+        return {
+          kind: "available",
+          rateLimited: false,
+          windows: [{ label: "session", usedRatio: current === 0 ? 0.1 : 0.2 }],
+        };
+      }),
+    });
+    const usage: UsageBoundaryView[] = [];
+    host.subscribe((event) => {
+      if (event.kind === "usage") {
+        usage.push(event.boundary);
+      }
+    });
+
+    await host.launch({ runtimeId: "fake", cwd: process.cwd(), laneId: "spontaneous" });
+    const turn = sessions[0]?.spontaneous();
+    if (turn === undefined || turn === null) {
+      throw new Error("fake spontaneous turn did not start");
+    }
+    await usageStarted.promise;
+    turn.settle({ kind: "completed" });
+    await turn.turn.outcome;
+    await host.closeLane("spontaneous");
+
+    expect(usage.map(({ phase, turnId }) => ({ phase, turnId }))).toEqual([
+      { phase: "before", turnId: "session-1-turn-1" },
+      { phase: "after", turnId: "session-1-turn-1" },
+    ]);
+    await host.dispose();
+  });
+
+  test("keeps a synchronously completed prompt paired with both usage boundaries", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "coxswain-usage-"));
+    tempDirectories.push(directory);
+    const sessions: FakeSession[] = [];
+    let reads = 0;
+    const host = new AgentHost({
+      voyageDirectory: directory,
+      runtimeRegistry: fakeCatalog(sessions, new Set(), (session) => ({
+        ...session,
+        prompt(input) {
+          const result = session.prompt(input);
+          if (result.kind === "turn" && input.includes("instant")) {
+            session.active()?.settle({ kind: "completed" });
+          }
+          return result;
+        },
+      }), async () => ({
+        kind: "available",
+        rateLimited: false,
+        windows: [{ label: "session", usedRatio: reads++ === 0 ? 0.1 : 0.2 }],
+      })),
+    });
+    const usage: UsageBoundaryView[] = [];
+    host.subscribe((event) => {
+      if (event.kind === "usage") {
+        usage.push(event.boundary);
+      }
+    });
+
+    await host.launch({ runtimeId: "fake", cwd: process.cwd(), laneId: "instant" });
+    await expect(host.submitToLane("instant", "instant")).resolves.toMatchObject({
+      landed: "prompted",
+      turnId: "session-1-turn-2",
+    });
+    await host.closeLane("instant");
+    expect(usage.map(({ phase, turnId }) => ({ phase, turnId }))).toEqual([
+      { phase: "before", turnId: "session-1-turn-2" },
+      { phase: "after", turnId: "session-1-turn-2" },
+    ]);
+    expect(usage.every(({ result }) => result.kind === "loaded")).toBe(true);
+    expect(reads).toBe(2);
+    await host.dispose();
   });
 });
 

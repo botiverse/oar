@@ -10,6 +10,7 @@ import {
   parseSessionIdentity,
   parseSubmitRequest,
   parseSubmitReceipt,
+  parseUsageHostEvent,
   parseUsageResult,
   type CoxswainApi,
   type HostEvent,
@@ -61,7 +62,7 @@ const api: CoxswainApi = {
   },
   onHostEvent(listener: (event: HostEvent) => void): (() => void) {
     const receive = (_event: Electron.IpcRendererEvent, hostEvent: HostEvent): void => {
-      listener(hostEvent);
+      listener(hostEvent.kind === "usage" ? parseUsageHostEvent(hostEvent) : hostEvent);
     };
     ipcRenderer.on(IPC_CHANNELS.event, receive);
     return () => {

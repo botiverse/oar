@@ -118,6 +118,21 @@
         "apps/coxswain/**"
       ],
       "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "@botiverse/oar/**",
+                  "!@botiverse/oar/observe",
+                  "**/packages/oar/src/**"
+                ],
+                "message": "Coxswain must not import OAR source internals; consume a documented package export."
+              }
+            ]
+          }
+        ],
         "eslint/max-lines": "off",
         "eslint/max-lines-per-function": "off",
         "eslint/max-params": "off",

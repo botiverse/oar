@@ -129,7 +129,7 @@ instead of folding everything into one flat timeline.
 - **First slice**: a tree panel driven from whatever parent/child signal
   the stream carries today, degrading gracefully to a single node.
 
-### 5. Usage helm — quota as an instrument, not a snapshot
+### 5. Usage helm — quota as an instrument, not a snapshot (first slice landed)
 
 Poll `accountUsage` around turn boundaries and show usage as motion:
 per-turn deltas, burn rate over the session, projected time-to-limit
@@ -140,8 +140,14 @@ against each window's reset.
 - **Verifies**: snapshot sanity over time (ratios move monotonically
   within a window, resets actually reset, `reauth_required` surfaces
   instead of garbage) — properties only observable across many reads.
-- **First slice**: usage read before/after each turn, delta shown on the
-  turn's outcome row.
+- **Landed first slice**: public `accountUsage` reads are serialized around
+  prompted and spontaneous turn boundaries; outcome rows show per-window
+  deltas, reset detection, burn rate, and conservative time-to-limit
+  projections, while unsupported/reauth/unavailable/error states remain
+  explicit. Deterministic Regatta smoke data covers the motion display.
+- **Deferred**: a session-level burn-rate dashboard and historical trend
+  retention remain future slices; the current view deliberately stays tied to
+  each turn outcome.
 
 ### 6. Drills — induced faults, promised behavior
 
@@ -166,7 +172,8 @@ a failure with the right class, dispose still completes cleanly).
   and land the voyage recorder's capture half. The implementation and capture
   location are documented in the [README](README.md).
 - **Milestone 2 — parallel tracks** (independent once M1 lands): Regatta
-  view (first slice landed) · Contract lens (first slice landed) · Usage helm.
+  view (first slice landed) · Contract lens (first slice landed) · Usage helm
+  (first slice landed).
   Three lanes with no shared files beyond M1's host — suitable for concurrent
   tasks.
 - **Milestone 3 — the deep end**: voyage replay + export-to-test · session

@@ -5,13 +5,16 @@ import type {
   SessionEventView,
   SessionIdentity,
   SubmitReceipt,
+  UsageBoundaryView,
 } from "../../../shared/ipc.js";
+import { usageViewsByTurn, type TurnUsageView } from "../usage-helm/usage-model.js";
 
 export interface RegattaLaneState {
   readonly identity: SessionIdentity;
   readonly agentView: AgentViewUpdate;
   readonly activity: readonly SessionEventView[];
   readonly conversation: readonly ConversationEntry[];
+  readonly usage: readonly UsageBoundaryView[];
   readonly hostError: string | null;
 }
 
@@ -38,6 +41,7 @@ export function initialRegattaState(
     agentView: views.get(identity.laneId) ?? INITIAL_AGENT_VIEW,
     activity: [],
     conversation: [],
+    usage: [],
     hostError: null,
   }));
 }
@@ -70,12 +74,18 @@ export function reduceRegattaEvent(state: RegattaState, event: HostEvent): Regat
         return { ...lane, agentView: event.view };
       case "conversation":
         return { ...lane, conversation: [...lane.conversation, event.entry] };
+      case "usage":
+        return { ...lane, usage: [...lane.usage, event.boundary] };
       case "host_error":
         return { ...lane, hostError: event.message };
       default:
         throw new Error("Unknown Regatta host event");
     }
   });
+}
+
+export function usageForLane(lane: RegattaLaneState): ReadonlyMap<string, TurnUsageView> {
+  return usageViewsByTurn(lane.usage);
 }
 
 export function reduceRegattaEvents(

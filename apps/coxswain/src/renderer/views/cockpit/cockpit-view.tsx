@@ -3,7 +3,9 @@ import type {
   ConversationEntry,
   SessionEventView,
   SessionIdentity,
+  UsageBoundaryView,
 } from "../../../shared/ipc.js";
+import { usageViewsByTurn } from "../usage-helm/usage-model.js";
 import { Activity } from "./activity/activity.js";
 import { Conversation } from "./conversation/conversation.js";
 import { StatusBar } from "./status-bar/status-bar.js";
@@ -14,9 +16,11 @@ export interface CockpitViewProps {
   readonly conversation: readonly ConversationEntry[];
   readonly hostError: string | null;
   readonly session: SessionIdentity;
+  readonly usage?: readonly UsageBoundaryView[];
 }
 
 export function CockpitView(props: CockpitViewProps): React.JSX.Element {
+  const usage = usageViewsByTurn(props.usage ?? []);
   return (
     <main className="flex h-full min-h-0 flex-col bg-ink-950 text-zinc-300" data-view="cockpit">
       <StatusBar agentView={props.agentView} session={props.session} />
@@ -26,7 +30,7 @@ export function CockpitView(props: CockpitViewProps): React.JSX.Element {
         </div>
       )}
       <div className="flex min-h-0 flex-1">
-        <Conversation agentView={props.agentView} entries={props.conversation} />
+        <Conversation agentView={props.agentView} entries={props.conversation} usage={usage} />
         <Activity
           agentView={props.agentView}
           events={props.activity}

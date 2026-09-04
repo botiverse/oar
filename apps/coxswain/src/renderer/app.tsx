@@ -7,6 +7,7 @@ import type {
   SessionIdentity,
   LaunchFleetRequest,
   AbortReceipt,
+  UsageBoundaryView,
 } from "../shared/ipc.js";
 import { CockpitView } from "./views/cockpit/cockpit-view.js";
 import { LaunchView } from "./views/launch/launch-view.js";
@@ -37,6 +38,7 @@ export function App(): React.JSX.Element {
   const [conversation, setConversation] = useState<readonly ConversationEntry[]>([]);
   const [activity, setActivity] = useState<readonly SessionEventView[]>([]);
   const [hostError, setHostError] = useState<string | null>(null);
+  const [usage, setUsage] = useState<readonly UsageBoundaryView[]>([]);
   const [regatta, setRegatta] = useState<RegattaState | null>(null);
   const smokeFixture = useMemo(() => smokeRegattaFixture(), []);
 
@@ -58,6 +60,9 @@ export function App(): React.JSX.Element {
           break;
         case "conversation":
           setConversation((current) => [...current, event.entry]);
+          break;
+        case "usage":
+          setUsage((current) => [...current, event.boundary]);
           break;
         case "host_error":
           setHostError(event.message);
@@ -114,6 +119,7 @@ export function App(): React.JSX.Element {
       conversation={conversation}
       hostError={hostError}
       session={session}
+      usage={usage}
     />
   );
 }

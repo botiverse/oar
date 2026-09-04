@@ -10,6 +10,7 @@
     "check": "pnpm run typecheck && pnpm run lint",
     "dev": "pnpm --filter @botiverse/oar build && electron-vite dev",
     "lint": "oxlint --type-aware --deny-warnings src test/*.ts electron.vite.config.ts vitest.config.ts",
+    "showcase": "pnpm --filter @botiverse/coxswain build && node test/showcase.cjs",
     "smoke": "electron --no-sandbox --disable-gpu --disable-dev-shm-usage test/smoke.cjs",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit"

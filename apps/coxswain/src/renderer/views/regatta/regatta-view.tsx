@@ -6,7 +6,7 @@ import type {
 } from "../../../shared/ipc.js";
 import { Activity } from "../cockpit/activity/activity.js";
 import { Conversation } from "../cockpit/conversation/conversation.js";
-import type { BroadcastReceipt, RegattaLaneState } from "./regatta-model.js";
+import { usageForLane, type BroadcastReceipt, type RegattaLaneState } from "./regatta-model.js";
 
 export interface RegattaViewProps {
   readonly lanes: readonly RegattaLaneState[];
@@ -213,6 +213,7 @@ function LaneColumn(props: {
           agentView={props.lane.agentView}
           entries={props.lane.conversation}
           showComposer={false}
+          usage={usageForLane(props.lane)}
         />
         <Activity
           agentView={props.lane.agentView}

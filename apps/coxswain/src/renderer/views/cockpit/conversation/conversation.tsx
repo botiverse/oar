@@ -5,6 +5,87 @@ import type {
   SubmitReceipt,
   TurnOutcomeView,
 } from "../../../../shared/ipc.js";
+import type { TurnUsageView, UsageWindowDeltaView } from "../../usage-helm/usage-model.js";
+
+function percent(ratio: number): string {
+  return `${(Math.abs(ratio) * 100).toFixed(1)}%`;
+}
+
+function signedPercent(ratio: number): string {
+  return `${ratio >= 0 ? "+" : "−"}${percent(ratio)}`;
+}
+
+function clock(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function windowMotion(window: UsageWindowDeltaView): string {
+  if (window.deltaRatio === undefined) {
+    return "baseline unavailable";
+  }
+  if (window.reset) {
+    return `reset ${signedPercent(window.deltaRatio)}`;
+  }
+  if (window.deltaRatio === 0) {
+    return "no movement";
+  }
+  const burn = window.burnRatePerMinute === undefined
+    ? ""
+    : ` · ${percent(window.burnRatePerMinute)}/min`;
+  const projection = window.resetBeforeProjection
+    ? " · resets before limit"
+    : window.projectedLimitAt === undefined
+      ? ""
+      : ` · estimated limit ~${clock(window.projectedLimitAt)}`;
+  return `${signedPercent(window.deltaRatio)}${burn}${projection}`;
+}
+
+function UsageMotion({ usage }: { readonly usage: TurnUsageView | undefined }): React.JSX.Element | null {
+  if (usage === undefined) {
+    return null;
+  }
+  if (usage.status !== "available") {
+    return (
+      <div
+        className="mt-2 text-left font-mono text-[10px] text-zinc-600"
+        data-usage-reason={usage.reason}
+        data-usage-status={usage.status}
+        data-usage-turn={usage.turnId}
+      >
+        usage · {usage.reason ?? usage.status.replaceAll("_", " ")}
+      </div>
+    );
+  }
+  return (
+    <div
+      className="mt-2 space-y-0.5 text-left font-mono text-[10px] text-zinc-600"
+      data-usage-status="available"
+      data-usage-turn={usage.turnId}
+    >
+      <div className="flex items-center gap-1.5 text-oar-600/80">
+        <span aria-hidden="true">◌</span>
+        <span>usage motion{usage.plan === undefined ? "" : ` · ${usage.plan}`}</span>
+        {usage.rateLimited === true ? <span className="text-amber-500/80"> · rate limited</span> : null}
+      </div>
+      {usage.windows.length === 0 ? (
+        <div className="pl-4">no usage windows reported</div>
+      ) : usage.windows.map((window, index) => (
+        <div
+          className="flex gap-2 pl-4"
+          data-usage-burn-rate={window.burnRatePerMinute?.toFixed(4)}
+          data-usage-delta={window.deltaRatio?.toFixed(4)}
+          data-usage-projection={window.projectedLimitAt === undefined ? undefined : "estimated"}
+          data-usage-reset={window.reset ? "true" : "false"}
+          data-usage-window={window.label}
+          key={`${window.label}-${index}`}
+        >
+          <span className="max-w-[8rem] truncate text-zinc-600" title={window.label}>{window.label}</span>
+          <span className={window.reset ? "text-amber-500/80" : "text-zinc-500"}>{windowMotion(window)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function clockTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -26,12 +107,17 @@ function outcomeCopy(outcome: TurnOutcomeView): { readonly text: string; readonl
   throw new Error("Unknown turn outcome");
 }
 
-export function ConversationItem({ entry }: { readonly entry: ConversationEntry }): React.JSX.Element {
+export function ConversationItem(props: {
+  readonly entry: ConversationEntry;
+  readonly usage?: TurnUsageView;
+}): React.JSX.Element {
+  const { entry } = props;
   if (entry.kind === "outcome") {
     const outcome = outcomeCopy(entry.outcome);
     return (
       <li className={`text-center text-[11px] ${outcome.failure ? "text-rose-400/70" : "text-zinc-600"}`} data-entry-kind="outcome">
-        — {outcome.text} —
+        <div>— {outcome.text} —</div>
+        <UsageMotion usage={props.usage} />
       </li>
     );
   }
@@ -158,6 +244,8 @@ export function Conversation(props: {
   readonly onSubmit?: (text: string) => Promise<SubmitReceipt>;
   /** Regatta uses the lane timeline as a read-only column. */
   readonly showComposer?: boolean;
+  /** Per-turn account usage projections for outcome rows. */
+  readonly usage?: ReadonlyMap<string, TurnUsageView>;
 }): React.JSX.Element {
   const bottom = useRef<HTMLLIElement | null>(null);
 
@@ -177,7 +265,14 @@ export function Conversation(props: {
               </p>
             </div>
           </li>
-        ) : props.entries.map((entry) => <ConversationItem entry={entry} key={entry.id} />)}
+        ) : props.entries.map((entry) => {
+          const turnUsage = entry.kind === "outcome" ? props.usage?.get(entry.turnId) : undefined;
+          return <ConversationItem
+            entry={entry}
+            key={entry.id}
+            {...(turnUsage === undefined ? {} : { usage: turnUsage })}
+          />;
+        })}
         <li ref={bottom} />
       </ol>
       {props.showComposer === false ? null : (

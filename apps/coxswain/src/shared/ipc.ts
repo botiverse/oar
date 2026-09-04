@@ -49,6 +49,15 @@ export type UsageResult =
   | { readonly kind: "unavailable"; readonly reason: string }
   | { readonly kind: "error"; readonly reason: string };
 
+/** One accountUsage observation associated with a turn boundary. */
+export interface UsageBoundaryView {
+  readonly turnId: string;
+  readonly phase: "before" | "after";
+  /** Local epoch milliseconds when the read completed. */
+  readonly sampledAt: number;
+  readonly result: UsageResult;
+}
+
 export interface LaunchRequest {
   readonly runtimeId: string;
   readonly cwd: string;
@@ -139,6 +148,7 @@ export type HostEvent =
   | { readonly kind: "activity"; readonly laneId: string; readonly event: SessionEventView }
   | { readonly kind: "agent_view"; readonly laneId: string; readonly view: AgentViewUpdate }
   | { readonly kind: "conversation"; readonly laneId: string; readonly entry: ConversationEntry }
+  | { readonly kind: "usage"; readonly laneId: string; readonly boundary: UsageBoundaryView }
   | { readonly kind: "host_error"; readonly laneId?: string; readonly message: string };
 
 export interface CoxswainApi {
@@ -239,8 +249,8 @@ function requiredBoolean(record: Readonly<Record<string, unknown>>, key: string)
   return value;
 }
 
-function parseCanonicalUtcInstant(value: string): UtcInstant | null;
-function parseCanonicalUtcInstant(value: string): string | null {
+export function parseCanonicalUtcInstant(value: string): UtcInstant | null;
+export function parseCanonicalUtcInstant(value: string): string | null {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) {
     return null;
@@ -307,7 +317,11 @@ export function parseInspectResult(value: unknown): InspectResult {
 
 function parseUsageWindow(value: unknown): UsageWindowView {
   const record = recordOf(value);
-  if (record === null || typeof record.usedRatio !== "number") {
+  if (record === null
+    || typeof record.usedRatio !== "number"
+    || !Number.isFinite(record.usedRatio)
+    || record.usedRatio < 0
+    || record.usedRatio > 1) {
     throw new Error("usage window must contain a numeric ratio");
   }
   const label = requiredString(record, "label");
@@ -344,12 +358,18 @@ function parseUsageSnapshot(value: unknown): UsageSnapshotView {
       if (plan !== undefined && typeof plan !== "string") {
         throw new Error("usage plan must be a string");
       }
+      const email = record.email;
+      if (email !== undefined && typeof email !== "string") {
+        throw new Error("usage email must be a string");
+      }
       const base = {
         kind: "available" as const,
+        ...(plan === undefined ? {} : { plan }),
+        ...(email === undefined ? {} : { email }),
         rateLimited: requiredBoolean(record, "rateLimited"),
         windows: record.windows.map(parseUsageWindow),
       };
-      return plan === undefined ? base : { ...base, plan };
+      return base;
     }
     default:
       throw new Error("unknown usage kind");
@@ -371,6 +391,44 @@ export function parseUsageResult(value: unknown): UsageResult {
     default:
       throw new Error("unknown usage result kind");
   }
+}
+
+/** Parse the usage-bearing host event at the isolated renderer boundary. */
+export function parseUsageHostEvent(
+  value: unknown,
+): Extract<HostEvent, { readonly kind: "usage" }> {
+  const record = recordOf(value);
+  if (record === null || record.kind !== "usage") {
+    throw new Error("usage host event must be an object");
+  }
+  return {
+    kind: "usage",
+    laneId: requiredString(record, "laneId"),
+    boundary: parseUsageBoundary(record.boundary),
+  };
+}
+
+/** Validate the usage boundary envelope crossing the isolated renderer IPC. */
+export function parseUsageBoundary(value: unknown): UsageBoundaryView {
+  const record = recordOf(value);
+  if (record === null) {
+    throw new Error("usage boundary must be an object");
+  }
+  const turnId = requiredString(record, "turnId");
+  const phase = record.phase;
+  if (phase !== "before" && phase !== "after") {
+    throw new Error("usage boundary phase must be before or after");
+  }
+  const sampledAt = record.sampledAt;
+  if (typeof sampledAt !== "number" || !Number.isFinite(sampledAt)) {
+    throw new TypeError("usage boundary sample time must be finite");
+  }
+  return {
+    turnId,
+    phase,
+    sampledAt,
+    result: parseUsageResult(record.result),
+  };
 }
 
 export function parseSessionIdentity(value: unknown): SessionIdentity {
