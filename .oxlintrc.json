@@ -146,7 +146,8 @@
     },
     {
       "files": [
-        "**/*.test.ts"
+        "**/*.test.ts",
+        "tests/fixtures/**"
       ],
       "rules": {
         "import/no-nodejs-modules": "off",

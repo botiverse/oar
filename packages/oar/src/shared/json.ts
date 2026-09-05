@@ -33,3 +33,19 @@ export function asEpochInstant(value: unknown): UtcInstant | null {
   const instant = new Date(raw >= 1_000_000_000_000 ? raw : raw * 1000);
   return utcInstantFromDate(instant);
 }
+
+/** Array members that are JSON objects; non-arrays and non-object members are dropped. */
+export function asRecordList(value: unknown): JsonRecord[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const entries: unknown[] = value;
+  const records: JsonRecord[] = [];
+  for (const entry of entries) {
+    const record = asRecord(entry);
+    if (record !== null) {
+      records.push(record);
+    }
+  }
+  return records;
+}
