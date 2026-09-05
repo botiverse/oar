@@ -1,5 +1,5 @@
-import type { CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
-import type { Session, StartSession, Turn } from "../../contracts/session.js";
+import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
+import type { Session, SessionOptions, StartSession, Turn } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
@@ -11,13 +11,15 @@ import {
   piSettledOutcome,
   type PiProjectionState,
 } from "./projection.js";
+import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
 
 /*
  * Bundled pi SDK mapping (in-process, no fork — settled 2026-08-21):
  * prompt resolves on settlement; steer acceptance means entry into pi's
  * queue; abort is cooperative. Turn deltas/tools map, session events drop.
- * Model selection needs ModelRuntime rather than options.model. Process-global
- * lazy env reads mean another embedded pi cannot safely share this process.
+ * Resume opens the cwd's session file by id and options.model resolves
+ * through the ModelRuntime (see resolve.ts). Process-global lazy env reads
+ * mean another embedded pi cannot safely share this process.
  */
 
 /**
@@ -52,54 +54,77 @@ export function piEffectiveModel(session: PiModelSource): string | null {
   return model === undefined ? null : `${model.provider}/${model.id}`;
 }
 
-export const piSession: StartSession = async (installation, options) => {
-  if (installation.via !== "bundled") {
-    throw new Error("The pi session adapter needs the bundled sdk installation");
-  }
-  if (options.resume !== undefined) {
-    // pi resumes by session FILE (SessionManager.open(path)), not by bare id;
-    // wiring the id→file lookup waits for a consumer with configured pi.
-    throw new Error("pi session resume is not implemented yet");
-  }
+/**
+ * Opens (or resumes) the pi AgentSession the adapter wraps. Services first
+ * (createAgentSessionServices loads the agent dir's extensions and their
+ * provider registrations into the ModelRuntime, exactly as `pi` itself does),
+ * then the session against an explicit SessionManager so resume and creation
+ * share one session directory.
+ */
+async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
   const sdk = await import("@earendil-works/pi-coding-agent");
+  // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/
+  // settings/sessions) — same namespaced-env-pin pattern as OAR_CLAUDE_BIN.
+  // This is how a host (or the pi-aimock behavior backend) points the
+  // in-process model plane somewhere else.
+  const agentDir = process.env.OAR_PI_AGENT_DIR ?? sdk.getAgentDir();
+  // YOLO by default (repo policy): pi gates tool execution on project trust,
+  // which is an approval prompt no embedded host can answer — pre-trust the
+  // session cwd the same way pi's own Trust button would (auditable in
+  // <agentDir>/trust.json).
+  new sdk.ProjectTrustStore(agentDir).set(options.cwd, true);
+  const services = await sdk.createAgentSessionServices({
+    cwd: options.cwd,
+    agentDir,
+    // System prompt seams: pi's DefaultResourceLoader natively supports both
+    // replace (systemPrompt) and append (appendSystemPrompt).
+    resourceLoaderOptions: {
+      ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
+      ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),
+    },
+  });
+  // pi persists sessions per cwd under <agentDir>/sessions; the same
+  // directory is used to create (so a later resume finds the file) and to
+  // look a resumed id up.
+  const sessionDir = piSessionDir(options.cwd, agentDir);
+  const sessionManager = options.resume === undefined
+    ? sdk.SessionManager.create(options.cwd, sessionDir)
+    : sdk.SessionManager.open(
+        await piFindSessionFile(sdk.SessionManager, options.resume, options.cwd, sessionDir),
+        sessionDir,
+      );
+  // An explicit model wins over the one recorded in a resumed session
+  // (sdk.js createAgentSession precedence, same in the services path); the
+  // recorded one is restored only when none is given.
+  const model = options.model === undefined ? undefined : piResolveModel(services.modelRuntime, options.model);
   // Per-session env on an in-process runtime: the runtime itself has no own
   // process, but the processes the AGENT spawns do — a bash tool built with a
   // spawnHook overlaying the env replaces the builtin by name (custom tools
   // win the SDK's tool registry). Provider config (keys, base URLs) does NOT
   // travel this way for pi; that needs its native modelRuntime/agentDir
-  // channel. Tool-level spawn verified in SDK source, not yet live (no
-  // configured pi on this machine).
+  // channel.
   const overlay = options.env;
-  // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/
-  // settings) — same namespaced-env-pin pattern as OAR_CLAUDE_BIN. This is
-  // how a host (or the pi-aimock behavior backend) points the in-process
-  // model plane somewhere else.
-  const agentDir = process.env.OAR_PI_AGENT_DIR;
-  // YOLO by default (repo policy): pi gates tool execution on project trust,
-  // which is an approval prompt no embedded host can answer — pre-trust the
-  // session cwd the same way pi's own Trust button would (auditable in
-  // <agentDir>/trust.json).
-  new sdk.ProjectTrustStore(agentDir ?? sdk.getAgentDir()).set(options.cwd, true);
-  // System prompt seams: pi's DefaultResourceLoader natively supports both
-  // replace (systemPrompt) and append (appendSystemPrompt).
-  const wantsSystemPrompt = options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined;
-  const resourceLoader = wantsSystemPrompt
-    ? new sdk.DefaultResourceLoader({
-        cwd: options.cwd,
-        agentDir: agentDir ?? sdk.getAgentDir(),
-        ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
-        ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),
-      })
-    : undefined;
-  // A CALLER-provided loader is the caller's to load — createAgentSession
-  // only reloads the one it builds itself.
-  await resourceLoader?.reload();
-  const { session: piAgentSession } = await sdk.createAgentSession({
-    cwd: options.cwd,
-    ...(agentDir === undefined ? {} : { agentDir }),
-    ...(resourceLoader === undefined ? {} : { resourceLoader }),
+  const { session } = await sdk.createAgentSessionFromServices({
+    services,
+    sessionManager,
+    ...(model === undefined ? {} : { model }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
+  // Read back rather than trust the request: Session.model() is the
+  // runtime's report, and a resume that kept the old model must not pass.
+  const effective = piEffectiveModel(session);
+  if (options.model !== undefined && effective !== options.model) {
+    session.dispose();
+    throw new Error(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`);
+  }
+  return session;
+}
+
+export const piSession: StartSession = async (installation, options) => {
+  if (installation.via !== "bundled") {
+    throw new Error("The pi session adapter needs the bundled sdk installation");
+  }
+  const piAgentSession = await openPiAgentSession(options);
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
   let currentTurn: KernelTurn | null = null;
