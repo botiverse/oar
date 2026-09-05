@@ -50,6 +50,22 @@ Every launched lane gets one voyage file. Its four record kinds are owned by
 asynchronous steer/queue decision so a submission is always written first;
 vendor-native raw output and debug logs remain separate concerns.
 
+## Regatta first slice
+
+The launch screen also offers `Launch regatta · runtimeA + runtimeB` when at
+least two runtimes are available. It starts the first two available runtimes
+through `launchFleet` and opens a side-by-side view. Each lane keeps its own
+session identity, status lamp, conversation, and Friendly/Raw Activity stream;
+aborting one lane targets only that lane.
+
+The shared composer sends one prompt to every lane concurrently and reports
+partial delivery when a lane rejects or fails. The first slice keeps the
+composer synchronized (it waits until every lane is idle) and deliberately
+defers per-lane steering to a later Regatta slice. The `#smoke` renderer path
+uses a deterministic Claude/Codex fixture, including one running lane and one
+completed lane, so the two-column view is covered by the Xvfb screenshot smoke
+without a login.
+
 ## Checks
 
 ```sh

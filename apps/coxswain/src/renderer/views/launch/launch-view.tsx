@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import type {
   InspectResult,
+  LaunchFleetRequest,
   RuntimeInspection,
   SessionIdentity,
   UsageResult,
@@ -10,6 +11,7 @@ import { formatReset } from "./usage-model.js";
 
 interface LaunchViewProps {
   readonly onLaunch: (session: SessionIdentity) => void;
+  readonly onRegattaLaunch?: (request: LaunchFleetRequest) => Promise<void>;
 }
 
 type UsageState =
@@ -139,7 +141,7 @@ function UsagePanel({ state }: { readonly state: UsageState }): React.JSX.Elemen
   );
 }
 
-export function LaunchView({ onLaunch }: LaunchViewProps): React.JSX.Element {
+export function LaunchView({ onLaunch, onRegattaLaunch }: LaunchViewProps): React.JSX.Element {
   const [inspection, setInspection] = useState<InspectResult | null>(null);
   const [selectedId, setSelectedId] = useState("");
   const [cwd, setCwd] = useState("");
@@ -203,6 +205,10 @@ export function LaunchView({ onLaunch }: LaunchViewProps): React.JSX.Element {
 
   const selected = inspection?.runtimes.find((runtime) => runtime.id === selectedId);
   const canLaunch = selected?.installation.kind === "available" && cwd.trim().length > 0;
+  const availableRuntimes = inspection?.runtimes.filter((runtime) =>
+    runtime.installation.kind === "available") ?? [];
+  const canLaunchRegatta = availableRuntimes.length >= 2 && cwd.trim().length > 0
+    && onRegattaLaunch !== undefined;
 
   const launch = async (): Promise<void> => {
     if (!canLaunch) {
@@ -225,6 +231,24 @@ export function LaunchView({ onLaunch }: LaunchViewProps): React.JSX.Element {
   const submit = (event: SubmitEvent<HTMLFormElement>): void => {
     event.preventDefault();
     void launch();
+  };
+
+  const launchRegatta = async (): Promise<void> => {
+    if (!canLaunchRegatta) {
+      return;
+    }
+    setLaunching(true);
+    setLaunchError(null);
+    try {
+      const lanes = availableRuntimes.slice(0, 2).map((runtime) => ({
+        runtimeId: runtime.id,
+        cwd,
+      }));
+      await onRegattaLaunch({ lanes });
+    } catch (error) {
+      setLaunchError(messageOf(error));
+      setLaunching(false);
+    }
   };
 
   return (
@@ -304,6 +328,24 @@ export function LaunchView({ onLaunch }: LaunchViewProps): React.JSX.Element {
           >
             {launching ? "Launching…" : "Launch"}
           </button>
+          {onRegattaLaunch === undefined ? null : (
+            <div className="space-y-2">
+              <button
+                className="w-full rounded-lg border border-oar-700/50 bg-oar-500/5 py-2.5 text-sm font-semibold text-oar-500 transition-colors hover:border-oar-500/70 hover:bg-oar-500/10 disabled:opacity-40"
+                data-action="launch-regatta"
+                disabled={!canLaunchRegatta || launching}
+                onClick={() => {
+                  void launchRegatta();
+                }}
+                type="button"
+              >
+                {launching ? "Launching regatta…" : `Launch regatta · ${availableRuntimes.slice(0, 2).map(({ id }) => id).join(" + ")}`}
+              </button>
+              {availableRuntimes.length < 2 ? (
+                <p className="text-center text-[11px] text-zinc-600">Regatta needs two available runtimes.</p>
+              ) : null}
+            </div>
+          )}
         </form>
       </div>
     </main>
