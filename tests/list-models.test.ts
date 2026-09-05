@@ -4,7 +4,7 @@ import { claudeListModels, projectClaudeModels } from "../packages/oar/src/runti
 import { codexListModels, projectCodexModels } from "../packages/oar/src/runtimes/codex/list-models.js";
 import { grokListModels, grokModelState, projectGrokModels } from "../packages/oar/src/runtimes/grok/list-models.js";
 import { kimiListModels } from "../packages/oar/src/runtimes/kimi/list-models.js";
-import { piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
+import { createPiListModels, piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
 import { runtimes } from "../packages/oar/src/index.js";
 
 const executable = { kind: "available", via: "executable", command: "x", version: "1" } as const;
@@ -119,6 +119,56 @@ test("pi projection namespaces ids by provider", () => {
     { id: "anthropic/claude-sonnet-5", displayName: "Claude Sonnet 5" },
     { id: "openai/gpt-5.5", displayName: "gpt-5.5" },
   ]);
+});
+
+test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot", async () => {
+  // Regression for `oar models pi` printing "no models" while `pi --list-models`
+  // showed twenty: ModelRegistry.getAvailable() only echoes a snapshot that is
+  // empty until an availability refresh runs. The lister must ask the runtime
+  // to compute availability and must hand it the timeout signal.
+  const seen: { providerId: string | undefined; signal: AbortSignal | undefined }[] = [];
+  const lister = createPiListModels(async () => ({
+    async getAvailable(providerId?: string, options?: { readonly signal?: AbortSignal }) {
+      seen.push({ providerId, signal: options?.signal });
+      return [{ id: "grok-4.6", provider: "xai", name: "Grok 4.6" }];
+    },
+  }));
+  expect(await lister(bundled, { timeoutMs: 1000 })).toEqual({
+    kind: "ok",
+    models: [{ id: "xai/grok-4.6", displayName: "Grok 4.6" }],
+  });
+  expect(seen).toHaveLength(1);
+  expect(seen[0]?.providerId).toBeUndefined();
+  expect(seen[0]?.signal).toBeInstanceOf(AbortSignal);
+
+  const failing = createPiListModels(async () => ({
+    async getAvailable() {
+      await Promise.resolve();
+      throw new Error("registry exploded");
+    },
+  }));
+  expect(await failing(bundled)).toMatchObject({ kind: "unsupported", reason: /registry exploded/u });
+});
+
+test("pi lister reports a configured provider through the real SDK", async () => {
+  // End-to-end through the bundled SDK with a dummy key: any API-key provider
+  // counts as available without network, so this pins that the in-process
+  // path actually populates the list (it was empty before the fix).
+  const previous = process.env.XAI_API_KEY;
+  process.env.XAI_API_KEY = "dummy-not-a-real-key";
+  try {
+    const result = await piListModels(bundled, { timeoutMs: 15_000 });
+    expect(result.kind).toBe("ok");
+    if (result.kind === "ok") {
+      expect(result.models.some((model) => model.id.startsWith("xai/"))).toBe(true);
+    }
+  } finally {
+    if (previous === undefined) {
+      delete process.env.XAI_API_KEY;
+    } else {
+      process.env.XAI_API_KEY = previous;
+    }
+  }
 });
 
 test("executable listers refuse bundled installations and pi refuses executables", async () => {

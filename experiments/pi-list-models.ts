@@ -32,6 +32,18 @@
  * `credentials_not_configured`. Typed readiness exists (guardrail: never
  * conflate "not logged in" with an empty list), but its provider view and
  * --list-models' provider view do not coincide.
+ *
+ * ── OBSERVED 2026-09-05, in-process via @earendil-works/pi-coding-agent 0.84.2 ──
+ *
+ * `ModelRuntime.create({ refreshOnCreate: false })` starts with an EMPTY
+ * availability snapshot: `getAvailableSnapshot()` (which is all
+ * `ModelRegistry.getAvailable()` returns) stays `[]` until an availability
+ * refresh runs. `await runtime.getAvailable()` runs that refresh and then
+ * returns the usable-now list — this is what `pi --list-models` itself awaits
+ * (packages/coding-agent/src/cli/list-models.ts). With a dummy XAI_API_KEY the
+ * snapshot is 0 before and 4 after; the check is offline for API-key providers
+ * (any key present counts). This is the cause of `oar models pi` printing
+ * "no models" while `pi --list-models` listed twenty (fixed the same day).
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -75,6 +87,20 @@ assert.ok(
   "auth check did not return typed JSON with a status field",
 );
 
+// In-process: the snapshot is empty until getAvailable() computes it.
+process.env.XAI_API_KEY ??= "dummy-not-a-real-key";
+const { ModelRuntime } = await import("@earendil-works/pi-coding-agent");
+const runtime = await ModelRuntime.create({ refreshOnCreate: false });
+const snapshotBefore = runtime.getAvailableSnapshot().length;
+assert.equal(snapshotBefore, 0, "snapshot should be empty before any refresh");
+const available = await runtime.getAvailable(undefined, { signal: AbortSignal.timeout(15_000) });
+assert.ok(
+  available.some((model) => model.provider === "xai"),
+  "getAvailable() should list the API-key provider that has a key set",
+);
+const snapshotAfter = runtime.getAvailableSnapshot().length;
+assert.equal(snapshotAfter, available.length, "getAvailable() should populate the snapshot");
+
 const rows = lines.slice(1);
 const providerColumn = rows.map((line) => line.trim().split(/\s+/u)[0]);
 const providers = [...new Set(providerColumn)];
@@ -83,4 +109,5 @@ process.stdout.write(`${JSON.stringify({
   modelRows: rows.length,
   providers,
   baseProviderAuth: auth,
+  inProcess: { snapshotBefore, available: available.length, snapshotAfter },
 }, null, 2)}\n`);
