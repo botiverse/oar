@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build && pnpm --filter @botiverse/coxswain build",
+    "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
+    "build:coxswain": "pnpm --filter @botiverse/coxswain build",
     "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings packages/oar/src packages/cli/src experiments sea-trial tests vitest.config.ts",
     "test": "vitest run",
