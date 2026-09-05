@@ -87,17 +87,19 @@ export const codexSession: StartSession = async (installation, options) => {
     client.kill();
     throw new TypeError("codex thread start/resume returned no thread id");
   }
-  // Both responses report the model that is actually active. Check it rather
-  // than trusting the request: codex's resume_running_thread ignores resume
-  // overrides for a thread that is already loaded and busy, logging only a
-  // warn ("thread/resume overrides ignored for loaded thread"), and the
-  // response then names the old model. Until Session exposes the effective
-  // model (task #54) a silent mismatch must fail loudly here, and the
-  // app-server we just started must not outlive the failed session.
-  if (options.model !== undefined && typeof started.model === "string" && started.model !== options.model) {
+  // Both responses report the model that is actually active; that value is
+  // what Session.model() reads back. Still check it against the request:
+  // codex's resume_running_thread ignores resume overrides for a thread that
+  // is already loaded and busy, logging only a warn ("thread/resume overrides
+  // ignored for loaded thread"), and the response then names the old model.
+  // A caller who asked for a model must not get a session silently running
+  // another, so the mismatch fails loudly here and the app-server we just
+  // started must not outlive the failed session.
+  const effectiveModel = typeof started.model === "string" ? started.model : null;
+  if (options.model !== undefined && effectiveModel !== null && effectiveModel !== options.model) {
     client.kill();
     const verb = options.resume === undefined ? "thread/start" : "thread/resume";
-    throw new Error(`codex ${verb} kept model ${started.model} although ${options.model} was requested`);
+    throw new Error(`codex ${verb} kept model ${effectiveModel} although ${options.model} was requested`);
   }
 
   const kernel = createSessionKernel(threadId);
@@ -216,6 +218,7 @@ export const codexSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(state) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    model: () => effectiveModel,
     contextUsage: () => latestContextUsage,
     queue: {
       durable: true,

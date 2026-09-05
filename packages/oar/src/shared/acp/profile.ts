@@ -9,6 +9,8 @@ import type { ContextUsage, SessionOptions, TurnOutcome } from "../../contracts/
 import { asRecord, type JsonRecord } from "../json.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
+export { createAcpModelReadback } from "./model.js";
+
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
   readonly requestTimeoutMs?: number;
@@ -36,6 +38,8 @@ export interface OpenedAcpSession {
   readonly initialized: JsonRecord;
   readonly response: JsonRecord;
   readonly sessionId: string;
+  /** The `session/set_model` response, when a model was requested; grok reports the applied model in its `_meta`. */
+  readonly setModelResponse?: JsonRecord;
 }
 
 export function hasAcpCapability(value: unknown): boolean {
@@ -192,8 +196,9 @@ export async function openAcpSession(
     options,
     profile.sessionMeta?.(options),
   );
+  let setModelResponse: JsonRecord | undefined = undefined;
   if (options.model !== undefined) {
-    await withAcpDeadline(
+    setModelResponse = asRecord(await withAcpDeadline(
       process,
       "session/set_model",
       profile.requestTimeoutMs ?? 15_000,
@@ -202,7 +207,7 @@ export async function openAcpSession(
         { sessionId: opened.sessionId, modelId: options.model },
         requestOptions,
       ),
-    );
+    )) ?? undefined;
   }
   const configure = profile.configureSession;
   if (configure !== undefined) {
@@ -219,5 +224,5 @@ export async function openAcpSession(
       }),
     );
   }
-  return { initialized, ...opened };
+  return { initialized, ...opened, ...(setModelResponse === undefined ? {} : { setModelResponse }) };
 }

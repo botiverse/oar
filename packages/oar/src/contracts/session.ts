@@ -58,6 +58,7 @@ export interface AdapterSession {
   prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
   subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
   readonly queue?: TurnQueue; // next-turn input; absent only when a runtime cannot even hold input for later
+  model?(): string | null; // model the RUNTIME reports as currently in effect — a read-back, never the request echoed: codex/claude/ACP report it in their own frames (thread response, system/init, session configOptions/models) and a resume or set_model can silently keep the old one. null while the runtime has not reported one yet (claude only says it in the first turn's init frame). Absent when the runtime never reports it. A query, not an event, because the value can arrive mid-stream and change after set_model.
   contextUsage?(): ContextUsage | null; // CURRENT context fullness snapshot — a query, not a fold: after compaction/pruning it is genuinely unknown (tokens null), so it is the runtime's latest authoritative value (pi delegates getContextUsage; claude/codex cache the newest usage from the event stream). Absent when the runtime never reports it.
   dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent
 }

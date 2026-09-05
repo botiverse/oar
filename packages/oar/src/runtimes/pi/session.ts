@@ -36,6 +36,22 @@ export async function piEnvBashTool(
   }));
 }
 
+/** The slice of pi's AgentSession the model read-back depends on; structural for tests. */
+export interface PiModelSource {
+  readonly model: { readonly provider: string; readonly id: string } | undefined;
+}
+
+/**
+ * pi's `AgentSession.model` (SDK 0.84.2 agent-session.d.ts: "Current model
+ * (may be undefined if not yet selected)") is the runtime-owned current
+ * model, updated by setModel/model switching; spelled `provider/id` like the
+ * list-models projection and pi's own `--model` flag.
+ */
+export function piEffectiveModel(session: PiModelSource): string | null {
+  const { model } = session;
+  return model === undefined ? null : `${model.provider}/${model.id}`;
+}
+
 export const piSession: StartSession = async (installation, options) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
@@ -184,6 +200,7 @@ export const piSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    model: () => piEffectiveModel(piAgentSession),
     contextUsage: () => {
       // pi is authoritative: getContextUsage() returns tokens (null right
       // after compaction, before the next response), contextWindow, percent.

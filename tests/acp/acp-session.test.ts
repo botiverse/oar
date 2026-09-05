@@ -30,10 +30,15 @@ function profile(overrides: Partial<AcpSessionProfile> = {}): AcpSessionProfile 
   };
 }
 
-async function start(overrides: Partial<AcpSessionProfile> = {}, resume?: string): Promise<Session> {
+async function start(
+  overrides: Partial<AcpSessionProfile> = {},
+  resume?: string,
+  model?: string,
+): Promise<Session> {
   return acpSession(profile(overrides))(installation, {
     cwd: process.cwd(),
     ...(resume === undefined ? {} : { resume }),
+    ...(model === undefined ? {} : { model }),
   });
 }
 
@@ -173,4 +178,43 @@ test("ACP resume keeps the runtime-native session id and remains usable", async 
   assert.deepEqual(await active.outcome, { kind: "completed" });
   await resumed.dispose();
   await resumed.dispose();
+});
+
+function reportedModel(session: Session): string | null {
+  return session.model?.() ?? null;
+}
+
+// The read-back must be the runtime's word, never the request parameter. The
+// fixture accepts any `session/set_model` with an empty answer but keeps
+// running fixture-model-x, the way grok falls back to its default for a model
+// the account cannot use.
+test("ACP model read-back reports the agent's effective model, not the requested one", async () => {
+  const requested = await start({}, undefined, "requested-y");
+  assert.equal(reportedModel(requested), "fixture-model-x");
+  await requested.dispose();
+
+  const resumed = await start({}, "fake-session", "requested-y");
+  assert.equal(reportedModel(resumed), "fixture-model-x");
+  await resumed.dispose();
+});
+
+test("ACP model read-back takes grok's set_model `_meta.model` over the session/new report", async () => {
+  const session = await start({}, undefined, "grok-meta");
+  assert.equal(reportedModel(session), "grok-applied");
+  await session.dispose();
+});
+
+test("ACP model read-back sees kimi's config_option_update pushed before set_model answers", async () => {
+  const session = await start({}, undefined, "kimi-push");
+  assert.equal(reportedModel(session), "kimi-pushed");
+  await session.dispose();
+});
+
+test("ACP model read-back follows config_option_update during a turn", async () => {
+  const session = await start();
+  assert.equal(reportedModel(session), "fixture-model-x");
+  const active = turn(session.prompt("switch-model"));
+  assert.deepEqual(await active.outcome, { kind: "completed" });
+  assert.equal(reportedModel(session), "fixture-model-z");
+  await session.dispose();
 });

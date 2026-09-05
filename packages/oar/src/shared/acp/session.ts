@@ -7,6 +7,7 @@ import { createSessionKernel, type KernelTurn } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import {
   closeAcpSession,
+  createAcpModelReadback,
   hasAcpCapability,
   openAcpSession,
   promptAcp,
@@ -31,7 +32,6 @@ interface ActiveTurn {
   latestRequest: number;
 }
 
-function ignoreUpdate(_notification: SessionNotification): void {}
 export function acpSession(profile: AcpSessionProfile): StartSession {
   return async (installation: AvailableInstallation, options: SessionOptions): Promise<Session> => {
     if (installation.via !== "executable") {
@@ -43,24 +43,23 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const terminalHost = createAcpTerminalHost(options.cwd, environment, {
       shellCommand: profile.terminalShellCommand === true,
     });
-    let receiveUpdate: (notification: SessionNotification) => void = ignoreUpdate;
-    const runtime = startAcpProcess(
-      installation.command,
-      args,
-      createAcpClientApp(terminalHost, (notification) => {
-        receiveUpdate(notification);
-      }),
-      {
-      cwd: options.cwd,
-      env: environment,
-      },
-    );
+    // Watched from the first frame: kimi pushes its model config_option_update
+    // before session/set_model is answered, i.e. before the session is open.
+    const model = createAcpModelReadback();
+    let receiveUpdate = (notification: SessionNotification): void => {
+      model.observe(asRecord(notification.update));
+    };
+    const client = createAcpClientApp(terminalHost, (notification) => {
+      receiveUpdate(notification);
+    });
+    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment });
     const opened = await openAcpSession(runtime, profile, options).catch(async (error: unknown) => {
       runtime.kill();
       await runtime.exited;
       await terminalHost.dispose();
       throw error;
     });
+    model.opened(opened);
     const capabilities = asRecord(opened.initialized.agentCapabilities);
     const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);
     const supportsClose = hasAcpCapability(sessionCapabilities?.close);
@@ -102,11 +101,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       if (update === null) {
         return;
       }
+      model.observe(update);
       const state = active;
-      const projected = projectAcpUpdate(
-        state?.projection ?? createAcpProjectionState(),
-        update,
-      );
+      const projected = projectAcpUpdate(state?.projection ?? createAcpProjectionState(), update);
       contextUsage = projected.contextUsage ?? contextUsage;
       if (state !== null && !state.kernelTurn.settled()) {
         for (const body of projected.bodies) {
@@ -260,6 +257,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       },
       subscribe: (observer) => kernel.subscribe(observer),
       contextUsage: () => contextUsage,
+      model: model.current,
       queue: {
         durable: false,
         add: async (input): Promise<void> => {
@@ -279,10 +277,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         held.splice(0);
         if (active !== null && !active.kernelTurn.settled()) {
           try {
-            await runtime.connection.agent.notify(
-              methods.agent.session.cancel,
-              { sessionId: opened.sessionId },
-            );
+            await runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: opened.sessionId });
           } catch {
             // Local settlement below is authoritative during disposal.
           }

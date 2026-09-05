@@ -81,6 +81,11 @@ export const claudeSession: StartSession = async (installation, options) => {
   const heldQueue: string[] = [];
   // Current context fullness snapshot (last-write-wins from the result frame).
   let latestContextUsage: ContextUsage | null = null;
+  // Model claude reports as in effect: the `model` field of each turn's
+  // system/init frame (claude 2.1.261 print.ts writes `model: P.model` there;
+  // `resolvedModel` exists only in list_models rows). Nothing says it before
+  // the first turn, so this stays null until then.
+  let latestModel: string | null = null;
 
   // Drive the pure projection fold, applying its commands to the kernel. The
   // fold owns turn framing and event translation; this owns only transport.
@@ -91,6 +96,9 @@ export const claudeSession: StartSession = async (installation, options) => {
     }
     if (message.type === "result") {
       latestContextUsage = claudeContextUsageFromResult(message) ?? latestContextUsage;
+    }
+    if (message.type === "system" && message.subtype === "init" && typeof message.model === "string") {
+      latestModel = message.model;
     }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
     state.projection = nextProjection;
@@ -165,6 +173,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       return { kind: "turn", turn: makeTurn(turn) };
     },
     subscribe: (observer) => kernel.subscribe(observer),
+    model: () => latestModel,
     contextUsage: () => latestContextUsage,
     queue: {
       durable: false,
