@@ -101,7 +101,7 @@ export { grokListModels, projectGrokModels } from "./runtimes/grok/list-models.j
 export { grokSession } from "./runtimes/grok/session.js";
 export { grokInstallation } from "./runtimes/grok/installation.js";
 export { kimiRuntime } from "./runtimes/kimi/index.js";
-export { kimiListModels } from "./runtimes/kimi/list-models.js";
+export { kimiListModels, projectKimiModels } from "./runtimes/kimi/list-models.js";
 export { kimiSession } from "./runtimes/kimi/session.js";
 export { kimiInstallation } from "./runtimes/kimi/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";

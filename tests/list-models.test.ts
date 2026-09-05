@@ -121,18 +121,12 @@ test("pi projection namespaces ids by provider", () => {
   ]);
 });
 
-test("kimi reports unsupported with a reason", async () => {
-  await expect(kimiListModels(executable)).resolves.toEqual({
-    kind: "unsupported",
-    reason: "kimi exposes no model listing surface (no CLI subcommand or wire method)",
-  });
-});
-
 test("executable listers refuse bundled installations and pi refuses executables", async () => {
   const results = await Promise.all([
     codexListModels(bundled),
     claudeListModels(bundled),
     grokListModels(bundled),
+    kimiListModels(bundled),
     piListModels(executable),
   ]);
   for (const result of results) {
