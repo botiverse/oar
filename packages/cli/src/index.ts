@@ -8,6 +8,7 @@ import {
   type Runtime,
   type SessionObserver,
 } from "@botiverse/oar";
+import { readModels, renderModels } from "./models.js";
 import { createProgressRenderer } from "./progress.js";
 
 // Read the version from this package's own manifest so `--version` can never
@@ -41,6 +42,7 @@ program
       session: true,
       installation: runtime.installation !== undefined,
       accountUsage: runtime.accountUsage !== undefined,
+      listModels: runtime.listModels !== undefined,
     }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
@@ -73,6 +75,33 @@ program
       return { runtimeId: runtime.id, accountUsage };
     }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  });
+
+program
+  .command("models [runtime]")
+  .description("List models each available installation can run right now")
+  .option("--json", "print the ListModelsResult per runtime as JSON")
+  .option("--timeout <ms>", "per-runtime listing timeout in milliseconds")
+  .action(async (id: string | undefined, flags: { json?: boolean; timeout?: string }) => {
+    const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
+    if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) {
+      process.stderr.write("--timeout must be a positive integer number of milliseconds\n");
+      process.exitCode = 1;
+      return;
+    }
+    const reports = await Promise.all(selected(id).map(async (runtime) => {
+      const report = await readModels(runtime, timeoutMs === undefined ? undefined : { timeoutMs });
+      return report;
+    }));
+    if (flags.json === true) {
+      process.stdout.write(`${JSON.stringify(reports, null, 2)}\n`);
+      return;
+    }
+    for (const report of reports) {
+      for (const line of renderModels(report)) {
+        process.stdout.write(`${line}\n`);
+      }
+    }
   });
 
 const jsonObserver: SessionObserver = (event) => {

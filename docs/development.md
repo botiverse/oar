@@ -24,7 +24,8 @@ Run first, test second. Not every check starts life as a test: while shaping
 a change it is usually fastest to run the real thing and look. Drive the CLI
 (`oar run <runtime> "<prompt>"` shows a turn's progress live — add
 `--record <file>` to keep the run as an `oar-voyage/1` JSONL log; `oar list`,
-`oar installation <id>`, `oar usage <id>` cover the observation surfaces),
+`oar installation <id>`, `oar usage <id>`, `oar models <id>` cover the
+observation surfaces),
 point a scratch `pnpm tsx` script at the public Session API, or reuse an
 experiment. This ad-hoc run-and-verify loop is a legitimate part of
 development — it is how you find out what correct even looks like before

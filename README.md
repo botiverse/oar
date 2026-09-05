@@ -54,6 +54,7 @@ oar list
 oar installation
 oar installation codex
 oar usage claude
+oar models claude
 oar run claude "What does this repo do?"
 oar run claude "Summarize the tests" --record run.jsonl
 ```

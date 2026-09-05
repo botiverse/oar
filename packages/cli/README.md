@@ -6,6 +6,7 @@ Command-line interface for `@botiverse/oar`. It installs the `oar` executable wi
 npx @botiverse/oar-cli list
 oar installation codex
 oar usage claude
+oar models claude
 oar run claude "What does this repo do?"
 ```
 
@@ -15,6 +16,10 @@ oar run claude "What does this repo do?"
 - `oar installation [runtime]` — probe local installation and version, no
   account or usage I/O.
 - `oar usage [runtime]` — account usage for each available installation.
+- `oar models [runtime]` — models each available installation can run right
+  now (login state, plan, and configured providers included); `--json` prints
+  the `ListModelsResult` per runtime, `--timeout <ms>` bounds each query.
+  The first column after the runtime is the `id` to pass to `oar run --model`.
 - `oar run <runtime> <prompt>` — run one turn in a fresh session and show
   its progress; the exit code is 0 only when the turn completed.
 
