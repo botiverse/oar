@@ -125,14 +125,19 @@ test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot"
   // Regression for `oar models pi` printing "no models" while `pi --list-models`
   // showed twenty: ModelRegistry.getAvailable() only echoes a snapshot that is
   // empty until an availability refresh runs. The lister must ask the runtime
-  // to compute availability and must hand it the timeout signal.
+  // to compute availability and must hand the same timeout signal to both
+  // the runtime construction (extension loading) and the availability call.
   const seen: { providerId: string | undefined; signal: AbortSignal | undefined }[] = [];
-  const lister = createPiListModels(async () => ({
-    async getAvailable(providerId?: string, options?: { readonly signal?: AbortSignal }) {
-      seen.push({ providerId, signal: options?.signal });
-      return [{ id: "grok-4.6", provider: "xai", name: "Grok 4.6" }];
-    },
-  }));
+  let constructionSignal: AbortSignal | undefined = undefined;
+  const lister = createPiListModels(async (signal) => {
+    constructionSignal = signal;
+    return {
+      async getAvailable(providerId?: string, options?: { readonly signal?: AbortSignal }) {
+        seen.push({ providerId, signal: options?.signal });
+        return [{ id: "grok-4.6", provider: "xai", name: "Grok 4.6" }];
+      },
+    };
+  });
   expect(await lister(bundled, { timeoutMs: 1000 })).toEqual({
     kind: "ok",
     models: [{ id: "xai/grok-4.6", displayName: "Grok 4.6" }],
@@ -140,6 +145,7 @@ test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot"
   expect(seen).toHaveLength(1);
   expect(seen[0]?.providerId).toBeUndefined();
   expect(seen[0]?.signal).toBeInstanceOf(AbortSignal);
+  expect(constructionSignal).toBe(seen[0]?.signal);
 
   const failing = createPiListModels(async () => ({
     async getAvailable() {
@@ -153,7 +159,9 @@ test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot"
 test("pi lister reports a configured provider through the real SDK", async () => {
   // End-to-end through the bundled SDK with a dummy key: any API-key provider
   // counts as available without network, so this pins that the in-process
-  // path actually populates the list (it was empty before the fix).
+  // path actually populates the list (it was empty before the fix). The
+  // extension-registered providers are environment-specific, so parity with
+  // `pi --list-models` is pinned by experiments/pi-list-models.ts instead.
   const previous = process.env.XAI_API_KEY;
   process.env.XAI_API_KEY = "dummy-not-a-real-key";
   try {
