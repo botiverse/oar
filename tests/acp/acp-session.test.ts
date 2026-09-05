@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import type { Session, SessionEvent, Turn } from "../../packages/oar/src/contracts/session.js";
@@ -216,5 +217,58 @@ test("ACP model read-back follows config_option_update during a turn", async () 
   const active = turn(session.prompt("switch-model"));
   assert.deepEqual(await active.outcome, { kind: "completed" });
   assert.equal(reportedModel(session), "fixture-model-z");
+  await session.dispose();
+});
+
+// kimi-code f9ca33376 answers `session/prompt` first and pushes the turn's
+// `usage_update` afterwards (acp-server session.ts onTurnEnded →
+// void emitUsageUpdate()). The "usage-after-response" fixture mode replays
+// that order with `used` = 100 × turn number, so a stale read is visible.
+const usageAfterResponse = [fixture, "usage-after-response"];
+
+/** `contextUsage().tokens` as read inside each `turn_ended` handler, in order. */
+function tokensAtTurnEnded(session: Session): readonly (number | null | undefined)[] {
+  const seen: (number | null | undefined)[] = [];
+  session.subscribe((event) => {
+    if (event.kind === "turn_ended") {
+      seen.push(session.contextUsage?.()?.tokens);
+    }
+  });
+  return seen;
+}
+
+test("ACP usageUpdateAfterPrompt (kimi) holds the turn until the post-response usage_update lands", async () => {
+  const session = await start({ args: usageAfterResponse, usageUpdateAfterPrompt: true });
+  const atEnd = tokensAtTurnEnded(session);
+  assert.deepEqual(await turn(session.prompt("one")).outcome, { kind: "completed" });
+  assert.deepEqual(await turn(session.prompt("two")).outcome, { kind: "completed" });
+  assert.deepEqual(atEnd, [100, 200]);
+  assert.deepEqual(session.contextUsage?.(), { tokens: 200, contextWindow: 1000, percent: 20 });
+  await session.dispose();
+});
+
+test("ACP usageUpdateAfterPrompt settles as-is once the bound passes without a usage_update", async () => {
+  const session = await start({
+    args: [fixture, "usage-never"],
+    usageUpdateAfterPrompt: true,
+    usageUpdateTimeoutMs: 100,
+  });
+  const started = performance.now();
+  assert.deepEqual(await turn(session.prompt("one")).outcome, { kind: "completed" });
+  assert.ok(performance.now() - started >= 90, "the turn should have waited for the bound");
+  assert.equal(session.contextUsage?.(), null);
+  await session.dispose();
+});
+
+test("ACP profiles without usageUpdateAfterPrompt (grok) settle on the response and read the previous turn's usage", async () => {
+  const session = await start({ args: usageAfterResponse });
+  const atEnd = tokensAtTurnEnded(session);
+  assert.deepEqual(await turn(session.prompt("one")).outcome, { kind: "completed" });
+  const atOutcome = session.contextUsage?.();
+  assert.equal(atOutcome, null);
+  await sleep(150);
+  assert.deepEqual(session.contextUsage?.(), { tokens: 100, contextWindow: 1000, percent: 10 });
+  assert.deepEqual(await turn(session.prompt("two")).outcome, { kind: "completed" });
+  assert.deepEqual(atEnd, [undefined, 100]);
   await session.dispose();
 });

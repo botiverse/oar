@@ -8,6 +8,7 @@ import { AcpError, acpProcessExitedError } from "./errors.js";
 import {
   closeAcpSession,
   createAcpModelReadback,
+  createUsageUpdateGate,
   hasAcpCapability,
   openAcpSession,
   promptAcp,
@@ -67,6 +68,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const held: string[] = [];
     let active: ActiveTurn | null = null;
     let contextUsage: ContextUsage | null = null;
+    const usageGate = createUsageUpdateGate();
     let nextRequest = 0;
     let disposed = false;
     let dead = false;
@@ -105,6 +107,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       const state = active;
       const projected = projectAcpUpdate(state?.projection ?? createAcpProjectionState(), update);
       contextUsage = projected.contextUsage ?? contextUsage;
+      usageGate.observe(projected.contextUsage);
       if (state !== null && !state.kernelTurn.settled()) {
         for (const body of projected.bodies) {
           state.kernelTurn.emit(body);
@@ -136,7 +139,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       state.pending.add(requestNumber);
       void (async (): Promise<void> => {
         try {
+          usageGate.arm();
           const result = await promptAcp(runtime, opened.sessionId, input, extraParams);
+          await usageGate.settleAfterPrompt(profile, state.abortRequested);
           contextUsage = profile.promptContextUsage?.(result) ?? contextUsage;
           finishRequest(
             state,

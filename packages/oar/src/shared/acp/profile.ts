@@ -10,6 +10,7 @@ import { asRecord, type JsonRecord } from "../json.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
 export { createAcpModelReadback } from "./model.js";
+export { createUsageUpdateGate } from "./usage-wait.js";
 
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
@@ -32,6 +33,18 @@ export interface AcpSessionProfile {
   readonly steerParams?: (input: string) => JsonRecord;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
+  /**
+   * The agent answers `session/prompt` BEFORE it pushes the turn's
+   * `usage_update` (kimi-code f9ca33376 packages/acp-server/src/session.ts:
+   * `onTurnEnded` resolves the prompt driver, then `void emitUsageUpdate()`
+   * awaits `listModels` + `getContext` and only then notifies — or skips the
+   * push when the catalog has no size for the model). When true, the session
+   * holds the turn open after the response until that update lands, bounded
+   * by `usageUpdateTimeoutMs`; on timeout it settles with whatever it has.
+   */
+  readonly usageUpdateAfterPrompt?: boolean;
+  /** Bound for `usageUpdateAfterPrompt`; default 500 ms. */
+  readonly usageUpdateTimeoutMs?: number;
 }
 
 export interface OpenedAcpSession {

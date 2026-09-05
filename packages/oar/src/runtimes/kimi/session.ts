@@ -34,6 +34,9 @@ export const kimiAcpProfile: AcpSessionProfile = {
   requestTimeoutMs: 30_000,
   selectAuthMethod: selectKimiAuthMethod,
   validateOptions: validateKimiOptions,
+  // kimi-code f9ca33376 acp-server session.ts onTurnEnded: prompt answered
+  // first, usage_update pushed afterwards from an un-awaited async task.
+  usageUpdateAfterPrompt: true,
   configureSession: async ({ connection, sessionId, response, requestOptions }) => {
     if (supportsKimiYolo(response)) {
       await connection.agent.request(

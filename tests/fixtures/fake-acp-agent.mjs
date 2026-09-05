@@ -37,11 +37,22 @@ function promptText(params) {
   return typeof first?.text === "string" ? first.text : "";
 }
 
+// Modes "usage-after-response" / "usage-never" replay kimi-code f9ca33376
+// (acp-server session.ts onTurnEnded): prompt answered first, the turn's
+// usage_update pushed afterwards from an un-awaited task — or never. `used`
+// grows per turn so a reader can tell this turn's value from the last one's.
+let completedTurns = 0;
+
 function completePrompt(id, text) {
-  update({
-    sessionUpdate: "agent_message_chunk",
-    content: { type: "text", text: `echo:${text}` },
-  });
+  completedTurns += 1;
+  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `echo:${text}` } });
+  if (mode === "usage-after-response" || mode === "usage-never") {
+    result(id, { stopReason: "end_turn" });
+    if (mode === "usage-after-response") {
+      setTimeout(() => update({ sessionUpdate: "usage_update", used: completedTurns * 100, size: 1000 }), 40);
+    }
+    return;
+  }
   update({ sessionUpdate: "usage_update", used: 250, size: 1000 });
   result(id, { stopReason: "end_turn" });
 }
