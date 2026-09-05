@@ -7,3 +7,5 @@ oar-trial-run/
 
 # Local host-detection / bake artifacts (never publish)
 artifacts-local/
+
+*.tsbuildinfo
