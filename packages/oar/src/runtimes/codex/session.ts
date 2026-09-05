@@ -73,12 +73,31 @@ export const codexSession: StartSession = async (installation, options) => {
     : await client.request("thread/resume", {
         threadId: options.resume,
         cwd: options.cwd,
+        // Same-runtime model switch = resume the same thread id with a new
+        // model. thread/resume accepts `model` (codex rust-v0.153.4,
+        // protocol/v2/thread.rs ThreadResumeParams) and applies it when the
+        // thread is loaded cold, which is the normal case here because every
+        // oar session owns its own app-server process.
+        ...(options.model === undefined ? {} : { model: options.model }),
         approvalPolicy: "never",
         ...instructionParams,
       });
   const threadId = asRecord(started.thread)?.id;
   if (typeof threadId !== "string") {
+    client.kill();
     throw new TypeError("codex thread start/resume returned no thread id");
+  }
+  // Both responses report the model that is actually active. Check it rather
+  // than trusting the request: codex's resume_running_thread ignores resume
+  // overrides for a thread that is already loaded and busy, logging only a
+  // warn ("thread/resume overrides ignored for loaded thread"), and the
+  // response then names the old model. Until Session exposes the effective
+  // model (task #54) a silent mismatch must fail loudly here, and the
+  // app-server we just started must not outlive the failed session.
+  if (options.model !== undefined && typeof started.model === "string" && started.model !== options.model) {
+    client.kill();
+    const verb = options.resume === undefined ? "thread/start" : "thread/resume";
+    throw new Error(`codex ${verb} kept model ${started.model} although ${options.model} was requested`);
   }
 
   const kernel = createSessionKernel(threadId);

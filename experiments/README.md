@@ -17,6 +17,7 @@ and deliberately avoid repo machinery where independence is the point.
 | `acp-vendor-snapshot.ts <grok\|kimi>` | scrubbed real ACP wire schema used to refresh the checked-in vendor fixtures | 2026-08-26, grok 1.0.5 + kimi 0.38.0 |
 | `pi-sdk-import.ts` | the bundled sdk loads in-process; createAgentSession callable | 2026-08-21, pi sdk 0.84.2 |
 | `session-resume.ts <runtime>` | Session.id is runtime-native; resume keeps the transcript | 2026-08-21, claude+codex |
+| `session-resume-model.ts [X] [Y]` | codex: `thread/resume {model}` switches the model on a cold load and the response `model` is the effective one; a resume on a connection already subscribed to the loaded thread drops the override and reports the old model (why the adapter checks the response); unused threads have no rollout to resume | 2026-09-05, codex 0.153.4 (tag rust-v0.153.4, 3d2ee51c) |
 | `session-queue.ts <runtime>` | queued input runs as an attributable spontaneous next turn | 2026-08-21, claude+codex |
 | `codex-list-models.ts` | `codex debug models` = usable-now list from the active provider; slug is identity, display_name is not; ~1.8MB payload forces field projection | 2026-09-04, codex 0.149.0 |
 | `claude-list-models.ts` | stream-json `list_models` control request; selector `value` vs `resolvedModel`; disabled entries prove login/CLI-version awareness | 2026-09-04, claude 2.1.237 |
