@@ -1,5 +1,6 @@
 import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
+import { StringDecoder } from "node:string_decoder";
 
 interface ProcessOptions {
   readonly cwd?: string;
@@ -15,6 +16,7 @@ export interface LineProcess {
   readonly stdin: Writable;
   readonly stdout: Readable;
   write(text: string): void;
+  /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
   /** Fires exactly once, for exit or spawn-level error alike. */
   onExit(handler: (code: number | null) => void): void;
@@ -71,8 +73,11 @@ export function spawnLineProcess(
   });
 
   const readLines = (): void => {
+    // Keep incomplete UTF-8 code points between chunks without changing the
+    // raw stdout stream used by protocol SDKs and other observers.
+    const decoder = new StringDecoder("utf8");
     stdout.on("data", (chunk: Buffer | string) => {
-      buffer += chunk.toString();
+      buffer += typeof chunk === "string" ? chunk : decoder.write(chunk);
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
       for (const raw of lines) {

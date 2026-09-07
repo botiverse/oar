@@ -31,6 +31,41 @@ test("line buffering joins partial chunks and splits complete lines", async () =
   assert.deepEqual(codes, [0]);
 });
 
+test("line buffering preserves UTF-8 split across byte chunks", async () => {
+  // Regression transferred from Raft's runtimeSession test. A real child
+  // waits for acknowledgment of each byte, so the OS cannot merge the
+  // multibyte characters into one chunk and accidentally hide the defect.
+  const expected = JSON.stringify({ text: "hello 你好🌊" });
+  const child = spawnLineProcess(process.execPath, [
+    "-e",
+    String.raw`
+      const bytes = Buffer.from(JSON.stringify({ text: "hello 你好🌊" }) + "\n");
+      let offset = 0;
+      function sendNextByte() {
+        if (offset === bytes.length) {
+          process.stdin.destroy();
+          return;
+        }
+        process.stdout.write(bytes.subarray(offset, ++offset));
+      }
+      process.stdin.on("data", sendNextByte);
+      sendNextByte();
+    `,
+  ]);
+  const { promise: line, resolve } = Promise.withResolvers<string>();
+  child.onLine(resolve);
+  child.stdout.on("data", () => {
+    child.write("next\n");
+  });
+  try {
+    await child.spawned;
+    assert.equal(await line, expected);
+  } finally {
+    child.kill();
+    await child.exited;
+  }
+});
+
 test("exit fires exactly once with the exit code", async () => {
   const child = spawnLineProcess(process.execPath, ["-e", "process.exit(3);"]);
   const codes: (number | null)[] = [];
