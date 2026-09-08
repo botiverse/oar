@@ -9,10 +9,16 @@ import {
 
 // pi (SDK 0.84.2) keeps sessions as files under <agentDir>/sessions/--<cwd
 // slug>--; the adapter mirrors that unexported formula so OAR_PI_AGENT_DIR
-// and pi's own CLI agree on where a cwd's sessions live.
+// and pi's own CLI agree on where a cwd's sessions live. pi resolves the cwd
+// first, so the inputs must be absolute on the host: on Windows a POSIX path
+// would gain the current drive, and the drive letter's colon joins the slug
+// (`C:\home\me\proj` -> `--C--home-me-proj--`).
 test("piSessionDir mirrors pi's per-cwd session directory formula", () => {
-  expect(piSessionDir("/home/me/proj", "/home/me/.pi/agent")).toBe(
-    join("/home/me/.pi/agent", "sessions", "--home-me-proj--"),
+  const windows = process.platform === "win32";
+  const cwd = windows ? String.raw`C:\home\me\proj` : "/home/me/proj";
+  const agentDir = windows ? String.raw`C:\home\me\.pi\agent` : "/home/me/.pi/agent";
+  expect(piSessionDir(cwd, agentDir)).toBe(
+    join(agentDir, "sessions", windows ? "--C--home-me-proj--" : "--home-me-proj--"),
   );
 });
 
