@@ -125,8 +125,8 @@ the open question.
 
 ### The commit gate
 
-`pnpm run check` is the gate for every commit: coxswain check, typecheck,
-lint, unit tests, and the mock behavior suite. Vendor tests are not part of
+`pnpm run check` is the gate for every commit: typecheck, lint, unit tests,
+and the mock behavior suite. Vendor tests are not part of
 it — run them for the backend you touched.
 
 ## How to add a new runtime

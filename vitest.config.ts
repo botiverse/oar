@@ -5,7 +5,6 @@ export default defineConfig({
     include: [
       "tests/**/*.test.ts",
       "sea-trial/vendor/*.test.ts",
-      "apps/coxswain/test/*.test.ts",
     ],
     // Cold Windows runners: one powershell resolution is allowed up to 15s,
     // which does not fit vitest's 5s default (flaked in CI run 32615946478).

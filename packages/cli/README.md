@@ -63,8 +63,9 @@ behavior — pass `--record` so the claim points at a log anyone can read:
 
 `--record` writes one JSON object per line, discriminated by `kind`. The
 format is defined and owned by `@botiverse/oar`, which exports the line
-builders and `openVoyage` recorder; other tools (such as the coxswain
-cockpit) may write or read the same format as consumers.
+builders and `openVoyage` recorder; other tools (such as the
+[oar-coxswain](https://github.com/botiverse/oar-coxswain) cockpit) may write
+or read the same format as consumers.
 
 - Line 1 is always the header:
   `{"kind":"header","format":"oar-voyage/1","runtime","model?","cwd","sessionId","startedAt","recorder"}`
