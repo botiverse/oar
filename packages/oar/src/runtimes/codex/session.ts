@@ -72,6 +72,7 @@ export const codexSession: StartSession = async (installation, options) => {
       })
     : await client.request("thread/resume", {
         threadId: options.resume,
+        excludeTurns: true,
         cwd: options.cwd,
         // Same-runtime model switch = resume the same thread id with a new
         // model. thread/resume accepts `model` (codex rust-v0.153.4,
