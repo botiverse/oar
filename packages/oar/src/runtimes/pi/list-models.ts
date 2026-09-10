@@ -1,5 +1,4 @@
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
-import { createAgentSessionServices } from "@earendil-works/pi-coding-agent";
 
 /** The subset of Pi's `Model` the projection reads; kept structural for tests. */
 export interface PiListedModel {
@@ -74,6 +73,7 @@ export function createPiListModels(
 }
 
 export const piListModels: ModelLister = createPiListModels(async (signal) => {
+  const { createAgentSessionServices } = await import("@earendil-works/pi-coding-agent");
   const agentDir = process.env.OAR_PI_AGENT_DIR;
   const services = await createAgentSessionServices({
     cwd: process.cwd(),
