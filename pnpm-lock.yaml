@@ -47,6 +47,9 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: ^1.4.0
         version: 1.4.0(zod@4.4.3)
+      '@earendil-works/pi-coding-agent':
+        specifier: ^0.84.2
+        version: 0.84.2(ws@8.21.3)(zod@4.4.3)
       cross-spawn:
         specifier: ^7.0.6
         version: 7.0.6
@@ -60,10 +63,6 @@ importers:
       '@types/which':
         specifier: ^2.0.2
         version: 2.0.2
-    optionalDependencies:
-      '@earendil-works/pi-coding-agent':
-        specifier: ^0.84.2
-        version: 0.84.2(ws@8.21.3)(zod@4.4.3)
 
 packages:
 

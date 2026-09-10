@@ -36,13 +36,11 @@
     "directory": "packages/oar"
   },
   "license": "Apache-2.0",
-  "optionalDependencies": {
-    "@earendil-works/pi-coding-agent": "^0.84.2"
-  },
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.4.0",
     "cross-spawn": "^7.0.6",
-    "which": "^2.0.2"
+    "which": "^2.0.2",
+    "@earendil-works/pi-coding-agent": "^0.84.2"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",
