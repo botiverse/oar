@@ -1,6 +1,4 @@
-# OAR
-
-*A programming interface for all agent harnesses.*
+# OAR - *programming interface for all agent harnesses*
 
 <img src="assets/logo.png" alt="OAR logo" width="240">
 
