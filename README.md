@@ -4,8 +4,8 @@
 
 <img src="assets/logo.png" alt="OAR logo" width="240">
 
-OAR (**O**pen **A**gent **R**untime) is a programming interface, not a
-workbench: a provider-independent contract that gives applications one way
+OAR (**O**pen **A**gent **R**untime) is a programming interface: a
+provider-independent contract that gives applications one way
 to control and observe coding-agent runtimes — Claude Code, Codex, Grok,
 Kimi, and Pi today. It is a foundation to build on — the session model,
 event stream, identity, and attribution an application can safely bake into
@@ -14,14 +14,14 @@ its own data model — while the application itself owns the UX and AX.
 Every runtime is driven through the same operations — detect the
 installation, list the models, open a session, prompt it, steer or queue
 input, watch the stream, resume later — and everything the runtime says
-lands in one lossless, resumable record stream. Nothing the runtime did not
-say is invented; what a runtime cannot do is reported as a typed
+lands in one lossless, resumable record stream — everything the runtime
+says, and nothing else. What a runtime cannot do is reported as a typed
 `unsupported` instead of being faked.
 
 ## At a glance
 
 - Project: OAR (Open Agent Runtime)
-- Position: a foundation and programming interface for the application layer, not a complete workbench — see [docs/design/](docs/design/foundations.md)
+- Position: a foundation and programming interface for the application layer — see [docs/design/](docs/design/foundations.md)
 - Core packages: [`@botiverse/oar`](packages/oar) (the library) and [`@botiverse/oar-cli`](packages/cli/README.md) (the `oar` executable)
 - Main abstractions: `Runtime` (installation, models, account usage, session) and `Session` (prompt / steer / queue / abort / resume / records)
 - The contract: one ordered, resumable record stream with self-attribution — [docs/spec/](docs/spec/README.md)
