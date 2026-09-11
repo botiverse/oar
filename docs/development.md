@@ -133,6 +133,18 @@ the open question.
 and the mock behavior suite. Vendor tests are not part of
 it — run them for the backend you touched.
 
+### Live — does the strong claim hold on the real runtime?
+
+The shared cases assert the minimum every backend must honor; the strong
+claims (a steer lands in the same turn, a queued input runs as its own turn,
+an abort ends with the runtime's own report, a killed process shows up as an
+`exited` response, sub-agent frames attribute) need the real login. That is
+[`experiments/live-contract.ts <runtime>`](../experiments/live-contract.ts):
+one scenario per voyage log plus a `report.json` of observed facts under
+`oar-trial-run/live-<runtime>-*/`. It burns tokens; run it when an adapter
+changes what the stream carries, and record the observation in the runtime's
+page and the experiments README.
+
 ## How to add a new runtime
 
 1. **Probe reality first.** Write an experiment (`experiments/`) that answers

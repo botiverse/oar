@@ -1,4 +1,4 @@
-import type { ContextUsage, SessionOptions } from "../../contracts/session.js";
+import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
@@ -61,19 +61,68 @@ export function grokContextUsage(response: JsonRecord): ContextUsage | null {
 }
 
 /**
- * Vendor notification methods seen in the grok 1.0.13 binary's symbol table
- * ([sym] only — not yet observed on a live wire): child-session lifecycle,
- * background tasks, prompt completion and usage. Registered so the SDK routes
- * them to oar instead of discarding them; each is recorded verbatim, and one
- * that names a parent/child session pair links the session graph.
+ * The tokens one prompt answer bills: `_meta.usage` is the prompt's ledger
+ * summed over its model calls (grok 1.0.25, live 2026-09-11: three one-word
+ * turns billed ~16.8k input each, not a growing total; a steered turn's
+ * closing answer summed its two calls). `inputTokens` includes the cached
+ * reads (`cachedReadTokens` ≤ it) and, for a prompt that spawned children,
+ * the children's model calls too (live-grok-c/subagent seq 159 = the four
+ * `response_completed` frames 48+78+119+155, two of them the child's). The
+ * turn machinery sums these per session.
+ */
+export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
+  // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
+  const usage = asRecord(asRecord(response._meta)?.usage);
+  const input = firstNumber(usage, ["inputTokens", "input_tokens"]);
+  const output = firstNumber(usage, ["outputTokens", "output_tokens"]);
+  // Both or nothing: a half ledger would invent a 0 for the missing side.
+  if (input === null || output === null) {
+    return null;
+  }
+  return { input, output };
+}
+
+/**
+ * Vendor notification methods the SDK must be told about, or it discards
+ * the frame unseen. Registered so each is recorded verbatim; one that names
+ * a parent/child session pair links the session graph (records.ts).
+ *
+ * Observed on the live wire, grok 1.0.25 (f7e67d6988e2), 2026-09-11
+ * (experiments/grok-wire-tap.ts): `_x.ai/session_notification` — the vendor
+ * twin of `session/update` (`{sessionId, update: {sessionUpdate}}`) carrying
+ * `model_changed`, `session_summary_generated`, `tool_call_delta_chunk`,
+ * `pending_interaction`, `interaction_resolved`, `response_completed`,
+ * `turn_completed`, `last_turn_summary`, `background_tasks` (on resume) and
+ * the sub-agent lifecycle `subagent_spawned` / `subagent_progress` /
+ * `subagent_finished`; `_x.ai/sessions/changed`;
+ * `_x.ai/session/prompt_complete`; and, per session start, the connection
+ * housekeeping `_x.ai/queue/changed`, `_x.ai/models/update`,
+ * `_x.ai/settings/update`, `_x.ai/announcements/update`,
+ * `_x.ai/mcp/servers_updated`, `_x.ai/mcp/init_progress`,
+ * `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized` — all of which the tap
+ * showed on the wire but missing from the stream until listed here.
+ *
+ * Still [sym] only (in the binary's symbol table, never on a live wire):
+ * `_x.ai/session/update`, `_x.ai/task_backgrounded`, `_x.ai/task_completed`,
+ * `_x.ai/session/usage`. Kept registered: an unlisted name is a dropped frame.
  */
 export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
-  "_x.ai/session/update",
+  // live 2026-09-11
   "_x.ai/session_notification",
   "_x.ai/sessions/changed",
+  "_x.ai/session/prompt_complete",
+  "_x.ai/queue/changed",
+  "_x.ai/models/update",
+  "_x.ai/settings/update",
+  "_x.ai/announcements/update",
+  "_x.ai/mcp/servers_updated",
+  "_x.ai/mcp/init_progress",
+  "_x.ai/mcp/server_status",
+  "_x.ai/mcp_initialized",
+  // [sym] only
+  "_x.ai/session/update",
   "_x.ai/task_backgrounded",
   "_x.ai/task_completed",
-  "_x.ai/session/prompt_complete",
   "_x.ai/session/usage",
 ];
 
@@ -88,8 +137,13 @@ export const grokAcpProfile: AcpSessionProfile = {
   initializeMeta: grokInitializeMeta,
   sessionMeta: () => ({ yoloMode: true }),
   selectAuthMethod: selectGrokAuthMethod,
+  // `_meta.sendNow` is not an injection: grok answers the running prompt
+  // `cancelled` (`cancelTrigger: "send_now"`, live 1.0.25) and starts a fresh
+  // model turn that re-issued the interrupted tool calls; both answers fold
+  // into the one oar turn (turns.ts).
   steerParams: () => ({ _meta: { sendNow: true } }),
   promptContextUsage: grokContextUsage,
+  promptTokenUsage: grokPromptTokens,
 };
 
 export const grokSession = acpSession(grokAcpProfile);

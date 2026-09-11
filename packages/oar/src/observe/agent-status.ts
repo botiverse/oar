@@ -6,7 +6,16 @@ import type { EventView, SessionRecord, TurnOutcome } from "../contracts/session
  * judgments (stalled) are deliberately OUTSIDE the ontology: they are
  * fold(records) × clock, provided by `stallOf` next to it.
  *
- * Transition table (root agent only — child records advance nothing here):
+ * Scope: the ROOT AGENT of ONE SESSION. Pass the session id so a derived
+ * child session's records (codex child threads, grok child sessions carry
+ * their own sessionId with agentPath []) never drive the root's phase; without
+ * it, every root-agent record of any session is folded (single-session
+ * streams). Phase transitions come from the root agent's own records only;
+ * `lastEventAt` — the liveness clock — refreshes on EVERY record attributable
+ * to the session (child agents, child sessions, viewless frames), because a
+ * delegated sub-agent working is not a stalled root.
+ *
+ * Transition table:
  *   request prompt (toRuntime)        → running/waiting_model (the turn's start IS the request)
  *   response rejected → that request  → idle again (the turn never began)
  *   event reasoning                   → running/thinking
@@ -52,9 +61,15 @@ function running(previous: AgentStatus, record: SessionRecord, phase: RunningPha
   };
 }
 
-export function reduceStatus(previous: AgentStatus, record: SessionRecord): AgentStatus {
-  if (record.agentPath.length > 0) {
+export function reduceStatus(previous: AgentStatus, record: SessionRecord, sessionId?: string): AgentStatus {
+  const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
+  if (foreignSession && !belongsToSession(record, sessionId)) {
     return previous;
+  }
+  if (foreignSession || record.agentPath.length > 0 || (record.kind === "event" && record.body.views.length === 0)) {
+    // A child agent, a child session, or a frame without a view: the session is
+    // alive, so the clock moves, but the root agent's phase does not.
+    return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
   }
   switch (record.kind) {
     case "request":
@@ -98,6 +113,17 @@ function reduceView(previous: AgentStatus, record: SessionRecord, view: EventVie
       return previous;
   }
   return previous;
+}
+
+/**
+ * Whether a record of another session id belongs to this session's activity.
+ * The stream only ever carries the session's own records and its derived
+ * children's (docs/spec/session-graph-and-cursor.md), so every record in it
+ * counts; the hook exists so a consumer folding a merged multi-session log can
+ * narrow it.
+ */
+function belongsToSession(_record: SessionRecord, _sessionId: string): boolean {
+  return true;
 }
 
 /** fold(records) × clock: how long a running status has been silent, if beyond the threshold. */

@@ -39,17 +39,20 @@ export async function startCodexRecording(request: RecordRequest): Promise<Recor
     throw new TypeError("codex thread/start returned no id");
   }
   let onTurnComplete: (() => void) | null = null;
-  client.onNotification((method, params) => {
-    if (params.threadId !== threadId) {
-      return;
-    }
-    const scrubbed = scrub(method, params);
-    if (scrubbed !== null) {
-      raw.push(scrubbed);
-    }
-    if (method === "turn/completed") {
-      onTurnComplete?.();
-    }
+  client.handle({
+    onNotification: (method, params) => {
+      if (params.threadId !== threadId) {
+        return;
+      }
+      const scrubbed = scrub(method, params);
+      if (scrubbed !== null) {
+        raw.push(scrubbed);
+      }
+      if (method === "turn/completed") {
+        onTurnComplete?.();
+      }
+    },
+    onServerRequest: () => {},
   });
   const runTurn = async (text: string): Promise<void> => {
     const settled = new Promise<void>((resolve) => {

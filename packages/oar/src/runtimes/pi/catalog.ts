@@ -5,7 +5,8 @@ import type {
   CatalogRefreshResult,
   ModelCatalogFacade,
 } from "../../contracts/model-catalog.js";
-import { ModelRegistry, ModelRuntime, resolveCliModel } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, ModelRegistry, ModelRuntime, resolveCliModel, SettingsManager } from "@earendil-works/pi-coding-agent";
+import { configurePiHttp } from "./http.js";
 
 type PiModel = ReturnType<ModelRegistry["getAll"]>[number];
 
@@ -80,6 +81,10 @@ export interface PiModelCatalogOptions {
 
 /** Create a {@link ModelCatalogFacade} backed by Pi's `ModelRegistry`. */
 export async function createPiModelCatalog(options: PiModelCatalogOptions = {}): Promise<ModelCatalogFacade> {
+  // refresh() fetches provider catalogs: the proxy plane first, from the
+  // same settings (OAR_PI_AGENT_DIR ?? pi's agent dir) every pi entry point
+  // of the adapter reads, so the catalog behaves like a session (see http.ts).
+  await configurePiHttp(SettingsManager.create(process.cwd(), process.env.OAR_PI_AGENT_DIR ?? getAgentDir()));
   const runtime = await ModelRuntime.create({
     ...(options.authPath === undefined ? {} : { authPath: options.authPath }),
     ...(options.modelsPath === undefined ? {} : { modelsPath: options.modelsPath }),

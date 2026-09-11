@@ -146,7 +146,7 @@ test("ACP prompt errors are the runtime's word; a process exit is oar's observat
   assert.equal(exit.body.code, 9);
   assert.equal(exit.requestId, "", "an unrequested exit points at no request");
   const afterDeath = await exitSession.prompt("after death");
-  assert.equal(afterDeath.response.body.kind, "rejected");
+  assert.deepEqual(afterDeath.response.body, { kind: "rejected", reason: "runtime exited" }, "the kernel decides from the exited response, not an adapter flag");
   await exitSession.dispose();
 });
 

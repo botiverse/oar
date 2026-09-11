@@ -11,6 +11,11 @@ export type RpcOutcome =
   | { readonly kind: "result"; readonly result: JsonRecord }
   | { readonly kind: "error"; readonly error: Error };
 
+export interface AppServerHandlers {
+  readonly onNotification: (method: string, params: JsonRecord) => void;
+  readonly onServerRequest: (id: string, method: string, params: JsonRecord) => void;
+}
+
 export interface AppServerClient {
   readonly spawned: Promise<void>;
   readonly exited: Promise<number | null>;
@@ -22,9 +27,24 @@ export interface AppServerClient {
    */
   request(method: string, params: JsonRecord, onSettled?: (outcome: RpcOutcome) => void): Promise<JsonRecord>;
   notify(method: string, params: JsonRecord): void;
-  onNotification(handler: (method: string, params: JsonRecord) => void): void;
-  /** A server-initiated request (a frame with both `id` and `method`): approvals, user input, dynamic tools. The client does not answer them. */
-  onServerRequest(handler: (id: string, method: string, params: JsonRecord) => void): void;
+  /**
+   * Register the inbound handlers, once. Notifications and server-initiated
+   * requests (frames with both `id` and `method`: approvals, user input,
+   * dynamic tools — the client does not answer them) that arrive before this
+   * call (the app-server talks right after `initialize`, before the thread
+   * exists) are held in ONE queue and delivered here synchronously, in wire
+   * order across both kinds — nothing the server said is lost or reordered
+   * by registration timing.
+   */
+  handle(handlers: AppServerHandlers): void;
+  /**
+   * Place a callback in wire order: while frames are still being held (before
+   * `handle`) it joins the held queue and runs at flush, after every frame
+   * read before it and before every frame read after; once released it runs
+   * immediately. Called from a request's synchronous `onSettled`, it pins a
+   * record exactly where the reply sat on the wire.
+   */
+  mark(callback: () => void): void;
   onExit(handler: (code: number | null) => void): void;
   kill(): void;
 }
@@ -50,8 +70,17 @@ export function startAppServerClient(
     env === undefined ? {} : { env: { ...process.env, ...env } },
   );
   const pending = new Map<number, Pending>();
-  const notificationHandlers: ((method: string, params: JsonRecord) => void)[] = [];
-  const serverRequestHandlers: ((id: string, method: string, params: JsonRecord) => void)[] = [];
+  // Inbound frames and marks share one queue until `handle` registers the
+  // handlers, so their relative order is the wire's whatever kind they are.
+  const held: ((handlers: AppServerHandlers) => void)[] = [];
+  let handlers: AppServerHandlers | null = null;
+  const deliver = (delivery: (handlers: AppServerHandlers) => void): void => {
+    if (handlers === null) {
+      held.push(delivery);
+    } else {
+      delivery(handlers);
+    }
+  };
   let nextId = 1;
   let exited = false;
 
@@ -63,14 +92,16 @@ export function startAppServerClient(
     const hasId = typeof message.id === "number" || typeof message.id === "string";
     if (typeof message.method === "string") {
       const params = asRecord(message.params) ?? {};
+      const { method } = message;
       if (hasId) {
-        for (const handler of serverRequestHandlers) {
-          handler(String(message.id), message.method, params);
-        }
+        const id = String(message.id);
+        deliver((target) => {
+          target.onServerRequest(id, method, params);
+        });
       } else {
-        for (const handler of notificationHandlers) {
-          handler(message.method, params);
-        }
+        deliver((target) => {
+          target.onNotification(method, params);
+        });
       }
       return;
     }
@@ -121,11 +152,19 @@ export function startAppServerClient(
     notify(method, params) {
       child.write(`${JSON.stringify({ method, params })}\n`);
     },
-    onNotification(handler) {
-      notificationHandlers.push(handler);
+    handle(registered) {
+      if (handlers !== null) {
+        throw new Error("app-server handlers are already registered");
+      }
+      handlers = registered;
+      for (const delivery of held.splice(0)) {
+        delivery(registered);
+      }
     },
-    onServerRequest(handler) {
-      serverRequestHandlers.push(handler);
+    mark(callback) {
+      deliver(() => {
+        callback();
+      });
     },
     onExit(handler) {
       child.onExit(handler);

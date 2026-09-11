@@ -101,10 +101,36 @@ test("model, usage and contextUsage are folds over the stream", async () => {
   const session = await startMockSession(installation, { cwd: process.cwd() });
   assert.equal(session.model(), "mock-1");
   assert.equal(session.contextUsage(), null);
-  assert.deepEqual(session.usage(), { total: { input: 0, output: 0 } });
+  assert.deepEqual(session.usage(), { total: null }, "no token report yet: null, not a guessed zero");
   await promptAndWait(session, "hello");
   assert.deepEqual(session.contextUsage(), { tokens: 1, contextWindow: 100, percent: 1 });
   assert.deepEqual(session.usage(), { total: { input: 1, output: 1 } });
   await session.dispose();
 });
 
+
+const acceptAll = { consulted: 0, decide(): { kind: "accepted" } {
+  this.consulted += 1;
+  return { kind: "accepted" };
+} };
+
+test("the kernel rejects control once the stream holds an exited response, without consulting the adapter", async () => {
+  const { createSessionKernel } = await import("../packages/oar/src/shared/session-kernel.js");
+  const kernel = createSessionKernel("k");
+  acceptAll.consulted = 0;
+  const before = await kernel.control({ kind: "prompt", input: "a" }, () => acceptAll.decide());
+  assert.equal(before.response.body.kind, "accepted");
+  kernel.respond("", { kind: "exited", code: 9 });
+  assert.deepEqual(kernel.unreachable(), { kind: "rejected", reason: "runtime exited" });
+  const after = await kernel.control({ kind: "prompt", input: "b" }, () => acceptAll.decide());
+  assert.deepEqual(after.response.body, { kind: "rejected", reason: "runtime exited" });
+  assert.equal(acceptAll.consulted, 1, "the adapter is not consulted once the runtime is gone");
+});
+
+test("the kernel rejects control once a dispose request is in the stream", async () => {
+  const { createSessionKernel } = await import("../packages/oar/src/shared/session-kernel.js");
+  const kernel = createSessionKernel("k2");
+  kernel.request("toRuntime", { kind: "dispose" });
+  const steer = await kernel.control({ kind: "steer", input: "x" }, () => acceptAll.decide());
+  assert.deepEqual(steer.response.body, { kind: "rejected", reason: "session disposed" });
+});

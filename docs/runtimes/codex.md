@@ -1,8 +1,18 @@
-# Codex runtime
+# Codex
 
-Reviewed **2026-09-08**, against OAR `9b102d0` and native source
-[`4f39251a`][native-source]. Native documentation and recorded probes have
-different version baselines; see [evidence and verification](#evidence-and-verification).
+Evidence baseline: OAR source as of 2026-09-11; native source pinned to
+[`4f39251a`][native-source] (2026-08-22); the app-server guide is rolling
+documentation. Live observations below come from **codex-cli 0.154.0**
+(`gpt-5.3-codex-spark`, ChatGPT login, darwin) through
+[`experiments/live-contract.ts codex`](../../experiments/live-contract.ts)
+(13 scenarios, run 2026-09-11), from
+[`experiments/codex-child-threads.ts`](../../experiments/codex-child-threads.ts)
+on **0.149.0**, and from the older probes (handshake 0.144.6, steering/abort
+0.148.0, model listing 0.149.0, resume/model readback 0.153.4) listed in the
+[experiments index](../../experiments/README.md). Versions are evidence
+baselines, not a support range; a claim that holds only on a named binary is
+marked [env]. See the [runtime index](README.md) for evidence and status
+conventions.
 
 ## Native concepts and calling interfaces
 
@@ -34,250 +44,424 @@ app-server contract merely because operation names resemble each other.
 
 ## High-level mapping to OAR
 
-OAR starts one app-server process per Session, using the app-server's own protocol version 2 over stdio, and
-exposes it as the [record stream](../spec/README.md): every app-server
-notification is one event record (params verbatim in `native`, oar's reading
-in `views`), every control call is a request record answered by the RPC
-reply, and the runtime's own `turn/completed` is the turn's end. The adapter
-declares `capabilities: { steer: true, queue: { durable: true }, attribution:
-"nested" }`.
+OAR starts one `codex app-server` process per Session, speaks the app-server's
+own protocol version 2 over stdio, and exposes it as the
+[record stream](../spec/README.md): every notification is one event record
+(params verbatim in `native`, oar's reading in `views`), every control call is
+a request record answered by the RPC reply, and codex's own `turn/completed`
+is the turn's end. The adapter declares `capabilities: { steer: true, queue:
+{ durable: true }, attribution: "nested" }`.
 
 | Native concept or boundary | Current OAR mapping |
 |---|---|
-| Thread identity | `Session.id` is the returned native thread ID; the `thread/start` / `thread/resume` reply is the first event record, carrying the `model` view. |
-| Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` view: completed / interrupted→aborted / failed with the `error` notification's detail). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
-| Items and notifications | One event per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; tool items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage` (cumulative `total`); everything else is an event with no views. |
-| Control replies | `turn/start`, `turn/steer`, `turn/interrupt`, `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The reply is recorded in stream order, before notifications codex wrote after it. |
-| Effective configuration | `model()` is a fold over `model` views (the open reply); most native configuration has no public mutator. |
-| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's id). Never answered — `approvalPolicy: never` means none are expected; one that arrives stays a dangling request. |
-| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, `graph()` node). A `collabAgentToolCall` / `collabToolCall` / `subAgentActivity` item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. [env] codex 0.149.0: the app-server delivers the child thread's notifications on this connection (three runs, see "Native child agents"); without an item naming the thread, no edge is fabricated. |
-| Process and observation lifetime | Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
+| Thread identity | `Session.id` is the native thread id; the `thread/start` / `thread/resume` reply is the open event record (`type` = the method), carrying the `model` view. Frames the app-server sends before that reply — notifications and server requests alike — are held in one queue and recorded ahead of it in wire order; the open event sits at the reply's own wire position, so frames codex writes after the reply (`thread/started`) follow it whatever the chunking. |
+| Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` view: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
+| Items and notifications | One event per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage`; everything else is an event with no views. |
+| Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The response is recorded as the reply line is read, so it sits before notifications codex wrote after it. |
+| Effective configuration | `model()` folds the `model` view of the open reply; most native configuration has no public mutator. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays a dangling request. |
+| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. The app-server delivers child-thread notifications on the parent's connection ([env] 0.149.0, 0.154.0); without an item naming the thread no edge is fabricated. |
+| Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
 Implementation: [session adapter][oar-session], [projection][oar-projection],
 [kernel][oar-kernel], and [transport][oar-transport].
 
 ## Capability details
 
-### Connection and session creation
+### Connection, session creation, and resume
 
-OAR launches `codex app-server --listen stdio://` with configuration overrides,
-sends `initialize` with experimental API capability, then `initialized`.
-Request IDs correlate replies. New sessions use `thread/start` with cwd,
-optional model/instructions, and `approvalPolicy: never`. OAR requires a
-returned thread ID before constructing its Session. [Adapter][oar-session].
+OAR launches `codex app-server -c sandbox_mode="…" --listen stdio://` (the
+override is described under tools and permissions), sends `initialize`
+(`clientInfo: { name: "oar" }`, `capabilities: { experimentalApi: true }`),
+then the `initialized` notification. Request ids correlate replies. New
+sessions call `thread/start { cwd, model?, approvalPolicy: "never",
+experimentalRawEvents: true, baseInstructions?, developerInstructions? }`;
+OAR requires a returned thread id before constructing its Session and kills
+the process otherwise.
 
-### Resume
+The app-server talks before the thread exists: [env] 0.154.0 a
+`remoteControl/status/changed { status: "disabled", serverName,
+installationId, environmentId: null }` follows the `initialize` reply in every
+run and is always seq 0; the `thread/start` open event is seq 1 and
+`thread/started` (root `parentThreadId: null`) follows it. The client holds
+such frames until the adapter's handlers exist and records them ahead of the
+open event ([pre-open tests](../../tests/codex/codex-pre-open.test.ts)).
+`thread/start` accepts an unknown model slug and reads it back (`model:
+"oar-no-such-model-xyz"`, plus a `warning` "Model metadata … not found"); the
+failure surfaces only at the first turn (see models). [Adapter][oar-session],
+[transport][oar-transport],
+[handshake probe](../../experiments/codex-handshake.ts).
 
-The selected native call has this shape (method/parameter excerpt):
+**Resume.** The selected native call has this shape:
 
 ```text
 thread/resume { threadId: savedThreadId, cwd, model? }
   → { thread: { id, turns, ... }, model, cwd, ...effectiveConfiguration }
 ```
 
-It loads persisted conversation state or attaches to a thread already loaded in
-that server. It does not submit a user prompt; that is `turn/start`. The result
-includes effective configuration and history, with native options for excluding
-or paging turns. Resume success is not turn completion, and returned history is
-not replayed as live notifications. The pinned schema also has experimental
-history/path inputs that OAR does not expose. [Resume schema][resume-schema].
+It loads persisted conversation state or attaches to a thread already loaded
+in that server. It does not submit a user prompt; that is `turn/start`. The
+result includes effective configuration and history, with native options for
+excluding or paging turns. Resume success is not turn completion, and returned
+history is not replayed as live notifications. The pinned schema's
+experimental history/path inputs are not exposed. [Resume schema][resume-schema].
 
-For OAR, call `codexRuntime.session(installation, { cwd, resume: savedSessionId })`,
-optionally supplying `model`. The ID is resolved against the selected
-executable's runtime storage/configuration; it is not a portable transcript.
-OAR waits for the resume RPC, requires a returned thread ID, validates an explicit
-model against native readback, and creates a fresh record stream whose first
-event is the `thread/resume` reply. It passes `excludeTurns: true`, so the
-returned history is not replayed into the stream and no cursor from the
-previous process is valid; nothing restores observer positions or a controller
-lease.
+**Mapped:** `codexRuntime.session(installation, { cwd, resume: savedSessionId,
+model? })` sends `thread/resume { threadId, excludeTurns: true, cwd, model?,
+approvalPolicy: "never", …instructions }`, waits for the reply, requires a
+thread id, and checks an explicit `model` against the readback. The token is
+a native thread id resolved against the selected executable's runtime
+storage/configuration; it is not a portable transcript. The resumed session
+has the same id and a fresh stream at seq 0 whose open event is the
+`thread/resume` reply, preceded by what the app-server said while loading the
+thread ([env] 0.154.0: `remoteControl/status/changed`, `warning`, four
+`mcpServer/startupStatus/updated`, `thread/status/changed idle`; the open
+event lands at seq 7), and it recalls the earlier transcript (live-contract
+`resume`). Because `excludeTurns` is set, the history is not replayed into
+the stream and no cursor from the previous process is valid; nothing restores
+observer positions or a controller lease. After resume the first `turn/start`
+is preceded by a `thread/tokenUsage/updated` carrying the PREVIOUS turn's id
+and the thread's cumulative total, then `thread/goal/cleared` ([env] 0.154.0)
+— totals accumulate across processes, so `usage()` on a resumed session
+includes earlier turns.
 
-The recorded empty-thread probe had no persisted rollout before its first turn.
-Missing/unloadable threads reject through RPC; OAR retains error messages but
-drops structured RPC error data. Loaded threads can ignore configuration
-overrides, so OAR rejects a returned model mismatch. Independent controllers
-resuming the same persisted identity are not arbitrated by OAR.
+A thread with no completed turn has no persisted rollout to resume.
+Missing/unloadable threads reject through RPC; OAR retains the error message
+but drops structured RPC error data. A `thread/resume` on a connection already
+subscribed to the loaded thread drops the `model` override and reports the old
+model, so the adapter rejects a readback mismatch (killing the app-server it
+started) rather than run silently on another model; the override applies on a
+cold load, the normal case since every Session owns its own process.
+Independent controllers resuming the same persisted identity are not
+arbitrated by OAR. Resume sends no `experimentalRawEvents`, and sending it is
+inert (see observation).
 [Resume/model probe](../../experiments/session-resume-model.ts),
+[resume probe](../../experiments/session-resume.ts),
+[resume tests](../../tests/codex/codex-session-resume-model.test.ts),
 [adapter][oar-session], [error handling][oar-transport].
 
-### Prompt submission and turn completion
+### Prompt, steering, queueing, and abort
 
-Native `turn/start { threadId, input: [...] }` returns a Turn with native ID;
-later notifications establish completion. OAR `prompt(string)` records a
-`prompt` request, sends one text input, and records the RPC reply as the
-`accepted` response (or `rejected` with the RPC error, or `rejected: busy`
-while a root turn is active — including a queued turn codex started on its
-own). Completion is codex's `turn/completed` event with a `turn_ended` view.
-OAR exposes no image/skill input, structured-output schema, or per-turn
-configuration. [Adapter][oar-session].
+**Prompt (mapped):** native `turn/start { threadId, input }` returns
+`{ turn: { id } }`; later notifications establish completion. `prompt(string)`
+records a `prompt` request, sends one text input, and records the RPC reply as
+the `accepted` response — or `rejected` with the RPC error message, `rejected:
+codex turn/start returned no turn id`, or `rejected: busy` while a root turn
+is active (including a queued turn codex started on its own). Completion is
+codex's `turn/completed` with a `turn_ended` view, exactly one per prompt
+(live-contract `multi-turn`). A basic one-word turn was 33 records with view
+kinds `model, reasoning, text_delta, usage, turn_ended`, one `spanId`, dense
+seqs, every event carrying `native`, and `dispose` answered `exited { code:
+null }` (live-contract `basic`). No image/skill input, structured-output
+schema, or per-turn configuration is exposed. [Adapter][oar-session].
 
-### Steering and future input
+**Steer (mapped, landing observed):** native `turn/steer { threadId,
+expectedTurnId, input }` binds input to the expected active turn; OAR supplies
+the retained native turn id. The `{ turnId }` reply is the `accepted` response
+— delivery ownership, not model attention; every RPC error is `rejected` with
+a reason prefixed `not_steerable:` (operational failures included), and with
+no active turn the gate answers `not_steerable: no active turn`. A steer
+accepted while the turn's first tool ran appeared as a `userMessage` item
+inside the same turn and shaped its final text (`ALPHA BRAVO MANGO`), with one
+`turn_ended` (live-contract `steer`;
+[adapter probe](../../experiments/codex-session-adapter.ts)).
 
-Native `turn/steer { threadId, expectedTurnId, input }` binds input to the
-expected active turn. OAR retains the native ID for this request. The
-`accepted` response promises delivery ownership, not model attention; all RPC
-errors become a `rejected` response whose reason starts with `not_steerable:`,
-including potentially operational failures.
+**Queue (mapped, `durable: true`):** native queue operations have submission
+identities and inspection/editing methods. `queue()` calls `thread/queue/add
+{ threadId, input, clientUserMessageId: <uuid> }` and keeps the reply —
+`queuedSubmission { id, input, clientUserMessageId }` — as the accepted
+response's `native`; inspection/editing are not exposed. Codex emits
+`thread/queue/changed` at add and at drain, and the drained turn is a
+spontaneous turn: `turn/started` … `turn/completed` with no prompt request of
+its own, its `userMessage` item carrying `clientId` = the submitted
+`clientUserMessageId` (live-contract `queue`,
+[queue probe](../../experiments/session-queue.ts)). The adapter adopts such a
+turn as busy. Evidence establishes the subsequent turn, not recovery of a
+queued submission after process death; that half of the durability claim is
+**unverified**. [Thread schema][thread-schema].
 
-Native queue operations also have submission identities and inspection/editing
-methods. OAR `queue()` uses `thread/queue/add`, declares `queue: { durable:
-true }`, and keeps the reply (submission ID included) as the accepted
-response's `native`. It exposes no queue inspection/editing. A drained turn
-runs as a spontaneous turn: `turn/started` … `turn/completed` events with no
-prompt request of their own. Existing tests establish a subsequent turn, not
-recovery after process death; that durability claim still needs targeted
-evidence. [Thread schema][thread-schema], [adapter][oar-session].
+**Abort (mapped):** native `turn/interrupt { threadId, turnId }` targets an
+execution; `turn/completed` reports whether the interrupt won the race.
+`abort()` records an `abort` request; the interrupt reply (`{}`) is its
+`accepted` response and an RPC error (the turn already finished) is a
+`rejected` response with the runtime's message — a recorded race, not a
+swallowed error. The outcome is `turn/completed`'s status: `interrupted` →
+`aborted`. With nothing active, `abort()` is `rejected: no active turn`. The
+reply is recorded after the frames codex wrote in the meantime — the raw
+`function_call_output` `"Wall time: 2.2 seconds\naborted by user"`, a usage
+update and rate limits — and `turn/completed { status: "interrupted", items:
+[] }` follows; the interrupted `commandExecution` item gets no
+`item/completed`, so its `tool_call_started` has no `tool_call_ended`
+(live-contract `abort`). After a turn has ended: a second prompt during a
+turn is `rejected: busy`, a late abort `rejected: no active turn`, a late
+steer `rejected: not_steerable: no active turn` (live-contract
+`busy-and-late-control`).
+[Stream tests](../../tests/codex/codex-session-stream.test.ts).
 
-### Cancellation and resource release
+**Dispose and unreachable runtime:** `dispose()` records a `dispose` request,
+kills the Session's app-server and awaits its exit; the exit code is recorded
+as the `exited` response (signal death: `code: null`). Active work is not
+settled by oar: a dispose mid-tool ends with `tool_call_started`, `dispose`,
+`exited { code: null }` and no `turn_ended`, so the exit is the turn end for
+observers and `turnEndAfter` reads `failed: runtime exited` (live-contract
+`dispose-mid-turn`). Dispose releases the process; it establishes no exclusive
+control over persisted history. When the app-server dies on its own (SIGKILL
+mid-tool) the stream gets `exited { code: null }` with `requestId: ""`; every
+later prompt/steer/queue/abort is `rejected: runtime exited`, and a later
+`dispose()` is answered `accepted` — nothing is left to release
+(live-contract `kill-runtime`). Both reachability answers (`runtime exited` /
+`session disposed`) are the shared kernel's, read off the stream before the
+adapter's own gates (busy, no active turn) run; the adapter keeps no liveness
+flag. [Kernel][oar-kernel],
+[pre-open tests](../../tests/codex/codex-pre-open.test.ts).
 
-Native `turn/interrupt { threadId, turnId }` targets an execution. Completion
-reports whether interruption won the race. OAR `abort()` records an `abort`
-request; the interrupt reply is its `accepted` response and an RPC error (the
-turn already finished) is a `rejected` response with the runtime's message —
-the late abort is a recorded race, not a swallowed error. The outcome is
-`turn/completed`'s status. `abort()` when nothing is active is `rejected: no
-active turn`.
+### Observation, children, and history
 
-`dispose()` records a `dispose` request, kills the Session's app-server, and
-awaits exit; the exit code is recorded as the `exited` response. Active work
-is not settled by oar — if codex reports nothing before dying, the turn has
-no `turn_ended` and consumers see the `exited` response instead. That releases
-its process; it does not establish exclusive control over persisted history.
-[Adapter][oar-session].
+**Mapped:** native thread read/list/fork operations expose stored state, and
+resume can return history; OAR exposes none of those and does not hydrate the
+stream from the resume result. Every notification enters the stream verbatim
+(`native` is the params object) with a session-local `seq`, ingress
+`receivedAt`, and the native turn id as `spanId`; `subscribe(observer,
+{ sessionId, afterSeq })` replays the retained records of this process, then
+continues live — a mid-turn subscribe's replay plus live delivery is
+contiguous with the log, and a full replay equals `records()` (live-contract
+`cursor`). There is no cross-process cursor, catch-up from codex's rollout, or
+backpressure. Tool detail: a `commandExecution` item yields `tool_call_started`
+with the command as input (`/bin/zsh -lc 'echo …'`) and `tool_call_ended` with
+`exit <code>\n<aggregated output>`, same `callId` (the item id, `call_…`); the
+raw `function_call` names `exec_command`; `item/commandExecution/outputDelta`
+frames carry stdout with no view (live-contract `tool-detail`;
+[item-detail tests](../../tests/codex/codex-item-detail.test.ts)). The guide
+marks rollback deprecated; OAR does not expose it.
 
-### Observation, history, and branching
+**Reasoning:** `thread/start` sends `experimentalRawEvents: true`; reasoning
+views come from the `rawResponseItem/completed` frames it enables
+(`item/started|completed` reasoning items carry no view). The generated
+protocol schema (`codex app-server generate-json-schema`, [env] 0.154.0) lists
+the flag on neither `ThreadStartParams` nor `ThreadResumeParams`, yet
+`thread/start` with it yields raw frames — every turn opens with the raw
+`message` items codex sent (developer skills/plugin instructions, the user
+prompt), then reasoning / `function_call` / `function_call_output` / assistant
+message items — while a resumed thread yields none, and sending the flag on
+`thread/resume` is inert: a resumed stream shows only `item/started|completed`
+reasoning with empty summary/content, so there are no `reasoning` views after
+resume. On `gpt-5.3-codex-spark` every reasoning step is `item/started` +
+`item/completed { type: "reasoning", summary: [], content: [] }` plus one raw
+reasoning item with empty `summary` and an `encrypted_content` → `reasoning
+{ kind: "redacted" }`; no plaintext reasoning appeared in any live run
+(`reasoningEffort: "medium"`, `reasoningOutputTokens` > 0 in usage).
+[Reasoning tests](../../tests/codex/codex-reasoning.test.ts),
+[projection][oar-projection].
 
-Native thread read/list/fork operations expose stored state; resume can return
-history. OAR exposes none of those history/branch operations and does not
-hydrate the stream from the resume result. Every notification the app-server
-sends on the connection enters the stream verbatim (`native` is the params
-object) with a session-local `seq`, ingress `receivedAt`, and the native turn
-id as `spanId`; `subscribe(observer, { sessionId, afterSeq })` replays the
-retained records of this process, then continues live. There is no
-cross-process cursor, catch-up from codex's rollout, or backpressure.
-
-Starting enables `experimentalRawEvents` for reasoning classification; resuming
-does not send that flag. Reasoning views therefore depend on that flag; the
-`rawResponseItem/completed` frames themselves are recorded either way. The
-current guide also marks rollback deprecated; OAR does not expose it.
-[Guide][guide], [adapter][oar-session], [projection][oar-projection].
-
-### Native child agents
-
-The pinned `collabAgentToolCall` schema carries `senderThreadId`,
-`receiverThreadIds`, and `agentsStates`; `subAgentActivity` identifies a
-thread/path. The rolling guide instead documents `collabToolCall` with different
-fields, requiring versioned evidence. Claude's `parent_tool_use_id` is not
-Codex's linkage.
-
-OAR records notifications of other thread IDs as child-session records
-(`sessionId` is the child thread, added to `graph()` as a node) and adds a
-`tool_call` graph edge from the sender thread when a collaboration item names
-`receiverThreadIds` or `agentThreadId`; the items themselves are events with
-no views. This distinguishes lineage (an edge) from mere observation (a node)
-and never fabricates an edge.
-
-**Observed live, codex-cli 0.149.0, 2026-09-11, three runs of
-[`experiments/codex-child-threads.ts`](../../experiments/codex-child-threads.ts)
-(`multi_agent` enabled, one prompt asking for one sub-agent):**
+**Native children (nested):** the pinned `collabAgentToolCall` schema carries
+`senderThreadId`, `receiverThreadIds`, and `agentsStates`; `subAgentActivity`
+identifies a thread/path; the rolling guide instead documents `collabToolCall`
+with different fields. Claude's `parent_tool_use_id` is not Codex's linkage.
+OAR records notifications of other thread ids as child-session records
+(`sessionId` is the child thread, a `graph()` node) and adds a `tool_call`
+edge from the sender (`senderThreadId`, else the root) to each
+`receiverThreadIds` / `agentThreadId` entry that is not the sender; the items
+themselves are events with no views. Lineage (an edge) stays distinct from
+observation (a node), and no edge is fabricated. `agentPath` stays `[]` on
+every record: attribution is `nested` (child session ids), not agent paths.
+On the wire, with `multi_agent` enabled ([env]; the item vocabulary differs
+by build):
 
 - The app-server delivers the child thread's notifications on the parent's
-  connection (3/3). The projection derived the child session and exactly one
-  `tool_call` edge root → child (3/3).
-- No child `thread/started` was observed; the child first appears through
-  `thread/status/changed` (idle → active → idle) with its own `threadId`. The
-  root's `thread/started` carries `parentThreadId: null`.
-- Field spelling on the wire: the root emits `subAgentActivity {kind:
-  "started", agentThreadId: <child>, agentPath: "/root/<name>"}` (the edge
-  source) and `collabAgentToolCall {tool: "wait", status: "inProgress" →
-  "completed", senderThreadId: <root>, receiverThreadIds: []}`. The child
-  emitted `subAgentActivity {kind: "interacted", agentThreadId: <root>,
-  agentPath: "/root"}` once — filtered, because it names the parent.
-- `thread/tokenUsage/updated` arrives for BOTH threads, each cumulative for
+  connection; the projection derives the child session and exactly one
+  root → child edge (0.149.0: 3/3 runs of `codex-child-threads.ts`; 0.154.0:
+  live-contract `subagent`).
+- No child `thread/started` is sent (the root's carries `parentThreadId:
+  null`); the child first appears as `thread/status/changed` (idle → active →
+  idle) with its own `threadId` — on 0.154.0 before the spawn item names it,
+  so the graph node precedes the edge. The child then emits its own
+  `warning`, `mcpServer/startupStatus/updated` ×4, `turn/started`, items,
+  `rawResponseItem/completed` (raw events are on for the child),
+  `thread/tokenUsage/updated` ×2, `turn/completed`.
+- 0.149.0 emitted `subAgentActivity { kind: "started", agentThreadId:
+  <child>, agentPath: "/root/<name>" }` (the edge source) plus
+  `collabAgentToolCall { tool: "wait", status: "inProgress" → "completed",
+  senderThreadId: <root>, receiverThreadIds: [] }`; the child emitted
+  `subAgentActivity { kind: "interacted", agentThreadId: <root>, agentPath:
+  "/root" }` once, filtered because it names the parent. 0.154.0 (Spark,
+  `multi_agent` stable/on, `multi_agent_v2` off) emitted only
+  `collabAgentToolCall` — `tool: "spawnAgent"` and `"wait"`, no
+  `subAgentActivity`, no `collabToolCall` — with `senderThreadId` (root),
+  `receiverThreadIds` (`[]` on the spawn `item/started`, the child id on its
+  `item/completed` and on both `wait` frames), `agentsStates` keyed by child
+  id (`pendingInit` → `completed` with the child's final message), `prompt`,
+  `model`, `reasoningEffort`; the edge derives from the spawn completion and
+  the `wait` frames repeat it (`graph()` holds one edge). Spark discovers the
+  collaboration tools through a `tool_search_call` (namespace
+  `multi_agent_v1`) before the raw `spawn_agent` / `wait_agent`
+  `function_call` items.
+- `thread/tokenUsage/updated` arrives for both threads, each cumulative for
   its own thread; the child's lands in the child session's records and is not
-  aggregated into the root `usage()`.
-- The child's `turn/completed` arrived BEFORE the root's in two runs and never
-  arrived in the third; the root's `turn/completed {status: "completed"}` came
-  in all three. This is why `awaitTurnEnd` and the `model / usage /
-  contextUsage` folds scope to the root session
-  ([`tests/observe-folds.test.ts`](../../tests/observe-folds.test.ts)): before
-  2026-09-11 the child's turn end satisfied `awaitTurnEnd` and the child's
-  usage overwrote the root's.
+  aggregated into the root `usage()` (0.154.0: root 66290 in / 761 out after
+  the turn, the child's cumulative 27317 kept apart).
+- The child's `turn/completed` can precede the root's or never arrive; the
+  root's own `turn/completed { status: "completed" }` came every time, with
+  the root's `wait` item completing on the child's message. `awaitTurnEnd`
+  and the `model` / `usage` / `contextUsage` folds therefore scope to the
+  root session ([fold tests](../../tests/observe-folds.test.ts)).
+- No `toApp` request arrived during a sub-agent turn. Control of child
+  threads is not exposed.
 
-Control of child threads is not exposed. [Item schema][item-schema],
-[guide][guide], [projection][oar-projection].
+[Item schema][item-schema], [guide][guide],
+[child-thread probe](../../experiments/codex-child-threads.ts),
+[replay tests](../../tests/replay/codex-projection.test.ts).
 
-### Permissions, tools, and client callbacks
+### Models, instructions, and context
+
+**Mapped:** `model` on open selects the model for `thread/start` /
+`thread/resume`; `model()` folds the `model` view of the open reply — the
+runtime's readback, available at open — and a mismatch between an explicit
+request and the readback fails the open. Opening with a model that does not
+exist succeeds (the slug is read back, with a `warning`); the first
+`turn/start` is accepted, then `thread/status/changed { type: "systemError" }`,
+an `error` notification and `turn/completed { status: "failed" }` give
+`turn_ended` failed with reason `failed: {"type":"error","status":400,
+"error":{"type":"invalid_request_error","message":"The 'oar-no-such-model-xyz'
+model is not supported when using Codex with a ChatGPT account."}}`, class
+`invalid_request` (live-contract `bad-model`;
+[readback probe](../../experiments/session-model-readback.ts)). Live
+model/effort setters are **not exposed**.
+
+Replacement instructions map to `baseInstructions` (replaces codex's base
+prompt); append maps to `developerInstructions` (appended as a developer
+message); `instructions` / `userInstructions` are silently ignored by
+`thread/start`. Cwd and the process environment overlay are forwarded.
+Requested and effective configuration remain distinct. [Adapter][oar-session],
+[vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
+
+`listModels` runs `codex debug models` (stdout streamed: the payload is close
+to 2 MB because every model embeds its instruction templates), not the
+app-server's `model/list`; `slug` is identity, `display_name` presentation
+only, and `visibility: "hide"` entries are dropped. Without credentials codex
+still exits 0 with its built-in fallback list, so the lister never reports
+`unauthenticated` and fallback entries can appear. [Model listing][oar-models],
+[list probe](../../experiments/codex-list-models.ts).
+
+**Context (mapped):** native usage separates `total`, `last`, and nullable
+`modelContextWindow`. Each `thread/tokenUsage/updated` is an event with a
+`usage` view: `context` = `last.totalTokens` (the last model call's input,
+cached tokens included, plus its output — what the context holds once the
+reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
+= `total` input/output, the cumulative figure for the root thread.
+`last.totalTokens` is codex's own occupancy reading:
+`TokenUsage::tokens_in_context_window` returns `total_tokens` and the TUI
+status card reads it off `last_token_usage` (`protocol/src/protocol.rs` at
+[`4f39251a`][native-source]); codex's displayed percent additionally subtracts
+a 12k `BASELINE_TOKENS`, which oar does not. When `last` is absent (older
+builds) the occupancy is unknown: the cumulative input stands in as `tokens`
+and the window and percent are null — the cumulative total is never read
+against the window; when only the window is absent, `tokens` is `last`'s and
+the window/percent are null. `contextUsage()` and `usage()` are folds over
+these views, scoped to the root session.
+
+The two figures diverge live: over three one-word turns `total.inputTokens`
+grew 12661 → 28404 → 44166 while `last.totalTokens` stayed 12684 → 15749 →
+15768 (`last.inputTokens` 12661 → 15743 → 15762) against a 121600 window —
+the cumulative total is spend, not occupancy; `contextUsage()` reads about
+11 % (13597 / 121600 after a basic turn) while `usage()` climbs per turn
+(live-contract `multi-turn`, `basic`;
+[replay test](../../tests/replay/codex-projection.test.ts)). One notification
+arrives per model call, so a tool turn reports twice. Native manual compaction
+(`thread/compact/start`) has no typed OAR operation; the vendor instruction
+test defers compaction survival until it does. `account/rateLimits/updated`
+follows each model call and has no view ([env] 0.154.0: `limitId: "codex"`,
+`planType: "pro"`, primary 300-min and secondary 10080-min windows; the
+notification reflects the thread model's own windows — a Spark thread
+reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
+88 %). [Thread schema][thread-schema], [usage projection][oar-context].
+
+### Tools, permissions, and client callbacks
 
 App-server supports native policy plus server requests for command/file/permission
 decisions, user input, MCP elicitation, and experimental dynamic tools. OAR
-records each server request as a `toApp` request record (method and params
-verbatim, the server's own id) and never answers it: it sets `approvalPolicy:
-never` and defaults the launch sandbox to `danger-full-access`;
-`OAR_CODEX_SANDBOX` can override or inherit configuration. Configurations
-requiring interactive settlement have no supported OAR interaction path — the
-dangling request is the honest record of that.
+records each server request as a `toApp` request record and never answers it:
+it sets `approvalPolicy: never` and launches with `-c
+sandbox_mode="danger-full-access"` — the launch override is the only seam that
+governs codex's exec tool (`thread/start.sandboxMode` does not; pinned on a
+real login). `OAR_CODEX_SANDBOX` pins a stricter mode, and
+`OAR_CODEX_SANDBOX=inherit` skips the override so the user's own configuration
+wins. Configurations requiring interactive settlement have no supported OAR
+interaction path — the dangling request is the honest record
+([stream tests](../../tests/codex/codex-session-stream.test.ts)); none arrived
+in any live run.
 
 OAR projects command execution, file changes, MCP calls, and web search, but
-exposes no tool registration, dynamic-tool execution callback, MCP management, or
-elicitation API. Runtime-owned tools can still come from native configuration.
-[Native interaction flows][approvals], [transport][oar-transport],
-[projection][oar-projection].
+exposes no tool registration, dynamic-tool execution callback, MCP management,
+or elicitation API. Runtime-owned tools (MCP servers, skills, plugins) still
+come from native configuration. [Native interaction flows][approvals],
+[transport][oar-transport], [projection][oar-projection].
 
-### Models, instructions, and environment
+### Process ownership, installation, and account usage
 
-OAR supports initial/resume model selection and native readback. Replacement
-instructions map to `baseInstructions`; append maps to `developerInstructions`.
-Cwd and process environment are forwarded. There is no live model/effort setter.
+**Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
+the exit because the process may hold state (codex's sqlite runtime in
+`CODEX_HOME`) that the next session needs released. This supplies resource
+release, not detached execution or a lease against other controllers of the
+persisted thread. The environment overlay applies to the child process.
 
-The separate `listModels` capability uses `codex debug models`, not the
-app-server's `model/list`; unauthenticated fallback entries can still appear.
-Requested configuration and effective configuration remain distinct.
-[Adapter][oar-session], [model listing][oar-models],
-[resume probe](../../experiments/session-resume-model.ts).
-
-### Context, compaction, and account usage
-
-Native usage separates `total`, `last`, and nullable `modelContextWindow`.
-Each `thread/tokenUsage/updated` notification is an event with a `usage` view:
-`context.tokens` = `total.inputTokens` (null window/percent) and `tokens` =
-`total` input/output, taken as the cumulative figure for the root agent.
-`contextUsage()` and `usage()` are folds over those views. The cumulative
-input value is **unverified as current context occupancy**; the existing test
-checks shape rather than the multi-step interpretation. Native manual
-compaction has no typed OAR operation.
-
-Installation discovery and credentialed account quota are separate OAR
-capabilities; neither is inferred from turn token totals.
-[Thread schema][thread-schema], [context calculation][oar-context],
-[installation](../../packages/oar/src/runtimes/codex/installation.ts),
+Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
+desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
+per-user installs), and requires `codex app-server --help` to succeed — a
+codex without the app-server surface is unsupported. Account usage is a
+separate reader on its own app-server process (`initialize`, `account/read`,
+`account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
+rate-limit buckets merged as the codex TUI does); neither it nor installation
+discovery is inferred from turn token totals. Login management is **not
+exposed**.
+[Installation](../../packages/oar/src/runtimes/codex/installation.ts),
 [account usage](../../packages/oar/src/runtimes/codex/account-usage.ts).
 
-## Evidence and verification
+## Verification and open gaps
 
-Native source is pinned to `4f39251a` (2026-08-22); the official app-server guide
-is rolling documentation. [Recorded probes](../../experiments/README.md) used
-handshake `0.144.6`, steering/abort `0.148.0`, model listing `0.149.0`, and
-resume/model readback `0.153.4` on 2026-09-05. These are evidence baselines, not
-a supported version range. This review ran no runtime tests or model calls.
+[`experiments/live-contract.ts codex`](../../experiments/live-contract.ts)
+covers every promise above on a real login, one voyage log per scenario:
+basic, multi-turn, tool-detail, busy-and-late-control, steer, queue, abort,
+dispose-mid-turn, cursor, resume, subagent, kill-runtime, bad-model. The
+[experiments index](../../experiments/README.md) lists the older probes
+(handshake; adapter steer/abort/busy; resume; resume with a model switch;
+queue; model listing; model readback; child threads). Unit and replay tests
+pin: the notification → record projection, child-thread attribution, collab
+edges, the error-detail fold and the context/usage split
+([replay](../../tests/replay/codex-projection.test.ts)); that a child
+session's turn end and usage never satisfy the root folds
+([folds](../../tests/observe-folds.test.ts)); resume parameters and model
+mismatch ([resume](../../tests/codex/codex-session-resume-model.test.ts));
+the stream shape — request/response ordering, busy, steer, queue and abort
+replies, a refused interrupt, an unanswered server request, an unrequested
+exit ([stream](../../tests/codex/codex-session-stream.test.ts)); pre-open
+ordering, the open event ahead of a same-chunk `thread/started`, and control
+after an unrequested death ([pre-open](../../tests/codex/codex-pre-open.test.ts));
+item detail and reasoning classification. [Vendor
+tests](../../sea-trial/vendor/codex.vendor.test.ts) use the real app-server
+with a scripted provider for tools, errors, instructions, usage shape and
+verbatim stream order. [CI](../../.github/workflows/ci.yml) runs that backend
+on three operating systems with an unpinned CLI; configuration does not prove
+a release passed.
 
-[Replay tests](../../tests/replay/codex-projection.test.ts) check the
-notification → record projection, child-thread attribution and collab edges;
-[fold tests](../../tests/observe-folds.test.ts) pin that a child session's
-turn end and usage never satisfy the root session's folds;
-[fake-process tests](../../tests/codex/) check resume parameters/model
-mismatch and the stream shape (request/response ordering, busy, steer, queue,
-abort replies, an unanswered server request, an unrequested exit). [Vendor tests](../../sea-trial/vendor/codex.vendor.test.ts)
-use the real runtime with a scripted provider for tools, errors, instructions,
-and usage shape. [CI](../../.github/workflows/ci.yml) configures three operating
-systems with an unpinned CLI; configuration does not prove a release passed.
+Open gaps:
 
-Priority gaps are multi-step/compaction context semantics, resumed reasoning
-visibility, queue recovery, server-request handling (recorded, never
-answered), and control of child threads (delivery and identity are [env]
-since 2026-09-11).
-Instruction tests explicitly defer compaction survival. Keep these gaps separate
-from implemented methods and spec guarantees not yet verified live.
+- Compaction: the per-call context reading is verified; context after native
+  compaction and instruction survival through it are not, and
+  `thread/compact/start` is unreachable through the Session API.
+- Resumed reasoning visibility: blocked — raw events cannot be enabled on
+  `thread/resume`, so a resumed session has no `reasoning` views.
+- Queue durability across process death: only the drained subsequent turn is
+  verified.
+- Server requests are recorded, never answered; no configuration requiring
+  approval, user input or elicitation has been exercised.
+- Child threads: delivery and identity are [env] on 0.149.0 / 0.154.0 with
+  differing item vocabularies; control of child threads is not exposed; a
+  child `turn/completed` that never arrives is observed but unexplained.
+- Missing/unloadable thread ids on resume are pinned only by the fake-process
+  path; concurrent controllers of one thread are not arbitrated.
+
+Keep these gaps separate from implemented methods and from spec guarantees not
+yet verified live.
 
 [native-source]: https://github.com/openai/codex/tree/4f39251a010a8bd7d692d25fb33832ff06f1635a
 [thread-schema]: https://github.com/openai/codex/blob/4f39251a010a8bd7d692d25fb33832ff06f1635a/codex-rs/app-server-protocol/src/protocol/v2/thread.rs
@@ -291,5 +475,5 @@ from implemented methods and spec guarantees not yet verified live.
 [oar-projection]: ../../packages/oar/src/runtimes/codex/projection.ts
 [oar-kernel]: ../../packages/oar/src/shared/session-kernel.ts
 [oar-transport]: ../../packages/oar/src/runtimes/codex/app-server-client.ts
-[oar-context]: ../../packages/oar/src/runtimes/codex/context-usage.ts
+[oar-context]: ../../packages/oar/src/runtimes/codex/projection.ts
 [oar-models]: ../../packages/oar/src/runtimes/codex/list-models.ts

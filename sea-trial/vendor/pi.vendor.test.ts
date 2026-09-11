@@ -1,10 +1,45 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import { piInstallation, piSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, piInstallation, piSession, defineRuntime, type Session } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { assertContextUsage, runTurn } from "./support/asserts.js";
-import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
+import { assertContextUsage, promptTurn, runTurn } from "./support/asserts.js";
+import { structuralToolRound, toolRoundFixtures, turnSkeleton } from "./support/tool-round.js";
 import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
+
+/**
+ * SessionOptions.systemPrompt replaces pi's base prompt TEXT, not the whole
+ * system prompt: pi 0.84.2 (core/system-prompt.js) keeps its runtime-native
+ * additions around the replaced prompt — the append seam, project context
+ * files, the skills catalog, the cwd line. The skills catalog lists the
+ * HOST's ~/.agents/skills (package-manager.js loadSkills), present or absent
+ * per machine, so that block is cut before the snapshot; the cwd line stays
+ * (masked by scrubSystem). The seam is documented in docs/runtimes/pi.md;
+ * `noSkills` was not taken, since it drops every skill (project ones too).
+ */
+function withoutHostSkills(system: string): string {
+  return system.replace(/\n+The following skills provide specialized instructions[\s\S]*?<\/available_skills>\n/u, "\n");
+}
+
+function toolStartedAfter(session: Session, seq: number): boolean {
+  for (const record of session.records()) {
+    if (record.seq > seq && record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function waitFor(predicate: () => boolean, what: string, ms = 30_000): Promise<void> {
+  const deadline = Date.now() + ms;
+  while (!predicate()) {
+    if (Date.now() > deadline) {
+      throw new Error(`timeout waiting for ${what}`);
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await delay(50);
+  }
+}
 
 /** Vendor-specific error edges for the in-process pi SDK (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", () => {
@@ -79,7 +114,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       // compaction probes); the latest provider request — the compaction
       // summarization or the post-compaction turn — must still carry both
       // markers and none of pi's own base prompt.
-      expect(scrubSystem(lastAgentSystem(capture.systems))).toMatchInlineSnapshot(`
+      const system = withoutHostSkills(scrubSystem(lastAgentSystem(capture.systems)));
+      expect(system).toMatchInlineSnapshot(`
         "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
 
         OAR-SYSTEM-APPEND-MARKER always be brief
@@ -97,6 +133,39 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       await env.stop();
     }
   }, 120_000);
+
+  // pi's abort() delivers synchronously and then awaits idle: the accepted
+  // answer must be recorded at delivery, ahead of the aborted run's own
+  // agent_settled — the live battery (2026-09-11) had it behind the turn end.
+  test("abort is answered accepted before pi's own aborted turn end", async () => {
+    const env = await startPiAimock((mock) => {
+      mock.on({ userMessage: /run the slow tool/u, hasToolResult: false }, {
+        toolCalls: [{ name: "bash", arguments: JSON.stringify({ command: "sleep 30; echo never" }) }],
+      });
+      mock.on({ hasToolResult: true }, { content: "done" });
+    });
+    try {
+      const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
+      const session = await runtimeUnderTest(runtime).startSession();
+      const started = await promptTurn(session, "run the slow tool");
+      await waitFor(() => toolStartedAfter(session, started.request.seq), "the tool call");
+      const abort = await session.abort();
+      expect(abort.response.body).toEqual({ kind: "accepted" });
+      await expect(awaitTurnEnd(session, started.request.seq)).resolves.toEqual({ kind: "aborted" });
+      expect(turnSkeleton(session.records(), started.request.seq)).toEqual([
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:bash",
+        "request:abort",
+        "response:accepted",
+        "tool_call_ended",
+        "turn_ended:aborted",
+      ]);
+      await session.dispose();
+    } finally {
+      await env.stop();
+    }
+  }, 60_000);
 
   test("contextUsage() is current at turn end and every SDK event is one record", async () => {
     const env = await startPiAimock();

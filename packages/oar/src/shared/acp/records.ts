@@ -33,11 +33,48 @@ export interface AcpRecorder {
   answered(id: string, reply: unknown): void;
 }
 
+function stringField(record: JsonRecord, names: readonly string[]): string | null {
+  for (const name of names) {
+    const value = record[name];
+    if (typeof value === "string" && value.length > 0) {
+      return value;
+    }
+  }
+  return null;
+}
+
+/**
+ * The parent/child session pair a vendor notification names, in either
+ * spelling and at either depth. grok 1.0.25 (live, 2026-09-11) spells it
+ * `_x.ai/session_notification {sessionId: <parent>, update: {sessionUpdate:
+ * "subagent_spawned" | "subagent_progress", parent_session_id,
+ * child_session_id, subagent_type, …}}` — snake_case, nested under `update`;
+ * its `subagent_finished` carries only `child_session_id`, the parent being
+ * the envelope's `sessionId`. A flat camelCase `{parentSessionId,
+ * childSessionId | sessionId}` is the fixture spelling.
+ */
+export function acpLineageOf(params: JsonRecord): { readonly parent: string; readonly child: string } | null {
+  const envelope = stringField(params, ["sessionId"]);
+  // Flat: an explicit parent, the child explicit or the envelope's own id.
+  const flatParent = stringField(params, ["parentSessionId", "parent_session_id"]);
+  const flatChild = stringField(params, ["childSessionId", "child_session_id"]) ?? envelope;
+  if (flatParent !== null && flatChild !== null && flatParent !== flatChild) {
+    return { parent: flatParent, child: flatChild };
+  }
+  // Nested: an explicit child, the parent explicit or the envelope's own id.
+  const update = asRecord(params.update);
+  const nestedChild = update === null ? null : stringField(update, ["childSessionId", "child_session_id"]);
+  const nestedParent = update === null ? null : (stringField(update, ["parentSessionId", "parent_session_id"]) ?? envelope);
+  if (nestedParent !== null && nestedChild !== null && nestedParent !== nestedChild) {
+    return { parent: nestedParent, child: nestedChild };
+  }
+  return null;
+}
+
 function linkFromExtension(kernel: SessionKernel, params: JsonRecord): void {
-  const parent = params.parentSessionId;
-  const child = typeof params.childSessionId === "string" ? params.childSessionId : params.sessionId;
-  if (typeof parent === "string" && typeof child === "string" && parent !== child) {
-    kernel.link({ parent, child, via: "tool_call" });
+  const lineage = acpLineageOf(params);
+  if (lineage !== null) {
+    kernel.link({ ...lineage, via: "tool_call" });
   }
 }
 
@@ -85,7 +122,18 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
     },
     extension(method, params) {
       write((kernel) => {
-        kernel.event({ type: method, native: params, views: [] });
+        // The envelope says whose frame this is: a child session pushes its
+        // own `response_completed` / `turn_completed` on grok's vendor method
+        // with ITS id in `sessionId` (live-grok-c/subagent.voyage.jsonl seqs
+        // 78, 119, 120), so it is recorded under the child like a foreign
+        // `session/update`. A frame that merely NAMES a child (the parent's
+        // `subagent_*` lifecycle) keeps the parent's envelope.
+        const sessionId = stringField(params, ["sessionId"]);
+        const foreign = sessionId !== null && sessionId !== kernel.sessionId;
+        if (foreign) {
+          kernel.node(sessionId);
+        }
+        kernel.event({ type: method, native: params, views: [] }, foreign ? { sessionId } : undefined);
         linkFromExtension(kernel, params);
       });
     },

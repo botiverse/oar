@@ -72,10 +72,16 @@ function toolName(update: JsonRecord): string {
   if (typeof update.toolName === "string") {
     return update.toolName;
   }
-  if (typeof update.kind === "string") {
-    return update.kind;
+  // ACP's `kind` is a category (execute, other, …), never a tool's name; the
+  // OPENING `tool_call` frame's `title` is the closest thing the protocol has
+  // (kimi 0.42.0: title "Bash"/"Agent" with kind "execute"/"other" for the
+  // two tools observed; grok: title "run_terminal_command" and no kind). A
+  // later `tool_call_update` retitles the call with progress text ("Running:
+  // …", kimi seq 25), so a call first seen on an update falls back to `kind`.
+  if (update.sessionUpdate === "tool_call" && typeof update.title === "string") {
+    return update.title;
   }
-  return typeof update.title === "string" ? update.title : "tool";
+  return typeof update.kind === "string" ? update.kind : "tool";
 }
 
 function projectTool(state: AcpProjectionState, update: JsonRecord): EventView[] {

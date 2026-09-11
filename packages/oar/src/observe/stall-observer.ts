@@ -41,7 +41,7 @@ export function observeStalls(
   };
 
   const unsubscribe = session.subscribe((record) => {
-    status = reduceStatus(status, record);
+    status = reduceStatus(status, record, session.id);
     const lastView = record.kind === "event" ? record.body.views.at(-1) : undefined;
     lastRecordKind = lastView === undefined ? record.kind : `event:${lastView.kind}`;
     if (status.kind === "running") {

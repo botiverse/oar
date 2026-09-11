@@ -43,6 +43,19 @@
  * value, the bug this pins. "usage-never" with a 100 ms bound: the turn
  * completes after the bound with contextUsage() still null.
  * Re-observed 2026-09-11 on the record stream (fixture only): same values.
+ *
+ * ── OBSERVED 2026-09-11, live, kimi 0.42.0 (darwin arm64), default model
+ * kimi-code/k3 ──
+ *
+ * `{ tokensAtTurnEnded: [20611, 20657], reportedAtFirstTurnEnd: true,
+ * grewBetweenTurns: true }`: the real binary pushes `usage_update` a few
+ * milliseconds after answering `session/prompt` (live-contract basic run:
+ * usage record seq 27 at +0 ms, prompt-answer record seq 28 at +8 ms), well
+ * inside the 500 ms bound, so contextUsage() at turn_ended is the turn's own
+ * value on 0.42.0 too. The push also follows a CANCELLED prompt (abort run:
+ * `stopReason: cancelled` answer seq 105, usage_update seq 109, 1 ms later)
+ * — the gate deliberately does not wait while aborting, so on an aborted
+ * turn the usage record lands after the turn end.
  */
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";

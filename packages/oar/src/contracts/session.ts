@@ -130,7 +130,7 @@ export interface AdapterSession {
   subscribe(observer: SessionObserver, cursor?: Cursor): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live — no loss, no duplication.
   records(): readonly SessionRecord[]; // every record this process observed, in seq order
   graph(): SessionGraph;
-  dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent
+  dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent. After an exit the stream already holds (the runtime died on its own), the request is answered `accepted` immediately — nothing is left to release.
 }
 
 /** The API face: the SPI plus surfaces sealSession derives from the stream. */
@@ -150,7 +150,8 @@ export interface Session extends AdapterSession {
 }
 
 export interface SessionUsage {
-  readonly total: TokenTotals;
+  /** Null until the runtime has reported token totals — never a guessed zero (kimi's ACP surface reports context only). */
+  readonly total: TokenTotals | null;
   /** Present only when more than the root agent reported tokens. */
   readonly byAgent?: readonly { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }[];
 }

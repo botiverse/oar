@@ -1,5 +1,6 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
 import { createInterface } from "node:readline";
+import { grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { modelReport, setModelResponse } from "./fake-acp-model.mjs";
 
 const mode = process.argv[2] ?? "session";
@@ -86,17 +87,18 @@ function handleRpcRequest(message) {
 
 function handleSessionPrompt(message) {
   const text = promptText(message.params);
-  if (text === "hold" || text === "steer-base") {
+  if (text === "hold" || text === "steer-base" || text === "grok-steer-base") {
     pendingPrompts.set(message.id, text);
     return;
   }
-  if (text === "steer-new" && message.params?._meta?.sendNow === true) {
+  if ((text === "steer-new" || text === "grok-steer-new") && message.params?._meta?.sendNow === true) {
+    const answers = text === "grok-steer-new" ? grokSteerAnswers : { cancelled: { stopReason: "cancelled", _meta: { cancelTrigger: "send_now" } }, closing: { stopReason: "end_turn" } }; // grok-: 1.0.25's real ledgers
     for (const id of pendingPrompts.keys()) {
-      result(id, { stopReason: "cancelled", _meta: { cancelTrigger: "send_now" } });
+      result(id, answers.cancelled);
     }
     pendingPrompts.clear();
-    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "steer:steer-new" } });
-    result(message.id, { stopReason: "end_turn" });
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `steer:${text}` } });
+    result(message.id, answers.closing);
     return;
   }
   if (text === "switch-model") {
@@ -149,6 +151,10 @@ function handleSessionPrompt(message) {
     update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "child-says-hi" } }, "fake-child");
     update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "parent-continues" } });
     result(message.id, { stopReason: "end_turn" });
+    return;
+  }
+  if (text === "spawn-child-grok" || text === "grok-usage") {
+    result(message.id, text === "grok-usage" ? grokUsageAnswer(send, update) : spawnChildGrok(send, update)); // grok 1.0.25's real frames
     return;
   }
   if (text === "permission") {

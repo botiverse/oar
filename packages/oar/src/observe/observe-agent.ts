@@ -49,7 +49,7 @@ export function observeAgent(session: Session, options: ObserveAgentOptions): Ag
   };
 
   const unsubscribe = session.subscribe((record) => {
-    status = reduceStatus(status, record);
+    status = reduceStatus(status, record, session.id);
     push();
   });
   const ticker = setInterval(() => {

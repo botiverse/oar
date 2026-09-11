@@ -120,7 +120,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       const usageRecords = session.records().filter((record) =>
         record.kind === "event" && record.body.type === "thread/tokenUsage/updated");
       expect(usageRecords.length).toBeGreaterThan(0);
-      expect(session.usage().total.input).toBeGreaterThanOrEqual(0);
+      const usage = session.usage();
+      expect(usage.total !== null && usage.total.input >= 0).toBe(true);
       await session.dispose();
     } finally {
       await env.stop();
@@ -142,7 +143,15 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         expect(record.seq).toBe(index);
       }
       const types = records.map((record) => (record.kind === "event" ? record.body.type : `${record.kind}:${record.body.kind}`));
-      expect(types[0]).toBe("thread/start");
+      // The open event is the thread/start reply; frames the app-server sent
+      // before the thread existed (0.154.0: remoteControl/status/changed right
+      // after initialize) are held and recorded ahead of it — events, or
+      // toApp requests if the server asked something; no control of ours
+      // (a toRuntime request) can precede the open.
+      const open = types.indexOf("thread/start");
+      expect(open).toBeGreaterThanOrEqual(0);
+      expect(records.slice(0, open).some((record) => record.kind === "request" && record.direction === "toRuntime")).toBe(false);
+      expect(types.indexOf("request:prompt")).toBeGreaterThan(open);
       expect(types).toContain("turn/started");
       expect(types).toContain("item/completed");
       expect(types.filter((type) => type === "turn/completed")).toHaveLength(2);

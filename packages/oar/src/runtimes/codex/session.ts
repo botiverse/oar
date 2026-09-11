@@ -2,20 +2,19 @@ import { randomUUID } from "node:crypto";
 import type {
   ControlResult,
   RequestRecord,
-  ResponseBody,
   Session,
   StartSession,
 } from "../../contracts/session.js";
-import { asRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
-import { startAppServerClient } from "./app-server-client.js";
+import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import {
   foldCodexNotification,
   initialCodexProjection,
   type CodexProjectionState,
 } from "./projection.js";
-import { rpcControl, type RpcControlPlan } from "./rpc-control.js";
+import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 
 /*
  * codex app-server v2 mapping:
@@ -30,6 +29,8 @@ import { rpcControl, type RpcControlPlan } from "./rpc-control.js";
  * - every notification is one event record (verbatim params); notifications
  *   of other threads are child-session records; collab items link them.
  * - server-initiated requests are recorded as toApp requests, unanswered.
+ * - reachability (exited / disposed) is the kernel's, read off the stream;
+ *   the adapter holds no liveness flag (record-stream.md, "Reachability").
  * Live probe: codex-session-adapter.ts.
  */
 
@@ -43,7 +44,6 @@ interface CodexSessionState {
   /** The runtime's id for the active root turn — steer/abort identity. */
   codexTurnId: string | null;
   projection: CodexProjectionState;
-  disposed: boolean;
 }
 
 export const codexSession: StartSession = async (installation, options) => {
@@ -75,8 +75,20 @@ export const codexSession: StartSession = async (installation, options) => {
     ...(options.appendSystemPrompt === undefined ? {} : { developerInstructions: options.appendSystemPrompt }),
   };
   const openMethod = options.resume === undefined ? "thread/start" : "thread/resume";
-  const started = options.resume === undefined
-    ? await client.request("thread/start", {
+  // The open event is marked at the reply's wire position AS the reply line
+  // is read (onSettled → client.mark), not after this await: a frame codex
+  // wrote in the same chunk right after the reply (thread/started) would
+  // otherwise precede it. The mark runs when the handlers register below,
+  // once the kernel exists; a failed open registers none, so it never runs.
+  let recordOpen: (() => void) | null = null;
+  const markOpen = (outcome: RpcOutcome): void => {
+    if (outcome.kind === "result") {
+      client.mark(() => recordOpen?.());
+    }
+  };
+  const started = await openThread(client, openMethod, async () => {
+    const reply = await (options.resume === undefined
+    ? client.request("thread/start", {
         cwd: options.cwd,
         ...(options.model === undefined ? {} : { model: options.model }),
         approvalPolicy: "never",
@@ -85,8 +97,8 @@ export const codexSession: StartSession = async (installation, options) => {
         // lets us distinguish redaction from genuinely empty reasoning.
         experimentalRawEvents: true,
         ...instructionParams,
-      })
-    : await client.request("thread/resume", {
+      }, markOpen)
+    : client.request("thread/resume", {
         threadId: options.resume,
         excludeTurns: true,
         cwd: options.cwd,
@@ -98,21 +110,20 @@ export const codexSession: StartSession = async (installation, options) => {
         ...(options.model === undefined ? {} : { model: options.model }),
         approvalPolicy: "never",
         ...instructionParams,
-      });
+      }, markOpen));
+    return reply;
+  });
   const threadId = asRecord(started.thread)?.id;
   if (typeof threadId !== "string") {
     client.kill();
     throw new TypeError("codex thread start/resume returned no thread id");
   }
-  // Both responses report the model that is actually active; that value is
-  // what Session.model() reads back (as a model view on the open event).
-  // Still check it against the request: codex's resume_running_thread
-  // ignores resume overrides for a thread that is already loaded and busy,
-  // logging only a warn ("thread/resume overrides ignored for loaded
-  // thread"), and the response then names the old model. A caller who asked
-  // for a model must not get a session silently running another, so the
-  // mismatch fails loudly here and the app-server we just started must not
-  // outlive the failed session.
+  // Both responses report the model actually active (Session.model() reads
+  // it back as a model view on the open event). Still check it against the
+  // request: codex's resume_running_thread ignores overrides for a thread
+  // that is already loaded and busy (warn "thread/resume overrides ignored
+  // for loaded thread") and answers with the old model; a caller who asked
+  // for a model must not get one silently running another.
   const effectiveModel = typeof started.model === "string" ? started.model : null;
   if (options.model !== undefined && effectiveModel !== null && effectiveModel !== options.model) {
     client.kill();
@@ -120,25 +131,26 @@ export const codexSession: StartSession = async (installation, options) => {
   }
 
   const kernel = createSessionKernel(threadId);
-  kernel.event({
-    type: openMethod,
-    native: started,
-    views: effectiveModel === null ? [] : [{ kind: "model", model: effectiveModel }],
-  });
   const state: CodexSessionState = {
     active: null,
     spontaneous: false,
     codexTurnId: null,
     projection: initialCodexProjection(threadId),
-    disposed: false,
   };
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;
 
+  recordOpen = (): void => {
+    kernel.event({
+      type: openMethod,
+      native: started,
+      views: effectiveModel === null ? [] : [{ kind: "model", model: effectiveModel }],
+    });
+  };
   // Drive the pure projection fold, applying its commands to the kernel; the
   // fold owns event translation, attribution and graph links; this owns the
   // transport-only turn id and the control decisions (busy, spontaneous).
-  client.onNotification((method, params) => {
+  const onNotification = (method: string, params: JsonRecord): void => {
     const isRoot = typeof params.threadId !== "string" || params.threadId === threadId;
     if (isRoot && method === "turn/started") {
       const startedTurn = asRecord(params.turn)?.id;
@@ -175,13 +187,17 @@ export const codexSession: StartSession = async (installation, options) => {
       state.spontaneous = false;
       state.codexTurnId = null;
     }
-  });
-  client.onServerRequest((id, method, params) => {
-    // Approvals, user input, dynamic tools: recorded verbatim, never answered
-    // (approvalPolicy never means none are expected; a dangling request is
-    // the honest record when one arrives anyway).
+  };
+  // Approvals, user input, dynamic tools: recorded verbatim, never answered
+  // (approvalPolicy never means none are expected; a dangling request is
+  // the honest record when one arrives anyway).
+  const onServerRequest = (id: string, method: string, params: JsonRecord): void => {
     kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
-  });
+  };
+  // Registering flushes everything held so far in wire order: the frames
+  // from before the thread existed, then the open event (the mark placed at
+  // the reply), then whatever codex wrote after the reply.
+  client.handle({ onNotification, onServerRequest });
   client.onExit((code) => {
     // The exit is an outcome only oar observes: it answers our dispose when
     // we caused it, and stands alone when the app-server died on its own.
@@ -191,8 +207,6 @@ export const codexSession: StartSession = async (installation, options) => {
     state.codexTurnId = null;
   });
 
-  const disposedOr = (check: () => ResponseBody | null): ((request: RequestRecord) => ResponseBody | null) =>
-    () => (state.disposed ? { kind: "rejected", reason: "session disposed" } : check());
   /** Turn a plan builder into a Session control member. */
   const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) =>
     async (...args: Args): Promise<ControlResult> => {
@@ -202,9 +216,6 @@ export const codexSession: StartSession = async (installation, options) => {
   const promptPlan = (input: string): RpcControlPlan => ({
     body: { kind: "prompt", input },
     gate: (request) => {
-      if (state.disposed) {
-        return { kind: "rejected", reason: "session disposed" };
-      }
       if (busy()) {
         return { kind: "rejected", reason: "busy" };
       }
@@ -230,7 +241,7 @@ export const codexSession: StartSession = async (installation, options) => {
   });
   const steerPlan = (input: string): RpcControlPlan => ({
     body: { kind: "steer", input },
-    gate: disposedOr(() => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "not_steerable: no active turn" } : null)),
+    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "not_steerable: no active turn" } : null),
     method: "turn/steer",
     params: () => ({ threadId, input: text(input), expectedTurnId: state.codexTurnId }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
@@ -239,7 +250,7 @@ export const codexSession: StartSession = async (installation, options) => {
   // The reply carries the runtime's submission id; it is retained on the response.
   const queuePlan = (input: string): RpcControlPlan => ({
     body: { kind: "queue", input },
-    gate: disposedOr(() => null),
+    gate: () => null,
     method: "thread/queue/add",
     params: () => ({ threadId, input: text(input), clientUserMessageId: randomUUID() }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
@@ -249,7 +260,7 @@ export const codexSession: StartSession = async (installation, options) => {
   // it landed, and turn/completed carries the real outcome.
   const abortPlan = (): RpcControlPlan => ({
     body: { kind: "abort" },
-    gate: disposedOr(() => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "no active turn" } : null)),
+    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "no active turn" } : null),
     method: "turn/interrupt",
     params: () => ({ threadId, turnId: state.codexTurnId }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
@@ -267,11 +278,16 @@ export const codexSession: StartSession = async (installation, options) => {
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {
-      if (state.disposed) {
+      if (disposeRequest !== null) {
         return;
       }
-      state.disposed = true;
+      const gone = kernel.unreachable() !== null; // only an observed exit can say so before this dispose is recorded
       disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
+      if (gone) {
+        // The exit is already recorded; nothing is left to release.
+        kernel.respond(disposeRequest.id, { kind: "accepted" });
+        return;
+      }
       client.kill();
       // Await the actual exit: the process may hold state (codex's sqlite
       // runtime in CODEX_HOME) that the next session needs released. The

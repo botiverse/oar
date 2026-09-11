@@ -21,8 +21,10 @@ function fakeAppServer(
       notify(method) {
         calls.push(method);
       },
-      onNotification() {},
-      onServerRequest() {},
+      handle() {},
+      mark(placed) {
+        placed();
+      },
       onExit() {},
       kill() {},
     },

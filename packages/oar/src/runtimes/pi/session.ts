@@ -1,4 +1,5 @@
-import type { ContextUsage, ControlResult, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+import type {
+  RequestRecord, ContextUsage, ControlResult, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -38,7 +39,12 @@ export const piSession: StartSession = async (installation, options) => {
   // Identity of the latest launched prompt, so a late rejection of an older
   // one cannot be misread as the current run's.
   let launch: object | null = null;
-  let disposed = false;
+  // The dispose request once issued: dispose is idempotent on it. Liveness
+  // itself is the kernel's business (kernel.unreachable() reads the stream).
+  let disposeRequest: RequestRecord | null = null;
+  // An abort taken over before pi created the run (pi's abort calls are no-ops
+  // until then): delivered on agent_start.
+  let pendingAbort = false;
   // Adapter-held queue, drained one input per run end. pi's native followUp
   // CONTINUES the active run (more internal turns, one agent_end), which
   // would land the queued input inside the same turn — the queue contract
@@ -104,7 +110,7 @@ export const piSession: StartSession = async (installation, options) => {
     return decided;
   };
   function drainHeld(): void {
-    if (disposed || gate.running) {
+    if (disposeRequest !== null || gate.running) {
       return;
     }
     const next = held.shift();
@@ -129,6 +135,11 @@ export const piSession: StartSession = async (installation, options) => {
       gate.running = true;
       for (const waiter of startWaiters) {
         waiter();
+      }
+      if (pendingAbort) {
+        pendingAbort = false;
+        piAgentSession.abortRetry();
+        piAgentSession.agent.abort();
       }
     }
     const extra = event.type === "agent_settled" ? { context: contextOf() } : {};
@@ -160,9 +171,6 @@ export const piSession: StartSession = async (installation, options) => {
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
     prompt: async (input): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "prompt", input }, async () => {
-        if (disposed) {
-          return { kind: "rejected", reason: "session disposed" };
-        }
         if (gate.running) {
           return { kind: "rejected", reason: "busy" };
         }
@@ -173,9 +181,6 @@ export const piSession: StartSession = async (installation, options) => {
     },
     steer: async (input): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "steer", input }, async () => {
-        if (disposed) {
-          return { kind: "rejected", reason: "session disposed" };
-        }
         if (!gate.running) {
           return { kind: "rejected", reason: "not_steerable: no active turn" };
         }
@@ -186,9 +191,6 @@ export const piSession: StartSession = async (installation, options) => {
     },
     queue: async (input): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input }, () => {
-        if (disposed) {
-          return { kind: "rejected", reason: "session disposed" };
-        }
         held.push(input);
         drainHeld();
         return { kind: "accepted" };
@@ -196,12 +198,23 @@ export const piSession: StartSession = async (installation, options) => {
       return result;
     },
     abort: async (): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "abort" }, async () => {
-        if (disposed || !gate.running) {
+      const result = await kernel.control({ kind: "abort" }, () => {
+        if (!gate.running) {
           return { kind: "rejected", reason: "no active turn" };
         }
         projection = piAbortRequested(projection);
-        await piAgentSession.abort();
+        // Delivery is pi's own AgentSession.abort() minus its idle wait (SDK
+        // 0.84.2 agent-session.js: abortRetry(); agent.abort(); await
+        // waitForIdle()) — both calls are public and synchronous, and both
+        // are no-ops until pi has created the run, so before agent_start the
+        // intent is held and delivered there. Accepted means taken over; the
+        // outcome is pi's own agent_settled on the stream.
+        if (piAgentSession.isStreaming) {
+          piAgentSession.abortRetry();
+          piAgentSession.agent.abort();
+        } else {
+          pendingAbort = true;
+        }
         return { kind: "accepted" };
       });
       return result;
@@ -210,12 +223,12 @@ export const piSession: StartSession = async (installation, options) => {
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {
-      if (disposed) {
+      if (disposeRequest !== null) {
         return;
       }
-      disposed = true;
       held.splice(0);
       const request = kernel.request("toRuntime", { kind: "dispose" });
+      disposeRequest = request;
       if (gate.running) {
         // pi's own agent_settled (aborted) ends the turn in the stream.
         projection = piAbortRequested(projection);

@@ -85,6 +85,15 @@ Further rules:
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.
+- **Reachability is read off the stream.** Once the stream holds an
+  `exited` response (the runtime is gone) or a `dispose` request (the
+  session is being released), every later prompt / steer / queue / abort
+  request is rejected (`runtime exited` / `session disposed`) by the shared
+  kernel before any adapter code runs — no adapter keeps a private "is it
+  alive" flag. `dispose` is the one control that still goes through after an
+  observed exit: it is recorded and answered `accepted` at once (nothing is
+  left to release), so a session whose runtime died on its own still ends
+  with an answered dispose rather than a dangling one.
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. Counterexample: kimi-cli leaks the
   turn outcome into `_handle_prompt`'s return value, while the `TurnEnd`

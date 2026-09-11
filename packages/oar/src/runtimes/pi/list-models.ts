@@ -1,4 +1,5 @@
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
+import { configurePiHttp } from "./http.js";
 
 /** The subset of Pi's `Model` the projection reads; kept structural for tests. */
 export interface PiListedModel {
@@ -73,11 +74,17 @@ export function createPiListModels(
 }
 
 export const piListModels: ModelLister = createPiListModels(async (signal) => {
-  const { createAgentSessionServices } = await import("@earendil-works/pi-coding-agent");
-  const agentDir = process.env.OAR_PI_AGENT_DIR;
+  const { createAgentSessionServices, getAgentDir, SettingsManager } = await import("@earendil-works/pi-coding-agent");
+  const agentDir = process.env.OAR_PI_AGENT_DIR ?? getAgentDir();
+  // getAvailable() can refresh OAuth tokens over the network: the proxy
+  // plane first, from the same settings manager the services get (see
+  // http.ts).
+  const settingsManager = SettingsManager.create(process.cwd(), agentDir);
+  await configurePiHttp(settingsManager);
   const services = await createAgentSessionServices({
     cwd: process.cwd(),
-    ...(agentDir === undefined ? {} : { agentDir }),
+    agentDir,
+    settingsManager,
     modelRuntimeSignal: signal,
     resourceLoaderOptions: {
       noSkills: true,

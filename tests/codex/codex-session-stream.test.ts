@@ -139,7 +139,9 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
     { kind: "rejected", reason: "not_steerable: no active turn" },
   ]);
   await session.dispose();
-  expect(await bodiesOf([session.prompt("dead")])).toEqual([{ kind: "rejected", reason: "session disposed" }]);
+  // dispose awaited the exit, so the stream holds an exited response and the
+  // kernel's reachability answer reads that first.
+  expect(await bodiesOf([session.prompt("dead")])).toEqual([{ kind: "rejected", reason: "runtime exited" }]);
 });
 
 test("an interrupt the runtime refuses is a rejected abort, not an error", async () => {
@@ -176,5 +178,5 @@ test("an unrequested app-server exit is recorded as an exit pointing at no reque
   const exit = session.records().at(-1);
   expect(exit).toMatchObject({ kind: "response", requestId: "", body: { kind: "exited", code: 2 } });
   const after = await session.prompt("after");
-  expect(after.response.body).toEqual({ kind: "rejected", reason: "app-server exited" });
+  expect(after.response.body).toEqual({ kind: "rejected", reason: "runtime exited" });
 });

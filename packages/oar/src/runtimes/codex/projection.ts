@@ -90,20 +90,41 @@ function settleOutcome(state: CodexProjectionState, status: unknown): TurnOutcom
   return outcome;
 }
 
+/**
+ * `tokenUsage.total` accumulates over every model call of the thread's life
+ * (input 12.6k → 28.4k → 44.2k across three one-word turns, codex 0.154.0),
+ * so it is the running spend, not what the context holds. `tokenUsage.last`
+ * is the most recent model call, and `modelContextWindow` the window it fit
+ * in; those two are the context reading. Codex's own occupancy figure is
+ * `last.total_tokens` (`TokenUsage::tokens_in_context_window`, protocol.rs
+ * at 4f39251a — the TUI's status card reads it off `last_token_usage`; its
+ * percent also subtracts a 12k baseline). oar reads the same field,
+ * `last.totalTokens`: the last call's input (cached tokens included) plus its
+ * output, which is what the context holds once the reply is in — matching
+ * the runtime's own reading rather than undercounting by the last output.
+ * When `last` is absent (older builds) the occupancy is unknown: the
+ * cumulative input stands in as `tokens` and the window and percent are
+ * null — the cumulative total is never read against the window.
+ */
 function usageViews(params: JsonRecord): EventView[] {
-  const total = asRecord(asRecord(params.tokenUsage)?.total);
+  const tokenUsage = asRecord(params.tokenUsage);
+  const total = asRecord(tokenUsage?.total);
   if (total === null) {
     return [];
   }
   const input = asNumber(total.inputTokens);
   const output = asNumber(total.outputTokens);
-  return [{
-    kind: "usage",
-    usage: {
-      context: { tokens: input, contextWindow: null, percent: null },
-      ...(input === null || output === null ? {} : { tokens: { input, output } }),
-    },
-  }];
+  const tokens = input === null || output === null ? {} : { tokens: { input, output } };
+  const last = asRecord(tokenUsage?.last);
+  if (last === null) {
+    return [{ kind: "usage", usage: { context: { tokens: input, contextWindow: null, percent: null }, ...tokens } }];
+  }
+  const contextTokens = asNumber(last.totalTokens);
+  const contextWindow = asNumber(tokenUsage?.modelContextWindow);
+  const percent = contextTokens === null || contextWindow === null || contextWindow <= 0
+    ? null
+    : Math.round((contextTokens / contextWindow) * 100);
+  return [{ kind: "usage", usage: { context: { tokens: contextTokens, contextWindow, percent }, ...tokens } }];
 }
 
 /** Edges a collaboration item establishes: the root (sender) thread spawned or addressed the named threads. */

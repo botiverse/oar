@@ -193,7 +193,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       await runTurn(session, "say hi");
       assertContextUsage(session.contextUsage());
       const usage = session.usage();
-      expect(usage.total.input >= 0 && usage.total.output >= 0).toBe(true);
+      expect(usage.total !== null && usage.total.input >= 0 && usage.total.output >= 0).toBe(true);
       expect(session.model()).not.toBeNull();
       // The dispose request is answered by the exit oar observed.
       await session.dispose();

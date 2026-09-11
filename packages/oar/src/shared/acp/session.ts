@@ -2,6 +2,7 @@
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
   ControlResult,
+  RequestBody,
   RequestRecord,
   ResponseBody,
   Session,
@@ -78,15 +79,8 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const kernel = createSessionKernel(opened.sessionId);
     recorder.bind(kernel);
 
-    let disposed = false;
     let disposeRequest: RequestRecord | null = null;
-    const turns = createAcpTurns({
-      kernel,
-      runtime,
-      profile,
-      usageGate,
-      disposed: () => disposed,
-    });
+    const turns = createAcpTurns({ kernel, runtime, profile, usageGate });
     // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
     void runtime.exited.then((code) => {
       void terminalHost.dispose();
@@ -96,17 +90,29 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       turns.onExit();
     });
 
-    const guarded = (
+    // Reachability (exited, disposed) is the kernel's gate, read off the
+    // stream; the adapter decides only the runtime-specific answers (busy,
+    // not_steerable). `runtime.closed` flips synchronously on the process's
+    // exit, one microtask before the observer above records the `exited`
+    // response: a control landing in that window would otherwise be decided
+    // here (rejected "ACP process exited") instead of by the gate — so the
+    // exit is let land first.
+    const control = async (
+      body: RequestBody,
       decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>,
-    ): ((request: RequestRecord) => ResponseBody | Promise<ResponseBody>) =>
-      (request) => (disposed ? { kind: "rejected", reason: "session disposed" } : decide(request));
+    ): Promise<ControlResult> => {
+      if (runtime.closed && kernel.unreachable() === null) {
+        await runtime.exited;
+      }
+      return kernel.control(body, decide);
+    };
 
     return sealSession({
       id: kernel.sessionId,
       capabilities: profile.capabilities,
-      prompt: (input): Promise<ControlResult> => kernel.control({ kind: "prompt", input }, guarded((request): ResponseBody =>
-        (turns.active() === null ? turns.begin(request, input) : { kind: "rejected", reason: "busy" }))),
-      steer: (input): Promise<ControlResult> => kernel.control({ kind: "steer", input }, guarded((): ResponseBody | Promise<ResponseBody> => {
+      prompt: (input): Promise<ControlResult> => control({ kind: "prompt", input }, (request): ResponseBody =>
+        (turns.active() === null ? turns.begin(request, input) : { kind: "rejected", reason: "busy" })),
+      steer: (input): Promise<ControlResult> => control({ kind: "steer", input }, (): ResponseBody | Promise<ResponseBody> => {
         const steerParams = profile.steerParams;
         if (steerParams === undefined) {
           return { kind: "rejected", reason: "not_steerable: runtime cannot inject into an active turn" };
@@ -115,21 +121,32 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         return state === null
           ? { kind: "rejected", reason: "not_steerable: no active turn" }
           : turns.steer(state, input, steerParams(input));
-      })),
-      queue: (input): Promise<ControlResult> => kernel.control({ kind: "queue", input }, guarded(() => turns.hold(input))),
-      abort: (): Promise<ControlResult> => kernel.control({ kind: "abort" }, guarded((): ResponseBody | Promise<ResponseBody> => {
+      }),
+      queue: (input): Promise<ControlResult> => control({ kind: "queue", input }, () => turns.hold(input)),
+      abort: (): Promise<ControlResult> => control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
         const state = turns.active();
         return state === null ? { kind: "rejected", reason: "no active turn" } : turns.abort(state);
-      })),
+      }),
       subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),
       dispose: async () => {
-        if (disposed) {
+        if (disposeRequest !== null) {
+          return; // already released: the stream holds our dispose request
+        }
+        // Read BEFORE this dispose is recorded: only an observed exit can say
+        // so here, and it is the stream's word, not an adapter flag.
+        const gone = kernel.unreachable() !== null;
+        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
+        if (gone) {
+          // The exit is already recorded (an unrequested `exited` response, requestId "");
+          // nothing is left to release, so the dispose is answered here — as
+          // the claude and codex adapters do (kimi 0.42.0 kill-runtime run,
+          // 2026-09-11: the dispose request stood unanswered before this).
+          kernel.respond(disposeRequest.id, { kind: "accepted" });
+          await terminalHost.dispose();
           return;
         }
-        disposed = true;
-        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
         const state = turns.active();
         if (state !== null && !runtime.closed) {
           await turns.abort(state);

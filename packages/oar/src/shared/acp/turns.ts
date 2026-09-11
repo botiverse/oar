@@ -2,6 +2,7 @@ import type {
   EventView,
   RequestRecord,
   ResponseBody,
+  TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
 import type { JsonRecord } from "../json.js";
@@ -55,13 +56,14 @@ export function createAcpTurns(deps: {
   readonly runtime: AcpProcess;
   readonly profile: AcpSessionProfile;
   readonly usageGate: UsageUpdateGate;
-  readonly disposed: () => boolean;
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate } = deps;
   const rootId = kernel.sessionId;
   const held: string[] = [];
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
+  // Running session total of the per-prompt ledgers (profile.promptTokenUsage).
+  let billed: TokenTotals = { input: 0, output: 0 };
 
   const closeTurn = (state: ActiveTurn): void => {
     if (state.fallback !== null) {
@@ -109,10 +111,17 @@ export function createAcpTurns(deps: {
         // turn's own value.
         await usageGate.settleAfterPrompt(profile, state.abortRequested);
         const context = profile.promptContextUsage?.(result) ?? null;
+        const prompted = profile.promptTokenUsage?.(result) ?? null;
+        if (prompted !== null) {
+          billed = { input: billed.input + prompted.input, output: billed.output + prompted.output };
+        }
         finishRequest(state, requestNumber, {
           type: methods.agent.session.prompt,
           native: result,
-          context: context === null ? null : { kind: "usage", usage: { context } },
+          context: context === null && prompted === null ? null : {
+            kind: "usage",
+            usage: { ...(context === null ? {} : { context }), ...(prompted === null ? {} : { tokens: billed }) },
+          },
         }, profile.promptOutcome?.(result) ?? defaultAcpPromptOutcome(result));
       } catch (error) {
         if (error instanceof AcpError && error.kind === "process_exited") {
@@ -149,7 +158,9 @@ export function createAcpTurns(deps: {
     return { kind: "accepted" };
   };
   function drainHeld(): void {
-    if (deps.disposed() || active !== null || runtime.closed) {
+    // Held input is dropped once the stream says the runtime is unreachable
+    // (an `exited` response or a `dispose` request), not by an adapter flag.
+    if (kernel.unreachable() !== null || active !== null || runtime.closed) {
       return;
     }
     const input = held.shift();

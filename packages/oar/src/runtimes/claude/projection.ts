@@ -221,21 +221,23 @@ export function foldClaudeStdout(
       return event({ views: model === null ? [] : [{ kind: "model", model }] });
     }
     case "control_response": {
-      // claude answers our control_request (interrupt) here; the request id is ours.
+      // claude answering one of OUR control_requests (interrupt): the frame IS
+      // the response record (native verbatim) — one frame, one record, so it
+      // is not also recorded as an event. A control_response we cannot pair
+      // is recorded as a plain event.
       const response = asRecord(message.response);
       const requestId = typeof response?.request_id === "string" ? response.request_id : null;
-      const commands: ProjectionCommand[] = [{ kind: "event", body: { type, native: message, views: [] }, agentPath }];
-      if (requestId !== null) {
-        const error = typeof response?.error === "string" ? response.error : null;
-        commands.push({
-          kind: "respond",
-          requestId,
-          body: response?.subtype === "error" || error !== null
-            ? { kind: "rejected", reason: error ?? "control request failed", native: message }
-            : { kind: "accepted", native: message },
-        });
+      if (requestId === null) {
+        return event({ views: [] });
       }
-      return { state, commands };
+      const error = typeof response?.error === "string" ? response.error : null;
+      return { state, commands: [{
+        kind: "respond",
+        requestId,
+        body: response?.subtype === "error" || error !== null
+          ? { kind: "rejected", reason: error ?? "control request failed", native: message }
+          : { kind: "accepted", native: message },
+      }] };
     }
     case "control_request": {
       // claude asks the app something (permission, question). Recorded verbatim; the adapter answers nothing.

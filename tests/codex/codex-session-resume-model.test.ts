@@ -108,3 +108,25 @@ test("Session.model is null when the app-server answer carries no model", async 
   expect(session.model()).toBeNull();
   await session.dispose();
 });
+
+// A refused resume names the method — "no rollout found for thread id …"
+// alone would not tell a caller that resume was the thing that failed — and
+// the app-server started for it does not outlive the failure.
+test("a thread/resume the app-server refuses rejects naming thread/resume and kills the child", async () => {
+  const fake = fakeLineProcess((text, process) => {
+    const message = asRecord(JSON.parse(text));
+    if (typeof message?.id !== "number" || typeof message.method !== "string") {
+      return;
+    }
+    if (message.method === "initialize") {
+      process.emit(`${JSON.stringify({ id: message.id, result: {} })}\n`);
+      return;
+    }
+    process.emit(`${JSON.stringify({ id: message.id, error: { message: "no rollout found for thread id thread-123" } })}\n`);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  await expect(codexSession(installation, { cwd: "/work", resume: threadId })).rejects.toThrow(
+    "codex thread/resume failed: no rollout found for thread id thread-123",
+  );
+  expect(fake.killed()).toBe(true);
+});

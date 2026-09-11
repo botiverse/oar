@@ -12,7 +12,7 @@ export function classifyFailure(reason: string): FailureClass {
   if (/\b429\b|rate.?limit|quota|usage limit/iu.test(reason)) {
     return "quota";
   }
-  if (/\b400\b|invalid_request/iu.test(reason)) {
+  if (/\b400\b|invalid_request|issue with the selected model|model .* (?:does not|doesn't|may not) exist|unknown model|invalid model/iu.test(reason)) {
     return "invalid_request";
   }
   if (/\b529\b|\b503\b|overloaded/iu.test(reason)) {

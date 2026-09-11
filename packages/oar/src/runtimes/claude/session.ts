@@ -150,9 +150,6 @@ export const claudeSession: StartSession = async (installation, options) => {
     capabilities: { steer: true, queue: { durable: false }, attribution: "attributed" },
     prompt: async (input): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "prompt", input }, (request) => {
-      if (state.disposed) {
-        return { kind: "rejected", reason: "session disposed" };
-      }
       if (busy()) {
         return { kind: "rejected", reason: "busy" };
       }
@@ -165,9 +162,6 @@ export const claudeSession: StartSession = async (installation, options) => {
     },
     steer: async (input): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "steer", input }, () => {
-      if (state.disposed) {
-        return { kind: "rejected", reason: "session disposed" };
-      }
       if (!busy()) {
         return { kind: "rejected", reason: "not_steerable: no active turn" };
       }
@@ -178,9 +172,6 @@ export const claudeSession: StartSession = async (installation, options) => {
     },
     queue: async (input): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input }, () => {
-      if (state.disposed) {
-        return { kind: "rejected", reason: "session disposed" };
-      }
       if (busy()) {
         heldQueue.push(input);
       } else {
@@ -195,9 +186,13 @@ export const claudeSession: StartSession = async (installation, options) => {
       // routes to THIS request id; the turn's end is claude's result frame.
       interruptCounter += 1;
       const requestId = `interrupt-${interruptCounter}`;
+      // Recorded by hand (not kernel.control) because claude's control_response
+      // is the answer, routed to this id by the fold — so the reachability gate
+      // is applied here explicitly.
+      const blocked = kernel.unreachable();
       const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });
-      if (state.disposed || !busy()) {
-        return { request, response: kernel.respond(request.id, { kind: "rejected", reason: "no active turn" }) };
+      if (blocked !== null || !busy()) {
+        return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", reason: "no active turn" }) };
       }
       state.projection = claudeAbortRequested(state.projection);
       const { promise, resolve } = Promise.withResolvers<ControlResult>();
@@ -223,7 +218,13 @@ export const claudeSession: StartSession = async (installation, options) => {
         return;
       }
       state.disposed = true;
+      const gone = kernel.unreachable() !== null; // only an observed exit can say so before this dispose is recorded
       disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
+      if (gone) {
+        // The exit is already recorded; nothing is left to release.
+        kernel.respond(disposeRequest.id, { kind: "accepted" });
+        return;
+      }
       child.kill();
       await child.exited; // release point for anything the process held; the exit response is recorded by onExit
     },

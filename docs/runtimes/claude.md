@@ -1,10 +1,12 @@
 # Claude Code
 
-Reviewed **2026-09-08** against current OAR source and official documentation.
-Recorded binary observations cover **2.1.237** (2026-08-21) and **2.1.261**
-(model readback, 2026-09-05). Official documentation is rolling; those observations
-are not a support range. No runtime tests or model calls were made for this review.
-See the [runtime index](README.md) for evidence and status conventions.
+Evidence baseline: OAR source as of 2026-09-11; official documentation is
+rolling. Live observations below come from **claude 2.1.268** (darwin arm64,
+haiku) through [`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)
+and the older probes on **2.1.237**/**2.1.261** (linux x64) listed in the
+[experiments index](../../experiments/README.md). Versions are evidence
+baselines, not a support range. See the [runtime index](README.md) for
+evidence and status conventions.
 
 ## Native concepts and calling interfaces
 
@@ -73,9 +75,11 @@ continuity probe uses the same cwd, leaving cross-directory behavior through OAR
 [SDK sessions][native-sessions].
 
 **Mapped:** `await claudeSession(installation, { cwd, resume: sessionId })` resolves
-once the process is spawned, **before a native resume acknowledgment**. Submit a
-prompt and inspect its outcome; startup alone does not establish successful
-history restoration. The reopened adapter has fresh observers, turn IDs,
+once the process is spawned, **before a native resume acknowledgment**; the
+resumed stream starts empty (claude says nothing until the first turn). A
+resumed session keeps the id and recalls the earlier transcript (same cwd).
+Submit a prompt and inspect its outcome; startup alone does not establish
+successful history restoration. The reopened adapter has fresh observers, turn IDs,
 sequence numbers, and an empty queue. It supplies startup options again and does
 not restore old control handles or historical OAR events.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
@@ -91,18 +95,36 @@ controllers resuming one ID remain **unverified**.
 `accepted` once the user message is on stdin, or `rejected` `busy` while a
 turn is active. A `system/init` arriving while nothing is active is a
 spontaneous turn (a drained queue message): it has events but no request of
-its own. The `result` frame ends the turn (`turn_ended` view).
+its own. The `result` frame ends the turn (`turn_ended` view); a basic turn
+is nine records (`system/init`, `system/thinking_tokens`,
+`rate_limit_event`, `assistant`, `result/success` plus the control pairs).
 [Projection](../../packages/oar/src/runtimes/claude/projection.ts).
 
-**Partial:** `steer()` writes stdin and records `accepted`; that transfers
-delivery responsibility to the adapter and does not prove model receipt or
-same-turn landing. Recorded multi-step runs absorb input at a later step;
-input arriving too late becomes a subsequent turn. `queue()` is adapter-held
-(`capabilities.queue.durable: false`), drained one message per turn end.
-`abort()` records an `abort` request, sends `control_request/interrupt`, and
-resolves with claude's `control_response` as the response record; the turn's
-end is still claude's own `result`, which the fold classifies `aborted`
-because OAR's interrupt was outstanding.
+**Steer (mapped, landing observed):** `steer()` writes stdin and records
+`accepted`; that transfers delivery responsibility to the adapter and does
+not prove model receipt. In multi-step turns the input is absorbed at the
+next model step: a steer issued after the first `tool_call_started` of a
+two-tool turn landed in the same turn's final text with one `turn_ended`.
+Input arriving after the last step becomes a subsequent turn.
+
+**Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
+false`), drained one message per turn end; the queued input runs as a
+spontaneous turn with no prompt request of its own.
+
+**Abort (mapped):** `abort()` records an `abort` request whose id is the
+`control_request` id and sends `control_request/interrupt`; claude's
+`control_response` (`still_queued: []`) is that request's `accepted`
+response, and the turn ends on claude's own `result/error_during_execution`,
+which the fold classifies `aborted` because OAR's interrupt was outstanding.
+A late abort is rejected `no active turn`.
+
+**Unreachable runtime:** a `dispose` mid-turn ends with `request dispose`,
+`response exited` (code 143) and no `result` frame, so the turn end for
+observers is the exit itself. When claude dies on its own (SIGKILL), the
+stream gets `response exited` with `requestId ""` and code `null`; every
+later prompt/steer/queue/abort is rejected `runtime exited` by the kernel and
+a later `dispose` is answered `accepted`
+([test](../../tests/claude/claude-session-death.test.ts)).
 [Phase probe](../../experiments/claude-stream-json-phases.ts),
 [adapter probe](../../experiments/claude-session-adapter.ts),
 [queue probe](../../experiments/session-queue.ts).
@@ -121,24 +143,31 @@ no view for them. OAR does not request `--include-partial-messages`, so
 
 **Attributed:** frames carrying `parent_tool_use_id` get
 `agentPath = [...parentPath, taskCallId]`, where `parentPath` is the agent
-that issued that Task call — nested sub-agents nest the path. Child records
-arriving after the parent's `result` still enter the stream (nothing is
-gated on turn state). There is no child control handle, and child usage is
-recorded under the child's path only when a child `result` frame arrives,
-which is **unverified** on the selected binary/flags. Exact child ordering
-remains **unverified**, even though native SDK documentation establishes
-child identity. [Native subagents][native-subagents].
+that issued that Task call — nested sub-agents nest the path. A Task
+sub-agent's `user` and `assistant` frames arrive with that path; the root
+additionally emits `system/task_started`, `task_progress`, `task_updated`
+and `task_notification` frames (no views). Child records arriving after the
+parent's `result` still enter the stream (nothing is gated on turn state).
+There is no child control handle. No child `result` frame has been
+observed, so child usage stays unattributed and `usage()` is root-only;
+whether a child ever reports usage, and the exact interleaving of
+concurrent children, remain **unverified**. [Native subagents][native-subagents].
 
 `subscribe(observer, cursor)` replays the retained records after `afterSeq`
-for the lifetime of the adapter process; it is not a history API across
-processes. The [recording helper](../../sea-trial/record/claude.ts) scrubs
-frames for projection tests; it is not a public raw/replay interface.
+for the lifetime of the adapter process (a mid-turn subscribe replays
+exactly the retained records and continues live; a full replay equals
+`records()`); it is not a history API across processes. The
+[recording helper](../../sea-trial/record/claude.ts) scrubs frames for
+projection tests; it is not a public raw/replay interface.
 
 ### Models, instructions, and context
 
 **Mapped:** `--model` selects the initial model; `model()` folds the `model`
 view OAR reads from each `system/init` frame, so it is `null` until the
-first turn's init frame. The token-free `list_models` control request
+first turn's init frame (`haiku` reads back as `claude-haiku-4-5-20251001`).
+Opening with a model that does not exist succeeds; the first turn fails with
+claude's "issue with the selected model" message, classified
+`invalid_request`. The token-free `list_models` control request
 preserves selector versus resolved ID, disabled entries, and effort choices.
 Live model/effort setters are **not exposed**.
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
@@ -152,11 +181,13 @@ that the configured instructions survive manual `/compact`.
 
 Context reporting is **partial**. The `result` frame's `usage` view carries
 input/cache counts as context fullness and the running per-agent token total
-(`Session.contextUsage()` and `usage()` are folds over these views), but
-official documentation describes result usage as aggregate main-loop usage
-for the user turn. That calculation is therefore **unverified as current
-context fullness** across multiple model steps. Native compaction still runs;
-its frames are in the stream verbatim but OAR has no view for them.
+(`Session.contextUsage()` and `usage()` are folds over these views): across
+three one-word turns `usage().total.input` grew by about 22k per turn
+(cache reads included) while `contextUsage().tokens` stayed near 22k. Official
+documentation describes result usage as aggregate main-loop usage for the
+user turn, so the context figure is **unverified as current fullness**
+across multiple model steps. Native compaction still runs; its frames are in
+the stream verbatim but OAR has no view for them.
 [Usage calculation](../../packages/oar/src/runtimes/claude/context-usage.ts),
 [native usage](https://code.claude.com/docs/en/agent-sdk/cost-tracking).
 
@@ -188,16 +219,20 @@ account-usage access. Login management is **not exposed**.
 
 ## Verification and open gaps
 
-[Experiments](../../experiments/README.md) record steering, abort, queue, resume,
-catalog, and model readback. [Vendor tests](../../sea-trial/vendor/claude.vendor.test.ts)
-use the real CLI with a scripted model to cover tools, 400-error settlement,
-silent 401 retry, approval bypass, and prompt configuration through compaction.
-The context test checks shape. Shared [session cases](../../sea-trial/cases/session.ts)
-intentionally make weaker steering/resume assertions. These were not rerun here.
+[`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)
+covers every promise above on the real login (logs under
+`oar-trial-run/live-claude-*`); the older [experiments](../../experiments/README.md)
+cover steering phases, abort, queue, resume, catalog and model readback.
+[Vendor tests](../../sea-trial/vendor/claude.vendor.test.ts) use the real CLI
+with a scripted model for tools, 400-error settlement, silent 401 retry,
+approval bypass, prompt configuration through compaction and the dispose
+tail. Shared [session cases](../../sea-trial/cases/session.ts) intentionally
+make weaker steering/resume assertions.
 
-Priority gaps are missing-ID resume behavior, accepted-input receipt, child
-activity after a main result, late interrupts across turns, context fullness
-after multi-step work, and native identity changes after conversation reset.
+Open gaps: missing-ID resume behavior, accepted-input receipt under load,
+late interrupts across turns, context fullness after multi-step work, child
+usage attribution and concurrent-child interleaving, and native identity
+changes after conversation reset.
 
 [native-cli]: https://code.claude.com/docs/en/cli-reference
 [native-sessions]: https://code.claude.com/docs/en/agent-sdk/sessions

@@ -163,7 +163,10 @@ from the protocol.
 
 ```
 External (protocol surface):
-  session total:              input 45_231 / output 8_120   ← guaranteed correct, usable as-is
+  session total:              input 45_231 / output 8_120   ← guaranteed correct, usable as-is;
+                                                              null until the runtime has reported any
+                                                              (never a guessed zero: kimi's ACP surface
+                                                              carries context fullness only)
   optional per-agent split:   root  30_100 / 6_050
                               a1    15_131 / 2_070          ← deduplicated; sums to the total
 Adapter-internal (never crosses the protocol surface):

@@ -6,7 +6,8 @@ import type {
   ProviderLoginMethod,
   ProviderLoginPrompt,
 } from "../../contracts/provider-auth.js";
-import { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
+import { configurePiHttp } from "./http.js";
 
 /*
  * Pi's `ModelRuntime.login` takes its own `AuthInteraction` / `AuthType`, whose
@@ -156,6 +157,10 @@ export interface PiProviderAuthOptions {
 
 /** Create a {@link ProviderAuthFacade} backed by Pi's `ModelRuntime`. */
 export async function createPiProviderAuth(options: PiProviderAuthOptions = {}): Promise<ProviderAuthFacade> {
+  // OAuth login/refresh goes over the network: the proxy plane first, from
+  // the same settings (OAR_PI_AGENT_DIR ?? pi's agent dir) every pi entry
+  // point of the adapter reads, so login behaves like a session (see http.ts).
+  await configurePiHttp(SettingsManager.create(process.cwd(), process.env.OAR_PI_AGENT_DIR ?? getAgentDir()));
   const runtime = await ModelRuntime.create({
     ...(options.authPath === undefined ? {} : { authPath: options.authPath }),
     allowModelNetwork: false,

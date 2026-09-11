@@ -1,5 +1,6 @@
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
+import { configurePiHttp } from "./http.js";
 import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
 
 /*
@@ -59,11 +60,25 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   // session cwd the same way pi's own Trust button would (auditable in
   // <agentDir>/trust.json).
   new sdk.ProjectTrustStore(agentDir).set(options.cwd, true);
+  // The proxy plane before anything can reach a provider — from the same
+  // settings manager the services get, so no second one is built (see
+  // http.ts).
+  const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir);
+  await configurePiHttp(settingsManager);
   const services = await sdk.createAgentSessionServices({
     cwd: options.cwd,
     agentDir,
+    settingsManager,
     // System prompt seams: pi's DefaultResourceLoader natively supports both
-    // replace (systemPrompt) and append (appendSystemPrompt).
+    // replace (systemPrompt) and append (appendSystemPrompt). Replace swaps
+    // pi's base prompt text only: pi's buildSystemPrompt (SDK 0.84.2
+    // core/system-prompt.js) still puts its runtime-native additions AROUND
+    // the replaced prompt — the append seam, then the project context files
+    // (AGENTS.md), then the skills catalog of the agent dir and the host's
+    // ~/.agents/skills, then the `Current working directory:` line. Those
+    // are the runtime's, like codex's skills catalog around
+    // baseInstructions; `noSkills` would drop every skill (project ones
+    // included), which is more than a prompt replacement, so it is not set.
     resourceLoaderOptions: {
       ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
       ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),

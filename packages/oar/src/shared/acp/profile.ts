@@ -5,7 +5,7 @@ import {
   type ClientConnection,
   type SendRequestOptions,
 } from "@agentclientprotocol/sdk";
-import type { ContextUsage, SessionCapabilities, SessionOptions, TurnOutcome } from "../../contracts/session.js";
+import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
@@ -40,6 +40,14 @@ export interface AcpSessionProfile {
   /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer. */
   readonly steerParams?: (input: string) => JsonRecord;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
+  /**
+   * The tokens ONE `session/prompt` answer bills for that prompt alone (grok
+   * 1.0.25 `_meta.usage`, live 2026-09-11: a per-prompt ledger summed over
+   * the prompt's model calls, not a session total). The turn machinery keeps
+   * the running session sum and stamps the cumulative figure on the answer's
+   * usage view, so `Session.usage()` is directly summable per its contract.
+   */
+  readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
   /**
    * The agent answers `session/prompt` BEFORE it pushes the turn's

@@ -79,6 +79,11 @@ export function usageOf(records: readonly SessionRecord[], sessionId?: string): 
     }
   }
   const byAgent = [...latest.values()];
+  if (byAgent.length === 0) {
+    // Nothing reported yet (or a runtime whose interface never carries token
+    // totals): null, never a guessed zero.
+    return { total: null };
+  }
   const total = byAgent.reduce<TokenTotals>(
     (sum, entry) => ({ input: sum.input + entry.tokens.input, output: sum.output + entry.tokens.output }),
     { input: 0, output: 0 },
