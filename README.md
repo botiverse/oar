@@ -1,8 +1,15 @@
-# oar
+# OAR: One Layer, All Agent Harnesses
 
 <img src="assets/logo.png" alt="OAR logo" width="240">
 
-`@botiverse/oar` defines provider-independent contracts for controlling and observing agent runtimes.
+OAR is a TypeScript library and CLI for driving coding-agent runtimes —
+Claude Code, Codex, Grok, Kimi, and Pi today — through one contract: detect
+the installation, list the models, open a session, prompt it, steer or queue
+input, watch the stream, resume later. `@botiverse/oar` defines
+provider-independent contracts for controlling and observing agent runtimes:
+everything the runtime says is kept in one lossless, resumable record
+stream, nothing the runtime did not say is invented, and what a runtime
+cannot do is reported as a typed `unsupported` instead of being faked.
 
 The clean first surface intentionally contains two independent optional capabilities:
 
