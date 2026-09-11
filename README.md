@@ -1,6 +1,8 @@
 # OAR - *programming interface for all agent harnesses*
 
-![OAR logo](assets/logo.png)
+<div align="center">
+  <img src="assets/logo.png" alt="OAR logo" width="120">
+</div>
 
 OAR (**O**pen **A**gent **R**untime) is a provider-independent programming interface for coding-agent runtimes: a solid foundation for building agent workspaces and other applications.
 
