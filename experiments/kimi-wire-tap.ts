@@ -1,10 +1,10 @@
 /**
- * KIMI RAW WIRE TAP — every JSON-RPC line between OAR and the real `kimi acp`
+ * KIMI RAW WIRE TAP: every JSON-RPC line between OAR and the real `kimi acp`
  * binary, both directions, versus what reached the record stream.
  *
  * Why: the adapter records every `session/update` verbatim and lists the
  * vendor extension notifications it subscribes to (none for kimi). Only a tap
- * BELOW the SDK can show whether the runtime sends frames OAR never sees —
+ * BELOW the SDK can show whether the runtime sends frames OAR never sees:
  * an unregistered notification method, a request OAR does not handle, or a
  * `sessionUpdate` kind that yields no view.
  *
@@ -23,10 +23,10 @@
  *
  * Outbound (app→agent): `initialize`, `authenticate`, `session/new`,
  * `session/set_mode` (the profile's yolo selection), `session/prompt`,
- * `session/close` (dispose) — six requests, all six answered (`inboundResponses:
+ * `session/close` (dispose): six requests, all six answered (`inboundResponses:
  * 6`; `session/close` answers `{}` before the kill), and four responses to the
  * agent's requests. No outbound notification (no cancel in this run).
- * Inbound (agent→app): 49 `session/update` notifications and four requests —
+ * Inbound (agent→app): 49 `session/update` notifications and four requests:
  * `terminal/create`, `terminal/wait_for_exit`, `terminal/output`,
  * `terminal/release`, one each. No vendor extension notification, no
  * `session/request_permission` (yolo). `sessionUpdate` kinds on the wire, each

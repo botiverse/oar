@@ -1,4 +1,4 @@
-# Maka — reference runtime
+# Maka: reference runtime
 
 Reviewed **2026-09-08** at Maka [`a96de5e2`][source] and OAR `9b102d0`.
 **OAR has no Maka adapter.** This page examines its programmatic agent interface;

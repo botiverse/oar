@@ -1,5 +1,5 @@
 /**
- * LIVE RESUME — Session.id is the runtime-native identity and
+ * LIVE RESUME: Session.id is the runtime-native identity and
  * SessionOptions.resume reattaches to it with context intact.
  *
  * Method: session A learns a codeword and is disposed; a fresh session resumes
@@ -7,7 +7,7 @@
  * (claude --session-id/--resume, codex thread/start/resume, pi session file
  * by id) and actual transcript continuity. Where the runtime takes a model,
  * the resume also SWITCHES model and asserts the read-back (Session.model())
- * changed — pi otherwise restores the recorded model on resume.
+ * changed; pi otherwise restores the recorded model on resume.
  *
  * Run: pnpm tsx experiments/session-resume.ts <claude|codex>
  *      unset PI_PACKAGE_DIR && pnpm tsx experiments/session-resume.ts pi [modelA] [modelB]

@@ -1,10 +1,10 @@
-# sea-trial — the behavior test estate
+# sea-trial: the behavior test estate
 
     main.ts        one backend per process: OAR_TEST selects, absent skips
     all.ts         several backends CONCURRENTLY (process = isolation unit)
-    cases/         the shared behavior suite — public-API assertions only,
+    cases/         the shared behavior suite: public-API assertions only,
                    must run on EVERY backend (real logins included)
-    vendor/        *.vendor.test.ts — vitest, OAR_TEST-gated; anything that
+    vendor/        *.vendor.test.ts: vitest, OAR_TEST-gated; anything that
                    needs the scripted provider's view or vendor fingerprints
     vendor/support/ assertion helpers, tool-round script, system-prompt capture
     harness/       backends.ts (OAR_TEST → runtime + optional aimock),

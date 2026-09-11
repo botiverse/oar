@@ -13,7 +13,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  * Record/replay: fold a REAL recorded claude stdout stream (fixtures/*.raw.jsonl,
  * captured from a live login by `pnpm sea-trial:record`, scrubbed to consumed
  * fields) through the production projection fold and snapshot the result as a
- * FILE beside the input — input is a file, so the output is too. The snapshot
+ * FILE beside the input: input is a file, so the output is too. The snapshot
  * shows each raw frame next to the record(s) it produced: the living
  * "what the provider sends → how we project it" specimen and a regression net.
  * Every frame yields exactly one event (nothing is dropped); the views
@@ -70,7 +70,7 @@ function foldFixture(lines: readonly string[]): string {
     if (message !== null) {
       const { state: next, commands } = foldClaudeStdout(state, message);
       state = next;
-      const produced = commands.map((command) => describeCommand(command)).join(", ") || "—";
+      const produced = commands.map((command) => describeCommand(command)).join(", ") || "-";
       rows.push(`${summarizeFrame(message).padEnd(28)} │ ${produced}`);
     }
   }

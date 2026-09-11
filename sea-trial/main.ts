@@ -23,13 +23,13 @@ const { runtime, aimock: aimockEnv } = await selectBackend(target);
 
 const installation = await runtime.installation?.();
 if (installation === undefined || installation.kind !== "available") {
-  process.stdout.write(`${target}: not available (${installation?.kind ?? "no probe"}) — skipping\n`);
+  process.stdout.write(`${target}: not available (${installation?.kind ?? "no probe"}), skipping\n`);
   await aimockEnv?.stop();
   process.exit(0);
 }
 
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
-// OAR_TEST-gated) — the behavior CI job runs them right after this suite.
+// OAR_TEST-gated). The behavior CI job runs them right after this suite.
 const cases = [...installationCases, ...accountUsageCases, ...sessionCases];
 const tracePath = openTrace(target);
 const outcomes = await runSuite(cases, runtimeUnderTest(runtime, aimockEnv?.env));

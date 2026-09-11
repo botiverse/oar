@@ -26,7 +26,7 @@ export interface RpcControlPlan {
  * plan's gate refuses, record that; otherwise send and record the reply AS
  * the reply line is read (synchronously, through the client's onSettled hook)
  * so the response sits in the stream before any notification codex wrote
- * after it — a promise continuation would land after notifications from the
+ * after it; a promise continuation would land after notifications from the
  * same chunk.
  */
 export async function rpcControl(
@@ -60,7 +60,7 @@ export async function rpcControl(
 
 /**
  * The open RPC, with its failure named after the method (a refused resume
- * must say `thread/resume` — "no rollout found for thread id …" alone does
+ * must say `thread/resume`: "no rollout found for thread id …" alone does
  * not) and the app-server that was started for it killed.
  */
 export async function openThread(

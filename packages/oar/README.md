@@ -23,8 +23,8 @@ if (installation?.kind === "available") {
 
 The package has exactly two public entry points:
 
-- `@botiverse/oar` — the full surface: runtime registry, adapters, and everything below. Node-only (adapters import `node:child_process` and runtime SDKs).
-- `@botiverse/oar/observe` — browser-safe subset: the pure derivation utilities over `SessionEvent`s (`observeAgent`, `reduceStatus`, `aggregateDeltas`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
+- `@botiverse/oar`: the full surface (runtime registry, adapters, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `SessionEvent`s (`observeAgent`, `reduceStatus`, `aggregateDeltas`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
 
 Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 

@@ -47,7 +47,7 @@ export function systemCapture(response?: Record<string, unknown>): {
 
 /**
  * The LATEST agent request's system text. Internal side-requests that run
- * their OWN prompts are skipped — pi's compaction summarizer ("context
+ * their OWN prompts are skipped: pi's compaction summarizer ("context
  * summarization assistant") and claude's session-naming call ("naming a
  * coding session") are vendor facts, not agent prompts.
  */
@@ -61,9 +61,9 @@ export function lastAgentSystem(systems: readonly string[]): string {
 /**
  * Make a replaced system prompt inline-snapshot-stable: mask what varies by
  * machine or vendor RELEASE (temp dirs, cwd, versions, codex's skill catalog,
- * pi's embedded context-file bodies) while keeping the full structure — where
+ * pi's embedded context-file bodies) while keeping the full structure (where
  * the replacement lands, where the append lands, and every fixed harness
- * addition around them.
+ * addition around them).
  */
 export function scrubSystem(system: string): string {
   const cwd = process.cwd();

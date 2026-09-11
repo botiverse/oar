@@ -48,7 +48,7 @@ services and one `AgentSession`; it does not use the replacement-oriented
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` view on a `pi/session_opened` event. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
 | SDK event stream | Every `AgentSessionEvent` is exactly one event record, verbatim as `native`, with oar's views (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events (compaction, queue, retry, entry, settings) are in the stream with no view. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected; `queue` is an adapter-held FIFO (`durable: false`). `abort` is answered at delivery, ahead of pi's own aborted `agent_settled`. |
-| Provider HTTP | Before the first provider request the adapter sets undici's global dispatcher to an `EnvHttpProxyAgent` (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, pi's `httpProxy` setting as the fallback, pi's idle timeout) — the proxy half of what every pi entry point installs, without pi's global fetch replacement; process-global. |
+| Provider HTTP | Before the first provider request the adapter sets undici's global dispatcher to an `EnvHttpProxyAgent` (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, pi's `httpProxy` setting as the fallback, pi's idle timeout): the proxy half of what every pi entry point installs, without pi's global fetch replacement; process-global. |
 
 Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [opener](../../packages/oar/src/runtimes/pi/open.ts),
@@ -118,7 +118,7 @@ writers are **unverified**.
 The response is `accepted` once pi emits `agent_start`, or `rejected` with pi's
 own message when the promise rejects first (e.g. "Cannot submit a prompt while
 compaction is in progress"). The turn is the span up to pi's `agent_settled`
-event — its `turn_ended` view carries completed / aborted / failed. `agent_end`
+event: its `turn_ended` view carries completed / aborted / failed. `agent_end`
 is recorded but does not end the turn: pi runs threshold compaction and auto-
 retries between `agent_end` and `agent_settled` and refuses prompts meanwhile
 (pinned with the pi-aimock compaction recipe in the
@@ -128,7 +128,7 @@ only as `stopReason: "error"` on the turn's final assistant message and the
 `message_update` error frame), so the projection carries error state into the
 outcome. A run pi fails after starting, without its own settlement, is
 recorded as a `pi/prompt_rejected` event carrying pi's message with a failed
-`turn_ended` view — pi's word, not a synthesized boundary. A second prompt
+`turn_ended` view, pi's word, not a synthesized boundary. A second prompt
 during a run is `rejected` `busy` (`busy-and-late-control` scenario). Native
 prompt preflight callbacks and image inputs are **not exposed**.
 [SDK][native-sdk], [projection](../../packages/oar/src/runtimes/pi/projection.ts).
@@ -147,7 +147,7 @@ pi's queue, not model receipt.
 (`capabilities.queue.durable: false`): native `followUp()` continues the same
 outer run, so directly substituting it would violate OAR's separate-turn
 promise. The FIFO is drained one input per run end; a drained input runs as a
-spontaneous turn — `agent_settled`, then `agent_start` with no request record
+spontaneous turn: `agent_settled`, then `agent_start` with no request record
 of its own, and its reply ends its own turn (`queue` scenario). If pi refuses
 the drained input, the refusal is recorded as a viewless `pi/prompt_rejected`
 event. Native extension commands cannot simply be queued like ordinary text.
@@ -156,9 +156,10 @@ event. Native extension commands cannot simply be queued like ordinary text.
 
 **Abort (mapped, cooperative):** `abort()` delivers with pi's two public
 synchronous calls, `AgentSession.abortRetry()` then
-`AgentSession.agent.abort()` — exactly what pi's own `AgentSession.abort()`
-does before it awaits idle — and answers `accepted` at delivery, ahead of the
-turn end; the idle wait is deliberately not part of the answer (awaiting it
+`AgentSession.agent.abort()` (exactly what pi's own
+`AgentSession.abort()` does before it awaits idle) and answers
+`accepted` at delivery, ahead of the turn end; the idle wait is
+deliberately not part of the answer (awaiting it
 would put the `accepted` response behind `agent_settled`). As for every
 adapter, an `accepted` abort means the abort was delivered, not that the turn
 has ended: callers `awaitTurnEnd` before the next prompt, or the prompt is
@@ -176,7 +177,7 @@ and observed live (`abort` scenario); the classification by the
 
 **Dispose:** `dispose()` records the request, clears the held queue, aborts
 active work (this time awaiting pi's idle), disposes the SDK session, and
-answers `accepted` after pi's aborted `agent_settled` — mid-run the stream
+answers `accepted` after pi's aborted `agent_settled`: mid-run the stream
 reads `dispose`, pi's `Command aborted` tool end, the aborted `agent_settled`,
 then `accepted` (`dispose-mid-turn` scenario). Pi runs in-process, so there is
 no process exit to record. Afterwards `prompt`/`steer`/`queue` are `rejected`
@@ -227,7 +228,7 @@ reported it at open (pi exposes no later model-change event to OAR). The
 adapter checks the spelling before pi is asked: a bare `oar-no-such-model-xyz`
 fails the `provider/model` check, while `openai-codex/oar-no-such-model-xyz`
 or `no-such-provider/gpt-5.3-codex-spark` throws "is not registered" from
-`ModelRuntime.getModel` — no session, no tokens (`bad-model` scenario;
+`ModelRuntime.getModel`: no session, no tokens (`bad-model` scenario;
 [`tests/pi/pi-session-resume.test.ts`](../../tests/pi/pi-session-resume.test.ts),
 [`tests/pi/pi-session-model.test.ts`](../../tests/pi/pi-session-model.test.ts)).
 Catalog discovery (`oar models pi`) builds services the way `pi --list-models`
@@ -242,7 +243,7 @@ controls, and detailed model metadata are **not exposed** on the session
 Replace/append instructions map to ResourceLoader options (`systemPrompt`,
 `appendSystemPrompt`). **Replace is not the whole system prompt:** pi's
 `buildSystemPrompt` (`core/system-prompt.js`, `customPrompt` branch) keeps its
-runtime-native additions around the replaced text — the append seam, then the
+runtime-native additions around the replaced text: the append seam, then the
 project context files (`<project_context>`, AGENTS.md bodies), then the skills
 catalog (`<available_skills>`: the agent dir's skills and the host's
 `~/.agents/skills` via `package-manager.js` `loadSkills`, when the read tool
@@ -256,7 +257,7 @@ per machine.
 
 **Mapped:** the `agent_settled` event carries a `usage` view with native
 `getContextUsage()` read at that moment (post-compaction; tokens null when
-unknown), so `Session.contextUsage()` — a fold — is current at turn end.
+unknown), so `Session.contextUsage()` (a fold) is current at turn end.
 `usage()` is the cumulative per-session total; its input counts pi's
 `input + cacheRead + cacheWrite`, and one `turn_ended` is recorded per prompt
 with totals growing across turns (live on the baseline model: a one-shot turn
@@ -265,7 +266,7 @@ contextWindow: 128000}`; three turns 1377 → 2772 → 4186 input;
 `basic`/`multi-turn` scenarios). `compaction_start`/`compaction_end` are in
 the stream verbatim (viewless); they are pinned with the pi-aimock recipe
 (tiny `contextWindow` plus fat reported usage plus compaction settings) and
-have not been reached with a real provider — live contexts stay near 1.4k of
+have not been reached with a real provider: live contexts stay near 1.4k of
 128k tokens. Explicit compact/abort-compaction controls are **not exposed**.
 [Native compaction][native-compaction],
 [adapter](../../packages/oar/src/runtimes/pi/session.ts),
@@ -304,9 +305,9 @@ failed"`, `agent_settled` → `failed`) while the `pi` CLI works.
 
 **Mapped, narrowly:** the adapter does not call pi's module (unexported, and
 its global-class replacement is no footprint for an embedding library). It
-sets undici's global dispatcher itself — `undici` is a direct dependency of
-`@botiverse/oar`, pinned to the version pi uses (8.9.0, one instance in the
-tree) — to an `EnvHttpProxyAgent` built from the same settings manager the
+sets undici's global dispatcher itself (`undici` is a direct dependency of
+`@botiverse/oar`, pinned to the version pi uses, 8.9.0 with one instance in
+the tree) to an `EnvHttpProxyAgent` built from the same settings manager the
 session, model listing, login and catalog entry points read
 (`OAR_PI_AGENT_DIR ?? getAgentDir()`): an env proxy wins, pi's `httpProxy`
 setting fills both http and https when the env names none (pi's own `??=`

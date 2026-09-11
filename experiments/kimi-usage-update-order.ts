@@ -1,5 +1,5 @@
 /**
- * KIMI USAGE_UPDATE ORDER — the turn's `usage_update` arrives AFTER the
+ * KIMI USAGE_UPDATE ORDER: the turn's `usage_update` arrives AFTER the
  * `session/prompt` response, from an un-awaited task, and may not arrive.
  *
  * Why: `Session.contextUsage()` is meant to be current at the turn_ended
@@ -8,12 +8,12 @@
  * answering leaves the reader on the previous turn's value at exactly the
  * moment a caller checks it.
  *
- * Source pin — kimi-code 0.41.0, commit f9ca33376,
+ * Source pin: kimi-code 0.41.0, commit f9ca33376,
  * packages/acp-server/src/session.ts:
  * - line 308: `events.on('turn.ended', …)` dispatches to `onTurnEnded`.
  * - lines 907-921 `onTurnEnded`: `settleDriver(driver, () => driver.resolve({
  *   stopReason }))` answers the pending `session/prompt` FIRST, then the last
- *   statement is `void this.emitUsageUpdate()` — not awaited.
+ *   statement is `void this.emitUsageUpdate()`, not awaited.
  * - lines 923-945 `emitUsageUpdate` ("Push a one-shot `usage_update` after a
  *   turn settles"): awaits `klient.global.kosong.listModels()`, returns
  *   without pushing when no `max_context_size` matches `currentModelId`, then
@@ -39,7 +39,7 @@
  *
  * kimi profile (flag on): contextUsage() at turn_ended reads the turn's own
  * value (100, then 200 on the second turn). Same profile with the flag off:
- * null at the first turn_ended, 100 at the second — the previous turn's
+ * null at the first turn_ended, 100 at the second: the previous turn's
  * value, the bug this pins. "usage-never" with a 100 ms bound: the turn
  * completes after the bound with contextUsage() still null.
  * Re-observed 2026-09-11 on the record stream (fixture only): same values.
@@ -53,9 +53,9 @@
  * usage record seq 27 at +0 ms, prompt-answer record seq 28 at +8 ms), well
  * inside the 500 ms bound, so contextUsage() at turn_ended is the turn's own
  * value on 0.42.0 too. The push also follows a CANCELLED prompt (abort run:
- * `stopReason: cancelled` answer seq 105, usage_update seq 109, 1 ms later)
- * — the gate deliberately does not wait while aborting, so on an aborted
- * turn the usage record lands after the turn end.
+ * `stopReason: cancelled` answer seq 105, usage_update seq 109, 1 ms later).
+ * The gate deliberately does not wait while aborting, so on an aborted turn
+ * the usage record lands after the turn end.
  */
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";

@@ -11,7 +11,7 @@ import type { AcpSessionProfile } from "./profile.js";
  * without a push when the catalog has no `max_context_size` for the current
  * model. Recording the answer's turn_ended event on the response alone therefore
  * leaves `contextUsage()` at the PREVIOUS turn's value at `turn_ended`, and
- * there is no guarantee an update ever comes — hence a bounded wait, not a
+ * there is no guarantee an update ever comes; hence a bounded wait, not a
  * barrier.
  */
 export interface UsageUpdateGate {

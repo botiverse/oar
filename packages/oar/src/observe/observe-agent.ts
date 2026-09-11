@@ -3,7 +3,7 @@ import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-
 
 /**
  * The composed observer: one subscription yields a unified derived view of
- * the agent — fold state plus the clock overlay. This is the wiring every
+ * the agent: fold state plus the clock overlay. This is the wiring every
  * host was about to hand-roll (subscribe + fold + a ticker): pushed on every
  * record (the fold advances) and on the silence edge (the clock crosses the
  * threshold). The primitives (reduceStatus/stallOf) stay exported for
@@ -79,7 +79,7 @@ export function observeAgent(session: Session, options: ObserveAgentOptions): Ag
 /**
  * The four-word collapse for consumers who want exactly idle/busy/stuck/error.
  * Precedence: stuck beats busy (a silent turn is a problem before it is
- * progress); error means "idle after a failed last turn" — a report about
+ * progress); error means "idle after a failed last turn", a report about
  * history, never a running state (see the status-bar design notes).
  */
 export function simpleStateOf(view: AgentView): "idle" | "busy" | "stuck" | "error" {

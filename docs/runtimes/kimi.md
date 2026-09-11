@@ -97,7 +97,7 @@ answer advertises it (in `modes` or the `mode` config option). Every opening
 request has a 30-second deadline; spawn, auth, and creation failures reject
 session construction with the process killed. The opening stream is six
 events: `initialize`, `authenticate` (`{}`), `session/new` (model view), then
-three pushes — `available_commands_update` (the slash commands, `compact`
+three pushes: `available_commands_update` (the slash commands, `compact`
 first) right after the `session/new` answer, and `current_mode_update`
 (`yolo`) plus `config_option_update` (model view again) between the
 `session/set_mode` request and its `{}` answer. Opening takes about 1.9 s
@@ -143,7 +143,7 @@ for active or identical concurrent resumes inside that harness; ACP uses
 `klient.session(id).restore()` and rebuilds its main-agent wrapper. OAR
 neither exposes the SDK replay options nor inherits its coalescing guarantee
 (source facts, not observed on the 0.38.0 snapshot). Native ACP also
-implements session list, delete, and fork; OAR exposes **none** of those —
+implements session list, delete, and fork; OAR exposes **none** of those:
 resume is neither a session browser nor a fork API.
 
 ### Prompt, steering, queueing, and abort
@@ -166,7 +166,7 @@ turn is `rejected busy` (`busy-and-late-control`).
 **Steer (not available on this transport):** the native SDK and agent
 services support steering, but the ACP method set has no steer operation, so
 `steer()` is always `rejected not_steerable` and `capabilities.steer` is
-false — after a turn as well as during one. `steerOrQueue()` therefore lands
+false, after a turn as well as during one. `steerOrQueue()` therefore lands
 `queued`: the steer request is rejected, the queue request accepted, and the
 input runs after the current turn (`kimi-steer-or-queue.ts`).
 
@@ -176,9 +176,9 @@ durability), drained one input per turn end; the drained input runs as a
 spontaneous turn with its own `session/prompt` answer and no prompt request
 of its own (`queue`). Held input is dropped once the runtime is unreachable.
 
-**Abort (mapped):** `abort()` sends `session/cancel` — a notification, so the
-`accepted` answer carries no `native` — and is `rejected no active turn`
-after the turn. Kimi then asks the client to `terminal/kill` the running
+**Abort (mapped):** `abort()` sends `session/cancel` (a notification, so
+the `accepted` answer carries no `native`) and is `rejected no active
+turn` after the turn. Kimi then asks the client to `terminal/kill` the running
 command, `wait_for_exit` answers `SIGTERM`, the tool ends `status: "failed"`,
 and the prompt answers `stopReason: "cancelled"` about one second later,
 recorded as `turn_ended: aborted` (`abort`). If the cancelled prompt is not
@@ -226,13 +226,13 @@ carries token totals, only `usage_update` context.
 
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
-`content` text block, and no `rawInput` — so `tool_call_started` has no
+`content` text block, and no `rawInput`, so `tool_call_started` has no
 `input`. The arguments then stream as partial-JSON `content` text over a
 dozen `tool_call_update` frames (viewless), and one more update carries the
 full `rawInput` (`{"command": …}`) with `title` "Running: …". The command runs
 through `terminal/create` (`/bin/bash -c "cd '<cwd>' && …"`, env `NO_COLOR`,
 `TERM=dumb`, …), `wait_for_exit`, `output`, `release`, each a `toApp` request
-with OAR's answer — the captured output is in the `terminal/output` answer.
+with OAR's answer: the captured output is in the `terminal/output` answer.
 The completed frame's `content` is a terminal reference
 (`{type: "terminal", terminalId}`) with no `rawOutput`, so
 `tool_call_ended.output` is that reference as JSON, not the command's text
@@ -253,7 +253,7 @@ nothing. Asked to delegate one shell command, the root runs an `Agent` tool
 call whose arguments stream as `content` text (`prompt`, `description`,
 `subagent_type: "coder"`); the child's own Bash call surfaces ONLY as the
 root session's `terminal/create` → `wait_for_exit` → `output` → `release`
-reverse requests, under the root `sessionId` — no `session/update` for the
+reverse requests, under the root `sessionId`: no `session/update` for the
 child, no `tool_call` frame for its Bash. The Agent call's completed frame
 carries the child's report as `rawOutput` (`agent_id: agent-0`,
 `actual_subagent_type: coder`, `status: completed`, a `resume_hint` naming
@@ -263,7 +263,7 @@ root `Agent` tool card is not a child trajectory. OAR does not filter by
 session id: should a future `kimi acp` emit updates for other session ids,
 they would be recorded as child-session records. (The `isFromMainAgent`
 guard lives in the older `acp-adapter` package; this baseline uses
-`acp-server` with scoped subscriptions — see runtime-matrix.md.)
+`acp-server` with scoped subscriptions, see runtime-matrix.md.)
 
 **History:** the retained stream backs `subscribe(observer, cursor)` for the
 life of the process (`cursor`); there is no native-history enumeration and
@@ -301,7 +301,7 @@ model. OAR holds the `session/prompt` answer event at most 500 ms for that
 push (`usageUpdateAfterPrompt`), then records the answer as-is; this keeps
 the usage record before the turn end but is not a freshness guarantee. Live
 the push follows the answer by about 8 ms, so `contextUsage()` at
-`turn_ended` reads the turn's own value — growing across turns, e.g.
+`turn_ended` reads the turn's own value: growing across turns, e.g.
 `[20611, 20657]` (`kimi-usage-update-order.ts live`). `size` is `1048576` for
 `kimi-code/k3`; a one-word turn already occupies about 20.6k tokens (the
 system prompt). Per-agent usage remains unexposed.
@@ -331,7 +331,7 @@ a `toApp` request/answer pair (`busy-and-late-control`, `kimi-wire-tap.ts`).
 Each reverse request is recorded as a `toApp` request under the runtime's
 JSON-RPC id and OAR's reply as the `answered` response, verbatim (terminal
 output included). No caller decision channel exists, so approval and question
-semantics cannot be represented as application interactions — the stream
+semantics cannot be represented as application interactions. The stream
 shows what was asked and what OAR answered.
 
 ### Process ownership, installation, and account usage
@@ -369,8 +369,8 @@ is outbound `initialize`, `authenticate`, `session/new`, `session/set_mode`,
 notifications (`available_commands_update` 1, `current_mode_update` 1,
 `config_option_update` 1, `session_info_update` 1, `agent_thought_chunk` 22,
 `tool_call` 1, `tool_call_update` 14, `agent_message_chunk` 7, `usage_update`
-1) and four `terminal/*` requests — no vendor extension notification, no
-unknown method — and every one reaches the stream with the same count
+1) and four `terminal/*` requests (no vendor extension notification, no
+unknown method) and every one reaches the stream with the same count
 (`missingFromStream: []`).
 [`kimi-usage-update-order.ts`](../../experiments/kimi-usage-update-order.ts)
 separates fixture and live modes;

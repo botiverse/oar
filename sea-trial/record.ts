@@ -7,7 +7,7 @@
  *   pnpm sea-trial:record claude <scenario> <prompt> [-- <steer/next prompt>...]
  *   pnpm sea-trial:record codex  <scenario> <prompt> [-- <steer/next prompt>...]
  *
- * Extra prompts after `--` are sent one per turn end (multi-turn) — a leading
+ * Extra prompts after `--` are sent one per turn end (multi-turn); a leading
  * `+` marks a mid-turn steer (sent ~1.2s in without waiting for the turn to
  * end). The scenario matrix we want: single, multi, steer, compaction, error.
  */

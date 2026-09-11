@@ -10,7 +10,7 @@ import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapt
 /**
  * SessionOptions.systemPrompt replaces pi's base prompt TEXT, not the whole
  * system prompt: pi 0.84.2 (core/system-prompt.js) keeps its runtime-native
- * additions around the replaced prompt — the append seam, project context
+ * additions around the replaced prompt: the append seam, project context
  * files, the skills catalog, the cwd line. The skills catalog lists the
  * HOST's ~/.agents/skills (package-manager.js loadSkills), present or absent
  * per machine, so that block is cut before the snapshot; the cwd line stays
@@ -111,8 +111,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
         await runTurn(session, input);
       }
       // Threshold compaction fired during those turns (recipe pinned in the
-      // compaction probes); the latest provider request — the compaction
-      // summarization or the post-compaction turn — must still carry both
+      // compaction probes); the latest provider request (the compaction
+      // summarization or the post-compaction turn) must still carry both
       // markers and none of pi's own base prompt.
       const system = withoutHostSkills(scrubSystem(lastAgentSystem(capture.systems)));
       expect(system).toMatchInlineSnapshot(`
@@ -122,8 +122,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
         Current working directory: <CWD>
         "
       `);
-      // pi's session-scoped compaction events are not dropped —
-      // they enter the stream verbatim, with no view.
+      // pi's session-scoped compaction events are not dropped: they enter the
+      // stream verbatim, with no view.
       const compactionTypes = session.records()
         .flatMap((record) => (record.kind === "event" && record.body.type.startsWith("compaction_") ? [record.body.type] : []));
       expect(compactionTypes).toContain("compaction_start");
@@ -136,7 +136,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
 
   // pi's abort() delivers synchronously and then awaits idle: the accepted
   // answer must be recorded at delivery, ahead of the aborted run's own
-  // agent_settled — the live battery (2026-09-11) had it behind the turn end.
+  // agent_settled. The live battery (2026-09-11) had it behind the turn end.
   test("abort is answered accepted before pi's own aborted turn end", async () => {
     const env = await startPiAimock((mock) => {
       mock.on({ userMessage: /run the slow tool/u, hasToolResult: false }, {

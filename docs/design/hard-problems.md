@@ -4,7 +4,7 @@ Integrating an agent runtime is harder than it looks, because "integrate"
 hides fifteen distinct problems. Almost every one below was discovered the
 hard way, with a concrete runtime as the counterexample. Each looks small
 until you multiply by N runtimes and then discover the per-runtime
-exceptions — that multiplication is exactly the cost oar absorbs once.
+exceptions; that multiplication is exactly the cost oar absorbs once.
 
 Which of these are routine work and which are load-bearing foundations is the
 subject of [foundations.md](foundations.md).
@@ -12,16 +12,16 @@ subject of [foundations.md](foundations.md).
 ## Just reaching the runtime
 
 1. **Access mechanism heterogeneity.** SDK, CLI, subprocess stdio protocol,
-   app-server, ACP variant, in-process library (pi) — even figuring out how
+   app-server, ACP variant, in-process library (pi): even figuring out how
    to drive a harness is per-vendor research, and one vendor often ships
    several mechanisms with different capabilities.
 2. **Detect / install / version catalog.** Finding the binary, installing
-   it, knowing which version you got — and version skew: behavior changes
+   it, knowing which version you got, and version skew: behavior changes
    between versions, so you need a support window with typed rejection
    outside it, not silent wrongness.
 3. **Auth.** Every harness has its own login flow, credential storage
    location, and expiry behavior.
-4. **OS matrix.** Cross-platform process handling is its own bug farm — our
+4. **OS matrix.** Cross-platform process handling is its own bug farm: our
    CI matrix caught three Windows-only bugs (powershell argument resolution,
    `.cmd` spawn EINVAL, teardown races) that never appear on linux/mac.
 
@@ -33,16 +33,16 @@ subject of [foundations.md](foundations.md).
    is not a universal primitive.
 6. **Event vocabulary with no shared semantics.** Each harness has its own
    event types; turn/run boundaries are genuinely absent or partial in some
-   (pi, claude). The tempting fix — synthesizing boundaries yourself — is a
+   (pi, claude). The tempting fix, synthesizing boundaries yourself, is a
    trap. Unknown events must be preserved, never dropped.
 7. **Deriving status.** "Is it running / waiting for input / done" is a fold
    over events, and it is easy to conflate control flow with fact flow.
 8. **Process-death edges.** Kill the process mid-tool-call and you get
-   dangling tool calls with no ended/result events — you need explicit
+   dangling tool calls with no ended/result events; you need explicit
    dispose semantics and post-mortem records, or consumers hang on state
    that will never settle. (See [liveness.md](liveness.md).)
 
-## Attribution — the most underestimated part
+## Attribution: the most underestimated part
 
 9. **Sub-agent association.** Runtimes span a spectrum: opaque (kimi's own
    ACP adapter literally drops sub-agent events), attributed (claude/codex
@@ -50,7 +50,7 @@ subject of [foundations.md](foundations.md).
    application privately reinvents association, and the protocol must never
    fabricate structure a runtime doesn't expose.
 10. **Token/usage accounting.** Cumulative vs delta, child usage billed to
-    parent, and — worst case — multiple overlapping usage views you must not
+    parent, and, worst case, multiple overlapping usage views you must not
     sum (grok). Usage facts need provenance and a canonical marker.
 
 ## Behavioral honesty
@@ -73,7 +73,7 @@ subject of [foundations.md](foundations.md).
 14. **Context management.** Context accounting, native compaction events
     (codex), and supporting external compaction (new session + injected
     prompt) without lying about lineage.
-15. **Placement.** Local co-process vs remote service vs managed cloud —
+15. **Placement.** Local co-process vs remote service vs managed cloud:
     session, process, and host lifecycle are three different layers, and
     multi-client attach needs a resumable cursor or you get grok-style
     notification loss.

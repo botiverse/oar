@@ -3,8 +3,8 @@ import type { SessionRecord } from "./contracts/session.js";
 
 // The oar-voyage/2 JSONL format: one JSON object per line, discriminated by
 // `kind`. Line 1 is `header`; `record` wraps one SessionRecord verbatim (no
-// filtering or re-timestamping — human inputs are in the stream already, as
-// request records); `end` is the last line — a log without it is a truncated
+// filtering or re-timestamping: human inputs are in the stream already, as
+// request records); `end` is the last line; a log without it is a truncated
 // capture. All timestamps are Unix epoch milliseconds on the same clock as
 // `receivedAt`. The format is defined and owned by oar; other tools may
 // consume it.
@@ -46,8 +46,8 @@ export interface VoyageRecorder {
   end(reason: string): void;
 }
 
-// Lines go through synchronous fd writes so their order — and everything
-// written so far — survives a crashing process; `end` closes the file.
+// Lines go through synchronous fd writes so their order, and everything
+// written so far, survives a crashing process; `end` closes the file.
 export function openVoyage(path: string, header: VoyageHeader): VoyageRecorder {
   const fd = openSync(path, "w");
   const write = (line: string): void => {

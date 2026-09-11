@@ -4,7 +4,7 @@ import { createSessionKernel } from "../../packages/oar/src/shared/session-kerne
 
 /**
  * The mock session runtime: behavior-test fixture and (later) load source. Its
- * size is deliberate — the session contract is supposed to be implementable in
+ * size is deliberate: the session contract is supposed to be implementable in
  * about one screenful, and this file is that acceptance test. The "runtime"
  * here is a timer that echoes; its frames are the `native` bodies.
  */
@@ -30,7 +30,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     }
   };
   function run(input: string): void {
-    // "hang" never settles on its own — the stall-observation fixture.
+    // "hang" never settles on its own; the stall-observation fixture.
     const timer = input === "hang" ? null : setTimeout(() => {
       say(`echo:${input}`);
       for (const extra of steered.splice(0)) {

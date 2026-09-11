@@ -1,5 +1,5 @@
 /**
- * LIVE CONTRACT BATTERY — the record-stream promises, exercised against a
+ * LIVE CONTRACT BATTERY: the record-stream promises, exercised against a
  * REAL runtime through the public Session API, one scenario at a time, with
  * every scenario's full stream kept as an oar-voyage/2 log.
  *
@@ -14,9 +14,9 @@
  * pass/fail, so a surprising runtime behavior is evidence, not a red test.
  *
  * Run: pnpm tsx experiments/live-contract.ts <backend> [--model <id>] [--only a,b,c] [--out <dir>]
- *   backend: a real runtime id (claude|codex|grok|kimi|pi — logged in, BURNS
+ *   backend: a real runtime id (claude|codex|grok|kimi|pi, logged in, BURNS
  *   TOKENS) or a sea-trial backend (mock|claude-aimock|codex-aimock|pi-aimock,
- *   zero tokens — for shaking the battery itself, not for evidence).
+ *   zero tokens, for shaking the battery itself, not for evidence).
  * Output: <out>/<scenario>.voyage.jsonl per scenario + <out>/report.json;
  * default out is ./oar-trial-run/live-<backend>-<stamp>/.
  */
@@ -577,16 +577,16 @@ const scenarios: Scenario[] = [
       }
       const tier = session.capabilities.attribution;
       if (tier === "attributed" && childPaths.length === 0) {
-        notes.push("declared attributed but no agentPath records observed — check linkageFrames");
+        notes.push("declared attributed but no agentPath records observed; check linkageFrames");
       }
       if (tier === "nested" && childSessions.length === 0) {
-        notes.push("declared nested but no child-session records observed — check linkageFrames");
+        notes.push("declared nested but no child-session records observed; check linkageFrames");
       }
       if (tier === "nested" && childSessions.length > 0 && session.graph().edges.length === 0) {
         fail("declared nested, child session seen, but no lineage edge was linked");
       }
       if (tier === "opaque" && (childPaths.length > 0 || childSessions.length > 0)) {
-        notes.push("declared opaque but child records observed — the declaration is too weak");
+        notes.push("declared opaque but child records observed; the declaration is too weak");
       }
     },
   },
@@ -725,7 +725,7 @@ for (const scenario of scenarios) {
     // eslint-disable-next-line no-await-in-loop
     const result = await runScenario(scenario);
     results.push(result);
-    const suffix = result.notes.length === 0 ? "" : ` — ${result.notes.join(" | ")}`;
+    const suffix = result.notes.length === 0 ? "" : `: ${result.notes.join(" | ")}`;
     process.stdout.write(`${result.status.toUpperCase().padEnd(7)} ${result.id} (${String(Math.round(result.ms / 1000))}s)${suffix}\n`);
   }
 }

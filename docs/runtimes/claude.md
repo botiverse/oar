@@ -134,16 +134,17 @@ a later `dispose` is answered `accepted`
 **Mapped:** every frame is an event record with the frame verbatim in
 `native`; text blocks become `text_delta` views, reasoning retains text,
 redacted, and empty distinctions, tools retain IDs and available
-input/output — one assistant message with several blocks is one record with
-several views in block order. Message identity, input echoes, control replies
-and telemetry are therefore in the stream (in `native`), even where OAR has
-no view for them. OAR does not request `--include-partial-messages`, so
-`text_delta` does not imply token-level streaming. [Native streaming][native-output],
+input/output. One assistant message with several blocks is one record
+with several views in block order. Message identity, input echoes,
+control replies and telemetry are therefore in the stream (in `native`),
+even where OAR has no view for them. OAR does not request
+`--include-partial-messages`, so `text_delta` does not imply token-level
+streaming. [Native streaming][native-output],
 [projection](../../packages/oar/src/runtimes/claude/projection.ts).
 
 **Attributed:** frames carrying `parent_tool_use_id` get
 `agentPath = [...parentPath, taskCallId]`, where `parentPath` is the agent
-that issued that Task call — nested sub-agents nest the path. A Task
+that issued that Task call: nested sub-agents nest the path. A Task
 sub-agent's `user` and `assistant` frames arrive with that path; the root
 additionally emits `system/task_started`, `task_progress`, `task_updated`
 and `task_notification` frames (no views). Child records arriving after the

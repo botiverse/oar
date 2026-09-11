@@ -63,7 +63,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     "--output-format", "stream-json",
     "--verbose",
     // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
-    // no human at an approval prompt — a permission gate is a hang, not
+    // no human at an approval prompt: a permission gate is a hang, not
     // safety. Isolation is the sandbox's job, not the approval flow's.
     "--dangerously-skip-permissions",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
@@ -187,7 +187,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       interruptCounter += 1;
       const requestId = `interrupt-${interruptCounter}`;
       // Recorded by hand (not kernel.control) because claude's control_response
-      // is the answer, routed to this id by the fold — so the reachability gate
+      // is the answer, routed to this id by the fold, so the reachability gate
       // is applied here explicitly.
       const blocked = kernel.unreachable();
       const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });

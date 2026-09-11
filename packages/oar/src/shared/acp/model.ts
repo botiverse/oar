@@ -16,7 +16,7 @@ import { asRecord, asRecordList, type JsonRecord } from "../json.js";
  *   `{_meta: {model}}` with the applied id.
  *
  * Null when the frame carries neither. Every such frame is an event
- * record with a `model` view, so `Session.model()` is the latest of them —
+ * record with a `model` view, so `Session.model()` is the latest of them;
  * the request parameter is never consulted.
  */
 export function acpReportedModel(frame: JsonRecord | null): string | null {

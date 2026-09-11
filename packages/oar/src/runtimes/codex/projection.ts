@@ -12,8 +12,8 @@ import { codexReasoningContent } from "./reasoning.js";
 /**
  * The codex notification → record projection as a PURE FOLD (see
  * runtimes/claude/projection.ts for the shape). Every notification becomes
- * exactly one event command — verbatim `native`, views in oar's vocabulary,
- * the runtime's own turn id as `spanId` — plus, for collaboration items that
+ * exactly one event command: verbatim `native`, views in oar's vocabulary,
+ * the runtime's own turn id as `spanId`. Plus, for collaboration items that
  * name other threads, a link command for the session graph. Nothing is gated
  * on turn state and nothing is dropped; the adapter applies the commands and
  * separately owns the transport-only turn id (steer/abort identity), which is
@@ -30,7 +30,7 @@ export type ProjectionCommand =
       readonly body: EventBody;
       /** Runtime-native turn id when the notification carries one. */
       readonly spanId?: string;
-      /** Set when the notification belongs to another thread — a derived child session. */
+      /** Set when the notification belongs to another thread: a derived child session. */
       readonly sessionId?: string;
     }
   | { readonly kind: "link"; readonly edge: SessionEdge };
@@ -97,14 +97,14 @@ function settleOutcome(state: CodexProjectionState, status: unknown): TurnOutcom
  * is the most recent model call, and `modelContextWindow` the window it fit
  * in; those two are the context reading. Codex's own occupancy figure is
  * `last.total_tokens` (`TokenUsage::tokens_in_context_window`, protocol.rs
- * at 4f39251a — the TUI's status card reads it off `last_token_usage`; its
+ * at 4f39251a; the TUI's status card reads it off `last_token_usage`; its
  * percent also subtracts a 12k baseline). oar reads the same field,
  * `last.totalTokens`: the last call's input (cached tokens included) plus its
- * output, which is what the context holds once the reply is in — matching
+ * output, which is what the context holds once the reply is in, matching
  * the runtime's own reading rather than undercounting by the last output.
  * When `last` is absent (older builds) the occupancy is unknown: the
  * cumulative input stands in as `tokens` and the window and percent are
- * null — the cumulative total is never read against the window.
+ * null: the cumulative total is never read against the window.
  */
 function usageViews(params: JsonRecord): EventView[] {
   const tokenUsage = asRecord(params.tokenUsage);
@@ -190,7 +190,7 @@ export function foldCodexNotification(
     const error = asRecord(params.error);
     const message = typeof error?.message === "string" ? error.message : "";
     const details = typeof error?.additionalDetails === "string" ? error.additionalDetails : "";
-    const combined = [message, details].filter((part) => part.length > 0).join(" — ");
+    const combined = [message, details].filter((part) => part.length > 0).join(": ");
     if (combined.length > 0) {
       next = { ...state, lastErrorDetail: combined };
     }

@@ -22,12 +22,12 @@ export async function withProcessEnv(
   }
 }
 
-/** Insist a probe reported available — assertion-style. */
+/** Insist a probe reported available, assertion-style. */
 export function expectAvailable<T extends { kind: string }>(installation: T, what: string): asserts installation is T & { kind: "available" } {
   assert.ok(installation.kind === "available", `${what} unavailable`);
 }
 
-/** Prompt and insist the runtime accepted it — assertion-style, per repo test convention. */
+/** Prompt and insist the runtime accepted it, assertion-style, per repo test convention. */
 export async function promptTurn(session: Session, input: string): Promise<ControlResult> {
   const result = await session.prompt(input);
   assert.ok(

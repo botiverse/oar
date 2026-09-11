@@ -1,5 +1,5 @@
 /**
- * Provider-independent model catalog facade — the other half of the provider
+ * Provider-independent model catalog facade: the other half of the provider
  * plane (see {@link ./provider-auth.js}). It lists providers and their models
  * with capabilities and refreshes the remote catalog, but is credential-blind:
  * it reads auth status only to report which providers are usable, never logs

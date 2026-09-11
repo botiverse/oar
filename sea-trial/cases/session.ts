@@ -209,8 +209,8 @@ export const sessionCases: readonly TrialCase[] = [
   },
   {
     // The cursor: reconnecting with {sessionId, afterSeq} replays exactly the
-    // retained records after that position and then continues live — no
-    // loss, no duplication, for the lifetime of this adapter process.
+    // retained records after that position and then continues live: no loss,
+    // no duplication, for the lifetime of this adapter process.
     id: "session.cursor-replays-without-loss-or-duplication",
     requires: ["installation", "session"],
     async run(subject) {
@@ -251,7 +251,7 @@ export const sessionCases: readonly TrialCase[] = [
   },
   {
     // Resume is either real (same id, works after reopen) or a typed loud
-    // rejection — never a silent fresh session pretending to be the old one.
+    // rejection, never a silent fresh session pretending to be the old one.
     id: "session.resume-or-loud-rejection",
     requires: ["installation", "session"],
     async run(subject) {

@@ -1,5 +1,5 @@
 /**
- * KIMI MODEL LIST — pins the `session/new` configOptions model surface.
+ * KIMI MODEL LIST: pins the `session/new` configOptions model surface.
  *
  * Run:
  *   OAR_KIMI_BIN=/path/to/kimi pnpm tsx experiments/kimi-list-models.ts

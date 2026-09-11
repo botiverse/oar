@@ -38,7 +38,7 @@
 - [真实产品 dispatch 释放测试](https://github.com/stablyai/orca/blob/1a8640adb6e86abb342a8025892300b2835f3e8e/tests/e2e/orchestration-low-level-dispatch-release.spec.ts#L11-L97)
 - [live CLI gates](https://github.com/stablyai/orca/blob/1a8640adb6e86abb342a8025892300b2835f3e8e/src/main/claude/claude-structured-real-cli.test.ts#L17-L46)、[live 条件执行](https://github.com/stablyai/orca/blob/1a8640adb6e86abb342a8025892300b2835f3e8e/src/main/claude/claude-structured-real-cli.test.ts#L97-L150)
 
-特别有价值的回归：子 agent 在父 turn 结束后 57–87 秒才 completed。测试明确不把父 turn 边界当成子任务死亡证据，而保留 child working，后续再接收真实完成。[回归解释与断言](https://github.com/stablyai/orca/blob/1a8640adb6e86abb342a8025892300b2835f3e8e/src/main/codex/codex-structured-journal-translation-subagents.test.ts#L125-L165)
+特别有价值的回归：子 agent 在父 turn 结束后 57-87 秒才 completed。测试明确不把父 turn 边界当成子任务死亡证据，而保留 child working，后续再接收真实完成。[回归解释与断言](https://github.com/stablyai/orca/blob/1a8640adb6e86abb342a8025892300b2835f3e8e/src/main/codex/codex-structured-journal-translation-subagents.test.ts#L125-L165)
 
 另一条直接回答用户“用户反馈还是精心设计”的证据：live CLI test 注释说明此前 fixture 虚构了 CLI 不发送的 effortLevel，导致所有门禁都没拦住空白 UI；于是新增真实 binary 检查 get_settings 与 init 的实际区别。这说明回归经验和设计思考共同作用，mock 的自洽并不保证 native fidelity。[具体记录](https://github.com/stablyai/orca/blob/1a8640adb6e86abb342a8025892300b2835f3e8e/src/main/claude/claude-structured-real-cli.test.ts#L146-L150)
 

@@ -1,5 +1,5 @@
 /**
- * LIVE RESUME + MODEL SWITCH (codex) — resuming a thread id with a different
+ * LIVE RESUME + MODEL SWITCH (codex): resuming a thread id with a different
  * model switches the model, and the effective model is readable from the
  * thread/resume response instead of being trusted from the request.
  *
@@ -16,7 +16,7 @@
  * Run: pnpm tsx experiments/session-resume-model.ts [X] [Y]
  * Defaults X=gpt-5.4-mini Y=gpt-5.5. Burns tokens for two short turns.
  *
- * Source pin: codex tag rust-v0.153.4 (3d2ee51c) —
+ * Source pin: codex tag rust-v0.153.4 (3d2ee51c):
  * app-server-protocol/src/protocol/v2/thread.rs: ThreadResumeParams.model,
  * ThreadResumeResponse.model (the active model);
  * app-server/src/request_processors/thread_processor.rs

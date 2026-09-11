@@ -10,7 +10,7 @@ import type { UsageUpdateGate } from "./usage-wait.js";
  * How ACP wire traffic lands in the record stream. Every frame is recorded
  * verbatim; this module only decides the envelope (which session id) and the
  * views. Nothing is filtered: an update for a session id other than the root
- * is a derived child session — recorded under ITS id and added to the graph
+ * is a derived child session, recorded under ITS id and added to the graph
  * (filtering by session id is the adapter red line in
  * docs/spec/runtime-matrix.md).
  */
@@ -48,7 +48,7 @@ function stringField(record: JsonRecord, names: readonly string[]): string | nul
  * spelling and at either depth. grok 1.0.25 (live, 2026-09-11) spells it
  * `_x.ai/session_notification {sessionId: <parent>, update: {sessionUpdate:
  * "subagent_spawned" | "subagent_progress", parent_session_id,
- * child_session_id, subagent_type, …}}` — snake_case, nested under `update`;
+ * child_session_id, subagent_type, …}}`: snake_case, nested under `update`;
  * its `subagent_finished` carries only `child_session_id`, the parent being
  * the envelope's `sessionId`. A flat camelCase `{parentSessionId,
  * childSessionId | sessionId}` is the fixture spelling.

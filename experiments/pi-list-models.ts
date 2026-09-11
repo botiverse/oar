@@ -1,9 +1,9 @@
 /**
- * PI MODEL LIST — pins `pi --list-models` as the live registry, not a catalog.
+ * PI MODEL LIST: pins `pi --list-models` as the live registry, not a catalog.
  *
  * Pi has no `pi models` subcommand; listing is the `--list-models` flag. The
  * output is a human table (provider, model, context, max-out, thinking,
- * images) of the LIVE ModelRegistry — i.e. models usable right now, not a
+ * images) of the LIVE ModelRegistry, i.e. models usable right now, not a
  * static catalog. There is no JSON output variant (`--mode json` has no
  * effect on this flag), so a consumer must parse the table or go in-process
  * via the SDK.
@@ -15,17 +15,17 @@
  *
  * Registry population is dynamic: in this environment ~/.pi/agent/auth.json
  * and models-store.json are both empty `{}`, yet the table lists exe-dev-*
- * providers — because the exe-dev extension
+ * providers because the exe-dev extension
  * (~/.pi/agent/extensions/exe-dev/index.ts, "Reflection-discovered
  * integrations are the sole source of models and provider routes") calls
  * `pi.registerProvider`/`unregisterProvider` at runtime and reads
  * `ctx.modelRegistry.getAll()`. Unconfigured base providers (anthropic,
  * openai, ...) do NOT appear. So the list is credential/config-scoped AND
- * volatile — extensions can register/unregister providers between calls; a
+ * volatile: extensions can register/unregister providers between calls; a
  * unified contract needs re-query semantics, not a cached snapshot.
  *
  * Auth readiness is a SEPARATE, differently-scoped surface:
- * `pi auth check --provider <p> --json --no-refresh` returns typed JSON — for
+ * `pi auth check --provider <p> --json --no-refresh` returns typed JSON: for
  * an extension-registered provider it says
  * `{"status":"not_ready","reason":"provider_not_found"}` (auth check does not
  * see runtime-registered providers) while unconfigured base providers give
@@ -39,7 +39,7 @@
  * availability snapshot: `getAvailableSnapshot()` (which is all
  * `ModelRegistry.getAvailable()` returns) stays `[]` until an availability
  * refresh runs. `await runtime.getAvailable()` runs that refresh and then
- * returns the usable-now list — this is what `pi --list-models` itself awaits
+ * returns the usable-now list; this is what `pi --list-models` itself awaits
  * (packages/coding-agent/src/cli/list-models.ts). With a dummy XAI_API_KEY the
  * snapshot is 0 before and 4 after; the check is offline for API-key providers
  * (any key present counts). This is one half of `oar models pi` printing
@@ -60,7 +60,7 @@ import { execFileSync } from "node:child_process";
 const env = { ...process.env };
 delete env.PI_PACKAGE_DIR;
 
-// Like execFileSync but a non-zero exit still yields stdout — `pi auth check`
+// Like execFileSync but a non-zero exit still yields stdout: `pi auth check`
 // exits non-zero for not_ready while printing its typed JSON.
 function runCapturingStdout(command: string, argv: string[]): string {
   try {

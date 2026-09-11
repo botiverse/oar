@@ -14,7 +14,7 @@
  * ("Native child agents").
  *
  * Run: pnpm tsx experiments/codex-child-threads.ts   (requires logged-in `codex`
- * with the `multi_agent` feature enabled — `codex features list`)
+ * with the `multi_agent` feature enabled; `codex features list` shows it)
  */
 import { awaitTurnEnd, codexRuntime, type SessionRecord, type TurnOutcome } from "../packages/oar/src/index.js";
 
@@ -78,7 +78,7 @@ if (prompt.response.body.kind !== "accepted") {
 }
 // Two waits, on purpose. `awaitTurnEnd` is the shipped observe fold, scoped
 // to the root session since 2026-09-11 (before that a derived child session's
-// turn_ended — sessionId = child thread, agentPath [] — satisfied it, and on
+// turn_ended (sessionId = child thread, agentPath []) satisfied it, and on
 // 0.149.0 the child's turn/completed arrived first). The second wait is an
 // independent hand-rolled check for the ROOT thread's own turn/completed. Both
 // are printed so any disagreement is on the record.

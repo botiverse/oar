@@ -21,7 +21,7 @@ oar didn't observe is in it, every record knows whose it is, and the stream
 is resumable from any position.
 
 **Non-goals:** multiple transport channels, multiple control planes,
-concurrent prompt queueing (no shipped runtime needs it — see
+concurrent prompt queueing (no shipped runtime needs it; see
 [record-stream.md](record-stream.md)); a storage layer; usage *derivation*
 (cumulative/epoch/boundary views are consumer business).
 
@@ -50,7 +50,7 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   monotonic `seq`, `sessionId`, `agentPath`, optional runtime-native
   `spanId`, and `receivedAt`;
 - every runtime frame recorded verbatim as an event (`type`, `native`) with
-  oar's typed `views` beside it — nothing gated, nothing dropped, nothing
+  oar's typed `views` beside it: nothing gated, nothing dropped, nothing
   synthesized; the turn's start is the prompt request, its end the
   runtime's own completion event;
 - control as records: prompt / steer / queue / abort / dispose requests
@@ -87,10 +87,10 @@ they appear:
 
 Record markers, used symbol+word so nothing depends on color:
 
-- ✓ `event` — the runtime's own words
-- ◆ `request` — an action record that expects an outcome
-- ◇ `response` — always points at a request
-- ○ absence — an outcome that was never observed (honest gap)
+- ✓ `event`: the runtime's own words
+- ◆ `request`: an action record that expects an outcome
+- ◇ `response`: always points at a request
+- ○ absence: an outcome that was never observed (honest gap)
 
 Evidence tags: `[src]` vendor source code (pinned commits where noted) ·
 `[sym]` binary symbols · `[env]` observed
@@ -102,8 +102,8 @@ spec/schema (pinned clone bb2ef8f7).
 These pages are a contract, and a stale contract is worse than none. The
 rules that keep them in sync:
 
-- **Same-commit rule.** When code changes what the contract says — a
-  record shape, envelope field, cursor semantics, an adapter's tier — the
+- **Same-commit rule.** When code changes what the contract says (a
+  record shape, envelope field, cursor semantics, an adapter's tier), the
   spec page changes in the same commit. Never "update the docs later".
 - **What changes together.** One contract change usually touches several
   places; update them as a unit: the code ↔ the owning spec page ↔ the
@@ -119,6 +119,6 @@ rules that keep them in sync:
 - **Index and pointers.** Adding or removing a page means updating the
   table above and the pointer in the root `README.md` in the same commit.
 - **Snapshot, not journal.** These pages state the current contract only.
-  A change rewrites the affected statements in place — no version lineage,
+  A change rewrites the affected statements in place: no version lineage,
   no "previously X, now Y" notes; git history carries the evolution. Flag
   anything deliberately unsettled under "Open decisions".

@@ -15,7 +15,7 @@ afterEach(() => {
 
 const installation = { kind: "available", via: "bundled" } as const;
 
-/** One line per record: `kind[:detail]` — the compact skeleton the tests assert on. */
+/** One line per record: `kind[:detail]`, the compact skeleton the tests assert on. */
 function describe(record: SessionRecord): string {
   switch (record.kind) {
     case "request":

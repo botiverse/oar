@@ -1,7 +1,7 @@
 # Attribution and usage
 
 > Part of the [record-stream spec](README.md). Related design pages:
-> [hard problems 9–10](../design/hard-problems.md#attribution--the-most-underestimated-part),
+> [hard problems 9-10](../design/hard-problems.md#attribution--the-most-underestimated-part),
 > [foundations](../design/foundations.md).
 
 ## Attribution is a field on the record, not a transport channel
@@ -10,13 +10,13 @@
 and consumers must be able to answer "which agent does this record belong
 to". That needs an attribution mark on the record (`agentPath`), not a
 second transport channel. "Multiplexing" has always meant main and sub
-agents sharing one stream — never multiple control planes.
+agents sharing one stream, never multiple control planes.
 
 Attribution is the single field `agentPath` (the leaf element identifies
 the stream; `[]` means root). No second encoding of the same dimension is
 carried.
 
-### Evidence — every shipped runtime is single-connection, with attribution as a frame field
+### Evidence: every shipped runtime is single-connection, with attribution as a frame field
 
 - claude: `Task` can start parallel sub-agents; their messages are
   flattened into one stream-json output, linked by `parent_tool_use_id`.
@@ -28,18 +28,18 @@ carried.
 - kimi-cli (native wire): sub-agents open no new connection; the parent
   wire receives `SubagentEvent{parent_tool_call_id, agent_id,
   subagent_type, event}` wrapper records sharing the one `_write_queue`
-  with ordinary events — attribution is literally a field on the record.
+  with ordinary events; attribution is literally a field on the record.
   [src: wire/types.py:242; subagents/runner.py:393-428]
 - kimi-code 0.38 (native KAP over WebSocket): one connection + one
   session; the agent graph's key is `(session_id, agent_id)` and
   `agent_id` is a frame field. If attribution required a transport
-  channel, KAP would need one socket per sub-agent — it does not.
+  channel, KAP would need one socket per sub-agent; it does not.
   [src: kimi-code@0999454 ws-control.ts:35-180;
   sessionEventBroadcaster.ts:414-543]
 - pi: no native sub-agents; naturally single-stream. [src]
 
 Converse necessity: give each sub-agent its own transport stream and total
-order is permanently lost — "did the abort land before or after that
+order is permanently lost: "did the abort land before or after that
 tool_result" becomes unanswerable.
 [record-stream.md](record-stream.md) already rejected dual channels for
 this reason; attribution does not readmit them through the back door.
@@ -53,7 +53,7 @@ comments.
 
 - The envelope is `sessionId` / `agentPath` / optional `spanId` / `seq` /
   `receivedAt`; nothing in it is invented by oar except the ordering.
-- `sessionId` has a real referent — it is not invented by oar: claude's
+- `sessionId` has a real referent; it is not invented by oar: claude's
   `CLAUDE_CODE_SESSION_ID`, codex's `CODEX_SESSION_ID`. Delete it and
   grok's child sessions interleaving on one connection cannot be
   demultiplexed, nor can codex's child threads, which arrive on the
@@ -61,11 +61,11 @@ comments.
 
 ```ts
 interface RecordEnvelope {
-  sessionId: string;              // deletion test: grok child sessions / codex child threads interleave on one connection — undemuxable without it
+  sessionId: string;              // deletion test: grok child sessions / codex child threads interleave on one connection, undemuxable without it
   agentPath: readonly string[];   // [] = root; [...] = sub-agent lineage. Deletion test: the cross-agent ID collision (runtime-matrix.md, hard spot 1) has no solution
   spanId?: string;                // runtime-native turn id; a mandatory turn id would drop pi's session-scoped facts (record-stream.md, evidence A)
   seq: number;                    // monotonic, cursor basis; replay determinism covers seq only (session-graph-and-cursor.md)
-  receivedAt: number;             // best-effort observation time; explicitly outside the determinism guarantee — identity rests on seq
+  receivedAt: number;             // best-effort observation time; explicitly outside the determinism guarantee; identity rests on seq
 }
 ```
 
@@ -86,7 +86,7 @@ seq=91  ✓ event  path=["a1"]   tool_call {id:"call_1", …}
 ## The attribution spectrum: a protocol responsibility, not app-layer improvisation
 
 **Why:** if attribution is not in the protocol, every app reimplements
-parent linkage and token splitting, each inconsistently — and three
+parent linkage and token splitting, each inconsistently, and three
 independent codebases already demonstrate the inevitable degeneration
 (see the adapter red lines in [runtime-matrix.md](runtime-matrix.md)).
 
@@ -94,21 +94,21 @@ independent codebases already demonstrate the inevitable degeneration
   (per-agent tokens) → direct mapping. [sym]
 - grok (ACP): nested sessions; child has its own sessionId + per-child
   usage. [src]
-- kimi (ACP): opaque — an internal graph exists, but the default ACP
+- kimi (ACP): opaque; an internal graph exists, but the default ACP
   server subscribes only to the main agent. The protocol honestly marks
   root only; fabricating a child graph from display text is forbidden.
   [src]
 - kimi-cli (native wire): full attribution, recursively unbounded
   (`SubagentEvent(event=SubagentEvent(...))`). Both of its offline
-  consumers flatten the wrappers and lose attribution — and once
-  flattened it is unrecoverable, which is why the protocol must guarantee
+  consumers flatten the wrappers and lose attribution; once flattened it
+  is unrecoverable, which is why the protocol must guarantee
   attribution on the record. Unbounded recursion is also the evidence
   for `agentPath` being an array: a single `parent` field cannot hold the
   lineage. [src: wire/types.py:242; vis/api/sessions.py:28-42]
 - kimi-code (native KAP): agent graph key = `(session_id, agent_id)`;
   every frame carries `agent_id`. [src]
 - ACP's attribution gap: zero hits for `parent*` / `subagent*` / `child*`
-  across four schemas — but the design level has been formally discussed:
+  across four schemas, but the design level has been formally discussed:
   in org Discussion #690 real clients can only guess parent/child from
   `_meta` / `rawInput`; spec-repo draft PR #855 offers a candidate fix
   (child session + parentSessionId / parentToolCallId / subagentId),
@@ -118,12 +118,13 @@ independent codebases already demonstrate the inevitable degeneration
 **Hard constraint:** the protocol must never merge session and agent into one
 dimension. The ACP draft chooses child-session (#3); kimi-cli and
 kimi-code choose record-level attribution (#2). Both topologies are real
-candidates and the protocol must express both — otherwise grok's child sessions
-(and codex's child threads, [env] 0.149.0) can only be faked as pseudo-agents,
-or KAP's agents faked as pseudo-sessions. The consequence for consumers: a
-child session's records carry `agentPath []` under their OWN `sessionId`, so
-every fold over a Session (`model / usage / contextUsage`, `awaitTurnEnd`)
-scopes to the root session and a child is read by its own `sessionId`.
+candidates and the protocol must express both; otherwise grok's child
+sessions (and codex's child threads, [env] 0.149.0) can only be faked as
+pseudo-agents, or KAP's agents faked as pseudo-sessions. The consequence
+for consumers: a child session's records carry `agentPath []` under their
+OWN `sessionId`, so every fold over a Session (`model / usage /
+contextUsage`, `awaitTurnEnd`) scopes to the root session and a child is
+read by its own `sessionId`.
 
 **Full-spectrum principle:** the protocol supports opaque (#1) →
 attribution (#2) → nested-session (#3). oar carries only the structure
@@ -137,13 +138,13 @@ guarantees. [acp]
 **oar guarantees that the externally exposed usage numbers are correct.**
 The external shape: a session total, plus an optional per-agent
 breakdown; the breakdown is deduplicated and directly summable (sum =
-total). Which runtime view is authoritative and how to deduplicate —
-grok's multiple overlapping views, claude/codex's `subagent_tokens`, pi's
-flat usage — sinks entirely into each runtime adapter and never crosses
-the protocol surface. `origin` and accounting-basis labels are deleted
-from the protocol.
+total). Which runtime view is authoritative and how to deduplicate
+(grok's multiple overlapping views, claude/codex's `subagent_tokens`,
+pi's flat usage) sinks entirely into each runtime adapter and never
+crosses the protocol surface. `origin` and accounting-basis labels are
+deleted from the protocol.
 
-- Basis: a deliberate design ruling — applications don't primarily care
+- Basis: a deliberate design ruling. Applications don't primarily care
   about exact provenance reconstruction; they care about correct results
   and usability. Pushing runtime-vs-oar accounting bases onto every
   consumer is complex and unreasonable.

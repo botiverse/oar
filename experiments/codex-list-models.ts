@@ -1,5 +1,5 @@
 /**
- * CODEX MODEL LIST — pins `codex debug models` as the usable-models surface.
+ * CODEX MODEL LIST: pins `codex debug models` as the usable-models surface.
  *
  * The question for a unified listModels is not "what models exist in a static
  * catalog" but "what can this account use right now". Codex answers that:
@@ -14,15 +14,15 @@
  *
  * ── OBSERVED 2026-09-04, codex 0.149.0, linux x64 ──
  *
- * Stdout is pure JSON: `{"models":[...]}` — 43 entries, ~1.8MB, because each
+ * Stdout is pure JSON: `{"models":[...]}`, 43 entries, ~1.8MB, because each
  * model embeds its full instruction templates. Consumers MUST project fields;
  * shipping the raw payload downstream is not viable.
  *
  * Per-model fields: `slug` (stable identity), `display_name` (UNRELIABLE as
- * identity — claude-fable-5 renders as "GPT 5.6 Sol"), `description`,
+ * identity: claude-fable-5 renders as "GPT 5.6 Sol"), `description`,
  * `default_reasoning_level`, `supported_reasoning_levels`
  * (low/medium/high/xhigh/max/ultra), `shell_type`, `visibility`
- * ("list" | "hide" — hidden entries are present in the payload),
+ * ("list" | "hide"; hidden entries are present in the payload),
  * `supported_in_api`, `priority`, `service_tiers`, `availability_nux`,
  * `upgrade`. So: identity = slug, display_name is presentation only, and the
  * payload carries its own visibility + effort-level enumeration.

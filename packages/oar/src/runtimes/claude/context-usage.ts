@@ -2,7 +2,7 @@ import type { ContextUsage } from "../../contracts/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 
 /**
- * Claude reports context usage in the result frame (structured — no need for
+ * Claude reports context usage in the result frame (structured; no need for
  * the human-facing /context command): usage.{input,cache_read,cache_creation}
  * tokens are the context sent, and modelUsage[model].contextWindow is the
  * window. We cache the latest as the current snapshot (last-write-wins).

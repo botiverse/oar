@@ -51,16 +51,16 @@ export function piEffectiveModel(session: PiModelSource): string | null {
 export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
   const sdk = await import("@earendil-works/pi-coding-agent");
   // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/
-  // settings/sessions) — same namespaced-env-pin pattern as OAR_CLAUDE_BIN.
+  // settings/sessions); same namespaced-env-pin pattern as OAR_CLAUDE_BIN.
   // This is how a host (or the pi-aimock behavior backend) points the
   // in-process model plane somewhere else.
   const agentDir = process.env.OAR_PI_AGENT_DIR ?? sdk.getAgentDir();
   // YOLO by default (repo policy): pi gates tool execution on project trust,
-  // which is an approval prompt no embedded host can answer — pre-trust the
+  // which is an approval prompt no embedded host can answer; pre-trust the
   // session cwd the same way pi's own Trust button would (auditable in
   // <agentDir>/trust.json).
   new sdk.ProjectTrustStore(agentDir).set(options.cwd, true);
-  // The proxy plane before anything can reach a provider — from the same
+  // The proxy plane before anything can reach a provider, from the same
   // settings manager the services get, so no second one is built (see
   // http.ts).
   const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir);
@@ -73,7 +73,7 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
     // replace (systemPrompt) and append (appendSystemPrompt). Replace swaps
     // pi's base prompt text only: pi's buildSystemPrompt (SDK 0.84.2
     // core/system-prompt.js) still puts its runtime-native additions AROUND
-    // the replaced prompt — the append seam, then the project context files
+    // the replaced prompt: the append seam, then the project context files
     // (AGENTS.md), then the skills catalog of the agent dir and the host's
     // ~/.agents/skills, then the `Current working directory:` line. Those
     // are the runtime's, like codex's skills catalog around
@@ -99,7 +99,7 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   // recorded one is restored only when none is given.
   const model = options.model === undefined ? undefined : piResolveModel(services.modelRuntime, options.model);
   // Per-session env on an in-process runtime: the runtime itself has no own
-  // process, but the processes the AGENT spawns do — a bash tool built with a
+  // process, but the processes the AGENT spawns do: a bash tool built with a
   // spawnHook overlaying the env replaces the builtin by name (custom tools
   // win the SDK's tool registry). Provider config (keys, base URLs) does NOT
   // travel this way for pi; that needs its native modelRuntime/agentDir

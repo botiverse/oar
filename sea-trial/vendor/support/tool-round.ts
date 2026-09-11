@@ -11,7 +11,7 @@ openTrace(`vendor-${process.env.OAR_TEST ?? "unset"}`);
 /**
  * A scripted two-round tool conversation: the provider first demands a tool
  * call, then (seeing its result) a second one, then answers. Drives the REAL
- * harness through real tool execution — what the multi-round tool tests share
+ * harness through real tool execution: what the multi-round tool tests share
  * across vendors; only the tool name/argument shape is vendor-specific.
  */
 export function toolRoundFixtures(
@@ -59,7 +59,7 @@ export function turnSkeleton(records: readonly SessionRecord[], fromSeq: number)
   return skeleton;
 }
 
-/** Drive one prompt through the real harness and return its skeleton. On failure the error carries the mock's request journal — the CI flake's side of the story. */
+/** Drive one prompt through the real harness and return its skeleton. On failure the error carries the mock's request journal: the CI flake's side of the story. */
 export async function structuralToolRound(
   session: Session,
   mock?: LLMock,

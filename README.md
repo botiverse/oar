@@ -2,7 +2,7 @@
 
 ![OAR logo](assets/logo.png)
 
-OAR (**O**pen **A**gent **R**untime) is a provider-independent programming interface for coding-agent runtimes — a solid foundation for building agent workspaces and other applications.
+OAR (**O**pen **A**gent **R**untime) is a provider-independent programming interface for coding-agent runtimes: a solid foundation for building agent workspaces and other applications.
 
 ## Supported runtimes
 

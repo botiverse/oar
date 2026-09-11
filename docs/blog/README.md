@@ -6,12 +6,12 @@ one is published.
 
 | Post | Status |
 |---|---|
-| [introducing-oar.md](introducing-oar.md) | Draft — release post; motivation and shipped surface settled, open spec paragraphs marked **[not finalized]** |
+| [introducing-oar.md](introducing-oar.md) | Draft: release post; motivation and shipped surface settled, open spec paragraphs marked **[not finalized]** |
 
 ## How to maintain these docs
 
 - A post is a snapshot, not a contract. It states the release version and
-  date it describes; do not edit old posts to track later changes — write a
+  date it describes; do not edit old posts to track later changes: write a
   new one.
 - Before publishing a draft, re-read every paragraph marked
   **[not finalized]** against [`../spec/README.md`](../spec/README.md) and

@@ -1,13 +1,13 @@
 # Introducing oar: one contract for driving agent runtimes
 
-> **Status: DRAFT — prepared ahead of the design freeze.** The motivation
+> **Status: DRAFT, prepared ahead of the design freeze.** The motivation
 > and the shipped surface described here are settled. Anything about the
 > record stream is a draft under review; those paragraphs are marked
 > **[not finalized]** and must be re-read against
 > [`docs/spec/`](../spec/README.md) before this post is published.
 
 oar is a TypeScript library and CLI that lets an application drive several
-coding-agent runtimes — Claude Code, Codex, Grok, Kimi, and Pi today — through
+coding-agent runtimes (Claude Code, Codex, Grok, Kimi, and Pi today) through
 one contract: detect the installation, list the models it can run right now,
 read account usage, open a session, prompt it, steer or queue input, watch the
 event stream, read context usage, resume later. Everything the runtime says is
@@ -26,9 +26,9 @@ with its own session model, event vocabulary, usage reporting, config, install
 and login story. A product that embeds more than one runtime writes N
 integrations, and each one is lossy or ad hoc in its own way.
 
-The deeper problem is that the genuinely hard parts are protocol problems —
-a lossless attributed event stream, session identity and resume, sub-agent
-association, token attribution, capability differences — and every
+The deeper problem is that the genuinely hard parts are protocol problems
+(a lossless attributed event stream, session identity and resume, sub-agent
+association, token attribution, capability differences), and every
 application currently reinvents them privately. We have concrete evidence
 that this goes wrong: one vendor's own protocol adapter drops its sub-agent
 events; another exposes overlapping usage views that cannot be summed.
@@ -48,8 +48,8 @@ for the humans, and AX (agent experience) for the agents themselves.
 The practical consequence is that an application should be able to invest in
 UX and AX without caring how a concrete task is run. That is the harness's
 concern, and oar's job is to keep it there. This is not an argument for
-hiding the runtime: oar must expose enough surface to *control* it — drive
-sessions, steer and cancel, read capabilities, reach native payloads — so
+hiding the runtime: oar must expose enough surface to *control* it. Drive
+sessions, steer and cancel, read capabilities, reach native payloads, so
 that abstraction never costs control.
 
 If the bet is wrong and harnesses diverge instead, the lossless producer and
@@ -107,8 +107,8 @@ correction is a breaking change for the consumer, not for us.
 
 Liveness belongs on the foundation list too. "Is this agent alive or dead,
 and why" is really three questions (is the process alive, is the session
-progressing, and why is it stuck), and the natural implementation —
-inferring death from silence — is where multi-agent applications rot. oar's
+progressing, and why is it stuck), and the natural implementation,
+inferring death from silence, is where multi-agent applications rot. oar's
 position is that death should be a recorded fact in the stream, not a
 timeout guess, and that when a runtime is silent we report what we observed
 and declare the rest unknown rather than synthesizing a heartbeat.
@@ -224,8 +224,8 @@ the adapter says so rather than fabricating children; Pi has none. The
 adapter red line (degrade to opaque only when the runtime truly lacks the
 information, never because the adapter did not wire it up) is now what the
 shared behavior suite and each adapter's declaration enforce. What remains
-unverified live — child usage attribution on Claude, Grok's vendor
-lifecycle notifications — is marked as such in the runtime pages.
+unverified live (child usage attribution on Claude, Grok's vendor
+lifecycle notifications) is marked as such in the runtime pages.
 
 Explicit non-goals, which are settled: multi-language bindings, and being a
 storage or replay system. oar emits the complete attributed stream;

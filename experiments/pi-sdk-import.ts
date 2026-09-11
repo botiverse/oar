@@ -1,5 +1,5 @@
 /**
- * FIRST CONTACT WITH THE BUNDLED PI SDK — proves the in-process import path.
+ * FIRST CONTACT WITH THE BUNDLED PI SDK: proves the in-process import path.
  *
  * The pi runtime ships as an SDK dependency instead of a probed executable, so
  * the claim worth checking is not "a binary exists" but "this process can load

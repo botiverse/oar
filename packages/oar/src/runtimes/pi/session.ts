@@ -15,7 +15,7 @@ import { openPiAgentSession, piEffectiveModel } from "./open.js";
 export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
 
 /*
- * Bundled pi SDK mapping (in-process, no fork — settled 2026-08-21, record
+ * Bundled pi SDK mapping (in-process, no fork; settled 2026-08-21, record
  * stream 2026-09-11): every SDK event is one event record; pi's own
  * `agent_settled` is the turn end; steer acceptance means entry into pi's queue;
  * abort is cooperative. Resume opens the cwd's session file by id and
@@ -47,7 +47,7 @@ export const piSession: StartSession = async (installation, options) => {
   let pendingAbort = false;
   // Adapter-held queue, drained one input per run end. pi's native followUp
   // CONTINUES the active run (more internal turns, one agent_end), which
-  // would land the queued input inside the same turn — the queue contract
+  // would land the queued input inside the same turn; the queue contract
   // promises a later turn of its own, so the adapter owns the handoff.
   const held: string[] = [];
 
@@ -55,7 +55,7 @@ export const piSession: StartSession = async (installation, options) => {
   // tokens (null right after compaction, before the next response),
   // contextWindow, percent. Read at agent_end so the turn-end record carries
   // it and Session.contextUsage() (a fold) is current at turn end (which
-  // is agent_settled, after any threshold compaction — see projection.ts).
+  // is agent_settled, after any threshold compaction; see projection.ts).
   const contextOf = (): ContextUsage | null => {
     const usage = piAgentSession.getContextUsage();
     return usage === undefined
@@ -92,7 +92,7 @@ export const piSession: StartSession = async (installation, options) => {
         await run;
       } catch (error) {
         // pi failed the run after starting it and without its own settlement.
-        // That failure is pi's own word — recorded as an event carrying pi's
+        // That failure is pi's own word, recorded as an event carrying pi's
         // message, not a synthesized boundary; it ends the turn only when no
         // agent_settled already did.
         if (launch === token && gate.running) {
@@ -120,7 +120,7 @@ export const piSession: StartSession = async (installation, options) => {
     void (async (): Promise<void> => {
       const decided = await start(next);
       if (decided.kind === "rejected") {
-        // The queue took the input over; pi refusing it is not silent — pi's
+        // The queue took the input over; pi refusing it is not silent: pi's
         // refusal enters the stream (no turn ever started, so no turn end).
         kernel.event({ type: "pi/prompt_rejected", native: { message: decided.reason, input: next }, views: [] });
         drainHeld();
@@ -205,7 +205,7 @@ export const piSession: StartSession = async (installation, options) => {
         projection = piAbortRequested(projection);
         // Delivery is pi's own AgentSession.abort() minus its idle wait (SDK
         // 0.84.2 agent-session.js: abortRetry(); agent.abort(); await
-        // waitForIdle()) — both calls are public and synchronous, and both
+        // waitForIdle()); both calls are public and synchronous, and both
         // are no-ops until pi has created the run, so before agent_start the
         // intent is held and delivered there. Accepted means taken over; the
         // outcome is pi's own agent_settled on the stream.

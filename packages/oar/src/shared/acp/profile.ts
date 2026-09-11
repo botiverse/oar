@@ -23,7 +23,7 @@ export interface AcpSessionProfile {
    * Vendor notification methods beyond `session/update` to subscribe to and
    * record verbatim (child-session lifecycle, background tasks, usage).
    * The SDK routes only registered methods, so a name missing here is a
-   * frame oar never sees — list everything the runtime is known to emit.
+   * frame oar never sees, so list everything the runtime is known to emit.
    */
   readonly extensionNotifications?: readonly string[];
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
@@ -53,7 +53,7 @@ export interface AcpSessionProfile {
    * The agent answers `session/prompt` BEFORE it pushes the turn's
    * `usage_update` (kimi-code f9ca33376 packages/acp-server/src/session.ts:
    * `onTurnEnded` resolves the prompt driver, then `void emitUsageUpdate()`
-   * awaits `listModels` + `getContext` and only then notifies — or skips the
+   * awaits `listModels` + `getContext` and only then notifies, or skips the
    * push when the catalog has no size for the model). When true, the session
    * holds the prompt-answer event back until that update lands, bounded by
    * `usageUpdateTimeoutMs`; on timeout it records the answer as-is.

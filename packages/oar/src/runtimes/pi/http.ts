@@ -7,7 +7,7 @@ import type { Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispa
  * Why it exists: every pi entry point (SDK 0.84.2 cli.js, rpc-entry.js,
  * main.js) installs such a dispatcher before its first provider request; the
  * public SDK entry does not, so an embedded pi ran on Node's default
- * dispatcher, which ignores HTTP_PROXY / HTTPS_PROXY / NO_PROXY — behind a
+ * dispatcher, which ignores HTTP_PROXY / HTTPS_PROXY / NO_PROXY. Behind a
  * proxy every provider call died with pi's auto-retry "fetch failed" while
  * `pi` itself worked (live battery, 2026-09-11, Node 26.7).
  *
@@ -15,8 +15,8 @@ import type { Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispa
  * globalThis.fetch / Headers / Request / Response / WebSocket / FormData …
  * (`undici.install()`) for the whole host process, a footprint no embedding
  * library should have. The module is not exported by the SDK either. So the
- * plane is built here with undici directly — a direct dependency pinned to
- * the version pi itself uses (8.9.0, one instance in the tree) — and limited
+ * plane is built here with undici directly, a direct dependency pinned to
+ * the version pi itself uses (8.9.0, one instance in the tree), and limited
  * to what the fix needs: the proxy agent, pi's `httpProxy` setting as the
  * fallback when the env names no proxy (pi's own precedence), and pi's
  * `httpIdleTimeoutMs` setting as the dispatcher's headers/body timeout (pi's
@@ -25,8 +25,8 @@ import type { Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispa
  * classes stay in place; compressed bodies decode as before (probed on Node
  * 26.7, whose bundled undici is the same 8.9.0).
  *
- * The global dispatcher is process-global by nature — the same caveat as
- * pi's lazy env reads: one embedded pi per process.
+ * The global dispatcher is process-global by nature, with the same caveat
+ * as pi's lazy env reads: one embedded pi per process.
  */
 
 /** The slice of pi's SettingsManager the plane reads; structural for tests. */
@@ -118,7 +118,7 @@ async function loadUndici(): Promise<UndiciPlane> {
  * Nothing is installed when the plan changes nothing over Node's default
  * (no proxy, default timeout): the host keeps its stock dispatcher. Repeated
  * calls with the same plan are no-ops; a dispatcher this module did not
- * install (the host's own) is never replaced — a one-time warning says so.
+ * install (the host's own) is never replaced; a one-time warning says so.
  * True when the plane is in place, false otherwise.
  */
 export async function configurePiHttp(settings?: PiHttpSettings): Promise<boolean> {
@@ -133,8 +133,8 @@ export async function configurePiHttp(settings?: PiHttpSettings): Promise<boolea
     if (installed !== null && installed.plan === key && current === installed.dispatcher) {
       return true;
     }
-    // Node's default dispatcher is its BUNDLED undici's Agent — a different
-    // class object from the npm undici this module loads — so "stock" is
+    // Node's default dispatcher is its BUNDLED undici's Agent, a different
+    // class object from the npm undici this module loads, so "stock" is
     // judged by name; anything else that is not ours belongs to the host.
     const foreign = current.constructor.name !== "Agent" && current !== installed?.dispatcher;
     if (foreign) {

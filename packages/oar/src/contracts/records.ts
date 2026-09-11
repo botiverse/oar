@@ -15,13 +15,13 @@
 export interface RecordEnvelope {
   /** Runtime-native session the record belongs to. A derived child session (grok child session, codex child thread) carries ITS OWN id here; the session graph says where it came from, and the Session folds (model/usage/contextUsage, awaitTurnEnd) scope to the root session. */
   readonly sessionId: string;
-  /** Sub-agent lineage inside the session; `[]` is the root agent. Identity of a tool call or span is the composite `(agentPath, id)` — a bare callId is never a global key. */
+  /** Sub-agent lineage inside the session; `[]` is the root agent. Identity of a tool call or span is the composite `(agentPath, id)`; a bare callId is never a global key. */
   readonly agentPath: readonly string[];
-  /** Runtime-native turn/span id when the runtime has one (codex turnId). oar never generates it — absent means the runtime reported none. */
+  /** Runtime-native turn/span id when the runtime has one (codex turnId). oar never generates it; absent means the runtime reported none. */
   readonly spanId?: string;
   /** Monotonic per stream; the cursor anchor and the total order for trace alignment. */
   readonly seq: number;
-  /** Unix epoch milliseconds stamped at adapter ingress — same clock as Date.now(), so fold×clock consumers (stallOf) compose directly. */
+  /** Unix epoch milliseconds stamped at adapter ingress: same clock as Date.now(), so fold×clock consumers (stallOf) compose directly. */
   readonly receivedAt: number;
 }
 
@@ -43,7 +43,7 @@ export interface RequestRecord extends RecordEnvelope {
   readonly body: RequestBody;
 }
 
-/** Always points at a request; the reverse is not guaranteed. A request without a response is an honest record — the action was initiated and its outcome was not observed. Backfilling a guessed response is forbidden. */
+/** Always points at a request; the reverse is not guaranteed. A request without a response is an honest record: the action was initiated and its outcome was not observed. Backfilling a guessed response is forbidden. */
 export interface ResponseRecord extends RecordEnvelope {
   readonly kind: "response";
   readonly requestId: string;
@@ -56,7 +56,7 @@ export type SessionRecord = EventRecord | RequestRecord | ResponseRecord;
  * An event body carries the runtime's frame verbatim plus oar's typed reading
  * of it. `native` is the source of truth; `views` is a projection for
  * consumers that want the cross-runtime vocabulary without parsing five wire
- * formats. One frame is one record — a claude assistant message with a
+ * formats. One frame is one record: a claude assistant message with a
  * thinking block, a text block and a tool_use block is ONE event with three
  * views, in the frame's own order. A frame oar does not interpret still
  * enters the stream, with `type` and `native` and no views.
@@ -86,7 +86,7 @@ export interface TokenTotals {
  * the runtime reports it; `tokens` is the runtime's running total for this
  * record's `agentPath`, already resolved by the adapter (which runtime view is
  * authoritative and how overlapping views deduplicate never crosses this
- * surface — docs/spec/attribution.md, "usage: one constraint").
+ * surface; see docs/spec/attribution.md, "usage: one constraint").
  */
 export interface UsageReport {
   readonly context?: ContextUsage;
@@ -113,7 +113,7 @@ export type EventView =
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_end`, an ACP prompt answer). The turn's start is the prompt request record itself; if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
   | { readonly kind: "usage"; readonly usage: UsageReport }
-  /** The model the runtime reports as in effect — its own report, never the request echoed. */
+  /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string };
 
 export type RequestBody =
@@ -131,13 +131,13 @@ export type RequestBody =
  * observes: its own answer to a runtime→app request, and the process exit.
  */
 export type ResponseBody =
-  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS — do not resubmit. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. `native` is the runtime's own acknowledgement when it gave one. */
+  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. `native` is the runtime's own acknowledgement when it gave one. */
   | { readonly kind: "accepted"; readonly native?: unknown }
   /** Not taken over; the caller still owns the input. `busy` (another turn is active), `not_steerable`, a dead process, or the runtime's typed refusal. */
   | { readonly kind: "rejected"; readonly reason: string; readonly native?: unknown }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
   | { readonly kind: "answered"; readonly native: unknown }
-  /** The runtime process exited — an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
+  /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
   | { readonly kind: "exited"; readonly code: number | null };
 
 /** Coarse failure classification so applications can react (re-login, back off, report a bug) without parsing vendor error prose. Best-effort: adapters map what the runtime reveals; "unknown" is an honest answer. */
@@ -156,7 +156,7 @@ export type TurnOutcome =
   | { readonly kind: "failed"; readonly reason: string; readonly failure: FailureClass };
 
 /**
- * Current context fullness — borrowed from pi's shape because it already
+ * Current context fullness, borrowed from pi's shape because it already
  * models the hard case: `tokens` is null when unknown (right after compaction,
  * before the next model response), and `percent` follows.
  */

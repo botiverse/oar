@@ -1,5 +1,5 @@
 /**
- * GROK MODEL LIST — pins the `x.ai/models/list` ACP extension method.
+ * GROK MODEL LIST: pins the `x.ai/models/list` ACP extension method.
  *
  * Run:
  *   OAR_GROK_BIN=/path/to/grok pnpm tsx experiments/grok-list-models.ts
@@ -17,33 +17,33 @@
  * leading underscore on the wire per the ACP spec, so the JSON-RPC method is
  * `_x.ai/models/list`; the crate strips the prefix before dispatch
  * (mvp_agent/acp_agent.rs matches "x.ai/models/list"). The JSON-RPC result
- * wraps a second envelope `{result: SessionModelState}` or `{error: ...}` —
+ * wraps a second envelope `{result: SessionModelState}` or `{error: ...}`:
  * the reference client treats a handler error as winning over a missing
  * result (cli_models.rs parse_models_list_response).
  *
  * Semantics (handlers/models.rs, agent/models.rs, agent/config.rs,
  * mvp_agent/agent_ops.rs):
- * - Response is `SessionModelState { currentModelId, availableModels }` —
+ * - Response is `SessionModelState { currentModelId, availableModels }`:
  *   grok is the only probed runtime whose list also names the CURRENT model.
  * - The catalog is a REMOTE fetch of /v1/models with the fetch credential
  *   resolved custom_endpoint > session > deployment > api key, and the URL
  *   itself auth-dependent (session auth → proxy.grok.com, API key →
  *   api.x.ai per remote/client_tests.rs). Disk-cached keyed by
- *   cache_origin + auth method + etag, refreshed in the background — the
+ *   cache_origin + auth method + etag, refreshed in the background; the
  *   list is volatile; consumers get re-query semantics, not a constant.
  * - Filtering is usable-now at BOTH ends: `available()` keeps
  *   `user_selectable` entries, then `visible_for_auth(is_session_auth)` =
- *   `!hidden && (is_session_auth || supported_in_api)` — OAuth-only models
+ *   `!hidden && (is_session_auth || supported_in_api)`: OAuth-only models
  *   are hidden from API-key users.
  * - Per-model `reasoning_efforts` menus with defaults
  *   (derive_reasoning_effort_fields); a per-session effort override is
  *   injected into the matching ModelInfo meta.
  * - BYOK: config `[model."<id>"]` entries with their own
- *   api_key/env_key/auth_provider/api_base_url MERGE into the catalog — the
+ *   api_key/env_key/auth_provider/api_base_url MERGE into the catalog: the
  *   custom-model channel exists natively alongside the fetched list.
  * - Typed `AuthStatus` (ApiKey / LoggedIn / ModelCredentials /
  *   DeploymentKey / NotAuthenticated) backs the `grok models` banner, so
- *   "why is this list what it is" is answerable — never conflate
+ *   "why is this list what it is" is answerable. Never conflate
  *   "not logged in" with an empty list.
  */
 import assert from "node:assert/strict";

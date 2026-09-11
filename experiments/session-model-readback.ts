@@ -1,5 +1,5 @@
 /**
- * MODEL READ-BACK — `Session.model()` is the runtime's own report of the
+ * MODEL READ-BACK: `Session.model()` is the runtime's own report of the
  * model in effect, never an echo of `SessionOptions.model`.
  *
  * Why: a resume that silently keeps its old model (codex, see
@@ -20,7 +20,7 @@
  *   `model: P.model` at the start of every turn; `resolvedModel` exists only
  *   on `list_models` control-response rows, not on the session. So the
  *   read-back is null until the first turn, then the init frame's `model`.
- * - pi SDK 0.84.2: `AgentSession.model` getter ("Current model") — the
+ * - pi SDK 0.84.2: `AgentSession.model` getter ("Current model"): the
  *   runtime-owned field, spelled `provider/id` by the adapter. Available at
  *   open. (The adapter does not yet forward SessionOptions.model to pi; task
  *   #55.)
@@ -45,7 +45,7 @@
  * model=gpt-5.4-mini (the saved model, read from the response, not from us).
  * claude: request `haiku` → null before the turn; the system/init frame
  * reported claude-haiku-4-5-20251001, i.e. the read-back is the resolved id,
- * not the alias we sent — exactly the request/report split the read-back is
+ * not the alias we sent: exactly the request/report split the read-back is
  * for.
  * pi: no request → AgentSession.model at open was xai/grok-4.5 (pi's own
  * default from the exe-dev extension's registry; the dummy XAI_API_KEY only

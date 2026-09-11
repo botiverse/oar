@@ -17,7 +17,7 @@ import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapt
  * Pinned by live observation (2026-08-22, claude 2.1.237):
  * - a non-retryable 4xx fails the turn fast; the result frame carries
  *   is_error=true with subtype "success" (!) and the error text in `result`
- * - a persistent 401 is retried SILENTLY — no stream-json output, no
+ * - a persistent 401 is retried SILENTLY: no stream-json output, no
  *   settlement. Pinned as a bounded-silence test below: our fake timers
  *   cannot reach the CLI child's internal retry clock, but a few seconds of
  *   provable silence is cheap and catches any future fail-fast change.
@@ -85,9 +85,10 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
         awaitTurnEnd(session, result.request.seq).then(() => true),
         sleep(3000).then(() => false),
       ]);
-      // Everything after our accepted prompt would have to come from claude —
-      // and nothing that ends the turn does. Whatever frames DID arrive are in
-      // the stream verbatim (the stream drops nothing), so list their types.
+      // Everything after our accepted prompt would have to come from claude,
+      // and nothing that ends the turn does. Whatever frames DID arrive are
+      // in the stream verbatim (the stream drops nothing), so list their
+      // types.
       const fromRuntime = session.records()
         .filter((record): record is Extract<SessionRecord, { kind: "event" }> => record.kind === "event" && record.seq > result.request.seq)
         .map((record) => `${record.body.type}${record.body.views.length === 0 ? "" : ` → ${record.body.views.map((view) => view.kind).join(",")}`}`);
@@ -137,10 +138,11 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      // The binary does not exist — irrelevant: under the YOLO default claude
-      // RUNS it (tool_call framing appears) instead of stopping for approval,
-      // which is the coxswain say-bridge scenario in miniature. No toApp
-      // request record appears either: claude never asked.
+      // The binary does not exist, which is irrelevant: under the YOLO
+      // default claude RUNS it (tool_call framing appears) instead of
+      // stopping for approval, which is the coxswain say-bridge scenario in
+      // miniature. No toApp request record appears either: claude never
+      // asked.
       await expect(structuralToolRound(session, env.mock, "please run the say probe")).resolves.toMatchInlineSnapshot(`
         [
           "request:prompt",

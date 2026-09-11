@@ -96,7 +96,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   assert.deepEqual(session.graph().nodes.map((node) => node.id), ["fake-session", "fake-child-grok"]);
   assert.deepEqual(session.graph().edges, [{ parent: "fake-session", child: "fake-child-grok", via: "tool_call" }]);
   const vendor = session.records().filter((record) => record.kind === "event" && record.body.type === "_x.ai/session_notification");
-  assert.equal(vendor.length, 5, "spawned, progress, the child's response_completed + turn_completed, finished — each recorded verbatim");
+  assert.equal(vendor.length, 5, "spawned, progress, the child's response_completed + turn_completed, finished: each recorded verbatim");
   const lifecycle = vendor.filter((record) => record.sessionId === "fake-session");
   assert.deepEqual(
     lifecycle.map((record) => (record.kind === "event" ? asRecord(asRecord(record.body.native)?.update)?.sessionUpdate : null)),
@@ -113,8 +113,8 @@ test("a grok child session gets its graph edge from the vendor session_notificat
     sessionId: "fake-session",
     update: { sessionUpdate: "subagent_spawned", subagent_id: "fake-child-grok", parent_session_id: "fake-session", child_session_id: "fake-child-grok", subagent_type: "general-purpose", description: "Echo", model: "fixture-model-x" },
   });
-  // The child's own frames — standard updates AND the vendor ledgers whose
-  // envelope names the child (live seqs 78, 119, 120) — carry the child's id.
+  // The child's own frames (standard updates AND the vendor ledgers whose
+  // envelope names the child, live seqs 78, 119, 120) carry the child's id.
   const child = session.records().filter((record) => record.sessionId === "fake-child-grok");
   assert.deepEqual(child.map((record) => describe(record)), [
     "event user_message_chunk",
@@ -178,7 +178,7 @@ test("the same push on an unlisted method is a frame oar never sees (the SDK dis
 
 // live-grok-b/steer.voyage.jsonl: the cancelled answer (seq 63) bills its one
 // model call (16776/222), the closing answer (seq 158) ITS OWN two calls
-// (34420/279, `modelCalls: 2`) — two per-prompt ledgers, so the session sum
+// (34420/279, `modelCalls: 2`): two per-prompt ledgers, so the session sum
 // is 51196/501 and neither call is counted twice.
 test("a send-now steer's two answers are two per-prompt ledgers: summed once, stamped cumulative", async () => {
   const session = await start({ ...grokProfile, steerParams: () => ({ _meta: { sendNow: true } }) });

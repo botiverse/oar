@@ -54,7 +54,7 @@ is the turn's end. The adapter declares `capabilities: { steer: true, queue:
 
 | Native concept or boundary | Current OAR mapping |
 |---|---|
-| Thread identity | `Session.id` is the native thread id; the `thread/start` / `thread/resume` reply is the open event record (`type` = the method), carrying the `model` view. Frames the app-server sends before that reply — notifications and server requests alike — are held in one queue and recorded ahead of it in wire order; the open event sits at the reply's own wire position, so frames codex writes after the reply (`thread/started`) follow it whatever the chunking. |
+| Thread identity | `Session.id` is the native thread id; the `thread/start` / `thread/resume` reply is the open event record (`type` = the method), carrying the `model` view. Frames the app-server sends before that reply (notifications and server requests alike) are held in one queue and recorded ahead of it in wire order; the open event sits at the reply's own wire position, so frames codex writes after the reply (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` view: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
 | Items and notifications | One event per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage`; everything else is an event with no views. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The response is recorded as the reply line is read, so it sits before notifications codex wrote after it. |
@@ -121,9 +121,9 @@ event lands at seq 7), and it recalls the earlier transcript (live-contract
 the stream and no cursor from the previous process is valid; nothing restores
 observer positions or a controller lease. After resume the first `turn/start`
 is preceded by a `thread/tokenUsage/updated` carrying the PREVIOUS turn's id
-and the thread's cumulative total, then `thread/goal/cleared` ([env] 0.154.0)
-— totals accumulate across processes, so `usage()` on a resumed session
-includes earlier turns.
+and the thread's cumulative total, then `thread/goal/cleared` ([env]
+0.154.0). Totals accumulate across processes, so `usage()` on a resumed
+session includes earlier turns.
 
 A thread with no completed turn has no persisted rollout to resume.
 Missing/unloadable threads reject through RPC; OAR retains the error message
@@ -145,7 +145,7 @@ inert (see observation).
 **Prompt (mapped):** native `turn/start { threadId, input }` returns
 `{ turn: { id } }`; later notifications establish completion. `prompt(string)`
 records a `prompt` request, sends one text input, and records the RPC reply as
-the `accepted` response — or `rejected` with the RPC error message, `rejected:
+the `accepted` response, or `rejected` with the RPC error message, `rejected:
 codex turn/start returned no turn id`, or `rejected: busy` while a root turn
 is active (including a queued turn codex started on its own). Completion is
 codex's `turn/completed` with a `turn_ended` view, exactly one per prompt
@@ -158,7 +158,7 @@ schema, or per-turn configuration is exposed. [Adapter][oar-session].
 **Steer (mapped, landing observed):** native `turn/steer { threadId,
 expectedTurnId, input }` binds input to the expected active turn; OAR supplies
 the retained native turn id. The `{ turnId }` reply is the `accepted` response
-— delivery ownership, not model attention; every RPC error is `rejected` with
+(delivery ownership, not model attention); every RPC error is `rejected` with
 a reason prefixed `not_steerable:` (operational failures included), and with
 no active turn the gate answers `not_steerable: no active turn`. A steer
 accepted while the turn's first tool ran appeared as a `userMessage` item
@@ -168,8 +168,8 @@ inside the same turn and shaped its final text (`ALPHA BRAVO MANGO`), with one
 
 **Queue (mapped, `durable: true`):** native queue operations have submission
 identities and inspection/editing methods. `queue()` calls `thread/queue/add
-{ threadId, input, clientUserMessageId: <uuid> }` and keeps the reply —
-`queuedSubmission { id, input, clientUserMessageId }` — as the accepted
+{ threadId, input, clientUserMessageId: <uuid> }` and keeps the reply
+(`queuedSubmission { id, input, clientUserMessageId }`) as the accepted
 response's `native`; inspection/editing are not exposed. Codex emits
 `thread/queue/changed` at add and at drain, and the drained turn is a
 spontaneous turn: `turn/started` … `turn/completed` with no prompt request of
@@ -184,12 +184,12 @@ queued submission after process death; that half of the durability claim is
 execution; `turn/completed` reports whether the interrupt won the race.
 `abort()` records an `abort` request; the interrupt reply (`{}`) is its
 `accepted` response and an RPC error (the turn already finished) is a
-`rejected` response with the runtime's message — a recorded race, not a
+`rejected` response with the runtime's message: a recorded race, not a
 swallowed error. The outcome is `turn/completed`'s status: `interrupted` →
 `aborted`. With nothing active, `abort()` is `rejected: no active turn`. The
-reply is recorded after the frames codex wrote in the meantime — the raw
+reply is recorded after the frames codex wrote in the meantime (the raw
 `function_call_output` `"Wall time: 2.2 seconds\naborted by user"`, a usage
-update and rate limits — and `turn/completed { status: "interrupted", items:
+update and rate limits), and `turn/completed { status: "interrupted", items:
 [] }` follows; the interrupted `commandExecution` item gets no
 `item/completed`, so its `tool_call_started` has no `tool_call_ended`
 (live-contract `abort`). After a turn has ended: a second prompt during a
@@ -208,7 +208,7 @@ observers and `turnEndAfter` reads `failed: runtime exited` (live-contract
 control over persisted history. When the app-server dies on its own (SIGKILL
 mid-tool) the stream gets `exited { code: null }` with `requestId: ""`; every
 later prompt/steer/queue/abort is `rejected: runtime exited`, and a later
-`dispose()` is answered `accepted` — nothing is left to release
+`dispose()` is answered `accepted`; nothing is left to release
 (live-contract `kill-runtime`). Both reachability answers (`runtime exited` /
 `session disposed`) are the shared kernel's, read off the stream before the
 adapter's own gates (busy, no active turn) run; the adapter keeps no liveness
@@ -223,7 +223,7 @@ stream from the resume result. Every notification enters the stream verbatim
 (`native` is the params object) with a session-local `seq`, ingress
 `receivedAt`, and the native turn id as `spanId`; `subscribe(observer,
 { sessionId, afterSeq })` replays the retained records of this process, then
-continues live — a mid-turn subscribe's replay plus live delivery is
+continues live; a mid-turn subscribe's replay plus live delivery is
 contiguous with the log, and a full replay equals `records()` (live-contract
 `cursor`). There is no cross-process cursor, catch-up from codex's rollout, or
 backpressure. Tool detail: a `commandExecution` item yields `tool_call_started`
@@ -239,10 +239,10 @@ views come from the `rawResponseItem/completed` frames it enables
 (`item/started|completed` reasoning items carry no view). The generated
 protocol schema (`codex app-server generate-json-schema`, [env] 0.154.0) lists
 the flag on neither `ThreadStartParams` nor `ThreadResumeParams`, yet
-`thread/start` with it yields raw frames — every turn opens with the raw
+`thread/start` with it yields raw frames: every turn opens with the raw
 `message` items codex sent (developer skills/plugin instructions, the user
 prompt), then reasoning / `function_call` / `function_call_output` / assistant
-message items — while a resumed thread yields none, and sending the flag on
+message items, while a resumed thread yields none, and sending the flag on
 `thread/resume` is inert: a resumed stream shows only `item/started|completed`
 reasoning with empty summary/content, so there are no `reasoning` views after
 resume. On `gpt-5.3-codex-spark` every reasoning step is `item/started` +
@@ -273,7 +273,7 @@ by build):
   live-contract `subagent`).
 - No child `thread/started` is sent (the root's carries `parentThreadId:
   null`); the child first appears as `thread/status/changed` (idle → active →
-  idle) with its own `threadId` — on 0.154.0 before the spawn item names it,
+  idle) with its own `threadId` (on 0.154.0 before the spawn item names it),
   so the graph node precedes the edge. The child then emits its own
   `warning`, `mcpServer/startupStatus/updated` ×4, `turn/started`, items,
   `rawResponseItem/completed` (raw events are on for the child),
@@ -285,8 +285,8 @@ by build):
   `subAgentActivity { kind: "interacted", agentThreadId: <root>, agentPath:
   "/root" }` once, filtered because it names the parent. 0.154.0 (Spark,
   `multi_agent` stable/on, `multi_agent_v2` off) emitted only
-  `collabAgentToolCall` — `tool: "spawnAgent"` and `"wait"`, no
-  `subAgentActivity`, no `collabToolCall` — with `senderThreadId` (root),
+  `collabAgentToolCall` (`tool: "spawnAgent"` and `"wait"`, no
+  `subAgentActivity`, no `collabToolCall`) with `senderThreadId` (root),
   `receiverThreadIds` (`[]` on the spawn `item/started`, the child id on its
   `item/completed` and on both `wait` frames), `agentsStates` keyed by child
   id (`pendingInit` → `completed` with the child's final message), `prompt`,
@@ -314,8 +314,8 @@ by build):
 ### Models, instructions, and context
 
 **Mapped:** `model` on open selects the model for `thread/start` /
-`thread/resume`; `model()` folds the `model` view of the open reply — the
-runtime's readback, available at open — and a mismatch between an explicit
+`thread/resume`; `model()` folds the `model` view of the open reply (the
+runtime's readback, available at open), and a mismatch between an explicit
 request and the readback fails the open. Opening with a model that does not
 exist succeeds (the slug is read back, with a `warning`); the first
 `turn/start` is accepted, then `thread/status/changed { type: "systemError" }`,
@@ -345,7 +345,7 @@ still exits 0 with its built-in fallback list, so the lister never reports
 **Context (mapped):** native usage separates `total`, `last`, and nullable
 `modelContextWindow`. Each `thread/tokenUsage/updated` is an event with a
 `usage` view: `context` = `last.totalTokens` (the last model call's input,
-cached tokens included, plus its output — what the context holds once the
+cached tokens included, plus its output: what the context holds once the
 reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
 = `total` input/output, the cumulative figure for the root thread.
 `last.totalTokens` is codex's own occupancy reading:
@@ -354,15 +354,15 @@ status card reads it off `last_token_usage` (`protocol/src/protocol.rs` at
 [`4f39251a`][native-source]); codex's displayed percent additionally subtracts
 a 12k `BASELINE_TOKENS`, which oar does not. When `last` is absent (older
 builds) the occupancy is unknown: the cumulative input stands in as `tokens`
-and the window and percent are null — the cumulative total is never read
+and the window and percent are null: the cumulative total is never read
 against the window; when only the window is absent, `tokens` is `last`'s and
 the window/percent are null. `contextUsage()` and `usage()` are folds over
 these views, scoped to the root session.
 
 The two figures diverge live: over three one-word turns `total.inputTokens`
 grew 12661 → 28404 → 44166 while `last.totalTokens` stayed 12684 → 15749 →
-15768 (`last.inputTokens` 12661 → 15743 → 15762) against a 121600 window —
-the cumulative total is spend, not occupancy; `contextUsage()` reads about
+15768 (`last.inputTokens` 12661 → 15743 → 15762) against a 121600 window.
+The cumulative total is spend, not occupancy; `contextUsage()` reads about
 11 % (13597 / 121600 after a basic turn) while `usage()` climbs per turn
 (live-contract `multi-turn`, `basic`;
 [replay test](../../tests/replay/codex-projection.test.ts)). One notification
@@ -371,7 +371,7 @@ arrives per model call, so a tool turn reports twice. Native manual compaction
 test defers compaction survival until it does. `account/rateLimits/updated`
 follows each model call and has no view ([env] 0.154.0: `limitId: "codex"`,
 `planType: "pro"`, primary 300-min and secondary 10080-min windows; the
-notification reflects the thread model's own windows — a Spark thread
+notification reflects the thread model's own windows: a Spark thread
 reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
 88 %). [Thread schema][thread-schema], [usage projection][oar-context].
 
@@ -381,12 +381,12 @@ App-server supports native policy plus server requests for command/file/permissi
 decisions, user input, MCP elicitation, and experimental dynamic tools. OAR
 records each server request as a `toApp` request record and never answers it:
 it sets `approvalPolicy: never` and launches with `-c
-sandbox_mode="danger-full-access"` — the launch override is the only seam that
+sandbox_mode="danger-full-access"`; the launch override is the only seam that
 governs codex's exec tool (`thread/start.sandboxMode` does not; pinned on a
 real login). `OAR_CODEX_SANDBOX` pins a stricter mode, and
 `OAR_CODEX_SANDBOX=inherit` skips the override so the user's own configuration
 wins. Configurations requiring interactive settlement have no supported OAR
-interaction path — the dangling request is the honest record
+interaction path: the dangling request is the honest record
 ([stream tests](../../tests/codex/codex-session-stream.test.ts)); none arrived
 in any live run.
 
@@ -406,7 +406,7 @@ persisted thread. The environment overlay applies to the child process.
 
 Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
 desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
-per-user installs), and requires `codex app-server --help` to succeed — a
+per-user installs), and requires `codex app-server --help` to succeed; a
 codex without the app-server surface is unsupported. Account usage is a
 separate reader on its own app-server process (`initialize`, `account/read`,
 `account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
@@ -431,7 +431,7 @@ edges, the error-detail fold and the context/usage split
 session's turn end and usage never satisfy the root folds
 ([folds](../../tests/observe-folds.test.ts)); resume parameters and model
 mismatch ([resume](../../tests/codex/codex-session-resume-model.test.ts));
-the stream shape — request/response ordering, busy, steer, queue and abort
+the stream shape: request/response ordering, busy, steer, queue and abort
 replies, a refused interrupt, an unanswered server request, an unrequested
 exit ([stream](../../tests/codex/codex-session-stream.test.ts)); pre-open
 ordering, the open event ahead of a same-chunk `thread/started`, and control
@@ -448,8 +448,8 @@ Open gaps:
 - Compaction: the per-call context reading is verified; context after native
   compaction and instruction survival through it are not, and
   `thread/compact/start` is unreachable through the Session API.
-- Resumed reasoning visibility: blocked — raw events cannot be enabled on
-  `thread/resume`, so a resumed session has no `reasoning` views.
+- Resumed reasoning visibility: blocked because raw events cannot be
+  enabled on `thread/resume`, so a resumed session has no `reasoning` views.
 - Queue durability across process death: only the drained subsequent turn is
   verified.
 - Server requests are recorded, never answered; no configuration requiring

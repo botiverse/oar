@@ -1,5 +1,5 @@
 /**
- * PHASE MATRIX FOR CLAUDE STREAM-JSON MID-TURN INPUT — where exactly can a
+ * PHASE MATRIX FOR CLAUDE STREAM-JSON MID-TURN INPUT: where exactly can a
  * message be injected, and what does the model actually see?
  *
  * Extends claude-stream-json-input.ts with sharper questions:
@@ -8,7 +8,7 @@
  *   2. Visibility, both directions:
  *      - isolation: turn A's model must NOT see the injected messages
  *        (A is told to shout CONTAMINATED if it ever sees the markers)
- *      - continuity: the injected turns MUST see A's complete transcript —
+ *      - continuity: the injected turns MUST see A's complete transcript,
  *        including tool output produced AFTER the injection moment.
  *   3. Ordering: two injections at different moments must run FIFO.
  *
@@ -20,12 +20,12 @@
  *
  * thinking (8/8 runs across sessions): injection during thinking of a
  * single-step turn is accepted and runs as the NEXT turn; turn A unpolluted.
- * One run's reply was "CONTAMINATED" — the second turn applying turn A's
+ * One run's reply was "CONTAMINATED": the second turn applying turn A's
  * standing tripwire rule to the marker-bearing message, which is itself
  * continuity evidence, hence mustIncludeAny.
  *
  * tool-visibility (4/4): a message injected while tool #1 of a three-tool turn
- * executes IS SEEN BY THE ACTIVE TURN's model — the tripwire fired
+ * executes IS SEEN BY THE ACTIVE TURN's model: the tripwire fired
  * ("CONTAMINATED"), the turn stopped its plan, and the injected message
  * produced NO separate result frame within a 10s grace window.
  *
@@ -35,10 +35,10 @@
  *
  * UNIFIED SEMANTICS (corrects claude-stream-json-input.ts's conclusion):
  * claude stream-json input is accept-anytime, apply-at-next-model-step-
- * boundary of the ACTIVE turn — i.e. STEER, the same timing class as codex
+ * boundary of the ACTIVE turn, i.e. STEER, the same timing class as codex
  * turn/steer and pi's steering queue. A "queued as next turn" outcome happens
  * only when the turn has no remaining step (single-step turns / idle). Caveats
- * vs codex: no ack, no id, no typed rejection, no expectedTurnId equivalent —
+ * vs codex: no ack, no id, no typed rejection, no expectedTurnId equivalent;
  * where an injected message landed is observable only from transcript framing.
  */
 import { spawn } from "node:child_process";

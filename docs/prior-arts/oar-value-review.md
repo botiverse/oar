@@ -56,7 +56,7 @@ backend unavailable 会 exit 0；缺 optional capability 的 case 为 skipped；
 | 假设 | 如何验证 | 失败信号 |
 |---|---|---|
 | 能减少集成工作 | 让 2 个独立消费者各接入至少 2 个 runtime，记录首个完整用例耗时、vendor-specific 分支/escape-hatch、升级后的消费者改动量；与 native SDK/ACP 方案对比 | 用 OAR 后仍需维持几乎相同的 vendor glue，或更难调试 |
-| 修一次可多人收益 | 连续追踪约 6–8 周真实 runtime 升级，记录被 CI 提前检出的 breaking changes、修复时延、消费者是否可只升级包而不改业务代码 | 各 consumer 仍须私有 fork/补丁；维护速度追不上各 vendor |
+| 修一次可多人收益 | 连续追踪约 6-8 周真实 runtime 升级，记录被 CI 提前检出的 breaking changes、修复时延、消费者是否可只升级包而不改业务代码 | 各 consumer 仍须私有 fork/补丁；维护速度追不上各 vendor |
 | record 协议的归属/保真是刚需 | 最少两个明确消费场景，重放 runtime raw fixture 后核对未知字段、child attribution、会话图/恢复前后投影；测试完整数据而非只 event-kind snapshot | 用户实际只用 text/tool feed，graph/raw/cursor 不能减少业务 bug，却使 API 明显复杂 |
 | conformance 是可信资产 | mandatory backend 在 CI 未运行则失败；分列 pass/skip/unsupported；维护 capability × runtime × OS × version 的执行证据 | 绿色主要来自 skip 或容许 silent unsupported，强 steering/resume/child 场景长期只靠手工 probe |
 | 独立库优于 ACP 组合 | 用同一目标 feature 比较 OAR 与公开 ACP adapters，量化 OAR 独有可观察数据、兼容成本和迁移成本 | ACP 标准/adapter 已足够且更快支持新能力，OAR 只重复包装还引入一轮版本滞后 |

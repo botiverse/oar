@@ -7,8 +7,8 @@ import type {
 
 /**
  * Query = projection over the stream. Model, token usage and context
- * fullness are folds over seq-carrying records — never a second source of
- * truth held beside the stream — so every answer can be aligned with the
+ * fullness are folds over seq-carrying records, never a second source of
+ * truth held beside the stream, so every answer can be aligned with the
  * record that produced it and reproduced from a replay.
  *
  * Scope: one session. A derived child session (codex child thread, grok child

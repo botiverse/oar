@@ -1,5 +1,5 @@
 /**
- * FIRST CONTACT WITH A REAL RUNTIME — the point is what it proves, not that it
+ * FIRST CONTACT WITH A REAL RUNTIME: the point is what it proves, not that it
  * passes.
  *
  * Everything else in this repository is a type. Types cannot be wrong in a way
@@ -19,23 +19,23 @@
  *
  * Launch is `codex app-server --listen stdio://`, newline-delimited JSON-RPC.
  * Handshake is `initialize` -> response -> `initialized`, so this runtime earns
- * `readiness: { kind: "handshake_event" }` — the strongest kind. It does not
+ * `readiness: { kind: "handshake_event" }`: the strongest kind. It does not
  * have to settle for `process_spawned`.
  *
- * ⭐ FINDING 1 — the handshake field echoes the CLIENT's own input.
+ * ⭐ FINDING 1: the handshake field echoes the CLIENT's own input.
  *   Sending clientInfo.name = "oar-probe" produced
  *   userAgent: "oar-probe/0.144.6 (Mac OS 26.5.1; arm64) ... (oar-probe; 0.0.0)".
  *   Asserting the field is PRESENT is sound. Asserting its CONTENT would be
- *   matching a string we supplied ourselves — a check that passes because of its
+ *   matching a string we supplied ourselves: a check that passes because of its
  *   own input is not a check. Written down because the tempting "improvement" is
  *   the unsafe one.
  *
- * ⭐ FINDING 2 — the default is SHARED credentials, not isolated ones.
+ * ⭐ FINDING 2: the default is SHARED credentials, not isolated ones.
  *   The response reports codexHome = the ambient ~/.codex. So `LaunchSpec.env`
  *   isolation is load-bearing, not a nicety: absent an override, two runtimes
  *   share one credential directory.
  *
- * ⚠️ FINDING 3 — unsolicited traffic. A `remoteControl/status/changed`
+ * ⚠️ FINDING 3: unsolicited traffic. A `remoteControl/status/changed`
  *   notification arrives after the response. `normalise()` must tolerate
  *   messages nobody requested; a reader assuming request/response pairing will
  *   desync.
@@ -90,7 +90,7 @@ function inspectResponse(message: unknown): void {
   check(result !== undefined, "initialize returned an error rather than a result");
   check(typeof readField(result, "userAgent") === "string",
     "initialize response is missing the userAgent handshake field");
-  // Deliberately not asserting userAgent's content — see FINDING 1.
+  // Deliberately not asserting userAgent's content; see FINDING 1.
   check(typeof readField(result, "codexHome") === "string",
     "initialize response is missing codexHome (needed to reason about isolation)");
   child.stdin.write(frame({ jsonrpc: "2.0", method: "initialized", params: {} }));
@@ -138,7 +138,7 @@ function report(code: number | null, signal: string | null): void {
     }
     process.exit(1);
   }
-  console.log("\nPASS — a real codex runtime completed a handshake with no daemon present.");
+  console.log("\nPASS: a real codex runtime completed a handshake with no daemon present.");
 }
 
 child.stdout.on("data", (chunk: Buffer) => {
@@ -154,7 +154,7 @@ child.stderr.on("data", (chunk: Buffer) => {
 });
 
 /**
- * ⚠️ TERMINAL BY CONSTRUCTION — the first version got this wrong and the
+ * ⚠️ TERMINAL BY CONSTRUCTION: the first version got this wrong and the
  * negative control caught it.
  *
  * When spawn fails (codex absent from PATH) Node emits `error` and may never
@@ -162,7 +162,7 @@ child.stderr.on("data", (chunk: Buffer) => {
  * NOTHING and exited 0: it passed loudest exactly when the runtime it exists to
  * contact was absent entirely.
  *
- * That is this project's own thesis reproduced in its own instrument — an
+ * That is this project's own thesis reproduced in its own instrument: an
  * absence reported as a success. Kept as a comment because the next probe author
  * will reach for the same shape.
  */

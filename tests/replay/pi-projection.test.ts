@@ -14,7 +14,7 @@ import { parseJson } from "../../packages/oar/src/shared/json.js";
 
 /**
  * Record/replay for pi. pi has no bare-metal provider here, so the fixture is
- * REAL pi SDK events recorded with a scripted provider (pi-aimock) — same
+ * REAL pi SDK events recorded with a scripted provider (pi-aimock): same
  * fidelity as the pi-aimock behavior tests; the event SHAPES are pi's own.
  * The recorded events fold through the production projection; the
  * type|record table snapshots to a FILE beside the input. Every SDK event
@@ -52,7 +52,7 @@ function parseEvent(line: string): AgentSessionEvent {
 function foldLine(state: PiProjectionState, line: string): { state: PiProjectionState; row: string } {
   const event = parseEvent(line);
   const { state: next, commands } = foldPiEvent(state, event);
-  const produced = commands.map((command) => describeCommand(command)).join(", ") || "—";
+  const produced = commands.map((command) => describeCommand(command)).join(", ") || "-";
   const label = event.type === "message_update" ? `${event.type}:${event.assistantMessageEvent.type}` : event.type;
   return { state: next, row: `${label.padEnd(30)} │ ${produced}` };
 }

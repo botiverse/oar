@@ -35,11 +35,11 @@ function sameLane(held: EventRecord, next: EventRecord): boolean {
  * Optional consumer-side aggregation: wrap an observer so consecutive
  * text/reasoning deltas of one agent arrive as one merged record instead of a
  * token stream. A merged record flushes when the view kind or agent changes,
- * a non-delta record arrives, or — when `maxHoldMs` is set — the stream goes
+ * a non-delta record arrives, or (when `maxHoldMs` is set) the stream goes
  * quiet for that long (a stalled model pause must not hold text hostage;
  * order is safe because only consecutive same-lane deltas are ever held). It
  * carries the LAST delta's envelope and native frame with the concatenated
- * text. Purely a decorator over the side-tap — adapters and the kernel are
+ * text. Purely a decorator over the side-tap: adapters and the kernel are
  * unaware, and the retained log keeps every original record.
  */
 export function aggregateDeltas(

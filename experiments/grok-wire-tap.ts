@@ -1,5 +1,5 @@
 /**
- * GROK RAW WIRE TAP — every JSON-RPC line between OAR and the real
+ * GROK RAW WIRE TAP: every JSON-RPC line between OAR and the real
  * `grok agent stdio` binary, both directions, versus what reached the record
  * stream.
  *
@@ -18,8 +18,8 @@
  * real binary line by line and appends `{t, dir, line}` to GROK_TAP_LOG. Live
  * mode runs two prompts from a scratch cwd under /tmp (yolo mode is selected
  * by the profile): a one-word reply and a `spawn_subagent` delegation. Offline
- * mode (`--tap-log <file> --voyage <file>...`) tallies an existing tap log —
- * e.g. one written while experiments/live-contract.ts ran through the shim —
+ * mode (`--tap-log <file> --voyage <file>...`) tallies an existing tap log
+ * (e.g. one written while experiments/live-contract.ts ran through the shim)
  * against the oar-voyage/2 logs of the same run.
  *
  * Run: pnpm tsx experiments/grok-wire-tap.ts [--keep] [--skip-subagent]
@@ -36,8 +36,8 @@
  * Inbound (agent→app) notifications: `session/update` carried ONLY standard
  * kinds (`available_commands_update`, `session_info_update`,
  * `agent_thought_chunk`, `agent_message_chunk`, `user_message_chunk`,
- * `tool_call`, `tool_call_update`) — for the root and for each child session
- * id alike — so the SDK's closed-union parse dropped nothing.
+ * `tool_call`, `tool_call_update`), for the root and for each child session
+ * id alike, so the SDK's closed-union parse dropped nothing.
  * `_x.ai/session_notification` has the same envelope shape
  * `{sessionId, update:{sessionUpdate}}` and is where every vendor kind
  * travels: `model_changed`, `session_summary_generated`,
@@ -49,7 +49,7 @@
  * session start `_x.ai/queue/changed`, `_x.ai/models/update`,
  * `_x.ai/settings/update`, `_x.ai/announcements/update`,
  * `_x.ai/mcp/servers_updated`, `_x.ai/mcp/init_progress`,
- * `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized` — those eight were
+ * `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized`: those eight were
  * MISSING from the stream in the first run (not in
  * GROK_EXTENSION_NOTIFICATIONS, so the SDK discarded them unseen) and
  * present with matching counts in the second, after they were listed.
@@ -64,7 +64,7 @@
  * parent_prompt_id, model, ...}}` (snake_case, nested under `update`);
  * `subagent_finished` names only `child_session_id` under the parent's
  * envelope. The adapter's graph edge (via "tool_call") appeared only after
- * records.ts learned that spelling — `graph().edges` was `[]` in the first
+ * records.ts learned that spelling; `graph().edges` was `[]` in the first
  * run and one parent→child edge in the second.
  */
 import assert from "node:assert/strict";

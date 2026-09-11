@@ -1,5 +1,5 @@
 /**
- * CLAUDE MODEL LIST — pins the stream-json `list_models` control request.
+ * CLAUDE MODEL LIST: pins the stream-json `list_models` control request.
  *
  * Claude exposes model listing on the control channel of the stream-json
  * transport, not as a CLI subcommand: send
@@ -15,9 +15,10 @@
  * without it the CLI errors before the control channel opens.
  *
  * The success response carries `models[]` with per-model: `value` (the
- * SELECTOR — an alias like "default", "opus[1m]", "sonnet", "haiku", or a
- * full ID) vs `resolvedModel` (the CONCRETE ID the alias resolves to today) —
- * the alias-vs-resolution distinction a unified contract must keep;
+ * SELECTOR: an alias like "default", "opus[1m]", "sonnet", "haiku", or a
+ * full ID) vs `resolvedModel` (the CONCRETE ID the alias resolves to
+ * today): the alias-vs-resolution distinction a unified contract must
+ * keep;
  * `displayName`, `description`, `supportsEffort`, `supportedEffortLevels`
  * (["low","medium","high","xhigh","max"] where supported),
  * `supportsAdaptiveThinking`, `supportsFastMode`, `supportsAutoMode`,
@@ -29,7 +30,7 @@
  * state AND installed CLI version, i.e. usable-now semantics.
  *
  * Unknown subtypes fail with "Unsupported control request subtype: X" and the
- * error does NOT enumerate valid subtypes — no discovery channel.
+ * error does NOT enumerate valid subtypes: no discovery channel.
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";

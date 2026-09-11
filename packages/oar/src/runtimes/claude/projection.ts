@@ -15,7 +15,7 @@ import { claudeContextUsageFromResult } from "./context-usage.js";
  * attribution, answer one of our control requests, surface a runtime→app
  * request) instead of touching the kernel itself. The live adapter applies
  * the commands to a real kernel; tests apply them to nothing and snapshot the
- * list. No transport, no side effects — so it is trivially unit-testable and
+ * list. No transport, no side effects, so it is trivially unit-testable and
  * shared verbatim between live and replay.
  *
  * Rules the fold enforces: EVERY frame becomes exactly one event record
@@ -34,11 +34,11 @@ export type ProjectionCommand =
 
 /**
  * Fold state. `abortRequested` is the one input that is NOT in the provider
- * stream — abort is a control-plane intent, and claude reports its result as
+ * stream: abort is a control-plane intent, and claude reports its result as
  * an ordinary result frame, so the flag is how the fold tells aborted from
  * completed. `agents` maps every tool_use id seen to the agentPath of the
  * message that carried it, so a frame with `parent_tool_use_id` attributes to
- * that tool call's agent plus the call — nested Task calls nest the path.
+ * that tool call's agent plus the call; nested Task calls nest the path.
  * `tokens` accumulates per-agent result usage so usage views are cumulative.
  */
 export interface ClaudeProjectionState {
@@ -222,7 +222,7 @@ export function foldClaudeStdout(
     }
     case "control_response": {
       // claude answering one of OUR control_requests (interrupt): the frame IS
-      // the response record (native verbatim) — one frame, one record, so it
+      // the response record (native verbatim); one frame, one record, so it
       // is not also recorded as an event. A control_response we cannot pair
       // is recorded as a plain event.
       const response = asRecord(message.response);

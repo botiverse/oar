@@ -28,7 +28,7 @@ export type { AcpSessionProfile } from "./profile.js";
 /*
  * ACP mapping onto the record stream (shared by grok and kimi; profiles carry the vendor bits):
  * - every `session/update` is ONE event record, native verbatim, for WHATEVER
- *   session id it names — a foreign id is a derived child session (records.ts).
+ *   session id it names: a foreign id is a derived child session (records.ts).
  * - vendor extension notifications the profile lists are recorded verbatim.
  * - runtime→app requests (permission, terminal) are toApp request records;
  *   oar's automatic answer is the matching `answered` response (client-app.ts).
@@ -95,7 +95,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // not_steerable). `runtime.closed` flips synchronously on the process's
     // exit, one microtask before the observer above records the `exited`
     // response: a control landing in that window would otherwise be decided
-    // here (rejected "ACP process exited") instead of by the gate — so the
+    // here (rejected "ACP process exited") instead of by the gate, so the
     // exit is let land first.
     const control = async (
       body: RequestBody,
@@ -140,7 +140,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
         if (gone) {
           // The exit is already recorded (an unrequested `exited` response, requestId "");
-          // nothing is left to release, so the dispose is answered here — as
+          // nothing is left to release, so the dispose is answered here, as
           // the claude and codex adapters do (kimi 0.42.0 kill-runtime run,
           // 2026-09-11: the dispose request stood unanswered before this).
           kernel.respond(disposeRequest.id, { kind: "accepted" });

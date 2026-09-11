@@ -8,28 +8,28 @@ small and links deeper instead of inlining.
 | [motivation.md](motivation.md) | Why does oar exist? What is the bet behind it? Who is it for? Why not use each harness directly? |
 | [hard-problems.md](hard-problems.md) | What exactly is hard about integrating an agent runtime? (15 problems, each with a real-runtime counterexample) |
 | [foundations.md](foundations.md) | Which of those problems are merely work, and which are foundations where an early mistake breaks consumers forever? |
-| [liveness.md](liveness.md) | "Is this agent alive or dead, and why?" — the stability question every multi-agent application hits |
+| [liveness.md](liveness.md) | "Is this agent alive or dead, and why?": the stability question every multi-agent application hits |
 
 Suggested order: motivation → hard-problems → foundations → liveness. Each
 stands alone if you only need one answer.
 
 Related material elsewhere in the repo:
 
-- [`../runtimes/`](../runtimes/README.md) — native programming interfaces, concepts, and current OAR mappings; the evidence used to design the abstraction.
-- [`../spec/`](../spec/README.md) — the concrete record-stream contract (record shapes, attribution, session graph, cursor), deliberately separate: design records *why*, spec records *what*.
-- [`../../packages/oar/src/README.md`](../../packages/oar/src/README.md) — source ownership model (contracts / runtimes / shared / observe).
-- [`../development.md`](../development.md) — the test estate and verification discipline that back the claims here.
-- [`../../experiments/README.md`](../../experiments/README.md) — live probes with conclusions; the empirical evidence base.
+- [`../runtimes/`](../runtimes/README.md): native programming interfaces, concepts, and current OAR mappings; the evidence used to design the abstraction.
+- [`../spec/`](../spec/README.md): the concrete record-stream contract (record shapes, attribution, session graph, cursor), deliberately separate, since design records *why* and spec records *what*.
+- [`../../packages/oar/src/README.md`](../../packages/oar/src/README.md): source ownership model (contracts / runtimes / shared / observe).
+- [`../development.md`](../development.md): the test estate and verification discipline that back the claims here.
+- [`../../experiments/README.md`](../../experiments/README.md): live probes with conclusions; the empirical evidence base.
 
 ## How to maintain these docs
 
 - These pages record settled design positions, not status. When a
   position changes, change the page in the same commit as the code that
-  changes it — a stale design doc is worse than none.
+  changes it; a stale design doc is worse than none.
 - Routing: *why* a position holds (principles, evidence, what must not go
   wrong) belongs here; *what* the contract is (record shapes, envelope,
   semantics) belongs in [`../spec/`](../spec/README.md). Don't restate
-  contract shapes here — link to the spec page instead.
+  contract shapes here; link to the spec page instead.
 - Native API behavior and its current OAR mapping belong in
   [`../runtimes/`](../runtimes/README.md). Link those facts when explaining
   a design choice; keep runtime internals only where they explain an

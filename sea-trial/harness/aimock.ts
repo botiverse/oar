@@ -13,7 +13,7 @@ export type { LLMock } from "@copilotkit/aimock";
  *
  * Gotchas learned in evaluation (2026-08-22):
  * - fixture string patterns are LITERAL; pass a RegExp for wildcards
- * - codex under a ChatGPT login ignores OPENAI_BASE_URL — it needs a
+ * - codex under a ChatGPT login ignores OPENAI_BASE_URL: it needs a
  *   CODEX_HOME config.toml declaring a custom provider with wire_api
  *   "responses" and apikey auth
  */
@@ -26,7 +26,7 @@ export type { LLMock } from "@copilotkit/aimock";
 export interface AimockEnv {
   /** Session env overlay pointing the runtime at this scripted provider (absent for in-process pi, which is re-pointed via OAR_PI_AGENT_DIR at startup). */
   readonly env?: Readonly<Record<string, string>>;
-  /** The scripted server itself — vendor tests read its journal when a run goes sideways. */
+  /** The scripted server itself. Vendor tests read its journal when a run goes sideways. */
   readonly mock: LLMock;
   stop(): Promise<void>;
 }
@@ -36,7 +36,7 @@ function baseFixtures(mock: LLMock): void {
   // short completion. Cases assert framing/invariants, not content.
   // A little latency keeps the model pace realistic; instant replies are a
   // chaos-experiment configuration, not a behavior baseline.
-  // Prompts mentioning "slow" get a LONG turn — the window the abort and
+  // Prompts mentioning "slow" get a LONG turn: the window the abort and
   // mid-turn-steer cases need. The two patterns are disjoint because aimock
   // picks among overlapping matches by turn position, not registration order.
   mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
@@ -73,7 +73,7 @@ export async function startCodexAimock(
     // override (its production YOLO default), so leaving it out of config.toml
     // means this backend actually exercises that path. codex's exec runs
     // under bubblewrap on Linux and GitHub runners forbid its netns setup
-    // ("bwrap: loopback: Failed RTM_NEWADDR" — run 32617471968), so the
+    // ("bwrap: loopback: Failed RTM_NEWADDR", run 32617471968), so the
     // adapter's danger-full-access default is what keeps CI green.
     "",
     "[model_providers.aimock]",
@@ -109,7 +109,7 @@ export async function startCodexAimock(
 async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<void> {
   // Resolve + spawn through the shared executable layer for the Windows
   // details (npm shims are .cmd files a raw spawn can't start). If codex is
-  // not installed at all, skip warming — the suite itself will skip later.
+  // not installed at all, skip warming; the suite itself will skip later.
   const command = resolveExecutable("codex");
   if (command === null) {
     return;
@@ -151,7 +151,7 @@ export async function startPiAimock(
   configure(mock);
   await mock.start();
   // pi is in-process: its model plane reads agentDir/models.json, not child
-  // env — so the re-point is a temp agentDir pinned via OAR_PI_AGENT_DIR
+  // env, so the re-point is a temp agentDir pinned via OAR_PI_AGENT_DIR
   // (process-wide, set once at suite startup; recipe live-verified in
   // experiments/pi-aimock.ts).
   const agentDir = await mkdtemp(path.join(tmpdir(), "oar-pi-aimock-"));

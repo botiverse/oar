@@ -1,7 +1,7 @@
 import { asRecord, parseJson } from "../shared/json.js";
 
 /**
- * Cross-runtime tool classification — the friendly-Activity utility. Each
+ * Cross-runtime tool classification: the friendly-Activity utility. Each
  * runtime names the same action differently (claude "Bash", codex
  * "commandExecution", pi "bash"); only OAR knows the mapping, so it lives
  * here. Pure: raw tool_call events stay the source of truth; a friendly view
@@ -113,7 +113,7 @@ const LABELS: Record<ToolActionKind, { running: string; done: string; failed: st
   other: { running: "Working", done: "Done", failed: "Failed" },
 };
 
-/** The human label for an action in a given lifecycle state — tense centralized here so views stay consistent. */
+/** The human label for an action in a given lifecycle state; tense centralized here so views stay consistent. */
 export function toolActionLabel(kind: ToolActionKind, state: "running" | "done" | "failed"): string {
   return LABELS[kind][state];
 }

@@ -19,7 +19,7 @@ function notify(process: FakeLineProcess, method: string, params: Record<string,
   process.emit(`${JSON.stringify({ method, params })}\n`);
 }
 
-/** turn/start: reply, start turn-1, and — unless the prompt is "hold" — stream a delta and complete; "ask" first sends a SERVER request (an approval). */
+/** turn/start: reply, start turn-1, and (unless the prompt is "hold") stream a delta and complete; "ask" first sends a SERVER request (an approval). */
 function scriptTurnStart(process: FakeLineProcess, params: JsonRecord): void {
   const input = asRecord((Array.isArray(params.input) ? params.input : [])[0])?.text;
   notify(process, "turn/started", { threadId, turn: { id: "turn-1" } });

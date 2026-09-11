@@ -31,7 +31,7 @@ function describe(record: SessionRecord): string {
 // Pinned live on claude 2.1.268 (experiments/live-contract.ts kill-runtime,
 // 2026-09-11): SIGKILL mid-turn yields an `exited` response pointing at no
 // request, the turn ends as runtime_exited for observers, and every later
-// control is rejected — a dead stdin must never take input over.
+// control is rejected: a dead stdin must never take input over.
 async function killedMidTurn(): Promise<{ session: Awaited<ReturnType<typeof claudeSession>>; promptSeq: number }> {
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);

@@ -86,7 +86,7 @@ function assertChildFoldsByItsOwnId(records: readonly SessionRecord[]): void {
   assert.equal(modelOf(records, CHILD), "child-model", "the child's own answers are in its own records");
   assert.deepEqual(usageOf(records, CHILD), { total: { input: 500, output: 50 } });
   assert.deepEqual(contextUsageOf(records, CHILD), { tokens: 500, contextWindow: null, percent: null });
-  assert.deepEqual(usageOf(records), { total: { input: 500, output: 50 } }, "unscoped, both sessions collide on agentPath [] — the reason the Session folds are scoped");
+  assert.deepEqual(usageOf(records), { total: { input: 500, output: 50 } }, "unscoped, both sessions collide on agentPath []: the reason the Session folds are scoped");
 }
 
 test("model, usage and contextUsage fold only the root session's records", () => {

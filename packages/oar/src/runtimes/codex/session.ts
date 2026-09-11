@@ -21,7 +21,7 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
  * - initialize → initialized, thread/start {cwd, approvalPolicy:never}
  * - turn/start {threadId, input} → {turn{id}}: the RPC reply is the prompt's
  *   accepted response; completion is codex's own turn/completed notification
- *   (turn.status completed | interrupted | failed) — the turn_ended view.
+ *   (turn.status completed | interrupted | failed): the turn_ended view.
  * - steer: turn/steer with the expectedTurnId precondition (race adjudicated
  *   at the runtime); a typed refusal is a rejected response.
  * - abort: turn/interrupt {threadId, turnId}; the reply is the abort's
@@ -41,7 +41,7 @@ interface CodexSessionState {
   active: RequestRecord | null;
   /** True while codex runs a root turn we did not prompt (a drained queue submission). */
   spontaneous: boolean;
-  /** The runtime's id for the active root turn — steer/abort identity. */
+  /** The runtime's id for the active root turn; steer/abort identity. */
   codexTurnId: string | null;
   projection: CodexProjectionState;
 }
@@ -51,7 +51,7 @@ export const codexSession: StartSession = async (installation, options) => {
     throw new Error("The codex session adapter needs an executable installation");
   }
   // YOLO default (repo policy 2026-08-24): bypass the sandbox too, not just
-  // approvals — OAR_CODEX_SANDBOX pins a stricter mode when a host wants one.
+  // approvals; OAR_CODEX_SANDBOX pins a stricter mode when a host wants one.
   // Injected as a launch -c override because that is the only seam that
   // governs codex's exec tool; thread/start.sandboxMode does NOT (pinned on a
   // real login). A host that wants the user's own config to win can set

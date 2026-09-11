@@ -5,7 +5,7 @@ import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-
  * Convenience layer over the public status reducer: fold the session's records
  * with reduceStatus, ask stallOf with the wall clock, and report when an
  * active turn has been silent for `stallAfterMs`. There is deliberately no
- * second state machine here — the reducer is the single source of truth.
+ * second state machine here; the reducer is the single source of truth.
  * Fires once per silence episode; the next record re-arms it. The embedder
  * decides what a stall means (surface, notify, or abort the session).
  */

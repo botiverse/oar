@@ -33,7 +33,7 @@ function describe(record: SessionRecord): string {
  * The app-server talks before the thread exists: on 0.144.6 an unsolicited
  * notification followed the initialize reply. Those frames are the runtime's
  * words too, so the client holds them until the adapter's handler exists and
- * the stream records them first, in arrival order — ahead of the open event.
+ * the stream records them first, in arrival order, ahead of the open event.
  */
 test("notifications and server requests sent before thread/start are recorded first, in order", async () => {
   const fake = fakeLineProcess((text, process) => {
@@ -91,7 +91,7 @@ test("a server request before a notification keeps its wire order ahead of the o
  * The thread/start reply and thread/started often share one stdout chunk.
  * The open event is marked at the reply's wire position (synchronously, as
  * the reply line is read), so the frame codex wrote right after the reply
- * lands after the open event — a promise continuation would have let it in
+ * lands after the open event; a promise continuation would have let it in
  * first.
  */
 test("the open event precedes a thread/started written in the same chunk as the reply", async () => {

@@ -2,7 +2,7 @@ import type { FailureClass } from "../contracts/session.js";
 
 /**
  * Best-effort classification of vendor error prose. The patterns are pinned
- * by the vendor snapshot tests — when a runtime changes its wording, the
+ * by the vendor snapshot tests: when a runtime changes its wording, the
  * snapshot moves and this table gets a conscious update.
  */
 export function classifyFailure(reason: string): FailureClass {

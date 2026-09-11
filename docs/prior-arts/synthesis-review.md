@@ -8,7 +8,7 @@
 
 ## 需要收紧的结论
 
-1. **A厂商适配/B会话控制观测应成库，C产品调度留宿主——不能理解为B所有内容天然都应进同一个库。** adapter能提供的事实（原生turn身份、accepted/rejected/unknown receipt、定向cancel、native permission request）与host能保证的事（durable acceptance、多控制者ownership、重启重放、任务幂等）不同。库可以提供可组合primitive和测试，不必内置一个存储/租约策略；反过来，如果库隐藏前一类事实，host无法安全实现后一类政策。Orca/Lody的恢复语义说明边界依赖双向契约，不能简单“故障全归C”。参考 [Orca findings](orca-findings.md) 与 [Lody findings](lody-findings.md)。
+1. **A厂商适配/B会话控制观测应成库，C产品调度留宿主：不能理解为B所有内容天然都应进同一个库。** adapter能提供的事实（原生turn身份、accepted/rejected/unknown receipt、定向cancel、native permission request）与host能保证的事（durable acceptance、多控制者ownership、重启重放、任务幂等）不同。库可以提供可组合primitive和测试，不必内置一个存储/租约策略；反过来，如果库隐藏前一类事实，host无法安全实现后一类政策。Orca/Lody的恢复语义说明边界依赖双向契约，不能简单“故障全归C”。参考 [Orca findings](orca-findings.md) 与 [Lody findings](lody-findings.md)。
 
 2. **权限不能整体归宿主而省掉运行层协议。** 请求源session/turn、答复作用范围、取消后过期请求、已回答去重是B的事实/控制契约；用户是否默认同意、权限配置模板属于C。OAR当前YOLO/deferred interactive settlement不仅是“暂不做产品策略”，也会挡住需要approval的真实下游。应将“暂不服务这类下游”或“补交互协议”作为明确选择，而非声称已可替换完整工作台接入层。依据 [OAR校准评审](oar-value-review.md)。
 

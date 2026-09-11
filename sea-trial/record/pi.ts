@@ -5,7 +5,7 @@ import type { RecordRequest } from "./claude.js";
 /**
  * pi has no bare-metal provider on dev machines, so we record REAL pi SDK
  * events (the shapes our fold consumes) with the provider scripted via
- * pi-aimock — same fidelity as the pi-aimock behavior tests. We keep the SDK
+ * pi-aimock: same fidelity as the pi-aimock behavior tests. We keep the SDK
  * event verbatim (it is already the scrubbed shape the projection reads).
  */
 export async function startPiRecording(request: RecordRequest): Promise<Record<string, unknown>[]> {

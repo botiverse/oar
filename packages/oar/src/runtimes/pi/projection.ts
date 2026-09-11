@@ -14,7 +14,7 @@ import { asNumber, asRecord } from "../../shared/json.js";
  * runtimes/claude/projection.ts). Every SDK event becomes exactly ONE event
  * command: the event object verbatim as `native`, `type` = its SDK type, and
  * the views oar read out of it. Nothing is gated on turn state and nothing
- * is dropped — the session-scoped events (compaction, queue, retry, …)
+ * is dropped; the session-scoped events (compaction, queue, retry, …)
  * enter the stream with no views, inside the turn they belong to. pi has no native turn id (no spanId) and no native sub-agents
  * (agentPath is always root).
  *
@@ -95,7 +95,7 @@ function foldMessageUpdate(
         ? { state: { ...state, reasoningHadText: true }, views: [{ kind: "reasoning", content: { kind: "text", text: inner.delta } }] }
         : { state, views: [] };
     case "error":
-      // pi's prompt() RESOLVES even when the provider errored — the failure
+      // pi's prompt() RESOLVES even when the provider errored; the failure
       // only surfaces here (pinned by the pi vendor 400 test).
       return { state: { ...state, providerError: inner.error.errorMessage ?? inner.reason }, views: [] };
     case "thinking_start":
@@ -134,7 +134,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
   switch (event.type) {
     case "agent_settled": {
       // pi's run-settled signal (agent-session.js _emitAgentSettled: it
-      // flips _isAgentRunActive off) is the turn's end — NOT agent_end, which
+      // flips _isAgentRunActive off) is the turn's end, NOT agent_end, which
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
       // progress"). The context read here is therefore post-compaction.

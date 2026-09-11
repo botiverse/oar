@@ -1,8 +1,8 @@
 import type { EventView, SessionRecord, TurnOutcome } from "../contracts/session.js";
 
 /**
- * status = fold(records). The reducer is pure — no clock, no IO — so status is
- * replayable from any record log and snapshot-testable. Time-qualified
+ * status = fold(records). The reducer is pure (no clock, no IO), so status
+ * is replayable from any record log and snapshot-testable. Time-qualified
  * judgments (stalled) are deliberately OUTSIDE the ontology: they are
  * fold(records) × clock, provided by `stallOf` next to it.
  *
@@ -11,7 +11,7 @@ import type { EventView, SessionRecord, TurnOutcome } from "../contracts/session
  * their own sessionId with agentPath []) never drive the root's phase; without
  * it, every root-agent record of any session is folded (single-session
  * streams). Phase transitions come from the root agent's own records only;
- * `lastEventAt` — the liveness clock — refreshes on EVERY record attributable
+ * `lastEventAt`, the liveness clock, refreshes on EVERY record attributable
  * to the session (child agents, child sessions, viewless frames), because a
  * delegated sub-agent working is not a stalled root.
  *

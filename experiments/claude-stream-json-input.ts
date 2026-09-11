@@ -1,5 +1,5 @@
 /**
- * FIRST CONTACT WITH CLAUDE STREAM-JSON INPUT — can stdin be written at any
+ * FIRST CONTACT WITH CLAUDE STREAM-JSON INPUT: can stdin be written at any
  * moment while the process lives, and what happens to a message written
  * mid-turn?
  *
@@ -23,7 +23,7 @@
  * Two runs (fast turn A; long streaming turn A with B written ~850ms before
  * A's result). Identical verdict both times:
  *
- * 1. stdin accepted writes at every phase — at spawn, mid-turn while the
+ * 1. stdin accepted writes at every phase: at spawn, mid-turn while the
  *    assistant was streaming, and while idle. `stdin.write` returned true each
  *    time; no rejection, no error event, no process death.
  * 2. The mid-turn write was NOT injected into the active turn: turn A's result
@@ -34,7 +34,7 @@
  * ⚠️ CORRECTED by claude-stream-json-phases.ts: the "queue semantics" read
  * below is an artifact of a SINGLE-STEP turn (no tool calls → no remaining
  * model-step boundary inside the turn). With multi-tool turns the same write
- * is delivered INTO the active turn at the next step boundary — steer
+ * is delivered INTO the active turn at the next step boundary: steer
  * semantics, same timing class as codex/pi. What stays true here: stdin is
  * writable at every phase, nothing is rejected or fatal, and each turn is
  * framed by its own system/init … result pair (clean Turn identity mapping).

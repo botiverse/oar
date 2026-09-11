@@ -44,7 +44,7 @@ function credentialsFilePath(): string {
  * Read Claude Code's persisted `/login` OAuth credential, mirroring the
  * `getClaudeAIOAuthTokens()` fallback: the plaintext credentials file (Linux,
  * and the macOS/Windows fallback), then the macOS Keychain, which stores the
- * same JSON blob. Any failure degrades to `null` — never throws.
+ * same JSON blob. Any failure degrades to `null`; never throws.
  */
 async function readStoredOAuth(timeoutMs: number): Promise<StoredOAuth | null> {
   try {

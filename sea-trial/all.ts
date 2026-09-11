@@ -1,4 +1,4 @@
-// Run several backends CONCURRENTLY — each is its own process (backend env
+// Run several backends CONCURRENTLY: each is its own process (backend env
 // setup is process-scoped by design, so processes are the isolation unit).
 // One invocation = one run directory (see harness/trace.ts): every backend's
 // trace and full output land together, plus a machine-readable report.json.
@@ -32,7 +32,7 @@ const results = await Promise.all(targets.map(async (target) => {
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
       for (const line of lines) {
-        if (/^(?:FAIL |SKIPPED )|clean$|— skipping$/u.test(line)) {
+        if (/^(?:FAIL |SKIPPED )|clean$|, skipping$/u.test(line)) {
           summary.push(line);
         }
       }

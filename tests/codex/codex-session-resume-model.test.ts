@@ -109,8 +109,8 @@ test("Session.model is null when the app-server answer carries no model", async 
   await session.dispose();
 });
 
-// A refused resume names the method — "no rollout found for thread id …"
-// alone would not tell a caller that resume was the thing that failed — and
+// A refused resume names the method ("no rollout found for thread id …"
+// alone would not tell a caller that resume was the thing that failed), and
 // the app-server started for it does not outlive the failure.
 test("a thread/resume the app-server refuses rejects naming thread/resume and kills the child", async () => {
   const fake = fakeLineProcess((text, process) => {

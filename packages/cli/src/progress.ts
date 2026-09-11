@@ -26,7 +26,7 @@ export function renderOutcome(outcome: TurnOutcome): string {
   return `[turn failed: ${outcome.failure}] ${outcome.reason}`;
 }
 
-// Returns the printable lines for one record — possibly none: control
+// Returns the printable lines for one record, possibly none: control
 // records, uninterpreted frames, redacted/empty reasoning and empty text
 // print nothing. A record with several views (one claude assistant message
 // with thinking + text + tool_use) prints one line per view, in frame order.

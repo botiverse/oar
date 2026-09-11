@@ -88,7 +88,7 @@ export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
  * a parent/child session pair links the session graph (records.ts).
  *
  * Observed on the live wire, grok 1.0.25 (f7e67d6988e2), 2026-09-11
- * (experiments/grok-wire-tap.ts): `_x.ai/session_notification` — the vendor
+ * (experiments/grok-wire-tap.ts): `_x.ai/session_notification`, the vendor
  * twin of `session/update` (`{sessionId, update: {sessionUpdate}}`) carrying
  * `model_changed`, `session_summary_generated`, `tool_call_delta_chunk`,
  * `pending_interaction`, `interaction_resolved`, `response_completed`,
@@ -99,7 +99,7 @@ export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
  * housekeeping `_x.ai/queue/changed`, `_x.ai/models/update`,
  * `_x.ai/settings/update`, `_x.ai/announcements/update`,
  * `_x.ai/mcp/servers_updated`, `_x.ai/mcp/init_progress`,
- * `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized` — all of which the tap
+ * `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized`, all of which the tap
  * showed on the wire but missing from the stream until listed here.
  *
  * Still [sym] only (in the binary's symbol table, never on a live wire):

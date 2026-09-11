@@ -88,7 +88,7 @@ async function listenProxy(hits: string[]): Promise<{ url: string; close: () => 
 // The observable effect, no external network: a local server stands in as
 // HTTP_PROXY, and after configuration a fetch to a host that does not exist
 // arrives there in proxy form (absolute-URL request line). Node's default
-// dispatcher ignores HTTP_PROXY / HTTPS_PROXY — the "fetch failed" the live
+// dispatcher ignores HTTP_PROXY / HTTPS_PROXY: the "fetch failed" the live
 // battery hit behind a proxy on 2026-09-11.
 test("after configurePiHttp, fetch goes through HTTP_PROXY like pi itself", async () => {
   const hits: string[] = [];

@@ -74,7 +74,7 @@ export async function startClaudeRecording(request: RecordRequest): Promise<Reco
         const next = pending.find((p) => !p.startsWith("+"));
         if (next === undefined) {
           // No more full-turn follow-ups (steers are sent on a timer, not
-          // queued here) — close stdin so the session ends.
+          // queued here); close stdin so the session ends.
           child.stdin.end();
         } else {
           pending.splice(pending.indexOf(next), 1);

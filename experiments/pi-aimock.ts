@@ -48,6 +48,6 @@ session.subscribe((event) => {
 });
 await session.prompt("hello");
 clearTimeout(timer);
-console.log("prompt resolved — turn completed");
+console.log("prompt resolved: turn completed");
 await mock.stop();
 process.exit(0);

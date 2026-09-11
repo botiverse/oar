@@ -1,7 +1,7 @@
 /**
  * Provider-independent authentication facade. Unlike a {@link Runtime} facet,
- * this describes the *provider* plane — the accounts and credentials a runtime
- * consumes (Anthropic, xAI, Moonshot, …) — which is orthogonal to which harness
+ * this describes the *provider* plane: the accounts and credentials a runtime
+ * consumes (Anthropic, xAI, Moonshot, …), which is orthogonal to which harness
  * runs them. Implementations wrap a credential/model backend (the built-in one
  * wraps Pi's `ModelRuntime`) without leaking its types.
  */

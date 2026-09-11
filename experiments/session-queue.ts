@@ -1,5 +1,5 @@
 /**
- * LIVE QUEUE — session.queue during an active turn runs as the NEXT turn
+ * LIVE QUEUE: session.queue during an active turn runs as the NEXT turn
  * (codex: native thread/queue; claude: adapter-held, drained at turn end),
  * surfaced as a spontaneous turn: records with no prompt request of their
  * own, ended by the runtime's own turn_ended.

@@ -7,7 +7,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 /**
  * Friendly-Activity specimen: run the tool calls from the REAL recorded
  * fixtures through classifyTool + toolActionLabel and snapshot the friendly
- * lines beside the raw tool names — the "raw event → friendly activity" view
+ * lines beside the raw tool names: the "raw event → friendly activity" view
  * the way coxswain will render it, pinned per runtime.
  */
 const here = import.meta.dirname;
@@ -49,7 +49,7 @@ function toolCallsFromCodex(lines: string[]): ToolCall[] {
 function render(calls: ToolCall[]): string {
   return `${calls.map((call) => {
     const action = classifyTool(call.runtime, call.tool, call.input);
-    return `${call.tool.padEnd(20)} │ ${toolActionLabel(action.kind, "running")}${action.detail === undefined ? "" : ` — ${action.detail.slice(0, 40)}`}`;
+    return `${call.tool.padEnd(20)} │ ${toolActionLabel(action.kind, "running")}${action.detail === undefined ? "" : `: ${action.detail.slice(0, 40)}`}`;
   }).join("\n")}\n`;
 }
 

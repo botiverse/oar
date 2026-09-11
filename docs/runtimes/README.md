@@ -113,9 +113,9 @@ comparison explicitly as unimplemented.
 [`../design/`](../design/README.md) records OAR's design reasoning;
 [`../spec/`](../spec/README.md) is the record-stream contract the
 adapters implement. These runtime pages record native facts and **current
-implementation** — which native frames become which records and views,
+implementation** (which native frames become which records and views,
 which controls are which requests, what each adapter declares in
-`capabilities` — and may expose reasons to revisit either. A contract
+`capabilities`) and may expose reasons to revisit either. A contract
 guarantee is not evidence that a particular adapter honors it live; the
 evidence sections say what was verified.
 [`experiments/`](../../experiments/README.md) keeps reproducible live probes;

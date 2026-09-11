@@ -61,7 +61,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     });
     try {
       // Full access ON PURPOSE: this test pins tool-call FRAMING, and
-      // sandboxed exec is platform-dependent (GitHub runners deny it — the
+      // sandboxed exec is platform-dependent (GitHub runners deny it: the
       // echoed marker never reaches the tool result and the staged fixtures
       // miss; root-caused via the request journal in CI run 32616926011).
       await withProcessEnv({ OAR_CODEX_SANDBOX: "danger-full-access" }, async () => {
@@ -145,9 +145,9 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       const types = records.map((record) => (record.kind === "event" ? record.body.type : `${record.kind}:${record.body.kind}`));
       // The open event is the thread/start reply; frames the app-server sent
       // before the thread existed (0.154.0: remoteControl/status/changed right
-      // after initialize) are held and recorded ahead of it — events, or
-      // toApp requests if the server asked something; no control of ours
-      // (a toRuntime request) can precede the open.
+      // after initialize) are held and recorded ahead of it: events, or toApp
+      // requests if the server asked something; no control of ours (a
+      // toRuntime request) can precede the open.
       const open = types.indexOf("thread/start");
       expect(open).toBeGreaterThanOrEqual(0);
       expect(records.slice(0, open).some((record) => record.kind === "request" && record.direction === "toRuntime")).toBe(false);

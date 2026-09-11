@@ -50,7 +50,7 @@ OAR read out of it. Control calls are request/response record pairs.
 | Persistent native session | `Session.id` preserves its ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0; no history rebuild). |
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are event records; the model they report is a `model` view, so `Session.model()` is a fold. |
 | Prompt delivery and native execution | `prompt()` is a `toRuntime` request answered accepted/`busy`; each `session/prompt` RPC answer is an event, and the one closing the turn carries the `turn_ended` view (newest request's outcome) plus a `usage` view. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
-| `session/update` notifications | One event per notification, `native` verbatim, for EVERY session id; views for message/thought/tool/usage/model updates, none for unknown kinds — nothing is dropped. |
+| `session/update` notifications | One event per notification, `native` verbatim, for EVERY session id; views for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
 | `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded verbatim with no views under the session id its envelope names; one naming a parent/child session pair links `Session.graph()` (`via: "tool_call"`). |
 | Native child sessions | An update or vendor frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier declared `nested`; `capabilities` are `{ steer: true, queue: { durable: false }, attribution: "nested" }`. |
 | Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. |
@@ -156,7 +156,7 @@ failed `turn_ended` (`runtime_exited` when the process died, else the
 classified reason). Around each prompt Grok pushes `_x.ai/sessions/changed`
 (`working`, then `idle`) and, after the answer's `turn_completed`, an
 `_x.ai/session/prompt_complete` (`promptId`, `stopReason`,
-`cancellationCategory`) — all events with no views.
+`cancellationCategory`); all are events with no views.
 [Turn machinery](../../packages/oar/src/shared/acp/turns.ts),
 [test](../../tests/acp/acp-session.test.ts).
 
@@ -218,7 +218,7 @@ with `_meta.eventId`, `promptId`, `totalTokens`, `chunkId`),
 (`live-contract/basic`). Views preserve text, reasoning, tool wire IDs, tool
 boundaries, context snapshots, and model reports; detail strings truncate at
 10,000 characters but `native` never does. Unknown updates are recorded with
-no views. A tool the runtime never ended gets no synthetic end — the turn's
+no views. A tool the runtime never ended gets no synthetic end; the turn's
 `turn_ended` view is the only closure.
 [Projection](../../packages/oar/src/shared/acp/projection.ts).
 
@@ -226,8 +226,8 @@ no views. A tool the runtime never ended gets no synthetic end — the turn's
 standard kinds (`available_commands_update`, `session_info_update`,
 `agent_thought_chunk`, `agent_message_chunk`, `user_message_chunk`,
 `tool_call`, `tool_call_update`), for the root and for each child id alike.
-`_x.ai/session_notification` is its vendor twin — same envelope
-`{sessionId, update: {sessionUpdate: <kind>, …}}` — and is where every
+`_x.ai/session_notification` is its vendor twin (same envelope
+`{sessionId, update: {sessionUpdate: <kind>, …}}`) and is where every
 non-standard kind travels: `model_changed`, `session_summary_generated`,
 `tool_call_delta_chunk`, `pending_interaction`, `interaction_resolved`,
 `response_completed` (per model call, snake_case usage), `turn_completed`
@@ -235,7 +235,7 @@ non-standard kind travels: `model_changed`, `session_summary_generated`,
 `last_turn_summary`, `background_tasks` (pushed by `session/resume`), and the
 sub-agent lifecycle. This split matters because the ACP SDK (1.4.0) client
 validates every `session/update` against a closed union of the standard kinds
-*before* any handler runs — a vendor kind on that method would be dropped
+*before* any handler runs; a vendor kind on that method would be dropped
 with an "Error handling notification" line on OAR's stderr. Grok does not do
 that; the hazard is latent, not observed. The SDK also routes only
 registered notification methods and silently discards the rest, so the
@@ -276,10 +276,10 @@ OAR keeps every frame regardless of session id: a foreign id becomes a
 child-session record (envelope `sessionId` = the child's, `agentPath []`, a
 node in `Session.graph()`), for `session/update` and vendor frames alike, so
 the child's ledgers land under the child and the parent's `subagent_*`
-lifecycle under the parent. A vendor frame naming a parent/child pair — in
+lifecycle under the parent. A vendor frame naming a parent/child pair (in
 either spelling (`parent_session_id`/`parentSessionId`) at either depth
-(`acpLineageOf`, [records.ts](../../packages/oar/src/shared/acp/records.ts))
-— links the graph `via: "tool_call"`; one child spawn yields two nodes and
+(`acpLineageOf`, [records.ts](../../packages/oar/src/shared/acp/records.ts)))
+links the graph `via: "tool_call"`; one child spawn yields two nodes and
 one edge. A child whose lineage notification was not observed stays a node
 without an edge; OAR never fabricates one. There is no child control handle.
 (`live-contract/subagent`; [wire-shape
@@ -293,7 +293,7 @@ reproduce under the wire tap, so its params are unrecorded; it does not reach
 the stream.
 
 **History:** the retained stream backs `subscribe(observer, cursor)` for the
-life of the process — a mid-turn subscribe with `afterSeq` replays exactly the
+life of the process; a mid-turn subscribe with `afterSeq` replays exactly the
 retained records and continues live; a full replay equals `records()`
 (`live-contract/cursor`). There is no native-history enumeration and no
 rebuild after the process died.
@@ -305,7 +305,7 @@ Native model discovery uses `_x.ai/models/list`; model selection uses
 handles the extra result envelope and filters hidden/unselectable entries
 (`grok-list-models.ts`). **Mapped:** open-time model selection applies
 `session/set_model` after the session opens, and `model()` folds the runtime's
-reports — `models.currentModelId` from `session/new`/`resume`, then the
+reports: `models.currentModelId` from `session/new`/`resume`, then the
 `set_model` answer's `_meta.model` (the applied id, never the request). A
 non-existent id is rejected `Invalid params`, so `session()` throws at open
 (`live-contract/bad-model`). The runtime default model is not stable across
@@ -338,7 +338,7 @@ ledger is what THAT prompt billed, summed over every model call the prompt
 caused, not a session total: repeated one-word turns bill about 16.8k input
 each; a send-now steer's two answers carry two disjoint ledgers (the
 cancelled prompt's one call, 16776/222, then the steering prompt's own two
-calls, 34420/279 with `modelCalls: 2` — the re-issued tool round plus the
+calls, 34420/279 with `modelCalls: 2`: the re-issued tool round plus the
 final answer), so summing both counts nothing twice; and a prompt that
 spawned a child bills the child's calls inside its own ledger (53321/355,
 `modelCalls: 4` = the parent's two and the child's two `response_completed`
@@ -347,8 +347,8 @@ own `turn_completed` reports 19280/96, `modelCalls: 2`). The adapter
 therefore accumulates only the
 root's prompt ledgers and stamps the running total on each answer's `usage`
 view; the root's `usage()` already covers the child's spend. The child's own
-ledgers — its `response_completed` per call, its `turn_completed`, and the
-parent's `subagent_progress`/`subagent_finished` `tokens_used` — are recorded
+ledgers (its `response_completed` per call, its `turn_completed`, and the
+parent's `subagent_progress`/`subagent_finished` `tokens_used`) are recorded
 verbatim (`native` only, child-envelope ones under the child's session id)
 and deliberately NOT folded a second time. (`live-contract/multi-turn`,
 `steer`, `subagent`; [wire-shape
@@ -369,7 +369,7 @@ turn opens with `tool_call` `title: "run_terminal_command"` and `rawInput`
 reverse requests (four `toApp` records with `answered` responses, terminal
 output payloads verbatim), and closes with a `tool_call_update` whose
 `rawOutput` is `{type: "Bash", output: [<bytes>], output_for_prompt:
-"exit: 0\n…"}` — a byte array, which the `tool_call_ended` view carries
+"exit: 0\n…"}`, a byte array that the `tool_call_ended` view carries
 JSON-encoded (`live-contract/tool-detail`). Under `--always-approve` no
 `session/request_permission` arrives, though Grok still pushes
 `pending_interaction`/`interaction_resolved` pairs; if one did, the
@@ -414,7 +414,7 @@ the thirteen scenarios cited by name; [`grok-wire-tap.ts`](../../experiments/gro
 compares the raw wire with the stream (which frames reach records; two
 notification methods; lineage shape; per-prompt ledgers). The battery's
 voyage recorder can write a late record (the post-`exited` terminal answer
-above) into the next scenario's log — a recorder hazard, not a stream one.
+above) into the next scenario's log: a recorder hazard, not a stream one.
 
 [ACP session tests](../../tests/acp/acp-session.test.ts) and
 [model/usage tests](../../tests/acp/acp-session-model-usage.test.ts) use a fake

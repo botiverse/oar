@@ -1,5 +1,5 @@
 /**
- * LIVE RUN OF THE CODEX SESSION ADAPTER — the contract path, not raw stdio.
+ * LIVE RUN OF THE CODEX SESSION ADAPTER: the contract path, not raw stdio.
  *
  * Three scenarios against the real logged-in codex through
  * runtimes/codex/session.ts:

@@ -8,8 +8,8 @@ import type { ControlResult, Session, SessionRecord, TurnOutcome } from "../cont
  *
  * Scope: the ROOT SESSION's ROOT AGENT. A derived child session's records
  * (codex child threads, grok child sessions) carry the child's own `sessionId`
- * and `agentPath []`; its `turn_ended` is that child's turn, not the root's —
- * observed live on codex 0.149.0, where the child's `turn/completed` reached
+ * and `agentPath []`; its `turn_ended` is that child's turn, not the root's.
+ * Observed live on codex 0.149.0, where the child's `turn/completed` reached
  * the stream BEFORE the root's.
  */
 
@@ -45,7 +45,7 @@ export function turnEndAfter(
 
 /**
  * Resolve with the first turn end of the session's root agent recorded after
- * `afterSeq` — from the retained log if it already happened, otherwise live.
+ * `afterSeq`, from the retained log if it already happened, otherwise live.
  * A derived child session's turn end never satisfies it.
  */
 export async function awaitTurnEnd(session: Session, afterSeq: number): Promise<TurnOutcome> {

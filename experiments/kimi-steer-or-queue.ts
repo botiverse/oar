@@ -1,5 +1,5 @@
 /**
- * KIMI steerOrQueue — the fallback path on a runtime that declares
+ * KIMI steerOrQueue: the fallback path on a runtime that declares
  * `capabilities.steer: false`.
  *
  * Why: `kimi acp` has no steer method (kimi-code acp-server exposes

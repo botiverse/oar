@@ -24,7 +24,7 @@ export interface RecordAt {
 }
 
 /**
- * The one record stream of a session, as every adapter builds it — the
+ * The one record stream of a session, as every adapter builds it: the
  * implementation of the contract in `contracts/records.ts` and
  * `contracts/session.ts` (semantics: `docs/spec/record-stream.md`,
  * `docs/spec/attribution.md`, `docs/spec/session-graph-and-cursor.md`).
@@ -37,17 +37,17 @@ export interface RecordAt {
  *   a cursor replays every retained record after `afterSeq`, then continues
  *   live (session-graph-and-cursor.md, "The resumable cursor");
  * - synchronous, never-awaited observer fan-out that swallows observer
- *   errors — observers are a side-tap and can never touch the run;
+ *   errors: observers are a side-tap and can never touch the run;
  * - the session graph of true sessions (`node()` / `link()` / `graph()`;
  *   session-graph-and-cursor.md, "The session graph");
  * - the control shape: `control()` records a `toRuntime` request, lets the
  *   adapter decide, and records the accept/reject response; and the
- *   reachability rule — once the stream holds an `exited` response or a
+ *   reachability rule: once the stream holds an `exited` response or a
  *   `dispose` request, control is rejected here without consulting the
  *   adapter (record-stream.md, "Reachability is read off the stream").
  *
  * What is deliberately NOT here: any gate on facts. Nothing in the kernel
- * decides whether a runtime frame may enter the stream — control never
+ * decides whether a runtime frame may enter the stream; control never
  * prunes facts (record-stream.md, "The rules"). The single-active-turn rule
  * is the adapter's control decision and shows up as a rejected prompt
  * response, never as a dropped event. Adapters keep only runtime-specific
@@ -81,7 +81,7 @@ export interface SessionKernel {
   graph(): SessionGraph;
   /** Add a derived session and the edge that explains it; idempotent per (parent, child, via). */
   link(edge: SessionEdge): void;
-  /** Add a session node whose lineage is not (yet) known — an id seen on the wire without an explaining edge. Never fabricate the edge. */
+  /** Add a session node whose lineage is not (yet) known: an id seen on the wire without an explaining edge. Never fabricate the edge. */
   node(id: string): void;
 }
 

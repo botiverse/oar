@@ -25,7 +25,7 @@ jobs:
 
   # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
   # backend. aimock backends run the REAL claude/codex binaries against a
-  # scripted local provider — no login, no tokens — so they can run on every
+  # scripted local provider (no login, no tokens), so they can run on every
   # OS in CI. OAR_TEST selects the backend; an unavailable one skips.
   behavior:
     strategy:
@@ -47,7 +47,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # npm's download cache for the CLI installs below (content-addressed,
-      # so a stale restore never pins an old CLI version — latest still
+      # so a stale restore never pins an old CLI version: latest still
       # resolves, only unchanged tarballs are reused). pi needs no install:
       # it is the bundled SDK already in node_modules.
       - uses: actions/cache@v4

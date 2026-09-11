@@ -10,7 +10,7 @@ import {
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 /**
- * Record/replay for codex — same shape as the claude test. A REAL recorded
+ * Record/replay for codex, same shape as the claude test. A REAL recorded
  * codex notification stream (fixtures/*.raw.jsonl from `pnpm sea-trial:record
  * codex ...`, scrubbed to consumed fields) folds through the production
  * projection; the frame|records table snapshots to a FILE beside the input.
@@ -59,7 +59,7 @@ function foldLine(state: CodexProjectionState, line: string): { state: CodexProj
     return { state, row: null };
   }
   const { state: next, commands } = foldCodexNotification(state, method, frame);
-  const produced = commands.map((command) => describeCommand(command)).join(", ") || "—";
+  const produced = commands.map((command) => describeCommand(command)).join(", ") || "-";
   return { state: next, row: `${method.padEnd(28)} │ ${produced}` };
 }
 
@@ -124,7 +124,7 @@ test("codex error detail folds into the failed turn_ended and usage is the cumul
   const completed = foldCodexNotification(state, "turn/completed", { threadId: ROOT, turn: { id: "t1", status: "failed" } });
   const [end] = completed.commands;
   expect(end?.kind === "event" ? end.body.views : null).toEqual([
-    { kind: "turn_ended", outcome: { kind: "failed", reason: "failed: boom — quota", failure: "quota" } },
+    { kind: "turn_ended", outcome: { kind: "failed", reason: "failed: boom: quota", failure: "quota" } },
   ]);
   expect(completed.state.lastErrorDetail).toBeNull();
   const usage = foldCodexNotification(state, "thread/tokenUsage/updated", { threadId: ROOT, tokenUsage: { total: { inputTokens: 120, outputTokens: 30 } } });
@@ -165,7 +165,7 @@ test("codex context fullness is the last model call's total against modelContext
     { kind: "usage", usage: { context: { tokens: 85, contextWindow: null, percent: null }, tokens: { input: 200, output: 5 } } },
   ]);
   // No `last` (older builds): occupancy is unknown, so the window is null and
-  // no percent is computed even when the notification names a window — the
+  // no percent is computed even when the notification names a window; the
   // cumulative total is never read against it.
   const noLast = foldCodexNotification(state, "thread/tokenUsage/updated", {
     threadId: ROOT,

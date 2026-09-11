@@ -1,7 +1,7 @@
 name: release
 
 # Publish both packages to npm when a version tag lands. Auth is npm trusted
-# publishing (OIDC): the job only requests an id-token — no npm token secret
+# publishing (OIDC): the job only requests an id-token; no npm token secret
 # exists in this repo. The npm-side trusted-publisher configuration for
 # @botiverse/oar and @botiverse/oar-cli is owner-managed.
 on:

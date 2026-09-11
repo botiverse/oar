@@ -21,8 +21,8 @@ export interface AppServerClient {
   readonly exited: Promise<number | null>;
   /**
    * Send a request. `onSettled`, when given, runs SYNCHRONOUSLY at the moment
-   * the reply line (or the exit) is processed — before any later line in the
-   * same chunk — so a caller can record the reply in stream order; the
+   * the reply line (or the exit) is processed, before any later line in the
+   * same chunk, so a caller can record the reply in stream order; the
    * returned promise settles afterwards, on the microtask queue.
    */
   request(method: string, params: JsonRecord, onSettled?: (outcome: RpcOutcome) => void): Promise<JsonRecord>;
@@ -30,10 +30,10 @@ export interface AppServerClient {
   /**
    * Register the inbound handlers, once. Notifications and server-initiated
    * requests (frames with both `id` and `method`: approvals, user input,
-   * dynamic tools — the client does not answer them) that arrive before this
+   * dynamic tools; the client does not answer them) that arrive before this
    * call (the app-server talks right after `initialize`, before the thread
    * exists) are held in ONE queue and delivered here synchronously, in wire
-   * order across both kinds — nothing the server said is lost or reordered
+   * order across both kinds: nothing the server said is lost or reordered
    * by registration timing.
    */
   handle(handlers: AppServerHandlers): void;
@@ -62,7 +62,7 @@ export function startAppServerClient(
 ): AppServerClient {
   // -c KEY=VALUE injects config at launch. This is the ONLY seam that reaches
   // codex's exec tool: thread/start.sandboxMode does not (pinned on a real
-  // login — thread param honored for its own turns but exec follows config).
+  // login: thread param honored for its own turns but exec follows config).
   const overrideArgs = Object.entries(configOverrides).flatMap(([key, value]) => ["-c", `${key}=${value}`]);
   const child = spawnLineProcess(
     command,

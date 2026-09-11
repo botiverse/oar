@@ -22,7 +22,7 @@ import type { UsageUpdateGate } from "./usage-wait.js";
  * host-held queue, cancel with a kill fallback. The RPC ANSWER is the
  * runtime's own turn end and is recorded as an event with a turn_ended view;
  * a rejected RPC is likewise the runtime's word (a prompt-error event). The
- * process dying is not — that is the `exited` response the session records
+ * process dying is not; that is the `exited` response the session records
  * from its exit observer. One turn may span several prompt RPCs (grok's
  * send-now steer): each answer is its own event; the turn_ended view rides
  * the answer that closes the turn, carrying the LATEST request's outcome.
