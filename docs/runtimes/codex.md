@@ -50,7 +50,7 @@ declares `capabilities: { steer: true, queue: { durable: true }, attribution:
 | Control replies | `turn/start`, `turn/steer`, `turn/interrupt`, `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The reply is recorded in stream order, before notifications codex wrote after it. |
 | Effective configuration | `model()` is a fold over `model` views (the open reply); most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's id). Never answered — `approvalPolicy: never` means none are expected; one that arrives stays a dangling request. |
-| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, `graph()` node). A `collabAgentToolCall` / `collabToolCall` / `subAgentActivity` item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. Whether the app-server delivers other threads' notifications on this connection is **unverified** live; without an item naming the thread, no edge is fabricated. |
+| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, `graph()` node). A `collabAgentToolCall` / `collabToolCall` / `subAgentActivity` item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. [env] codex 0.149.0: the app-server delivers the child thread's notifications on this connection (three runs, see "Native child agents"); without an item naming the thread, no edge is fabricated. |
 | Process and observation lifetime | Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
 Implementation: [session adapter][oar-session], [projection][oar-projection],
@@ -175,9 +175,35 @@ OAR records notifications of other thread IDs as child-session records
 `tool_call` graph edge from the sender thread when a collaboration item names
 `receiverThreadIds` or `agentThreadId`; the items themselves are events with
 no views. This distinguishes lineage (an edge) from mere observation (a node)
-and never fabricates an edge. It is pinned only against fixtures: whether the
-app-server delivers child-thread notifications on the parent's connection, and
-which field spelling the running binary uses, remain **unverified** live.
+and never fabricates an edge.
+
+**Observed live, codex-cli 0.149.0, 2026-09-11, three runs of
+[`experiments/codex-child-threads.ts`](../../experiments/codex-child-threads.ts)
+(`multi_agent` enabled, one prompt asking for one sub-agent):**
+
+- The app-server delivers the child thread's notifications on the parent's
+  connection (3/3). The projection derived the child session and exactly one
+  `tool_call` edge root → child (3/3).
+- No child `thread/started` was observed; the child first appears through
+  `thread/status/changed` (idle → active → idle) with its own `threadId`. The
+  root's `thread/started` carries `parentThreadId: null`.
+- Field spelling on the wire: the root emits `subAgentActivity {kind:
+  "started", agentThreadId: <child>, agentPath: "/root/<name>"}` (the edge
+  source) and `collabAgentToolCall {tool: "wait", status: "inProgress" →
+  "completed", senderThreadId: <root>, receiverThreadIds: []}`. The child
+  emitted `subAgentActivity {kind: "interacted", agentThreadId: <root>,
+  agentPath: "/root"}` once — filtered, because it names the parent.
+- `thread/tokenUsage/updated` arrives for BOTH threads, each cumulative for
+  its own thread; the child's lands in the child session's records and is not
+  aggregated into the root `usage()`.
+- The child's `turn/completed` arrived BEFORE the root's in two runs and never
+  arrived in the third; the root's `turn/completed {status: "completed"}` came
+  in all three. This is why `awaitTurnEnd` and the `model / usage /
+  contextUsage` folds scope to the root session
+  ([`tests/observe-folds.test.ts`](../../tests/observe-folds.test.ts)): before
+  2026-09-11 the child's turn end satisfied `awaitTurnEnd` and the child's
+  usage overwrote the root's.
+
 Control of child threads is not exposed. [Item schema][item-schema],
 [guide][guide], [projection][oar-projection].
 
@@ -237,6 +263,8 @@ a supported version range. This review ran no runtime tests or model calls.
 
 [Replay tests](../../tests/replay/codex-projection.test.ts) check the
 notification → record projection, child-thread attribution and collab edges;
+[fold tests](../../tests/observe-folds.test.ts) pin that a child session's
+turn end and usage never satisfy the root session's folds;
 [fake-process tests](../../tests/codex/) check resume parameters/model
 mismatch and the stream shape (request/response ordering, busy, steer, queue,
 abort replies, an unanswered server request, an unrequested exit). [Vendor tests](../../sea-trial/vendor/codex.vendor.test.ts)
@@ -246,7 +274,8 @@ systems with an unpinned CLI; configuration does not prove a release passed.
 
 Priority gaps are multi-step/compaction context semantics, resumed reasoning
 visibility, queue recovery, server-request handling (recorded, never
-answered), and live child-thread delivery/identity.
+answered), and control of child threads (delivery and identity are [env]
+since 2026-09-11).
 Instruction tests explicitly defer compaction survival. Keep these gaps separate
 from implemented methods and spec guarantees not yet verified live.
 

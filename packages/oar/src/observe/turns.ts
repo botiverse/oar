@@ -1,21 +1,33 @@
-import type {
-  ControlResult,
-  Session,
-  SessionRecord,
-  TurnOutcome,
-} from "../contracts/session.js";
+import type { ControlResult, Session, SessionRecord, TurnOutcome } from "../contracts/session.js";
 
 /**
  * Turn helpers for consumers. A turn is a SPAN on the stream, not a control
- * object: it starts at the prompt request record and ends at the runtime's
- * own `turn_ended` event (or at the process exit oar observed). These folds
- * locate that end; they never synthesize one.
+ * object: it starts at the prompt request record and ends at the runtime's own
+ * `turn_ended` event (or at the process exit oar observed). These folds locate
+ * that end; they never synthesize one.
+ *
+ * Scope: the ROOT SESSION's ROOT AGENT. A derived child session's records
+ * (codex child threads, grok child sessions) carry the child's own `sessionId`
+ * and `agentPath []`; its `turn_ended` is that child's turn, not the root's —
+ * observed live on codex 0.149.0, where the child's `turn/completed` reached
+ * the stream BEFORE the root's.
  */
 
-/** The root-agent turn end after `afterSeq`, if the stream already holds one: the runtime's turn_ended view, or an observed process exit. */
-export function turnEndAfter(records: readonly SessionRecord[], afterSeq: number): TurnOutcome | null {
+/**
+ * The root-agent turn end after `afterSeq`, if the stream already holds one:
+ * the runtime's turn_ended view, or an observed process exit. When `sessionId`
+ * is given, only that session's records count.
+ */
+export function turnEndAfter(
+  records: readonly SessionRecord[],
+  afterSeq: number,
+  sessionId?: string,
+): TurnOutcome | null {
   for (const record of records) {
     if (record.seq <= afterSeq || record.agentPath.length > 0) {
+      continue;
+    }
+    if (sessionId !== undefined && record.sessionId !== sessionId) {
       continue;
     }
     if (record.kind === "event") {
@@ -31,7 +43,11 @@ export function turnEndAfter(records: readonly SessionRecord[], afterSeq: number
   return null;
 }
 
-/** Resolve with the first root-agent turn end recorded after `afterSeq` — from the retained log if it already happened, otherwise live. */
+/**
+ * Resolve with the first turn end of the session's root agent recorded after
+ * `afterSeq` — from the retained log if it already happened, otherwise live.
+ * A derived child session's turn end never satisfies it.
+ */
 export async function awaitTurnEnd(session: Session, afterSeq: number): Promise<TurnOutcome> {
   const { promise, resolve } = Promise.withResolvers<TurnOutcome>();
   let done = false;
@@ -39,7 +55,7 @@ export async function awaitTurnEnd(session: Session, afterSeq: number): Promise<
     if (done) {
       return;
     }
-    const outcome = turnEndAfter([record], afterSeq);
+    const outcome = turnEndAfter([record], afterSeq, session.id);
     if (outcome !== null) {
       done = true;
       resolve(outcome);

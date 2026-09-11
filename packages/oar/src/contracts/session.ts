@@ -137,9 +137,9 @@ export interface AdapterSession {
 export interface Session extends AdapterSession {
   /** Latest `model` event; null until the runtime has said one. A fold, not an echo of the request. */
   model(): string | null;
-  /** Session token total plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). */
+  /** THIS session's token total plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). A derived child session (own `sessionId`, in `graph()`) is not aggregated here; its usage is in its own records. */
   usage(): SessionUsage;
-  /** Latest context fullness the runtime reported for the root agent; null before any. */
+  /** Latest context fullness the runtime reported for this session's root agent; null before any. */
   contextUsage(): ContextUsage | null;
   /**
    * DERIVED: steer when the runtime can, fall back to queueing, always report

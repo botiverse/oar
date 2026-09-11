@@ -148,12 +148,16 @@ report status, usage, and whether the parent will wake. OAR keeps every
 `session/update` regardless of session id: a foreign id becomes a
 child-session record (envelope `sessionId` = the child's, `agentPath` `[]`,
 a node in `Session.graph()`). The profile subscribes to the vendor
-notification methods found in the grok 1.0.13 binary's symbol table —
+notification methods found in the grok 1.0.13 binary's symbol table (all
+re-confirmed in grok 1.0.25, `~/.grok/bin/grok`, on 2026-09-11; that build
+also carries `_x.ai/session/close`, `_x.ai/relay/init` and
+`_x.ai/mcp/servers`, which OAR does not subscribe to) —
 `_x.ai/session/update`, `_x.ai/session_notification`,
 `_x.ai/sessions/changed`, `_x.ai/task_backgrounded`,
 `_x.ai/task_completed`, `_x.ai/session/prompt_complete`,
-`_x.ai/session/usage` ([sym] only; **unverified** on a live wire, and the
-ACP SDK routes only registered names) — records each verbatim with no
+`_x.ai/session/usage` ([sym] only; **unverified** on a live wire — the
+2026-09-11 live check was blocked by missing grok credentials on the probe
+machine, and the ACP SDK routes only registered names) — records each verbatim with no
 views, and links `parentSessionId` → `sessionId`/`childSessionId` in the
 graph when a frame carries that pair. A child whose lineage notification
 was not observed stays a node without an edge; OAR never fabricates one.

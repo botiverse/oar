@@ -5,7 +5,7 @@
 > [foundations](../design/foundations.md).
 
 **Why this must be fixed first:** a design that pushes the control flow
-(prompt / steer / abort / dispose commands and their replies) and the fact
+(prompt / steer / queue / abort / dispose commands and their replies) and the fact
 flow (what the runtime actually said) through one model lets the control
 plane trim, synthesize, and constrain the facts: whether a fact exists then
 depends on whether the object model is still alive. That is a protocol-level
@@ -59,13 +59,13 @@ Every shipped runtime does this in a single channel:
 monotonic seq. oar never synthesizes an event. Turn boundaries, the one
 tempting synthesis case, have real replacements: the turn's start *is* the
 prompt request itself, and its end is the runtime's own completion event
-(claude's `result`, codex's `task_complete`); if a runtime doesn't report
+(claude's `result`, codex's `turn/completed`); if a runtime doesn't report
 one, it is honestly absent. Since no oar-made facts exist in the stream,
 the earlier `origin: "runtime" | "oar"` self-disclosure label has no
 reason to exist — the field is deleted entirely.
 
 **request** — an action record that expects an outcome; bidirectional.
-app→runtime: prompt / steer / abort / dispose. runtime→app: approvals,
+app→runtime: prompt / steer / queue / abort / dispose. runtime→app: approvals,
 questions, external tools. `direction` survives its deletion test because
 toApp request bodies are runtime verbatim with an open vocabulary: the
 server must decide "does the app need to answer this" without
@@ -154,9 +154,16 @@ interface ResponseRecord extends RecordEnvelope {
 The control surface that produces these records (`Session.prompt / steer /
 queue / abort / dispose`, `subscribe(observer, cursor?)`, `records()`,
 `graph()`, and the folds `model() / usage() / contextUsage()`) is
-documented on the contract itself; a control call returns both records it
-appended (`ControlResult`), so the request's `seq` is where the action sits
-in the stream.
+documented on the contract itself; `prompt / steer / queue / abort` return
+both records they appended (`ControlResult`), so the request's `seq` is
+where the action sits in the stream. `dispose()` returns void: its request
+and the `exited` response are read from the stream like everything else.
+The folds, and `awaitTurnEnd`, scope to the ROOT session: a derived child
+session's records (own `sessionId`, a node in `graph()`) never satisfy
+them — on codex the child's `turn/completed` was observed arriving before
+the root's ([env] 0.149.0), and the child's cumulative usage would
+otherwise overwrite the root's under `agentPath []`. Scope a fold to a
+child by passing its `sessionId` (`usageOf(records, sessionId)`).
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 

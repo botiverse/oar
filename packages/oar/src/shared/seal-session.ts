@@ -29,9 +29,9 @@ export function sealSession(adapterSession: AdapterSession): Session {
   };
   return {
     ...adapterSession,
-    model: () => modelOf(adapterSession.records()),
-    usage: () => usageOf(adapterSession.records()),
-    contextUsage: () => contextUsageOf(adapterSession.records()),
+    model: () => modelOf(adapterSession.records(), adapterSession.id),
+    usage: () => usageOf(adapterSession.records(), adapterSession.id),
+    contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),
     steerOrQueue,
   };
 }

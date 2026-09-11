@@ -23,9 +23,12 @@ edge = derived child), and the same information is not stored twice.
 
 - grok (ACP): explicit parent session → child session (independent
   sessionId) = a real session-derivation edge. [src]
+- codex (app-server): a child thread is a derived child session; the edge
+  comes from the collaboration item naming it (`subAgentActivity.agentThreadId`,
+  `receiverThreadIds`). [env 0.149.0]
 - pi: the session tree (fork / parentId) is transcript branching, not
   sub-agents. [src: pi session-manager]
-- claude/codex: `parent_tool_use_id` is agent parent/child and produces no
+- claude: `parent_tool_use_id` is agent parent/child and produces no
   new session — carried by `agentPath`, not in the graph. [sym]
 
 ```ts
@@ -37,9 +40,14 @@ interface SessionEdge { parent: string; child: string; via: "tool_call" | "fork"
 
 ```
 grok:   sess-A ──tool_call──▶ child session sess-B   (session derivation; child has its own sessionId → in the graph)
+codex:  thread-A ──tool_call──▶ child thread-B       (same shape; the child's records carry sessionId = thread-B, agentPath [])
 pi:     sess-A ──fork──▶ sess-A'                     (transcript branch → in the graph)
 claude: root ──tool_call(call_3)──▶ subagent "a1"    (agent parent/child → NOT in the graph; expressed by agentPath)
 ```
+
+A node's records are read by its own `sessionId`: the Session folds
+(`model / usage / contextUsage`, `awaitTurnEnd`) scope to the root session
+and never fold a child node's records into it (record-stream.md).
 
 ## The resumable cursor
 

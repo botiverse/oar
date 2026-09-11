@@ -13,7 +13,7 @@
  * observation time outside any determinism guarantee.
  */
 export interface RecordEnvelope {
-  /** Runtime-native session the record belongs to. A derived child session (grok) carries ITS OWN id here; the session graph says where it came from. */
+  /** Runtime-native session the record belongs to. A derived child session (grok child session, codex child thread) carries ITS OWN id here; the session graph says where it came from, and the Session folds (model/usage/contextUsage, awaitTurnEnd) scope to the root session. */
   readonly sessionId: string;
   /** Sub-agent lineage inside the session; `[]` is the root agent. Identity of a tool call or span is the composite `(agentPath, id)` — a bare callId is never a global key. */
   readonly agentPath: readonly string[];

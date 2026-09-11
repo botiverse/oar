@@ -59,11 +59,12 @@ comments.
 - `sessionId` has a real referent — it is not invented by oar: claude's
   `CLAUDE_CODE_SESSION_ID`, codex's `CODEX_SESSION_ID`. Delete it and
   grok's child sessions interleaving on one connection cannot be
-  demultiplexed. [env][src]
+  demultiplexed, nor can codex's child threads, which arrive on the
+  parent's connection ([env] 0.149.0). [env][src]
 
 ```ts
 interface RecordEnvelope {
-  sessionId: string;              // deletion test: grok child sessions interleave on one connection — undemuxable without it
+  sessionId: string;              // deletion test: grok child sessions / codex child threads interleave on one connection — undemuxable without it
   agentPath: readonly string[];   // [] = root; [...] = sub-agent lineage. Deletion test: the cross-agent ID collision (runtime-matrix.md, hard spot 1) has no solution
   spanId?: string;                // runtime-native turn id; a mandatory turn id would drop pi's session-scoped facts (record-stream.md, evidence A)
   seq: number;                    // monotonic, cursor basis; replay determinism covers seq only (session-graph-and-cursor.md)
@@ -120,8 +121,12 @@ independent codebases already demonstrate the inevitable degeneration
 **Hard constraint:** the protocol must never merge session and agent into one
 dimension. The ACP draft chooses child-session (#3); kimi-cli and
 kimi-code choose record-level attribution (#2). Both topologies are real
-candidates and the protocol must express both — otherwise grok's child sessions can
-only be faked as pseudo-agents, or KAP's agents faked as pseudo-sessions.
+candidates and the protocol must express both — otherwise grok's child sessions
+(and codex's child threads, [env] 0.149.0) can only be faked as pseudo-agents,
+or KAP's agents faked as pseudo-sessions. The consequence for consumers: a
+child session's records carry `agentPath []` under their OWN `sessionId`, so
+every fold over a Session (`model / usage / contextUsage`, `awaitTurnEnd`)
+scopes to the root session and a child is read by its own `sessionId`.
 
 **Full-spectrum principle:** the protocol supports opaque (#1) →
 attribution (#2) → nested-session (#3). oar carries only the structure

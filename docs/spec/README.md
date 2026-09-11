@@ -1,6 +1,6 @@
 # Specification
 
-> **Status: SHIPPED (v1.0 of this document).** The record-stream
+> **Status: SHIPPED (v1.1 of this document).** The record-stream
 > contract below is what `@botiverse/oar` emits today
 > (`packages/oar/src/contracts/session.ts` is the normative TypeScript).
 > It is kept deliberately separate from [`docs/design/`](../design/README.md):
@@ -97,7 +97,13 @@ frame can carry several readings; control responses `accepted` /
 `rejected`, plus `answered` for oar's replies to `toApp` requests and
 `exited` for the observed process exit; `queue` added as a request kind;
 `SessionCapabilities` with the attribution tier; the cursor honored for
-the lifetime of the adapter process.
+the lifetime of the adapter process → **v1.1** (2026-09-11): the Session
+folds (`model / usage / contextUsage`, `awaitTurnEnd`) scope to the root
+session — a derived child session's records never satisfy them (forced by
+the live codex observation that the child's `turn/completed` can precede
+the root's); codex child threads verified live [env 0.149.0]; wording
+fixed: `queue` in the request list, `turn/completed` (not
+`task_complete`), `dispose()` returns void.
 
 ## Legend
 
