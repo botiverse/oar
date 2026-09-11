@@ -6,15 +6,19 @@
 
 ## Per-runtime landing matrix
 
-How each shipped runtime maps onto the contract:
+Native evidence and proposed v2 placement are combined below. This is not a
+table of implemented OAR capabilities: see the
+[runtime programming-interface pages](../runtimes/README.md) for current
+calls, resume semantics, and information loss. In particular, v1 does not
+expose the proposed session graph or `agentPath`.
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
-| claude | yes (`Task`), flattened into one stream | `parent_tool_use_id` | `subagent_tokens` | `agentPath` (not in graph) | session id | [sym][v1][env] |
-| codex | yes, flattened into one stream | `parent_tool_use_id` | `subagent_tokens` | `agentPath` (not in graph) | session id / `expectedTurnId` | [sym][v1][env] |
+| claude | native subagent messages can share the stream | `parent_tool_use_id` | current transport's child usage attribution unverified | proposed `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
+| codex (app-server) | native child threads and collaboration items; current OAR drops them | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` | thread usage exists; child attribution/aggregation unverified | native thread topology; v2 placement needs review | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
 | pi | no native (host composes) | host-nested sessions | flat (host splits) | fork edges (in graph) | session id | [src][v1] |
-| grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | per-child usage (multiple views; adapter dedups) | parent→child session edges (in graph) | agent_id / session | [src] |
-| kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | agent_id | [src] |
+| grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | native child usage has multiple views; v1 drops it | proposed parent→child session edges (in graph) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
+| kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
@@ -42,6 +46,11 @@ oversights.
   events, and the fix PR #2484 was closed unmerged.
   [src: acp-adapter/src/session.ts:1024-1100]
 
+The kimi-code guard above is historical evidence. At the source revision
+reviewed on 2026-09-08, `packages/acp-server` instead explicitly binds
+`klient.session(sessionId).agent('main')` and subscribes there; the main-only
+visibility remains. See the [current Kimi API page](../runtimes/kimi.md).
+
 **Red line (attribution):** an adapter may degrade to opaque only when
 the runtime truly lacks the information — never because the adapter
 didn't wire it up. Every adapter must explicitly declare which tier of
@@ -55,7 +64,7 @@ filter's legitimate purpose (avoiding mis-mixing) is taken over by the
 attribution dimension, not by discarding data.
 
 **Red line (spanId, new in v0.8):** `spanId` carries only runtime-native
-turn/span identifiers (codex's `turn_context`, kimi's turn id, …); if the
+turn/span identifiers (Codex app-server's `turn.id` / `turnId`, Kimi's turn id, …); if the
 runtime provides none, it is honestly absent. oar never generates a
 `spanId` — otherwise the deleted synthesized turn boundaries return
 through this field.

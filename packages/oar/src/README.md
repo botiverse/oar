@@ -1,5 +1,8 @@
 # Source layout
 
+For each runtime's native programming interface and its current mapping to
+these contracts, see [`docs/runtimes/`](../../../docs/runtimes/README.md).
+
 ```text
 src/
   index.ts                 # public exports + built-in composition

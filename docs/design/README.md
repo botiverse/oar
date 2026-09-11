@@ -15,6 +15,7 @@ stands alone if you only need one answer.
 
 Related material elsewhere in the repo:
 
+- [`../runtimes/`](../runtimes/README.md) — native programming interfaces, concepts, and current OAR mappings; the evidence used to design the abstraction.
 - [`../spec/`](../spec/README.md) — the concrete v2 contract (record shapes, attribution, session graph, cursor), deliberately separate: design records *why*, spec records *what*.
 - [`../../packages/oar/src/README.md`](../../packages/oar/src/README.md) — source ownership model (contracts / runtimes / shared / observe).
 - [`../development.md`](../development.md) — the test estate and verification discipline that back the claims here.
@@ -29,5 +30,9 @@ Related material elsewhere in the repo:
   wrong) belongs here; *what* the contract is (record shapes, envelope,
   semantics) belongs in [`../spec/`](../spec/README.md). Don't restate
   contract shapes here — link to the spec page instead.
+- Native API behavior and its current OAR mapping belong in
+  [`../runtimes/`](../runtimes/README.md). Link those facts when explaining
+  a design choice; keep runtime internals only where they explain an
+  observable API guarantee or limit.
 - Adding or removing a page means updating the table above and the
   pointer in the root `README.md` in the same commit.

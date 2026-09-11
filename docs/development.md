@@ -11,8 +11,12 @@ layout, import rules, and ownership;
 and harness; [`experiments/README.md`](../experiments/README.md) for live
 probes and their conclusions.
 
-The other two indexed docs are background, not required reading for routine
-changes: read [`docs/design/`](design/README.md) before changing a public
+Read the relevant [`runtime page`](runtimes/README.md) when working on an
+adapter: it records native API inputs/results, resume semantics, current OAR
+mapping, and evidence gaps. Update that page when the mapping changes.
+
+The design and spec docs provide further background: read
+[`docs/design/`](design/README.md) before changing a public
 surface or revisiting an existing design decision — it explains why oar is
 shaped the way it is; read [`docs/spec/`](spec/README.md) when a change
 touches the v2 record-stream contract (record shapes, attribution, the
@@ -152,7 +156,10 @@ it — run them for the backend you touched.
    `backends.ts`) so the contract stays verifiable without a login, and add
    vendor tests for the provider-side specifics worth pinning.
 6. **Update the docs in the same commit**: the runtime list in the root
-   README, and the experiments README table for any probes you added.
+   README, a [runtime page](runtimes/README.md) and its index entry, and the
+   experiments README table for any probes you added. The runtime page
+   starts with the vendor's programming interface and concepts, then maps
+   each capability to OAR or names the missing support and evidence.
 
 ## How to fix a runtime bug
 
@@ -173,6 +180,9 @@ it — run them for the backend you touched.
    every backend is affected.
 5. **Validate with the ladder above and finish with `pnpm run check`.** The
    reproducing test stays in the suite as the regression proof.
+6. **Update the runtime page** when a bug changes the documented native
+   behavior, OAR mapping, or verification status. Distinguish the vendor's
+   behavior from loss or policy introduced by OAR.
 
 ## Testing conventions
 

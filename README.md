@@ -20,6 +20,7 @@ removing one of those files updates this table in the same commit.
 | Read | To answer |
 |---|---|
 | [`docs/design/`](docs/design/README.md) | Why oar exists, who it is for, and which design problems it treats as load-bearing |
+| [`docs/runtimes/`](docs/runtimes/README.md) | Each runtime's programming interface and native concepts: API inputs/results, resume semantics, capabilities, current OAR mapping, and evidence gaps; includes Maka as a design reference |
 | [`docs/spec/`](docs/spec/README.md) | The concrete v2 record-stream contract (record shapes, attribution, session graph, cursor) — a draft under review, kept deliberately separate from the design principles |
 | [`docs/blog/`](docs/blog/README.md) | Long-form posts (the release post draft): the motivation and shipped surface in one read, with unsettled v2 parts marked |
 | [`docs/development.md`](docs/development.md) | Working in this repo: how to validate changes, how to add a runtime or fix a runtime bug, conventions, the commit gate — and pointers to the source-layout and test-suite docs that live next to the code |

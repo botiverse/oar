@@ -30,8 +30,13 @@ concurrent prompt queueing (no shipped runtime needs it — see
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
 | [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |
-| [runtime-matrix.md](runtime-matrix.md) | How does each shipped runtime map onto the contract, and what are adapters forbidden to do? |
+| [runtime-matrix.md](runtime-matrix.md) | Which native attribution models inform the proposed contract, and what are adapters forbidden to do? |
 | [ablation.md](ablation.md) | Which elements were tried for deletion and why the survivors stayed |
+
+For the APIs actually implemented today, read
+[`../runtimes/`](../runtimes/README.md): native calls, resume behavior, current
+OAR mappings, and verification gaps. Proposed v2 mappings here are not a
+shipped capability inventory.
 
 All examples in these pages are illustrative: seq values and field contents
 are invented; the record shapes and invariants are normative. Field names
