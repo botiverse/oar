@@ -15,7 +15,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | runtime | declared tier | how children appear in the stream |
 |---|---|---|
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; child usage stays unattributed (unverified) |
-| codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge. [env] codex 0.149.0, 2026-09-11: the app-server delivers the child thread's notifications on the parent's connection; `subAgentActivity.agentThreadId` yields the edge (experiments/codex-child-threads.ts) |
+| codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge. [env] codex 0.149.0: the app-server delivers the child thread's notifications on the parent's connection; `subAgentActivity.agentThreadId` yields the edge (experiments/codex-child-threads.ts) |
 | pi | `none` | pi has no native sub-agents; `agentPath` is always root |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications (names pinned from binary symbols, re-checked on grok 1.0.25; unverified live — no grok credentials on the probe machine) add edges when they name a parent |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
@@ -52,8 +52,9 @@ a nested runtime artificially opaque.
   events, and the fix PR #2484 was closed unmerged.
   [src: acp-adapter/src/session.ts:1024-1100]
 
-The kimi-code guard above is historical evidence. At the source revision
-reviewed on 2026-09-08, `packages/acp-server` instead explicitly binds
+That guard lives in the older `acp-adapter` package. In the current
+kimi-code source (revision reviewed 2026-09-08), `packages/acp-server`
+instead explicitly binds
 `klient.session(sessionId).agent('main')` and subscribes there; the main-only
 visibility remains. See the [current Kimi API page](../runtimes/kimi.md).
 
@@ -69,7 +70,7 @@ those children's standard updates, attributing them per
 filter's legitimate purpose (avoiding mis-mixing) is taken over by the
 attribution dimension, not by discarding data.
 
-**Red line (spanId, new in v0.8):** `spanId` carries only runtime-native
+**Red line (spanId):** `spanId` carries only runtime-native
 turn/span identifiers (Codex app-server's `turn.id` / `turnId`, Kimi's turn id, …); if the
 runtime provides none, it is honestly absent. oar never generates a
 `spanId` — otherwise the deleted synthesized turn boundaries return
@@ -118,10 +119,9 @@ seq=122  ✓ event  path=["bg-7"]  completed {usage:…}
   capture; deliberately deferred for now because it costs subscription
   quota.
 - Still resting on [sym] evidence: grok's vendor lifecycle notifications
-  on a live wire. The live check on 2026-09-11 was blocked by missing
-  grok credentials on the probe machine, not skipped; the names were
-  re-confirmed in the grok 1.0.25 binary.
-- Closed 2026-09-11: codex child-thread delivery and identity are [env]
+  on a live wire. No live check has run — the probe machine has no grok
+  credentials; the names were re-confirmed in the grok 1.0.25 binary.
+- codex child-thread delivery and identity are [env]
   on codex 0.149.0 (three runs, experiments/codex-child-threads.ts). The
   child's `turn/completed` can arrive before the root's, which is why the
   Session folds scope to the root session (record-stream.md).

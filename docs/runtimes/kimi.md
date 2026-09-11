@@ -261,9 +261,9 @@ carries the child's report as `rawOutput` (`agent_id: agent-0`,
 `agentPath` is `[]` throughout, and the graph has one node (`subagent`). A
 root `Agent` tool card is not a child trajectory. OAR does not filter by
 session id: should a future `kimi acp` emit updates for other session ids,
-they would be recorded as child-session records. Earlier `acp-adapter`
-references to `isFromMainAgent` describe older code; this baseline uses
-`acp-server` with scoped subscriptions.
+they would be recorded as child-session records. (The `isFromMainAgent`
+guard lives in the older `acp-adapter` package; this baseline uses
+`acp-server` with scoped subscriptions — see runtime-matrix.md.)
 
 **History:** the retained stream backs `subscribe(observer, cursor)` for the
 life of the process (`cursor`); there is no native-history enumeration and

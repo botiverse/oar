@@ -60,14 +60,13 @@ monotonic seq. oar never synthesizes an event. Turn boundaries, the one
 tempting synthesis case, have real replacements: the turn's start *is* the
 prompt request itself, and its end is the runtime's own completion event
 (claude's `result`, codex's `turn/completed`); if a runtime doesn't report
-one, it is honestly absent. Since no oar-made facts exist in the stream,
-the earlier `origin: "runtime" | "oar"` self-disclosure label has no
-reason to exist — the field is deleted entirely.
+one, it is honestly absent. No oar-made facts exist in the stream, so
+there is no origin self-disclosure label.
 
 **request** — an action record that expects an outcome; bidirectional.
 app→runtime: prompt / steer / queue / abort / dispose. runtime→app: approvals,
-questions, external tools. `direction` survives its deletion test because
-toApp request bodies are runtime verbatim with an open vocabulary: the
+questions, external tools. `direction` is needed because toApp request
+bodies are runtime verbatim with an open vocabulary: the
 server must decide "does the app need to answer this" without
 understanding the body, and only `direction` makes that possible.
 
@@ -112,8 +111,7 @@ Further rules:
 type RecordKind = "event" | "request" | "response";
 // kind is theoretically derivable from field shape (kimi-cli's wire
 // distinguishes by the presence of id), but TS discriminated unions need
-// an explicit discriminant — kept; the only deliberate convenience field
-// left after the deletion pass.
+// an explicit discriminant — kept as the one deliberate convenience field.
 
 interface RecordEnvelope {
   sessionId: string;            // runtime-native; a derived child session carries its own

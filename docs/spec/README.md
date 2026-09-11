@@ -1,6 +1,6 @@
 # Specification
 
-> **Status: SHIPPED (v1.1 of this document).** The record-stream
+> **Status: SHIPPED.** The record-stream
 > contract below is what `@botiverse/oar` emits today
 > (`packages/oar/src/contracts/session.ts` is the normative TypeScript).
 > It is kept deliberately separate from [`docs/design/`](../design/README.md):
@@ -71,9 +71,9 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 Three points remain deliberately **not settled**; the pages flag them where
 they appear:
 
-1. **`causedBy` stays deleted?** A causal-link field between records was
-   removed in v0.7 because no consumer scenario required it. The removal is
-   still open to reversal.
+1. **Causal links between records.** No consumer scenario has required a
+   causal-link field between records (a `causedBy`-style pointer). Adding
+   one stays open.
 2. **External compaction.** Compacting a session externally (new session +
    injected summary prompt), layered above runtime-native compaction
    ([hard problem 14](../design/hard-problems.md#beyond-a-single-local-process)),
@@ -82,28 +82,6 @@ they appear:
    declares steer, queue durability and the attribution tier. A fuller
    typed surface (what each adapter supports, with typed `unsupported`) is a
    candidate for the next revision.
-
-## Version lineage
-
-v0.3 attribution dimensions established → v0.4 ACP spec evidence → v0.5
-kimi-cli native-wire evidence → v0.6 ACP gap wording corrected + kimi-code
-KAP evidence → v0.7 review convergence (usage compressed to one constraint,
-`fact` renamed `event`, synthesized turn boundaries deleted, cursor
-semantics settled, `causedBy` deleted) → v0.8 element-wise deletion pass
-(everything without a concrete breaking scenario was cut) → **v1.0
-implementation** (2026-09-11):
-`EventBody` fixed as `{type, native, views}`, `views` a list because one
-frame can carry several readings; control responses `accepted` /
-`rejected`, plus `answered` for oar's replies to `toApp` requests and
-`exited` for the observed process exit; `queue` added as a request kind;
-`SessionCapabilities` with the attribution tier; the cursor honored for
-the lifetime of the adapter process → **v1.1** (2026-09-11): the Session
-folds (`model / usage / contextUsage`, `awaitTurnEnd`) scope to the root
-session — a derived child session's records never satisfy them (forced by
-the live codex observation that the child's `turn/completed` can precede
-the root's); codex child threads verified live [env 0.149.0]; wording
-fixed: `queue` in the request list, `turn/completed` (not
-`task_complete`), `dispose()` returns void.
 
 ## Legend
 
@@ -140,6 +118,7 @@ rules that keep them in sync:
   design pages never contain wire shapes.
 - **Index and pointers.** Adding or removing a page means updating the
   table above and the pointer in the root `README.md` in the same commit.
-- **Version discipline.** A semantic change to the contract bumps the
-  version in the status banner and extends the version lineage above; flag
+- **Snapshot, not journal.** These pages state the current contract only.
+  A change rewrites the affected statements in place — no version lineage,
+  no "previously X, now Y" notes; git history carries the evolution. Flag
   anything deliberately unsettled under "Open decisions".

@@ -10,16 +10,15 @@
 forks) form parent/child structure; without an explicit graph, consumers
 cannot answer "where did sess-B come from".
 
-Note: v0.7's graph held both agent parent/child (claude
-subagents) *and* session derivation. But a claude subagent is not a
-session — it is an entity on `agentPath`. Putting it in the session graph
-commits, inside the graph itself, exactly the merge the hard constraint in
+A claude subagent is not a session — it is an entity on `agentPath`.
+Putting agent parent/child in the session graph would commit, inside the
+graph itself, exactly the merge the hard constraint in
 [attribution.md](attribution.md) forbids: collapsing session and agent
-into one dimension. v0.8 narrows the graph to true sessions only; agent
+into one dimension. The graph therefore holds true sessions only; agent
 parent/child is expressed by `agentPath` plus the spawning `tool_call`
-record. `SessionNode.kind` is deleted in the same pass — it is derivable
-from the in-edge (no in-edge = root, `fork` edge = branch, `tool_call`
-edge = derived child), and the same information is not stored twice.
+record. `SessionNode` carries no `kind` field — it is derivable from the
+in-edge (no in-edge = root, `fork` edge = branch, `tool_call` edge =
+derived child), and the same information is not stored twice.
 
 - grok (ACP): explicit parent session → child session (independent
   sessionId) = a real session-derivation edge. [src]
@@ -55,7 +54,7 @@ and never fold a child node's records into it (record-stream.md).
 disconnect and continue reading without loss or duplication; offline
 replay depends on it for positioning.
 
-**Semantics (settled in v0.7; boundary tightened in v0.8): sequence
+**Semantics: sequence
 determinism, replay on the runtime side.** The total order of a session is
 uniquely determined by `seq`. Adapter constraint: the same record replayed
 twice gets the same `seq`. The determinism guarantee covers `seq` *only*:
@@ -79,8 +78,8 @@ ruling: oar does not own storage.
 
 ```ts
 interface Cursor { sessionId: string; afterSeq: number; }
-// v0.7's streamId? filter was ablated: no consumer ever demonstrated
-// "resume just one sub-agent". For a single-agent view, resume the whole
+// No per-agent resume filter: no consumer has demonstrated "resume just
+// one sub-agent". For a single-agent view, resume the whole
 // stream and filter client-side by agentPath — the protocol keeps no
 // field for an unevidenced need.
 // Shipped: Session.subscribe(observer, cursor) replays every retained

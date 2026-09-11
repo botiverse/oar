@@ -3,7 +3,7 @@
 Evidence baseline: native source
 [`grok-build` `bc7f02e`](https://github.com/xai-org/grok-build/tree/bc7f02e)
 (Grok 1.0.12); the [wire snapshot](../../tests/replay/fixtures/grok-acp-v1.vendor.json)
-is Grok 1.0.5 (`5115b46bc9`, 2026-08-26) and the older
+is Grok 1.0.5 (`5115b46bc9`, 2026-08-26) and the
 [adapter experiment](../../experiments/acp-runtime.ts) ran on that binary
 (2026-08-27).
 Live observations below come from **grok 1.0.25 (`f7e67d6988e2`)**, darwin

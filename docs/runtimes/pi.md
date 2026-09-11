@@ -7,7 +7,7 @@ redirect to `earendil-works/pi`), the version of the bundled
 that SDK in-process through [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 against `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every
 assistant frame carries `provider: "openai-codex"`, `api:
-"openai-codex-responses"`) on Node 26.7 / macOS, and from the older probes in
+"openai-codex-responses"`) on Node 26.7 / macOS, and from the probes in
 the [experiments index](../../experiments/README.md). Versions are evidence
 baselines, not a support range. See the [runtime index](README.md) for
 evidence and status conventions.
@@ -354,7 +354,7 @@ state.
 eleven scenarios on the real login (`basic`, `multi-turn`, `tool-detail`,
 `busy-and-late-control`, `steer`, `queue`, `abort`, `dispose-mid-turn`,
 `cursor`, `resume`, `bad-model`; `subagent` and `kill-runtime` are skipped:
-no native sub-agents, in-process runtime). The older
+no native sub-agents, in-process runtime). The remaining
 [experiments](../../experiments/README.md) cover SDK import, catalog
 (`pi-list-models.ts`), resume and model readback (`session-resume.ts`,
 `session-model-readback.ts`).

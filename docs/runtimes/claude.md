@@ -3,7 +3,7 @@
 Evidence baseline: OAR source as of 2026-09-11; official documentation is
 rolling. Live observations below come from **claude 2.1.268** (darwin arm64,
 haiku) through [`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)
-and the older probes on **2.1.237**/**2.1.261** (linux x64) listed in the
+and the probes on **2.1.237**/**2.1.261** (linux x64) listed in the
 [experiments index](../../experiments/README.md). Versions are evidence
 baselines, not a support range. See the [runtime index](README.md) for
 evidence and status conventions.
@@ -221,7 +221,8 @@ account-usage access. Login management is **not exposed**.
 
 [`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)
 covers every promise above on the real login (logs under
-`oar-trial-run/live-claude-*`); the older [experiments](../../experiments/README.md)
+`oar-trial-run/live-claude-*`); the remaining
+[experiments](../../experiments/README.md)
 cover steering phases, abort, queue, resume, catalog and model readback.
 [Vendor tests](../../sea-trial/vendor/claude.vendor.test.ts) use the real CLI
 with a scripted model for tools, 400-error settlement, silent 401 retry,

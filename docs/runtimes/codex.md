@@ -7,8 +7,8 @@ documentation. Live observations below come from **codex-cli 0.154.0**
 [`experiments/live-contract.ts codex`](../../experiments/live-contract.ts)
 (13 scenarios, run 2026-09-11), from
 [`experiments/codex-child-threads.ts`](../../experiments/codex-child-threads.ts)
-on **0.149.0**, and from the older probes (handshake 0.144.6, steering/abort
-0.148.0, model listing 0.149.0, resume/model readback 0.153.4) listed in the
+on **0.149.0**, and from the probes (handshake, steering/abort,
+model listing, resume/model readback) listed in the
 [experiments index](../../experiments/README.md). Versions are evidence
 baselines, not a support range; a claim that holds only on a named binary is
 marked [env]. See the [runtime index](README.md) for evidence and status
@@ -422,7 +422,7 @@ exposed**.
 covers every promise above on a real login, one voyage log per scenario:
 basic, multi-turn, tool-detail, busy-and-late-control, steer, queue, abort,
 dispose-mid-turn, cursor, resume, subagent, kill-runtime, bad-model. The
-[experiments index](../../experiments/README.md) lists the older probes
+[experiments index](../../experiments/README.md) lists the further probes
 (handshake; adapter steer/abort/busy; resume; resume with a model switch;
 queue; model listing; model readback; child threads). Unit and replay tests
 pin: the notification → record projection, child-thread attribution, collab

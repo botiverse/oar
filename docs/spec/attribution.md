@@ -12,12 +12,9 @@ to". That needs an attribution mark on the record (`agentPath`), not a
 second transport channel. "Multiplexing" has always meant main and sub
 agents sharing one stream — never multiple control planes.
 
-Note: v0.7 carried both `streamId` and `agentPath` — two
-encodings of the same dimension. `streamId` was always derivable from
-`agentPath` (the leaf element; `[]` meaning root), and v0.7's own text
-already wrote the composite key as "(agentPath|streamId, id)", admitting
-they were interchangeable. `streamId` is deleted; attribution is the
-single field `agentPath`.
+Attribution is the single field `agentPath` (the leaf element identifies
+the stream; `[]` means root). No second encoding of the same dimension is
+carried.
 
 ### Evidence — every shipped runtime is single-connection, with attribution as a frame field
 
