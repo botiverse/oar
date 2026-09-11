@@ -4,7 +4,7 @@
 
 ## 判断
 
-**Lody 证明这类问题难且有人认真解决，不能证明 OAR 没有价值；但也明显推翻“其他工作台只是随便拼 adapter、等用户报错”的强叙事。OAR 当前最可信的价值是把可复用集成与持续兼容测试做成独立公共库。完整、无损、自带归属、可续读的 record 协议目前是待验证的 v2 价值假设。**
+**Lody 证明这类问题难且有人认真解决，不能证明 OAR 没有价值；但也明显推翻“其他工作台只是随便拼 adapter、等用户报错”的强叙事。OAR 当前最可信的价值是把可复用集成与持续兼容测试做成独立公共库。完整、无损、自带归属、可续读的 record 协议目前是待验证的价值假设。**
 
 “必要”应解释为后来者采用它比自己做更划算，不要求发明前人没有的抽象。单个工作台内部实现很好，仍不等于它为别的产品提供了稳定、可直接采用的库；反过来，公共库标签也不自动带来复用性和维护优势。
 
@@ -17,14 +17,14 @@
 | 事件 | 当前有带 sessionId/turnId/seq 的归一化事件与观察派生层 | 所有 native event 保留、完整 subagent 归属、任意位置续读和 record request/response 契约 |
 | 自动验证 | 3 OS × Claude/Codex/Pi aimock，真实 runtime/adapter，仅 model provider 脚本化；同公开 API suite + vendor 测试 | 五种 runtime 全能力全面契约验证；真实登录/live model 在 CI；所有支持版本均验证 |
 | replay | 真生产 projection 回放 fixture | 无损公共事件接口已实现；原生未知字段完全保真；完整 record cursor 恢复 |
-| v2 | spec 明标 `DRAFT v0.8`；完整 attributed/resumable stream、graph、request/response 和更强 capability 都在此设计中 | 已优于 Lody 的交付事实 |
+| record 协议 | 调研时 spec 明标 `DRAFT v0.8`；完整 attributed/resumable stream、graph、request/response 和更强 capability 都在此设计中 | 已优于 Lody 的交付事实 |
 
 源码锚点：
 
 - [Runtime 当前接口](../../packages/oar/src/contracts/runtime.ts#L6)：只有 session、installation、accountUsage、listModels。design 提到 detect/install/login/version-window 是目标面，不能只读愿景当现状。
 - [Session v1 范围](../../packages/oar/src/contracts/session.ts#L3)：ownership 是 object reference，多控制者仲裁明确归 host；YOLO 默认、interactive permission settlement/remote model deferred；pi session-scoped events 目前主动丢弃。注释还说 resume deferred，但当前 options/实现已支持部分 resume，因此该句有局部过期，不能照搬成完全没有 resume。
 - [当前事件 union](../../packages/oar/src/contracts/session.ts#L156)：只有 turn_started/text_delta/reasoning/tool_call_started/tool_call_ended/turn_ended，无公共 native raw body 或 agentPath；seq 严增不是可续读 API。
-- [v2 草案状态与 promise](../../docs/spec/README.md#L3)，[能力声明尚 open](../../docs/spec/README.md#L52)。`design/motivation.md` “everything emits available”“hard problems solved once” 应解读为设计目标，不是当前完成清单。
+- [spec 状态与 promise](../../docs/spec/README.md#L3)，[能力声明尚 open](../../docs/spec/README.md#L52)。`design/motivation.md` “everything emits available”“hard problems solved once” 应解读为设计目标，不是当前完成清单。
 - [真实 aimock backend](../../sea-trial/harness/backends.ts#L39)，[CI matrix](../../.github/workflows/ci.yml#L26)。Claude/Codex CI 装 latest，属于最新版本漂移探测，不是支持窗口矩阵证明。
 
 ## Lody 反证了哪些自我叙事
@@ -57,10 +57,10 @@ backend unavailable 会 exit 0；缺 optional capability 的 case 为 skipped；
 |---|---|---|
 | 能减少集成工作 | 让 2 个独立消费者各接入至少 2 个 runtime，记录首个完整用例耗时、vendor-specific 分支/escape-hatch、升级后的消费者改动量；与 native SDK/ACP 方案对比 | 用 OAR 后仍需维持几乎相同的 vendor glue，或更难调试 |
 | 修一次可多人收益 | 连续追踪约 6–8 周真实 runtime 升级，记录被 CI 提前检出的 breaking changes、修复时延、消费者是否可只升级包而不改业务代码 | 各 consumer 仍须私有 fork/补丁；维护速度追不上各 vendor |
-| v2 归属/保真是刚需 | 最少两个明确消费场景，重放 runtime raw fixture 后核对未知字段、child attribution、会话图/恢复前后投影；测试完整数据而非只 event-kind snapshot | 用户实际只用 text/tool feed，graph/raw/cursor 不能减少业务 bug，却使 API 明显复杂 |
+| record 协议的归属/保真是刚需 | 最少两个明确消费场景，重放 runtime raw fixture 后核对未知字段、child attribution、会话图/恢复前后投影；测试完整数据而非只 event-kind snapshot | 用户实际只用 text/tool feed，graph/raw/cursor 不能减少业务 bug，却使 API 明显复杂 |
 | conformance 是可信资产 | mandatory backend 在 CI 未运行则失败；分列 pass/skip/unsupported；维护 capability × runtime × OS × version 的执行证据 | 绿色主要来自 skip 或容许 silent unsupported，强 steering/resume/child 场景长期只靠手工 probe |
 | 独立库优于 ACP 组合 | 用同一目标 feature 比较 OAR 与公开 ACP adapters，量化 OAR 独有可观察数据、兼容成本和迁移成本 | ACP 标准/adapter 已足够且更快支持新能力，OAR 只重复包装还引入一轮版本滞后 |
 
 建议把第一轮价值验收设为：**两个外部消费者、每个两个 runtime、跨至少一次 vendor 更新，只升级 OAR 即保持业务代码稳定**。这比更多设计文档、更多 runtime logo 或声称无损更能说明项目值得继续。若短期没有采用者，也可先交付可单独使用的 conformance harness/fixtures；测试资产可能比完整抽象更早产生公共价值。
 
-总评：应该继续验证这个方向，但应把“已构建的集成/测试价值”与“v2 规范承诺”拆开。研究 Lody 的结论是借鉴其恢复不变量与成熟兼容模式，不是复制其整个调度控制面，也不是用它的存在取消公共库的意义。
+总评：应该继续验证这个方向，但应把“已构建的集成/测试价值”与“record 协议承诺”拆开。研究 Lody 的结论是借鉴其恢复不变量与成熟兼容模式，不是复制其整个调度控制面，也不是用它的存在取消公共库的意义。

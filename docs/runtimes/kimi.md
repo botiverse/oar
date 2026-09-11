@@ -6,7 +6,7 @@ Evidence baseline: reviewed 2026-09-08 against
 The [wire snapshot](../../tests/replay/fixtures/kimi-acp-v1.vendor.json) is
 **0.38.0, 2026-08-26**; the adapter experiment records 2026-08-27.
 Newer-source behavior was inspected, not exercised on a live binary. No model
-calls or tests ran for this review. The [v2 spec](../spec/README.md) is not
+calls or tests ran for this review. The [spec](../spec/README.md) is not
 current OAR behavior.
 
 ## Native concepts and calling interfaces
@@ -34,7 +34,7 @@ expose every agent in the native session.
 
 ## High-level mapping to OAR
 
-OAR v2 (2026-09-11) exposes one ordered record stream per Session
+OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as an event's `native`; the cross-runtime `views` are what
 OAR read out of it. Control calls are request/response record pairs.
@@ -164,7 +164,7 @@ The [native child schema](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376
 contains `subagentId`, `parentToolCallId`, optional `parentAgentId`, and
 `runInBackground`; completion can carry usage and context tokens. Current
 ACP subscribes to `main`, so children never reach OAR — the adapter declares
-attribution `opaque` and fabricates nothing. (OAR no longer filters by
+attribution `opaque` and fabricates nothing. (OAR does not filter by
 session id; should a future `kimi acp` emit updates for other session ids,
 they would be recorded as child-session records.) A root `Agent` tool card
 is not a child trajectory. Earlier `acp-adapter` references to

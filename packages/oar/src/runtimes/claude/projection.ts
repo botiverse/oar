@@ -18,7 +18,7 @@ import { claudeContextUsageFromResult } from "./context-usage.js";
  * list. No transport, no side effects — so it is trivially unit-testable and
  * shared verbatim between live and replay.
  *
- * v2 rules the fold enforces: EVERY frame becomes exactly one event record
+ * Rules the fold enforces: EVERY frame becomes exactly one event record
  * (verbatim `native`, views in block order); nothing is gated on whether a
  * turn is "open"; the turn's end is claude's own `result` frame; attribution
  * comes from `parent_tool_use_id` (a child's path is its parent's path plus

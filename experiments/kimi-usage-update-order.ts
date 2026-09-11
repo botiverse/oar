@@ -42,7 +42,7 @@
  * null at the first turn_ended, 100 at the second — the previous turn's
  * value, the bug this pins. "usage-never" with a 100 ms bound: the turn
  * completes after the bound with contextUsage() still null.
- * Re-observed 2026-09-11 on the v2 record stream (fixture only): same values.
+ * Re-observed 2026-09-11 on the record stream (fixture only): same values.
  */
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";

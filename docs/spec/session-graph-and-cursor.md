@@ -1,6 +1,6 @@
 # Session graph and cursor
 
-> Part of the [v2 spec, draft v0.8](README.md). Related design pages:
+> Part of the [record-stream spec](README.md). Related design pages:
 > [liveness](../design/liveness.md),
 > [hard problems 13–15](../design/hard-problems.md#beyond-a-single-local-process).
 
@@ -10,7 +10,7 @@
 forks) form parent/child structure; without an explicit graph, consumers
 cannot answer "where did sess-B come from".
 
-Ablation note: v0.7's graph held both agent parent/child (claude
+Note: v0.7's graph held both agent parent/child (claude
 subagents) *and* session derivation. But a claude subagent is not a
 session — it is an entity on `agentPath`. Putting it in the session graph
 commits, inside the graph itself, exactly the merge the hard constraint in
@@ -60,9 +60,8 @@ continuation within the session; process dead → rebuild from the runtime
 log. oar grows no storage layer because of this — a deliberate design
 ruling: oar does not own storage.
 
-- v1 already had session-level resume (`SessionOptions.resume` takes a
-  runtime-native id) plus a monotonic envelope `seq`; v2 sinks resume to
-  the record level. [v1: session.ts:30-31,57,162]
+- `SessionOptions.resume` takes a runtime-native id and reopens the
+  conversation; the cursor sinks resumable reading to the record level.
 - Counterexample: kimi-cli's `wire.jsonl` has wall-clock timestamps only,
   no seq. `_handle_replay` replays the entire log from the start *and*
   re-sends historical requests as live requests — approvals that were
@@ -82,19 +81,11 @@ interface Cursor { sessionId: string; afterSeq: number; }
 // throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
 ```
 
-**Implementation status.** The *process alive* half is shipped by every
-adapter: the kernel retains every record for the lifetime of the adapter
-process, so a reconnecting subscriber misses nothing and repeats nothing.
-The *process dead* half — rebuilding the stream from the runtime's own
-rollout/replay log with the same `seq` — is **not shipped**: no adapter
-hydrates history, and `SessionOptions.resume` opens a fresh stream at
-`seq` 0 on the runtime-native conversation. The live stream also contains
-oar's own request/response records, which no runtime log holds, so a
-rebuilt stream cannot reproduce live `seq` values without oar persisting
-them — a storage question this spec deliberately leaves to the consumer.
-Each [runtime page](../runtimes/README.md) records what the native replay
-surface offers (codex `thread/resume` history, ACP `session/load` replay,
-pi's session file) and what remains unverified.
+**Scope of the cursor.** The kernel retains every record for the lifetime
+of the adapter process, so a reconnecting subscriber misses nothing and
+repeats nothing. `SessionOptions.resume` opens a fresh stream at `seq` 0 on
+the runtime-native conversation; each [runtime page](../runtimes/README.md)
+records what its native replay surface offers.
 
 ### Example 6 · Reconnect, and rebuild after death
 

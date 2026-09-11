@@ -72,8 +72,7 @@ of them:
   sub-agents), Grok's session load replay: "the same session" means something
   different in each.
 - **Event vocabularies share no semantics.** Turn boundaries are genuinely
-  absent or partial in some runtimes. Synthesizing them yourself is a trap:
-  our v1 did it and we ripped it out.
+  absent or partial in some runtimes. Synthesizing them yourself is a trap.
 - **Attribution is the most underestimated part.** Sub-agent exposure spans a
   spectrum from opaque (Kimi's own ACP adapter drops sub-agent events)
   through attributed (Claude and Codex via `parent_tool_use_id`) to fully
@@ -204,16 +203,12 @@ change in the same commit as the code that changes them.
 
 ## What is not finalized
 
-The shipped API is the v2 record stream: one ordered, resumable stream in
+The shipped API is the record stream: one ordered, resumable stream in
 which records split into event, request and response, every record
 self-attributes (session id plus agent path), and a monotonic sequence
 number is the cursor. Every frame a runtime emits is in the stream
 verbatim; oar's typed reading of it rides alongside as views. The full
-contract is in [`docs/spec/`](../spec/README.md), together with the one
-designed half that is **not shipped**: rebuilding a stream after the
-adapter process died, with the same sequence numbers, from the runtime's
-own replay log. Today resume reopens the runtime-native conversation with a
-fresh stream.
+contract is in [`docs/spec/`](../spec/README.md).
 
 **[not finalized]** Three points remain explicitly open: whether the
 deleted causal-link field between records stays deleted; how external

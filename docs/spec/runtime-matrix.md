@@ -1,12 +1,12 @@
 # Runtime matrix, adapter red lines, and the two hard spots
 
-> Part of the [v2 spec, draft v0.8](README.md). Related design pages:
+> Part of the [record-stream spec](README.md). Related design pages:
 > [hard problems 9–10](../design/hard-problems.md#attribution--the-most-underestimated-part),
 > [foundations](../design/foundations.md).
 
 ## Per-runtime landing matrix
 
-Native evidence and the shipped v2 placement are combined below. The
+Native evidence and the shipped placement are combined below. The
 **declared tier** column is what each adapter's `capabilities.attribution`
 reports today; the other columns are native evidence. See the
 [runtime programming-interface pages](../runtimes/README.md) for current
@@ -23,8 +23,8 @@ calls, resume semantics, and what each adapter still does not carry.
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | current transport's child usage attribution unverified | proposed `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
-| codex (app-server) | native child threads and collaboration items; current OAR drops them | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` | thread usage exists; child attribution/aggregation unverified | native thread topology; v2 placement needs review | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
-| pi | no native (host composes) | host-nested sessions | flat (host splits) | fork edges (in graph) | session id | [src][v1] |
+| codex (app-server) | native child threads and collaboration items; current OAR drops them | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` | thread usage exists; child attribution/aggregation unverified | native thread topology; child threads are child sessions (see declared tier) | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
+| pi | no native (host composes) | host-nested sessions | flat (host splits) | fork edges (in graph) | session id | [src] |
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | native child usage has multiple views; v1 drops it | proposed parent→child session edges (in graph) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
@@ -36,15 +36,13 @@ The #1/#2/#3 tiers are the attribution spectrum defined in
 ## Adapter red lines
 
 **Why:** "the adapter drops attribution" appears in identical form in
-three mutually independent codebases, and upstream has confirmed it
-itself. When the protocol lacks the attribution dimension, this is the
-adapter's *inevitable* degeneration path — not three accidental
-oversights.
+mutually independent codebases, and upstream has confirmed it itself. When
+the protocol lacks the attribution dimension, this is the adapter's
+*inevitable* degeneration path — not accidental oversights. A session-id
+entry filter (`if (params.sessionId !== opened.sessionId) return;`) is the
+canonical shape of it: it throws away every child session's data and makes
+a nested runtime artificially opaque.
 
-- OAR v1: the shared ACP adapter's entry filter
-  `if (method !== "session/update" || params.sessionId !== opened.sessionId) return;`
-  throws away all of grok's child data — grok is artificially made
-  opaque. [v1: shared/acp/session.ts:97-116]
 - kimi-cli: its own ACP adapter has two `case SubagentEvent(): pass`
   arms (live + replay) — opacity at the ACP boundary is the adapter's
   choice, not missing data. [src: acp/session.py:203,292]
@@ -63,7 +61,7 @@ visibility remains. See the [current Kimi API page](../runtimes/kimi.md).
 the runtime truly lacks the information — never because the adapter
 didn't wire it up. Every adapter must explicitly declare which tier of
 the spectrum (#1/#2/#3) it carries, and that declaration must align with
-what the runtime actually exposes. v2's ACP adapter must subscribe to the
+what the runtime actually exposes. The ACP adapter must subscribe to the
 vendor lifecycle notifications to discover child sessionIds and receive
 those children's standard updates, attributing them per
 [attribution.md](attribution.md) and
@@ -106,7 +104,7 @@ seq=120  ✓ event  root           result {…}
 seq=121  ✓ event  path=["bg-7"]  tool_result {…}
 seq=122  ✓ event  path=["bg-7"]  completed {usage:…}
          ↳ the background child is still alive; records keep entering the
-           stream, correctly attributed. v1's isSettled gate would swallow
+           stream, correctly attributed; a settled-gate would swallow
            121 and 122 here
 ```
 

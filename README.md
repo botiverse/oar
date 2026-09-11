@@ -21,8 +21,8 @@ removing one of those files updates this table in the same commit.
 |---|---|
 | [`docs/design/`](docs/design/README.md) | Why oar exists, who it is for, and which design problems it treats as load-bearing |
 | [`docs/runtimes/`](docs/runtimes/README.md) | Each runtime's programming interface and native concepts: API inputs/results, resume semantics, capabilities, current OAR mapping, and evidence gaps; includes Maka as a design reference |
-| [`docs/spec/`](docs/spec/README.md) | The concrete v2 record-stream contract the library emits (record shapes, attribution, session graph, cursor), with what is shipped and what is not — kept deliberately separate from the design principles |
-| [`docs/blog/`](docs/blog/README.md) | Long-form posts (the release post draft): the motivation and shipped surface in one read, with unsettled v2 parts marked |
+| [`docs/spec/`](docs/spec/README.md) | The concrete record-stream contract the library emits (record shapes, attribution, session graph, cursor), kept deliberately separate from the design principles |
+| [`docs/blog/`](docs/blog/README.md) | Long-form posts (the release post draft): the motivation and shipped surface in one read, with unsettled parts marked |
 | [`docs/development.md`](docs/development.md) | Working in this repo: how to validate changes, how to add a runtime or fix a runtime bug, conventions, the commit gate — and pointers to the source-layout and test-suite docs that live next to the code |
 
 The CLI lives in [`packages/cli/`](packages/cli/README.md) so library consumers do not install Commander. The Electron cockpit that dogfoods the library lives in its own repository, [botiverse/oar-coxswain](https://github.com/botiverse/oar-coxswain), and consumes the published npm package.

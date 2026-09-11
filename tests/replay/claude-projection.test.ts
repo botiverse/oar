@@ -16,7 +16,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  * FILE beside the input — input is a file, so the output is too. The snapshot
  * shows each raw frame next to the record(s) it produced: the living
  * "what the provider sends → how we project it" specimen and a regression net.
- * Every frame yields exactly one event (v2: nothing is dropped); the views
+ * Every frame yields exactly one event (nothing is dropped); the views
  * column is what oar read out of it.
  */
 

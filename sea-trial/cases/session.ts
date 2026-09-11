@@ -36,7 +36,7 @@ function rootTurnEnds(records: readonly SessionRecord[]): readonly SessionRecord
 
 export const sessionCases: readonly TrialCase[] = [
   {
-    // The v2 promise in one case: the turn's start is the prompt request, its
+    // The contract's promise in one case: the turn's start is the prompt request, its
     // end is the runtime's own turn_ended event, every record self-attributes
     // (sessionId + agentPath), every event carries the runtime's frame
     // verbatim, and seq is the one total order.

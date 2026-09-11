@@ -82,5 +82,4 @@ or read the same format as consumers.
 
 All timestamps are Unix epoch milliseconds on the same clock as each
 record's `receivedAt`. Lines are written synchronously in arrival order, so
-a crashed run still leaves a readable prefix. The earlier `oar-voyage/1`
-layout (v1 events plus submission lines) is no longer written.
+a crashed run still leaves a readable prefix.

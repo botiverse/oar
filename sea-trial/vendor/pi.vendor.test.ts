@@ -86,7 +86,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
         Current working directory: <CWD>
         "
       `);
-      // v2: pi's session-scoped compaction events are no longer dropped —
+      // pi's session-scoped compaction events are not dropped —
       // they enter the stream verbatim, with no view.
       const compactionTypes = session.records()
         .flatMap((record) => (record.kind === "event" && record.body.type.startsWith("compaction_") ? [record.body.type] : []));

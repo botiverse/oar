@@ -1,7 +1,7 @@
 # Pi
 
 Reviewed **2026-09-08** against OAR source and installed SDK **0.84.2**;
-mapping updated **2026-09-11** for the v2 record stream (verified with the
+mapping updated **2026-09-11** for the record stream (verified with the
 pi-aimock vendor tests, no live model calls). Upstream references are pinned
 to **v0.84.2** (commit prefix `914cf1472`, recorded in the resume probe).
 Former `badlogic/pi-mono` URLs redirect to `earendil-works/pi`. See the
@@ -41,7 +41,7 @@ services and one `AgentSession`; it does not use the replacement-oriented
 | Agent run | A span on the stream: from the `prompt` request record (accepted once pi emits `agent_start`) to pi's own `agent_settled` event, whose `turn_ended` view carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | Native history tree and replacement APIs | Resume is mapped; branch navigation, fork, import, and history access are not exposed. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` view on a `pi/session_opened` event. |
-| SDK event stream | Every `AgentSessionEvent` is exactly one event record, verbatim as `native`, with oar's views (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events v1 dropped (compaction, queue, retry, entry, settings) are in the stream with no view. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
+| SDK event stream | Every `AgentSessionEvent` is exactly one event record, verbatim as `native`, with oar's views (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events (compaction, queue, retry, entry, settings) are in the stream with no view. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected; `queue` is an adapter-held FIFO (`durable: false`). |
 
 Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
@@ -210,7 +210,7 @@ readback, including real Pi resume on 2026-09-05. Older comments calling Pi resu
 unimplemented are superseded by the `SessionManager.list`/`open` path and probe.
 [Vendor tests](../../sea-trial/vendor/pi.vendor.test.ts) use the real SDK with a
 scripted model for errors, tools, context at turn end, compaction events in the
-stream, and prompt configuration through compaction; they passed on the v2
+stream, and prompt configuration through compaction; they passed on the record-stream
 adapter on 2026-09-11 (macOS, SDK 0.84.2). The
 [replay test](../../tests/replay/pi-projection.test.ts) pins the fold over the
 recorded tool-round fixture and the settled/abort/error classification.

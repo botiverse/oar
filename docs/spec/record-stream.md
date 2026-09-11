@@ -1,37 +1,33 @@
 # One stream, three record kinds
 
-> Part of the [v2 spec, draft v0.8](README.md). Related design pages:
+> Part of the [record-stream spec](README.md). Related design pages:
 > [hard problems 5–8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-**Why this must be fixed first:** v1 pushed the control flow (prompt /
-steer / abort / dispose commands and their replies) and the fact flow (what
-the runtime actually said) into one `SessionEvent` model — and it is the
-control plane that trims, synthesizes, and constrains the facts. Whether a
-fact exists depends on whether oar's object model is still alive. That is a
-protocol-level defect: until it is fixed, attribution, the session graph,
-and the cursor are all built on a foundation that loses facts.
+**Why this must be fixed first:** a design that pushes the control flow
+(prompt / steer / abort / dispose commands and their replies) and the fact
+flow (what the runtime actually said) through one model lets the control
+plane trim, synthesize, and constrain the facts: whether a fact exists then
+depends on whether the object model is still alive. That is a protocol-level
+defect — attribution, the session graph, and the cursor cannot be built on a
+foundation that loses facts.
 
-## Evidence A — five concrete defects in shipped v1 code
+## Evidence A — five ways a control-shaped event model loses facts
 
-- **`turn_started` / `turn_ended` are synthesized by oar**: `begin()` /
-  `settle()` fan out directly, so the skeleton of the event stream comes
+- **Synthesized turn boundaries**: if `begin()` / `settle()` fan out
+  `turn_started` / `turn_ended` themselves, the skeleton of the stream comes
   from "our API was called", not from the runtime.
-  [v1: shared/session-kernel.ts:74,78]
-- **The control plane swallows facts once closed**: `emit()` is
-  `if (!isSettled) fanOut(...)` — runtime events arriving after settle are
-  silently dropped. [v1: session-kernel.ts:66-70]
-- **The envelope forces `turnId`, so true facts without a turn are lost**:
-  pi's 17 session-level events (compaction / queue / retry, …) are dropped
-  by the projection. [v1: runtimes/pi/projection.ts:130-149]
-- **One answer split across two paths**: the turn outcome lives half in
-  the `Turn.outcome` promise and half in the `turn_ended` event; where a
-  steer landed lives half in a return value and half in the stream.
-  Consumers are forced to join the two. [v1: contracts/session.ts]
-- **Query masquerade**: `contextUsage()` is really a cached snapshot of
-  the latest usage seen in the stream — no seq, so it can neither be
-  aligned with other records nor replayed.
-  [v1: runtimes/claude/session.ts:92-93 `latestContextUsage`]
+- **A closed control plane swallows facts**: an `if (!isSettled) fanOut(...)`
+  gate silently drops runtime events arriving after settlement.
+- **A mandatory `turnId` loses facts without a turn**: pi's session-level
+  events (compaction / queue / retry, …) belong to no turn and would have
+  nowhere to go.
+- **One answer split across two paths**: a turn outcome half in a promise and
+  half in an event, a steer landing half in a return value and half in the
+  stream, forces every consumer to join the two.
+- **Query masquerade**: a `contextUsage()` that is a cached snapshot of the
+  latest usage seen carries no seq, so it can neither be aligned with other
+  records nor replayed.
 
 ## Evidence B — why the fix is *not* "split into two channels"
 
@@ -57,11 +53,11 @@ Every shipped runtime does this in a single channel:
   no seq, so "did the abort land before or after that tool_result" becomes
   permanently unanswerable.
 
-## The v2 rules
+## The rules
 
 **event** — the runtime's own words. Expects no reply; append-only;
-monotonic seq. oar never synthesizes an event. v1's only synthesis case
-(turn boundaries) has real replacements in v2: the turn's start *is* the
+monotonic seq. oar never synthesizes an event. Turn boundaries, the one
+tempting synthesis case, have real replacements: the turn's start *is* the
 prompt request itself, and its end is the runtime's own completion event
 (claude's `result`, codex's `task_complete`); if a runtime doesn't report
 one, it is honestly absent. Since no oar-made facts exist in the stream,
@@ -86,19 +82,18 @@ honest record: the action was initiated and the outcome was not observed
 
 Further rules:
 
-- **Control never prunes facts.** All `if (!isSettled) drop`-style gates
-  are deleted; whatever the runtime said must enter the stream, even if it
-  lands after a span has ended.
+- **Control never prunes facts.** There is no settled-gate anywhere:
+  whatever the runtime said must enter the stream, even if it lands after a
+  span has ended.
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. Counterexample: kimi-cli leaks the
   turn outcome into `_handle_prompt`'s return value, while the `TurnEnd`
   docstring admits it "may be omitted" when interrupted.
   [src: wire/server.py:644-755; wire/types.py]
-- **Turn is demoted from control object to a span on the stream.** The
-  envelope no longer forces `turnId`; it becomes an optional `spanId`
-  carrying only runtime-native ids (red line in
-  [runtime-matrix.md](runtime-matrix.md)) — pi's 17 events are no longer
-  dropped.
+- **A turn is a span on the stream, not a control object.** The envelope
+  carries an optional `spanId` holding only runtime-native ids (red line in
+  [runtime-matrix.md](runtime-matrix.md)); records without a native turn id,
+  such as pi's session-scoped events, simply have none.
 - **Query is a projection over the stream.** `contextUsage()` is a fold
   over seq-carrying usage events, not a second source of truth.
 
@@ -109,7 +104,7 @@ type RecordKind = "event" | "request" | "response";
 // kind is theoretically derivable from field shape (kimi-cli's wire
 // distinguishes by the presence of id), but TS discriminated unions need
 // an explicit discriminant — kept; the only deliberate convenience field
-// left after ablation.
+// left after the deletion pass.
 
 interface RecordEnvelope {
   sessionId: string;            // runtime-native; a derived child session carries its own
@@ -179,18 +174,16 @@ seq=21  ✓ event     root            result      → turn_ended completed, usag
           oar does not restate it
 ```
 
-## Example 2 · dispose mid-flight: frames v1 swallowed, v2 records in full
+## Example 2 · dispose mid-flight: every frame up to the exit is recorded
 
 ```
 seq=40  ◆ request   root  id=rq-12  dispose
 seq=41  ✓ event     root            tool_result {call:"call_7", …}
-        ↳ arrived after the kill was requested, before the process died.
-          v1's isSettled gate swallows this (session.ts:185 settles before
-          :186 kills)
+        ↳ arrived after the kill was requested, before the process died;
+          a settled-gate would swallow it, the stream keeps it
 seq=42  ✓ event     root            result {usage:{in:45231, out:8120}, …}
-        ↳ in v1 this usage went only into the latestContextUsage snapshot,
-          never into the event stream; in v2 it is in-stream, with a seq,
-          replayable
+        ↳ usage is in-stream, with a seq, replayable — never a snapshot
+          held beside the stream
 seq=43  ◇ response  root  →rq-12    exited {code:143}
         ↳ the one justification for a response to exist: the process exit
           code is an outcome the runtime will never say itself — only oar

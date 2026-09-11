@@ -14,7 +14,7 @@ import { openPiAgentSession, piEffectiveModel } from "./open.js";
 export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
 
 /*
- * Bundled pi SDK mapping (in-process, no fork — settled 2026-08-21, v2 record
+ * Bundled pi SDK mapping (in-process, no fork — settled 2026-08-21, record
  * stream 2026-09-11): every SDK event is one event record; pi's own
  * `agent_settled` is the turn end; steer acceptance means entry into pi's queue;
  * abort is cooperative. Resume opens the cwd's session file by id and

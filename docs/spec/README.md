@@ -1,19 +1,17 @@
 # Specification
 
-> **Status: v2 — SHIPPED (v1.0 of this document).** The record-stream
+> **Status: SHIPPED (v1.0 of this document).** The record-stream
 > contract below is what `@botiverse/oar` emits today
 > (`packages/oar/src/contracts/session.ts` is the normative TypeScript).
 > It is kept deliberately separate from [`docs/design/`](../design/README.md):
 > design records *why* (principles, evidence, what must not go wrong), this
 > directory records *what* (record shapes, envelope, session graph, cursor
 > semantics). Principles pages never contain wire shapes; spec pages cite
-> the principles instead of restating them. Draft-era evidence sections
-> that argue against v1 are kept: they are the reasons the shape is what it
-> is.
+> the principles instead of restating them.
 
 ## The contract in one line
 
-v2 is one ordered, resumable record stream. Records split into three kinds
+The contract is one ordered, resumable record stream. Records split into three kinds
 by obligation (event / request / response), every record self-attributes
 (session graph + `agentPath`), and a monotonic `seq` on the stream is the
 cursor.
@@ -33,9 +31,8 @@ concurrent prompt queueing (no shipped runtime needs it — see
 |---|---|
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
-| [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work — and which half of it is shipped? |
+| [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |
 | [runtime-matrix.md](runtime-matrix.md) | Which attribution tier does each shipped adapter declare, on what native evidence, and what are adapters forbidden to do? |
-| [ablation.md](ablation.md) | Which elements were tried for deletion and why the survivors stayed; the elements the implementation added and their deletion tests |
 
 For each runtime's native calls, resume behavior, and current mapping into
 this contract, read [`../runtimes/`](../runtimes/README.md).
@@ -44,10 +41,10 @@ All examples in these pages are illustrative: seq values and field contents
 are invented; the record shapes and invariants are normative. Field names
 follow the TypeScript contracts.
 
-## What is shipped, what is not
+## What the contract covers
 
-Shipped by every adapter (claude, codex, pi, grok, kimi) and pinned by the
-shared behavior suite (`sea-trial/cases/session.ts`):
+Implemented by every adapter (claude, codex, pi, grok, kimi) and pinned by
+the shared behavior suite (`sea-trial/cases/session.ts`):
 
 - one stream of `event` / `request` / `response` records with a dense
   monotonic `seq`, `sessionId`, `agentPath`, optional runtime-native
@@ -65,19 +62,9 @@ shared behavior suite (`sea-trial/cases/session.ts`):
   {sessionId, afterSeq})` replays the retained records after that position
   and continues live, without loss or duplication;
 - the session graph with true sessions only, and an explicit attribution
-  tier per adapter (`capabilities.attribution`).
-
-Designed, **not shipped**:
-
-- **Rebuilding the stream after the adapter process died** with the same
-  `seq` from the runtime's own rollout/replay log
-  ([session-graph-and-cursor.md](session-graph-and-cursor.md)). Today
-  `SessionOptions.resume` reopens the runtime-native conversation with a
-  fresh stream starting at `seq` 0; no adapter hydrates history. Each
-  runtime page records what its native replay surface offers.
-- Answering runtime→app requests. They are recorded (a dangling `toApp`
-  request is the honest record) but the YOLO defaults mean no adapter has
-  a decision channel for them.
+  tier per adapter (`capabilities.attribution`);
+- `SessionOptions.resume` reopening the runtime-native conversation with a
+  fresh stream starting at `seq` 0.
 
 ## Open decisions
 
@@ -102,15 +89,15 @@ v0.3 attribution dimensions established → v0.4 ACP spec evidence → v0.5
 kimi-cli native-wire evidence → v0.6 ACP gap wording corrected + kimi-code
 KAP evidence → v0.7 review convergence (usage compressed to one constraint,
 `fact` renamed `event`, synthesized turn boundaries deleted, cursor
-semantics settled, `causedBy` deleted) → v0.8 ablation pass (element-wise
-deletion tests; everything without a concrete breaking scenario was cut —
-see [ablation.md](ablation.md)) → **v1.0 implementation** (2026-09-11):
+semantics settled, `causedBy` deleted) → v0.8 element-wise deletion pass
+(everything without a concrete breaking scenario was cut) → **v1.0
+implementation** (2026-09-11):
 `EventBody` fixed as `{type, native, views}`, `views` a list because one
 frame can carry several readings; control responses `accepted` /
 `rejected`, plus `answered` for oar's replies to `toApp` requests and
 `exited` for the observed process exit; `queue` added as a request kind;
-`SessionCapabilities` with the attribution tier; the in-process cursor
-shipped and the post-mortem rebuild recorded as not shipped.
+`SessionCapabilities` with the attribution tier; the cursor honored for
+the lifetime of the adapter process.
 
 ## Legend
 
@@ -122,7 +109,7 @@ Record markers, used symbol+word so nothing depends on color:
 - ○ absence — an outcome that was never observed (honest gap)
 
 Evidence tags: `[src]` vendor source code (pinned commits where noted) ·
-`[sym]` binary symbols · `[v1]` code shipped in OAR v1 · `[env]` observed
+`[sym]` binary symbols · `[env]` observed
 runtime behavior · `[doc]` official documentation · `[acp]` ACP
 spec/schema (pinned clone bb2ef8f7).
 
@@ -136,10 +123,10 @@ rules that keep them in sync:
   spec page changes in the same commit. Never "update the docs later".
 - **What changes together.** One contract change usually touches several
   places; update them as a unit: the code ↔ the owning spec page ↔ the
-  affected row in [runtime-matrix.md](runtime-matrix.md) ↔ the
-  [ablation.md](ablation.md) ledger (every field added or deleted gets a
-  deletion-test entry — a breaking scenario if kept, a cut record if
-  removed) ↔ the runtime's page in [`../runtimes/`](../runtimes/README.md).
+  affected row in [runtime-matrix.md](runtime-matrix.md) ↔ the runtime's
+  page in [`../runtimes/`](../runtimes/README.md). Every field added earns
+  its place with a concrete scenario that breaks without it, stated in the
+  contract's own comments.
 - **Where new material belongs.** *Why* a position holds (principles,
   evidence, failure modes) goes to [`docs/design/`](../design/README.md);
   *what* the contract is (shapes, semantics, per-runtime mapping) goes

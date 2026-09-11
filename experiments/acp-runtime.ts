@@ -1,7 +1,7 @@
 /**
  * LIVE RUN OF THE PUBLIC GROK/KIMI RUNTIME ADAPTER.
  *
- * Pins the real executable handshake, one shell-tool turn, the v2 record
+ * Pins the real executable handshake, one shell-tool turn, the record
  * stream (every frame recorded, views, toApp terminal/permission requests,
  * child-session records and the graph), and the vendor account-usage
  * surface. It prints only a structural summary: no prompt text, tool

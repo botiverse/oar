@@ -34,7 +34,7 @@ export type {
 } from "./records.js";
 
 /**
- * Session contract v2: one ordered, resumable record stream.
+ * Session contract: one ordered, resumable record stream.
  *
  * The external promise (docs/spec): everything the runtime said is in the
  * stream, nothing oar didn't observe is in it, every record knows whose it
@@ -58,10 +58,8 @@ export type {
  *   answer, when it gives one, is the matching response record.
  * - The cursor is honored for the lifetime of the adapter process: a
  *   subscriber reconnecting with `afterSeq` misses nothing and repeats
- *   nothing. Rebuilding the stream after the process died (from the
- *   runtime's own rollout/log, with the same seq) is designed in the spec but
- *   NOT implemented by any shipped adapter: `SessionOptions.resume` reopens
- *   the runtime-native conversation with a fresh stream starting at seq 0.
+ *   nothing. `SessionOptions.resume` reopens the runtime-native conversation
+ *   with a fresh stream starting at seq 0.
  */
 
 export interface SessionOptions {

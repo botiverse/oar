@@ -111,7 +111,7 @@ comparison explicitly as unimplemented.
 ## Where this fits and how to maintain it
 
 [`../design/`](../design/README.md) records OAR's design reasoning;
-[`../spec/`](../spec/README.md) is the v2 record-stream contract the
+[`../spec/`](../spec/README.md) is the record-stream contract the
 adapters implement. These runtime pages record native facts and **current
 implementation** — which native frames become which records and views,
 which controls are which requests, what each adapter declares in

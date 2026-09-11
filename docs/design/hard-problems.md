@@ -34,11 +34,9 @@ subject of [foundations.md](foundations.md).
 6. **Event vocabulary with no shared semantics.** Each harness has its own
    event types; turn/run boundaries are genuinely absent or partial in some
    (pi, claude). The tempting fix — synthesizing boundaries yourself — is a
-   trap: v1 did it and we ripped it out. Unknown events must be preserved,
-   never dropped.
+   trap. Unknown events must be preserved, never dropped.
 7. **Deriving status.** "Is it running / waiting for input / done" is a fold
-   over events, and it is easy to conflate control flow with fact flow — we
-   found five distinct places v1 did this.
+   over events, and it is easy to conflate control flow with fact flow.
 8. **Process-death edges.** Kill the process mid-tool-call and you get
    dangling tool calls with no ended/result events — you need explicit
    dispose semantics and post-mortem records, or consumers hang on state

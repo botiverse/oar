@@ -1,6 +1,6 @@
 # Attribution and usage
 
-> Part of the [v2 spec, draft v0.8](README.md). Related design pages:
+> Part of the [record-stream spec](README.md). Related design pages:
 > [hard problems 9–10](../design/hard-problems.md#attribution--the-most-underestimated-part),
 > [foundations](../design/foundations.md).
 
@@ -12,7 +12,7 @@ to". That needs an attribution mark on the record (`agentPath`), not a
 second transport channel. "Multiplexing" has always meant main and sub
 agents sharing one stream — never multiple control planes.
 
-Ablation note: v0.7 carried both `streamId` and `agentPath` — two
+Note: v0.7 carried both `streamId` and `agentPath` — two
 encodings of the same dimension. `streamId` was always derivable from
 `agentPath` (the leaf element; `[]` meaning root), and v0.7's own text
 already wrote the composite key as "(agentPath|streamId, id)", admitting
@@ -54,19 +54,18 @@ which agent), be orderable, and be locatable, so consumers can demux,
 attribute, and resume. Each field's deletion-test verdict is in the
 comments.
 
-- The v1 envelope already had `sessionId` / `turnId` / `seq` /
-  `receivedAt`; v2 adds `agentPath` and turns `turnId` into the optional
-  `spanId`. [v1: contracts/session.ts:158-164]
+- The envelope is `sessionId` / `agentPath` / optional `spanId` / `seq` /
+  `receivedAt`; nothing in it is invented by oar except the ordering.
 - `sessionId` has a real referent — it is not invented by oar: claude's
   `CLAUDE_CODE_SESSION_ID`, codex's `CODEX_SESSION_ID`. Delete it and
   grok's child sessions interleaving on one connection cannot be
   demultiplexed. [env][src]
 
 ```ts
-interface RecordEnvelopeV2 {
+interface RecordEnvelope {
   sessionId: string;              // deletion test: grok child sessions interleave on one connection — undemuxable without it
   agentPath: readonly string[];   // [] = root; [...] = sub-agent lineage. Deletion test: the cross-agent ID collision (runtime-matrix.md, hard spot 1) has no solution
-  spanId?: string;                // runtime-native turn id; v1's mandatory turnId dropped pi's 17 facts (record-stream.md, evidence A)
+  spanId?: string;                // runtime-native turn id; a mandatory turn id would drop pi's session-scoped facts (record-stream.md, evidence A)
   seq: number;                    // monotonic, cursor basis; replay determinism covers seq only (session-graph-and-cursor.md)
   receivedAt: number;             // best-effort observation time; explicitly outside the determinism guarantee — identity rests on seq
 }
@@ -118,10 +117,10 @@ independent codebases already demonstrate the inevitable degeneration
   unmerged to date. Accurate status: "the gap is formally discussed, a
   candidate fix sits in a draft RFD, no protocol commitment yet". [acp]
 
-**Hard constraint:** v2 must never merge session and agent into one
+**Hard constraint:** the protocol must never merge session and agent into one
 dimension. The ACP draft chooses child-session (#3); kimi-cli and
 kimi-code choose record-level attribution (#2). Both topologies are real
-candidates and v2 must express both — otherwise grok's child sessions can
+candidates and the protocol must express both — otherwise grok's child sessions can
 only be faked as pseudo-agents, or KAP's agents faked as pseudo-sessions.
 
 **Full-spectrum principle:** the protocol supports opaque (#1) →

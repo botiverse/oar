@@ -6,7 +6,7 @@ one is published.
 
 | Post | Status |
 |---|---|
-| [introducing-oar.md](introducing-oar.md) | Draft — release post; motivation and shipped surface settled, v2 spec paragraphs marked **[not finalized]** |
+| [introducing-oar.md](introducing-oar.md) | Draft — release post; motivation and shipped surface settled, open spec paragraphs marked **[not finalized]** |
 
 ## How to maintain these docs
 

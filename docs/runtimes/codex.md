@@ -34,8 +34,8 @@ app-server contract merely because operation names resemble each other.
 
 ## High-level mapping to OAR
 
-OAR starts one app-server process per Session, using v2 over stdio, and
-exposes it as the [v2 record stream](../spec/README.md): every app-server
+OAR starts one app-server process per Session, using the app-server's own protocol version 2 over stdio, and
+exposes it as the [record stream](../spec/README.md): every app-server
 notification is one event record (params verbatim in `native`, oar's reading
 in `views`), every control call is a request record answered by the RPC
 reply, and the runtime's own `turn/completed` is the turn's end. The adapter
@@ -248,7 +248,7 @@ Priority gaps are multi-step/compaction context semantics, resumed reasoning
 visibility, queue recovery, server-request handling (recorded, never
 answered), and live child-thread delivery/identity.
 Instruction tests explicitly defer compaction survival. Keep these gaps separate
-from implemented methods and proposed v2 guarantees.
+from implemented methods and spec guarantees not yet verified live.
 
 [native-source]: https://github.com/openai/codex/tree/4f39251a010a8bd7d692d25fb33832ff06f1635a
 [thread-schema]: https://github.com/openai/codex/blob/4f39251a010a8bd7d692d25fb33832ff06f1635a/codex-rs/app-server-protocol/src/protocol/v2/thread.rs

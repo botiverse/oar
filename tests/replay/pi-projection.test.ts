@@ -18,7 +18,7 @@ import { parseJson } from "../../packages/oar/src/shared/json.js";
  * fidelity as the pi-aimock behavior tests; the event SHAPES are pi's own.
  * The recorded events fold through the production projection; the
  * type|record table snapshots to a FILE beside the input. Every SDK event
- * yields exactly one event record (v2: nothing is dropped); the views column
+ * yields exactly one event record (nothing is dropped); the views column
  * is what oar read out of it.
  */
 

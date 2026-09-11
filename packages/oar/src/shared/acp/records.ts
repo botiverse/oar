@@ -11,7 +11,7 @@ import type { UsageUpdateGate } from "./usage-wait.js";
  * verbatim; this module only decides the envelope (which session id) and the
  * views. Nothing is filtered: an update for a session id other than the root
  * is a derived child session — recorded under ITS id and added to the graph
- * (the v1 entry filter that dropped it is the adapter red line in
+ * (filtering by session id is the adapter red line in
  * docs/spec/runtime-matrix.md).
  */
 export interface AcpRecorder {

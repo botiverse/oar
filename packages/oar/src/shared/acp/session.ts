@@ -25,7 +25,7 @@ import { createAcpTurns } from "./turns.js";
 export type { AcpSessionProfile } from "./profile.js";
 
 /*
- * ACP v2 mapping (shared by grok and kimi; profiles carry the vendor bits):
+ * ACP mapping onto the record stream (shared by grok and kimi; profiles carry the vendor bits):
  * - every `session/update` is ONE event record, native verbatim, for WHATEVER
  *   session id it names — a foreign id is a derived child session (records.ts).
  * - vendor extension notifications the profile lists are recorded verbatim.

@@ -87,7 +87,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       ]);
       // Everything after our accepted prompt would have to come from claude —
       // and nothing that ends the turn does. Whatever frames DID arrive are in
-      // the stream verbatim (v2 drops nothing), so list their types.
+      // the stream verbatim (the stream drops nothing), so list their types.
       const fromRuntime = session.records()
         .filter((record): record is Extract<SessionRecord, { kind: "event" }> => record.kind === "event" && record.seq > result.request.seq)
         .map((record) => `${record.body.type}${record.body.views.length === 0 ? "" : ` → ${record.body.views.map((view) => view.kind).join(",")}`}`);

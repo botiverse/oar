@@ -14,9 +14,8 @@ import { asNumber, asRecord } from "../../shared/json.js";
  * runtimes/claude/projection.ts). Every SDK event becomes exactly ONE event
  * command: the event object verbatim as `native`, `type` = its SDK type, and
  * the views oar read out of it. Nothing is gated on turn state and nothing
- * is dropped any more — the session-scoped events v1 discarded (compaction,
- * queue, retry, …) now enter the stream with no views, inside the turn they
- * belong to. pi has no native turn id (no spanId) and no native sub-agents
+ * is dropped — the session-scoped events (compaction, queue, retry, …)
+ * enter the stream with no views, inside the turn they belong to. pi has no native turn id (no spanId) and no native sub-agents
  * (agentPath is always root).
  *
  * `abortRequested` / `providerError` are control-plane and error inputs the

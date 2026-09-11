@@ -14,7 +14,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  * codex notification stream (fixtures/*.raw.jsonl from `pnpm sea-trial:record
  * codex ...`, scrubbed to consumed fields) folds through the production
  * projection; the frame|records table snapshots to a FILE beside the input.
- * Every notification yields exactly one event (v2: nothing is dropped); the
+ * Every notification yields exactly one event (nothing is dropped); the
  * views column is what oar read out of it.
  */
 

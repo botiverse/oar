@@ -6,7 +6,7 @@ Evidence baseline: reviewed 2026-09-08 against
 is **Grok 1.0.5 (`5115b46bc9`), 2026-08-26**; the
 [adapter experiment](../../experiments/acp-runtime.ts) records 2026-08-27.
 Source-supported behavior below is not a live check of the newer binary.
-No model calls or tests ran for this review. The [v2 draft](../spec/README.md)
+No model calls or tests ran for this review. The [spec](../spec/README.md)
 is not current OAR behavior.
 
 ## Native concepts and calling interfaces
@@ -31,7 +31,7 @@ concepts exist before OAR chooses its Session/Turn abstraction.
 
 ## High-level mapping to OAR
 
-OAR v2 (2026-09-11) exposes one ordered record stream per Session
+OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as an event's `native`; the cross-runtime `views` are what
 OAR read out of it. Control calls are request/response record pairs.
@@ -144,7 +144,7 @@ unverified.
 
 Native child [spawn events](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/subagent/handle_request.rs#L609-L634)
 identify parent/child sessions and parent prompt; [completion events](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/subagent/spawn.rs#L318-L368)
-report status, usage, and whether the parent will wake. OAR v2 keeps every
+report status, usage, and whether the parent will wake. OAR keeps every
 `session/update` regardless of session id: a foreign id becomes a
 child-session record (envelope `sessionId` = the child's, `agentPath` `[]`,
 a node in `Session.graph()`). The profile subscribes to the vendor

@@ -15,7 +15,7 @@ import { asRecord, asRecordList, type JsonRecord } from "../json.js";
  *   back to the default silently) and `session/set_model` answers
  *   `{_meta: {model}}` with the applied id.
  *
- * Null when the frame carries neither. In v2 every such frame is an event
+ * Null when the frame carries neither. Every such frame is an event
  * record with a `model` view, so `Session.model()` is the latest of them —
  * the request parameter is never consulted.
  */

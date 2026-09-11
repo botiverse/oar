@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import type { Session, SessionRecord } from "../../packages/oar/src/contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../packages/oar/src/shared/acp/session.js";
 
-/** The scripted ACP agent (fake-acp-agent.mjs) and the v2 session helpers the ACP tests share. */
+/** The scripted ACP agent (fake-acp-agent.mjs) and the session helpers the ACP tests share. */
 export const fixture = fileURLToPath(new URL("fake-acp-agent.mjs", import.meta.url));
 const installation = {
   kind: "available",

@@ -33,7 +33,7 @@ Programs have two relevant entry points:
 
 ## High-level mapping to OAR
 
-| Native concept or interface | Current OAR mapping (v2 record stream) |
+| Native concept or interface | Current OAR mapping (record stream) |
 |---|---|
 | CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. The exit is an `exited` response record (answering `dispose` when OAR caused it). |
 | Persistent session ID | `Session.id`; supplied through `--session-id` or `--resume`. Every record carries it as `sessionId`. |

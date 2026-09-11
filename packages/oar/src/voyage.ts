@@ -7,8 +7,7 @@ import type { SessionRecord } from "./contracts/session.js";
 // request records); `end` is the last line — a log without it is a truncated
 // capture. All timestamps are Unix epoch milliseconds on the same clock as
 // `receivedAt`. The format is defined and owned by oar; other tools may
-// consume it. oar-voyage/1 (v1 events + separate submission lines) is no
-// longer written.
+// consume it.
 
 export const VOYAGE_FORMAT = "oar-voyage/2";
 
