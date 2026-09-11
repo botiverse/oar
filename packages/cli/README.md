@@ -72,7 +72,7 @@ or read the same format as consumers.
 - Line 1 is always the header:
   `{"kind":"header","format":"oar-voyage/2","runtime","model?","cwd","sessionId","startedAt","recorder"}`
   (`model` is omitted when none was requested; `recorder` names the writer,
-  e.g. `oar-cli/0.0.12`).
+  e.g. `oar-cli/0.1.0`).
 - `{"kind":"record","record":{...}}` — one `SessionRecord` verbatim, no
   filtering or re-timestamping. Human inputs are in the stream already as
   `request` records, so the format has no separate submission line; the
