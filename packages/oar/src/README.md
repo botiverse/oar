@@ -11,7 +11,7 @@ src/
   contracts/               # provider-independent agreements
   runtimes/<id>/           # one runtime, split by capability
   shared/                  # mechanisms + shared contract implementations
-  observe/                 # consumer-side derivations over the event stream
+  observe/                 # consumer-side derivations over the record stream (status fold, turn helpers, usage folds)
 ```
 
 ```mermaid

@@ -33,13 +33,14 @@ Programs have two relevant entry points:
 
 ## High-level mapping to OAR
 
-| Native concept or interface | Current OAR mapping |
+| Native concept or interface | Current OAR mapping (v2 record stream) |
 |---|---|
-| CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and events. |
-| Persistent session ID | `Session.id`; supplied through `--session-id` or `--resume`. |
-| User turn and result | One OAR Turn, with an OAR-generated ID; `result` settles its outcome. |
-| Model steps, messages, tool calls | Selected text/reasoning/tool events within that OAR Turn. Tool IDs survive; message identity generally does not. |
-| Subagent conversation | No child Session or control handle; current projection ignores parent attribution. |
+| CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. The exit is an `exited` response record (answering `dispose` when OAR caused it). |
+| Persistent session ID | `Session.id`; supplied through `--session-id` or `--resume`. Every record carries it as `sessionId`. |
+| stream-json frame | Exactly one `event` record per stdout line: `type` = `type[/subtype]`, `native` = the frame verbatim, `views` = OAR's readings (text_delta, reasoning, tool_call_started/ended, turn_ended, usage, model). Frames OAR does not interpret (`rate_limit_event`, `system/thinking_tokens`, …) are recorded with no views. No `spanId`: claude frames carry no turn id. |
+| User turn and `result` | The turn's start is the `prompt` request record; the `result` frame is the turn's end, projected as a `turn_ended` view (aborted when OAR's own interrupt was outstanding, failed on `is_error`, else completed) plus a `usage` view. |
+| Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]`: a frame attributes to the Task tool_use that spawned it, nested through that call's own agent. `capabilities.attribution` is `attributed`. Child usage is not attributed (unverified). |
+| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is recorded as a `toApp` request (unanswered; none arrive under `--dangerously-skip-permissions`). |
 | SDK configuration and interaction APIs | Only a small subset is represented by OAR startup options and control methods. |
 
 Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
@@ -86,45 +87,58 @@ controllers resuming one ID remain **unverified**.
 
 ### Prompt, steering, queueing, and abort
 
-**Mapped:** `prompt(string)` starts one OAR turn; another prompt returns `busy`
-while it runs. A spontaneous `system/init` after settlement can open another
-turn. `result` ends the current turn.
+**Mapped:** `prompt(string)` records a `prompt` request and answers it
+`accepted` once the user message is on stdin, or `rejected` `busy` while a
+turn is active. A `system/init` arriving while nothing is active is a
+spontaneous turn (a drained queue message): it has events but no request of
+its own. The `result` frame ends the turn (`turn_ended` view).
 [Projection](../../packages/oar/src/runtimes/claude/projection.ts).
 
-**Partial:** `steer()` writes stdin. `accepted` transfers delivery responsibility
-to the adapter; it does not prove model receipt or same-turn landing. Recorded
-multi-step runs absorb input at a later step; input arriving too late becomes a
-subsequent turn. OAR's separate next-turn FIFO is adapter-held and explicitly
-`durable: false`. `abort()` sends `control_request/interrupt`, waits for the result,
-and uses its own abort intent to classify that result.
+**Partial:** `steer()` writes stdin and records `accepted`; that transfers
+delivery responsibility to the adapter and does not prove model receipt or
+same-turn landing. Recorded multi-step runs absorb input at a later step;
+input arriving too late becomes a subsequent turn. `queue()` is adapter-held
+(`capabilities.queue.durable: false`), drained one message per turn end.
+`abort()` records an `abort` request, sends `control_request/interrupt`, and
+resolves with claude's `control_response` as the response record; the turn's
+end is still claude's own `result`, which the fold classifies `aborted`
+because OAR's interrupt was outstanding.
 [Phase probe](../../experiments/claude-stream-json-phases.ts),
 [adapter probe](../../experiments/claude-session-adapter.ts),
 [queue probe](../../experiments/session-queue.ts).
 
 ### Observation, children, and history
 
-**Partial:** text blocks become `text_delta`; reasoning retains text, redacted,
-and empty distinctions; tools retain IDs and available input/output. OAR does
-not request `--include-partial-messages`, so `text_delta` does not imply
-token-level streaming. [Native streaming][native-output],
+**Mapped:** every frame is an event record with the frame verbatim in
+`native`; text blocks become `text_delta` views, reasoning retains text,
+redacted, and empty distinctions, tools retain IDs and available
+input/output — one assistant message with several blocks is one record with
+several views in block order. Message identity, input echoes, control replies
+and telemetry are therefore in the stream (in `native`), even where OAR has
+no view for them. OAR does not request `--include-partial-messages`, so
+`text_delta` does not imply token-level streaming. [Native streaming][native-output],
 [projection](../../packages/oar/src/runtimes/claude/projection.ts).
 
-Child lifecycle is **not exposed**. The projection ignores `parent_tool_use_id`;
-recognized child messages would share the active OAR turn, and out-of-turn
-messages are dropped. Exact child ordering on the selected binary/flags remains
-**unverified**, even though native SDK documentation establishes child identity.
-[Native subagents][native-subagents].
+**Attributed:** frames carrying `parent_tool_use_id` get
+`agentPath = [...parentPath, taskCallId]`, where `parentPath` is the agent
+that issued that Task call — nested sub-agents nest the path. Child records
+arriving after the parent's `result` still enter the stream (nothing is
+gated on turn state). There is no child control handle, and child usage is
+recorded under the child's path only when a child `result` frame arrives,
+which is **unverified** on the selected binary/flags. Exact child ordering
+remains **unverified**, even though native SDK documentation establishes
+child identity. [Native subagents][native-subagents].
 
-The projection also drops message identity, unknown payloads, input echoes,
-control replies, and telemetry. `subscribe()` is live observation, not a history
-API. The [recording helper](../../sea-trial/record/claude.ts) scrubs frames for
-projection tests; it is not a public raw/replay interface.
-[v2 records](../spec/README.md) remain draft work.
+`subscribe(observer, cursor)` replays the retained records after `afterSeq`
+for the lifetime of the adapter process; it is not a history API across
+processes. The [recording helper](../../sea-trial/record/claude.ts) scrubs
+frames for projection tests; it is not a public raw/replay interface.
 
 ### Models, instructions, and context
 
-**Mapped:** `--model` selects the initial model; `model()` reads the native
-`system/init.model`, initially `null`. The token-free `list_models` control request
+**Mapped:** `--model` selects the initial model; `model()` folds the `model`
+view OAR reads from each `system/init` frame, so it is `null` until the
+first turn's init frame. The token-free `list_models` control request
 preserves selector versus resolved ID, disabled entries, and effort choices.
 Live model/effort setters are **not exposed**.
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
@@ -136,11 +150,13 @@ that the configured instructions survive manual `/compact`.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
 
-Context reporting is **partial**. OAR caches result input/cache counts and the
-first model's context window, but official documentation describes result usage
-as aggregate main-loop usage for the user turn. That calculation is therefore
-**unverified as current context fullness** across multiple model steps. Native
-compaction still runs; OAR drops its lifecycle and cost details.
+Context reporting is **partial**. The `result` frame's `usage` view carries
+input/cache counts as context fullness and the running per-agent token total
+(`Session.contextUsage()` and `usage()` are folds over these views), but
+official documentation describes result usage as aggregate main-loop usage
+for the user turn. That calculation is therefore **unverified as current
+context fullness** across multiple model steps. Native compaction still runs;
+its frames are in the stream verbatim but OAR has no view for them.
 [Usage calculation](../../packages/oar/src/runtimes/claude/context-usage.ts),
 [native usage](https://code.claude.com/docs/en/agent-sdk/cost-tracking).
 

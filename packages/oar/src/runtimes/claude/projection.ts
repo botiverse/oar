@@ -1,44 +1,61 @@
-import type { SessionEventBody, TurnOutcome } from "../../contracts/session.js";
+import type {
+  EventBody,
+  EventView,
+  ResponseBody,
+  TokenTotals,
+  TurnOutcome,
+} from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
-import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { claudeContextUsageFromResult } from "./context-usage.js";
 
 /**
- * The claude stdout → SessionEvent projection as a PURE FOLD. It is the same
- * family as observe/reduceStatus, one layer earlier: a reducer over the raw
- * provider stream that emits kernel COMMANDS (begin a turn, emit an event,
- * settle an outcome) instead of touching the kernel itself. The live adapter
- * applies the commands to a real kernel; tests apply them to nothing and
- * snapshot the list. No transport, no side effects — so it is trivially
- * unit-testable and shared verbatim between live and replay.
+ * The claude stdout → record projection as a PURE FOLD. A reducer over the
+ * raw stream-json frames that emits kernel COMMANDS (append an event with its
+ * attribution, answer one of our control requests, surface a runtime→app
+ * request) instead of touching the kernel itself. The live adapter applies
+ * the commands to a real kernel; tests apply them to nothing and snapshot the
+ * list. No transport, no side effects — so it is trivially unit-testable and
+ * shared verbatim between live and replay.
  *
- * Not generic: each runtime speaks a different wire vocabulary, so each has
- * its own fold. What IS shared is the OUTPUT — SessionEventBody and this
- * command algebra.
+ * v2 rules the fold enforces: EVERY frame becomes exactly one event record
+ * (verbatim `native`, views in block order); nothing is gated on whether a
+ * turn is "open"; the turn's end is claude's own `result` frame; attribution
+ * comes from `parent_tool_use_id` (a child's path is its parent's path plus
+ * the Task tool_use id that spawned it).
  */
 
 export type ProjectionCommand =
-  | { readonly kind: "begin" }
-  | { readonly kind: "emit"; readonly body: SessionEventBody }
-  | { readonly kind: "settle"; readonly outcome: TurnOutcome };
+  | { readonly kind: "event"; readonly body: EventBody; readonly agentPath: readonly string[] }
+  /** claude answered one of our `control_request`s (interrupt): the response to that request record. */
+  | { readonly kind: "respond"; readonly requestId: string; readonly body: ResponseBody }
+  /** claude asked US something (`control_request`): a toApp request record, verbatim. */
+  | { readonly kind: "toApp"; readonly id: string; readonly type: string; readonly native: unknown };
 
 /**
- * Fold state. `inTurn` is the projection's own view of turn framing (set true
- * by the control plane on prompt, by the fold on a spontaneous init).
- * `abortRequested` is the one input that is NOT in the provider stream — abort
- * is a control-plane intent, and claude reports its result as an ordinary
- * result frame, so the flag is how the fold tells aborted from completed. It
- * makes explicit that projection folds over provider events ⊎ control intent.
+ * Fold state. `abortRequested` is the one input that is NOT in the provider
+ * stream — abort is a control-plane intent, and claude reports its result as
+ * an ordinary result frame, so the flag is how the fold tells aborted from
+ * completed. `agents` maps every tool_use id seen to the agentPath of the
+ * message that carried it, so a frame with `parent_tool_use_id` attributes to
+ * that tool call's agent plus the call — nested Task calls nest the path.
+ * `tokens` accumulates per-agent result usage so usage views are cumulative.
  */
 export interface ClaudeProjectionState {
-  readonly inTurn: boolean;
   readonly abortRequested: boolean;
+  readonly agents: ReadonlyMap<string, readonly string[]>;
+  readonly tokens: ReadonlyMap<string, TokenTotals>;
 }
 
-export const initialClaudeProjection: ClaudeProjectionState = { inTurn: false, abortRequested: false };
+export const initialClaudeProjection: ClaudeProjectionState = {
+  abortRequested: false,
+  agents: new Map(),
+  tokens: new Map(),
+};
 
-/** Control plane → state: a prompt opens a turn; an abort arms the flag. */
-export function claudePrompted(): ClaudeProjectionState {
-  return { inTurn: true, abortRequested: false };
+/** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
+export function claudePrompted(state: ClaudeProjectionState): ClaudeProjectionState {
+  return { ...state, abortRequested: false };
 }
 
 export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
@@ -54,8 +71,8 @@ function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
   return content.map((block) => asRecord(block)).filter((block) => block !== null);
 }
 
-function assistantEvents(message: JsonRecord): SessionEventBody[] {
-  const out: SessionEventBody[] = [];
+function assistantViews(message: JsonRecord): EventView[] {
+  const out: EventView[] = [];
   for (const block of contentBlocks(message)) {
     switch (String(block.type)) {
       case "text": {
@@ -92,8 +109,8 @@ function assistantEvents(message: JsonRecord): SessionEventBody[] {
   return out;
 }
 
-function toolResultEvents(message: JsonRecord): SessionEventBody[] {
-  const out: SessionEventBody[] = [];
+function toolResultViews(message: JsonRecord): EventView[] {
+  const out: EventView[] = [];
   for (const block of contentBlocks(message)) {
     if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
       const output = block.content === undefined ? undefined : JSON.stringify(block.content);
@@ -124,30 +141,116 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnO
   return { kind: "completed" };
 }
 
+function pathKey(agentPath: readonly string[]): string {
+  return JSON.stringify(agentPath);
+}
+
+/** The agent a frame belongs to: root, or the Task call that spawned it (nested through the call's own agent). */
+function attributionOf(state: ClaudeProjectionState, message: JsonRecord): readonly string[] {
+  const parent = message.parent_tool_use_id;
+  if (typeof parent !== "string" || parent.length === 0) {
+    return [];
+  }
+  return [...(state.agents.get(parent) ?? []), parent];
+}
+
+function rememberToolUses(state: ClaudeProjectionState, message: JsonRecord, agentPath: readonly string[]): ClaudeProjectionState {
+  const ids = contentBlocks(message)
+    .filter((block) => block.type === "tool_use" && typeof block.id === "string")
+    .map((block) => String(block.id));
+  if (ids.length === 0) {
+    return state;
+  }
+  const agents = new Map(state.agents);
+  for (const id of ids) {
+    agents.set(id, agentPath);
+  }
+  return { ...state, agents };
+}
+
+function frameType(message: JsonRecord): string {
+  const type = typeof message.type === "string" ? message.type : "unknown";
+  return typeof message.subtype === "string" ? `${type}/${message.subtype}` : type;
+}
+
+/** Cumulative per-agent tokens after folding this result frame's own turn usage. */
+function accumulate(state: ClaudeProjectionState, agentPath: readonly string[], message: JsonRecord): { state: ClaudeProjectionState; tokens: TokenTotals } | null {
+  const usage = asRecord(message.usage);
+  if (usage === null) {
+    return null;
+  }
+  const previous = state.tokens.get(pathKey(agentPath)) ?? { input: 0, output: 0 };
+  const tokens: TokenTotals = {
+    input: previous.input + (asNumber(usage.input_tokens) ?? 0)
+      + (asNumber(usage.cache_read_input_tokens) ?? 0) + (asNumber(usage.cache_creation_input_tokens) ?? 0),
+    output: previous.output + (asNumber(usage.output_tokens) ?? 0),
+  };
+  const next = new Map([...state.tokens, [pathKey(agentPath), tokens]]);
+  return { state: { ...state, tokens: next }, tokens };
+}
+
 /** Fold one parsed claude stdout frame into the next state plus commands. */
 export function foldClaudeStdout(
   state: ClaudeProjectionState,
   message: JsonRecord,
 ): { readonly state: ClaudeProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  // A system/init with no active turn is claude starting a run on its own (a
-  // steer that landed past the turn's end) — a spontaneous turn.
-  if (message.type === "system" && message.subtype === "init" && !state.inTurn) {
-    return { state: { ...state, inTurn: true }, commands: [{ kind: "begin" }] };
-  }
-  if (!state.inTurn) {
-    return { state, commands: [] };
-  }
+  const type = frameType(message);
+  const agentPath = attributionOf(state, message);
+  const event = (body: Omit<EventBody, "type" | "native">, next: ClaudeProjectionState = state): { state: ClaudeProjectionState; commands: ProjectionCommand[] } =>
+    ({ state: next, commands: [{ kind: "event", body: { type, native: message, ...body }, agentPath }] });
+
   switch (String(message.type)) {
     case "assistant":
-      return { state, commands: assistantEvents(message).map((body) => ({ kind: "emit", body })) };
+      return event({ views: assistantViews(message) }, rememberToolUses(state, message, agentPath));
     case "user":
-      return { state, commands: toolResultEvents(message).map((body) => ({ kind: "emit", body })) };
-    case "result":
+      return event({ views: toolResultViews(message) });
+    case "result": {
+      const views: EventView[] = [{ kind: "turn_ended", outcome: resultOutcome(state, message) }];
+      const accumulated = accumulate(state, agentPath, message);
+      const context = claudeContextUsageFromResult(message);
+      if (accumulated !== null || context !== null) {
+        views.push({ kind: "usage", usage: {
+          ...(context === null ? {} : { context }),
+          ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
+        } });
+      }
+      return event({ views }, { ...(accumulated?.state ?? state), abortRequested: false });
+    }
+    case "system": {
+      const model = message.subtype === "init" && typeof message.model === "string" ? message.model : null;
+      return event({ views: model === null ? [] : [{ kind: "model", model }] });
+    }
+    case "control_response": {
+      // claude answers our control_request (interrupt) here; the request id is ours.
+      const response = asRecord(message.response);
+      const requestId = typeof response?.request_id === "string" ? response.request_id : null;
+      const commands: ProjectionCommand[] = [{ kind: "event", body: { type, native: message, views: [] }, agentPath }];
+      if (requestId !== null) {
+        const error = typeof response?.error === "string" ? response.error : null;
+        commands.push({
+          kind: "respond",
+          requestId,
+          body: response?.subtype === "error" || error !== null
+            ? { kind: "rejected", reason: error ?? "control request failed", native: message }
+            : { kind: "accepted", native: message },
+        });
+      }
+      return { state, commands };
+    }
+    case "control_request": {
+      // claude asks the app something (permission, question). Recorded verbatim; the adapter answers nothing.
+      const id = typeof message.request_id === "string" ? message.request_id : `claude-${String(Date.now())}`;
+      const request = asRecord(message.request);
+      const subtype = typeof request?.subtype === "string" ? request.subtype : "control_request";
       return {
-        state: { inTurn: false, abortRequested: false },
-        commands: [{ kind: "settle", outcome: resultOutcome(state, message) }],
+        state,
+        commands: [
+          { kind: "event", body: { type, native: message, views: [] }, agentPath },
+          { kind: "toApp", id, type: subtype, native: message },
+        ],
       };
+    }
     default:
-      return { state, commands: [] };
+      return event({ views: [] });
   }
 }

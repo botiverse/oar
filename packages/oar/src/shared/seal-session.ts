@@ -2,29 +2,36 @@ import type {
   AdapterSession,
   Session,
   SteerOrQueueResult,
-  Turn,
 } from "../contracts/session.js";
+import { contextUsageOf, modelOf, usageOf } from "../observe/usage.js";
 
 /**
- * Derive the API face of a Session from what the adapter built. Method-style
- * so consumers discover the policy in autocomplete instead of hunting for a
- * free function; one implementation instead of one per adapter.
+ * Derive the API face of a Session from what the adapter built: the stream
+ * folds (model / usage / contextUsage are projections over `records()`, never
+ * adapter-held snapshots) and the steer-or-queue policy. Method-style so
+ * consumers discover the surfaces in autocomplete; one implementation instead
+ * of one per adapter.
  */
 export function sealSession(adapterSession: AdapterSession): Session {
-  const steerOrQueue = async (turn: Turn, input: string): Promise<SteerOrQueueResult> => {
-    let reason = "runtime cannot steer";
-    if (turn.steer !== undefined) {
-      const steered = await turn.steer(input);
-      if (steered.kind === "accepted") {
-        return { landed: "steered" };
-      }
-      ({ reason } = steered);
+  const steerOrQueue = async (input: string): Promise<SteerOrQueueResult> => {
+    const steered = await adapterSession.steer(input);
+    if (steered.response.body.kind === "accepted") {
+      return { landed: "steered", result: steered };
     }
-    if (adapterSession.queue !== undefined) {
-      await adapterSession.queue.add(input);
-      return { landed: "queued" };
+    const reason = steered.response.body.kind === "rejected" ? steered.response.body.reason : "runtime cannot steer";
+    if (adapterSession.capabilities.queue === null) {
+      return { landed: "rejected", reason, result: steered };
     }
-    return { landed: "rejected", reason };
+    const queued = await adapterSession.queue(input);
+    return queued.response.body.kind === "accepted"
+      ? { landed: "queued", result: queued }
+      : { landed: "rejected", reason: queued.response.body.kind === "rejected" ? queued.response.body.reason : reason, result: queued };
   };
-  return { ...adapterSession, steerOrQueue };
+  return {
+    ...adapterSession,
+    model: () => modelOf(adapterSession.records()),
+    usage: () => usageOf(adapterSession.records()),
+    contextUsage: () => contextUsageOf(adapterSession.records()),
+    steerOrQueue,
+  };
 }

@@ -1,6 +1,6 @@
 /**
  * Browser-safe observe subpath: the pure derivation utilities over
- * SessionEvents, with ZERO Node and ZERO adapter imports. A renderer can
+ * SessionRecords, with ZERO Node and ZERO adapter imports. A renderer can
  * value-import `@botiverse/oar/observe` directly without dragging the runtime
  * adapters (node:child_process, the pi SDK, …) into a browser bundle. The
  * root `@botiverse/oar` re-exports these too, for Node consumers.
@@ -14,3 +14,6 @@ export { observeAgent, simpleStateOf } from "./observe-agent.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe-agent.js";
 export { classifyTool, toolActionLabel } from "./tool-activity.js";
 export type { ToolAction, ToolActionKind } from "./tool-activity.js";
+export { awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
+export type { PromptRun } from "./turns.js";
+export { contextUsageOf, modelOf, usageOf } from "./usage.js";

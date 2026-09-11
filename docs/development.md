@@ -19,7 +19,7 @@ The design and spec docs provide further background: read
 [`docs/design/`](design/README.md) before changing a public
 surface or revisiting an existing design decision — it explains why oar is
 shaped the way it is; read [`docs/spec/`](spec/README.md) when a change
-touches the v2 record-stream contract (record shapes, attribution, the
+touches the record-stream contract (record shapes, attribution, the
 session graph, the cursor).
 
 ## Ad-hoc runs while developing
@@ -27,7 +27,7 @@ session graph, the cursor).
 Run first, test second. Not every check starts life as a test: while shaping
 a change it is usually fastest to run the real thing and look. Drive the CLI
 (`oar run <runtime> "<prompt>"` shows a turn's progress live — add
-`--record <file>` to keep the run as an `oar-voyage/1` JSONL log; `oar list`,
+`--record <file>` to keep the run as an `oar-voyage/2` JSONL log; `oar list`,
 `oar installation <id>`, `oar usage <id>`, `oar models <id>` cover the
 observation surfaces),
 point a scratch `pnpm tsx` script at the public Session API, or reuse an
@@ -142,9 +142,17 @@ it — run them for the backend you touched.
 2. **Implement it in `packages/oar/src/runtimes/<id>/`.** `index.ts` declares
    the runtime via `defineRuntime({ id, ... })`, listing only the
    capabilities the runtime honestly supports — an absent capability is
-   correct, a faked one is not. Keep parsing, compatibility policy, and
-   protocol details in that directory; reuse `shared/` mechanisms freely but
-   never add runtime identity to `shared/`
+   correct, a faked one is not. The session adapter feeds a
+   `createSessionKernel()`: every native frame becomes exactly one `event`
+   record (`type`, `native` verbatim, `views` for what oar reads out of it —
+   never gated on turn state, never dropped, never synthesized); control
+   calls go through `kernel.control()` so request and response are records;
+   the process exit is an `exited` response; and `capabilities` declares
+   steer, queue durability and the attribution tier the runtime actually
+   exposes. Keep the projection a pure fold (frame → commands) so replay
+   tests can pin it. Keep parsing, compatibility policy, and protocol
+   details in that directory; reuse `shared/` mechanisms freely but never
+   add runtime identity to `shared/`
    ([source layout](../packages/oar/src/README.md) has the import rules).
 3. **Register it in `src/index.ts`** — the only composition root: import,
    add to the built-in registry, re-export.

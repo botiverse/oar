@@ -31,19 +31,27 @@ concepts exist before OAR chooses its Session/Turn abstraction.
 
 ## High-level mapping to OAR
 
+OAR v2 (2026-09-11) exposes one ordered record stream per Session
+([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
+recorded verbatim as an event's `native`; the cross-runtime `views` are what
+OAR read out of it. Control calls are request/response record pairs.
+
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| Grok executable/process | One subprocess per OAR Session, launched with noninteractive profile settings. |
-| Persistent native session | `Session.id` preserves its ID; `SessionOptions.resume` attaches by that ID. |
-| Prompt delivery and native execution | OAR creates local Turn handles; a steer can place several native prompt requests inside one OAR Turn. |
-| ACP notifications | A projection into text, reasoning, tool boundaries, and context snapshots; no raw stream. |
-| Native child sessions | Not exposed: other session IDs and vendor lifecycle notifications are dropped. |
-| Client-side terminal and permission duties | OAR hosts terminals and applies a fixed approval policy. |
+| Grok executable/process | One subprocess per OAR Session, launched with noninteractive profile settings; its exit is an `exited` response record. |
+| Persistent native session | `Session.id` preserves its ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0; no history rebuild). |
+| Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are event records; the model they report is a `model` view, so `Session.model()` is a fold. |
+| Prompt delivery and native execution | `prompt()` is a `toRuntime` request answered accepted/`busy`; each `session/prompt` RPC answer is an event, and the one closing the turn carries the `turn_ended` view (newest request's outcome). A steer adds another prompt RPC to the same turn. |
+| `session/update` notifications | One event per notification, `native` verbatim, for EVERY session id; views for message/thought/tool/usage/model updates, none for unknown kinds — nothing is dropped. |
+| Native child sessions | An update for another session id is a derived child-session record (its own `sessionId` on the envelope, a graph node). Vendor lifecycle notifications are subscribed by name and recorded verbatim; one naming a parent/child pair links the graph (`via: "tool_call"`). Attribution tier declared `nested`. |
+| Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. |
 
 The implementation is divided between the [Grok profile](../../packages/oar/src/runtimes/grok/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
-[session controller](../../packages/oar/src/shared/acp/session.ts), and
-[event projection](../../packages/oar/src/shared/acp/projection.ts).
+[session controller](../../packages/oar/src/shared/acp/session.ts),
+[record placement](../../packages/oar/src/shared/acp/records.ts),
+[turn machinery](../../packages/oar/src/shared/acp/turns.ts), and
+[view projection](../../packages/oar/src/shared/acp/projection.ts).
 “Unexposed” below means a native capability has no current OAR operation;
 “unverified” means the available evidence does not establish the behavior.
 
@@ -112,29 +120,51 @@ submits no prompt. Native [prompt identity](https://github.com/xai-org/grok-buil
 and [queue/send-now dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L1288-L1343)
 are vendor-specific semantics beyond standard ACP.
 
-OAR `prompt()` returns a local Turn or `busy`. `Turn.steer()` sends another
-prompt with `_meta.sendNow`; pending vendor responses settle one OAR Turn
-using the newest request's outcome. Its immediate `accepted` result does not
-wait for native acknowledgement. The separate OAR queue is a host-memory FIFO
-with `durable: false`.
+OAR `prompt()` records a prompt request and answers it `accepted` once the
+`session/prompt` RPC is on the wire, or `rejected` (`busy` while a turn is
+active; the transport error when the process is gone). The RPC answer is
+Grok's own turn end: an event `session/prompt` with `native` = the answer,
+a `turn_ended` view (`cancelled` → aborted) and a `usage` view from `_meta`.
+An RPC error answer is an event `session/prompt/error` with a failed
+`turn_ended`. `steer()` sends another prompt with `_meta.sendNow` inside the
+same turn; each answer is its own event, and only the one that leaves no
+request pending carries `turn_ended`, with the newest request's outcome.
+Acceptance never waits for native acknowledgement. `queue()` is a host-memory
+FIFO (`capabilities.queue.durable: false`); a drained input runs as a turn
+with an answer but no prompt request of its own.
 
-OAR abort sends `session/cancel`; if the Turn does not settle within ten
-seconds, it kills the process and settles aborted. The exact native delivery
-boundary and effects on background children remain unverified.
+`abort()` sends `session/cancel` and answers `accepted`; the turn's end is
+still the cancelled prompt answer. If none arrives within ten seconds, OAR
+kills the process, and the `exited` response is then the turn's end (a
+`runtime_exited` failure to `awaitTurnEnd`, not an aborted outcome). The
+exact native delivery boundary and effects on background children remain
+unverified.
 
 ### Events, history, and child sessions
 
 Native child [spawn events](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/subagent/handle_request.rs#L609-L634)
 identify parent/child sessions and parent prompt; [completion events](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/subagent/spawn.rs#L318-L368)
-report status, usage, and whether the parent will wake. Current OAR rejects
-standard updates for every ID except the opened root and registers no vendor
-lifecycle handler. A parent tool card cannot replace the missing child stream.
+report status, usage, and whether the parent will wake. OAR v2 keeps every
+`session/update` regardless of session id: a foreign id becomes a
+child-session record (envelope `sessionId` = the child's, `agentPath` `[]`,
+a node in `Session.graph()`). The profile subscribes to the vendor
+notification methods found in the grok 1.0.13 binary's symbol table —
+`_x.ai/session/update`, `_x.ai/session_notification`,
+`_x.ai/sessions/changed`, `_x.ai/task_backgrounded`,
+`_x.ai/task_completed`, `_x.ai/session/prompt_complete`,
+`_x.ai/session/usage` ([sym] only; **unverified** on a live wire, and the
+ACP SDK routes only registered names) — records each verbatim with no
+views, and links `parentSessionId` → `sessionId`/`childSessionId` in the
+graph when a frame carries that pair. A child whose lineage notification
+was not observed stays a node without an edge; OAR never fabricates one.
 
-The OAR projection preserves text, reasoning, tool wire IDs, tool boundaries,
-and context snapshots. OAR Turn IDs are local kernel IDs. Unknown updates
-vanish, details truncate at 10,000 characters, and unfinished tools receive
-synthetic ends at settlement. There is no public native-history enumeration,
-raw-record stream, or cursor API.
+Views preserve text, reasoning, tool wire IDs, tool boundaries, context
+snapshots, and model reports; detail strings truncate at 10,000 characters
+but `native` never does. Unknown updates are recorded with no views. A tool
+the runtime never ended gets no synthetic end — the turn's `turn_ended`
+view is the only closure. The retained stream backs
+`subscribe(observer, cursor)` for the life of the process; there is no
+native-history enumeration and no rebuild after the process died.
 
 ### Model selection and instructions
 
@@ -165,7 +195,10 @@ and configured MCP integrations execute within the harness. OAR's
 [client implementation](../../packages/oar/src/shared/acp/terminal.ts) hosts
 terminals, including Grok's full shell-line `command` compatibility. It
 selects `allow_always`, then `allow_once`, otherwise cancellation for reverse
-permission requests, alongside the launch/session yolo settings.
+permission requests, alongside the launch/session yolo settings. Each reverse
+request (`session/request_permission`, `terminal/*`) is recorded as a `toApp`
+request under the runtime's JSON-RPC id, and OAR's reply as the `answered`
+response — including terminal output payloads, verbatim.
 
 There is no application approval callback, generic client-tool callback, or
 per-session MCP configuration. Passing no MCP servers and disabling client
@@ -183,9 +216,12 @@ context occupancy are distinct APIs and measurements.
 
 ## Tests and remaining evidence
 
-[ACP session tests](../../tests/acp/acp-session.test.ts) use a fake agent for
-busy/queue behavior, steering settlement, resume identity, errors, permissions,
-and model readback. [Terminal tests](../../tests/acp/acp-terminal.test.ts) cover
+[ACP session tests](../../tests/acp/acp-session.test.ts) and
+[model/usage tests](../../tests/acp/acp-session-model-usage.test.ts) use a fake
+agent for the record skeleton of a tool turn, busy/queue behavior, send-now
+steer folding, toApp permission records, prompt-error versus process-exit
+ends, resume identity, child-session records, extension-notification graph
+edges, and model readback. [Terminal tests](../../tests/acp/acp-terminal.test.ts) cover
 shell compatibility, truncation, and cleanup. Snapshot tests check recorded
 schema assumptions, not execution of the current harness.
 

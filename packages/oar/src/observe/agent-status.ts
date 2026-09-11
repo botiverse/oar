@@ -1,20 +1,22 @@
-import type { SessionEvent, TurnOutcome } from "../contracts/session.js";
+import type { EventView, SessionRecord, TurnOutcome } from "../contracts/session.js";
 
 /**
- * status = fold(events). The reducer is pure — no clock, no IO — so status is
- * replayable from any event log and snapshot-testable. Time-qualified
+ * status = fold(records). The reducer is pure — no clock, no IO — so status is
+ * replayable from any record log and snapshot-testable. Time-qualified
  * judgments (stalled) are deliberately OUTSIDE the ontology: they are
- * fold(events) × clock, provided by `stallOf` next to it.
+ * fold(records) × clock, provided by `stallOf` next to it.
  *
- * Transition table (from the minimal v1 event union):
- *   turn_started      → running/waiting_model
- *   reasoning         → running/thinking
- *   text_delta        → running/responding
- *   tool_call_started → running/{tool, callId}
- *   tool_call_ended   → running/waiting_model   (the model consumes the result next)
- *   turn_ended        → idle{lastTurnOutcome}
- * The fold is total: any mid-turn event while idle adopts that turn (a
- * consumer may subscribe mid-turn, and claude can start a turn on its own).
+ * Transition table (root agent only — child records advance nothing here):
+ *   request prompt (toRuntime)        → running/waiting_model (the turn's start IS the request)
+ *   response rejected → that request  → idle again (the turn never began)
+ *   event reasoning                   → running/thinking
+ *   event text_delta                  → running/responding
+ *   event tool_call_started           → running/{tool, callId}
+ *   event tool_call_ended             → running/waiting_model   (the model consumes the result next)
+ *   event turn_ended                  → idle{lastTurnOutcome}   (the runtime's own completion)
+ *   response exited                   → idle{failed runtime_exited} if a turn was running
+ * The fold is total: a mid-turn event while idle adopts that turn (a consumer
+ * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
 
 export type RunningPhase =
@@ -27,46 +29,86 @@ export type AgentStatus =
   | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome }
   | {
       readonly kind: "running";
-      readonly turnId: string;
+      /** seq of the record that opened this running span: the prompt request, or the first event of an adopted turn. */
+      readonly sinceSeq: number;
+      /** The prompt request id when the turn was opened through this Session; absent for adopted turns. */
+      readonly requestId?: string;
       readonly phase: RunningPhase;
-      /** Envelope receivedAt (unix epoch ms) of the latest folded event. */
+      /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;
     };
 
 export const initialStatus: AgentStatus = { kind: "idle" };
 
-function running(event: SessionEvent, phase: RunningPhase): AgentStatus {
-  return { kind: "running", turnId: event.turnId, phase, lastEventAt: event.receivedAt };
+function running(previous: AgentStatus, record: SessionRecord, phase: RunningPhase): AgentStatus {
+  const sinceSeq = previous.kind === "running" ? previous.sinceSeq : record.seq;
+  const requestId = previous.kind === "running" ? previous.requestId : undefined;
+  return {
+    kind: "running",
+    sinceSeq,
+    ...(requestId === undefined ? {} : { requestId }),
+    phase,
+    lastEventAt: record.receivedAt,
+  };
 }
 
-export function reduceStatus(previous: AgentStatus, event: SessionEvent): AgentStatus {
-  switch (event.kind) {
-    case "turn_started":
-      return running(event, "waiting_model");
-    case "reasoning":
-      return running(event, "thinking");
-    case "text_delta":
-      return running(event, "responding");
-    case "tool_call_started":
-      return running(event, { tool: event.tool, callId: event.callId });
-    case "tool_call_ended":
-      return running(event, "waiting_model");
-    case "turn_ended":
-      return { kind: "idle", lastTurnOutcome: event.outcome };
+export function reduceStatus(previous: AgentStatus, record: SessionRecord): AgentStatus {
+  if (record.agentPath.length > 0) {
+    return previous;
+  }
+  switch (record.kind) {
+    case "request":
+      return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle"
+        ? { kind: "running", sinceSeq: record.seq, requestId: record.id, phase: "waiting_model", lastEventAt: record.receivedAt }
+        : previous;
+    case "response":
+      if (record.body.kind === "rejected" && previous.kind === "running" && previous.requestId === record.requestId) {
+        return { kind: "idle" };
+      }
+      if (record.body.kind === "exited" && previous.kind === "running") {
+        return { kind: "idle", lastTurnOutcome: { kind: "failed", reason: "runtime exited", failure: "runtime_exited" } };
+      }
+      return previous;
+    case "event": {
+      let status = previous;
+      for (const view of record.body.views) {
+        status = reduceView(status, record, view);
+      }
+      return status;
+    }
     default:
       return previous;
   }
 }
 
-/** fold(events) × clock: how long a running status has been silent, if beyond the threshold. */
+function reduceView(previous: AgentStatus, record: SessionRecord, view: EventView): AgentStatus {
+  switch (view.kind) {
+    case "reasoning":
+      return running(previous, record, "thinking");
+    case "text_delta":
+      return running(previous, record, "responding");
+    case "tool_call_started":
+      return running(previous, record, { tool: view.tool, callId: view.callId });
+    case "tool_call_ended":
+      return running(previous, record, "waiting_model");
+    case "turn_ended":
+      return { kind: "idle", lastTurnOutcome: view.outcome };
+    case "usage":
+    case "model":
+      return previous;
+  }
+  return previous;
+}
+
+/** fold(records) × clock: how long a running status has been silent, if beyond the threshold. */
 export function stallOf(
   status: AgentStatus,
   nowMs: number,
   thresholdMs: number,
-): { readonly turnId: string; readonly silentForMs: number } | null {
+): { readonly sinceSeq: number; readonly silentForMs: number } | null {
   if (status.kind !== "running") {
     return null;
   }
   const silentForMs = nowMs - status.lastEventAt;
-  return silentForMs >= thresholdMs ? { turnId: status.turnId, silentForMs } : null;
+  return silentForMs >= thresholdMs ? { sinceSeq: status.sinceSeq, silentForMs } : null;
 }

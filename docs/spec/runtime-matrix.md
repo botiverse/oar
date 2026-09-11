@@ -6,11 +6,19 @@
 
 ## Per-runtime landing matrix
 
-Native evidence and proposed v2 placement are combined below. This is not a
-table of implemented OAR capabilities: see the
+Native evidence and the shipped v2 placement are combined below. The
+**declared tier** column is what each adapter's `capabilities.attribution`
+reports today; the other columns are native evidence. See the
 [runtime programming-interface pages](../runtimes/README.md) for current
-calls, resume semantics, and information loss. In particular, v1 does not
-expose the proposed session graph or `agentPath`.
+calls, resume semantics, and what each adapter still does not carry.
+
+| runtime | declared tier | how children appear in the stream |
+|---|---|---|
+| claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; child usage stays unattributed (unverified) |
+| codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge |
+| pi | `none` | pi has no native sub-agents; `agentPath` is always root |
+| grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications (names pinned from binary symbols, unverified live) add edges when they name a parent |
+| kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|

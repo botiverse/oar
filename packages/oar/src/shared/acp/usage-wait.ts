@@ -1,4 +1,3 @@
-import type { ContextUsage } from "../../contracts/session.js";
 import type { AcpSessionProfile } from "./profile.js";
 
 /**
@@ -10,15 +9,16 @@ import type { AcpSessionProfile } from "./profile.js";
  * `void this.emitUsageUpdate()` (lines 923-945), which awaits
  * `kosong.listModels()` and `agent.getContext()` before notifying, and returns
  * without a push when the catalog has no `max_context_size` for the current
- * model. Settling the OAR turn on the response alone therefore leaves
- * `contextUsage()` at the PREVIOUS turn's value at `turn_ended`, and there is
- * no guarantee an update ever comes — hence a bounded wait, not a barrier.
+ * model. Recording the answer's turn_ended event on the response alone therefore
+ * leaves `contextUsage()` at the PREVIOUS turn's value at `turn_ended`, and
+ * there is no guarantee an update ever comes — hence a bounded wait, not a
+ * barrier.
  */
 export interface UsageUpdateGate {
   /** Forget any update seen so far; call before sending the prompt. */
   readonly arm: () => void;
-  /** Feed every projected update; only a present usage counts as arrival. */
-  readonly observe: (usage: ContextUsage | undefined) => void;
+  /** Feed every recorded root update; only one that carried a usage view (its seq) counts as arrival. */
+  readonly observe: (usageSeq: number | undefined) => void;
   /**
    * After the prompt response: resolve once a usage_update arrived since
    * `arm()`, or after the profile's bound. Immediate when the profile does not
@@ -39,8 +39,8 @@ export function createUsageUpdateGate(): UsageUpdateGate {
     arm: (): void => {
       seen = false;
     },
-    observe: (usage): void => {
-      if (usage === undefined) {
+    observe: (usageSeq): void => {
+      if (usageSeq === undefined) {
         return;
       }
       seen = true;

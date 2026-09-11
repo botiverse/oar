@@ -16,19 +16,11 @@ function result(id, value = {}) {
 }
 
 function error(id, code, message, data) {
-  send({
-    jsonrpc: "2.0",
-    id,
-    error: { code, message, ...(data === undefined ? {} : { data }) },
-  });
+  send({ jsonrpc: "2.0", id, error: { code, message, ...(data === undefined ? {} : { data }) } });
 }
 
-function update(value) {
-  send({
-    jsonrpc: "2.0",
-    method: "session/update",
-    params: { sessionId: "fake-session", update: value },
-  });
+function update(value, sessionId = "fake-session") {
+  send({ jsonrpc: "2.0", method: "session/update", params: { sessionId, update: value } });
 }
 
 function promptText(params) {
@@ -38,9 +30,8 @@ function promptText(params) {
 }
 
 // Modes "usage-after-response" / "usage-never" replay kimi-code f9ca33376
-// (acp-server session.ts onTurnEnded): prompt answered first, the turn's
-// usage_update pushed afterwards from an un-awaited task — or never. `used`
-// grows per turn so a reader can tell this turn's value from the last one's.
+// (onTurnEnded): prompt answered first, usage_update pushed afterwards from an
+// un-awaited task — or never. `used` grows per turn so a stale read shows.
 let completedTurns = 0;
 
 function completePrompt(id, text) {
@@ -104,19 +95,13 @@ function handleSessionPrompt(message) {
       result(id, { stopReason: "cancelled", _meta: { cancelTrigger: "send_now" } });
     }
     pendingPrompts.clear();
-    update({
-      sessionUpdate: "agent_message_chunk",
-      content: { type: "text", text: "steer:steer-new" },
-    });
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "steer:steer-new" } });
     result(message.id, { stopReason: "end_turn" });
     return;
   }
   if (text === "switch-model") {
     update(setModelResponse("switch-to-z").pushedUpdate);
-    update({
-      sessionUpdate: "agent_message_chunk",
-      content: { type: "text", text: "switched" },
-    });
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "switched" } });
     result(message.id, { stopReason: "end_turn" });
     return;
   }
@@ -150,6 +135,19 @@ function handleSessionPrompt(message) {
       content: { type: "text", text: "tool-done" },
     });
     update({ sessionUpdate: "usage_update", used: 500, size: 2000 });
+    result(message.id, { stopReason: "end_turn" });
+    return;
+  }
+  if (text === "spawn-child") {
+    // Grok shape: a vendor lifecycle notification names the lineage, then the
+    // child's own standard updates arrive under its own session id.
+    send({
+      jsonrpc: "2.0",
+      method: "_x.ai/session_notification",
+      params: { parentSessionId: "fake-session", sessionId: "fake-child", kind: "spawned" },
+    });
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "child-says-hi" } }, "fake-child");
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "parent-continues" } });
     result(message.id, { stopReason: "end_turn" });
     return;
   }

@@ -1,10 +1,11 @@
 # Pi
 
-Reviewed **2026-09-08** against current OAR source and installed SDK **0.84.2**.
-Upstream references are pinned to **v0.84.2** (commit prefix `914cf1472`, recorded
-in the resume probe). Former `badlogic/pi-mono` URLs redirect to
-`earendil-works/pi`. No runtime tests or model calls were made for this review.
-See the [runtime index](README.md) for evidence and status conventions.
+Reviewed **2026-09-08** against OAR source and installed SDK **0.84.2**;
+mapping updated **2026-09-11** for the v2 record stream (verified with the
+pi-aimock vendor tests, no live model calls). Upstream references are pinned
+to **v0.84.2** (commit prefix `914cf1472`, recorded in the resume probe).
+Former `badlogic/pi-mono` URLs redirect to `earendil-works/pi`. See the
+[runtime index](README.md) for evidence and status conventions.
 
 ## Native concepts and calling interfaces
 
@@ -36,13 +37,15 @@ services and one `AgentSession`; it does not use the replacement-oriented
 | Native concept or interface | Current OAR mapping |
 |---|---|
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
-| Session file header ID | `Session.id`; resume resolves this ID to a file in the cwd's session directory. |
-| Agent run | One OAR Turn spanning potentially several native `turn_start`/`turn_end` pairs. |
+| Session file header ID | `Session.id`; resume resolves this ID to a file in the cwd's session directory. The record stream starts at seq 0 on every open; history is not rebuilt. |
+| Agent run | A span on the stream: from the `prompt` request record (accepted once pi emits `agent_start`) to pi's own `agent_settled` event, whose `turn_ended` view carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | Native history tree and replacement APIs | Resume is mapped; branch navigation, fork, import, and history access are not exposed. |
-| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. |
-| SDK event stream | Selected text/reasoning/tool events; session events and richer details are dropped. |
+| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` view on a `pi/session_opened` event. |
+| SDK event stream | Every `AgentSessionEvent` is exactly one event record, verbatim as `native`, with oar's views (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events v1 dropped (compaction, queue, retry, entry, settings) are in the stream with no view. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
+| Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected; `queue` is an adapter-held FIFO (`durable: false`). |
 
 Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
+[opener](../../packages/oar/src/runtimes/pi/open.ts),
 [projection](../../packages/oar/src/runtimes/pi/projection.ts),
 [agent loop][native-agent-loop], [Session contract](../../packages/oar/src/contracts/session.ts).
 
@@ -80,9 +83,10 @@ OAR `model` overrides the saved one and is checked by readback. Without an
 explicit model, native restoration can fall back; OAR discards the returned
 `modelFallbackMessage`. [SDK construction][native-sdk-source].
 
-Reopening creates fresh OAR observers, turn handles, sequence numbers, and an
+Reopening creates a fresh record stream (seq 0), fresh observers, and an
 empty adapter queue. It resumes conversation, not interrupted execution or
-historical event delivery. Native `session.messages`, tree navigation, fork,
+historical event delivery: the spec's rebuild-after-death cursor is **not
+implemented** for pi. Native `session.messages`, tree navigation, fork,
 and import operations are **not exposed**. Corrupt-file handling and concurrent
 writers are **unverified** here.
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts),
@@ -90,38 +94,54 @@ writers are **unverified** here.
 
 ### Prompt, steering, queueing, and abort
 
-**Mapped:** OAR starts a kernel turn and awaits `AgentSession.prompt(text)`.
-One OAR turn covers the outer run, potentially many native turns; `agent_end`
-and prompt completion provide its boundary. Provider failure can arrive in
-SDK events even when the prompt promise resolves, so OAR's projection records
-error state. Concurrent OAR prompts return `busy`. Native prompt preflight
-callbacks and image inputs are **not exposed**.
+**Mapped:** `prompt()` records a request and calls `AgentSession.prompt(text)`.
+The response is `accepted` once pi emits `agent_start`, or `rejected` with pi's
+own message when the promise rejects first (e.g. "Cannot submit a prompt while
+compaction is in progress"). The turn is the span up to pi's `agent_settled`
+event — its `turn_ended` view carries completed / aborted / failed. `agent_end`
+is recorded but does not end the turn: pi runs threshold compaction and auto-
+retries between `agent_end` and `agent_settled` and refuses prompts meanwhile
+(verified with the pi-aimock compaction recipe on 2026-09-11). Provider
+failure can arrive in SDK events even when the prompt promise resolves, so the
+projection carries error state into the outcome. A run pi fails after
+starting, without its own settlement, is recorded as a `pi/prompt_rejected`
+event carrying pi's message with a failed `turn_ended` view — pi's word, not a
+synthesized boundary. Concurrent prompts are `rejected` `busy`. Native prompt
+preflight callbacks and image inputs are **not exposed**.
 [SDK][native-sdk], [projection](../../packages/oar/src/runtimes/pi/projection.ts).
 
-**Partial:** OAR `steer()` delegates to Pi and acknowledges queue acceptance.
-Its next-turn queue instead uses an adapter FIFO with `durable: false`: native
-`followUp()` continues the same outer run, so directly substituting it would
-violate OAR's separate-turn promise. Native extension commands cannot simply be
-queued like ordinary text. [Agent loop][native-agent-loop],
+**Partial:** `steer()` delegates to Pi and answers `accepted` on queue entry
+(`rejected` `not_steerable` when no run is active). The next-turn `queue()`
+uses an adapter FIFO (`capabilities.queue.durable: false`): native `followUp()`
+continues the same outer run, so directly substituting it would violate OAR's
+separate-turn promise. A drained input runs as a spontaneous turn (events, no
+request record); if pi refuses it, the refusal is recorded as a viewless
+`pi/prompt_rejected` event. Native extension commands cannot simply be queued
+like ordinary text. [Agent loop][native-agent-loop],
 [SDK][native-sdk], [adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
-Abort is cooperative: OAR delegates `AgentSession.abort()` and waits for its
-outcome. Disposal aborts active work and disposes the SDK session.
+Abort is cooperative: `abort()` delegates `AgentSession.abort()` and answers
+`accepted`; the aborted outcome is pi's own `agent_settled`. `dispose()`
+records the request, aborts active work, disposes the SDK session, and answers
+`accepted` — pi runs in-process, so there is no process exit to record.
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
 ### Observation, history, and children
 
-**Partial:** OAR projects text/thinking deltas and tool start/end IDs. Available
-tool arguments/results, incremental updates, message boundaries, retries, and
-session events are dropped. Typed event handling makes those choices explicit;
-it does not make the output lossless.
+**Mapped:** every SDK event is one event record with the event object as
+`native`; nothing is dropped. Views cover text/thinking deltas, empty
+reasoning, tool start (with JSON arguments) and end (with JSON result),
+cumulative token usage from assistant `message_end` usage, and the turn end.
+Message boundaries, tool progress updates, compaction, queue, retry, entry and
+settings events are in the stream with no view. The exhaustive projection
+switch makes a new pi event type a compile error.
 [Projection](../../packages/oar/src/runtimes/pi/projection.ts).
 
 Native history includes branch/compaction records and extension data that this
-stream cannot reconstruct. `subscribe()` is not a history API. The
-[Pi recorder](../../sea-trial/record/pi.ts) captures SDK events for tests, not a
-public raw/replay surface. [Session format][native-format];
-[v2 records](../spec/README.md) remain draft work.
+stream cannot reconstruct after a reopen. `subscribe()` with a cursor replays
+what this process retained; it is not a history API. The
+[Pi recorder](../../sea-trial/record/pi.ts) captures SDK events for the replay
+fixture. [Session format][native-format].
 
 Subagents and MCP integration can be implemented through extensions/tools.
 That does not establish a universal built-in child protocol. OAR exposes no
@@ -132,7 +152,9 @@ behavior through the adapter remains **unverified**.
 ### Models, instructions, and context
 
 **Mapped:** initial/resume `provider/model` selection uses the extension-aware
-ModelRuntime; `model()` reads the native effective model. Catalog discovery
+ModelRuntime; `Session.model()` folds the `model` view of the
+`pi/session_opened` event, which carries `AgentSession.model` as the SDK
+reported it at open (pi exposes no later model-change event to OAR). Catalog discovery
 awaits `getAvailable()` instead of reading an uninitialized snapshot. Live model
 setters, thinking controls, and detailed model metadata are **not exposed**.
 [Resolver](../../packages/oar/src/runtimes/pi/resolve.ts),
@@ -140,9 +162,11 @@ setters, thinking controls, and detailed model metadata are **not exposed**.
 
 Replace/append instructions map to ResourceLoader options; runtime metadata such
 as cwd may remain. The vendor test checks prompt configuration through threshold
-auto-compaction. **Partial:** `contextUsage()` delegates native `getContextUsage()`,
-preserving unknown tokens after compaction. Explicit compact/abort-compaction
-controls and lifecycle events are **not exposed**.
+auto-compaction. **Mapped:** the `agent_settled` event carries a `usage` view
+with native `getContextUsage()` read at that moment (post-compaction; tokens
+null when unknown), so `Session.contextUsage()` — a fold — is current at turn
+end. `compaction_start`/`compaction_end` are in the stream verbatim (viewless).
+Explicit compact/abort-compaction controls are **not exposed**.
 [Native compaction][native-compaction],
 [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [vendor test](../../sea-trial/vendor/pi.vendor.test.ts).
@@ -185,12 +209,16 @@ usable-model catalog does not establish a universal unauthenticated state.
 readback, including real Pi resume on 2026-09-05. Older comments calling Pi resume
 unimplemented are superseded by the `SessionManager.list`/`open` path and probe.
 [Vendor tests](../../sea-trial/vendor/pi.vendor.test.ts) use the real SDK with a
-scripted model for errors, tools, context shape, and prompt configuration through
-compaction. They were not rerun for this review.
+scripted model for errors, tools, context at turn end, compaction events in the
+stream, and prompt configuration through compaction; they passed on the v2
+adapter on 2026-09-11 (macOS, SDK 0.84.2). The
+[replay test](../../tests/replay/pi-projection.test.ts) pins the fold over the
+recorded tool-round fixture and the settled/abort/error classification.
 
 Priority gaps are accepted steering through retry/compaction, distinct queued
-turns under races, extension-generated activity, unavailable saved-model fallback,
-and observation of session events without an active turn.
+turns under races, extension-generated activity, unavailable saved-model
+fallback, and whether `agent_settled` always follows an aborted or failed run
+(the abort path was exercised only through the mock fixture, not live pi).
 
 [native-sdk]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/sdk.md
 [native-format]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/session-format.md

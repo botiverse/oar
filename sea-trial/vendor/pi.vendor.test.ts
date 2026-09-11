@@ -2,13 +2,13 @@ import { describe, expect, test } from "vitest";
 import { piInstallation, piSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { assertContextUsage, promptTurn } from "./support/asserts.js";
+import { assertContextUsage, runTurn } from "./support/asserts.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
 import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
 
 /** Vendor-specific error edges for the in-process pi SDK (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", () => {
-  test("an invalid request settles the turn with the provider error", async () => {
+  test("an invalid request ends the turn with the provider error in pi's own agent_end", async () => {
     const env = await startPiAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, {
         error: { message: "max_tokens exceeds model limit", type: "invalid_request_error" },
@@ -18,8 +18,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
     try {
       const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
       const session = await runtimeUnderTest(runtime).startSession();
-      const result = promptTurn(session, "hello");
-      await expect(result.outcome).resolves.toMatchInlineSnapshot(`
+      await expect(runTurn(session, "hello")).resolves.toMatchInlineSnapshot(`
         {
           "failure": "invalid_request",
           "kind": "failed",
@@ -41,7 +40,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       const session = await runtimeUnderTest(runtime).startSession();
       await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
         [
-          "turn_started",
+          "request:prompt",
+          "response:accepted",
           "tool_call_started:bash",
           "tool_call_ended",
           "tool_call_started:bash",
@@ -55,8 +55,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
     }
   }, 120_000);
 
-
-  test("system prompt replace+append land and SURVIVE threshold auto-compaction", async () => {
+  test("system prompt replace+append land and SURVIVE threshold auto-compaction, and compaction is in the stream", async () => {
     // The deterministic auto-compaction recipe: tiny context window in the
     // model definition + fat reported usage + compaction settings.
     const capture = systemCapture({
@@ -73,14 +72,9 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
         systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,
       });
-      const events: string[] = [];
-      const sdkEvents = session; // oar events do not carry compaction yet; rely on provider requests
-      void sdkEvents;
       for (const input of ["topic one", "topic two", "topic three"]) {
-        const turn = promptTurn(session, input);
-        await turn.outcome;
+        await runTurn(session, input);
       }
-      void events;
       // Threshold compaction fired during those turns (recipe pinned in the
       // compaction probes); the latest provider request — the compaction
       // summarization or the post-compaction turn — must still carry both
@@ -92,20 +86,30 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
         Current working directory: <CWD>
         "
       `);
+      // v2: pi's session-scoped compaction events are no longer dropped —
+      // they enter the stream verbatim, with no view.
+      const compactionTypes = session.records()
+        .flatMap((record) => (record.kind === "event" && record.body.type.startsWith("compaction_") ? [record.body.type] : []));
+      expect(compactionTypes).toContain("compaction_start");
+      expect(compactionTypes).toContain("compaction_end");
       await session.dispose();
     } finally {
       await env.stop();
     }
   }, 120_000);
 
-  test("contextUsage() returns a well-formed snapshot after a turn", async () => {
+  test("contextUsage() is current at turn end and every SDK event is one record", async () => {
     const env = await startPiAimock();
     try {
       const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
       const session = await runtimeUnderTest(runtime, undefined).startSession();
-      const turn = promptTurn(session, "say hi");
-      await turn.outcome;
-      assertContextUsage(session.contextUsage?.());
+      await runTurn(session, "say hi");
+      assertContextUsage(session.contextUsage());
+      const types = session.records().flatMap((record) => (record.kind === "event" ? [record.body.type] : []));
+      expect(types).toContain("agent_start");
+      expect(types).toContain("agent_end");
+      expect(types.at(-1)).toBe("agent_settled");
+      expect(session.model()).toMatch(/\//u);
       await session.dispose();
     } finally {
       await env.stop();

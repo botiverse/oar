@@ -1,34 +1,49 @@
 import { randomUUID } from "node:crypto";
-import type { ContextUsage, Session, StartSession, Turn } from "../../contracts/session.js";
+import type {
+  ControlResult,
+  RequestRecord,
+  ResponseBody,
+  Session,
+  StartSession,
+} from "../../contracts/session.js";
 import { asRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
-import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
-import { classifyFailure } from "../../shared/failure-class.js";
+import { createSessionKernel } from "../../shared/session-kernel.js";
 import { startAppServerClient } from "./app-server-client.js";
-import { codexContextUsageFromNotification } from "./context-usage.js";
 import {
-  codexPrompted,
   foldCodexNotification,
   initialCodexProjection,
   type CodexProjectionState,
 } from "./projection.js";
+import { rpcControl, type RpcControlPlan } from "./rpc-control.js";
 
 /*
  * codex app-server v2 mapping:
- * - initialize → initialized, thread/start {cwd, ephemeral, approvalPolicy:never}
- * - turn/start {threadId, input} → {turn{id}}; completion via turn/completed
- *   notification whose turn.status is completed | interrupted | failed
+ * - initialize → initialized, thread/start {cwd, approvalPolicy:never}
+ * - turn/start {threadId, input} → {turn{id}}: the RPC reply is the prompt's
+ *   accepted response; completion is codex's own turn/completed notification
+ *   (turn.status completed | interrupted | failed) — the turn_ended view.
  * - steer: turn/steer with the expectedTurnId precondition (race adjudicated
- *   at the runtime); typed rejection surfaces as not_steerable
- * - steer `accepted` here means: the runtime confirmed injection into the
- *   active turn (the strongest form; still expressed as the weak contract
- *   promise). Live probe: codex-session-adapter.ts.
- * - abort: turn/interrupt {threadId, turnId}
+ *   at the runtime); a typed refusal is a rejected response.
+ * - abort: turn/interrupt {threadId, turnId}; the reply is the abort's
+ *   accepted/rejected response, the outcome is turn/completed.
+ * - every notification is one event record (verbatim params); notifications
+ *   of other threads are child-session records; collab items link them.
+ * - server-initiated requests are recorded as toApp requests, unanswered.
+ * Live probe: codex-session-adapter.ts.
  */
 
-interface CodexTurnState {
-  readonly kernelTurn: KernelTurn;
-  readonly codexTurnId: Promise<string>;
+const text = (input: string): { type: "text"; text: string }[] => [{ type: "text", text: input }];
+
+interface CodexSessionState {
+  /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */
+  active: RequestRecord | null;
+  /** True while codex runs a root turn we did not prompt (a drained queue submission). */
+  spontaneous: boolean;
+  /** The runtime's id for the active root turn — steer/abort identity. */
+  codexTurnId: string | null;
+  projection: CodexProjectionState;
+  disposed: boolean;
 }
 
 export const codexSession: StartSession = async (installation, options) => {
@@ -59,6 +74,7 @@ export const codexSession: StartSession = async (installation, options) => {
     ...(options.systemPrompt === undefined ? {} : { baseInstructions: options.systemPrompt }),
     ...(options.appendSystemPrompt === undefined ? {} : { developerInstructions: options.appendSystemPrompt }),
   };
+  const openMethod = options.resume === undefined ? "thread/start" : "thread/resume";
   const started = options.resume === undefined
     ? await client.request("thread/start", {
         cwd: options.cwd,
@@ -89,157 +105,177 @@ export const codexSession: StartSession = async (installation, options) => {
     throw new TypeError("codex thread start/resume returned no thread id");
   }
   // Both responses report the model that is actually active; that value is
-  // what Session.model() reads back. Still check it against the request:
-  // codex's resume_running_thread ignores resume overrides for a thread that
-  // is already loaded and busy, logging only a warn ("thread/resume overrides
-  // ignored for loaded thread"), and the response then names the old model.
-  // A caller who asked for a model must not get a session silently running
-  // another, so the mismatch fails loudly here and the app-server we just
-  // started must not outlive the failed session.
+  // what Session.model() reads back (as a model view on the open event).
+  // Still check it against the request: codex's resume_running_thread
+  // ignores resume overrides for a thread that is already loaded and busy,
+  // logging only a warn ("thread/resume overrides ignored for loaded
+  // thread"), and the response then names the old model. A caller who asked
+  // for a model must not get a session silently running another, so the
+  // mismatch fails loudly here and the app-server we just started must not
+  // outlive the failed session.
   const effectiveModel = typeof started.model === "string" ? started.model : null;
   if (options.model !== undefined && effectiveModel !== null && effectiveModel !== options.model) {
     client.kill();
-    const verb = options.resume === undefined ? "thread/start" : "thread/resume";
-    throw new Error(`codex ${verb} kept model ${effectiveModel} although ${options.model} was requested`);
+    throw new Error(`codex ${openMethod} kept model ${effectiveModel} although ${options.model} was requested`);
   }
 
   const kernel = createSessionKernel(threadId);
-  let current: CodexTurnState | null = null;
-  let disposed = false;
-  let projection: CodexProjectionState = initialCodexProjection;
-  let latestContextUsage: ContextUsage | null = null;
+  kernel.event({
+    type: openMethod,
+    native: started,
+    views: effectiveModel === null ? [] : [{ kind: "model", model: effectiveModel }],
+  });
+  const state: CodexSessionState = {
+    active: null,
+    spontaneous: false,
+    codexTurnId: null,
+    projection: initialCodexProjection(threadId),
+    disposed: false,
+  };
+  const busy = (): boolean => state.active !== null || state.spontaneous;
+  let disposeRequest: RequestRecord | null = null;
 
   // Drive the pure projection fold, applying its commands to the kernel; the
-  // fold owns turn framing and event translation, this owns the transport-only
-  // codexTurnId (steer/abort identity).
+  // fold owns event translation, attribution and graph links; this owns the
+  // transport-only turn id and the control decisions (busy, spontaneous).
   client.onNotification((method, params) => {
-    if (params.threadId !== threadId) {
-      return;
+    const isRoot = typeof params.threadId !== "string" || params.threadId === threadId;
+    if (isRoot && method === "turn/started") {
+      const startedTurn = asRecord(params.turn)?.id;
+      if (!busy()) {
+        // A turn we did not prompt (a drained queue submission): adopt it.
+        state.spontaneous = true;
+      }
+      if (typeof startedTurn === "string") {
+        state.codexTurnId = startedTurn;
+      }
     }
-    if (method === "thread/tokenUsage/updated") {
-      latestContextUsage = codexContextUsageFromNotification(params) ?? latestContextUsage;
-    }
-    const { state: nextProjection, commands } = foldCodexNotification(projection, method, params);
-    projection = nextProjection;
+    const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, params);
+    state.projection = nextProjection;
     for (const command of commands) {
       switch (command.kind) {
-        case "begin": {
-          // Spontaneous turn (a drained queue submission we did not prompt):
-          // adopt it, taking the runtime turn id from the notification.
-          const startedTurn = asRecord(params.turn)?.id;
-          const kernelTurn = kernel.begin();
-          if (kernelTurn !== null && typeof startedTurn === "string") {
-            current = { kernelTurn, codexTurnId: Promise.resolve(startedTurn) };
+        case "event":
+          if (command.sessionId !== undefined) {
+            kernel.node(command.sessionId);
           }
+          kernel.event(command.body, {
+            ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
+            ...(command.spanId === undefined ? {} : { spanId: command.spanId }),
+          });
           break;
-        }
-        case "emit":
-          current?.kernelTurn.emit(command.body);
-          break;
-        case "settle":
-          current?.kernelTurn.settle(command.outcome);
-          current = null;
+        case "link":
+          kernel.link(command.edge);
           break;
         default:
           break;
       }
     }
-  });
-  client.onExit(() => {
-    if (!disposed) {
-      kernel.active()?.settle({ kind: "failed", reason: "codex app-server exited", failure: "runtime_exited" });
+    if (isRoot && method === "turn/completed") {
+      state.active = null;
+      state.spontaneous = false;
+      state.codexTurnId = null;
     }
   });
+  client.onServerRequest((id, method, params) => {
+    // Approvals, user input, dynamic tools: recorded verbatim, never answered
+    // (approvalPolicy never means none are expected; a dangling request is
+    // the honest record when one arrives anyway).
+    kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
+  });
+  client.onExit((code) => {
+    // The exit is an outcome only oar observes: it answers our dispose when
+    // we caused it, and stands alone when the app-server died on its own.
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+    state.active = null;
+    state.spontaneous = false;
+    state.codexTurnId = null;
+  });
 
-  const makeTurn = (state: CodexTurnState): Turn => ({
-    id: state.kernelTurn.id,
-    outcome: state.kernelTurn.outcome,
-    abort: async () => {
-      if (state.kernelTurn.settled()) {
-        return;
+  const disposedOr = (check: () => ResponseBody | null): ((request: RequestRecord) => ResponseBody | null) =>
+    () => (state.disposed ? { kind: "rejected", reason: "session disposed" } : check());
+  /** Turn a plan builder into a Session control member. */
+  const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) =>
+    async (...args: Args): Promise<ControlResult> => {
+      const result = await rpcControl(kernel, client, plan(...args));
+      return result;
+    };
+  const promptPlan = (input: string): RpcControlPlan => ({
+    body: { kind: "prompt", input },
+    gate: (request) => {
+      if (state.disposed) {
+        return { kind: "rejected", reason: "session disposed" };
       }
-      const codexTurnId = await state.codexTurnId;
-      if (!state.kernelTurn.settled()) {
-        try {
-          await client.request("turn/interrupt", { threadId, turnId: codexTurnId });
-        } catch {
-          // The turn ended before the interrupt landed — the contractual late
-          // abort no-op; turn/completed settles the real outcome.
-        }
-        await state.kernelTurn.outcome;
+      if (busy()) {
+        return { kind: "rejected", reason: "busy" };
       }
+      // Hold the slot while the RPC is in flight so a concurrent prompt is busy.
+      state.active = request;
+      return null;
     },
-    steer: async (input) => {
-      if (state.kernelTurn.settled()) {
-        return { kind: "not_steerable", reason: "turn already ended" };
+    method: "turn/start",
+    params: () => ({ threadId, input: text(input) }),
+    onReply: (reply) => {
+      const turnId = asRecord(reply.turn)?.id;
+      if (typeof turnId !== "string") {
+        state.active = null;
+        return { kind: "rejected", reason: "codex turn/start returned no turn id", native: reply };
       }
-      const codexTurnId = await state.codexTurnId;
-      try {
-        await client.request("turn/steer", {
-          threadId,
-          input: [{ type: "text", text: input }],
-          expectedTurnId: codexTurnId,
-        });
-        return { kind: "accepted" };
-      } catch (error) {
-        return { kind: "not_steerable", reason: error instanceof Error ? error.message : "rejected" };
-      }
+      state.codexTurnId = turnId;
+      return { kind: "accepted", native: reply };
     },
+    onError: (message) => {
+      state.active = null;
+      return { kind: "rejected", reason: message };
+    },
+  });
+  const steerPlan = (input: string): RpcControlPlan => ({
+    body: { kind: "steer", input },
+    gate: disposedOr(() => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "not_steerable: no active turn" } : null)),
+    method: "turn/steer",
+    params: () => ({ threadId, input: text(input), expectedTurnId: state.codexTurnId }),
+    onReply: (reply) => ({ kind: "accepted", native: reply }),
+    onError: (message) => ({ kind: "rejected", reason: `not_steerable: ${message}` }),
+  });
+  // The reply carries the runtime's submission id; it is retained on the response.
+  const queuePlan = (input: string): RpcControlPlan => ({
+    body: { kind: "queue", input },
+    gate: disposedOr(() => null),
+    method: "thread/queue/add",
+    params: () => ({ threadId, input: text(input), clientUserMessageId: randomUUID() }),
+    onReply: (reply) => ({ kind: "accepted", native: reply }),
+    onError: (message) => ({ kind: "rejected", reason: message }),
+  });
+  // A refused interrupt is the contractual late abort: the turn ended before
+  // it landed, and turn/completed carries the real outcome.
+  const abortPlan = (): RpcControlPlan => ({
+    body: { kind: "abort" },
+    gate: disposedOr(() => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "no active turn" } : null)),
+    method: "turn/interrupt",
+    params: () => ({ threadId, turnId: state.codexTurnId }),
+    onReply: (reply) => ({ kind: "accepted", native: reply }),
+    onError: (message) => ({ kind: "rejected", reason: message }),
   });
 
   const session: Session = sealSession({
     id: kernel.sessionId,
-    prompt(input) {
-      const kernelTurn = kernel.begin();
-      if (kernelTurn === null) {
-        return { kind: "busy" };
-      }
-      const codexTurnId = (async (): Promise<string> => {
-        const response = await client.request("turn/start", {
-          threadId,
-          input: [{ type: "text", text: input }],
-        });
-        const turnId = asRecord(response.turn)?.id;
-        if (typeof turnId !== "string") {
-          throw new TypeError("codex turn/start returned no turn id");
-        }
-        return turnId;
-      })();
-      void (async (): Promise<void> => {
-        try {
-          await codexTurnId;
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : "turn/start failed";
-          kernelTurn.settle({ kind: "failed", reason, failure: classifyFailure(reason) });
-        }
-      })();
-      const state: CodexTurnState = { kernelTurn, codexTurnId };
-      current = state;
-      projection = codexPrompted(projection);
-      return { kind: "turn", turn: makeTurn(state) };
-    },
-    subscribe: (observer) => kernel.subscribe(observer),
-    model: () => effectiveModel,
-    contextUsage: () => latestContextUsage,
-    queue: {
-      durable: true,
-      add: async (input) => {
-        await client.request("thread/queue/add", {
-          threadId,
-          input: [{ type: "text", text: input }],
-          clientUserMessageId: randomUUID(),
-        });
-      },
-    },
+    capabilities: { steer: true, queue: { durable: true }, attribution: "nested" },
+    prompt: via(promptPlan),
+    steer: via(steerPlan),
+    queue: via(queuePlan),
+    abort: via(abortPlan),
+    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    records: () => kernel.records(),
+    graph: () => kernel.graph(),
     dispose: async () => {
-      if (disposed) {
+      if (state.disposed) {
         return;
       }
-      disposed = true;
-      kernel.active()?.settle({ kind: "aborted" });
+      state.disposed = true;
+      disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
       client.kill();
       // Await the actual exit: the process may hold state (codex's sqlite
-      // runtime in CODEX_HOME) that the next session needs released.
+      // runtime in CODEX_HOME) that the next session needs released. The
+      // exit response is recorded by onExit.
       await client.exited;
     },
   });

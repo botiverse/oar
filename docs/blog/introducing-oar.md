@@ -1,7 +1,7 @@
 # Introducing oar: one contract for driving agent runtimes
 
 > **Status: DRAFT — prepared ahead of the design freeze.** The motivation
-> and the shipped surface described here are settled. Anything about the v2
+> and the shipped surface described here are settled. Anything about the
 > record stream is a draft under review; those paragraphs are marked
 > **[not finalized]** and must be re-read against
 > [`docs/spec/`](../spec/README.md) before this post is published.
@@ -118,21 +118,25 @@ and declare the rest unknown rather than synthesizing a heartbeat.
 
 ## What ships today
 
-The v1 contract is small and the same for every runtime:
+The contract is small and the same for every runtime: one ordered record
+stream per session, and control actions that are themselves records in it.
 
 ```ts
-import { runtimes } from "@botiverse/oar";
+import { promptAndWait, runtimes } from "@botiverse/oar";
 
 const grok = runtimes.require("grok");
 const installation = await grok.installation?.();
 
 if (installation?.kind === "available") {
   const session = await grok.session(installation, { cwd: process.cwd() });
-  const result = session.prompt("Inspect this repository");
-  if (result.kind === "turn") {
-    console.log(await result.turn.outcome);
-  }
-  console.log(await grok.accountUsage?.(installation));
+  session.subscribe((record) => {
+    // record.kind: "event" (the runtime's frame, verbatim, plus oar's views),
+    // "request" (prompt/steer/abort/dispose, or the runtime asking the app),
+    // "response" (accepted/rejected, oar's answer, the process exit)
+  });
+  const run = await promptAndWait(session, "Inspect this repository");
+  console.log(run.kind === "ended" ? run.outcome : run.reason);
+  console.log(session.usage(), await grok.accountUsage?.(installation));
   await session.dispose();
 }
 ```
@@ -175,8 +179,9 @@ oar run claude "What does this repo do?"
 oar run codex "Summarize the tests" --record run.jsonl
 ```
 
-`oar run --record` writes the whole run as an `oar-voyage/1` JSONL log: a
-header, every human submission, every raw session event verbatim, and an end
+`oar run --record` writes the whole run as an `oar-voyage/2` JSONL log: a
+header, every record of the stream verbatim (the runtime's frames, the
+prompt and every other control action, their answers), and an end
 marker. We use it as the unit of evidence: a claim about runtime behavior
 points at a log anyone can read, and a failed or aborted turn is a finding,
 not something to retry until it looks clean.
@@ -199,25 +204,33 @@ change in the same commit as the code that changes them.
 
 ## What is not finalized
 
-**[not finalized]** The shipped API is v1. The v2 contract — one ordered,
-resumable record stream in which records split into event, request and
-response, every record self-attributes to an agent in the session graph, and
-a monotonic sequence number is the cursor — is written up as draft v0.8 in
-[`docs/spec/`](../spec/README.md) and is under review. It is the design that
-makes the liveness and attribution positions above enforceable; it is not
-yet what the library emits.
+The shipped API is the v2 record stream: one ordered, resumable stream in
+which records split into event, request and response, every record
+self-attributes (session id plus agent path), and a monotonic sequence
+number is the cursor. Every frame a runtime emits is in the stream
+verbatim; oar's typed reading of it rides alongside as views. The full
+contract is in [`docs/spec/`](../spec/README.md), together with the one
+designed half that is **not shipped**: rebuilding a stream after the
+adapter process died, with the same sequence numbers, from the runtime's
+own replay log. Today resume reopens the runtime-native conversation with a
+fresh stream.
 
-**[not finalized]** Three points in that draft are explicitly open: whether
-the deleted causal-link field between records stays deleted; how external
+**[not finalized]** Three points remain explicitly open: whether the
+deleted causal-link field between records stays deleted; how external
 compaction (a new session seeded with a summary) is represented without lying
 about lineage; and a fuller typed capability declaration per adapter beyond
-the attribution tier each adapter must declare today.
+steer, queue durability and the attribution tier declared today.
 
-**[not finalized]** Cross-runtime sub-agent attribution is the v2 work. The
-v1 adapters do not yet surface child sessions on the runtimes that expose
-them, and the v2 red line for adapters (degrade to opaque only when the
-runtime truly lacks the information, never because the adapter did not wire
-it up) is written but not yet shipped.
+Cross-runtime sub-agent attribution ships with the tier each adapter
+declares: Claude attributes sub-agent frames through the Task call that
+spawned them; Codex and Grok record child threads and sessions as sessions
+of their own in the graph; Kimi's ACP surface shows only the main agent and
+the adapter says so rather than fabricating children; Pi has none. The
+adapter red line (degrade to opaque only when the runtime truly lacks the
+information, never because the adapter did not wire it up) is now what the
+shared behavior suite and each adapter's declaration enforce. What remains
+unverified live — child usage attribution on Claude, Grok's vendor
+lifecycle notifications — is marked as such in the runtime pages.
 
 Explicit non-goals, which are settled: multi-language bindings, and being a
 storage or replay system. oar emits the complete attributed stream;

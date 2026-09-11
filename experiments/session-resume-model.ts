@@ -47,7 +47,7 @@
  * id …" (rollout is created on the first turn).
  */
 import assert from "node:assert/strict";
-import { runtimes, type SessionEvent } from "../packages/oar/src/index.js";
+import { promptAndWait, runtimes } from "../packages/oar/src/index.js";
 import { startAppServerClient } from "../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 
@@ -108,18 +108,21 @@ async function runTurn(
 ): Promise<{ id: string; text: string }> {
   const session = await runtime.session(installation, sessionOptions);
   const texts: string[] = [];
-  session.subscribe((event: SessionEvent) => {
-    if (event.kind === "text_delta") {
-      texts.push(event.text);
+  session.subscribe((record) => {
+    if (record.kind === "event") {
+      for (const view of record.body.views) {
+        if (view.kind === "text_delta") {
+          texts.push(view.text);
+        }
+      }
     }
   });
-  const result = session.prompt(prompt);
-  if (result.kind !== "turn") {
-    throw new Error("busy");
+  const run = await promptAndWait(session, prompt);
+  if (run.kind !== "ended") {
+    throw new Error(`prompt rejected: ${run.reason}`);
   }
-  const outcome = await result.turn.outcome;
-  if (outcome.kind !== "completed") {
-    throw new Error(`turn ${outcome.kind}`);
+  if (run.outcome.kind !== "completed") {
+    throw new Error(`turn ${run.outcome.kind}`);
   }
   await session.dispose();
   return { id: session.id, text: texts.join("") };

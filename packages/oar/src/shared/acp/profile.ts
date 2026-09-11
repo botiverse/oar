@@ -5,19 +5,27 @@ import {
   type ClientConnection,
   type SendRequestOptions,
 } from "@agentclientprotocol/sdk";
-import type { ContextUsage, SessionOptions, TurnOutcome } from "../../contracts/session.js";
+import type { ContextUsage, SessionCapabilities, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
-export { createAcpModelReadback } from "./model.js";
 export { createUsageUpdateGate } from "./usage-wait.js";
 
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
+  /** What this runtime's ACP surface lets the adapter carry (docs/spec attribution tier included). */
+  readonly capabilities: SessionCapabilities;
   readonly requestTimeoutMs?: number;
   readonly abortTimeoutMs?: number;
   /** Compatibility for agents that put a fully quoted shell line in `command`. */
   readonly terminalShellCommand?: boolean;
+  /**
+   * Vendor notification methods beyond `session/update` to subscribe to and
+   * record verbatim (child-session lifecycle, background tasks, usage).
+   * The SDK routes only registered methods, so a name missing here is a
+   * frame oar never sees — list everything the runtime is known to emit.
+   */
+  readonly extensionNotifications?: readonly string[];
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
@@ -29,7 +37,7 @@ export interface AcpSessionProfile {
     readonly options: SessionOptions;
     readonly requestOptions?: SendRequestOptions;
   }) => Promise<void>;
-  /** Return prompt-level extension fields for the runtime's native steer. */
+  /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer. */
   readonly steerParams?: (input: string) => JsonRecord;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
@@ -39,8 +47,8 @@ export interface AcpSessionProfile {
    * `onTurnEnded` resolves the prompt driver, then `void emitUsageUpdate()`
    * awaits `listModels` + `getContext` and only then notifies — or skips the
    * push when the catalog has no size for the model). When true, the session
-   * holds the turn open after the response until that update lands, bounded
-   * by `usageUpdateTimeoutMs`; on timeout it settles with whatever it has.
+   * holds the prompt-answer event back until that update lands, bounded by
+   * `usageUpdateTimeoutMs`; on timeout it records the answer as-is.
    */
   readonly usageUpdateAfterPrompt?: boolean;
   /** Bound for `usageUpdateAfterPrompt`; default 500 ms. */
@@ -51,9 +59,16 @@ export interface OpenedAcpSession {
   readonly initialized: JsonRecord;
   readonly response: JsonRecord;
   readonly sessionId: string;
+  /** Which native call opened the session. */
+  readonly openMethod: "session/new" | "session/resume" | "session/load";
+  /** The agent advertised `session/close`. */
+  readonly supportsClose: boolean;
   /** The `session/set_model` response, when a model was requested; grok reports the applied model in its `_meta`. */
   readonly setModelResponse?: JsonRecord;
 }
+
+/** Observer for the handshake: every runtime answer, in order, so the adapter can record them as events. */
+export type AcpOpenObserver = (step: { readonly method: string; readonly response: JsonRecord }) => void;
 
 export function hasAcpCapability(value: unknown): boolean {
   return value === true || asRecord(value) !== null;
@@ -109,6 +124,7 @@ async function initialize(
   process: AcpProcess,
   profile: AcpSessionProfile,
   options: SessionOptions,
+  observe: AcpOpenObserver,
 ): Promise<JsonRecord> {
   const meta = profile.initializeMeta?.(options);
   const method = methods.agent.initialize;
@@ -127,10 +143,11 @@ async function initialize(
     }, requestOptions),
   );
   const response = responseRecord(method, initialized);
+  observe({ method, response });
   const authMethod = profile.selectAuthMethod?.(response);
   if (authMethod !== undefined) {
     const authenticate = methods.agent.authenticate;
-    await withAcpDeadline(
+    const authenticated = await withAcpDeadline(
       process,
       authenticate,
       profile.requestTimeoutMs ?? 15_000,
@@ -140,6 +157,7 @@ async function initialize(
         requestOptions,
       ),
     );
+    observe({ method: authenticate, response: asRecord(authenticated) ?? {} });
   }
   return response;
 }
@@ -150,7 +168,7 @@ async function createOrResume(
   initialized: JsonRecord,
   options: SessionOptions,
   meta: JsonRecord | undefined,
-): Promise<{ readonly response: JsonRecord; readonly sessionId: string }> {
+): Promise<Pick<OpenedAcpSession, "response" | "sessionId" | "openMethod">> {
   const baseParams = {
     cwd: options.cwd,
     mcpServers: [],
@@ -178,7 +196,7 @@ async function createOrResume(
       timeoutMs,
       (requestOptions) => process.connection.agent.request(method, params, requestOptions),
     );
-    return { response: responseRecord(method, resumed), sessionId };
+    return { response: responseRecord(method, resumed), sessionId, openMethod: method };
   }
 
   const method = methods.agent.session.new;
@@ -193,15 +211,16 @@ async function createOrResume(
   if (typeof sessionId !== "string" || sessionId.length === 0) {
     throw new TypeError("ACP session/new returned no session id");
   }
-  return { response, sessionId };
+  return { response, sessionId, openMethod: method };
 }
 
 export async function openAcpSession(
   process: AcpProcess,
   profile: AcpSessionProfile,
   options: SessionOptions,
+  observe: AcpOpenObserver = () => {},
 ): Promise<OpenedAcpSession> {
-  const initialized = await initialize(process, profile, options);
+  const initialized = await initialize(process, profile, options, observe);
   const opened = await createOrResume(
     process,
     profile,
@@ -209,6 +228,7 @@ export async function openAcpSession(
     options,
     profile.sessionMeta?.(options),
   );
+  observe({ method: opened.openMethod, response: opened.response });
   let setModelResponse: JsonRecord | undefined = undefined;
   if (options.model !== undefined) {
     setModelResponse = asRecord(await withAcpDeadline(
@@ -221,6 +241,7 @@ export async function openAcpSession(
         requestOptions,
       ),
     )) ?? undefined;
+    observe({ method: "session/set_model", response: setModelResponse ?? {} });
   }
   const configure = profile.configureSession;
   if (configure !== undefined) {
@@ -237,5 +258,11 @@ export async function openAcpSession(
       }),
     );
   }
-  return { initialized, ...opened, ...(setModelResponse === undefined ? {} : { setModelResponse }) };
+  const sessionCapabilities = asRecord(asRecord(initialized.agentCapabilities)?.sessionCapabilities);
+  return {
+    initialized,
+    ...opened,
+    supportsClose: hasAcpCapability(sessionCapabilities?.close),
+    ...(setModelResponse === undefined ? {} : { setModelResponse }),
+  };
 }

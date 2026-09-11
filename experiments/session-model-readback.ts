@@ -52,7 +52,7 @@
  * keeps the xai provider available).
  */
 import assert from "node:assert/strict";
-import { runtimes, type Session, type SessionEvent } from "../packages/oar/src/index.js";
+import { promptAndWait, runtimes, type Session } from "../packages/oar/src/index.js";
 
 const which = process.argv[2] ?? "all";
 const record: Record<string, unknown> = {};
@@ -68,15 +68,20 @@ async function open(id: string, options: { model?: string; resume?: string }): P
 
 async function oneTurn(session: Session, prompt: string): Promise<string> {
   const texts: string[] = [];
-  session.subscribe((event: SessionEvent) => {
-    if (event.kind === "text_delta") {
-      texts.push(event.text);
+  session.subscribe((entry) => {
+    if (entry.kind === "event") {
+      for (const view of entry.body.views) {
+        if (view.kind === "text_delta") {
+          texts.push(view.text);
+        }
+      }
     }
   });
-  const result = session.prompt(prompt);
-  assert.equal(result.kind, "turn", "session was busy");
-  const outcome = await result.turn.outcome;
-  assert.equal(outcome.kind, "completed", `turn ${outcome.kind}`);
+  const run = await promptAndWait(session, prompt);
+  if (run.kind !== "ended") {
+    throw new Error(`prompt rejected: ${run.reason}`);
+  }
+  assert.equal(run.outcome.kind, "completed", `turn ${run.outcome.kind}`);
   return texts.join("");
 }
 
@@ -85,12 +90,12 @@ if (which === "codex" || which === "all") {
   // request and read back what the app-server reports for the saved thread.
   const requested = "gpt-5.4-mini";
   const started = await open("codex", { model: requested });
-  const atStart = started.model?.();
+  const atStart = started.model();
   assert.equal(typeof atStart, "string", "codex reports no model at thread/start");
   await oneTurn(started, "Reply with exactly ok.");
   await started.dispose();
   const resumed = await open("codex", { resume: started.id });
-  const atResume = resumed.model?.();
+  const atResume = resumed.model();
   await resumed.dispose();
   record.codex = { requested, atStart, atResume };
   assert.equal(atResume, atStart, "resume without a request should report the saved model");
@@ -101,9 +106,9 @@ if (which === "claude" || which === "all") {
   // the resolved id and must differ from the request string.
   const requested = "haiku";
   const session = await open("claude", { model: requested });
-  const beforeTurn = session.model?.();
+  const beforeTurn = session.model();
   await oneTurn(session, "Reply with exactly ok.");
-  const afterTurn = session.model?.();
+  const afterTurn = session.model();
   await session.dispose();
   record.claude = { requested, beforeTurn, afterTurn };
   assert.equal(beforeTurn, null, "claude cannot know the model before the init frame");
@@ -114,7 +119,7 @@ if (which === "claude" || which === "all") {
 if (which === "pi" || which === "all") {
   process.env.XAI_API_KEY ??= "dummy-not-a-real-key";
   const session = await open("pi", {});
-  const atOpen = session.model?.() ?? null;
+  const atOpen = session.model();
   await session.dispose();
   record.pi = { requested: null, atOpen };
   assert.ok(atOpen === null || atOpen.includes("/"), "pi read-back should be provider/id or null");

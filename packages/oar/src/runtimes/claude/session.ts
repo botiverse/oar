@@ -1,16 +1,14 @@
 import type {
-  ContextUsage,
-  PromptResult,
+  ControlResult,
+  RequestRecord,
   Session,
   StartSession,
-  Turn,
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
-import { claudeContextUsageFromResult } from "./context-usage.js";
 import { sealSession } from "../../shared/seal-session.js";
-import { createSessionKernel, type KernelTurn } from "../../shared/session-kernel.js";
+import { createSessionKernel } from "../../shared/session-kernel.js";
 import {
   claudeAbortRequested,
   claudePrompted,
@@ -24,12 +22,14 @@ import {
  * - stdin accepts writes at every phase; a mid-turn write is delivered into
  *   the ACTIVE turn at the next model-step boundary (steer), or becomes the
  *   next turn when no step remains. Landing shows up in the event stream.
- * - each turn is framed by its own system/init … result pair.
- * - `control_request {subtype:"interrupt"}` is acked with control_response and
- *   settles the active turn with an error-subtype result.
- * - steer `accepted` here means: the user message was written to stdin.
- *   Landing (same turn vs auto-queued next turn) is claude's timing and shows
- *   up only in the event stream. Live probe: claude-session-adapter.ts.
+ * - each turn is framed by its own system/init … result pair; the `result`
+ *   frame is claude's own turn end and becomes the turn_ended view.
+ * - `control_request {subtype:"interrupt"}` is acked with control_response
+ *   (the abort request's response record) and claude settles the turn with
+ *   an error-subtype result.
+ * - steer/prompt `accepted` here means: the user message was written to
+ *   stdin. Landing (same turn vs auto-queued next turn) is claude's timing and
+ *   shows up only in the stream. Live probe: claude-session-adapter.ts.
  */
 
 function userMessage(text: string): string {
@@ -41,7 +41,10 @@ function userMessage(text: string): string {
 
 interface ClaudeSessionState {
   child: LineProcess;
-  turn: KernelTurn | null;
+  /** The prompt request whose turn is running; null while idle. Spontaneous turns (a drained queue message) run with no request. */
+  active: RequestRecord | null;
+  /** True while claude is executing a turn we did not prompt (queue drain). */
+  spontaneous: boolean;
   projection: ClaudeProjectionState;
   disposed: boolean;
 }
@@ -74,126 +77,155 @@ export const claudeSession: StartSession = async (installation, options) => {
   await child.spawned;
 
   const kernel = createSessionKernel(sessionId);
-  const state: ClaudeSessionState = { child, turn: null, projection: initialClaudeProjection, disposed: false };
-  let interruptCounter = 0;
+  const state: ClaudeSessionState = {
+    child,
+    active: null,
+    spontaneous: false,
+    projection: initialClaudeProjection,
+    disposed: false,
+  };
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end.
   const heldQueue: string[] = [];
-  // Current context fullness snapshot (last-write-wins from the result frame).
-  let latestContextUsage: ContextUsage | null = null;
-  // Model claude reports as in effect: the `model` field of each turn's
-  // system/init frame (claude 2.1.261 print.ts writes `model: P.model` there;
-  // `resolvedModel` exists only in list_models rows). Nothing says it before
-  // the first turn, so this stays null until then.
-  let latestModel: string | null = null;
+  const busy = (): boolean => state.active !== null || state.spontaneous;
+  let disposeRequest: RequestRecord | null = null;
 
   // Drive the pure projection fold, applying its commands to the kernel. The
-  // fold owns turn framing and event translation; this owns only transport.
+  // fold owns event translation and attribution; this owns only transport
+  // and the control decisions (busy, queue drain).
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message === null) {
       return;
     }
-    if (message.type === "result") {
-      latestContextUsage = claudeContextUsageFromResult(message) ?? latestContextUsage;
-    }
-    if (message.type === "system" && message.subtype === "init" && typeof message.model === "string") {
-      latestModel = message.model;
+    // A system/init while nothing is active is claude starting a turn on its
+    // own (a queued or late-steered message): a spontaneous turn.
+    if (message.type === "system" && message.subtype === "init" && !busy()) {
+      state.spontaneous = true;
     }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
     state.projection = nextProjection;
-    let settled = false;
+    let ended = false;
     for (const command of commands) {
       switch (command.kind) {
-        case "begin":
-          state.turn = kernel.begin();
+        case "event": {
+          const record = kernel.event(command.body, { agentPath: command.agentPath });
+          if (record.agentPath.length === 0 && command.body.views.some((view) => view.kind === "turn_ended")) {
+            ended = true;
+          }
           break;
-        case "emit":
-          state.turn?.emit(command.body);
+        }
+        case "respond":
+          kernel.respond(command.requestId, command.body);
           break;
-        case "settle":
-          state.turn?.settle(command.outcome);
-          state.turn = null;
-          settled = true;
+        case "toApp":
+          kernel.request("toApp", { kind: "native", type: command.type, native: command.native }, { id: command.id });
           break;
         default:
           break;
       }
     }
-    if (settled && !state.disposed) {
-      const next = heldQueue.shift();
-      if (next !== undefined) {
-        child.write(userMessage(next));
+    if (ended) {
+      state.active = null;
+      state.spontaneous = false;
+      if (!state.disposed) {
+        const next = heldQueue.shift();
+        if (next !== undefined) {
+          child.write(userMessage(next));
+        }
       }
     }
   });
-  child.onExit(() => {
-    const active = kernel.active();
-    if (active !== null && !state.disposed) {
-      active.settle({ kind: "failed", reason: "claude process exited", failure: "runtime_exited" });
-    }
+  child.onExit((code) => {
+    // The exit is an outcome only oar observes: it answers our dispose when
+    // we caused it, and stands alone when claude died on its own.
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+    state.active = null;
+    state.spontaneous = false;
   });
 
-  const makeTurn = (turn: KernelTurn): Turn => ({
-    id: turn.id,
-    outcome: turn.outcome,
-    abort: async () => {
-      if (turn.settled()) {
-        return;
+  let interruptCounter = 0;
+  const session: Session = sealSession({
+    id: kernel.sessionId,
+    capabilities: { steer: true, queue: { durable: false }, attribution: "attributed" },
+    prompt: async (input): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "prompt", input }, (request) => {
+      if (state.disposed) {
+        return { kind: "rejected", reason: "session disposed" };
       }
-      state.projection = claudeAbortRequested(state.projection);
-      interruptCounter += 1;
-      child.write(`${JSON.stringify({
-        type: "control_request",
-        request_id: `interrupt-${interruptCounter}`,
-        request: { subtype: "interrupt" },
-      })}\n`);
-      await turn.outcome;
+      if (busy()) {
+        return { kind: "rejected", reason: "busy" };
+      }
+      state.active = request;
+      state.projection = claudePrompted(state.projection);
+      child.write(userMessage(input));
+      return { kind: "accepted" };
+      });
+      return result;
     },
-    steer: async (input) => {
-      await Promise.resolve();
-      if (turn.settled()) {
-        return { kind: "not_steerable", reason: "turn already ended" };
+    steer: async (input): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "steer", input }, () => {
+      if (state.disposed) {
+        return { kind: "rejected", reason: "session disposed" };
+      }
+      if (!busy()) {
+        return { kind: "rejected", reason: "not_steerable: no active turn" };
       }
       child.write(userMessage(input));
       return { kind: "accepted" };
+      });
+      return result;
     },
-  });
-
-  const session: Session = sealSession({
-    id: kernel.sessionId,
-    prompt(input): PromptResult {
-      const turn = kernel.begin();
-      if (turn === null) {
-        return { kind: "busy" };
+    queue: async (input): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "queue", input }, () => {
+      if (state.disposed) {
+        return { kind: "rejected", reason: "session disposed" };
       }
-      state.turn = turn;
-      state.projection = claudePrompted();
-      child.write(userMessage(input));
-      return { kind: "turn", turn: makeTurn(turn) };
+      if (busy()) {
+        heldQueue.push(input);
+      } else {
+        child.write(userMessage(input));
+      }
+      return { kind: "accepted" };
+      });
+      return result;
     },
-    subscribe: (observer) => kernel.subscribe(observer),
-    model: () => latestModel,
-    contextUsage: () => latestContextUsage,
-    queue: {
-      durable: false,
-      add: async (input) => {
-        await Promise.resolve();
-        if (kernel.active() === null) {
-          child.write(userMessage(input));
-        } else {
-          heldQueue.push(input);
+    abort: async (): Promise<ControlResult> => {
+      // The interrupt's outcome is claude's control_response, which the fold
+      // routes to THIS request id; the turn's end is claude's result frame.
+      interruptCounter += 1;
+      const requestId = `interrupt-${interruptCounter}`;
+      const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });
+      if (state.disposed || !busy()) {
+        return { request, response: kernel.respond(request.id, { kind: "rejected", reason: "no active turn" }) };
+      }
+      state.projection = claudeAbortRequested(state.projection);
+      const { promise, resolve } = Promise.withResolvers<ControlResult>();
+      const unsubscribe = kernel.subscribe((record) => {
+        if (record.kind === "response" && record.requestId === requestId) {
+          resolve({ request, response: record });
         }
-      },
+      });
+      child.write(`${JSON.stringify({
+        type: "control_request",
+        request_id: requestId,
+        request: { subtype: "interrupt" },
+      })}\n`);
+      const result = await promise;
+      unsubscribe();
+      return result;
     },
+    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    records: () => kernel.records(),
+    graph: () => kernel.graph(),
     dispose: async () => {
       if (state.disposed) {
         return;
       }
       state.disposed = true;
-      kernel.active()?.settle({ kind: "aborted" });
+      disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
       child.kill();
-      await child.exited; // release point for anything the process held
+      await child.exited; // release point for anything the process held; the exit response is recorded by onExit
     },
   });
   return session;

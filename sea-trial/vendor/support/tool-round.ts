@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import type { Session, SessionEvent } from "../../../packages/oar/src/contracts/session.js";
+import type { Session, SessionRecord } from "../../../packages/oar/src/contracts/session.js";
+import { awaitTurnEnd } from "../../../packages/oar/src/observe/turns.js";
 import type { LLMock } from "../../harness/aimock.js";
 import { openTrace, record } from "../../harness/trace.js";
 
@@ -26,19 +27,47 @@ export function toolRoundFixtures(
   mock.on({ hasToolResult: true, toolResultContains: "oar-round-two" }, { content: "both rounds done" });
 }
 
-/** Structural skeleton of a turn: framing + tool lifecycle, deltas elided. On failure the error carries the mock's request journal — the CI flake's side of the story. */
+/**
+ * Structural skeleton of a turn from the ROOT agent's records: the control
+ * records plus the tool lifecycle and turn end views, deltas and
+ * uninterpreted frames elided. Records of one turn are those after the
+ * prompt request up to and including the turn end.
+ */
+export function turnSkeleton(records: readonly SessionRecord[], fromSeq: number): readonly string[] {
+  const skeleton: string[] = [];
+  for (const entry of records) {
+    if (entry.seq < fromSeq || entry.agentPath.length > 0) {
+      continue;
+    }
+    if (entry.kind === "request") {
+      skeleton.push(`request:${entry.body.kind}`);
+    } else if (entry.kind === "response") {
+      skeleton.push(`response:${entry.body.kind}`);
+    } else {
+      for (const view of entry.body.views) {
+        if (view.kind === "tool_call_started") {
+          skeleton.push(`tool_call_started:${view.tool}`);
+        } else if (view.kind === "tool_call_ended") {
+          skeleton.push("tool_call_ended");
+        } else if (view.kind === "turn_ended") {
+          skeleton.push(`turn_ended:${view.outcome.kind}`);
+          return skeleton;
+        }
+      }
+    }
+  }
+  return skeleton;
+}
+
+/** Drive one prompt through the real harness and return its skeleton. On failure the error carries the mock's request journal — the CI flake's side of the story. */
 export async function structuralToolRound(
   session: Session,
   mock?: LLMock,
   prompt = "please run the tool as instructed",
 ): Promise<readonly string[]> {
-  const events: SessionEvent[] = [];
-  session.subscribe((event) => {
-    events.push(event);
-  });
-  const result = session.prompt(prompt);
-  assert.ok(result.kind === "turn", "expected a turn");
-  const outcome = await result.turn.outcome;
+  const result = await session.prompt(prompt);
+  assert.ok(result.response.body.kind === "accepted", `prompt not accepted: ${JSON.stringify(result.response.body)}`);
+  const outcome = await awaitTurnEnd(session, result.request.seq);
   if (outcome.kind !== "completed" && mock !== undefined) {
     // Distill each request down to exactly what fixture matching consumes:
     // the last user message and whether a tool result is present.
@@ -63,20 +92,6 @@ export async function structuralToolRound(
     record({ kind: "journal_dump", requests });
     throw new Error(`turn ${JSON.stringify(outcome)}; requests as the matcher saw them:\n${requests.join("\n")}`);
   }
-  const skeleton = events
-    .filter((event) => event.kind !== "text_delta" && event.kind !== "reasoning")
-    .map((event) => {
-      switch (event.kind) {
-        case "tool_call_started":
-          return `tool_call_started:${event.tool}`;
-        case "turn_ended":
-          return `turn_ended:${event.outcome.kind}`;
-        case "turn_started":
-        case "tool_call_ended":
-          break;
-      }
-      return event.kind;
-    });
   assert.deepEqual(outcome, { kind: "completed" });
-  return skeleton;
+  return turnSkeleton(session.records(), result.request.seq);
 }

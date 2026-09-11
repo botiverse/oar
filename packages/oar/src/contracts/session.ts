@@ -1,25 +1,67 @@
+import type {
+  ContextUsage,
+  Cursor,
+  RequestRecord,
+  ResponseRecord,
+  SessionGraph,
+  SessionRecord,
+  TokenTotals,
+} from "./records.js";
 import type { AvailableInstallation } from "./installation.js";
 
+export type {
+  ContextUsage,
+  Cursor,
+  EventBody,
+  EventRecord,
+  EventView,
+  FailureClass,
+  ReasoningContent,
+  RecordEnvelope,
+  RecordKind,
+  RequestBody,
+  RequestDirection,
+  RequestRecord,
+  ResponseBody,
+  ResponseRecord,
+  SessionEdge,
+  SessionGraph,
+  SessionNode,
+  SessionRecord,
+  TokenTotals,
+  TurnOutcome,
+  UsageReport,
+} from "./records.js";
+
 /**
- * Session/Turn contract v1. Behavior invariants live as comments on the
- * member they constrain; each "must/never" has (or gets) a sea-trial case.
+ * Session contract v2: one ordered, resumable record stream.
+ *
+ * The external promise (docs/spec): everything the runtime said is in the
+ * stream, nothing oar didn't observe is in it, every record knows whose it
+ * is, and the stream is readable again from any position. Records split by
+ * OBLIGATION into three kinds — event (the runtime's own words), request (an
+ * action that expects an outcome) and response (points at a request) — and
+ * travel on one channel with one monotonic `seq`. Behavior invariants live as
+ * comments on the member they constrain; each "must/never" has (or gets) a
+ * sea-trial case.
  *
  * Scope notes that fit no single member:
  * - Ownership is the object reference; no in-process lease. Multi-controller
  *   arbitration belongs to the application layer.
  * - Sessions run YOLO by default: adapters disable interactive permission
  *   gates (claude --dangerously-skip-permissions, codex approvalPolicy
- *   never, pi pre-trusted cwd) AND default sandboxes off (codex
- *   danger-full-access; claude/pi have none). In embedded use nobody sits
- *   at an approval prompt — a gate is a hang, not safety. A host wanting
- *   isolation opts in (OAR_CODEX_SANDBOX), and codex's exec follows the
- *   USER's config-level sandbox_mode on real logins, which OAR never
- *   overrides.
- * - v1 defers resume/persistence, interactive permission settlement, and any
- *   remote/multi-consumer model.
- * - pi emits session-scoped events (compaction_start/end, queue_update) that
- *   belong to no turn; representing those is a deliberate v2 decision
- *   (nullable turnId vs a second event scope). Until then adapters drop them.
+ *   never, pi pre-trusted cwd, ACP allow_always) AND default sandboxes off
+ *   (codex danger-full-access; claude/pi have none). In embedded use nobody
+ *   sits at an approval prompt — a gate is a hang, not safety. A host wanting
+ *   isolation opts in (OAR_CODEX_SANDBOX). Runtime→app requests that DO
+ *   arrive are recorded verbatim (direction "toApp") and oar's automatic
+ *   answer, when it gives one, is the matching response record.
+ * - The cursor is honored for the lifetime of the adapter process: a
+ *   subscriber reconnecting with `afterSeq` misses nothing and repeats
+ *   nothing. Rebuilding the stream after the process died (from the
+ *   runtime's own rollout/log, with the same seq) is designed in the spec but
+ *   NOT implemented by any shipped adapter: `SessionOptions.resume` reopens
+ *   the runtime-native conversation with a fresh stream starting at seq 0.
  */
 
 export interface SessionOptions {
@@ -47,145 +89,75 @@ export type StartSession = (
   options: SessionOptions,
 ) => Promise<Session>;
 
+// ─── Control surface ──────────────────────────────────────────────────────
+
+/** Both records a control call produced: the request (its `seq` is where the action sits in the stream) and the accept/reject response. */
+export interface ControlResult {
+  readonly request: RequestRecord;
+  readonly response: ResponseRecord;
+}
+
 /**
- * The SPI face: what an adapter actually builds. Today every member is also
- * public, so the API face extends this; if an SPI-internal member ever
- * appears, the extends breaks into an explicit mapping inside sealSession —
- * that seam is already the only place the two faces meet.
+ * Which tier of the attribution spectrum the adapter carries, declared
+ * explicitly and required to match what the runtime exposes (adapter red
+ * line, docs/spec/runtime-matrix.md): `none` — the runtime has no sub-agents;
+ * `opaque` — it has them but its selected interface shows only the root;
+ * `attributed` — child records self-attribute via `agentPath`; `nested` —
+ * children are sessions of their own, linked in the graph.
+ */
+export type AttributionTier = "none" | "opaque" | "attributed" | "nested";
+
+export interface SessionCapabilities {
+  /** Mid-turn input can be injected into the active turn. */
+  readonly steer: boolean;
+  /** Input can be held for a LATER turn; `durable` says whether that survives a process restart (codex: runtime-persisted; claude/pi/ACP: this process only). Null when the runtime cannot even hold input. */
+  readonly queue: { readonly durable: boolean } | null;
+  readonly attribution: AttributionTier;
+}
+
+export type SessionObserver = (record: SessionRecord) => void;
+export type Unsubscribe = () => void;
+
+/**
+ * The SPI face: what an adapter actually builds. The API face extends it
+ * with derivations sealSession computes over the stream.
  */
 export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity — pass to SessionOptions.resume to reattach later
-  prompt(input: string): PromptResult; // ≤1 active turn: busy while one runs; NEVER queues implicitly
-  subscribe(observer: SessionObserver): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers
-  readonly queue?: TurnQueue; // next-turn input; absent only when a runtime cannot even hold input for later
-  model?(): string | null; // model the RUNTIME reports as currently in effect — a read-back, never the request echoed: codex/claude/ACP report it in their own frames (thread response, system/init, session configOptions/models) and a resume or set_model can silently keep the old one. null while the runtime has not reported one yet (claude only says it in the first turn's init frame). Absent when the runtime never reports it. A query, not an event, because the value can arrive mid-stream and change after set_model.
-  contextUsage?(): ContextUsage | null; // CURRENT context fullness snapshot — a query, not a fold: after compaction/pruning it is genuinely unknown (tokens null), so it is the runtime's latest authoritative value (pi delegates getContextUsage; claude/codex cache the newest usage from the event stream). Absent when the runtime never reports it.
-  dispose(): Promise<void>; // aborts an active turn (its outcome settles aborted), releases the runtime; idempotent
+  readonly capabilities: SessionCapabilities;
+  prompt(input: string): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
+  steer(input: string): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
+  queue(input: string): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own — a spontaneous turn.
+  abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active — a late abort is a normal race, not an error.
+  subscribe(observer: SessionObserver, cursor?: Cursor): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live — no loss, no duplication.
+  records(): readonly SessionRecord[]; // every record this process observed, in seq order
+  graph(): SessionGraph;
+  dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent
 }
 
-/**
- * Current context fullness — borrowed from pi's shape because it already
- * models the hard case: `tokens` is null when unknown (right after compaction,
- * before the next model response), and `percent` follows. NOT a running sum of
- * usage deltas; the latest authoritative snapshot the runtime reported.
- */
-export interface ContextUsage {
-  readonly tokens: number | null;
-  readonly contextWindow: number | null;
-  readonly percent: number | null;
-}
-
-/** The API face: the SPI plus surfaces sealSession derives. */
+/** The API face: the SPI plus surfaces sealSession derives from the stream. */
 export interface Session extends AdapterSession {
+  /** Latest `model` event; null until the runtime has said one. A fold, not an echo of the request. */
+  model(): string | null;
+  /** Session token total plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). */
+  usage(): SessionUsage;
+  /** Latest context fullness the runtime reported for the root agent; null before any. */
+  contextUsage(): ContextUsage | null;
   /**
-   * DERIVED, not adapter-implemented: steer when the runtime can, fall back to
-   * queueing, always report where the input landed. `rejected` means the input
-   * was NOT taken over and the caller still owns it.
+   * DERIVED: steer when the runtime can, fall back to queueing, always report
+   * where the input landed. `rejected` means the input was NOT taken over and
+   * the caller still owns it.
    */
-  steerOrQueue(turn: Turn, input: string): Promise<SteerOrQueueResult>;
+  steerOrQueue(input: string): Promise<SteerOrQueueResult>;
+}
+
+export interface SessionUsage {
+  readonly total: TokenTotals;
+  /** Present only when more than the root agent reported tokens. */
+  readonly byAgent?: readonly { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }[];
 }
 
 export type SteerOrQueueResult =
-  | { readonly landed: "steered" }
-  | { readonly landed: "queued" }
-  | { readonly landed: "rejected"; readonly reason: string };
-
-/**
- * Queue input to run as a future turn. `add` follows the same weak
- * delivery-obligation transfer as steer's accepted: the adapter (or runtime)
- * now owns not losing it; whether that survives a process restart is what
- * `durable` reports honestly (codex: runtime-persisted; claude/pi: held in
- * this process only).
- */
-export interface TurnQueue {
-  readonly durable: boolean;
-  add(input: string): Promise<void>;
-}
-
-export type PromptResult =
-  | { readonly kind: "turn"; readonly turn: Turn }
-  | { readonly kind: "busy" };
-
-export type SessionObserver = (event: SessionEvent) => void;
-export type Unsubscribe = () => void;
-
-export interface Turn {
-  readonly id: string; // handle binds intent to identity — steer/abort are race-checked at the runtime (codex: expectedTurnId)
-  readonly outcome: Promise<TurnOutcome>; // settles exactly once; runtime-reported ends resolve, never reject
-  abort(): Promise<void>; // no-op after the turn ended — a late abort is a normal race, not an error
-  /**
-   * Mid-turn input; absent when the runtime cannot inject into an active turn.
-   * `accepted` is ONE deliberately weak promise, identical on every runtime:
-   * the adapter has taken over this input and the caller's delivery
-   * obligation ENDS — do not resubmit. Taking over means the adapter now owns
-   * not losing it (e.g. holding it through runtime-autonomous compaction);
-   * failure to take over is a typed not_steerable or a thrown operational
-   * error, never a silent drop. No guarantee it lands in the current turn,
-   * that the model attends to it, or that any business outcome happened. How
-   * acceptance happens (stdin write, native enqueue, a runtime-side steer
-   * ack) is adapter-internal and adapter-tested, never an application-facing
-   * difference. Input written during
-   * runtime-autonomous compaction is HELD, not lost; codex Compact/Review
-   * turns reject with not_steerable instead. Where input landed is the event
-   * stream's job: same turnId, or a fresh turn_started when a runtime
-   * auto-queues past a turn that just ended (that spontaneous turn has events
-   * but no control handle yet).
-   */
-  readonly steer?: (input: string) => Promise<SteerResult>;
-}
-
-/** Coarse failure classification so applications can react (re-login, back off, report a bug) without parsing vendor error prose. Best-effort: adapters map what the runtime reveals; "unknown" is an honest answer. */
-export type FailureClass =
-  | "auth"
-  | "quota"
-  | "invalid_request"
-  | "overloaded"
-  | "provider"
-  | "runtime_exited"
-  | "unknown";
-
-export type TurnOutcome =
-  | { readonly kind: "completed" }
-  | { readonly kind: "aborted" }
-  | { readonly kind: "failed"; readonly reason: string; readonly failure: FailureClass };
-
-export type SteerResult =
-  | { readonly kind: "accepted" }
-  | { readonly kind: "not_steerable"; readonly reason: string };
-
-/** Envelope + minimal body; runtime-specific detail waits for real demand. */
-export type SessionEvent = SessionEventEnvelope & SessionEventBody;
-
-export interface SessionEventEnvelope {
-  readonly sessionId: string;
-  readonly turnId: string;
-  /** Monotonic per session; total order for trace alignment. */
-  readonly seq: number;
-  /** Unix epoch milliseconds stamped at adapter ingress — same clock as Date.now(), so fold×clock consumers (stallOf) compose directly. */
-  readonly receivedAt: number;
-}
-
-export type ReasoningContent =
-  | { readonly kind: "text"; readonly text: string }
-  | { readonly kind: "redacted" }
-  | { readonly kind: "empty" };
-
-export type SessionEventBody =
-  | { readonly kind: "turn_started" }
-  | { readonly kind: "text_delta"; readonly text: string }
-  /** A reasoning output item; its lifecycle remains observable without readable contents. */
-  | { readonly kind: "reasoning"; readonly content: ReasoningContent }
-  | {
-      readonly kind: "tool_call_started";
-      readonly callId: string;
-      readonly tool: string;
-      /** Best-effort human-readable invocation detail when the runtime exposes it. */
-      readonly input?: string;
-    }
-  | {
-      readonly kind: "tool_call_ended";
-      readonly callId: string;
-      /** Best-effort human-readable result detail when the runtime exposes it. */
-      readonly output?: string;
-    }
-  | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome };
+  | { readonly landed: "steered"; readonly result: ControlResult }
+  | { readonly landed: "queued"; readonly result: ControlResult }
+  | { readonly landed: "rejected"; readonly reason: string; readonly result: ControlResult };

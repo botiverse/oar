@@ -39,8 +39,8 @@ export function runtimeUnderTest(
         ...(overrides.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: overrides.appendSystemPrompt }),
       });
       record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null });
-      session.subscribe((event) => {
-        record({ kind: "session_event", event });
+      session.subscribe((entry) => {
+        record({ kind: "session_record", record: entry });
       });
       return session;
     },

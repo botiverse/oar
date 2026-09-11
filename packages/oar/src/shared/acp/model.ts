@@ -1,5 +1,4 @@
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
-import type { OpenedAcpSession } from "./profile.js";
 
 /**
  * The model an ACP agent reports as in effect, read from the agent's own
@@ -16,8 +15,9 @@ import type { OpenedAcpSession } from "./profile.js";
  *   back to the default silently) and `session/set_model` answers
  *   `{_meta: {model}}` with the applied id.
  *
- * Null when the frame carries neither: it is the caller's job to keep the
- * last reported value, never to substitute the requested one.
+ * Null when the frame carries neither. In v2 every such frame is an event
+ * record with a `model` view, so `Session.model()` is the latest of them —
+ * the request parameter is never consulted.
  */
 export function acpReportedModel(frame: JsonRecord | null): string | null {
   if (frame === null) {
@@ -34,31 +34,4 @@ export function acpReportedModel(frame: JsonRecord | null): string | null {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
   const metaModel = asRecord(frame._meta)?.model;
   return typeof metaModel === "string" ? metaModel : null;
-}
-
-/** Last model the agent reported; `null` until it says one. */
-export interface AcpModelReadback {
-  readonly current: () => string | null;
-  /** Feed any update or response frame; frames without a model change nothing. */
-  readonly observe: (frame: JsonRecord | null) => void;
-  /**
-   * Apply the open handshake in precedence order: the set_model answer
-   * (grok's `_meta.model`), then anything pushed while opening (kimi's
-   * config_option_update, which arrives before set_model is answered), then
-   * the session new/load response. The request parameter is never consulted.
-   */
-  readonly opened: (opened: OpenedAcpSession) => void;
-}
-
-export function createAcpModelReadback(): AcpModelReadback {
-  let model: string | null = null;
-  return {
-    current: () => model,
-    observe: (frame) => {
-      model = acpReportedModel(frame) ?? model;
-    },
-    opened: (opened) => {
-      model = acpReportedModel(opened.setModelResponse ?? null) ?? model ?? acpReportedModel(opened.response);
-    },
-  };
 }

@@ -5,14 +5,14 @@ import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-
  * The composed observer: one subscription yields a unified derived view of
  * the agent — fold state plus the clock overlay. This is the wiring every
  * host was about to hand-roll (subscribe + fold + a ticker): pushed on every
- * event (the fold advances) and on the silence edge (the clock crosses the
+ * record (the fold advances) and on the silence edge (the clock crosses the
  * threshold). The primitives (reduceStatus/stallOf) stay exported for
  * consumers with their own composition needs.
  */
 
 export interface AgentView {
   readonly status: AgentStatus;
-  readonly stall: { readonly turnId: string; readonly silentForMs: number } | null;
+  readonly stall: { readonly sinceSeq: number; readonly silentForMs: number } | null;
 }
 
 export interface ObserveAgentOptions {
@@ -48,8 +48,8 @@ export function observeAgent(session: Session, options: ObserveAgentOptions): Ag
     }
   };
 
-  const unsubscribe = session.subscribe((event) => {
-    status = reduceStatus(status, event);
+  const unsubscribe = session.subscribe((record) => {
+    status = reduceStatus(status, record);
     push();
   });
   const ticker = setInterval(() => {

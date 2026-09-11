@@ -22,6 +22,7 @@ function fakeAppServer(
         calls.push(method);
       },
       onNotification() {},
+      onServerRequest() {},
       onExit() {},
       kill() {},
     },

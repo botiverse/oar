@@ -1,9 +1,9 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import type { SessionEvent } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
+import type { SessionRecord } from "../../packages/oar/src/contracts/session.js";
+import { awaitTurnEnd, claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index.js";
-import { assertContextUsage, expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
+import { assertContextUsage, expectAvailable, promptTurn, runTurn, withProcessEnv } from "./support/asserts.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
@@ -34,8 +34,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const result = promptTurn(session, "hello");
-      await expect(result.outcome).resolves.toMatchInlineSnapshot(`
+      await expect(runTurn(session, "hello")).resolves.toMatchInlineSnapshot(`
         {
           "failure": "invalid_request",
           "kind": "failed",
@@ -71,7 +70,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     }
   }, 60_000);
 
-  test("an invalid key is retried silently: no events, no settlement", async () => {
+  test("an invalid key is retried silently: no turn end, and only the frames claude actually emitted", async () => {
     const env = await startClaudeAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, {
         error: { message: "invalid x-api-key", type: "authentication_error" },
@@ -81,23 +80,20 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const events: SessionEvent[] = [];
-      session.subscribe((event) => {
-        events.push(event);
-      });
-      const result = promptTurn(session, "hello");
+      const result = await promptTurn(session, "hello");
       const settled = await Promise.race([
-        result.outcome.then(() => true),
+        awaitTurnEnd(session, result.request.seq).then(() => true),
         sleep(3000).then(() => false),
       ]);
-      // turn_started is OUR kernel's framing; everything else would have to
-      // come from claude — and nothing does.
-      expect({
-        settled,
-        fromRuntime: events.map((event) => event.kind).filter((kind) => kind !== "turn_started"),
-      }).toMatchInlineSnapshot(`
+      // Everything after our accepted prompt would have to come from claude —
+      // and nothing that ends the turn does. Whatever frames DID arrive are in
+      // the stream verbatim (v2 drops nothing), so list their types.
+      const fromRuntime = session.records()
+        .filter((record): record is Extract<SessionRecord, { kind: "event" }> => record.kind === "event" && record.seq > result.request.seq)
+        .map((record) => `${record.body.type}${record.body.views.length === 0 ? "" : ` → ${record.body.views.map((view) => view.kind).join(",")}`}`);
+      expect({ settled, endedTurn: fromRuntime.some((line) => line.includes("turn_ended")) }).toMatchInlineSnapshot(`
         {
-          "fromRuntime": [],
+          "endedTurn": false,
           "settled": false,
         }
       `);
@@ -116,7 +112,8 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       const session = await runtimeUnderTest(runtime, env.env).startSession();
       await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
         [
-          "turn_started",
+          "request:prompt",
+          "response:accepted",
           "tool_call_started:Bash",
           "tool_call_ended",
           "tool_call_started:Bash",
@@ -130,7 +127,6 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     }
   }, 120_000);
 
-
   test("YOLO default: claude runs an unknown command without any grant", async () => {
     const env = await startClaudeAimock((mock) => {
       mock.on({ userMessage: /run the say probe/u, hasToolResult: false }, {
@@ -143,15 +139,18 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       const session = await runtimeUnderTest(runtime, env.env).startSession();
       // The binary does not exist — irrelevant: under the YOLO default claude
       // RUNS it (tool_call framing appears) instead of stopping for approval,
-      // which is the coxswain say-bridge scenario in miniature.
+      // which is the coxswain say-bridge scenario in miniature. No toApp
+      // request record appears either: claude never asked.
       await expect(structuralToolRound(session, env.mock, "please run the say probe")).resolves.toMatchInlineSnapshot(`
         [
-          "turn_started",
+          "request:prompt",
+          "response:accepted",
           "tool_call_started:Bash",
           "tool_call_ended",
           "turn_ended:completed",
         ]
       `);
+      expect(session.records().some((record) => record.kind === "request" && record.direction === "toApp")).toBe(false);
       await session.dispose();
     } finally {
       await env.stop();
@@ -167,8 +166,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
         systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,
       });
-      const first = promptTurn(session, "hello there");
-      await first.outcome;
+      await runTurn(session, "hello there");
       const before = scrubSystem(lastAgentSystem(capture.systems));
       expect(before).toMatchInlineSnapshot(`
         "x-anthropic-billing-header: cc_version=<VERSION>; cc_entrypoint=sdk-cli;You are Claude Code, Anthropic's official CLI for Claude, running within the Claude Agent SDK.OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
@@ -176,11 +174,9 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
         OAR-SYSTEM-APPEND-MARKER always be brief"
       `);
       // /compact runs as its own turn through the same stdin channel…
-      const compact = promptTurn(session, "/compact");
-      await compact.outcome;
+      await runTurn(session, "/compact");
       // …and the prompt configuration must still govern the NEXT request.
-      const after = promptTurn(session, "and after compaction?");
-      await after.outcome;
+      await runTurn(session, "and after compaction?");
       // Compaction must not disturb the configured prompt: identical scrub.
       expect(scrubSystem(lastAgentSystem(capture.systems))).toBe(before);
       await session.dispose();
@@ -189,15 +185,20 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
     }
   }, 120_000);
 
-  test("contextUsage() returns a well-formed snapshot after a turn", async () => {
+  test("contextUsage() and usage() are folds over the result frame's usage", async () => {
     const env = await startClaudeAimock();
     try {
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const turn = promptTurn(session, "say hi");
-      await turn.outcome;
-      assertContextUsage(session.contextUsage?.());
+      await runTurn(session, "say hi");
+      assertContextUsage(session.contextUsage());
+      const usage = session.usage();
+      expect(usage.total.input >= 0 && usage.total.output >= 0).toBe(true);
+      expect(session.model()).not.toBeNull();
+      // The dispose request is answered by the exit oar observed.
       await session.dispose();
+      const tail = session.records().slice(-2);
+      expect(tail.map((record) => (record.kind === "event" ? record.body.type : record.body.kind))).toEqual(["dispose", "exited"]);
     } finally {
       await env.stop();
     }

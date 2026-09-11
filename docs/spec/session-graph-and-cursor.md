@@ -76,7 +76,25 @@ interface Cursor { sessionId: string; afterSeq: number; }
 // "resume just one sub-agent". For a single-agent view, resume the whole
 // stream and filter client-side by agentPath — the protocol keeps no
 // field for an unevidenced need.
+// Shipped: Session.subscribe(observer, cursor) replays every retained
+// record with seq > afterSeq synchronously, then continues live;
+// Session.records() is the retained log. A cursor for another session id
+// throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
 ```
+
+**Implementation status.** The *process alive* half is shipped by every
+adapter: the kernel retains every record for the lifetime of the adapter
+process, so a reconnecting subscriber misses nothing and repeats nothing.
+The *process dead* half — rebuilding the stream from the runtime's own
+rollout/replay log with the same `seq` — is **not shipped**: no adapter
+hydrates history, and `SessionOptions.resume` opens a fresh stream at
+`seq` 0 on the runtime-native conversation. The live stream also contains
+oar's own request/response records, which no runtime log holds, so a
+rebuilt stream cannot reproduce live `seq` values without oar persisting
+them — a storage question this spec deliberately leaves to the consumer.
+Each [runtime page](../runtimes/README.md) records what the native replay
+surface offers (codex `thread/resume` history, ACP `session/load` replay,
+pi's session file) and what remains unverified.
 
 ### Example 6 · Reconnect, and rebuild after death
 

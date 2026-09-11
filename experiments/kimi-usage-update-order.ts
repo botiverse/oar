@@ -2,10 +2,11 @@
  * KIMI USAGE_UPDATE ORDER — the turn's `usage_update` arrives AFTER the
  * `session/prompt` response, from an un-awaited task, and may not arrive.
  *
- * Why: `Session.contextUsage()` is meant to be current at `turn_ended`. The
- * shared ACP session settles the OAR turn when the prompt response lands, so
- * a runtime that reports usage only after answering leaves the reader on the
- * previous turn's value at exactly the moment a caller checks it.
+ * Why: `Session.contextUsage()` is meant to be current at the turn_ended
+ * record. The shared ACP session records the prompt answer (the turn's end)
+ * when the RPC result lands, so a runtime that reports usage only after
+ * answering leaves the reader on the previous turn's value at exactly the
+ * moment a caller checks it.
  *
  * Source pin — kimi-code 0.41.0, commit f9ca33376,
  * packages/acp-server/src/session.ts:
@@ -21,9 +22,9 @@
  *   is swallowed into `log.warn('acp: failed to push usage_update')`.
  * So: response, then two awaited calls, then maybe an update. The adapter
  * therefore declares `usageUpdateAfterPrompt` on the kimi profile and holds
- * the turn for at most `usageUpdateTimeoutMs` (default 500 ms) after the
- * response; on timeout it settles with what it has. Other profiles are
- * untouched.
+ * the prompt-answer record back for at most `usageUpdateTimeoutMs` (default
+ * 500 ms) after the response, so the usage record precedes the turn end; on
+ * timeout it records the answer as-is. Other profiles are untouched.
  *
  * No kimi binary or account is available on this machine, so the timing is
  * pinned from source only and exercised against the ACP fixture's
@@ -38,14 +39,15 @@
  *
  * kimi profile (flag on): contextUsage() at turn_ended reads the turn's own
  * value (100, then 200 on the second turn). Same profile with the flag off:
- * undefined at the first turn_ended, 100 at the second — the previous turn's
+ * null at the first turn_ended, 100 at the second — the previous turn's
  * value, the bug this pins. "usage-never" with a 100 ms bound: the turn
  * completes after the bound with contextUsage() still null.
+ * Re-observed 2026-09-11 on the v2 record stream (fixture only): same values.
  */
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { kimiRuntime, type Session } from "../packages/oar/src/index.js";
+import { kimiRuntime, promptAndWait, type Session } from "../packages/oar/src/index.js";
 import { kimiAcpProfile } from "../packages/oar/src/runtimes/kimi/session.js";
 import { acpSession, type AcpSessionProfile } from "../packages/oar/src/shared/acp/session.js";
 
@@ -53,24 +55,23 @@ const which = process.argv[2] ?? "fixture";
 const fixture = fileURLToPath(new URL("../tests/fixtures/fake-acp-agent.mjs", import.meta.url));
 const fixtureInstallation = { kind: "available", via: "executable", command: process.execPath } as const;
 
-type Tokens = number | null | undefined;
+type Tokens = number | null;
 
-/** `contextUsage().tokens` as read inside each `turn_ended` handler, in order. */
+/** `contextUsage().tokens` as read inside each turn_ended record's observer, in order. */
 function tokensAtTurnEnded(session: Session): readonly Tokens[] {
   const seen: Tokens[] = [];
-  session.subscribe((event) => {
-    if (event.kind === "turn_ended") {
-      seen.push(session.contextUsage?.()?.tokens);
+  session.subscribe((record) => {
+    if (record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended")) {
+      seen.push(session.contextUsage()?.tokens ?? null);
     }
   });
   return seen;
 }
 
 async function runTurn(session: Session, text: string): Promise<void> {
-  const result = session.prompt(text);
-  assert.equal(result.kind, "turn");
-  const outcome = await result.turn.outcome;
-  assert.equal(outcome.kind, "completed", JSON.stringify(outcome));
+  const run = await promptAndWait(session, text);
+  assert.equal(run.kind, "ended", "prompt was not accepted");
+  assert.equal(run.outcome.kind, "completed", JSON.stringify(run.outcome));
 }
 
 // A 150 ms gap between turns: a caller does not usually prompt again within
@@ -96,11 +97,11 @@ if (which === "fixture") {
   const flagOn = await fixtureRun("usage-after-response", {});
   assert.deepEqual(flagOn, [100, 200], "kimi profile should read each turn's own usage at turn_ended");
   const flagOff = await fixtureRun("usage-after-response", { usageUpdateAfterPrompt: false });
-  assert.deepEqual(flagOff, [undefined, 100], "without the flag the read-back is one turn behind");
+  assert.deepEqual(flagOff, [null, 100], "without the flag the read-back is one turn behind");
   const started = performance.now();
   const never = await fixtureRun("usage-never", { usageUpdateTimeoutMs: 100 });
   const elapsed = Math.round(performance.now() - started);
-  assert.deepEqual(never, [undefined, undefined], "no update: settle with nothing, not with a stale value");
+  assert.deepEqual(never, [null, null], "no update: record the answer with nothing, not with a stale value");
   assert.ok(elapsed >= 350, `two 100 ms bounds plus the 150 ms gap should take at least 350 ms, took ${elapsed}`);
   process.stdout.write(`${JSON.stringify({ source: "kimi-code f9ca33376", flagOn, flagOff, never, elapsedMs: elapsed }, null, 2)}\n`);
 } else {

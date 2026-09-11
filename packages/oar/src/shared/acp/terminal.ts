@@ -1,18 +1,12 @@
 /* oxlint-disable typescript/promise-function-async -- SDK handlers deliberately return terminal promises directly. */
 import {
-  client as createClient,
-  methods,
   RequestError,
-  type ClientApp,
   type CreateTerminalRequest,
   type CreateTerminalResponse,
   type KillTerminalRequest,
   type KillTerminalResponse,
   type ReleaseTerminalRequest,
   type ReleaseTerminalResponse,
-  type RequestPermissionRequest,
-  type RequestPermissionResponse,
-  type SessionNotification,
   type TerminalOutputRequest,
   type TerminalOutputResponse,
   type WaitForTerminalExitRequest,
@@ -55,31 +49,6 @@ export interface AcpTerminalHost {
 
 export interface AcpTerminalHostOptions {
   readonly shellCommand?: boolean;
-}
-
-function allowPermission(request: RequestPermissionRequest): RequestPermissionResponse {
-  const selected = request.options.find((option) => option.kind === "allow_always")
-    ?? request.options.find((option) => option.kind === "allow_once");
-  return selected === undefined
-    ? { outcome: { outcome: "cancelled" } }
-    : { outcome: { outcome: "selected", optionId: selected.optionId } };
-}
-
-/** Compose OAR's typed ACP client handlers directly on the official SDK app. */
-export function createAcpClientApp(
-  terminal: AcpTerminalHost,
-  update: (notification: SessionNotification) => void,
-): ClientApp {
-  return createClient({ name: "oar" })
-    .onRequest(methods.client.session.requestPermission, ({ params }) => allowPermission(params))
-    .onRequest(methods.client.terminal.create, ({ params }) => terminal.create(params))
-    .onRequest(methods.client.terminal.output, ({ params }) => terminal.output(params))
-    .onRequest(methods.client.terminal.waitForExit, ({ params }) => terminal.waitForExit(params))
-    .onRequest(methods.client.terminal.kill, ({ params }) => terminal.kill(params))
-    .onRequest(methods.client.terminal.release, ({ params }) => terminal.release(params))
-    .onNotification(methods.client.session.update, ({ params }) => {
-      update(params);
-    });
 }
 
 function invalid(message: string): never {

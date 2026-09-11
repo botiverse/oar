@@ -40,6 +40,22 @@ Earlier cuts are recorded in the version lineage in the
 turn boundaries, usage basis labels, and `causedBy` (v0.7 — its deletion
 is still open to reversal in review).
 
+## What the v1.0 implementation added, with its deletion tests
+
+| element | concrete breaking scenario if deleted |
+|---|---|
+| `EventBody.native` | The losslessness promise has no carrier: a frame oar does not interpret (pi's 17 session events, claude `rate_limit_event`, codex collab items) would be a `type` with nothing behind it, and a consumer could never re-derive a better projection than oar's. |
+| `EventBody.type` | Derivable from `native` only by knowing each runtime's discriminator field; consumers would reimplement five wire formats to filter a stream. |
+| `EventBody.views` as a list | One claude assistant frame carries thinking + text + tool_use. A single view forces either three records for one frame (duplicated `native`, seq no longer counts frames) or one view that drops two readings. |
+| `turn_ended` view | The runtime's own completion becomes invisible without parsing `native`: `awaitTurnEnd` and the status fold would need per-runtime code. It is a *reading* of a real frame (claude `result`, codex `turn/completed`, pi `agent_end`, the ACP prompt answer) — never a record of its own, so the v0.7 synthesis ban holds. |
+| `usage` / `model` views | `usage()`, `contextUsage()`, `model()` would need a second source of truth beside the stream — the v1 "query masquerade" defect returns. |
+| `RequestBody.queue` | Codex's native `thread/queue/add` (durable, with a submission id in the runtime's own ack) has no record; the action would be invisible to a replaying observer. |
+| `ResponseBody.answered` | oar's automatic permission grant to an ACP `session/request_permission` is an outcome the runtime did not say; without it the `toApp` request looks dangling although it was answered. |
+| `ResponseBody.exited` | Death stops being a recorded fact ([liveness](../design/liveness.md)): a consumer replaying the log cannot tell a dispose that completed from one whose outcome was never observed. |
+| `ControlResult` (request + response returned) | Callers would scan the stream for their own request to learn its `seq`; the turn span would have no anchor. |
+| `SessionCapabilities.attribution` | The adapter red line (declare your tier, matched to what the runtime exposes) has nowhere to be declared, and a consumer cannot tell kimi's honest opacity from an adapter that forgot to wire children. |
+| `SessionCapabilities.steer` / `queue` | `steerOrQueue` would have to probe by issuing requests that are recorded as rejected — the stream would fill with policy noise. |
+
 ## What was tried and kept
 
 Elements that went through the deletion test and stayed, each with the

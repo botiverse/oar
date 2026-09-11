@@ -60,8 +60,30 @@ export function grokContextUsage(response: JsonRecord): ContextUsage | null {
   return { tokens, contextWindow, percent };
 }
 
+/**
+ * Vendor notification methods seen in the grok 1.0.13 binary's symbol table
+ * ([sym] only — not yet observed on a live wire): child-session lifecycle,
+ * background tasks, prompt completion and usage. Registered so the SDK routes
+ * them to oar instead of discarding them; each is recorded verbatim, and one
+ * that names a parent/child session pair links the session graph.
+ */
+export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
+  "_x.ai/session/update",
+  "_x.ai/session_notification",
+  "_x.ai/sessions/changed",
+  "_x.ai/task_backgrounded",
+  "_x.ai/task_completed",
+  "_x.ai/session/prompt_complete",
+  "_x.ai/session/usage",
+];
+
 export const grokAcpProfile: AcpSessionProfile = {
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
+  // Native children are independent ACP sessions on the same connection
+  // (attribution tier #3, docs/spec/attribution.md): recorded under their own
+  // session id, linked in the graph when a lifecycle notification says so.
+  capabilities: { steer: true, queue: { durable: false }, attribution: "nested" },
+  extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,
   sessionMeta: () => ({ yoloMode: true }),

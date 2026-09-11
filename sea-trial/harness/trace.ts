@@ -7,7 +7,7 @@ import path from "node:path";
  * gets a subdirectory holding everything about it. Deterministic layout:
  *
  *   <run-dir>/                 OAR_TRIAL_RUN_DIR, or ./oar-trial-run/run-<iso stamp> (gitignored)
- *     <backend>/trace.jsonl    case boundaries + every session event
+ *     <backend>/trace.jsonl    case boundaries + every session record
  *     <backend>/output.log     full process output (written by all.ts)
  *     report.json              batch summary (written by all.ts)
  *

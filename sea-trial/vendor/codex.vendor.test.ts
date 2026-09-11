@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { codexAccountUsage } from "../../packages/oar/src/runtimes/codex/index.js";
-import { assertContextUsage, expectAvailable, promptTurn, withProcessEnv } from "./support/asserts.js";
+import { assertContextUsage, expectAvailable, runTurn, withProcessEnv } from "./support/asserts.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
@@ -19,8 +19,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     try {
       const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const result = promptTurn(session, "hello");
-      await expect(result.outcome).resolves.toMatchInlineSnapshot(`
+      await expect(runTurn(session, "hello")).resolves.toMatchInlineSnapshot(`
         {
           "failure": "invalid_request",
           "kind": "failed",
@@ -70,7 +69,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         const session = await runtimeUnderTest(runtime, env.env).startSession();
         await expect(structuralToolRound(session, env.mock)).resolves.toMatchInlineSnapshot(`
           [
-            "turn_started",
+            "request:prompt",
+            "response:accepted",
             "tool_call_started:commandExecution",
             "tool_call_ended",
             "tool_call_started:commandExecution",
@@ -85,7 +85,6 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     }
   }, 120_000);
 
-
   test("system prompt replace+append land on the provider request", async () => {
     const capture = systemCapture();
     const env = await startCodexAimock((mock) => { capture.configure(mock); });
@@ -95,8 +94,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         systemPrompt: `${REPLACE_MARKER} you are the oar probe agent`,
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,
       });
-      const first = promptTurn(session, "hello there");
-      await first.outcome;
+      await runTurn(session, "hello there");
       // Compaction-survival for codex lands with the compact() capability:
       // thread/compact/start is not reachable through the Session API yet.
       expect(scrubSystem(lastAgentSystem(capture.systems))).toMatchInlineSnapshot(`
@@ -112,17 +110,49 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     }
   }, 120_000);
 
-  test("contextUsage() returns a well-formed snapshot after a turn", async () => {
+  test("contextUsage() is a fold over codex's tokenUsage notifications after a turn", async () => {
     const env = await startCodexAimock();
     try {
       const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      const turn = promptTurn(session, "say hi");
-      await turn.outcome;
-      assertContextUsage(session.contextUsage?.());
+      await runTurn(session, "say hi");
+      assertContextUsage(session.contextUsage());
+      const usageRecords = session.records().filter((record) =>
+        record.kind === "event" && record.body.type === "thread/tokenUsage/updated");
+      expect(usageRecords.length).toBeGreaterThan(0);
+      expect(session.usage().total.input).toBeGreaterThanOrEqual(0);
       await session.dispose();
     } finally {
       await env.stop();
     }
   }, 60_000);
+
+  test("every app-server notification enters the stream verbatim, in one order with the control records", async () => {
+    const env = await startCodexAimock();
+    try {
+      const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession();
+      const result = await session.prompt("say hi");
+      expect(result.response.body.kind).toBe("accepted");
+      await awaitTurnEnd(session, result.request.seq);
+      await runTurn(session, "and again");
+      await session.dispose();
+      const records = session.records();
+      for (const [index, record] of records.entries()) {
+        expect(record.seq).toBe(index);
+      }
+      const types = records.map((record) => (record.kind === "event" ? record.body.type : `${record.kind}:${record.body.kind}`));
+      expect(types[0]).toBe("thread/start");
+      expect(types).toContain("turn/started");
+      expect(types).toContain("item/completed");
+      expect(types.filter((type) => type === "turn/completed")).toHaveLength(2);
+      expect(types.at(-2)).toBe("request:dispose");
+      expect(types.at(-1)).toBe("response:exited");
+      // Native turn ids ride the envelope as spanId on every turn-scoped notification.
+      const spans = new Set(records.filter((record) => record.spanId !== undefined).map((record) => record.spanId));
+      expect(spans.size).toBe(2);
+    } finally {
+      await env.stop();
+    }
+  }, 120_000);
 });

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import {
   aggregateDeltas,
+  awaitTurnEnd,
   openVoyage,
   runtimes,
   type Runtime,
@@ -104,15 +105,14 @@ program
     }
   });
 
-const jsonObserver: SessionObserver = (event) => {
-  process.stdout.write(`${JSON.stringify(event)}\n`);
+const jsonObserver: SessionObserver = (record) => {
+  process.stdout.write(`${JSON.stringify(record)}\n`);
 };
 
 function progressObserver(runtimeId: string): SessionObserver {
   const render = createProgressRenderer(runtimeId);
-  const renderTo: SessionObserver = (event) => {
-    const line = render(event);
-    if (line !== null) {
+  const renderTo: SessionObserver = (record) => {
+    for (const line of render(record)) {
       process.stdout.write(`${line}\n`);
     }
   };
@@ -123,8 +123,8 @@ program
   .command("run <runtime> <prompt>")
   .description("Run one turn in a fresh session and show its progress")
   .option("--model <model>", "runtime-native model identifier")
-  .option("--json", "print raw session events as JSON lines instead of progress")
-  .option("--record <file>", "write the run as an oar-voyage/1 JSONL log")
+  .option("--json", "print the session records as JSON lines instead of progress")
+  .option("--record <file>", "write the run as an oar-voyage/2 JSONL log")
   .action(async (
     id: string,
     prompt: string,
@@ -157,20 +157,22 @@ program
           recorder: `oar-cli/${packageVersion()}`,
         });
     const print = flags.json === true ? jsonObserver : progressObserver(id);
-    session.subscribe((event) => {
-      recorder?.event(event);
-      print(event);
-    });
-    recorder?.submission("prompt", prompt);
-    const result = session.prompt(prompt);
-    if (result.kind !== "turn") {
-      process.stderr.write("session is busy\n");
+    // Replay from the start so the log and the output carry the records the
+    // adapter stamped while opening (model, handshake frames), not only what
+    // arrives after this subscription.
+    session.subscribe((record) => {
+      recorder?.record(record);
+      print(record);
+    }, { sessionId: session.id, afterSeq: -1 });
+    const result = await session.prompt(prompt);
+    if (result.response.body.kind !== "accepted") {
+      process.stderr.write(`prompt not accepted: ${JSON.stringify(result.response.body)}\n`);
       await session.dispose();
       recorder?.end("disposed");
       process.exitCode = 1;
       return;
     }
-    const outcome = await result.turn.outcome;
+    const outcome = await awaitTurnEnd(session, result.request.seq);
     await session.dispose();
     recorder?.end("disposed");
     if (flags.json === true) {

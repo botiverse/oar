@@ -34,20 +34,24 @@ app-server contract merely because operation names resemble each other.
 
 ## High-level mapping to OAR
 
-OAR starts one app-server process per Session, using v2 over stdio. It wraps
-selected native controls and projects selected notifications into the current
-Session/Turn contract. The [v2 record proposal](../spec/README.md) is not shipped
-support.
+OAR starts one app-server process per Session, using v2 over stdio, and
+exposes it as the [v2 record stream](../spec/README.md): every app-server
+notification is one event record (params verbatim in `native`, oar's reading
+in `views`), every control call is a request record answered by the RPC
+reply, and the runtime's own `turn/completed` is the turn's end. The adapter
+declares `capabilities: { steer: true, queue: { durable: true }, attribution:
+"nested" }`.
 
 | Native concept or boundary | Current OAR mapping |
 |---|---|
-| Thread identity | `Session.id` is the returned native thread ID. |
-| Native turn | `Turn.id` is an OAR-generated UUID; native turn ID stays private for steering and cancellation. |
-| Items and notifications | Selected text/reasoning/tool events become `SessionEvent`; tool item IDs can survive as `callId`, but text item identity and phase do not. |
-| Effective configuration | `model()` retains native readback; most native configuration has no public mutator. |
-| Server requests | No public request/reply settlement path in the current transport. |
-| Native children | No child-session graph, child control handles, or attributed child event surface. |
-| Process and observation lifetime | Session owns its process and a fresh local kernel; subscribers and sequence positions are not persistent history or execution leases. |
+| Thread identity | `Session.id` is the returned native thread ID; the `thread/start` / `thread/resume` reply is the first event record, carrying the `model` view. |
+| Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` view: completed / interrupted→aborted / failed with the `error` notification's detail). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
+| Items and notifications | One event per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; tool items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage` (cumulative `total`); everything else is an event with no views. |
+| Control replies | `turn/start`, `turn/steer`, `turn/interrupt`, `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The reply is recorded in stream order, before notifications codex wrote after it. |
+| Effective configuration | `model()` is a fold over `model` views (the open reply); most native configuration has no public mutator. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's id). Never answered — `approvalPolicy: never` means none are expected; one that arrives stays a dangling request. |
+| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, `graph()` node). A `collabAgentToolCall` / `collabToolCall` / `subAgentActivity` item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. Whether the app-server delivers other threads' notifications on this connection is **unverified** live; without an item naming the thread, no edge is fabricated. |
+| Process and observation lifetime | Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
 Implementation: [session adapter][oar-session], [projection][oar-projection],
 [kernel][oar-kernel], and [transport][oar-transport].
@@ -82,9 +86,11 @@ For OAR, call `codexRuntime.session(installation, { cwd, resume: savedSessionId 
 optionally supplying `model`. The ID is resolved against the selected
 executable's runtime storage/configuration; it is not a portable transcript.
 OAR waits for the resume RPC, requires a returned thread ID, validates an explicit
-model against native readback, and creates a fresh Session kernel. It discards
-returned history and restores no previous OAR Turn handles, observer positions,
-or controller lease.
+model against native readback, and creates a fresh record stream whose first
+event is the `thread/resume` reply. It passes `excludeTurns: true`, so the
+returned history is not replayed into the stream and no cursor from the
+previous process is valid; nothing restores observer positions or a controller
+lease.
 
 The recorded empty-thread probe had no persisted rollout before its first turn.
 Missing/unloadable threads reject through RPC; OAR retains error messages but
@@ -97,48 +103,63 @@ resuming the same persisted identity are not arbitrated by OAR.
 ### Prompt submission and turn completion
 
 Native `turn/start { threadId, input: [...] }` returns a Turn with native ID;
-later notifications establish completion. OAR `prompt(string)` sends one text
-input and returns an OAR Turn immediately, or `busy` while one is active.
-RPC failure settles that turn as failed. OAR exposes no image/skill input,
-structured-output schema, or per-turn configuration. [Adapter][oar-session].
+later notifications establish completion. OAR `prompt(string)` records a
+`prompt` request, sends one text input, and records the RPC reply as the
+`accepted` response (or `rejected` with the RPC error, or `rejected: busy`
+while a root turn is active — including a queued turn codex started on its
+own). Completion is codex's `turn/completed` event with a `turn_ended` view.
+OAR exposes no image/skill input, structured-output schema, or per-turn
+configuration. [Adapter][oar-session].
 
 ### Steering and future input
 
 Native `turn/steer { threadId, expectedTurnId, input }` binds input to the
-expected active turn. OAR retains the native ID for this request. Public
-`accepted` promises delivery ownership, not model attention; all RPC errors
-currently become `not_steerable`, including potentially operational failures.
+expected active turn. OAR retains the native ID for this request. The
+`accepted` response promises delivery ownership, not model attention; all RPC
+errors become a `rejected` response whose reason starts with `not_steerable:`,
+including potentially operational failures.
 
 Native queue operations also have submission identities and inspection/editing
-methods. OAR `queue.add()` uses `thread/queue/add`, declares `durable: true`,
-and discards the returned submission ID. It exposes no queue inspection/editing.
-Drained turns emit events without a public Turn handle. Existing tests establish
-a subsequent turn, not recovery after process death; that durability claim still
-needs targeted evidence. [Thread schema][thread-schema], [adapter][oar-session].
+methods. OAR `queue()` uses `thread/queue/add`, declares `queue: { durable:
+true }`, and keeps the reply (submission ID included) as the accepted
+response's `native`. It exposes no queue inspection/editing. A drained turn
+runs as a spontaneous turn: `turn/started` … `turn/completed` events with no
+prompt request of their own. Existing tests establish a subsequent turn, not
+recovery after process death; that durability claim still needs targeted
+evidence. [Thread schema][thread-schema], [adapter][oar-session].
 
 ### Cancellation and resource release
 
 Native `turn/interrupt { threadId, turnId }` targets an execution. Completion
-reports whether interruption won the race. OAR `abort()` waits for outcome;
-late abort is a no-op. Its implementation swallows interrupt RPC errors and
-then waits, so native error visibility is narrower than the raw protocol.
+reports whether interruption won the race. OAR `abort()` records an `abort`
+request; the interrupt reply is its `accepted` response and an RPC error (the
+turn already finished) is a `rejected` response with the runtime's message —
+the late abort is a recorded race, not a swallowed error. The outcome is
+`turn/completed`'s status. `abort()` when nothing is active is `rejected: no
+active turn`.
 
-`dispose()` settles active work aborted, kills the Session's app-server, and
-awaits exit. That releases its process; it does not establish exclusive control
-over persisted history. [Adapter][oar-session].
+`dispose()` records a `dispose` request, kills the Session's app-server, and
+awaits exit; the exit code is recorded as the `exited` response. Active work
+is not settled by oar — if codex reports nothing before dying, the turn has
+no `turn_ended` and consumers see the `exited` response instead. That releases
+its process; it does not establish exclusive control over persisted history.
+[Adapter][oar-session].
 
 ### Observation, history, and branching
 
 Native thread read/list/fork operations expose stored state; resume can return
 history. OAR exposes none of those history/branch operations and does not
-hydrate `subscribe()` from the resume result. Its live projection assigns
-session-local sequence numbers and ingress timestamps. There is no raw stream,
-persistent cursor, catch-up, or backpressure.
+hydrate the stream from the resume result. Every notification the app-server
+sends on the connection enters the stream verbatim (`native` is the params
+object) with a session-local `seq`, ingress `receivedAt`, and the native turn
+id as `spanId`; `subscribe(observer, { sessionId, afterSeq })` replays the
+retained records of this process, then continues live. There is no
+cross-process cursor, catch-up from codex's rollout, or backpressure.
 
 Starting enables `experimentalRawEvents` for reasoning classification; resuming
-does not send that flag. Only selected reasoning payloads reach OAR, so receiving
-raw input for a projection is not a lossless public journal. The current guide
-also marks rollback deprecated; OAR does not expose it.
+does not send that flag. Reasoning views therefore depend on that flag; the
+`rawResponseItem/completed` frames themselves are recorded either way. The
+current guide also marks rollback deprecated; OAR does not expose it.
 [Guide][guide], [adapter][oar-session], [projection][oar-projection].
 
 ### Native child agents
@@ -149,19 +170,27 @@ thread/path. The rolling guide instead documents `collabToolCall` with different
 fields, requiring versioned evidence. Claude's `parent_tool_use_id` is not
 Codex's linkage.
 
-OAR filters other thread IDs and drops these item types, losing topology and
-activity. A future mapping must distinguish spawn lineage, communication targets,
-and control ownership. [Item schema][item-schema], [guide][guide],
-[projection][oar-projection].
+OAR records notifications of other thread IDs as child-session records
+(`sessionId` is the child thread, added to `graph()` as a node) and adds a
+`tool_call` graph edge from the sender thread when a collaboration item names
+`receiverThreadIds` or `agentThreadId`; the items themselves are events with
+no views. This distinguishes lineage (an edge) from mere observation (a node)
+and never fabricates an edge. It is pinned only against fixtures: whether the
+app-server delivers child-thread notifications on the parent's connection, and
+which field spelling the running binary uses, remain **unverified** live.
+Control of child threads is not exposed. [Item schema][item-schema],
+[guide][guide], [projection][oar-projection].
 
 ### Permissions, tools, and client callbacks
 
 App-server supports native policy plus server requests for command/file/permission
-decisions, user input, MCP elicitation, and experimental dynamic tools. OAR's
-transport cannot settle server requests. It sets `approvalPolicy: never` and
-defaults the launch sandbox to `danger-full-access`; `OAR_CODEX_SANDBOX` can
-override or inherit configuration. Configurations requiring interactive
-settlement have no supported OAR interaction path.
+decisions, user input, MCP elicitation, and experimental dynamic tools. OAR
+records each server request as a `toApp` request record (method and params
+verbatim, the server's own id) and never answers it: it sets `approvalPolicy:
+never` and defaults the launch sandbox to `danger-full-access`;
+`OAR_CODEX_SANDBOX` can override or inherit configuration. Configurations
+requiring interactive settlement have no supported OAR interaction path — the
+dangling request is the honest record of that.
 
 OAR projects command execution, file changes, MCP calls, and web search, but
 exposes no tool registration, dynamic-tool execution callback, MCP management, or
@@ -184,10 +213,13 @@ Requested configuration and effective configuration remain distinct.
 ### Context, compaction, and account usage
 
 Native usage separates `total`, `last`, and nullable `modelContextWindow`.
-OAR `contextUsage()` returns `total.inputTokens` with null window/percent.
-That cumulative value is **unverified as current context occupancy**; the
-existing test checks shape rather than the multi-step interpretation. Native
-manual compaction has no typed OAR operation.
+Each `thread/tokenUsage/updated` notification is an event with a `usage` view:
+`context.tokens` = `total.inputTokens` (null window/percent) and `tokens` =
+`total` input/output, taken as the cumulative figure for the root agent.
+`contextUsage()` and `usage()` are folds over those views. The cumulative
+input value is **unverified as current context occupancy**; the existing test
+checks shape rather than the multi-step interpretation. Native manual
+compaction has no typed OAR operation.
 
 Installation discovery and credentialed account quota are separate OAR
 capabilities; neither is inferred from turn token totals.
@@ -203,15 +235,18 @@ handshake `0.144.6`, steering/abort `0.148.0`, model listing `0.149.0`, and
 resume/model readback `0.153.4` on 2026-09-05. These are evidence baselines, not
 a supported version range. This review ran no runtime tests or model calls.
 
-[Replay tests](../../tests/replay/codex-projection.test.ts) check event projection;
-[fake-process tests](../../tests/codex/codex-session-resume-model.test.ts) check
-resume parameters/model mismatch. [Vendor tests](../../sea-trial/vendor/codex.vendor.test.ts)
+[Replay tests](../../tests/replay/codex-projection.test.ts) check the
+notification → record projection, child-thread attribution and collab edges;
+[fake-process tests](../../tests/codex/) check resume parameters/model
+mismatch and the stream shape (request/response ordering, busy, steer, queue,
+abort replies, an unanswered server request, an unrequested exit). [Vendor tests](../../sea-trial/vendor/codex.vendor.test.ts)
 use the real runtime with a scripted provider for tools, errors, instructions,
 and usage shape. [CI](../../.github/workflows/ci.yml) configures three operating
 systems with an unpinned CLI; configuration does not prove a release passed.
 
 Priority gaps are multi-step/compaction context semantics, resumed reasoning
-visibility, queue recovery, server-request handling, and child activity/identity.
+visibility, queue recovery, server-request handling (recorded, never
+answered), and live child-thread delivery/identity.
 Instruction tests explicitly defer compaction survival. Keep these gaps separate
 from implemented methods and proposed v2 guarantees.
 

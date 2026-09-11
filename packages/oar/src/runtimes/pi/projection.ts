@@ -1,49 +1,59 @@
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import type { SessionEventBody, TurnOutcome } from "../../contracts/session.js";
+import type {
+  ContextUsage,
+  EventBody,
+  EventView,
+  TokenTotals,
+  TurnOutcome,
+} from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
+import { asNumber, asRecord } from "../../shared/json.js";
 
 /**
- * The pi SDK-event → SessionEvent projection as a PURE FOLD (see
- * runtimes/claude/projection.ts). Emits kernel commands (begin/emit/settle).
- * pi is the most stateful of the three: a turn may be `adopted` (a run pi
- * started that we did not prompt — settled here on agent_end) or prompt-
- * initiated (settled by the adapter's prompt promise, which reads this same
- * state via piSettledOutcome). abortRequested / providerError are control-
- * plane and error inputs the provider stream alone does not carry.
+ * The pi SDK-event → record projection as a PURE FOLD (see
+ * runtimes/claude/projection.ts). Every SDK event becomes exactly ONE event
+ * command: the event object verbatim as `native`, `type` = its SDK type, and
+ * the views oar read out of it. Nothing is gated on turn state and nothing
+ * is dropped any more — the session-scoped events v1 discarded (compaction,
+ * queue, retry, …) now enter the stream with no views, inside the turn they
+ * belong to. pi has no native turn id (no spanId) and no native sub-agents
+ * (agentPath is always root).
+ *
+ * `abortRequested` / `providerError` are control-plane and error inputs the
+ * provider stream alone does not carry; `tokens` is the running per-session
+ * total so usage views are cumulative, as the contract requires.
  */
 
-export type ProjectionCommand =
-  | { readonly kind: "begin" }
-  | { readonly kind: "emit"; readonly body: SessionEventBody }
-  | { readonly kind: "settle"; readonly outcome: TurnOutcome };
+export interface ProjectionCommand {
+  readonly kind: "event";
+  readonly body: EventBody;
+}
 
 export interface PiProjectionState {
-  readonly inTurn: boolean;
-  readonly adopted: boolean;
   readonly abortRequested: boolean;
   readonly reasoningHadText: boolean;
   readonly providerError: string | undefined;
+  readonly tokens: TokenTotals;
 }
 
 export const initialPiProjection: PiProjectionState = {
-  inTurn: false,
-  adopted: false,
   abortRequested: false,
   reasoningHadText: false,
   providerError: undefined,
+  tokens: { input: 0, output: 0 },
 };
 
-/** Control plane → state: a prompt opens a non-adopted turn, resetting per-turn accumulators. */
-export function piPrompted(): PiProjectionState {
-  return { ...initialPiProjection, inTurn: true };
+/** Control plane → state: a prompt (or a drained queue input) resets the per-run accumulators; the running token total stays. */
+export function piPrompted(state: PiProjectionState): PiProjectionState {
+  return { ...initialPiProjection, tokens: state.tokens };
 }
 
 export function piAbortRequested(state: PiProjectionState): PiProjectionState {
   return { ...state, abortRequested: true };
 }
 
-/** The outcome for a prompt-initiated turn (the fold settles adopted turns itself). */
-export function piSettledOutcome(state: PiProjectionState): TurnOutcome {
+/** The outcome of the run pi's own `agent_settled` closes, read through the control intent and provider errors folded so far. */
+export function piRunOutcome(state: PiProjectionState): TurnOutcome {
   if (state.abortRequested) {
     return { kind: "aborted" };
   }
@@ -53,33 +63,48 @@ export function piSettledOutcome(state: PiProjectionState): TurnOutcome {
   return { kind: "completed" };
 }
 
-const drop = (state: PiProjectionState): { state: PiProjectionState; commands: readonly ProjectionCommand[] } =>
-  ({ state, commands: [] });
+/** Extra inputs the adapter supplies alongside an SDK event: pi's authoritative context fullness, read at `agent_settled`. */
+export interface PiFoldExtra {
+  readonly context?: ContextUsage | null;
+}
 
-const emit = (state: PiProjectionState, body: SessionEventBody): { state: PiProjectionState; commands: readonly ProjectionCommand[] } =>
-  ({ state, commands: [{ kind: "emit", body }] });
+interface Step {
+  readonly state: PiProjectionState;
+  readonly views: readonly EventView[];
+}
+
+function jsonDetail(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return undefined;
+  }
+}
 
 function foldMessageUpdate(
   state: PiProjectionState,
   inner: Extract<AgentSessionEvent, { type: "message_update" }>["assistantMessageEvent"],
-): { state: PiProjectionState; commands: readonly ProjectionCommand[] } {
+): Step {
   switch (inner.type) {
     case "text_delta":
-      return emit(state, { kind: "text_delta", text: inner.delta });
+      return { state, views: [{ kind: "text_delta", text: inner.delta }] };
     case "thinking_delta":
       return inner.delta.length > 0
-        ? emit({ ...state, reasoningHadText: true }, { kind: "reasoning", content: { kind: "text", text: inner.delta } })
-        : drop(state);
+        ? { state: { ...state, reasoningHadText: true }, views: [{ kind: "reasoning", content: { kind: "text", text: inner.delta } }] }
+        : { state, views: [] };
     case "error":
       // pi's prompt() RESOLVES even when the provider errored — the failure
       // only surfaces here (pinned by the pi vendor 400 test).
-      return drop({ ...state, providerError: inner.error.errorMessage ?? inner.reason });
+      return { state: { ...state, providerError: inner.error.errorMessage ?? inner.reason }, views: [] };
     case "thinking_start":
-      return drop({ ...state, reasoningHadText: false });
+      return { state: { ...state, reasoningHadText: false }, views: [] };
     case "thinking_end":
-      return state.reasoningHadText ? drop(state) : emit(state, { kind: "reasoning", content: { kind: "empty" } });
-    // Explicitly dropped: block boundaries and toolcall framing carry no v1
-    // turn event (toolcalls arrive via the outer tool_execution_* events).
+      return state.reasoningHadText ? { state, views: [] } : { state, views: [{ kind: "reasoning", content: { kind: "empty" } }] };
+    // Block boundaries and toolcall framing carry no view (toolcalls arrive
+    // via the outer tool_execution_* events); the frame itself is recorded.
     case "start":
     case "done":
     case "text_start":
@@ -87,52 +112,68 @@ function foldMessageUpdate(
     case "toolcall_start":
     case "toolcall_delta":
     case "toolcall_end":
-      return drop(state);
+      return { state, views: [] };
   }
-  return drop(state);
+  return { state, views: [] };
 }
 
-/** Fold one pi SDK event into the next state plus commands. */
-export function foldPiEvent(
-  state: PiProjectionState,
-  event: AgentSessionEvent,
-): { readonly state: PiProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  if (event.type === "agent_start") {
-    // A run pi starts that we did not prompt (a drained followUp) becomes an
-    // adopted turn, settled here on agent_end.
-    return state.inTurn
-      ? drop(state)
-      : { state: { ...piPrompted(), adopted: true }, commands: [{ kind: "begin" }] };
+/** Cumulative per-session tokens after an assistant message's own usage. */
+function accumulate(state: PiProjectionState, message: unknown): Step {
+  const record = asRecord(message);
+  const usage = asRecord(record?.usage);
+  if (record?.role !== "assistant" || usage === null) {
+    return { state, views: [] };
   }
-  if (!state.inTurn) {
-    return drop(state);
-  }
+  const tokens: TokenTotals = {
+    input: state.tokens.input + (asNumber(usage.input) ?? 0) + (asNumber(usage.cacheRead) ?? 0) + (asNumber(usage.cacheWrite) ?? 0),
+    output: state.tokens.output + (asNumber(usage.output) ?? 0),
+  };
+  return { state: { ...state, tokens }, views: [{ kind: "usage", usage: { tokens } }] };
+}
+
+function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldExtra): Step {
   switch (event.type) {
-    case "agent_end":
-      // Adopted turns settle here; prompt-initiated turns are settled by the
-      // adapter's prompt promise (which reads piSettledOutcome).
-      return state.adopted
-        ? { state: initialPiProjection, commands: [{ kind: "settle", outcome: piSettledOutcome(state) }] }
-        : { state: { ...state, inTurn: false }, commands: [] };
+    case "agent_settled": {
+      // pi's run-settled signal (agent-session.js _emitAgentSettled: it
+      // flips _isAgentRunActive off) is the turn's end — NOT agent_end, which
+      // precedes threshold compaction and auto-retries; between the two pi
+      // rejects new prompts ("Cannot submit a prompt while compaction is in
+      // progress"). The context read here is therefore post-compaction.
+      const views: EventView[] = [{ kind: "turn_ended", outcome: piRunOutcome(state) }];
+      if (extra.context !== undefined && extra.context !== null) {
+        views.push({ kind: "usage", usage: { context: extra.context } });
+      }
+      return { state: piPrompted(state), views };
+    }
     case "message_update":
       return foldMessageUpdate(state, event.assistantMessageEvent);
-    case "tool_execution_start":
-      return emit(state, { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName });
-    case "tool_execution_end":
-      return emit(state, { kind: "tool_call_ended", callId: event.toolCallId });
+    case "message_end":
+      return accumulate(state, event.message);
+    case "tool_execution_start": {
+      const input = jsonDetail(event.args);
+      return { state, views: [input === undefined
+        ? { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName }
+        : { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName, input }] };
+    }
+    case "tool_execution_end": {
+      const output = jsonDetail(event.result);
+      return { state, views: [output === undefined
+        ? { kind: "tool_call_ended", callId: event.toolCallId }
+        : { kind: "tool_call_ended", callId: event.toolCallId, output }] };
+    }
     case "turn_end":
       // A provider failure surfaces only as stopReason "error" on the turn's
       // final assistant message (pinned by the pi vendor 400 test).
       return event.message.role === "assistant" && event.message.stopReason === "error"
-        ? drop({ ...state, providerError: event.message.errorMessage ?? "provider error" })
-        : drop(state);
-    // Explicitly dropped: session-scoped events with no turn mapping in v1 (an
-    // exhaustive switch makes a NEW pi event type a compile error, forcing a
-    // conscious mapped-or-dropped decision on each future addition).
-    case "agent_settled":
+        ? { state: { ...state, providerError: event.message.errorMessage ?? "provider error" }, views: [] }
+        : { state, views: [] };
+    // Recorded with no view (an exhaustive switch makes a NEW pi event type a
+    // compile error, forcing a conscious viewed-or-plain decision on each
+    // future addition).
+    case "agent_start":
+    case "agent_end":
     case "turn_start":
     case "message_start":
-    case "message_end":
     case "tool_execution_update":
     case "bash_execution_update":
     case "compaction_start":
@@ -146,7 +187,20 @@ export function foldPiEvent(
     case "summarization_retry_scheduled":
     case "summarization_retry_attempt_start":
     case "summarization_retry_finished":
-      return drop(state);
+      return { state, views: [] };
   }
-  return drop(state);
+  return { state, views: [] };
+}
+
+/** Fold one pi SDK event into the next state plus the one event command it produces. */
+export function foldPiEvent(
+  state: PiProjectionState,
+  event: AgentSessionEvent,
+  extra: PiFoldExtra = {},
+): { readonly state: PiProjectionState; readonly commands: readonly ProjectionCommand[] } {
+  const next = step(state, event, extra);
+  return {
+    state: next.state,
+    commands: [{ kind: "event", body: { type: event.type, native: event, views: next.views } }],
+  };
 }

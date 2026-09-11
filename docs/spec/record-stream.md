@@ -111,43 +111,72 @@ type RecordKind = "event" | "request" | "response";
 // an explicit discriminant — kept; the only deliberate convenience field
 // left after ablation.
 
-interface RecordBase {
-  seq: number;                  // total order per stream, cursor anchor; record identity rests on seq alone
+interface RecordEnvelope {
+  sessionId: string;            // runtime-native; a derived child session carries its own
   agentPath: readonly string[]; // attribution + sub-agent lineage; [] = root
-  kind: RecordKind;
+  spanId?: string;              // runtime-native turn id, optional; oar never generates it
+  seq: number;                  // total order per stream, cursor anchor; record identity rests on seq alone
+  receivedAt: number;           // best-effort observation time, outside the determinism guarantee
 }
 
-interface EventRecord extends RecordBase {
+interface EventRecord extends RecordEnvelope {
   kind: "event";                // runtime verbatim; oar never synthesizes
-  spanId?: string;              // runtime-native turn id, optional; oar never generates it
   body: EventBody;
 }
 
-interface RequestRecord extends RecordBase {
+interface EventBody {
+  type: string;                 // runtime-native discriminator (claude type[/subtype], codex method, pi event type, ACP sessionUpdate)
+  native: unknown;              // the frame as the runtime sent it — never trimmed or re-shaped
+  views: readonly EventView[];  // oar's readings of the frame, in frame order; [] when oar has none
+}
+// EventView: text_delta | reasoning | tool_call_started | tool_call_ended |
+// turn_ended {outcome} | usage {context?, tokens?} | model {model}.
+// `views` is a LIST because one frame can say several things (a claude
+// assistant message with thinking + text + tool_use is one record with
+// three views) and one frame must stay one record — splitting it would
+// duplicate `native`, merging frames would lose the runtime's own framing.
+
+interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;
+  body: RequestBody;            // prompt | steer | queue | abort | dispose | native {type, native} (toApp, verbatim)
 }
 
-interface ResponseRecord extends RecordBase {
+interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // only accept/reject of control, or outcomes oar observed
+  body: ResponseBody;           // accepted {native?} | rejected {reason, native?} | answered {native} | exited {code}
 }
+// accepted/rejected: control answers only "taken over or not".
+// answered: oar's own reply to a toApp request (the automatic permission
+// grant) — an outcome the runtime did not say.
+// exited: the process exit — the one outcome the runtime can never say
+// itself; answers the dispose request when oar caused it, stands alone
+// (requestId "") when the runtime died on its own.
 ```
+
+The control surface that produces these records (`Session.prompt / steer /
+queue / abort / dispose`, `subscribe(observer, cursor?)`, `records()`,
+`graph()`, and the folds `model() / usage() / contextUsage()`) is
+documented on the contract itself; a control call returns both records it
+appended (`ControlResult`), so the request's `seq` is where the action sits
+in the stream.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 
 ```
 seq=17  ◆ request   root  id=rq-9   prompt "run the tests"
         ↳ the turn's start is this request itself — no synthesized turn_started
-seq=18  ✓ event     root            assistant_text "Running them…"
-seq=19  ✓ event     root            tool_call {id:"call_1", bash "pnpm vitest run"}
-seq=20  ✓ event     root            tool_result {call:"call_1", exit 0}
-seq=21  ✓ event     root            result {usage:{in:12034, out:512}, stop:"end_turn"}
-        ↳ the turn's end = the runtime's own completion event. rq-9 gets no
-          oar response — the runtime said the outcome itself; oar does not restate it
+seq=18  ◇ response  root  →rq-9     accepted
+        ↳ control answers only "taken over": the message was written to claude's stdin
+seq=19  ✓ event     root            assistant   → text_delta "Running them…", tool_call_started call_1
+        ↳ ONE frame, one record, two views in the frame's order; `native` is the whole message
+seq=20  ✓ event     root            user        → tool_call_ended call_1
+seq=21  ✓ event     root            result      → turn_ended completed, usage {in:12034, out:512}
+        ↳ the turn's end = the runtime's own completion event, projected as a view.
+          rq-9 gets no further response — the runtime said the outcome itself;
+          oar does not restate it
 ```
 
 ## Example 2 · dispose mid-flight: frames v1 swallowed, v2 records in full
@@ -162,7 +191,7 @@ seq=42  ✓ event     root            result {usage:{in:45231, out:8120}, …}
         ↳ in v1 this usage went only into the latestContextUsage snapshot,
           never into the event stream; in v2 it is in-stream, with a seq,
           replayable
-seq=43  ◇ response  root  →rq-12    {exited, code:143}
+seq=43  ◇ response  root  →rq-12    exited {code:143}
         ↳ the one justification for a response to exist: the process exit
           code is an outcome the runtime will never say itself — only oar
           observes it

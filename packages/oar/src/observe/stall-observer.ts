@@ -2,17 +2,18 @@ import type { Session, Unsubscribe } from "../contracts/session.js";
 import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-status.js";
 
 /**
- * Convenience layer over the public status reducer: fold the session's events
+ * Convenience layer over the public status reducer: fold the session's records
  * with reduceStatus, ask stallOf with the wall clock, and report when an
  * active turn has been silent for `stallAfterMs`. There is deliberately no
  * second state machine here — the reducer is the single source of truth.
- * Fires once per silence episode; the next event re-arms it. The embedder
- * decides what a stall means (surface, notify, or abort via its turn handle).
+ * Fires once per silence episode; the next record re-arms it. The embedder
+ * decides what a stall means (surface, notify, or abort the session).
  */
 export interface StallInfo {
-  readonly turnId: string;
+  readonly sinceSeq: number;
   readonly silentForMs: number;
-  readonly lastEventKind: string;
+  /** `kind` of the last folded record, with the event's last view kind when it had one (e.g. `event:tool_call_started`). */
+  readonly lastRecordKind: string;
 }
 
 export function observeStalls(
@@ -20,7 +21,7 @@ export function observeStalls(
   options: { readonly stallAfterMs: number; readonly onStall: (info: StallInfo) => void },
 ): Unsubscribe {
   let status: AgentStatus = initialStatus;
-  let lastEventKind = "";
+  let lastRecordKind = "";
   let timer: NodeJS.Timeout | null = null;
 
   const disarm = (): void => {
@@ -34,14 +35,15 @@ export function observeStalls(
     timer = setTimeout(() => {
       const stall = stallOf(status, Date.now(), options.stallAfterMs);
       if (stall !== null) {
-        options.onStall({ ...stall, lastEventKind });
+        options.onStall({ ...stall, lastRecordKind });
       }
     }, options.stallAfterMs);
   };
 
-  const unsubscribe = session.subscribe((event) => {
-    status = reduceStatus(status, event);
-    lastEventKind = event.kind;
+  const unsubscribe = session.subscribe((record) => {
+    status = reduceStatus(status, record);
+    const lastView = record.kind === "event" ? record.body.views.at(-1) : undefined;
+    lastRecordKind = lastView === undefined ? record.kind : `event:${lastView.kind}`;
     if (status.kind === "running") {
       arm();
     } else {

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { afterEach, expect, test, vi } from "vitest";
 import { aggregateDeltas } from "../packages/oar/src/observe/aggregate-events.js";
 import { simpleStateOf as simpleStateOfSync } from "../packages/oar/src/observe/observe-agent.js";
-import type { SessionObserver } from "../packages/oar/src/index.js";
+import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
+import type { EventView, SessionObserver, SessionRecord } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 
 const aggregateDeltasSync = (observer: SessionObserver): SessionObserver =>
@@ -12,21 +13,33 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function runAggregated(): Promise<string[]> {
-  const { aggregateDeltas: makeAggregate } = await import("../packages/oar/src/observe/aggregate-events.js");
-  const session = await startMockSession(
-    { kind: "available", via: "bundled" },
-    { cwd: process.cwd() },
-  );
-  const merged: string[] = [];
-  session.subscribe(makeAggregate((event) => {
-    merged.push(event.kind === "text_delta" ? `text:${event.text}` : event.kind);
-  }));
-  const result = session.prompt("hello");
-  if (result.kind === "turn") {
-    await result.turn.steer?.("extra");
-    await result.turn.outcome;
+const installation = { kind: "available", via: "bundled" } as const;
+
+/** One line per record: `kind[:detail]` — the compact skeleton the tests assert on. */
+function describe(record: SessionRecord): string {
+  switch (record.kind) {
+    case "request":
+      return `request ${record.body.kind}`;
+    case "response":
+      return `response ${record.body.kind}`;
+    case "event":
+      return record.body.views.length === 0
+        ? `event ${record.body.type}`
+        : record.body.views.map((view) => (view.kind === "text_delta" ? `text:${view.text}` : view.kind)).join("+");
+    default:
+      return "?";
   }
+}
+
+async function runAggregated(): Promise<string[]> {
+  const session = await startMockSession(installation, { cwd: process.cwd() });
+  const merged: string[] = [];
+  session.subscribe(aggregateDeltas((record) => {
+    merged.push(describe(record));
+  }));
+  const result = await session.prompt("hello");
+  await session.steer("extra");
+  await awaitTurnEnd(session, result.request.seq);
   await session.dispose();
   return merged;
 }
@@ -34,118 +47,111 @@ async function runAggregated(): Promise<string[]> {
 test("aggregateDeltas merges consecutive deltas and preserves order", async () => {
   expect(await runAggregated()).toMatchInlineSnapshot(`
     [
-      "turn_started",
+      "request prompt",
+      "response accepted",
+      "request steer",
+      "response accepted",
       "text:echo:hellosteer:extra",
-      "turn_ended",
+      "turn_ended+usage",
+      "request dispose",
+      "response exited",
     ]
   `);
 });
 
 async function stallFixture(): Promise<{ stalls: string[]; stop: () => void; dispose: () => Promise<void> }> {
   const { observeStalls } = await import("../packages/oar/src/observe/stall-observer.js");
-  const session = await startMockSession(
-    { kind: "available", via: "bundled" },
-    { cwd: process.cwd() },
-  );
+  const session = await startMockSession(installation, { cwd: process.cwd() });
   const stalls: string[] = [];
   const stop = observeStalls(session, {
     stallAfterMs: 50,
     onStall: (info) => {
-      stalls.push(info.lastEventKind);
+      stalls.push(info.lastRecordKind);
     },
   });
-  assert.equal(session.prompt("hang").kind, "turn");
+  const started = await session.prompt("hang");
+  assert.equal(started.response.body.kind, "accepted");
   return { stalls, stop, dispose: async () => session.dispose() };
 }
 
 test("observeStalls reports a silent active turn (virtual time)", async () => {
   // Date is mocked too: stallOf re-derives silence from the wall clock, so
   // virtual time must advance both the timer AND Date.now().
-  vi.useFakeTimers({ toFake: ["setTimeout", "Date"] });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
   const { stalls, stop, dispose } = await stallFixture();
   vi.advanceTimersByTime(49);
   assert.deepEqual(stalls, [], "must not fire before the threshold");
   vi.advanceTimersByTime(2);
-  assert.deepEqual(stalls, ["turn_started"], "fires once past the threshold");
+  assert.deepEqual(stalls, ["response"], "fires once past the threshold (last record: the accepted response)");
   vi.advanceTimersByTime(500);
-  assert.deepEqual(stalls, ["turn_started"], "fires once per silence episode");
+  assert.deepEqual(stalls, ["response"], "fires once per silence episode");
   stop();
   await dispose();
 });
 
+let seqCounter = 0;
+function event(views: EventView[], overrides: { agentPath?: readonly string[]; seq?: number; receivedAt?: number } = {}): SessionRecord {
+  seqCounter += 1;
+  return {
+    sessionId: "s",
+    agentPath: overrides.agentPath ?? [],
+    seq: overrides.seq ?? seqCounter,
+    receivedAt: overrides.receivedAt ?? 0,
+    kind: "event",
+    body: { type: "fixture", native: null, views },
+  };
+}
+
 test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time)", () => {
-  vi.useFakeTimers({ toFake: ["setTimeout"] });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const seen: string[] = [];
-  const envelope = { sessionId: "s", turnId: "t", seq: 0, receivedAt: 0 };
-  const observer = aggregateDeltasSync((event) => {
-    seen.push(event.kind === "text_delta" ? event.text : event.kind);
+  const observer = aggregateDeltasSync((record) => {
+    seen.push(describe(record));
   });
-  observer({ ...envelope, kind: "text_delta", text: "a" });
-  observer({ ...envelope, kind: "text_delta", text: "b" });
+  observer(event([{ kind: "text_delta", text: "a" }]));
+  observer(event([{ kind: "text_delta", text: "b" }]));
   vi.advanceTimersByTime(99);
   assert.deepEqual(seen, [], "held while the stream is briefly quiet");
   vi.advanceTimersByTime(1);
-  assert.deepEqual(seen, ["ab"], "quiescence flush after maxHoldMs");
+  assert.deepEqual(seen, ["text:ab"], "quiescence flush after maxHoldMs");
 });
 
-test("aggregateDeltas merges readable reasoning without swallowing redaction", () => {
-  const seen: unknown[] = [];
-  const envelope = { sessionId: "s", turnId: "t", receivedAt: 0 };
-  const observer = aggregateDeltas((event) => {
-    seen.push(event);
+test("aggregateDeltas merges readable reasoning without swallowing redaction, per agent", () => {
+  const seen: string[] = [];
+  const observer = aggregateDeltas((record) => {
+    const view = record.kind === "event" ? record.body.views[0] : undefined;
+    const text = view?.kind === "reasoning" && view.content.kind === "text" ? view.content.text : (view?.kind ?? record.kind);
+    seen.push(`${record.agentPath.join("/") || "root"}:${text}`);
   });
-  observer({ ...envelope, seq: 1, kind: "reasoning", content: { kind: "text", text: "read" } });
-  observer({ ...envelope, seq: 2, kind: "reasoning", content: { kind: "text", text: "ing" } });
-  observer({ ...envelope, seq: 3, kind: "reasoning", content: { kind: "redacted" } });
-
-  expect(seen).toMatchInlineSnapshot(`
-    [
-      {
-        "content": {
-          "kind": "text",
-          "text": "reading",
-        },
-        "kind": "reasoning",
-        "receivedAt": 0,
-        "seq": 2,
-        "sessionId": "s",
-        "turnId": "t",
-      },
-      {
-        "content": {
-          "kind": "redacted",
-        },
-        "kind": "reasoning",
-        "receivedAt": 0,
-        "seq": 3,
-        "sessionId": "s",
-        "turnId": "t",
-      },
-    ]
-  `);
+  observer(event([{ kind: "reasoning", content: { kind: "text", text: "read" } }]));
+  observer(event([{ kind: "reasoning", content: { kind: "text", text: "ing" } }]));
+  observer(event([{ kind: "reasoning", content: { kind: "text", text: "child" } }], { agentPath: ["a1"] }));
+  observer(event([{ kind: "reasoning", content: { kind: "redacted" } }]));
+  observer(event([{ kind: "text_delta", text: "x" }, { kind: "tool_call_started", callId: "c", tool: "t" }]));
+  assert.deepEqual(seen, ["root:reading", "a1:child", "root:reasoning", "root:text_delta"]);
 });
+
+const promptRecord: SessionRecord = { sessionId: "s", agentPath: [], seq: 0, receivedAt: 1000, kind: "request", id: "rq", direction: "toRuntime", body: { kind: "prompt", input: "hi" } };
 
 test("reduceStatus follows the documented transition table", async () => {
-  const { initialStatus, reduceStatus, stallOf } = await import(
-    "../packages/oar/src/observe/agent-status.js"
-  );
-  const envelope = { sessionId: "s", turnId: "t", seq: 0, receivedAt: 1000 };
-  const fold = (events: Parameters<typeof reduceStatus>[1][]): unknown[] => {
+  const { initialStatus, reduceStatus } = await import("../packages/oar/src/observe/agent-status.js");
+  const fold = (records: SessionRecord[]): unknown[] => {
     let status = initialStatus;
     const seen: unknown[] = [];
-    for (const event of events) {
-      status = reduceStatus(status, event);
+    for (const record of records) {
+      status = reduceStatus(status, record);
       seen.push(status.kind === "running" ? status.phase : status.kind);
     }
     return seen;
   };
   expect(fold([
-    { ...envelope, kind: "turn_started" },
-    { ...envelope, kind: "reasoning", content: { kind: "redacted" } },
-    { ...envelope, kind: "text_delta", text: "hi" },
-    { ...envelope, kind: "tool_call_started", callId: "c1", tool: "bash" },
-    { ...envelope, kind: "tool_call_ended", callId: "c1" },
-    { ...envelope, kind: "turn_ended", outcome: { kind: "completed" } },
+    promptRecord,
+    event([{ kind: "reasoning", content: { kind: "redacted" } }]),
+    event([{ kind: "text_delta", text: "hi" }]),
+    event([{ kind: "tool_call_started", callId: "c1", tool: "bash" }]),
+    event([{ kind: "tool_call_ended", callId: "c1" }], { agentPath: ["child"] }),
+    event([{ kind: "tool_call_ended", callId: "c1" }]),
+    event([{ kind: "turn_ended", outcome: { kind: "completed" } }]),
   ])).toMatchInlineSnapshot(`
     [
       "waiting_model",
@@ -155,18 +161,29 @@ test("reduceStatus follows the documented transition table", async () => {
         "callId": "c1",
         "tool": "bash",
       },
+      {
+        "callId": "c1",
+        "tool": "bash",
+      },
       "waiting_model",
       "idle",
     ]
   `);
-  const runningAt = reduceStatus(initialStatus, { ...envelope, kind: "turn_started" });
+});
+
+test("reduceStatus: stall, rejected prompt, and exit leave running", async () => {
+  const { initialStatus, reduceStatus, stallOf } = await import("../packages/oar/src/observe/agent-status.js");
+  const runningAt = reduceStatus(initialStatus, promptRecord);
   assert.deepEqual(stallOf(runningAt, 1400, 500), null);
-  assert.deepEqual(stallOf(runningAt, 1600, 500), { turnId: "t", silentForMs: 600 });
+  assert.deepEqual(stallOf(runningAt, 1600, 500), { sinceSeq: 0, silentForMs: 600 });
   assert.equal(stallOf(initialStatus, 99_999, 1), null);
+  const rejected: SessionRecord = { sessionId: "s", agentPath: [], seq: 1, receivedAt: 1001, kind: "response", requestId: "rq", body: { kind: "rejected", reason: "busy" } };
+  assert.deepEqual(reduceStatus(runningAt, rejected), { kind: "idle" }, "a rejected prompt never became a turn");
+  const exited: SessionRecord = { sessionId: "s", agentPath: [], seq: 2, receivedAt: 1002, kind: "response", requestId: "", body: { kind: "exited", code: 1 } };
+  assert.equal(reduceStatus(runningAt, exited).kind, "idle");
 });
 
 test("resume adopts the runtime-native session identity", async () => {
-  const installation = { kind: "available", via: "bundled" } as const;
   const first = await startMockSession(installation, { cwd: process.cwd() });
   const second = await startMockSession(installation, { cwd: process.cwd(), resume: first.id });
   assert.equal(second.id, first.id);
@@ -175,24 +192,19 @@ test("resume adopts the runtime-native session identity", async () => {
 });
 
 test("session.steerOrQueue steers when possible and queues otherwise", async () => {
-  const installation = { kind: "available", via: "bundled" } as const;
   const session = await startMockSession(installation, { cwd: process.cwd() });
-  const active = session.prompt("one");
-  if (active.kind !== "turn") {
-    throw new Error("expected turn");
-  }
-  assert.deepEqual(await session.steerOrQueue(active.turn, "mid"), { landed: "steered" });
-  await active.turn.outcome;
-  assert.deepEqual(await session.steerOrQueue(active.turn, "late"), { landed: "queued" });
+  const active = await session.prompt("one");
+  const mid = await session.steerOrQueue("mid");
+  assert.equal(mid.landed, "steered");
+  await awaitTurnEnd(session, active.request.seq);
+  const late = await session.steerOrQueue("late");
+  assert.equal(late.landed, "queued");
   await session.dispose();
 });
 
 async function virtualTimeSession(): Promise<Awaited<ReturnType<typeof startMockSession>>> {
-  vi.useFakeTimers({ toFake: ["setTimeout", "setInterval", "Date"] });
-  const session = await startMockSession(
-    { kind: "available", via: "bundled" },
-    { cwd: process.cwd() },
-  );
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
+  const session = await startMockSession(installation, { cwd: process.cwd() });
   return session;
 }
 
@@ -204,7 +216,7 @@ async function observedStates(): Promise<string[]> {
   observer.subscribe((view) => {
     states.push(simpleStateOf(view));
   });
-  session.prompt("hang");
+  void session.prompt("hang");
   await vi.advanceTimersByTimeAsync(2000);
   observer.dispose();
   await session.dispose();
@@ -221,7 +233,7 @@ test("observeAgent unifies fold and stall into one view stream", async () => {
 
 test("simpleStateOf reports error only as idle-after-failure", () => {
   const running = {
-    status: { kind: "running", turnId: "t", phase: "thinking", lastEventAt: 0 },
+    status: { kind: "running", sinceSeq: 0, phase: "thinking", lastEventAt: 0 },
     stall: null,
   } as const;
   assert.equal(simpleStateOfSync(running), "busy");
@@ -230,6 +242,6 @@ test("simpleStateOf reports error only as idle-after-failure", () => {
     stall: null,
   } as const;
   assert.equal(simpleStateOfSync(failedIdle), "error");
-  const stuckBeatsBusy = { ...running, stall: { turnId: "t", silentForMs: 99 } };
+  const stuckBeatsBusy = { ...running, stall: { sinceSeq: 0, silentForMs: 99 } };
   assert.equal(simpleStateOfSync(stuckBeatsBusy), "stuck");
 });

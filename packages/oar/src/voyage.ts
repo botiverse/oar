@@ -1,16 +1,16 @@
 import { closeSync, openSync, writeSync } from "node:fs";
-import type { SessionEvent } from "./contracts/session.js";
+import type { SessionRecord } from "./contracts/session.js";
 
-// The oar-voyage/1 JSONL format: one JSON object per line, discriminated by
-// `kind`. Line 1 is `header`; `submission` marks each human input; `event`
-// wraps one raw SessionEvent verbatim (no filtering or re-timestamping);
-// `end` is the last line — a log without it is a truncated capture. All
-// timestamps are Unix epoch milliseconds on the same clock as `receivedAt`.
-// The format is defined and owned by oar; other tools may consume it.
+// The oar-voyage/2 JSONL format: one JSON object per line, discriminated by
+// `kind`. Line 1 is `header`; `record` wraps one SessionRecord verbatim (no
+// filtering or re-timestamping — human inputs are in the stream already, as
+// request records); `end` is the last line — a log without it is a truncated
+// capture. All timestamps are Unix epoch milliseconds on the same clock as
+// `receivedAt`. The format is defined and owned by oar; other tools may
+// consume it. oar-voyage/1 (v1 events + separate submission lines) is no
+// longer written.
 
-export const VOYAGE_FORMAT = "oar-voyage/1";
-
-export type SubmissionVia = "prompt" | "steer" | "queue";
+export const VOYAGE_FORMAT = "oar-voyage/2";
 
 export interface VoyageHeader {
   readonly runtime: string;
@@ -34,12 +34,8 @@ export function headerLine(header: VoyageHeader): string {
   });
 }
 
-export function submissionLine(at: number, via: SubmissionVia, text: string): string {
-  return JSON.stringify({ kind: "submission", at, via, text });
-}
-
-export function eventLine(event: SessionEvent): string {
-  return JSON.stringify({ kind: "event", event });
+export function recordLine(record: SessionRecord): string {
+  return JSON.stringify({ kind: "record", record });
 }
 
 export function endLine(at: number, reason: string): string {
@@ -47,8 +43,7 @@ export function endLine(at: number, reason: string): string {
 }
 
 export interface VoyageRecorder {
-  submission(via: SubmissionVia, text: string): void;
-  event(event: SessionEvent): void;
+  record(record: SessionRecord): void;
   end(reason: string): void;
 }
 
@@ -61,11 +56,8 @@ export function openVoyage(path: string, header: VoyageHeader): VoyageRecorder {
   };
   write(headerLine(header));
   return {
-    submission(via, text) {
-      write(submissionLine(Date.now(), via, text));
-    },
-    event(event) {
-      write(eventLine(event));
+    record(record) {
+      write(recordLine(record));
     },
     end(reason) {
       write(endLine(Date.now(), reason));

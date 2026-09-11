@@ -5,75 +5,109 @@ import { createSessionKernel } from "../../packages/oar/src/shared/session-kerne
 /**
  * The mock session runtime: behavior-test fixture and (later) load source. Its
  * size is deliberate — the session contract is supposed to be implementable in
- * about one screenful, and this file is that acceptance test.
+ * about one screenful, and this file is that acceptance test. The "runtime"
+ * here is a timer that echoes; its frames are the `native` bodies.
  */
 export const startMockSession: StartSession = async (_installation, options): Promise<Session> => {
   await Promise.resolve();
   const kernel = createSessionKernel(options.resume);
   const steered: string[] = [];
   const queued: string[] = [];
-  const drainQueue = (): void => {
+  let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
+  let disposed = false;
+  const say = (text: string): void => {
+    kernel.event({ type: "mock/text", native: { text }, views: [{ kind: "text_delta", text }] });
+  };
+  const end = (outcome: "completed" | "aborted"): void => {
+    active = null;
+    kernel.event({ type: "mock/end", native: { outcome, used: 1 }, views: [
+      { kind: "turn_ended", outcome: { kind: outcome } },
+      { kind: "usage", usage: { context: { tokens: 1, contextWindow: 100, percent: 1 }, tokens: { input: 1, output: 1 } } },
+    ] });
     const next = queued.shift();
-    const turn = next === undefined ? null : kernel.begin();
-    if (next !== undefined && turn !== null) {
-      turn.emit({ kind: "text_delta", text: `queued:${next}` });
-      turn.settle({ kind: "completed" });
-      drainQueue();
+    if (next !== undefined) {
+      run(next);
     }
   };
+  function run(input: string): void {
+    // "hang" never settles on its own — the stall-observation fixture.
+    const timer = input === "hang" ? null : setTimeout(() => {
+      say(`echo:${input}`);
+      for (const extra of steered.splice(0)) {
+        say(`steer:${extra}`);
+      }
+      end("completed");
+    }, 10);
+    active = { timer, aborted: false };
+  }
+  kernel.event({ type: "mock/model", native: { model: "mock-1" }, views: [{ kind: "model", model: "mock-1" }] });
   return sealSession({
     id: kernel.sessionId,
-    prompt(input) {
-      const turn = kernel.begin();
-      if (turn === null) {
-        return { kind: "busy" };
+    capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+    prompt: async (input) => {
+      const result = await kernel.control({ kind: "prompt", input }, () => {
+      if (disposed) {
+        return { kind: "rejected", reason: "session disposed" };
       }
-      // "hang" never settles on its own — the stall-observation fixture.
-      const timer = input === "hang" ? null : setTimeout(() => {
-        turn.emit({ kind: "text_delta", text: `echo:${input}` });
-        for (const extra of steered.splice(0)) {
-          turn.emit({ kind: "text_delta", text: `steer:${extra}` });
-        }
-        turn.settle({ kind: "completed" });
-        drainQueue();
-      }, 10);
-      return {
-        kind: "turn",
-        turn: {
-          id: turn.id,
-          outcome: turn.outcome,
-          abort: async () => {
-            await Promise.resolve();
-            if (timer !== null) {
-              clearTimeout(timer);
-            }
-            turn.settle({ kind: "aborted" });
-          },
-          steer: async (extra) => {
-            await Promise.resolve();
-            if (turn.settled()) {
-              return { kind: "not_steerable", reason: "turn already ended" };
-            }
-            steered.push(extra);
-            return { kind: "accepted" };
-          },
-        },
-      };
+      if (active !== null) {
+        return { kind: "rejected", reason: "busy" };
+      }
+      run(input);
+      return { kind: "accepted" };
+      });
+      return result;
     },
-    subscribe: (observer) => kernel.subscribe(observer),
-    queue: {
-      durable: false,
-      add: async (input) => {
-        await Promise.resolve();
+    steer: async (input) => {
+      const result = await kernel.control({ kind: "steer", input }, () => {
+      if (active === null) {
+        return { kind: "rejected", reason: "not_steerable: no active turn" };
+      }
+      steered.push(input);
+      return { kind: "accepted" };
+      });
+      return result;
+    },
+    queue: async (input) => {
+      const result = await kernel.control({ kind: "queue", input }, () => {
+      if (active === null) {
+        run(input);
+      } else {
         queued.push(input);
-        if (kernel.active() === null) {
-          drainQueue();
-        }
-      },
+      }
+      return { kind: "accepted" };
+      });
+      return result;
     },
+    abort: async () => {
+      const result = await kernel.control({ kind: "abort" }, () => {
+      if (active === null) {
+        return { kind: "rejected", reason: "no active turn" };
+      }
+      if (active.timer !== null) {
+        clearTimeout(active.timer);
+      }
+      end("aborted");
+      return { kind: "accepted" };
+      });
+      return result;
+    },
+    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    records: () => kernel.records(),
+    graph: () => kernel.graph(),
     dispose: async () => {
+      if (disposed) {
+        return;
+      }
+      disposed = true;
+      const request = kernel.request("toRuntime", { kind: "dispose" });
+      if (active !== null) {
+        if (active.timer !== null) {
+          clearTimeout(active.timer);
+        }
+        end("aborted");
+      }
+      kernel.respond(request.id, { kind: "exited", code: 0 });
       await Promise.resolve();
-      kernel.active()?.settle({ kind: "aborted" });
     },
   });
 };

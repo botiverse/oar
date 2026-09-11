@@ -1,12 +1,13 @@
 /**
- * LIVE QUEUE — session.queue.add during an active turn runs as the NEXT turn
+ * LIVE QUEUE — session.queue during an active turn runs as the NEXT turn
  * (codex: native thread/queue; claude: adapter-held, drained at turn end),
- * surfaced as a spontaneous kernel turn with attributable events.
+ * surfaced as a spontaneous turn: records with no prompt request of their
+ * own, ended by the runtime's own turn_ended.
  *
  * Run: pnpm tsx experiments/session-queue.ts <claude|codex>
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { runtimes, type SessionEvent } from "../packages/oar/src/index.js";
+import { awaitTurnEnd, runtimes, type SessionRecord } from "../packages/oar/src/index.js";
 
 const runtime = runtimes.require(process.argv[2] ?? "claude");
 const model = runtime.id === "claude" ? { model: "haiku" } : {};
@@ -15,37 +16,40 @@ if (probed?.kind !== "available") {
   throw new Error(`${runtime.id} is not available`);
 }
 const session = await runtime.session(probed, { cwd: process.cwd(), ...model });
-const events: SessionEvent[] = [];
-session.subscribe((event) => {
-  events.push(event);
-  const detail = "text" in event ? ` ${JSON.stringify(event.text.slice(0, 40))}` : "";
-  process.stdout.write(`${event.seq} ${event.turnId.slice(0, 8)} ${event.kind}${detail}\n`);
+const records: SessionRecord[] = [];
+session.subscribe((record) => {
+  records.push(record);
+  const detail = record.kind === "event" ? record.body.views.map((view) => (view.kind === "text_delta" ? ` ${JSON.stringify(view.text.slice(0, 40))}` : ` ${view.kind}`)).join("") : "";
+  process.stdout.write(`${record.seq} ${record.kind} ${record.kind === "event" ? record.body.type : record.body.kind}${detail}\n`);
 });
 
-const first = session.prompt(
+const first = await session.prompt(
   runtime.id === "claude"
     ? "Use the Bash tool to run exactly: for i in $(seq 1 8); do sleep 1; done; echo SLOW-DONE. Then reply done."
     : "Run this shell command: for i in $(seq 1 8); do sleep 1; done; echo SLOW-DONE. Then reply done.",
 );
-if (first.kind !== "turn") {
+if (first.response.body.kind !== "accepted") {
   throw new Error("busy");
 }
-while (!events.some((event) => event.kind === "tool_call_started")) {
+while (!records.some((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started"))) {
   // eslint-disable-next-line no-await-in-loop
   await delay(100);
 }
-if (session.queue === undefined) {
+if (session.capabilities.queue === null) {
   throw new Error(`${runtime.id} has no queue capability`);
 }
-await session.queue.add("Reply with exactly ok-q and nothing else.");
-process.stdout.write(`queued during active turn (durable=${session.queue.durable})\n`);
-await first.turn.outcome;
+const queued = await session.queue("Reply with exactly ok-q and nothing else.");
+process.stdout.write(`queued during active turn (durable=${String(session.capabilities.queue.durable)}) -> ${queued.response.body.kind}\n`);
+const firstEnd = await awaitTurnEnd(session, first.request.seq);
+const firstEndSeq = records.findLast((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended"))?.seq ?? first.request.seq;
+process.stdout.write(`first turn ${firstEnd.kind}\n`);
 
 // The queued input must run as a spontaneous next turn.
 const deadline = Date.now() + 60_000;
-const answered = (): boolean => events
-  .filter((event) => event.turnId !== first.turn.id && event.kind === "text_delta")
-  .map((event) => (event.kind === "text_delta" ? event.text : ""))
+const answered = (): boolean => records
+  .filter((record) => record.seq > firstEndSeq && record.kind === "event")
+  .flatMap((record) => (record.kind === "event" ? record.body.views : []))
+  .map((view) => (view.kind === "text_delta" ? view.text : ""))
   .join("")
   .includes("ok-q");
 while (!answered() && Date.now() < deadline) {

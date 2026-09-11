@@ -43,21 +43,37 @@ export type {
 export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
-  PromptResult,
+  AttributionTier,
+  ContextUsage,
+  ControlResult,
+  Cursor,
+  EventBody,
+  EventRecord,
+  EventView,
+  FailureClass,
   ReasoningContent,
+  RecordEnvelope,
+  RecordKind,
+  RequestBody,
+  RequestDirection,
+  RequestRecord,
+  ResponseBody,
+  ResponseRecord,
   Session,
-  SessionEvent,
-  SessionEventBody,
-  SessionEventEnvelope,
+  SessionCapabilities,
+  SessionEdge,
+  SessionGraph,
+  SessionNode,
   SessionObserver,
   SessionOptions,
+  SessionRecord,
+  SessionUsage,
   StartSession,
   SteerOrQueueResult,
-  SteerResult,
-  Turn,
+  TokenTotals,
   TurnOutcome,
-  TurnQueue,
   Unsubscribe,
+  UsageReport,
 } from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
 export { utcInstantFromDate } from "./shared/instant.js";
@@ -65,12 +81,11 @@ export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
 export {
   VOYAGE_FORMAT,
   endLine,
-  eventLine,
   headerLine,
   openVoyage,
-  submissionLine,
+  recordLine,
 } from "./voyage.js";
-export type { SubmissionVia, VoyageHeader, VoyageRecorder } from "./voyage.js";
+export type { VoyageHeader, VoyageRecorder } from "./voyage.js";
 export { aggregateDeltas } from "./observe/aggregate-events.js";
 export {
   initialStatus,
@@ -84,6 +99,9 @@ export { observeAgent, simpleStateOf } from "./observe/observe-agent.js";
 export { classifyTool, toolActionLabel } from "./observe/tool-activity.js";
 export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
+export { awaitTurnEnd, promptAndWait, turnEndAfter } from "./observe/turns.js";
+export type { PromptRun } from "./observe/turns.js";
+export { contextUsageOf, modelOf, usageOf } from "./observe/usage.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { claudeListModels, projectClaudeModels } from "./runtimes/claude/list-models.js";
 export { claudeSession } from "./runtimes/claude/session.js";
