@@ -1,15 +1,31 @@
-# OAR: One Layer, All Agent Harnesses
+# OAR: *One Layer, All Agent Harnesses.*
 
 <img src="assets/logo.png" alt="OAR logo" width="240">
 
-OAR is a TypeScript library and CLI for driving coding-agent runtimes —
-Claude Code, Codex, Grok, Kimi, and Pi today — through one contract: detect
-the installation, list the models, open a session, prompt it, steer or queue
-input, watch the stream, resume later. `@botiverse/oar` defines
-provider-independent contracts for controlling and observing agent runtimes:
-everything the runtime says is kept in one lossless, resumable record
-stream, nothing the runtime did not say is invented, and what a runtime
-cannot do is reported as a typed `unsupported` instead of being faked.
+OAR (**O**pen **A**gent **R**untime) is a programming interface, not a
+workbench: a provider-independent contract that gives applications one way
+to control and observe coding-agent runtimes — Claude Code, Codex, Grok,
+Kimi, and Pi today. It is a foundation to build on — the session model,
+event stream, identity, and attribution an application can safely bake into
+its own data model — while the application itself owns the UX and AX.
+
+OAR is guided by the vision of **One Layer, All Agent Harnesses**: every
+runtime is driven through the same operations — detect the installation,
+list the models, open a session, prompt it, steer or queue input, watch the
+stream, resume later — and everything the runtime says lands in one
+lossless, resumable record stream. Nothing the runtime did not say is
+invented; what a runtime cannot do is reported as a typed `unsupported`
+instead of being faked.
+
+## At a glance
+
+- Project: OAR (Open Agent Runtime)
+- Vision: **One Layer, All Agent Harnesses**
+- Position: a foundation and programming interface for the application layer, not a complete workbench — see [docs/design/](docs/design/foundations.md)
+- Core packages: [`@botiverse/oar`](packages/oar) (the library) and [`@botiverse/oar-cli`](packages/cli/README.md) (the `oar` executable)
+- Main abstractions: `Runtime` (installation, models, account usage, session) and `Session` (prompt / steer / queue / abort / resume / records)
+- The contract: one ordered, resumable record stream with self-attribution — [docs/spec/](docs/spec/README.md)
+- The proof: one behavior suite runs the same cases against every backend — [sea-trial/](sea-trial/README.md)
 
 The clean first surface intentionally contains two independent optional capabilities:
 
