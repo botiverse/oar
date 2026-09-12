@@ -230,6 +230,13 @@ has confirmed. Baselines: claude 2.1.268 (live contract, 2026-09-11), 2.1.261
 (`claude --help` on linux, 2026-09-12), 2.1.237 (a native transcript file
 inspected on linux, 2026-09-12).
 
+Two words that share a root name two different mechanisms. **Resume** is the
+runtime rebuilding model context from its own persisted material; each
+runtime has its own. **Replay** is OAR rebuilding an observer's event
+sequence from OAR's own appended stream; it has one source and does not
+depend on runtime resume. The "runtime side resume material" row describes
+the former only.
+
 ### Matrix columns
 
 | Column | Claude on OAR's path | Evidence |
@@ -238,7 +245,7 @@ inspected on linux, 2026-09-12).
 | Connection identity | None at the protocol level. One spawned process is the only connection; it has no id in any frame and there is no second client path. | source adapter; observed fixture frames carry `session_id` only |
 | Transport cursor | None. Frames carry no sequence number and no turn id; `seq` is assigned by OAR's kernel and does not outlive the process. `--replay-user-messages` echoes user messages back and is not a position. | source [projection](../../packages/oar/src/runtimes/claude/projection.ts), [kernel](../../packages/oar/src/shared/session-kernel.ts) lines 168 to 183; vendor [CLI reference][native-cli] |
 | Event stream scope | Per process. Frames go to the stdout of the process that produced them; nothing is broadcast to a second reader. | source adapter |
-| Runtime side replay source | The native transcript, a JSONL file named `<sessionId>.jsonl` under the Claude config home in a per `cwd` directory. It holds message content, not OAR's stream: see question 2 below. `--resume` feeds that transcript back to the model as context; it does not replay frames to OAR. Diagnostic reference only: OAR's replay source is its own appended stream. | observed transcript 2.1.237; source [resume section](#session-creation-and-resume) |
+| Runtime side resume material | The native transcript, a JSONL file named `<sessionId>.jsonl` under the Claude config home in a per `cwd` directory. It holds message content, not OAR's stream: see question 2 below. `--resume` feeds that transcript back to the model as context; it does not replay frames to OAR. Diagnostic reference only: OAR replays observers from its own appended stream, never from this file. | observed transcript 2.1.237; source [resume section](#session-creation-and-resume) |
 | Vendor claim versus evidence | Confirmed by observation: resume continuity on the same `cwd`, interrupt through the control channel, subagent attribution through `parent_tool_use_id`. Vendor only: cross directory resume lookup since 2.1.223, print mode transcript persistence being identical to interactive mode. Unverified either way: two controllers resuming one id at once, missing id error timing. Vendor quirk observed: `result` frames with subtype `success` and `is_error: true`. | this page, [open gaps](#verification-and-open-gaps) |
 
 ### Eight dimensions
