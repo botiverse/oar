@@ -7,7 +7,7 @@ through the runtime's own interfaces.
 Evidence baseline: **goose 1.50.0** (`~/.local/bin/goose`), Linux x86_64, probed
 2026-09-12. No real provider credentials were used: the session layer was
 brought up with a placeholder provider pointed at an unreachable host, so that
-sessions could be created while only the model-catalogue refresh failed — and
+sessions could be created while only the model-catalogue refresh failed, and
 that failure is itself recorded in
 `provider_inventory_entries.last_refresh_error`. `goose serve` was run with a
 one-off local `GOOSE_SERVER__SECRET_KEY`, bound to 127.0.0.1 throughout.
@@ -23,11 +23,11 @@ binary comes from the official install script and lands at `~/.local/bin/goose`.
 
 goose presents two ACP faces:
 
-- **`goose acp`** — stdio. Note that **stdin EOF makes the process exit before
+- **`goose acp`**: stdio. Note that **stdin EOF makes the process exit before
   async provider resolution finishes**, leaving a 0-byte `sessions.db` and a
   stray `sessions.db-journal`. A FIFO has to hold stdin open to get through a
   full flow.
-- **`goose serve`** — HTTP + WebSocket, default 127.0.0.1:3284.
+- **`goose serve`**: HTTP + WebSocket, default 127.0.0.1:3284.
 
 All three paths (stdio / HTTP POST / WS) return an **identical** `initialize`
 result (vendor declaration, quoted verbatim):
@@ -69,7 +69,7 @@ notification channel.
 
 ## Capability details
 
-### Storage: the fourth model — mutable rows as the only truth
+### Storage, the fourth model: mutable rows as the only truth
 
 A single SQLite file, `~/.local/share/goose/sessions/sessions.db`, in WAL mode,
 `user_version` = 0, `schema_version` table at version 1. **Only mutable
@@ -84,7 +84,7 @@ That completes a four-way storage split across the harnesses surveyed:
 | harness | persistent truth | projection |
 |---|---|---|
 | Codex | append-only rollout JSONL (sole truth) | SQLite, tracked by byte offset |
-| Claude Code | message-tree DAG, one JSONL per session | — |
+| Claude Code | message-tree DAG, one JSONL per session | none |
 | opencode | event sourcing inside `opencode.db` (`event` + `event_sequence`) | mutable projection tables in the same database |
 | **goose** | **none** | **the mutable rows in `sessions.db` are themselves the only truth** |
 
@@ -121,7 +121,7 @@ and the sessionID are client-declared.
   each receive the full modes + configOptions and two `session/update`
   notifications. But when B sends `session/set_mode` to switch to approve,
   **B receives `current_mode_update` and the still-connected A receives zero
-  frames within 4 seconds** — while `sessions.goose_mode` really does change to
+  frames within 4 seconds**, while `sessions.goose_mode` really does change to
   approve and `updated_at` moves forward. So: **state is shared and mutable,
   events are per-connection, and nothing is broadcast between connections.**
 - **Connections are neither reusable nor transferable.** A WS upgrade that
@@ -135,7 +135,7 @@ and the sessionID are client-declared.
   this" has no server-side carrier in goose.
 - **Id stability across processes: yes.** After `kill -9` on the serve process,
   a new process on a new port could `session/load 20260912_6` successfully, with
-  `currentModeId` still approve — the pre-SIGKILL write survived via WAL
+  `currentModeId` still approve: the pre-SIGKILL write survived via WAL
   recovery.
 - **Death boundary: no terminal frame.** `kill -9` on the server leaves no
   session-level or connection-level termination record in the log at all. The
@@ -151,7 +151,7 @@ Strengths: genuine capability negotiation, honest negative declarations
 Gaps:
 
 1. It declares `sessionCapabilities.list:{}`, but `session/list` **returns
-   `{"sessions":[]}` under every condition tried** — including for a session
+   `{"sessions":[]}` under every condition tried**, including for a session
    just created by `session/new` on the same connection, at a moment when the
    database held 7 rows. The capability is declared; the implementation is
    empty.
@@ -194,8 +194,8 @@ The only lifecycle lines are connection-level WebSocket errors.
 Four session modes are negotiated **in the protocol** at creation time and
 persisted as `sessions.goose_mode`: `auto` (auto-approve), `approve` (ask every
 time), `smart_approve` (ask only for sensitive operations), `chat` (talk only,
-no tool calls). Permission state is therefore **durable session state** —
-contrast Codex, which writes `sandbox_policy` into the append-only log on every
+no tool calls). Permission state is therefore **durable session state**.
+Contrast Codex, which writes `sandbox_policy` into the append-only log on every
 turn. `session/set_mode` switches at runtime and lands in the database
 immediately.
 
@@ -239,8 +239,8 @@ Two cross-vendor facts worth recording:
 - **Declared capability is a claim to verify, not a contract.** `sessionCapabi-
   lities.list` is advertised and `session/list` always returns empty; the
   declared `authMethods` never turn into an auth challenge. Capability
-  negotiation is worth having — goose's is the most honest of the four samples —
-  but a declaration still has to be probed before it can be relied on.
+  negotiation is worth having, and goose's is the most honest of the four
+  samples, but a declaration still has to be probed before it can be relied on.
 
 ## Verification and open gaps
 
@@ -249,5 +249,5 @@ Two cross-vendor facts worth recording:
   and `usage_ledger`, and the semantics of the `recipe` / `schedule` /
   `project` / `parent_session_id` columns.
 - No real model turn was completed, so every frame-level claim about turn
-  content is out of scope here; only the structural claim — that no replayable
-  frame log exists — is established.
+  content is out of scope here; only the structural claim that no replayable
+  frame log exists is established.

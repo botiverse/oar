@@ -3,7 +3,7 @@
 **Reference only; no OAR adapter.** Pages here are live-probe investigations of
 runtimes OAR does not integrate. They exist to widen the sample used for
 abstraction design: each one records what was actually observed on one machine,
-on one version, through the runtime's own interfaces — not a mapping into OAR.
+on one version, through the runtime's own interfaces, not a mapping into OAR.
 
 They follow the same conventions as the [runtime pages](../README.md): an
 evidence-baseline paragraph up front, vendor declarations labelled as such and

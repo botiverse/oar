@@ -66,13 +66,13 @@ always belonged to that project; reading only the log suggests it never moved.
 
 ### Event model: two naming layers, only the persistent one is versioned
 
-- **Bus / HTTP layer — roughly 60 event names, none versioned.** Examples:
+- **Bus / HTTP layer: roughly 60 event names, none versioned.** Examples:
   `agent.cycle`, `catalog.updated`, `permission.asked`, `permission.replied`,
   `question.asked`, `pty.created/deleted/exited/updated`, `mcp.tools.changed`,
   `plugin.added`, `session.idle`, `session.error`, `message.part.delta`,
   `session.next.compaction.delta`, `session.next.reasoning.delta`,
   `server.connected`, `global.disposed`, `project.directories.updated`.
-- **Persistence / sync layer — 35 types, all suffixed `.N`.** 33 are at `.1`;
+- **Persistence / sync layer: 35 types, all suffixed `.N`.** 33 are at `.1`;
   only `session.next.step.ended.2` and `session.next.step.failed.2` have moved
   to `.2`.
 
@@ -85,7 +85,7 @@ explicitly.
 `{<aggregateID>: <last seen seq>}` and the response returns events **strictly
 greater than** that seq for the named aggregate; **any aggregate not listed is
 returned in full from seq 0.** Posting `{"ses_f6ba40976f…":1}` returned only
-seq 2 and 3 for that session while five other aggregates came back whole —
+seq 2 and 3 for that session while five other aggregates came back whole,
 consistent with the documented behaviour.
 
 ### `/sync/steal` is workspace re-homing, not control preemption
@@ -106,11 +106,11 @@ before and after, read from the database:
 |---|---|---|
 | `session.workspace_id` | empty | `wrk_0946…` |
 | `event_sequence.owner_id` | empty | `wrk_0946…` |
-| appended `event` | — | one `session.updated.1` per call |
+| appended `event` | none | one `session.updated.1` per call |
 
 So `steal` re-homes a session onto a workspace: the query parameter names the
 target, the body names the session. It emits `session.updated.1`, **not**
-`session.next.moved.1` — do not conflate the two. It is **idempotent in state
+`session.next.moved.1`. Do not conflate the two. It is **idempotent in state
 but not in events**: repeated calls leave the state unchanged while the event
 stream keeps growing.
 
@@ -132,7 +132,7 @@ Four experiments:
    no-op.
 3. Rewriting `aggregateID` / `sessionID` / the event `id` in the payload to a
    fresh `ses_` returned the new id and produced **an entirely new session** in
-   the database — same slug, same directory, a clone.
+   the database: same slug, same directory, a clone.
 4. Posting the same payload twice left a single seq-0 row: **event-level
    idempotent** (the opposite of `steal`).
 
@@ -140,7 +140,7 @@ Conclusion: **sessionID is declared by the client inside the event; the server
 does not mint it.** `?workspace=` only sets `event_sequence.owner_id`; the
 session row's `workspace_id` / `project_id` / `directory` are all restored from
 the event payload, never from the query parameter. This makes "move a session
-to another machine or another workspace" protocol-feasible — at the cost of
+to another machine or another workspace" protocol-feasible, at the cost of
 session identity having no server-side authority: whoever can write events can
 declare identity. On this machine the server ran with `OPENCODE_SERVER_PASSWORD`
 unset, i.e. unauthenticated, by default.
@@ -154,7 +154,7 @@ the field; and a replay missing `?workspace=` reports `500 UnknownError` with an
 
 - **Only** `POST /session {"parentID":"ses_…"}` writes `parent_id`. It appears
   in `/children` immediately.
-- **Fork does not write `parent_id`**: after a fork, `/children` returns `[]` —
+- **Fork does not write `parent_id`**: after a fork, `/children` returns `[]`,
   while `/children`'s own documentation describes "child sessions that were
   **forked** from the specified parent". Documentation and implementation
   disagree; that mismatch is itself a finding.
@@ -168,11 +168,11 @@ the field; and a replay missing `?workspace=` reports `500 UnknownError` with an
 ### Attribution compared with the other samples
 
 - **Claude Code**: runtime process identity `(pidDomain, pid, procStart)` plus a
-  peer socket registry — attribution is bound to a **living process**.
-- **Codex**: `installation_id` plus `[projects."<absolute path>"].trust_level` —
-  attribution is bound to a **disk path**.
+  peer socket registry. Attribution is bound to a **living process**.
+- **Codex**: `installation_id` plus `[projects."<absolute path>"].trust_level`.
+  Attribution is bound to a **disk path**.
 - **opencode**: workspace scope, rewritable by events, with a literal `owner_id`
-  column on the event stream — attribution is **first-class, movable data**.
+  column on the event stream. Attribution is **first-class, movable data**.
 
 ## Design input for OAR
 
@@ -195,8 +195,8 @@ the field; and a replay missing `?workspace=` reports `500 UnknownError` with an
 - **Blocked, not explained.** `POST /experimental/workspace {"type":"worktree"}`
   returns `{"name":"WorkspaceCreateError","data":{"message":"Timed out waiting
   for global event"}}` **while the database row and the on-disk git worktree are
-  both created successfully**. So this is a post-creation wait timeout — most
-  likely waiting on a server instance or sync loop inside the new worktree — not
+  both created successfully**. So this is a post-creation wait timeout, most
+  likely waiting on a server instance or sync loop inside the new worktree, not
   a creation failure. Stranger: `GET /experimental/workspace` and
   `/experimental/workspace/status` still return `[]` when the row exists. The
   server log printed only the unset-password warning, and the `err_<id>` detail
@@ -206,7 +206,7 @@ the field; and a replay missing `?workspace=` reports `500 UnknownError` with an
   **two workspace rows pointing at the same directory**; and
   `DELETE /experimental/workspace/{id}` removes the database row, the on-disk
   git worktree and the git registration, but **leaves the `project_directory`
-  row pointing at the now-missing directory** — another projection that did not
+  row pointing at the now-missing directory**, another projection that did not
   keep up.
 - Not probed: `/api/session/{id}/event`, `/event`,
   `/experimental/session/{id}/background`, `/api/pty/*`, `/mcp/*`,
