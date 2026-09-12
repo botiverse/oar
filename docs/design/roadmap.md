@@ -57,18 +57,19 @@ projections without duplicate controls.
 ### 5. Extend control across placement
 
 Only when a real host needs remote or multi-client operation, follow the
-architecture v4 decision recorded in Raft thread `#all:e1d09817`, message
-`5b5e279b`, and its adapter-as-client / `oar serve` direction. The
-transport-binding definition is pending; its definition is recorded in the
-same thread, message `b95d8f33`. Do not restate either design here.
-Preserve ordering, cursors, attribution, and native reachability; do not create
-a remote-only contract. Capability declaration must be finalized before this
-work is accepted; its definition is also pending from that architecture
-discussion.
+architecture decision recorded in Raft thread `#all:e1d09817`, message
+`5b5e279b` (architecture v4): remote placement is `oar serve` on the agent host
+with a thin application-side client, and adapter-as-client is limited to
+managed cloud runtimes. Two supporting design pages are pending and have no
+draft yet, the transport binding and the capability declaration. Both
+originate in message `b95d8f33` of the same thread, and the capability
+declaration still needs owner endorsement. Preserve ordering, cursors,
+attribution, and native reachability; do not create a remote-only contract.
 
-**Acceptance:** after capability declaration is finalized, local and remote
-hosts pass the same behavior cases and define disconnect/reconnect by evidence
-rather than heartbeat guesses.
+**Acceptance:** local and remote hosts pass the same behavior cases and define
+disconnect/reconnect by evidence rather than heartbeat guesses. Remote clients
+choose actions from the capability declaration, so this item lands after that
+page is settled.
 
 ## Decision gates
 
