@@ -144,6 +144,29 @@ and the sessionID are client-declared.
   the connection_id). When the server itself is killed it writes nothing, and
   `sessions.db-wal` simply stops at 482 KB, un-checkpointed.
 
+Stated in the vocabulary used across this comparison, so the four samples can
+be read side by side.
+
+| Property | goose |
+|---|---|
+| identity authority | all three levels server-minted |
+| uniqueness scope | `acp-connection-id` is a globally unique UUID, but `sessionId` is a date counter, unique only inside the local `sessions.db` |
+| connection identity, by on-wire addressability | explicit id, visible at the WebSocket layer, but neither reusable nor transferable |
+| resumability floor | none in the append-only sense; there is no stream, and `session/load` returns a snapshot of current state. After SIGKILL a new process still loads the session with its mode intact, via WAL recovery |
+| history paging cursor | none |
+| live stream resume cursor | none |
+| runtime side resume material | none; the only truth is mutable relational rows |
+| broadcast and subscription separated | not separated, and weaker than that: nothing is broadcast between connections at all |
+
+"Runtime side resume material: none" means there is no runtime-side material to
+feed back to the model. It does **not** mean a session cannot be replayed.
+Replay is the host-side, subscriber-facing concept, and the two words should not
+be mixed.
+
+Note also that `sessionId` being a date counter is a real interoperability
+hazard: two machines produce `20260912_6` independently, so the id cannot travel
+without being qualified.
+
 ### Capability honesty: the strongest of the four, with three gaps
 
 Strengths: genuine capability negotiation, honest negative declarations

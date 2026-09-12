@@ -416,6 +416,214 @@ exposed**.
 [Installation](../../packages/oar/src/runtimes/codex/installation.ts),
 [account usage](../../packages/oar/src/runtimes/codex/account-usage.ts).
 
+## Native storage and listing, probed live
+
+Evidence baseline for this section: **codex-cli 0.153.4**, Linux x86_64, probed
+2026-09-12 through the app-server control socket (a WebSocket carried over
+AF_UNIX) against an isolated `CODEX_HOME`, so the shared `~/.codex` socket was
+never created or touched. Statements are observations unless labelled a vendor
+declaration or an inference; a claim that holds only on this binary is marked
+[env]. Nothing here describes OAR behaviour. It records what the runtime does
+underneath the adapter, and it is recorded because two of the findings are
+capability-honesty failures a client cannot detect from the response it gets.
+
+### `thread/list` can return a well-formed empty page over a populated database
+
+Against a state database holding 8 `threads` rows and 7 rollout files, with
+threads that resume and load, `thread/list` returned
+`{"data": [], "nextCursor": null, "backwardsCursor": null}` on every call.
+
+The cause is the `modelProviders` parameter. When the client omits it, the
+server composes a `threads.model_provider IN (...)` clause that no row can
+satisfy. Varying only the wire parameter, with the database and the daemon
+untouched:
+
+| `modelProviders` sent | Rows returned |
+|---|---|
+| omitted | 0 |
+| `null` | 0 |
+| `[]` | 7, every row with `preview <> ''` |
+| `["mockr"]` | 4 |
+| all four providers | 7 |
+
+`None` and `Some(vec![])` take different paths and the semantics are inverted:
+**the absent parameter is strictly more restrictive than the explicit empty
+one.** `Some(vec![])` omits the clause, `None` adds it. A client that means "do
+not filter" has to send `[]` explicitly. [env]
+
+The default query evaluates four columns only: `archived`, `preview`, `source`
+and `model_provider`. All 38 columns were swept to establish that. Rows do pass
+`source`, so `source` is not the excluder.
+
+What the `None` branch binds on the right-hand side is **not established**. The
+best reading is SQL `NULL`, because `x IN (NULL)` is NULL for every row: not
+empty, never satisfied, never an error, which matches all three observations.
+**That is an inference, not an observation**, and value probing cannot settle
+it, because inside a pure conjunction NULL and false are observationally
+identical. Excluded by probing: 13 non-`threads` tables renamed one at a time
+(only `thread_sections` fired, and that is a different join), and 66 candidate
+values spanning all five SQLite storage classes.
+
+### Listability is a separate and deliberate state face
+
+The invisibility of rows with an empty `preview` is by design and is unaffected
+by the defect above. `threads` carries three partial indexes,
+`idx_threads_visible_created_at_ms`, `_updated_at_ms` and `_recency_at_ms`, all
+conditioned `WHERE preview <> ''`; "visible" is the runtime's own word. A local
+row with an empty `preview` never appears even when `modelProviders` is sent as
+`[]`, and that same row resumes. Listability and resumability are independent
+properties.
+
+An empty page therefore has at least four distinct real causes, and they must
+not be collapsed into one:
+
+| Real cause of an empty page | Character |
+|---|---|
+| the database genuinely holds no thread | normal |
+| rows exist but `preview` is empty, so they are filtered by design | legitimate, listability is its own state face |
+| `modelProviders` omitted, injecting an unsatisfiable condition | defect |
+| a database error was swallowed | defect, see below |
+
+### The list path swallows database errors
+
+Renaming the whole `threads` table away still produces a well-formed
+`{"data": [], "nextCursor": null}` on the wire. The only trace is a single
+daemon log line,
+`WARN codex_rollout::state_db: state db list_threads failed: ...`.
+**On the wire, "the database is broken" and "there are no threads" are
+indistinguishable.** The list path belongs to `codex_rollout::state_db`, not to
+`codex_state`, which has zero hits in trace-level logs.
+
+### Method: view poisoning, and its two boundaries
+
+Recorded because it is reusable against any closed-source SQLite reader.
+`sqlx`, `codex_state` and `threads.rs` have zero hits in the daemon log even at
+trace level, while third-party crates (`tokio_tungstenite`, `mio::poll`,
+`notify::inotify`) do appear. The EnvFilter is therefore global, and sqlx's
+absence must come either from it logging through the `log` crate with no
+`tracing-log` bridge, or from statement logging being off at `ConnectOptions`.
+Neither is reachable from outside the process, which is what forced a probe.
+
+The probe breaks the schema the reader depends on and lets the failure name the
+identifier. `ALTER TABLE threads RENAME TO threads_real`, then rebuild a view of
+the same name with all 38 columns, replacing exactly one column with an
+expression that must fail at runtime. SQLite evaluates that expression only for
+rows that reach it, so a WARN proves the column was evaluated.
+
+Working poisons: `abs(-9223372036854775808)` (integer overflow),
+`zeroblob(2000000000)` and `randomblob(2000000000)` (string or blob too big),
+and `load_extension('nope')`. Not usable: `9223372036854775807+1`, which returns
+a real and does not error.
+
+Batch form: `CASE id WHEN '<id1>' THEN <cand1> ... END AS model_provider` tests
+N candidates in one query, and the returned id says which candidate matched. To
+enumerate which tables a closed query touches, rename each table in turn and see
+which rename fires the WARN.
+
+Two boundaries, both learned the hard way:
+
+1. **A poison firing and a row count cannot be read from the same run.** Once
+   the poison fires the query errors and the count is forced to 0, carrying no
+   information. Reading both from one run produced the self-contradictory
+   `passWHERE=YES n=4`. Split it: one run measures which columns are evaluated,
+   a separate clean run measures which rows come back.
+2. **An empty literal `IN ()` does not evaluate its left-hand side; an empty
+   subquery `IN (SELECT 1 WHERE 0)` does.** So "the poison fired" proves the
+   clause exists. It does **not** prove the bound list is non-empty.
+
+### Method: an absent syscall does not prove a path was not taken
+
+An earlier reading of this same probe recorded that `thread/list` issues zero
+`pread64` against the state database and therefore never reads storage. That was
+wrong. Under an isolated control the control run made 0 reads and the treatment
+run made 6: it does read the database. The zero came from SQLite's in-process
+page cache, which serves a small fully cached database with no syscall at all.
+This holds for every use of strace to decide whether a code path ran.
+
+### Four persistence surfaces, and what each is worth at death
+
+Log completeness cannot be answered for the runtime as a whole. It has to be
+answered per surface.
+
+| Surface | Behaviour at death | Usable as truth |
+|---|---|---|
+| rollout JSONL | durable on every append, SIGKILL loses nothing | yes, the sole truth |
+| `thread_history_1.sqlite` projection | keeps pace even under SIGKILL, rebuilt incrementally from a byte offset plus `next_rollout_ordinal` | yes, but it is a projection |
+| `logs_2.sqlite` | a buffered, periodically flushed sink that does not flush at death; a short-lived process can lose all of it | no |
+| `session_index.jsonl` | appends thread name changes only, 3 rows locally, all for zero-turn threads | no, it is not a session table |
+
+Two rules follow from that split.
+
+- **A tool-call result may be recorded as `unknown` or `in-flight` and must not
+  be coerced to `failed`.** A SIGKILL leaves a `function_call` with neither an
+  output nor a failure, and writing it down as failed manufactures a fact. A
+  graceful drain is the opposite case: the rollout already holds `failed` and
+  `-1` while the wire has carried nothing.
+- **Append-before-deliver needs an ordering condition and a granularity
+  condition together.** Ordering: append to your own stream before delivering to
+  subscribers, so replay-from-log is a superset of what any single connection
+  actually received and a reconnect only has to fetch the difference. A system
+  that delivers first loses "delivered but not persisted" at the death point,
+  and no contract can repair that. Granularity: **the append granularity must
+  not be coarser than the delivery granularity.** Codex satisfies both at event
+  granularity and fails the second at delta granularity, because deltas are
+  delivered and never persisted, so the superset property does not hold for
+  deltas.
+
+Three surfaces spell the ordinal differently and the names should not be mixed:
+the rollout JSONL line key is `ordinal`, the wire cursor payload field is
+`rolloutOrdinal`, and the SQLite projection column is `next_rollout_ordinal`.
+
+### Resumability floors
+
+An id has a lifecycle of its own: the moment it is minted, the moment it is
+persisted, and the moment it becomes resumable are three different moments. What
+a caller needs is the floor.
+
+- Thread floor: the rollout's first append, ordinal 0 `session_meta`. A thread
+  interrupted by SIGKILL still resumes.
+- Item floor, strictly higher: `item_completed` reaching disk. A thread killed
+  mid-item resumes reporting `itemsBackwardsCursor.rolloutOrdinal` 7 where a
+  cleanly ended twin reports 17.
+- Resume returns a cursor, not content: `initialTurnsPage` is `null`.
+- An empty `thread/list` page is not evidence that nothing is resumable, both
+  because of the `modelProviders` defect and because listability is independent.
+  Turn-less threads do not enter `thread/list` at all.
+
+### Broadcast tier and subscription tier
+
+Notifications split into two tiers, and the split is transport independent: it
+holds identically over stdio and over the WebSocket carried on AF_UNIX. The
+`proxy --sock` path is a byte relay and does not itself upgrade.
+
+- Broadcast tier, reaching every initialized connection: `thread/started`,
+  `thread/name/updated`, `thread/status/changed`.
+- Subscription tier, reaching subscribers only: `turn/*`, `item/*`, the deltas,
+  and `thread/tokenUsage/updated`.
+
+Connection identity on the wire is implicit: a connection is identified by being
+the peer of a socket, and no wire field addresses it. The server does keep a
+persistent `connection_id` column in `logs_2.sqlite`, but it never enters the
+protocol, so the client-facing contract stays implicit identity. Addressable
+connection identity and a resumable cursor are orthogonal: Codex has a history
+cursor and no addressable connection, and there is no live-stream cursor at all,
+so anything delivered while a connection was away is unrecoverable from the
+runtime.
+
+### Acknowledgement, persisted preference, and runtime state can disagree
+
+Every capability has to be asked which face carries its real state, and three
+faces routinely answer differently.
+
+| Capability | Command acknowledgement | Persisted preference | Runtime state |
+|---|---|---|---|
+| remote-control enable | the CLI reports `enabled` | `persistence_preference: None`, nothing written | a `Connecting -> Errored` notification |
+
+One log line carries `desired_state=Enabled { persistence_preference: None }`
+immediately followed by `Connecting -> Errored`. All three faces are present at
+the same instant and they disagree. **Reading only the CLI's `enabled` yields a
+conclusion that is entirely wrong.**
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts codex`](../../experiments/live-contract.ts)
@@ -459,6 +667,22 @@ Open gaps:
   child `turn/completed` that never arrives is observed but unexplained.
 - Missing/unloadable thread ids on resume are pinned only by the fake-process
   path; concurrent controllers of one thread are not arbitrated.
+- The right-hand side bound by the `modelProviders` `None` branch is an
+  inference (SQL `NULL`), not an observation, and value probing cannot settle
+  it from outside the process.
+- Why `thread_sections` participates in the default `thread/list` query is not
+  explained.
+- `thread/environment/connected` and `thread/environment/disconnected` exist in
+  the protocol but were not observed live: vendor declaration only.
+- Not probed on 0.153.4: `ephemeral: true` on `thread/start`, whether unloading
+  a thread notifies clients, `thread/fork`, `serverRequest/resolved`,
+  `thread/closed`, `thread/timeline/list`, `thread/read`, the write path for
+  `thread_artifacts` / `thread_spawn_edges` / `thread_goals`, `codex agents`,
+  `codex remote-control pair`, and `write_stdin` against a live unified-exec
+  session id.
+- Unexplained: `threads.sandbox_policy` reads `{"type":"disabled"}` while the
+  same thread's `turn_context.sandbox_policy` reads
+  `{"type":"danger-full-access"}`. Recorded, not reconciled.
 
 Keep these gaps separate from implemented methods and from spec guarantees not
 yet verified live.

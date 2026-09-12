@@ -174,6 +174,27 @@ the field; and a replay missing `?workspace=` reports `500 UnknownError` with an
 - **opencode**: workspace scope, rewritable by events, with a literal `owner_id`
   column on the event stream. Attribution is **first-class, movable data**.
 
+### Addressability, resumability floor, and resume material
+
+Stated in the vocabulary used across this comparison, so the four samples can be
+read side by side.
+
+| Property | opencode |
+|---|---|
+| identity authority | client-declared; the server mints nothing |
+| uniqueness scope | globally unique only if clients do not collide; `event_sequence.owner_id` is workspace scoped |
+| connection identity, by on-wire addressability | none; HTTP and SSE carry no connection id, and even "current workspace" is declared per request via `?workspace=` |
+| resumability floor | event-stream seq 0; deleting the session and replaying its seq-0 event rebuilds id, slug and directory in full |
+| history paging cursor | `/sync/history` with a per-aggregate last-seen seq |
+| live stream resume cursor | none on the bus itself; the difference can be filled in afterwards from `/sync/history` |
+| runtime side resume material | the immutable `event` table |
+| broadcast and subscription separated | separated by versioning, not by tier: the transient bus is unversioned, the 35 persistent sync types are all `.N` |
+| death boundary | not observed |
+
+"Runtime side resume material" means material the runtime feeds back to the
+model. It is a different question from replay, which is what a host offers its
+own subscribers. The two words should not be mixed.
+
 ## Design input for OAR
 
 - **A log and a projection are two truths, and reading one is not reading the
@@ -213,3 +234,6 @@ the field; and a replay missing `?workspace=` reports `500 UnknownError` with an
   `/permission`, `project.sandboxes`, `session_context_epoch`.
 - No real model turns were run, so message/part write granularity is
   unmeasured.
+- Death boundary not observed: no process was killed mid-turn, so nothing is
+  known about what the event stream and the projections look like at an abrupt
+  exit.
