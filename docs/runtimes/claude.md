@@ -218,6 +218,139 @@ account-usage access. Login management is **not exposed**.
 [Installation](../../packages/oar/src/runtimes/claude/installation.ts),
 [account usage](../../packages/oar/src/runtimes/claude/account-usage.ts).
 
+## Harness fact matrix
+
+This section answers the harness investigation questions for the one
+interface OAR calls: print mode with bidirectional `stream-json`. Claude Code
+ships as a closed binary, so there is no source to cite. Every row labels its
+evidence: **source** is OAR adapter, projection, or test code at this
+revision; **observed** is a recorded run or a file inspected on a named
+binary version; **vendor** is native documentation that no observation here
+has confirmed. Baselines: claude 2.1.268 (live contract, 2026-09-11), 2.1.261
+(`claude --help` on linux, 2026-09-12), 2.1.237 (a native transcript file
+inspected on linux, 2026-09-12).
+
+### Matrix columns
+
+| Column | Claude on OAR's path | Evidence |
+|---|---|---|
+| Session identity | A native UUID. OAR picks it (`randomUUID()`) for a new session and passes `--session-id`; a caller supplies it through `resume` and OAR passes `--resume`. Every record carries it as `sessionId`. It survives the OAR process: a later process resumes the same id and the model recalls the earlier transcript. | source [adapter](../../packages/oar/src/runtimes/claude/session.ts) lines 59 to 76; observed live contract resume scenario |
+| Connection identity | None at the protocol level. One spawned process is the only connection; it has no id in any frame and there is no second client path. | source adapter; observed fixture frames carry `session_id` only |
+| Transport cursor | None. Frames carry no sequence number and no turn id; `seq` is assigned by OAR's kernel and does not outlive the process. `--replay-user-messages` echoes user messages back and is not a position. | source [projection](../../packages/oar/src/runtimes/claude/projection.ts), [kernel](../../packages/oar/src/shared/session-kernel.ts) lines 168 to 183; vendor [CLI reference][native-cli] |
+| Event stream scope | Per process. Frames go to the stdout of the process that produced them; nothing is broadcast to a second reader. | source adapter |
+| Runtime side replay source | The native transcript, a JSONL file named `<sessionId>.jsonl` under the Claude config home in a per `cwd` directory. It holds message content, not OAR's stream: see question 2 below. `--resume` feeds that transcript back to the model as context; it does not replay frames to OAR. Diagnostic reference only: OAR's replay source is its own appended stream. | observed transcript 2.1.237; source [resume section](#session-creation-and-resume) |
+| Vendor claim versus evidence | Confirmed by observation: resume continuity on the same `cwd`, interrupt through the control channel, subagent attribution through `parent_tool_use_id`. Vendor only: cross directory resume lookup since 2.1.223, print mode transcript persistence being identical to interactive mode. Unverified either way: two controllers resuming one id at once, missing id error timing. Vendor quirk observed: `result` frames with subtype `success` and `is_error: true`. | this page, [open gaps](#verification-and-open-gaps) |
+
+### Eight dimensions
+
+1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
+   --verbose --dangerously-skip-permissions` plus `--session-id <uuid>` or
+   `--resume <id>`, and optional `--model`, `--system-prompt`,
+   `--append-system-prompt`. `CLAUDECODE` is cleared from the child
+   environment. Prompts are `user` message lines on stdin. Not on OAR's path
+   although present in 2.1.261 help: `--include-partial-messages`,
+   `--replay-user-messages`, `--fork-session`, `--no-session-persistence`,
+   `--permission-mode`, `--permission-prompts`, `--mcp-config`, `--tools`,
+   `--agents`, `--bg`, `--cloud`, `--teleport`, `--remote-control`. Source:
+   [adapter](../../packages/oar/src/runtimes/claude/session.ts) lines 59 to
+   76.
+2. **Session and state storage.** Native identity and transcript are claude's;
+   OAR's record stream is process memory behind `records()` and is gone with
+   the process. OAR owns no storage. Source: kernel; observed: the transcript
+   file described above.
+3. **Event model.** Every stdout frame is one event record whose `type` is
+   `type[/subtype]` and whose `native` is the frame verbatim. Frame classes in
+   one recorded tool round: `system/init`, `system/thinking_tokens`,
+   `rate_limit_event`, `assistant` with `thinking`, `tool_use`, `text` blocks,
+   `user` with `tool_result` blocks, `result/success`. Plus
+   `control_response` answering OAR's interrupt and `control_request` from
+   claude. No deltas, because partial messages are not requested. A turn is
+   the span from OAR's `prompt` request to the `result` frame; no frame names
+   the turn. Source: [projection](../../packages/oar/src/runtimes/claude/projection.ts);
+   observed: [tool round fixture](../../tests/replay/fixtures/claude-tool-round.raw.jsonl).
+4. **Ownership and identity.** The spawning OAR process owns the child.
+   Records carry `sessionId` and `agentPath`; `parent_tool_use_id` nests a
+   child under the Task call that spawned it. There is no lease against
+   another controller and no connection id. Source: adapter, projection.
+5. **Capability honesty.** Declared `{ steer: true, queue: { durable: false },
+   attribution: "attributed" }`. Steer accepted means written to stdin, not
+   received by the model. Queue is adapter held. Source: adapter line 150;
+   observed: [steering section](#prompt-steering-queueing-and-abort).
+6. **Deployment and lifecycle.** Local subprocess only. Process exit is an
+   `exited` response: answering `dispose` with code 143 when OAR caused it,
+   with `requestId ""` and code `null` when claude died on its own. After
+   that every control is rejected `runtime exited`. Hosted forms in the CLI
+   (`--bg` with `attach`, `logs`, `respawn`, `rm`, `stop`; `--cloud`;
+   `--teleport`; `--remote-control`) are vendor only here; OAR does not use
+   them and has no evidence about their lifecycle events. Source:
+   [death test](../../tests/claude/claude-session-death.test.ts); vendor
+   [CLI reference][native-cli].
+7. **Tools and permissions.** Always `--dangerously-skip-permissions`; no
+   approval channel. `tool_use` blocks become `tool_call_started` with
+   `callId`, `tool`, `input`; `tool_result` blocks in `user` frames become
+   `tool_call_ended` with `callId` and `output`. A `control_request` from
+   claude is recorded as an event and a `toApp` request that nobody answers;
+   none has been observed under skip permissions. Source: projection.
+8. **Extension points.** MCP, agents, skills, plugins, hooks, and permission
+   callbacks exist natively; OAR passes none of them. On the control channel
+   OAR uses `interrupt`; `list_models` is exercised only by an experiment.
+   Source: [tools section](#tools-permissions-and-extensions);
+   [experiments](../../experiments/README.md).
+
+### Six questions
+
+1. **Is the native session id stable across a host restart, and can it be
+   reopened?** Yes for the id and for the same `cwd`: a new process with
+   `--resume <id>` keeps the id and the model recalls earlier turns
+   (observed, live contract). Reopening needs the transcript under the
+   active config home; cross directory lookup is vendor only. What happens
+   for a missing id, and how fast, is unverified.
+2. **Does the runtime log keep every frame or only turn snapshots?** Neither.
+   The transcript inspected here (2.1.237, an interactive session, 15869
+   lines) is a tree of entries linked by `parentUuid`, one entry per
+   `user`, `assistant`, `attachment`, or `system` item, plus bookkeeping
+   entries such as `queue-operation`. It holds full content blocks, including
+   `tool_use` and `tool_result` with `is_error`. It holds zero
+   `control_request`, `control_response`, or `interrupt` entries and zero
+   deltas. OAR's own rejections (`busy`, `no active turn`) never reach claude,
+   so they cannot be there. Whether print mode with `stream-json` writes the
+   same entries is vendor only ([sessions][native-sessions] says print mode
+   persists unless `--no-session-persistence`); it was not inspected.
+3. **Is a stream rebuilt from that log isomorphic to the original?** No.
+   Absent from the transcript: every OAR request and response record
+   (`prompt`, `steer`, `queue`, `abort`, `dispose`, `exited`, rejections),
+   the control frame pairs, `seq`, and the `system/init`, `rate_limit_event`,
+   and `result` frames as frames. Recoverable: message content, tool call
+   pairs with their outcome, order, and the tree. A rebuild is a subset with
+   a different envelope.
+4. **Can a second observer attach to the same session?** On OAR's stream,
+   yes and without limit: `subscribe` with a cursor replays retained records
+   after `afterSeq`, then continues live (source, kernel lines 168 to 183).
+   At the runtime there is no second reader of one process. Two processes
+   resuming one id at the same time is unverified.
+5. **Is there a recognizable last frame on process death, and what does the
+   log say about an in flight tool call?** No runtime frame. The last record
+   is OAR's `exited` response with `requestId ""` and code `null` (source,
+   death test). The stream then holds a `tool_call_started` with no
+   `tool_call_ended`. Whether the transcript holds the `tool_use` without its
+   `tool_result` in that case was not probed.
+6. **Do hosted forms report environment lifecycle events?** Not on OAR's
+   path. The CLI exposes background, cloud, teleport, and remote control
+   modes (vendor); OAR spawns none of them and has no evidence about their
+   events or granularity.
+
+### Tool call outcome reporting
+
+Claude reports the outcome of every tool call: the `tool_result` block
+carries `is_error`. Vendor: the Messages API defines the field
+([tool result blocks][native-tool-result]). Observed: the recorded tool
+round has `is_error: false` on its one result; the inspected transcript has
+2217 `false` and 158 `true`. OAR already records the block verbatim in
+`native`, and `toolResultViews` reads only `tool_use_id` and `content`
+(projection lines 112 to 123), so the `result` field proposed for
+`tool_call_ended` is derivable from data OAR holds today: `true` maps to
+`failed`, `false` to `ok`, and an absent field means not reported.
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)
@@ -244,3 +377,4 @@ changes after conversation reset.
 [native-subagents]: https://code.claude.com/docs/en/agent-sdk/subagents
 [native-permissions]: https://code.claude.com/docs/en/agent-sdk/permissions
 [native-mcp]: https://code.claude.com/docs/en/agent-sdk/mcp
+[native-tool-result]: https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
