@@ -22,6 +22,12 @@ not an OAR backend or prospective consumer.
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
 | [OpenAI Agents API](agents-api.md) | **Reference only; no OAR adapter** | Managed Codex harness over HTTP: session/turn/item model, input events as control, no-replay stream, environment as a separate object, subagent attribution fields |
 
+Live-probe investigations of runtimes without an adapter live under
+[`investigations/`](investigations/README.md): currently
+[opencode](investigations/opencode.md) and [goose](investigations/goose.md).
+They are reference only and follow the same evidence conventions as the pages
+above.
+
 The first review is dated **2026-09-08**, against OAR **`9b102d0`**. Each page
 records its own native source, documentation, and observed binary versions.
 Those versions are evidence baselines, not a declared support range. This
