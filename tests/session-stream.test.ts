@@ -99,12 +99,12 @@ test("dispose records the request and the observed exit; a second dispose is a n
 
 test("model, usage and contextUsage are folds over the stream", async () => {
   const session = await startMockSession(installation, { cwd: process.cwd() });
-  assert.equal(session.model(), "mock-1");
-  assert.equal(session.contextUsage(), null);
-  assert.deepEqual(session.usage(), { total: null }, "no token report yet: null, not a guessed zero");
+  assert.equal(session.model().value, "mock-1");
+  assert.equal(session.contextUsage().value, null);
+  assert.deepEqual(session.usage().value, { total: null }, "no token report yet: null, not a guessed zero");
   await promptAndWait(session, "hello");
-  assert.deepEqual(session.contextUsage(), { tokens: 1, contextWindow: 100, percent: 1 });
-  assert.deepEqual(session.usage(), { total: { input: 1, output: 1 } });
+  assert.deepEqual(session.contextUsage().value, { tokens: 1, contextWindow: 100, percent: 1 });
+  assert.deepEqual(session.usage().value, { total: { input: 1, output: 1 } });
   await session.dispose();
 });
 

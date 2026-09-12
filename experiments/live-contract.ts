@@ -237,10 +237,10 @@ const scenarios: Scenario[] = [
       facts.everyEventHasNative = records.every((record) => record.kind !== "event" || (record.body.native !== undefined && record.body.native !== null));
       facts.spanIds = new Set(records.flatMap((record) => (record.spanId === undefined ? [] : [record.spanId]))).size;
       facts.seqDense = records.every((record, index) => record.seq === index);
-      facts.model = session.model();
-      facts.usage = session.usage();
-      facts.usageTokensNonZero = (session.usage().total?.input ?? 0) > 0;
-      facts.contextUsage = session.contextUsage();
+      facts.model = session.model().value;
+      facts.usage = session.usage().value;
+      facts.usageTokensNonZero = (session.usage().value.total?.input ?? 0) > 0;
+      facts.contextUsage = session.contextUsage().value;
       facts.capabilities = session.capabilities;
       facts.recordsBeforeOpen = records.findIndex((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "model"));
       await session.dispose();
@@ -274,7 +274,7 @@ const scenarios: Scenario[] = [
           fail(`turn ${word}: ${JSON.stringify(outcome)}`);
         }
         ends.push(rootTurnEnds(session, result.request.seq).length);
-        usages.push({ usage: session.usage(), context: session.contextUsage() });
+        usages.push({ usage: session.usage().value, context: session.contextUsage().value });
       }
       facts.turnEndsPerTurn = ends;
       facts.usageAfterEachTurn = usages;
@@ -496,20 +496,20 @@ const scenarios: Scenario[] = [
       const first = await open();
       const taught = accepted(await first.prompt("Remember this codeword: PLUM-42. Reply with exactly ok."), "prompt");
       const taughtOutcome = await awaitTurnEnd(first, taught.request.seq);
-      facts.firstModel = first.model();
+      facts.firstModel = first.model().value;
       await first.dispose();
       const resumed = await open({ resume: first.id });
       const sameId = resumed.id === first.id;
       facts.sameId = sameId;
       facts.firstSeqOfResumedStream = resumed.records()[0]?.seq ?? null;
       facts.recordsAtOpen = resumed.records().map((record) => describeRecord(record));
-      facts.resumedModelAtOpen = resumed.model();
+      facts.resumedModelAtOpen = resumed.model().value;
       const asked = accepted(await resumed.prompt("What was the codeword I told you earlier? Reply with exactly it."), "prompt after resume");
       const outcome = await awaitTurnEnd(resumed, asked.request.seq);
       const text = rootText(resumed, asked.request.seq);
       facts.recalledText = text.slice(0, 200);
       facts.recalled = text.includes("PLUM-42");
-      facts.resumedModel = resumed.model();
+      facts.resumedModel = resumed.model().value;
       facts.outcome = outcome;
       await resumed.dispose();
       if (taughtOutcome.kind !== "completed" || outcome.kind !== "completed") {
@@ -566,7 +566,7 @@ const scenarios: Scenario[] = [
       facts.graphEdges = session.graph().edges.length;
       facts.eventTypesByOrigin = typesByOrigin;
       facts.toAppRequests = records.filter((record) => record.kind === "request" && record.direction === "toApp").map((record) => (record.kind === "request" && record.body.kind === "native" ? record.body.type : "")).slice(0, 10);
-      facts.usage = session.usage();
+      facts.usage = session.usage().value;
       facts.tier = session.capabilities.attribution;
       // Sub-agent linkage as the runtime spells it: any frame carrying a parent/child pair.
       const linkageFrames = records.filter((record) => record.kind === "event" && /parent_session_id|parentSessionId|child_session_id|childSessionId|subagent_spawned|subagent_finished|parent_tool_use_id|parentThreadId|receiverThreadIds/u.test(JSON.stringify(record.body.native))).slice(0, 6);
@@ -642,7 +642,7 @@ const scenarios: Scenario[] = [
       }
       const { session } = attempt;
       facts.open = "opened";
-      facts.modelReadback = session.model();
+      facts.modelReadback = session.model().value;
       const result = await session.prompt("Reply with exactly ok.");
       facts.prompt = result.response.body;
       if (result.response.body.kind === "accepted") {

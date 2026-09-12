@@ -139,3 +139,20 @@ test("claude result usage accumulates per agent into cumulative totals", () => {
     'task-9:{"input":5,"output":5}',
   ]);
 });
+
+test("claude tool_result maps only its explicit is_error outcome", () => {
+  const failed = foldClaudeStdout(claudePrompted(initialClaudeProjection), {
+    type: "user",
+    message: { content: [{ type: "tool_result", tool_use_id: "c-fail", is_error: true, content: "nope" }] },
+  });
+  expect(failed.commands[0]?.kind === "event" ? failed.commands[0].body.views : null).toEqual([
+    { kind: "tool_call_ended", callId: "c-fail", output: JSON.stringify("nope"), result: "failed" },
+  ]);
+  const absent = foldClaudeStdout(failed.state, {
+    type: "user",
+    message: { content: [{ type: "tool_result", tool_use_id: "c-unknown", content: "?" }] },
+  });
+  expect(absent.commands[0]?.kind === "event" ? absent.commands[0].body.views : null).toEqual([
+    { kind: "tool_call_ended", callId: "c-unknown", output: JSON.stringify("?") },
+  ]);
+});

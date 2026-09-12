@@ -83,10 +83,16 @@ function rootAndChildReport(kernel: SessionKernel): void {
 }
 
 function assertChildFoldsByItsOwnId(records: readonly SessionRecord[]): void {
-  assert.equal(modelOf(records, CHILD), "child-model", "the child's own answers are in its own records");
-  assert.deepEqual(usageOf(records, CHILD), { total: { input: 500, output: 50 } });
-  assert.deepEqual(contextUsageOf(records, CHILD), { tokens: 500, contextWindow: null, percent: null });
-  assert.deepEqual(usageOf(records), { total: { input: 500, output: 50 } }, "unscoped, both sessions collide on agentPath []: the reason the Session folds are scoped");
+  assert.equal(modelOf(records, CHILD).value, "child-model", "the child's own answers are in its own records");
+  assert.deepEqual(usageOf(records, CHILD).value, { total: { input: 500, output: 50 } });
+  assert.deepEqual(contextUsageOf(records, CHILD).value, { tokens: 500, contextWindow: null, percent: null });
+  assert.deepEqual(usageOf(records).value, { total: { input: 500, output: 50 } }, "unscoped, both sessions collide on agentPath []: the reason the Session folds are scoped");
+}
+
+function assertRootReadbackSeqs(session: ReturnType<typeof sealSession>): void {
+  assert.equal(session.model().seq, 1, "model fold rests on the last root record consumed");
+  assert.equal(session.usage().seq, 1, "usage fold rests on the last root record consumed");
+  assert.equal(session.contextUsage().seq, 1, "context fold rests on the last root record consumed");
 }
 
 test("model, usage and contextUsage fold only the root session's records", () => {
@@ -94,13 +100,14 @@ test("model, usage and contextUsage fold only the root session's records", () =>
   const session = sealSession(sessionOver(kernel));
   rootAndChildReport(kernel);
 
-  assert.equal(session.model(), "root-model");
-  assert.deepEqual(session.usage(), { total: { input: 100, output: 10 } }, "the child's cumulative figure neither overwrites nor joins the root's");
-  assert.deepEqual(session.contextUsage(), { tokens: 100, contextWindow: null, percent: null });
+  assert.equal(session.model().value, "root-model");
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 } }, "the child's cumulative figure neither overwrites nor joins the root's");
+  assert.deepEqual(session.contextUsage().value, { tokens: 100, contextWindow: null, percent: null });
+  assertRootReadbackSeqs(session);
   assertChildFoldsByItsOwnId(session.records());
 
   kernel.event({ type: "thread/tokenUsage/updated", native: {}, views: [usage(120, 12)] }, { agentPath: ["worker"] });
-  assert.deepEqual(session.usage(), {
+  assert.deepEqual(session.usage().value, {
     total: { input: 220, output: 22 },
     byAgent: [
       { agentPath: [], tokens: { input: 100, output: 10 } },

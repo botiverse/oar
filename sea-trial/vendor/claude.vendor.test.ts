@@ -193,10 +193,10 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
       await runTurn(session, "say hi");
-      assertContextUsage(session.contextUsage());
-      const usage = session.usage();
+      assertContextUsage(session.contextUsage().value);
+      const usage = session.usage().value;
       expect(usage.total !== null && usage.total.input >= 0 && usage.total.output >= 0).toBe(true);
-      expect(session.model()).not.toBeNull();
+      expect(session.model().value).not.toBeNull();
       // The dispose request is answered by the exit oar observed.
       await session.dispose();
       const tail = session.records().slice(-2);

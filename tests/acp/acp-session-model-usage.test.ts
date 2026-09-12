@@ -11,23 +11,23 @@ import { describe, fixture, start } from "../fixtures/acp-session-support.js";
 // the account cannot use.
 test("ACP model read-back reports the agent's effective model, not the requested one", async () => {
   const requested = await start({}, undefined, "requested-y");
-  assert.equal(requested.model(), "fixture-model-x");
+  assert.equal(requested.model().value, "fixture-model-x");
   await requested.dispose();
 
   const resumed = await start({}, "fake-session", "requested-y");
-  assert.equal(resumed.model(), "fixture-model-x");
+  assert.equal(resumed.model().value, "fixture-model-x");
   await resumed.dispose();
 });
 
 test("ACP model read-back takes grok's set_model `_meta.model` over the session/new report", async () => {
   const session = await start({}, undefined, "grok-meta");
-  assert.equal(session.model(), "grok-applied");
+  assert.equal(session.model().value, "grok-applied");
   await session.dispose();
 });
 
 test("ACP model read-back sees kimi's config_option_update pushed before set_model answers", async () => {
   const session = await start({}, undefined, "kimi-push");
-  assert.equal(session.model(), "kimi-pushed");
+  assert.equal(session.model().value, "kimi-pushed");
   // Both frames are in the stream; the pushed update wins because it is the
   // LATER model report (the SDK may deliver the notification after the
   // set_model answer it was sent before; record order is delivery order).
@@ -41,10 +41,10 @@ test("ACP model read-back sees kimi's config_option_update pushed before set_mod
 
 test("ACP model read-back follows config_option_update during a turn", async () => {
   const session = await start();
-  assert.equal(session.model(), "fixture-model-x");
+  assert.equal(session.model().value, "fixture-model-x");
   const run = await promptAndWait(session, "switch-model");
   assert.equal(run.kind, "ended");
-  assert.equal(session.model(), "fixture-model-z");
+  assert.equal(session.model().value, "fixture-model-z");
   await session.dispose();
 });
 
@@ -59,7 +59,7 @@ function tokensAtTurnEnded(session: Session): readonly (number | null)[] {
   const seen: (number | null)[] = [];
   session.subscribe((record) => {
     if (record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended")) {
-      seen.push(session.contextUsage()?.tokens ?? null);
+      seen.push(session.contextUsage().value?.tokens ?? null);
     }
   });
   return seen;
@@ -81,7 +81,7 @@ test("ACP usageUpdateAfterPrompt (kimi) records the post-response usage_update b
   const atEnd = tokensAtTurnEnded(session);
   await twoTurns(session);
   assert.deepEqual(atEnd, [100, 200]);
-  assert.deepEqual(session.contextUsage(), { tokens: 200, contextWindow: 1000, percent: 20 });
+  assert.deepEqual(session.contextUsage().value, { tokens: 200, contextWindow: 1000, percent: 20 });
   await session.dispose();
 });
 
@@ -95,7 +95,7 @@ test("ACP usageUpdateAfterPrompt records the answer as-is once the bound passes 
   const run = await promptAndWait(session, "one");
   assert.equal(run.kind, "ended");
   assert.ok(performance.now() - started >= 90, "the turn end should have waited for the bound");
-  assert.equal(session.contextUsage(), null);
+  assert.equal(session.contextUsage().value, null);
   await session.dispose();
 });
 
@@ -105,9 +105,9 @@ test("ACP profiles without usageUpdateAfterPrompt (grok) end the turn on the ans
   const atEnd = tokensAtTurnEnded(session);
   const first = await promptAndWait(session, "one");
   assert.equal(first.kind, "ended");
-  assert.equal(session.contextUsage(), null);
+  assert.equal(session.contextUsage().value, null);
   await sleep(150);
-  assert.deepEqual(session.contextUsage(), { tokens: 100, contextWindow: 1000, percent: 10 });
+  assert.deepEqual(session.contextUsage().value, { tokens: 100, contextWindow: 1000, percent: 10 });
   const second = await promptAndWait(session, "two");
   assert.equal(second.kind, "ended");
   assert.deepEqual(atEnd, [null, 100]);

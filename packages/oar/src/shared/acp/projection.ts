@@ -108,10 +108,17 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): EventView[]
   if (!tool.ended && terminal) {
     tool.ended = true;
     const output = detail(update.rawOutput) ?? detail(update.content);
+    let result: "ok" | "failed" | undefined = undefined;
+    if (update.status === "completed") {
+      result = "ok";
+    } else if (update.status === "failed") {
+      result = "failed";
+    }
     views.push({
       kind: "tool_call_ended",
       callId,
       ...(output === undefined ? {} : { output }),
+      ...(result === undefined ? {} : { result }),
     });
   }
   return views;

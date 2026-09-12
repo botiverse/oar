@@ -101,7 +101,7 @@ test("a prompt is one request/response pair, the turn ends on codex's own turn/c
   const result = await session.prompt("hi");
   expect(result.response.body).toEqual({ kind: "accepted", native: { turn: { id: "turn-1" } } });
   expect(await awaitTurnEnd(session, result.request.seq)).toEqual({ kind: "completed" });
-  expect(session.model()).toBe("gpt-5.5");
+  expect(session.model().value).toBe("gpt-5.5");
   await session.dispose();
   expect(skeleton(session.records())).toEqual([
     "event thread/start → model",

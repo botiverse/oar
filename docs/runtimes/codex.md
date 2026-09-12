@@ -66,6 +66,11 @@ is the turn's end. The adapter declares `capabilities: { steer: true, queue:
 Implementation: [session adapter][oar-session], [projection][oar-projection],
 [kernel][oar-kernel], and [transport][oar-transport].
 
+Codex `item/completed` tool items report a native `status` ([src] app-server
+item schema). OAR maps explicit `completed` to `tool_call_ended.result: "ok"`
+and explicit `failed` to `"failed"`; items without either status leave
+`result` absent. OAR does not infer a result from an exit code or output.
+
 ## Capability details
 
 ### Connection, session creation, and resume

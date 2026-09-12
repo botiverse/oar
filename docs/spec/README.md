@@ -61,8 +61,9 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 - control as records: prompt / steer / queue / abort / dispose requests
   answered `accepted` / `rejected`; runtime→app requests recorded `toApp`
   and oar's automatic answer as `answered`; the process exit as `exited`;
-- queries as folds: `model()`, `usage()`, `contextUsage()` are projections
-  over `records()`;
+- queries as folds: `model()`, `usage()`, and `contextUsage()` project over
+  `records()` and return `{ value, seq }`, where `seq` is the last record the
+  fold consumed (or `-1` before any record);
 - the cursor for the lifetime of the adapter process: `subscribe(observer,
   {sessionId, afterSeq})` replays the retained records after that position
   and continues live, without loss or duplication;
@@ -70,23 +71,27 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   tier per adapter (`capabilities.attribution`);
 - `SessionOptions.resume` reopening the runtime-native conversation with a
   fresh stream starting at `seq` 0.
+- external compaction as a new session whose first prompt carries the summary
+  input and optional host `lineage: { runtime, sessionId }`, recorded verbatim and
+  never interpreted or turned into a graph edge.
 
 ## Open decisions
 
-Three points remain deliberately **not settled**; the pages flag them where
+Two points remain deliberately **not settled**; the pages flag them where
 they appear:
 
 1. **Causal links between records.** No consumer scenario has required a
    causal-link field between records (a `causedBy`-style pointer). Adding
    one stays open.
-2. **External compaction.** Compacting a session externally (new session +
-   injected summary prompt), layered above runtime-native compaction
-   ([hard problem 14](../design/hard-problems.md#beyond-a-single-local-process)),
-   is designed but not yet folded into this spec.
-3. **Capability declaration beyond attribution.** `SessionCapabilities`
+2. **Capability declaration beyond attribution.** `SessionCapabilities`
    declares steer, queue durability and the attribution tier. A fuller
    typed surface (what each adapter supports, with typed `unsupported`) is a
    candidate for the next revision.
+
+External compaction is covered: a new session's first prompt carries the
+summary as its input and an optional `lineage: { runtime, sessionId }` host pointer.
+The pointer is recorded verbatim, never interpreted by oar, and does not
+create a session-graph edge.
 
 ## Legend
 

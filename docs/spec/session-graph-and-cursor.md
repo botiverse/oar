@@ -6,8 +6,8 @@
 
 ## The session graph holds true sessions only
 
-**Why:** derived sessions (grok children) and transcript branches (pi
-forks) form parent/child structure; without an explicit graph, consumers
+**Why:** derived sessions (grok and codex children) form parent/child
+structure; without an explicit graph, consumers
 cannot answer "where did sess-B come from".
 
 A claude subagent is not a session; it is an entity on `agentPath`.
@@ -17,22 +17,20 @@ graph itself, exactly the merge the hard constraint in
 into one dimension. The graph therefore holds true sessions only; agent
 parent/child is expressed by `agentPath` plus the spawning `tool_call`
 record. `SessionNode` carries no `kind` field; it is derivable from the
-in-edge (no in-edge = root, `fork` edge = branch, `tool_call` edge =
-derived child), and the same information is not stored twice.
+in-edge (no in-edge = root, `tool_call` edge = derived child), and the same
+information is not stored twice.
 
 - grok (ACP): explicit parent session → child session (independent
   sessionId) = a real session-derivation edge. [src]
 - codex (app-server): a child thread is a derived child session; the edge
   comes from the collaboration item naming it (`subAgentActivity.agentThreadId`,
   `receiverThreadIds`). [env 0.149.0]
-- pi: the session tree (fork / parentId) is transcript branching, not
-  sub-agents. [src: pi session-manager]
 - claude: `parent_tool_use_id` is agent parent/child and produces no
   new session; carried by `agentPath`, not in the graph. [sym]
 
 ```ts
 interface SessionNode { id: string; }
-interface SessionEdge { parent: string; child: string; via: "tool_call" | "fork" | "resume"; }
+interface SessionEdge { parent: string; child: string; via: "tool_call"; }
 ```
 
 ### Example 5 · What enters the graph, what does not
@@ -40,9 +38,14 @@ interface SessionEdge { parent: string; child: string; via: "tool_call" | "fork"
 ```
 grok:   sess-A ──tool_call──▶ child session sess-B   (session derivation; child has its own sessionId → in the graph)
 codex:  thread-A ──tool_call──▶ child thread-B       (same shape; the child's records carry sessionId = thread-B, agentPath [])
-pi:     sess-A ──fork──▶ sess-A'                     (transcript branch → in the graph)
 claude: root ──tool_call(call_3)──▶ subagent "a1"    (agent parent/child → NOT in the graph; expressed by agentPath)
 ```
+
+Edges are emitted only when a runtime reports a tool call spawning a child
+session. `SessionOptions.resume` reopens the same node with a fresh stream at
+seq 0, so it is not an edge. Host continuity between distinct sessions is
+carried by the new session's first prompt `lineage` pointer, never by the
+graph.
 
 A node's records are read by its own `sessionId`: the Session folds
 (`model / usage / contextUsage`, `awaitTurnEnd`) scope to the root session

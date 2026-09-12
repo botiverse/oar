@@ -108,5 +108,5 @@ process.stdout.write(`child text: ${JSON.stringify(textOf(false).slice(0, 300))}
 process.stdout.write(`methods seen: ${JSON.stringify(Object.fromEntries(methods))}\n`);
 process.stdout.write(`thread ids in envelopes: ${JSON.stringify([...threadIds])}\n`);
 process.stdout.write(`graph: ${JSON.stringify(session.graph())}\n`);
-process.stdout.write(`usage: ${JSON.stringify(session.usage())}\n`);
+process.stdout.write(`usage: ${JSON.stringify(session.usage().value)}\n`);
 await session.dispose();

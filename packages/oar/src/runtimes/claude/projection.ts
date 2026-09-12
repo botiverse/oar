@@ -114,9 +114,10 @@ function toolResultViews(message: JsonRecord): EventView[] {
   for (const block of contentBlocks(message)) {
     if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
       const output = block.content === undefined ? undefined : JSON.stringify(block.content);
+      const result = typeof block.is_error === "boolean" ? (block.is_error ? "failed" as const : "ok" as const) : undefined;
       out.push(output === undefined
-        ? { kind: "tool_call_ended", callId: block.tool_use_id }
-        : { kind: "tool_call_ended", callId: block.tool_use_id, output });
+        ? { kind: "tool_call_ended", callId: block.tool_use_id, ...(result === undefined ? {} : { result }) }
+        : { kind: "tool_call_ended", callId: block.tool_use_id, output, ...(result === undefined ? {} : { result }) });
     }
   }
   return out;

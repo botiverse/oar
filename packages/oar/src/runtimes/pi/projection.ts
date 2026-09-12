@@ -156,9 +156,10 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     }
     case "tool_execution_end": {
       const output = jsonDetail(event.result);
+      const result = typeof event.isError === "boolean" ? (event.isError ? "failed" as const : "ok" as const) : undefined;
       return { state, views: [output === undefined
-        ? { kind: "tool_call_ended", callId: event.toolCallId }
-        : { kind: "tool_call_ended", callId: event.toolCallId, output }] };
+        ? { kind: "tool_call_ended", callId: event.toolCallId, ...(result === undefined ? {} : { result }) }
+        : { kind: "tool_call_ended", callId: event.toolCallId, output, ...(result === undefined ? {} : { result }) }] };
     }
     case "turn_end":
       // A provider failure surfaces only as stopReason "error" on the turn's

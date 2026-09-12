@@ -1,5 +1,6 @@
 import type {
   ContextUsage,
+  QueryResult,
   SessionRecord,
   SessionUsage,
   TokenTotals,
@@ -31,31 +32,33 @@ function inSession(record: SessionRecord, sessionId: string | undefined): boolea
 }
 
 /** The latest model the runtime reported for the root agent; null before any. */
-export function modelOf(records: readonly SessionRecord[], sessionId?: string): string | null {
-  for (let index = records.length - 1; index >= 0; index -= 1) {
-    const record = records[index];
-    if (record?.kind === "event" && record.agentPath.length === 0 && inSession(record, sessionId)) {
+export function modelOf(records: readonly SessionRecord[], sessionId?: string): QueryResult<string | null> {
+  let value: string | null = null;
+  let seq = -1;
+  for (const record of records) {
+    if (!inSession(record, sessionId)) { continue; }
+    seq = record.seq;
+    if (record.kind === "event" && record.agentPath.length === 0) {
       const view = record.body.views.findLast((candidate) => candidate.kind === "model");
-      if (view?.kind === "model") {
-        return view.model;
-      }
+      if (view?.kind === "model") { value = view.model; }
     }
   }
-  return null;
+  return { value, seq };
 }
 
 /** The latest context fullness the runtime reported for the root agent; null before any. */
-export function contextUsageOf(records: readonly SessionRecord[], sessionId?: string): ContextUsage | null {
-  for (let index = records.length - 1; index >= 0; index -= 1) {
-    const record = records[index];
-    if (record?.kind === "event" && record.agentPath.length === 0 && inSession(record, sessionId)) {
+export function contextUsageOf(records: readonly SessionRecord[], sessionId?: string): QueryResult<ContextUsage | null> {
+  let value: ContextUsage | null = null;
+  let seq = -1;
+  for (const record of records) {
+    if (!inSession(record, sessionId)) { continue; }
+    seq = record.seq;
+    if (record.kind === "event" && record.agentPath.length === 0) {
       const view = record.body.views.findLast((candidate) => candidate.kind === "usage" && candidate.usage.context !== undefined);
-      if (view?.kind === "usage" && view.usage.context !== undefined) {
-        return view.usage.context;
-      }
+      if (view?.kind === "usage" && view.usage.context !== undefined) { value = view.usage.context; }
     }
   }
-  return null;
+  return { value, seq };
 }
 
 /**
@@ -66,10 +69,13 @@ export function contextUsageOf(records: readonly SessionRecord[], sessionId?: st
  * total. Agents are the `agentPath`s of THIS session; derived child sessions
  * are not agents of it.
  */
-export function usageOf(records: readonly SessionRecord[], sessionId?: string): SessionUsage {
+export function usageOf(records: readonly SessionRecord[], sessionId?: string): QueryResult<SessionUsage> {
   const latest = new Map<string, { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }>();
+  let seq = -1;
   for (const record of records) {
-    if (record.kind !== "event" || !inSession(record, sessionId)) {
+    if (!inSession(record, sessionId)) { continue; }
+    seq = record.seq;
+    if (record.kind !== "event") {
       continue;
     }
     for (const view of record.body.views) {
@@ -82,12 +88,12 @@ export function usageOf(records: readonly SessionRecord[], sessionId?: string): 
   if (byAgent.length === 0) {
     // Nothing reported yet (or a runtime whose interface never carries token
     // totals): null, never a guessed zero.
-    return { total: null };
+    return { value: { total: null }, seq };
   }
   const total = byAgent.reduce<TokenTotals>(
     (sum, entry) => ({ input: sum.input + entry.tokens.input, output: sum.output + entry.tokens.output }),
     { input: 0, output: 0 },
   );
   const onlyRoot = byAgent.length <= 1 && byAgent.every((entry) => entry.agentPath.length === 0);
-  return onlyRoot ? { total } : { total, byAgent };
+  return { value: onlyRoot ? { total } : { total, byAgent }, seq };
 }

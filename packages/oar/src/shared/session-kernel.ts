@@ -195,7 +195,7 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
       if (!nodes.has(edge.child)) {
         nodes.set(edge.child, { id: edge.child });
       }
-      if (!edges.some((known) => known.parent === edge.parent && known.child === edge.child && known.via === edge.via)) {
+      if (!edges.some((known) => known.parent === edge.parent && known.child === edge.child)) {
         edges.push(edge);
       }
     },

@@ -49,6 +49,11 @@ Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [projection](../../packages/oar/src/runtimes/claude/projection.ts),
 [Session contract](../../packages/oar/src/contracts/session.ts).
 
+Claude's native `tool_result` block reports `is_error` ([src] stream-json
+schema). OAR maps `is_error: false` to `tool_call_ended.result: "ok"` and
+`true` to `"failed"`; when the field is absent, `result` is absent. The
+verbatim block remains in `native`.
+
 ## Capability details
 
 ### Session creation and resume
@@ -183,8 +188,8 @@ that the configured instructions survive manual `/compact`.
 Context reporting is **partial**. The `result` frame's `usage` view carries
 input/cache counts as context fullness and the running per-agent token total
 (`Session.contextUsage()` and `usage()` are folds over these views): across
-three one-word turns `usage().total.input` grew by about 22k per turn
-(cache reads included) while `contextUsage().tokens` stayed near 22k. Official
+three one-word turns `usage().value.total.input` grew by about 22k per turn
+(cache reads included) while `contextUsage().value.tokens` stayed near 22k. Official
 documentation describes result usage as aggregate main-loop usage for the
 user turn, so the context figure is **unverified as current fullness**
 across multiple model steps. Native compaction still runs; its frames are in

@@ -62,6 +62,11 @@ The implementation is divided between the [Grok profile](../../packages/oar/src/
 [turn machinery](../../packages/oar/src/shared/acp/turns.ts),
 [view projection](../../packages/oar/src/shared/acp/projection.ts), and
 [client app](../../packages/oar/src/shared/acp/client-app.ts).
+
+ACP `tool_call_update` reports `status: "completed" | "failed"` ([src]
+ACP schema `ToolCallStatus`). OAR maps those explicit statuses to
+`tool_call_ended.result: "ok" | "failed"`; a non-terminal or missing status
+leaves the field absent.
 "Unexposed" below means a native capability has no current OAR operation;
 "unverified" means the available evidence does not establish the behavior;
 "[sym]" means the name exists in the binary's symbol table but has never been

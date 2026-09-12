@@ -293,10 +293,10 @@ What the Agents API confirms, and what it adds, relative to the
    arrive only on later resource reads. A fold over the stream is honest
    only if it never claims finality; a later correction can only enter the
    stream as a new event if something polls, which OAR does not do.
-5. **Compaction happens and is not reported.** Relevant to
-   [open decision 2](../spec/README.md#open-decisions): OAR cannot lie about
-   lineage it cannot see, and a capability declaration should be able to
-   say "compaction: unobservable".
+5. **Compaction happens and is not reported.** External compaction continuity
+   is now defined by the [record-stream spec](../spec/record-stream.md): a new
+   session's first prompt carries the summary and optional host lineage;
+   runtime-native compaction remains an adapter evidence question.
 6. **Steer without a precondition.** Prompt and steer share one wire
    message, disambiguated by server state, so the busy/steer race is
    adjudicated remotely with no typed refusal. Evidence for keeping OAR's

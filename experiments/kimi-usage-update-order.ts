@@ -75,7 +75,7 @@ function tokensAtTurnEnded(session: Session): readonly Tokens[] {
   const seen: Tokens[] = [];
   session.subscribe((record) => {
     if (record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended")) {
-      seen.push(session.contextUsage()?.tokens ?? null);
+      seen.push(session.contextUsage().value?.tokens ?? null);
     }
   });
   return seen;

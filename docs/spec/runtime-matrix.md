@@ -24,11 +24,22 @@ calls, resume semantics, and what each adapter still does not carry.
 |---|---|---|---|---|---|---|
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | current transport's child usage attribution unverified | `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
 | codex (app-server) | native child threads and collaboration items arrive on the parent's connection ([env] 0.149.0) | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` ([env]: `started` on the root names the child, `interacted` on the child names the root) | both threads report cumulative `thread/tokenUsage/updated`; the child's is in its own session's records, not in the root `usage()` ([env]) | native thread topology; child threads are child sessions (see declared tier) | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
-| pi | no native (host composes) | host-nested sessions | flat (host splits) | fork edges (in graph) | session id | [src] |
+| pi | no native (host composes) | host-nested sessions | flat (host splits) | no runtime-reported edges | session id | [src] |
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
+
+## Tool outcomes
+
+The `tool_call_ended.result` field is populated only from an explicit native
+outcome. Claude's stream-json `tool_result.is_error` ([src]) maps to
+`"ok"`/`"failed"`; Codex `item/completed.status` ([src]) maps
+`completed`/`failed`; Pi `tool_execution_end.isError` ([src]) maps false/true;
+Grok and Kimi ACP `tool_call_update.status` ([src]) maps
+`completed`/`failed`. A frame without the corresponding native field leaves
+`result` absent. OAR never derives a result from output, exit codes, or
+timing, and the native frame remains verbatim beside the view.
 
 The #1/#2/#3 tiers are the attribution spectrum defined in
 [attribution.md](attribution.md).

@@ -102,8 +102,10 @@ Further rules:
   carries an optional `spanId` holding only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn id,
   such as pi's session-scoped events, simply have none.
-- **Query is a projection over the stream.** `contextUsage()` is a fold
-  over seq-carrying usage events, not a second source of truth.
+- **Query is a projection over the stream.** `model()`, `usage()`, and
+  `contextUsage()` are folds over the retained records and return
+  `{ value, seq }`; `seq` is the last record consumed, or `-1` before any
+  record.
 
 ## Record contracts
 
@@ -131,7 +133,8 @@ interface EventBody {
   native: unknown;              // the frame as the runtime sent it, never trimmed or re-shaped
   views: readonly EventView[];  // oar's readings of the frame, in frame order; [] when oar has none
 }
-// EventView: text_delta | reasoning | tool_call_started | tool_call_ended |
+// EventView: text_delta | reasoning | tool_call_started |
+// tool_call_ended {callId, output?, result?: "ok" | "failed"} |
 // turn_ended {outcome} | usage {context?, tokens?} | model {model}.
 // `views` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one record with
@@ -144,6 +147,12 @@ interface RequestRecord extends RecordEnvelope {
   direction: "toRuntime" | "toApp";
   body: RequestBody;            // prompt | steer | queue | abort | dispose | native {type, native} (toApp, verbatim)
 }
+
+interface PromptLineage { runtime: string; sessionId: string; }
+// RequestBody's prompt variant is { kind: "prompt"; input: string;
+// lineage?: PromptLineage }. The host pointer is copied verbatim and never
+// interpreted by oar; it identifies the prior session continued by a new
+// session's first prompt (external compaction).
 
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
@@ -165,6 +174,11 @@ documented on the contract itself; `prompt / steer / queue / abort` return
 both records they appended (`ControlResult`), so the request's `seq` is
 where the action sits in the stream. `dispose()` returns void: its request
 and the `exited` response are read from the stream like everything else.
+Each query returns `{ value, seq }`, with `seq` identifying the last record
+consumed by its fold (or `-1` before any record). A `tool_call_ended` view may
+carry `result: "ok" | "failed"` only when the runtime explicitly reports the
+outcome; oar never infers it from output, exit codes, or timing. When no
+runtime outcome is present, the key is absent.
 The folds, and `awaitTurnEnd`, scope to the ROOT session: a derived child
 session's records (own `sessionId`, a node in `graph()`) never satisfy
 them. On codex the child's `turn/completed` was observed arriving before
