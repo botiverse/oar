@@ -8,8 +8,9 @@ increments, not a promise to add every feature listed.
 - Provider-independent runtime registry with installation, model, usage, and
   session entry points.
 - One lossless, attributed, resumable record stream with explicit controls.
-- Runtime-specific capability declarations, native payload reachability,
-  read-backs, and typed unsupported outcomes.
+- Runtime-specific capability declarations (partial and deliberately limited
+  today), native payload reachability, read-backs, and typed unsupported
+  outcomes.
 - Mock, aimock, vendor, experiment, and live validation layers, with voyage
   logs as durable evidence.
 - Linked design, specification, runtime, and development documentation.
@@ -18,10 +19,10 @@ increments, not a promise to add every feature listed.
 
 ### 1. Make orientation cheap
 
-Expose a compact machine-readable snapshot for a host to answer “what can I do
-here?” without opening a session: installations, model availability, account
-state, capabilities, and known limits. Keep source, timestamp, and failure
-state explicit, and reuse existing probes.
+Compose the existing installation, model, account, and runtime probes into a
+compact machine-readable snapshot for a host to answer “what can I do here?”
+without opening a session. Do not add a second discovery mechanism. Keep
+source, timestamp, and failure state explicit.
 
 **Acceptance:** one bounded read can choose a runtime or explain why none is
 usable; secrets are absent; stale and partial facts remain distinguishable.
@@ -37,9 +38,9 @@ parsing prose; rejected input is provably caller-owned.
 
 ### 3. Make continuation first-class
 
-Define the smallest host-owned handoff artifact joining runtime identity,
-model, cursor, graph, capability decisions, and next action. Storage remains
-outside OAR.
+If a consumer needs a handoff, define only a provider-independent shape for
+runtime identity, model, cursor, graph, capability decision, and next action;
+storage and lifecycle remain wholly host-owned.
 
 **Acceptance:** a new worker can resume or reject a handoff from the artifact
 alone and explain every irrecoverable gap.
@@ -55,16 +56,24 @@ projections without duplicate controls.
 
 ### 5. Extend control across placement
 
-Only when a real host needs remote or multi-client operation, specify a host
-transport around the existing contract. Preserve ordering, cursors,
-attribution, and native reachability; do not create a remote-only contract.
+Only when a real host needs remote or multi-client operation, follow the
+architecture v4 decision recorded in Raft thread `#all:e1d09817`, message
+`5b5e279b`, and its adapter-as-client / `oar serve` direction. The
+transport-binding definition is pending; its definition is recorded in the
+same thread, message `b95d8f33`. Do not restate either design here.
+Preserve ordering, cursors, attribution, and native reachability; do not create
+a remote-only contract. Capability declaration must be finalized before this
+work is accepted; its definition is also pending from that architecture
+discussion.
 
-**Acceptance:** local and remote hosts pass the same behavior cases and define
-disconnect/reconnect by evidence rather than heartbeat guesses.
+**Acceptance:** after capability declaration is finalized, local and remote
+hosts pass the same behavior cases and define disconnect/reconnect by evidence
+rather than heartbeat guesses.
 
 ## Decision gates
 
 Before adding a public surface, record: (1) the caller decision it enables,
-(2) runtime evidence that the decision is unsafe today, (3) the owning layer,
-and (4) the cheapest regression test and resource cost. If any answer is
-missing, keep the idea in this roadmap or an experiment.
+(2) runtime evidence that the decision is unsafe today, (3) the owning layer
+and contract member, (4) the cheapest regression test and resource cost, and
+(5) a sea-trial case for every new `must` or `never`. If any answer is missing,
+keep the idea in this roadmap or an experiment.

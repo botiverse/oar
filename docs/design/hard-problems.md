@@ -77,25 +77,3 @@ subject of [foundations.md](foundations.md).
     session, process, and host lifecycle are three different layers, and
     multi-client attach needs a resumable cursor or you get grok-style
     notification loss.
-
-## The agent operating problems
-
-The protocol problems above describe what an adapter must preserve. A system
-used by agents also has to make the work itself legible and economical:
-
-16. **Orientation.** An agent needs one bounded answer about installations,
-    models, auth state, capabilities, limits, and stale facts before acting.
-17. **Action semantics.** An acknowledgement must say whether input was
-    accepted, where it landed, whether retry is safe, and who owns the next
-    decision. Prose errors and timeout guesses cause duplicate or lost work.
-18. **Resource economics.** Discovery, model calls, logins, replay, and retries
-    have different latency, quota, and cost. Agents need explicit boundaries
-    so a cheap question does not trigger expensive work.
-19. **Continuation and accretion.** A worker must leave enough identity,
-    cursor, evidence, and next action for another worker to continue. Without
-    a durable handoff, restarts repeat orientation and findings never become
-    reusable capability.
-
-These are operating criteria for the same foundations. [system.md](system.md)
-links discovery, declaration, control, records, projections, and continuation
-into one restartable loop.
