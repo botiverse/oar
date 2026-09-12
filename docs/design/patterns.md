@@ -14,19 +14,24 @@ assigns each layer to an owner.
 
 | Piece | What it is | Examples |
 |---|---|---|
-| **Application client** | The part of your product in the user's hands. It always runs on the user's own device. | A browser tab, a phone app, a desktop app, a terminal program |
-| **Application server** | Your backend. Holds accounts and sessions for many users, and may or may not drive the agent. Pattern 1 has none in the session path. | A web backend, a task orchestrator, a chat platform's server |
+| **Client** | The part of your product in the user's hands. It runs on the user's own device and it is the only piece that always does. | A browser tab, a phone app, a desktop app, a terminal program |
+| **Driver** | The process that holds sessions and sends prompts, steering, and cancel to the harness. It can be a daemon the user runs on their own machine, or your backend serving many users. Which of those it is, and whose machine it runs on, is the first thing a pattern states. | A local daemon behind a desktop app, a web backend, a task orchestrator, a chat platform's server |
 | **Harness** | The agent loop: model calls, tool dispatch, context management, sub-agents. Owned by a vendor. | Claude Code, Codex, Grok Build, Kimi Code, Pi; a vendor's hosted agent API |
 | **Environment** | Where commands run and files live. The tool side of the harness: a `bash` tool implies a Linux host somewhere. | A laptop, a container, a vendor sandbox |
 
-Earlier drafts had one "application" piece. Splitting it into client and
-server is what makes the patterns line up: the client is always on the
-user's device, so it is never the thing that moves. What moves is the
-harness, and the question is who drives it.
+Earlier drafts had one "application" piece, and a later one split it into
+"client" and "server", where server meant your backend. That second split
+was wrong: in the remote control shape the thing that drives the harness
+is a daemon the user starts on their own desktop or on a Linux box they
+rent, and a desktop app may even bundle that daemon inside itself. So the
+split here is by job, not by owner. The client is the interface; the
+driver is whatever holds the session and talks to the harness. Who runs
+the driver is the question the patterns answer, not part of the
+definition.
 
 A dashed frame in a diagram means "one party provisions and manages
 everything inside". The label names that party. Colors are constant across
-every diagram: blue is the application (client or server), purple is the
+every diagram: blue is the application (client or driver), purple is the
 harness, green is the environment, grey is a session endpoint or executor
 that carries a connection, orange is oar.
 
@@ -36,10 +41,9 @@ Start from the harness and ask who drives it and where it runs. Three
 questions give three patterns, and every finer split lives inside one of
 them.
 
-1. **Does a server of yours drive the harness?** No: the client starts the
-   harness on its own host, and there is nothing else in the session path.
-   That is pattern 1. Yes: the harness is somewhere your server reaches
-   over the network, and the next question applies.
+1. **Who runs the driver?** The user, as a daemon on a machine they own,
+   with the harness on that same machine: pattern 1. You, as a backend
+   that reaches the harness over the network: the next question applies.
 2. **Whose machine does the harness run on?** A machine the user or
    customer owns and you did not provision: pattern 2. A host you
    provisioned, a vendor's service, or no machine at all: pattern 3.
@@ -49,10 +53,11 @@ them.
    durable store, with no machine under it (3.3).
 
 The client is not one of the questions. It sits on the user's device in
-every pattern, and it matters to the shape in exactly two places: in
-pattern 2 it may share the machine with the harness, and in 3.2b it may be
-the thing that starts an executor on the user's machine. Everywhere else
-the client only talks to your server and never touches the agent.
+every pattern, and it shapes a pattern in exactly three places: in
+pattern 1 it either contains the driver or connects to it (1a and 1b), in
+pattern 2 it may share the machine with the harness, and in 3.2b it may
+be the thing that starts an executor on the user's machine. Everywhere
+else the client only talks to your backend and never touches the agent.
 
 ### The three axes
 
@@ -61,14 +66,15 @@ a grid to fill in: most combinations of axis values are not a pattern. The
 appendix at the end lays the grid out anyway, so that every combination
 has a stated answer, including the empty ones.
 
-**Axis A: who drives the harness, and where it runs.** This is the axis
-the three questions above walk down.
+**Axis A: who runs the driver, and where the harness runs.** This is the
+axis the three questions above walk down.
 
-- The client, on its own host. Pattern 1.
-- Your server, over the network, on a machine the user or customer owns.
-  Pattern 2.
-- Your server, over the network, on a host you or a vendor provisioned,
-  or on no host at all. Pattern 3.
+- The user runs the driver on their own machine, and the harness is on
+  that machine. Pattern 1.
+- You run the driver as a backend, and the harness is on a machine the
+  user or customer owns. Pattern 2.
+- You run the driver as a backend, and the harness is on a host you or a
+  vendor provisioned, or on no host at all. Pattern 3.
 
 **Axis B: what form the harness takes.** This decides where the harness
 can physically run.
@@ -110,7 +116,7 @@ axes.
   mount (pattern 3.3): the embedded harness creates the container the
   first time the agent opens it, and destroys it when the agent has
   nothing open, so it is released between turns.
-- Externally connected. Your server, or the client on the user's own
+- Externally connected. Your backend, or the client on the user's own
   machine, provisions the box, and something inside it opens an outbound
   connection to the harness. The harness only borrows that connection; it
   never owns the lifecycle. Pattern 3.2b. Both vendors that ship this
@@ -131,26 +137,32 @@ machine for a few local tools. The environment is then a cloud machine
 plus an optional bridge on the user's side, and each half keeps its own
 row. Pattern 3.2 describes this as 3.2a and 3.2b stacked.
 
-### Pattern 1: the client drives the harness on its own host
+### Pattern 1: the user runs the driver on their own machine
 
-Axis A client, axis B library or process, axis C agent in the box. No
-server of yours is in the session path. The client starts the harness on
-the machine it runs on, and tools run on that same machine. A vendor
-account service (login, billing, sync) may exist and the harness may talk
-to it, but it does not drive the session, so the pattern is unchanged.
+Axis A the user's own driver, axis B library or process, axis C agent in
+the box. No backend of yours is in the session path. The driver runs on
+a machine the user owns, starts the harness on that same machine, and
+tools run there too. A vendor account service (login, billing, sync) may
+exist and the harness may talk to it, but it does not drive the session,
+so the pattern is unchanged.
 
-The host can be a laptop, a CI runner, or a server of your own. Which one
-does not change the pattern; what changes is who the "client" is. On a
-laptop it is a person's terminal or desktop app. In CI it is the job
-script. On a server it is a single-tenant tool whose users accept that
-the agent's `bash` runs on that server, so sandboxing is the harness's job
-or yours.
+The host can be a laptop, a Linux server the user rents, a CI runner, or
+a server of your own that you use as a single tenant. Which one does not
+change the pattern. What splits the pattern is whether the client and
+the driver are one program or two.
+
+#### 1a: the client contains the driver
+
+The client starts the harness itself. A terminal tool, a desktop app
+with the daemon bundled inside, a CI job script, an evaluation script.
+There is one program, and "driver" is just the part of it that holds
+the session. This is the shape every coding CLI ships first.
 
 ```mermaid
 flowchart LR
-  subgraph host["One host, the client's machine"]
+  subgraph host["One host, the user's machine"]
     direction LR
-    Client["Application client<br/>(terminal, desktop app, or a script)"]:::app
+    Client["Client with the driver inside<br/>(terminal, desktop app, or a script)"]:::app
     Harness["Harness<br/>(library or local process)"]:::harness
     Env["Environment<br/>(commands and files on this host)"]:::env
   end
@@ -167,47 +179,101 @@ flowchart LR
   classDef front fill:#f1f5f9,stroke:#475569,color:#1e293b
 ```
 
+#### 1b: the user runs a daemon, clients attach to it
+
+The user starts a daemon on a machine they own: their desktop, or a
+Linux server they rent. The daemon holds the sessions and drives the
+harness there. Clients are separate programs: a web page the daemon
+serves, a desktop app, a terminal, an IDE extension. They connect to
+the daemon over localhost, the LAN, an SSH tunnel, or a tunnel service
+the user set up. Several clients can attach to one session, and a client
+can close while the session keeps running.
+
+Nothing of yours is in the path. The user is responsible for reaching
+their own daemon, which is exactly the thing pattern 2 takes over: there
+the same daemon dials out to your backend, and your backend pairs it with
+clients that could never reach the user's machine directly. A product
+can ship one daemon that does both: it listens locally for 1b clients
+and, when the user signs in, also dials out for pattern 2. The desktop
+app that "bundles the daemon" is 1a with the same code inside; the
+user who instead runs the daemon on a rented Linux box and opens the web
+client from their laptop is 1b.
+
+```mermaid
+flowchart LR
+  Web["Client<br/>(web page, desktop app, or terminal; may be on another device)"]:::app
+  subgraph host["A machine the user owns: desktop or a rented Linux box"]
+    direction LR
+    Daemon["Driver<br/>(daemon the user started; listens)"]:::app
+    Harness["Harness<br/>(local process)"]:::harness
+    Env["Environment<br/>(commands and files on this host)"]:::env
+  end
+  Web -- "localhost, LAN, or a tunnel the user set up" --> Daemon
+  Daemon -- "prompts, steering, cancel" --> Harness
+  Harness -- "events and output" --> Daemon
+  Harness -- "tool calls" --> Env
+  Env -- "tool results" --> Harness
+  style host stroke-dasharray: 6 4
+  classDef app fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a
+  classDef harness fill:#ede9fe,stroke:#6d28d9,color:#4c1d95
+  classDef env fill:#dcfce7,stroke:#15803d,color:#14532d
+  classDef front fill:#f1f5f9,stroke:#475569,color:#1e293b
+```
+
 Typical applications:
 
-- A terminal or desktop coding tool a developer runs on their own machine.
+- A terminal or desktop coding tool a developer runs on their own machine
+  (1a).
 - A CI job that runs an agent inside the runner to fix, review, or migrate
-  code and then exits.
+  code and then exits (1a).
+- A self-hosted agent daemon on the user's own server, with a web client
+  the daemon serves and a desktop client that can optionally bundle the
+  daemon (1b, with 1a as the bundled form).
 - A single-tenant internal tool on one server, where the agent's shell
-  access to that server is acceptable.
-- Evaluation and batch scripts that drive many sessions on one box.
+  access to that server is acceptable (1a or 1b).
+- Evaluation and batch scripts that drive many sessions on one box (1a).
 
-Several clients on one host are still pattern 1. `grok agent leader` is a
-local Unix socket that a TUI, an IDE extension, and a headless CLI attach
-to on one machine; the harness is driven locally, only by more than one
-program.
+Several clients on one host are 1b, not a new pattern. `grok agent
+leader` is a local Unix socket that a TUI, an IDE extension, and a
+headless CLI attach to on one machine; the driver is a daemon the user
+started, and the clients are separate programs.
 
-### Pattern 2: your server drives a harness on a machine the user or customer owns
+The new problem 1b creates is the same one pattern 2 and 3.1 have: a
+client can detach and reattach, and several clients may watch one
+session. If the daemon discards events while nobody is attached, work is
+lost silently. The daemon needs a resumable cursor.
 
-Axis A your server, on their machine; axis B local process; axis C agent
-in the box. The harness is a CLI or SDK started on a machine your product
-did not create and does not manage: the user's own laptop or desktop, or a
-customer's own infrastructure ("bring your own compute"). Your server does
-not know its address, usually cannot reach it (home NAT, corporate
-firewall), and has no say in when it is up.
+### Pattern 2: your backend drives a harness on a machine the user or customer owns
+
+Axis A your backend as the driver, harness on their machine; axis B local
+process; axis C agent in the box. The harness is a CLI or SDK started on
+a machine your product did not create and does not manage: the user's own
+laptop or desktop, or a customer's own infrastructure ("bring your own
+compute"). Your backend does not know its address, usually cannot reach it
+(home NAT, corporate firewall), and has no say in when it is up.
 
 Two consequences follow, and they are what the pattern is about.
 
 **The connection is dialed out.** Nothing can dial into the machine, so a
-small daemon on it dials out to your server and holds that connection
-open. Your server treats the connection as its channel to the agent: it
+small daemon on it dials out to your backend and holds that connection
+open. Your backend treats the connection as its channel to the agent: it
 sends prompts, steering, and cancel down it, and receives events and
 output up it. Who listens and who dials is a transport property; the
 session protocol on top is the same as in 3.1, where the direction is
 reversed.
 
-**Your server is where the client and the daemon meet.** The client, on
-whatever device the user holds, talks to your server. The daemon, on the
-machine with the checkouts and credentials, also talks to your server. The
-server pairs them, and neither side needs to reach the other directly.
-That is why there is no separate "relay" in this pattern: the server is
-the relay, and it is your application, not a piece of plumbing. Whether
-the client sits on the same machine as the daemon or on another one is
-the one way the client shapes this pattern:
+**Your backend is where the client and the daemon meet.** The client, on
+whatever device the user holds, talks to your backend. The daemon, on the
+machine with the checkouts and credentials, also talks to your backend.
+The backend pairs them, and neither side needs to reach the other
+directly. That is why there is no separate "relay" in this pattern: the
+backend is the relay, and it is your application, not a piece of
+plumbing. This is also the whole difference from 1b. In 1b the daemon on
+the user's machine is the driver and the user has to reach it. In pattern
+2 the session belongs to your backend, the daemon on the user's machine
+is a session endpoint under it, and your backend can drive the agent when
+no client is online. Whether the client sits on the same machine as the
+daemon or on another one is the one way the client shapes this pattern:
 
 - Same machine. The user runs your desktop app on their laptop and the
   daemon runs there too. Raft's Computer is this form: the member's
@@ -215,9 +281,9 @@ the one way the client shapes this pattern:
   talk to the Raft server. The user still drives the agent through the
   server, so the shape is unchanged; only the network hop is short.
 - Different machine. The user drives the laptop from a phone or a browser
-  through your server. Remote control products are this form.
+  through your backend. Remote control products are this form.
 
-The new problem this pattern creates: the server can disconnect and
+The new problem this pattern creates: your backend can disconnect and
 reconnect, the daemon can drop and redial, and several clients may want
 to watch one session. If the daemon discards events while nobody is
 attached, work is lost silently. The endpoint on the user's machine needs
@@ -226,8 +292,8 @@ a resumable cursor, the same requirement that 3.1 has.
 ```mermaid
 flowchart LR
   Phone["Application client<br/>(phone, browser, or the desktop app below)"]:::app
-  subgraph server["Your server, listens"]
-    App["Application server<br/>(you)"]:::app
+  subgraph server["Your backend, listens"]
+    App["Driver<br/>(your backend)"]:::app
   end
   subgraph theirs["Machine owned by the user or customer; no inbound port"]
     direction LR
@@ -271,13 +337,13 @@ server. In all three the harness runs on the user's machine, the client
 is a browser, a phone, or a desktop app, and the product never gets an
 inbound port on the user's machine.
 
-### Pattern 3: your server drives an agent on a host you or a vendor provide, or on no host
+### Pattern 3: your backend drives an agent on a host you or a vendor provide, or on no host
 
-Axis A your server, on a host you or a vendor provisioned, or on none.
+Axis A your backend, on a host you or a vendor provisioned, or on none.
 Every hosted product whose agent is not on the user's machine is here: a
 cloud IDE, a task runner that turns issues into pull requests, an
 assistant that costs nothing between messages. The client is a browser or
-a phone talking to your server and nothing more, with one exception noted
+a phone talking to your backend and nothing more, with one exception noted
 in 3.2b. What separates the shapes inside the pattern is who runs the
 harness, and then whether and where the agent has a machine.
 
@@ -295,13 +361,13 @@ harness, and then whether and where the agent has a machine.
 Axis B local process, axis C agent in the box. The harness is a CLI or
 SDK that you start on a machine you created and manage: a dev container
 per user, a runner in your fleet, a sandbox rented from a vendor. Because
-you created the host, your server knows its address and decides when it
+you created the host, your backend knows its address and decides when it
 starts and stops, so the simplest transport is an endpoint that listens on
 the agent host and a server that connects to it. A host that must dial
 out instead (a runner behind a firewall) is still 3.1; the listening form
 is just the usual one.
 
-Something on the agent host has to speak a session protocol; your server
+Something on the agent host has to speak a session protocol; your backend
 connects to it, and the agent runs tools on that host. The server can
 disconnect and reconnect, and several clients may watch one session
 through it, so the endpoint needs a resumable cursor. This is the same
@@ -311,8 +377,8 @@ why part 2 treats the two as one placement.
 ```mermaid
 flowchart LR
   Client["Application client<br/>(browser, phone)"]:::app
-  subgraph server["Your server"]
-    App["Application server<br/>(you)"]:::app
+  subgraph server["Your backend"]
+    App["Driver<br/>(your backend)"]:::app
   end
   subgraph agenthost["Agent host, you provision and manage"]
     Front["Session endpoint<br/>(listens)"]:::front
@@ -351,7 +417,7 @@ its own remote product, which is pattern 2.
 #### 3.2: the harness inside a vendor's service
 
 Axis B vendor service. The harness exists only inside the vendor's
-infrastructure; there is nothing to install. Your server talks to the
+infrastructure; there is nothing to install. Your backend talks to the
 vendor's API. Axis C is where this sub-pattern splits, and the split is
 the vendor's design decision, not yours. The three shapes below are the
 ones OpenAI's Agents API exposes as environment types; Claude Managed
@@ -375,8 +441,8 @@ architecture picture.
 ```mermaid
 flowchart LR
   Client["Application client<br/>(browser, phone)"]:::app
-  subgraph server["Your server"]
-    App["Application server<br/>(you)"]:::app
+  subgraph server["Your backend"]
+    App["Driver<br/>(your backend)"]:::app
   end
   subgraph vendor["Provisioned and managed by the vendor"]
     Harness["Harness<br/>(hosted agent API)"]:::harness
@@ -415,7 +481,7 @@ resets, or destroys the box on the other end.
 Whose box it is decides who starts the executor, and this is where the
 client comes back into the picture:
 
-- Your box. A container in your VPC or a partner sandbox; your server
+- Your box. A container in your VPC or a partner sandbox; your backend
   provisions it and starts the executor. The client is not involved.
 - The user's own computer. Your desktop app starts the executor on the
   laptop. A hosted product then reaches the user's checkouts,
@@ -426,8 +492,8 @@ client comes back into the picture:
 
 ```mermaid
 flowchart LR
-  subgraph server["Your server"]
-    App["Application server<br/>(you)"]:::app
+  subgraph server["Your backend"]
+    App["Driver<br/>(your backend)"]:::app
   end
   subgraph vendor["Managed by the vendor"]
     Harness["Harness<br/>(hosted agent API)"]:::harness
@@ -455,7 +521,7 @@ flowchart LR
 
 Note the resemblance to pattern 2: the executor is the same "dial out
 from a box nobody can reach" shape, one layer down. In pattern 2 the
-whole harness is on the user's machine and dials out to your server. Here
+whole harness is on the user's machine and dials out to your backend. Here
 only the environment is on the user's machine and dials out to the
 vendor's harness.
 
@@ -478,7 +544,7 @@ Typical applications:
   a Claude Managed Agents environment of type `self_hosted`.
 
 Two vendors ship this shape and they chose different semantics for the
-hole. The difference matters for how your server sizes and runs its side.
+hole. The difference matters for how your backend sizes and runs its side.
 
 | | OpenAI Agents API `self_hosted` | Claude Managed Agents `self_hosted` |
 |---|---|---|
@@ -486,14 +552,14 @@ hole. The difference matters for how your server sizes and runs its side.
 | Connection model | Connect: the executor attaches to one session | Work queue: the worker polls the environment's queue over outbound HTTPS and claims sessions |
 | Session with nobody connected | The input request itself blocks until an executor connects; the parked input then runs, but a client that drops the request loses it (observed) | Stays queued until a worker claims it |
 | Sessions per connection | One | Many, sequentially, or a fresh sandbox per claimed session |
-| Who decides the box per session | Your server, before it starts the executor | The worker, when it claims: run in place or spawn a container |
+| Who decides the box per session | Your backend, before it starts the executor | The worker, when it claims: run in place or spawn a container |
 | Credential inside the box | Environment key | Environment key, never the API key |
-| Wake-up | Your server starts the executor when it starts the session | Always-on polling, or a webhook on run start that triggers a worker |
+| Wake-up | Your backend starts the executor when it starts the session | Always-on polling, or a webhook on run start that triggers a worker |
 
 The OpenAI shape is closer to pattern 2 one layer down: one box, one
 outbound dial, one session. The Anthropic shape is a worker pool against
 a queue, so one long-lived worker can serve many sessions and the
-"provision a box" decision moves from your server into the worker. In
+"provision a box" decision moves from your backend into the worker. In
 both, the lifecycle authority stays on your side and the harness only
 ever sees a connection.
 
@@ -511,9 +577,9 @@ sub-pattern and also its cost: the box's supervision is entirely yours.
 ##### 3.2c: no environment
 
 No sandbox anywhere. Every tool the harness wants is a function call back
-into your server, which answers and returns the result. The call is
+into your backend, which answers and returns the result. The call is
 asynchronous: the harness parks in a requires-action state until you
-answer, and that parked state belongs to the session, so your server has
+answer, and that parked state belongs to the session, so your backend has
 to find it again after a restart. Vendors name these tools differently
 (function tools at OpenAI, custom tools in Claude Managed Agents,
 client-side tools in the Vercel AI SDK); oar calls them
@@ -522,8 +588,8 @@ runtime-to-application requests and binds the name to none of them.
 ```mermaid
 flowchart LR
   Client["Application client<br/>(browser, phone)"]:::app
-  subgraph server["Your server"]
-    App["Application server<br/>(you)"]:::app
+  subgraph server["Your backend"]
+    App["Driver<br/>(your backend)"]:::app
     Tools["Your function tools"]:::app
   end
   subgraph vendor["Managed by the vendor"]
@@ -559,15 +625,15 @@ call runs to completion somewhere the harness never sees, and nothing
 exists between calls. That is the defining property, and it is about the
 environment only.
 
-Whether your server itself is serverless is a separate choice, and both
+Whether your backend itself is serverless is a separate choice, and both
 forms exist:
 
-- 3.3a: your server and the harness are one serverless unit that wakes on
+- 3.3a: your backend and the harness are one serverless unit that wakes on
   an event, rebuilds its state from the store, takes a turn, and goes
   back to nothing. Idle costs nothing because nothing is running. This is
   antiproton, and it is the shape Archil calls "the file system is the
   agent".
-- 3.3b: your server and the harness are an ordinary long-running process,
+- 3.3b: your backend and the harness are an ordinary long-running process,
   and only the environment is serverless. Archil Serverless Execution
   used as a bash tool is this form. The server costs what any process
   costs; the saving is that no box exists for the agent.
@@ -585,7 +651,7 @@ flowchart LR
   Trigger["Trigger<br/>(client message, webhook, timer)"]:::app
   subgraph unit["Serverless unit, wakes per event, scales to zero"]
     direction LR
-    App["Application server<br/>(you)"]:::app
+    App["Driver<br/>(your backend)"]:::app
     Harness["Harness<br/>(library, embedded)"]:::harness
     App --> Harness
   end
@@ -606,10 +672,10 @@ flowchart LR
 ```
 
 This is a third value on axis C, not a variant of 3.2c. In 3.2c the tools
-are your server's own functions and the harness is a vendor service; the
+are your backend's own functions and the harness is a vendor service; the
 agent has no workspace. In 3.3 the tools are functions over a store that
 is the agent's workspace, and the harness is a library embedded next to
-your server. The store outlives every process, so the store is the
+your backend. The store outlives every process, so the store is the
 identity of the agent: Archil's phrasing is that the file system is the
 agent, and antiproton's is that state is a fold over an event log.
 
@@ -737,17 +803,17 @@ each vendor.
 ### Who owns which layer
 
 The same five columns as the patterns, one row per lifecycle layer.
-"You" is the application server; "the client" is the application client
+"You" is the driver when it is your backend; "the client" is the client
 on the user's device.
 
-| | 1: client, one host | 2: their machine | 3.1: host you provision | 3.2: vendor service | 3.3: store plus functions |
+| | 1: the user's driver, one host | 2: their machine | 3.1: host you provision | 3.2: vendor service | 3.3: store plus functions |
 |---|---|---|---|---|---|
-| Host lifecycle | the client's machine; nobody creates it per session | the user or customer; you never create or destroy it | you (or a scheduler you run) | 3.2a the vendor; 3.2b you or the client; 3.2c nobody | the store outlives every process; compute exists per call |
-| Harness process lifecycle | the client spawns and disposes | the daemon on their machine spawns; you drive it | the endpoint on your host spawns; you drive it | the vendor; you see sessions, not processes | the serverless unit (3.3a) or your process (3.3b) embeds it |
+| Host lifecycle | the user's machine; nobody creates it per session | the user or customer; you never create or destroy it | you (or a scheduler you run) | 3.2a the vendor; 3.2b you or the client; 3.2c nobody | the store outlives every process; compute exists per call |
+| Harness process lifecycle | the driver on the user's machine spawns and disposes | the daemon on their machine spawns; you drive it | the endpoint on your host spawns; you drive it | the vendor; you see sessions, not processes | the serverless unit (3.3a) or your process (3.3b) embeds it |
 | Environment | the same host | the same machine | the same host | 3.2a vendor sandbox; 3.2b your box, or the user's computer via the client; 3.2c none | a store plus functions; a box only when opened, then harness-managed or application-managed |
-| Harness credentials | on the client's machine | on their machine, theirs | on your host, yours | the vendor's; inside your box only an environment key | inside the unit, dereferenced server-side |
-| Inbound network exposure | none | none on their side; your server listens | your host listens, or dials out | none on your side; the executor dials out | none; the unit is invoked by events |
-| Recovery after the application disconnects | the harness process is gone with the client | the daemon keeps running; it needs a resumable cursor | the endpoint keeps running; it needs a resumable cursor | the vendor keeps the session; you resume with a cursor the vendor defines | nothing was running; the next event rebuilds state |
+| Harness credentials | on the user's machine | on their machine, theirs | on your host, yours | the vendor's; inside your box only an environment key | inside the unit, dereferenced server-side |
+| Inbound network exposure | none | none on their side; your backend listens | your host listens, or dials out | none on your side; the executor dials out | none; the unit is invoked by events |
+| Recovery after the application disconnects | 1a: gone with the client; 1b: the daemon keeps running and needs a resumable cursor | the daemon keeps running; it needs a resumable cursor | the endpoint keeps running; it needs a resumable cursor | the vendor keeps the session; you resume with a cursor the vendor defines | nothing was running; the next event rebuilds state |
 
 ## Part 2: where oar sits
 
@@ -790,8 +856,9 @@ fourth runtime class. It is patterns 2 and 3.1 below.
 
 ### Pattern 1 with oar: shipped
 
-oar is a library in the client's process. It spawns the CLI or calls the
-SDK, owns the harness process lifecycle (spawn, `dispose`, exit as a
+oar is a library in the driver's process, which in 1a is the client
+itself and in 1b is the daemon the user started. It spawns the CLI or
+calls the SDK, owns the harness process lifecycle (spawn, `dispose`, exit as a
 recorded fact, see [liveness.md](liveness.md)), and serves
 `subscribe(observer, {sessionId, afterSeq})` from memory while the
 process is alive. After the process dies, it rebuilds the record stream
@@ -801,9 +868,9 @@ process.
 
 ```mermaid
 flowchart LR
-  subgraph host["One host, the client's machine"]
+  subgraph host["One host, the user's machine"]
     direction LR
-    Client["Application client<br/>(you)"]:::app
+    Client["Driver<br/>(1a: the client itself; 1b: the user's daemon)"]:::app
     Oar["@botiverse/oar<br/>(in-process library)"]:::oar
     Harness["Harness<br/>(CLI subprocess, or SDK in-process)"]:::harness
     Env["Environment<br/>(this host)"]:::env
@@ -820,6 +887,15 @@ flowchart LR
   classDef oar fill:#ffedd5,stroke:#c2410c,color:#7c2d12
 ```
 
+In 1b the daemon holds the oar library and the client reaches the daemon
+over the network. That hop can be the application's own protocol on top
+of the library, or it can be `oar serve` started by the user in listening
+mode with an oar thin client inside the web or desktop client. The second
+choice is the same service and the same wire contract as patterns 2 and
+3.1 below, run by the user instead of by you, so a daemon that listens
+locally for 1b and dials out for pattern 2 is one binary with a direction
+switch.
+
 ### Patterns 2 and 3.1 with oar: one service, designed, not shipped
 
 Patterns 2 and 3.1 differ in who owns the harness host and in which side
@@ -830,11 +906,11 @@ launch mode, with a direction switch.
 
 - On the agent host, `oar serve` runs the same library as pattern 1 with
   a transport in front of it. It owns the harness process lifecycle
-  exactly as pattern 1 does. It either listens (3.1, your server
+  exactly as pattern 1 does. It either listens (3.1, your backend
   connects) or dials out to an address you configure (2, the daemon on the
-  user's machine reaches your server), and the session protocol is the
+  user's machine reaches your backend), and the session protocol is the
   same in both directions.
-- In your server, an oar thin client speaks the protocol types and holds
+- In your backend, an oar thin client speaks the protocol types and holds
   the cursor. It has zero runtime dependencies: no CLIs, no SDKs, no
   spawning. It subscribes with `afterSeq` and gets the same record stream
   a pattern 1 caller gets.
@@ -846,9 +922,9 @@ launch mode, with a direction switch.
 ```mermaid
 flowchart LR
   UserClient["Application client<br/>(phone, browser, desktop app)"]:::app
-  subgraph server["Your server"]
+  subgraph server["Your backend"]
     direction LR
-    App["Application server<br/>(you)"]:::app
+    App["Driver<br/>(your backend)"]:::app
     Client["oar thin client<br/>(protocol types + cursor, no runtimes)"]:::oar
     App --> Client
   end
@@ -884,7 +960,7 @@ The wire format of this transport is not decided in this document; see
 
 ### Pattern 3.2 with oar: vendor API client adapter, designed, not shipped
 
-oar runs in your server as a client of the vendor's API. It does not own
+oar runs in your backend as a client of the vendor's API. It does not own
 the harness process; the vendor does. It owns the session view: it maps
 the vendor's events, items, and webhooks onto the record stream, assigns
 `seq`, and turns vendor "requires action" states into oar's
@@ -897,9 +973,9 @@ about it and nothing more.
 
 ```mermaid
 flowchart LR
-  subgraph server["Your server"]
+  subgraph server["Your backend"]
     direction LR
-    App["Application server<br/>(you)"]:::app
+    App["Driver<br/>(your backend)"]:::app
     Oar["@botiverse/oar<br/>(vendor API client adapter)"]:::oar
     App --> Oar
   end
@@ -940,7 +1016,7 @@ The hybrid case in 3.2b where the executor runs on the user's machine is
 covered by the probe in [runtimes/agents-api.md](../runtimes/agents-api.md):
 the adapter holds the vendor session, and a separate local executor is
 started in the working directory and killed on dispose, with two
-credentials in play (the API key in your server, the environment key in
+credentials in play (the API key in your backend, the environment key in
 the box).
 
 ### Pattern 3.3 with oar: not tried
@@ -960,11 +1036,11 @@ process is. The differences are all around it:
 
 ### Who owns which layer, with oar in place
 
-| | 1: library in the client | 2 and 3.1: oar service | 3.2: cloud adapter | 3.3: library in a serverless unit |
+| | 1: library in the user's driver | 2 and 3.1: oar service | 3.2: cloud adapter | 3.3: library in a serverless unit |
 |---|---|---|---|---|
 | Session lifecycle | oar | oar, on the agent host | oar's view; the vendor's truth | oar, rebuilt from the store |
 | Harness process lifecycle | oar | oar serve | the vendor | oar, inside the unit |
-| Host lifecycle | the client's machine | the user or customer (2), you (3.1) | the vendor, or your box (3.2b) | the platform, per event |
+| Host lifecycle | the user's machine | the user or customer (2), you (3.1) | the vendor, or your box (3.2b) | the platform, per event |
 | Replay after disconnect | from memory, then the runtime log | from the service's cursor | as the adapter declares | from the store |
 | Status | shipped | designed, not shipped | designed, not shipped | not tried; runtime compatibility unverified |
 
@@ -973,7 +1049,11 @@ process is. The differences are all around it:
 By scenario:
 
 - A developer tool, a CI job, a script, or a single-tenant server tool:
-  pattern 1. oar as a library, shipped today.
+  pattern 1a. oar as a library, shipped today.
+- A daemon the user runs on their desktop or their own Linux box, with a
+  web or desktop client attached, and no backend of yours in the session
+  path: pattern 1b. oar as a library behind your own protocol, shipped,
+  or `oar serve` listening on the user's machine, designed.
 - A product whose agent runs on the user's own machine, driven from a
   phone or the web: pattern 2. `oar serve` dialing out, designed.
 - A web product that gives each user a container or a runner you
@@ -989,16 +1069,16 @@ By question:
 
 ```mermaid
 flowchart TD
-  Q1{"Does a server of yours<br/>drive the harness?"}
+  Q1{"Who runs the driver?"}
   Q2{"Whose machine does<br/>the harness run on?"}
   Q3{"Who runs the harness?"}
-  P1["Pattern 1<br/>client on its own host<br/>oar: shipped"]
+  P1["Pattern 1<br/>the user's driver on their machine<br/>1a bundled, 1b daemon<br/>oar: shipped"]
   P2["Pattern 2<br/>their machine, daemon dials out<br/>oar serve: designed"]
   P31["3.1<br/>host you provision, endpoint listens<br/>oar serve: designed"]
   P32["3.2<br/>vendor service<br/>cloud adapter: designed"]
   P33["3.3<br/>library over a store<br/>oar: not tried"]
-  Q1 -- "no" --> P1
-  Q1 -- "yes" --> Q2
+  Q1 -- "the user, on their own machine" --> P1
+  Q1 -- "you, as a backend" --> Q2
   Q2 -- "the user's or customer's" --> P2
   Q2 -- "one you, a vendor, or nobody provides" --> Q3
   Q3 -- "you, as a CLI or SDK on your host" --> P31
@@ -1028,7 +1108,7 @@ Routes to keep in mind:
 ## Not decided here
 
 - The transport binding for `oar serve`: wire format, authentication,
-  how a dialing-out endpoint is paired with a session on your server.
+  how a dialing-out endpoint is paired with a session on your backend.
   That is a separate document, to be written when a real remote consumer
   exists.
 - The typed capability surface a cloud adapter fills in (replay source,
@@ -1042,9 +1122,9 @@ or the reason none does.
 
 | Axis A \ Axis C | Agent in the box | Agent controls a box | Agent over a store |
 |---|---|---|---|
-| The client drives the harness on its own host | Pattern 1 | No shipped harness does this locally; a local harness that drove a remote sandbox would be pattern 1 with a different tool set | Pattern 1 with a store as its tools; a library harness on a laptop calling a store's functions |
-| Your server drives a harness on a machine the user or customer owns | Pattern 2 | Nothing here; if the harness is on their machine and drives a box elsewhere, the box is the interesting part and the machine is only a relay | Nothing here; a store needs no machine of theirs |
-| Your server drives a harness on a host you or a vendor provide, or on none | 3.1 | 3.2a (vendor box), 3.2b (your box, or the user's computer via the client) | 3.3 |
+| The user runs the driver on their own machine, harness there | Pattern 1 | No shipped harness does this locally; a local harness that drove a remote sandbox would be pattern 1 with a different tool set | Pattern 1 with a store as its tools; a library harness on a laptop calling a store's functions |
+| Your backend drives a harness on a machine the user or customer owns | Pattern 2 | Nothing here; if the harness is on their machine and drives a box elsewhere, the box is the interesting part and the machine is only a relay | Nothing here; a store needs no machine of theirs |
+| Your backend drives a harness on a host you or a vendor provide, or on none | 3.1 | 3.2a (vendor box), 3.2b (your box, or the user's computer via the client) | 3.3 |
 
 Three things are not on the grid:
 
@@ -1052,7 +1132,7 @@ Three things are not on the grid:
   with a vendor service.
 - The fourth plane (who manages the environment lifecycle) cuts across
   the second column, and the 3.3a versus 3.3b split is about your own
-  server's process, not about the agent. Neither is an axis.
+  backend's process, not about the agent. Neither is an axis.
 - The split between pattern 2 and 3.1 is host ownership, which is part
   of axis A here but was once treated as a variant of one pattern. It
   moved up because it changes who dials whom and who holds the
