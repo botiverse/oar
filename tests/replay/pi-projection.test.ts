@@ -68,6 +68,10 @@ function foldFixture(lines: readonly string[]): string {
   return `${rows.join("\n")}\n`;
 }
 
+function toolEndEvent(toolCallId: string, isError: boolean): AgentSessionEvent {
+  return { type: "tool_execution_end", toolCallId, toolName: "bash", result: "boom", isError };
+}
+
 for (const scenario of scenarios) {
   test(`pi ${scenario}: recorded SDK events fold to the expected records`, async () => {
     const lines = readFileSync(path.join(here, "fixtures", `pi-${scenario}.raw.jsonl`), "utf8")
@@ -100,4 +104,15 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
     kind: "turn_ended",
     outcome: { kind: "failed", reason: "400 bad request", failure: "invalid_request" },
   });
+});
+
+test("pi tool_execution_end maps the explicit isError flag", () => {
+  const failed = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-fail", true));
+  expect(failed.commands[0]?.body.views).toEqual([
+    { kind: "tool_call_ended", callId: "tool-fail", output: JSON.stringify("boom"), result: "failed" },
+  ]);
+  const successful = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-success", false));
+  expect(successful.commands[0]?.body.views).toEqual([
+    { kind: "tool_call_ended", callId: "tool-success", output: JSON.stringify("boom"), result: "ok" },
+  ]);
 });

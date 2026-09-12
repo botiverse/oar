@@ -58,6 +58,12 @@ Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [catalog](../../packages/oar/src/runtimes/pi/catalog.ts),
 [agent loop][native-agent-loop], [Session contract](../../packages/oar/src/contracts/session.ts).
 
+Pi's `tool_execution_end` frame carries the explicit `isError` boolean ([src]
+`@earendil-works/pi-coding-agent` 0.84.2
+`core/extensions/types.d.ts:595-600`). OAR maps false to
+`tool_call_ended.result: "ok"` and true to `"failed"`; the field is absent
+only when the runtime omits it.
+
 ## Capability details
 
 ### Session creation and resume
@@ -261,7 +267,7 @@ unknown), so `Session.contextUsage()` (a fold) is current at turn end.
 `usage()` is the cumulative per-session total; its input counts pi's
 `input + cacheRead + cacheWrite`, and one `turn_ended` is recorded per prompt
 with totals growing across turns (live on the baseline model: a one-shot turn
-`{input: 1381, output: 39}` with `contextUsage()` `{tokens: 1420,
+`{input: 1381, output: 39}` with `contextUsage().value` `{tokens: 1420,
 contextWindow: 128000}`; three turns 1377 → 2772 → 4186 input;
 `basic`/`multi-turn` scenarios). `compaction_start`/`compaction_end` are in
 the stream verbatim (viewless); they are pinned with the pi-aimock recipe

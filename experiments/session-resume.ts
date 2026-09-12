@@ -69,7 +69,7 @@ async function runTurn(
   if (run.outcome.kind !== "completed") {
     throw new Error(`turn ${run.outcome.kind}`);
   }
-  const reported = session.model();
+  const reported = session.model().value;
   await session.dispose();
   return { id: session.id, text: texts.join(""), model: reported };
 }

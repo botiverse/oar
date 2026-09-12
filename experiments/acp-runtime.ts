@@ -61,7 +61,7 @@ assert.ok(tools.length > 0, "runtime did not expose a shell tool call");
 const usage = runtime.accountUsage === undefined
   ? undefined
   : await runtime.accountUsage(installation);
-const contextUsage = session.contextUsage();
+const contextUsage = session.contextUsage().value;
 const skeleton = records.map((record) => {
   if (record.kind === "event") {
     const kinds = record.body.views.map((view) => view.kind).join("+");

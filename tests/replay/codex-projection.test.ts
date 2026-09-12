@@ -134,6 +134,23 @@ test("codex error detail folds into the failed turn_ended and usage is the cumul
   ]);
 });
 
+test("codex tool completion maps an explicit item status and otherwise leaves result absent", () => {
+  const failed = foldCodexNotification(initialCodexProjection(ROOT), "item/completed", {
+    threadId: ROOT,
+    item: { type: "commandExecution", id: "exec-fail", status: "failed", aggregatedOutput: "boom" },
+  });
+  expect(failed.commands[0]?.kind === "event" ? failed.commands[0].body.views : null).toEqual([
+    { kind: "tool_call_ended", callId: "exec-fail", output: "failed\nboom", result: "failed" },
+  ]);
+  const unknown = foldCodexNotification(initialCodexProjection(ROOT), "item/completed", {
+    threadId: ROOT,
+    item: { type: "commandExecution", id: "exec-unknown", aggregatedOutput: "?" },
+  });
+  expect(unknown.commands[0]?.kind === "event" ? unknown.commands[0].body.views : null).toEqual([
+    { kind: "tool_call_ended", callId: "exec-unknown", output: "?" },
+  ]);
+});
+
 /**
  * Live, codex 0.154.0 (oar-trial-run/live-codex-a/multi-turn.voyage.jsonl
  * seq 31/48/64): `total.inputTokens` grew 12661 → 28404 → 44166 over three

@@ -1,5 +1,6 @@
 import type {
   ControlResult,
+  PromptOptions,
   RequestRecord,
   Session,
   StartSession,
@@ -148,8 +149,9 @@ export const claudeSession: StartSession = async (installation, options) => {
   const session: Session = sealSession({
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "attributed" },
-    prompt: async (input): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "prompt", input }, (request) => {
+    prompt: async (input, promptOptions?: PromptOptions): Promise<ControlResult> => {
+      const body = { kind: "prompt" as const, input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
+      const result = await kernel.control(body, (request) => {
       if (busy()) {
         return { kind: "rejected", reason: "busy" };
       }

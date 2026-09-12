@@ -26,13 +26,14 @@ test("ACP session records every update verbatim with its views, and the prompt a
     kind: "tool_call_ended",
     callId: "call-read",
     output: JSON.stringify({ content: "fixture-value" }),
+    result: "ok",
   }]);
   // native is the whole notification, untouched
   assert.deepEqual(toolEnded.body.native, {
     sessionId: "fake-session",
     update: { sessionUpdate: "tool_call_update", toolCallId: "call-read", status: "completed", rawOutput: { content: "fixture-value" } },
   });
-  assert.deepEqual(session.contextUsage(), { tokens: 500, contextWindow: 2000, percent: 25 });
+  assert.deepEqual(session.contextUsage().value, { tokens: 500, contextWindow: 2000, percent: 25 });
   await session.dispose();
   assert.deepEqual(session.records().slice(-2).map((record) => describe(record)), ["request dispose", "response exited"]);
 });
@@ -41,7 +42,7 @@ test("the handshake answers are events, so model() is a fold over the stream", a
   const session = await start();
   const opening = session.records().map((record) => describe(record));
   assert.deepEqual(opening.slice(0, 3), ["event initialize", "event authenticate", "event session/new → model:fixture-model-x"]);
-  assert.equal(session.model(), "fixture-model-x");
+  assert.equal(session.model().value, "fixture-model-x");
   await session.dispose();
 });
 
@@ -192,4 +193,3 @@ test("a subscribed extension notification is recorded verbatim and links parent 
   assert.deepEqual(session.graph().edges, [{ parent: "fake-session", child: "fake-child", via: "tool_call" }]);
   await session.dispose();
 });
-

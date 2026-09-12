@@ -90,12 +90,12 @@ if (which === "codex" || which === "all") {
   // request and read back what the app-server reports for the saved thread.
   const requested = "gpt-5.4-mini";
   const started = await open("codex", { model: requested });
-  const atStart = started.model();
+  const atStart = started.model().value;
   assert.equal(typeof atStart, "string", "codex reports no model at thread/start");
   await oneTurn(started, "Reply with exactly ok.");
   await started.dispose();
   const resumed = await open("codex", { resume: started.id });
-  const atResume = resumed.model();
+  const atResume = resumed.model().value;
   await resumed.dispose();
   record.codex = { requested, atStart, atResume };
   assert.equal(atResume, atStart, "resume without a request should report the saved model");
@@ -106,9 +106,9 @@ if (which === "claude" || which === "all") {
   // the resolved id and must differ from the request string.
   const requested = "haiku";
   const session = await open("claude", { model: requested });
-  const beforeTurn = session.model();
+  const beforeTurn = session.model().value;
   await oneTurn(session, "Reply with exactly ok.");
-  const afterTurn = session.model();
+  const afterTurn = session.model().value;
   await session.dispose();
   record.claude = { requested, beforeTurn, afterTurn };
   assert.equal(beforeTurn, null, "claude cannot know the model before the init frame");
@@ -119,7 +119,7 @@ if (which === "claude" || which === "all") {
 if (which === "pi" || which === "all") {
   process.env.XAI_API_KEY ??= "dummy-not-a-real-key";
   const session = await open("pi", {});
-  const atOpen = session.model();
+  const atOpen = session.model().value;
   await session.dispose();
   record.pi = { requested: null, atOpen };
   assert.ok(atOpen === null || atOpen.includes("/"), "pi read-back should be provider/id or null");

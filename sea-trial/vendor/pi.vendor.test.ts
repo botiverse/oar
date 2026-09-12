@@ -173,12 +173,12 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
       const session = await runtimeUnderTest(runtime, undefined).startSession();
       await runTurn(session, "say hi");
-      assertContextUsage(session.contextUsage());
+      assertContextUsage(session.contextUsage().value);
       const types = session.records().flatMap((record) => (record.kind === "event" ? [record.body.type] : []));
       expect(types).toContain("agent_start");
       expect(types).toContain("agent_end");
       expect(types.at(-1)).toBe("agent_settled");
-      expect(session.model()).toMatch(/\//u);
+      expect(session.model().value).toMatch(/\//u);
       await session.dispose();
     } finally {
       await env.stop();

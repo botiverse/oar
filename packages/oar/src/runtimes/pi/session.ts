@@ -1,5 +1,5 @@
 import type {
-  RequestRecord, ContextUsage, ControlResult, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+  RequestRecord, ContextUsage, ControlResult, PromptOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -169,8 +169,9 @@ export const piSession: StartSession = async (installation, options) => {
   const session: Session = sealSession({
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
-    prompt: async (input): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "prompt", input }, async () => {
+    prompt: async (input, promptOptions?: PromptOptions): Promise<ControlResult> => {
+      const body = { kind: "prompt" as const, input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
+      const result = await kernel.control(body, async () => {
         if (gate.running) {
           return { kind: "rejected", reason: "busy" };
         }

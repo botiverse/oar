@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   ControlResult,
+  PromptOptions,
   RequestRecord,
   Session,
   StartSession,
@@ -213,8 +214,8 @@ export const codexSession: StartSession = async (installation, options) => {
       const result = await rpcControl(kernel, client, plan(...args));
       return result;
     };
-  const promptPlan = (input: string): RpcControlPlan => ({
-    body: { kind: "prompt", input },
+  const promptPlan = (input: string, promptOptions?: PromptOptions): RpcControlPlan => ({
+    body: { kind: "prompt", input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) },
     gate: (request) => {
       if (busy()) {
         return { kind: "rejected", reason: "busy" };

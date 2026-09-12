@@ -157,10 +157,11 @@ if (installation?.kind === "available") {
   where mid-turn input landed (steered into the running turn, or queued for
   the next), `abort` on the turn handle, and `dispose`. `resume` reopens a runtime-native session
   by its id, optionally with a different model.
-- **Read-backs, not echoes.** `session.model()` reports the model the
+- **Read-backs, not echoes.** `session.model().value` reports the model the
   runtime says is in effect, which a resume or model switch can silently
-  leave unchanged. `session.contextUsage()` is the runtime's latest context
-  snapshot and is honestly `null` right after compaction.
+  leave unchanged. `session.contextUsage().value` is the runtime's latest
+  context snapshot and is honestly `null` right after compaction; each query
+  also returns the stream `seq` it rests on.
 - **A lossless event stream.** Unknown runtime events are preserved and
   passed through; the native payload stays reachable.
 - **Embedded by default.** Sessions run without interactive permission gates

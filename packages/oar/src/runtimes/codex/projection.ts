@@ -76,9 +76,16 @@ function toolViews(method: string, item: JsonRecord | null): EventView[] {
       : { kind: "tool_call_started", callId: itemId, tool: itemType, input }];
   }
   const output = item === null ? undefined : codexItemOutput(item);
+  const status = typeof item?.status === "string" ? item.status : undefined;
+  let result: "ok" | "failed" | undefined = undefined;
+  if (status === "completed") {
+    result = "ok";
+  } else if (status === "failed") {
+    result = "failed";
+  }
   return [output === undefined
-    ? { kind: "tool_call_ended", callId: itemId }
-    : { kind: "tool_call_ended", callId: itemId, output }];
+    ? { kind: "tool_call_ended", callId: itemId, ...(result === undefined ? {} : { result }) }
+    : { kind: "tool_call_ended", callId: itemId, output, ...(result === undefined ? {} : { result }) }];
 }
 
 function settleOutcome(state: CodexProjectionState, status: unknown): TurnOutcome {

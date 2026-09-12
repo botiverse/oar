@@ -23,10 +23,10 @@ test("Session.model is null until claude's system/init frame and then reports it
   spawnLineProcess.mockReturnValue(fake);
   const session = await claudeSession(installation, { cwd: "/work", model: "requested-y" });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toContain("requested-y");
-  expect(session.model()).toBeNull();
+  expect(session.model().value).toBeNull();
 
   fake.emit(frame({ type: "system", subtype: "init", session_id: session.id, model: "claude-x-real", tools: [] }));
-  expect(session.model()).toBe("claude-x-real");
+  expect(session.model().value).toBe("claude-x-real");
   await session.dispose();
 });
 
@@ -36,6 +36,6 @@ test("Session.model follows a later system/init frame", async () => {
   const session = await claudeSession(installation, { cwd: "/work" });
   fake.emit(frame({ type: "system", subtype: "init", session_id: session.id, model: "claude-x-real", tools: [] }));
   fake.emit(frame({ type: "system", subtype: "init", session_id: session.id, model: "claude-z-later", tools: [] }));
-  expect(session.model()).toBe("claude-z-later");
+  expect(session.model().value).toBe("claude-z-later");
   await session.dispose();
 });

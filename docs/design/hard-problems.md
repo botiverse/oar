@@ -70,9 +70,9 @@ subject of [foundations.md](foundations.md).
 
 ## Beyond a single local process
 
-14. **Context management.** Context accounting, native compaction events
-    (codex), and supporting external compaction (new session + injected
-    prompt) without lying about lineage.
+14. **Context management.** Context accounting and native compaction events
+    (codex); external compaction continuity is defined by the
+    [record-stream spec](../spec/record-stream.md).
 15. **Placement.** Local co-process vs remote service vs managed cloud:
     session, process, and host lifecycle are three different layers, and
     multi-client attach needs a resumable cursor or you get grok-style

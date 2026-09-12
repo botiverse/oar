@@ -1,6 +1,7 @@
 import type {
   ContextUsage,
   Cursor,
+  PromptLineage,
   RequestRecord,
   ResponseRecord,
   SessionGraph,
@@ -16,6 +17,7 @@ export type {
   EventRecord,
   EventView,
   FailureClass,
+  PromptLineage,
   ReasoningContent,
   RecordEnvelope,
   RecordKind,
@@ -32,6 +34,18 @@ export type {
   TurnOutcome,
   UsageReport,
 } from "./records.js";
+
+export interface QueryResult<T> {
+  /** The fold's current value. */
+  readonly value: T;
+  /** The seq of the last consumed record, or -1 before any record. */
+  readonly seq: number;
+}
+
+export interface PromptOptions {
+  /** Host continuity pointer recorded verbatim on the prompt request. */
+  readonly lineage?: PromptLineage;
+}
 
 /**
  * Session contract: one ordered, resumable record stream.
@@ -123,7 +137,7 @@ export type Unsubscribe = () => void;
 export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
-  prompt(input: string): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
+  prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
   steer(input: string): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.
@@ -136,11 +150,11 @@ export interface AdapterSession {
 /** The API face: the SPI plus surfaces sealSession derives from the stream. */
 export interface Session extends AdapterSession {
   /** Latest `model` event; null until the runtime has said one. A fold, not an echo of the request. */
-  model(): string | null;
+  model(): QueryResult<string | null>;
   /** THIS session's token total plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). A derived child session (own `sessionId`, in `graph()`) is not aggregated here; its usage is in its own records. */
-  usage(): SessionUsage;
+  usage(): QueryResult<SessionUsage>;
   /** Latest context fullness the runtime reported for this session's root agent; null before any. */
-  contextUsage(): ContextUsage | null;
+  contextUsage(): QueryResult<ContextUsage | null>;
   /**
    * DERIVED: steer when the runtime can, fall back to queueing, always report
    * where the input landed. `rejected` means the input was NOT taken over and

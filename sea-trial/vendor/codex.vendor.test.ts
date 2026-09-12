@@ -116,11 +116,11 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
       await runTurn(session, "say hi");
-      assertContextUsage(session.contextUsage());
+      assertContextUsage(session.contextUsage().value);
       const usageRecords = session.records().filter((record) =>
         record.kind === "event" && record.body.type === "thread/tokenUsage/updated");
       expect(usageRecords.length).toBeGreaterThan(0);
-      const usage = session.usage();
+      const usage = session.usage().value;
       expect(usage.total !== null && usage.total.input >= 0).toBe(true);
       await session.dispose();
     } finally {

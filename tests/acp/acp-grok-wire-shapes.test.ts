@@ -132,8 +132,8 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   assert.ok(child.every((record) => record.agentPath.length === 0));
   // The root's prompt ledger already sums the child's calls (live seq 159);
   // the child's own ledgers are native-only and never folded a second time.
-  assert.deepEqual(session.usage(), { total: { input: 200, output: 20 } });
-  assert.deepEqual(session.contextUsage(), { tokens: 300, contextWindow: null, percent: null });
+  assert.deepEqual(session.usage().value, { total: { input: 200, output: 20 } });
+  assert.deepEqual(session.contextUsage().value, { tokens: 300, contextWindow: null, percent: null });
   await session.dispose();
 });
 
@@ -142,11 +142,11 @@ test("grok per-prompt ledgers accumulate into the session total, stamped cumulat
   const session = await start(grokProfile);
   const first = await promptAndWait(session, "grok-usage");
   assert.equal(first.kind, "ended");
-  assert.deepEqual(session.usage(), { total: { input: 100, output: 7 } });
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 7 } });
   const second = await promptAndWait(session, "grok-usage");
   assert.equal(second.kind, "ended");
-  assert.deepEqual(session.usage(), { total: { input: 200, output: 14 } });
-  assert.deepEqual(session.contextUsage(), { tokens: 1002, contextWindow: null, percent: null });
+  assert.deepEqual(session.usage().value, { total: { input: 200, output: 14 } });
+  assert.deepEqual(session.contextUsage().value, { tokens: 1002, contextWindow: null, percent: null });
   const answers = session.records().flatMap((record) => (record.kind === "event" && record.body.type === "session/prompt" ? [record.body.views] : []));
   assert.deepEqual(answers, [
     [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1001, contextWindow: null, percent: null }, tokens: { input: 100, output: 7 } } }],
@@ -192,6 +192,6 @@ test("a send-now steer's two answers are two per-prompt ledgers: summed once, st
     [{ kind: "usage", usage: { context: { tokens: 16_998, contextWindow: null, percent: null }, tokens: { input: 16_776, output: 222 } } }],
     [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 17_405, contextWindow: null, percent: null }, tokens: { input: 51_196, output: 501 } } }],
   ]);
-  assert.deepEqual(session.usage(), { total: { input: 51_196, output: 501 } });
+  assert.deepEqual(session.usage().value, { total: { input: 51_196, output: 501 } });
   await session.dispose();
 });

@@ -154,8 +154,9 @@ deleted from the protocol.
   labels at the protocol surface would only transfer an unsettled problem
   to consumers. [acp: session-usage.mdx; end-turn-token-usage.mdx:26,97,101]
 - Usage itself is a seq-carrying event on the stream (the query rule in
-  [record-stream.md](record-stream.md)); per-agent attribution rides the
-  envelope. [sym][src]
+  [record-stream.md](record-stream.md)); `usage()` returns `{ value, seq }`,
+  with `seq` naming the last record consumed by the fold. Per-agent
+  attribution rides the envelope. [sym][src]
 
 ### Example 7 · What external usage looks like
 

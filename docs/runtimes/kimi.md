@@ -63,6 +63,11 @@ See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
 [view projection](../../packages/oar/src/shared/acp/projection.ts), and
 [client app](../../packages/oar/src/shared/acp/client-app.ts), alongside
 the [native ACP reference](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/docs/en/reference/kimi-acp.md).
+
+ACP `tool_call_update` reports `status: "completed" | "failed"` ([src]
+ACP schema `ToolCallStatus`). OAR maps those explicit statuses to
+`tool_call_ended.result: "ok" | "failed"`; a non-terminal or missing status
+leaves the field absent.
 "Unexposed" means OAR has no mapping; "transport-limited" means the selected
 native boundary already loses the capability; "unverified" means evidence
 is missing.

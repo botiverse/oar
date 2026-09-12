@@ -109,6 +109,8 @@ export type EventView =
       readonly callId: string;
       /** Best-effort human-readable result detail when the runtime exposes it. */
       readonly output?: string;
+      /** The runtime's explicit tool outcome; absent when it reported none. */
+      readonly result?: "ok" | "failed";
     }
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_end`, an ACP prompt answer). The turn's start is the prompt request record itself; if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
@@ -117,13 +119,20 @@ export type EventView =
   | { readonly kind: "model"; readonly model: string };
 
 export type RequestBody =
-  | { readonly kind: "prompt"; readonly input: string }
+  | { readonly kind: "prompt"; readonly input: string; readonly lineage?: PromptLineage }
   | { readonly kind: "steer"; readonly input: string }
   | { readonly kind: "queue"; readonly input: string }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */
   | { readonly kind: "native"; readonly type: string; readonly native: unknown };
+
+/** Host supplied continuity pointer for a new session's first prompt. */
+export interface PromptLineage {
+  /** Runtime.id of the session being continued. */
+  readonly runtime: string;
+  readonly sessionId: string;
+}
 
 /**
  * Control responses answer only "accepted or not"; final states and landing
@@ -176,7 +185,7 @@ export interface SessionNode {
 export interface SessionEdge {
   readonly parent: string;
   readonly child: string;
-  readonly via: "tool_call" | "fork" | "resume";
+  readonly via: "tool_call";
 }
 
 export interface SessionGraph {
@@ -189,4 +198,3 @@ export interface Cursor {
   readonly sessionId: string;
   readonly afterSeq: number;
 }
-

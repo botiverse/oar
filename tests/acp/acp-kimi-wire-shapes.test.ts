@@ -49,7 +49,7 @@ test("kimi tool ends: the terminal tool's completed frame is a terminal referenc
     content: [{ terminalId: "bb80f18f", type: "terminal" }],
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(terminal, [{ kind: "tool_call_ended", callId: BASH_ID, output: "[{\"terminalId\":\"bb80f18f\",\"type\":\"terminal\"}]" }]);
+  assert.deepEqual(terminal, [{ kind: "tool_call_ended", callId: BASH_ID, output: "[{\"terminalId\":\"bb80f18f\",\"type\":\"terminal\"}]", result: "ok" }]);
   const agent = projectAcpUpdate(state, {
     toolCallId: AGENT_ID,
     status: "completed",
@@ -57,7 +57,23 @@ test("kimi tool ends: the terminal tool's completed frame is a terminal referenc
     rawOutput: AGENT_REPORT,
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(agent, [{ kind: "tool_call_ended", callId: AGENT_ID, output: AGENT_REPORT }]);
+  assert.deepEqual(agent, [{ kind: "tool_call_ended", callId: AGENT_ID, output: AGENT_REPORT, result: "ok" }]);
+});
+
+test("ACP tool_call_update maps failed status and omits result when status is absent", () => {
+  const failed = projectAcpUpdate(createAcpProjectionState(), {
+    toolCallId: "failed",
+    status: "failed",
+    rawOutput: "boom",
+    sessionUpdate: "tool_call_update",
+  });
+  assert.deepEqual(failed, [{ kind: "tool_call_started", callId: "failed", tool: "tool" }, { kind: "tool_call_ended", callId: "failed", output: "boom", result: "failed" }]);
+  const unknown = projectAcpUpdate(createAcpProjectionState(), {
+    toolCallId: "unknown",
+    rawOutput: "?",
+    sessionUpdate: "tool_call_update",
+  });
+  assert.deepEqual(unknown, [{ kind: "tool_call_started", callId: "unknown", tool: "tool" }]);
 });
 
 test("a name-bearing frame still labels the tool by name, and a kind-only frame by kind", () => {

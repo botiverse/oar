@@ -4,8 +4,8 @@ import { awaitTurnEnd, turnEndAfter } from "../../packages/oar/src/observe/turns
 import type { TrialCase } from "../harness/runner.js";
 
 /** Prompt and insist the runtime accepted it. */
-async function accepted(session: Session, input: string): Promise<ControlResult> {
-  const result = await session.prompt(input);
+async function accepted(session: Session, input: string, options?: Parameters<Session["prompt"]>[1]): Promise<ControlResult> {
+  const result = await session.prompt(input, options);
   assert.ok(result.response.body.kind === "accepted", `prompt ${JSON.stringify(input)} was not accepted: ${JSON.stringify(result.response.body)}`);
   return result;
 }
@@ -35,6 +35,29 @@ function rootTurnEnds(records: readonly SessionRecord[]): readonly SessionRecord
 }
 
 export const sessionCases: readonly TrialCase[] = [
+  {
+    id: "session.query-readbacks-carry-stream-seq-and-lineage",
+    requires: ["installation", "session"],
+    async run(subject) {
+      const session = await subject.startSession();
+      const lineage = { runtime: "prior-runtime", sessionId: "prior-session" };
+      const started = await accepted(session, "hello", { lineage });
+      assert.deepEqual(started.request.body, { kind: "prompt", input: "hello", lineage }, "prompt lineage is recorded verbatim");
+      await awaitTurnEnd(session, started.request.seq);
+      const ordinary = await accepted(session, "without lineage");
+      assert.deepEqual(ordinary.request.body, { kind: "prompt", input: "without lineage" }, "prompt without lineage has no lineage key");
+      await awaitTurnEnd(session, ordinary.request.seq);
+      const lastSeq = session.records().at(-1)?.seq ?? -1;
+      const model = session.model();
+      const usage = session.usage();
+      const context = session.contextUsage();
+      assert.equal(model.seq, lastSeq, "model read-back identifies the stream position it consumed");
+      assert.equal(usage.seq, lastSeq, "usage read-back identifies the stream position it consumed");
+      assert.equal(context.seq, lastSeq, "context read-back identifies the stream position it consumed");
+      assert.ok("value" in model && "value" in usage && "value" in context, "all query read-backs carry a value");
+      await session.dispose();
+    },
+  },
   {
     // The contract's promise in one case: the turn's start is the prompt request, its
     // end is the runtime's own turn_ended event, every record self-attributes

@@ -2,6 +2,7 @@
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
   ControlResult,
+  PromptOptions,
   RequestBody,
   RequestRecord,
   ResponseBody,
@@ -110,7 +111,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     return sealSession({
       id: kernel.sessionId,
       capabilities: profile.capabilities,
-      prompt: (input): Promise<ControlResult> => control({ kind: "prompt", input }, (request): ResponseBody =>
+      prompt: (input, promptOptions?: PromptOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) }, (request): ResponseBody =>
         (turns.active() === null ? turns.begin(request, input) : { kind: "rejected", reason: "busy" })),
       steer: (input): Promise<ControlResult> => control({ kind: "steer", input }, (): ResponseBody | Promise<ResponseBody> => {
         const steerParams = profile.steerParams;

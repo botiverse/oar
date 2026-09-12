@@ -85,12 +85,12 @@ test("thread/start that reports a different model is rejected too", async () => 
 test("Session.model reads back the model the app-server answered with", async () => {
   fakeAppServer(() => "gpt-5.4-mini");
   const resumed = await codexSession(installation, { cwd: "/work", resume: threadId });
-  expect(resumed.model()).toBe("gpt-5.4-mini");
+  expect(resumed.model().value).toBe("gpt-5.4-mini");
   await resumed.dispose();
 
   fakeAppServer(() => "gpt-5.5");
   const started = await codexSession(installation, { cwd: "/work", model: "gpt-5.5" });
-  expect(started.model()).toBe("gpt-5.5");
+  expect(started.model().value).toBe("gpt-5.5");
   await started.dispose();
 });
 
@@ -105,7 +105,7 @@ test("Session.model is null when the app-server answer carries no model", async 
   });
   spawnLineProcess.mockReturnValue(fake);
   const session = await codexSession(installation, { cwd: "/work" });
-  expect(session.model()).toBeNull();
+  expect(session.model().value).toBeNull();
   await session.dispose();
 });
 

@@ -1,4 +1,4 @@
-import type { Session, StartSession } from "../../packages/oar/src/contracts/session.js";
+import type { PromptOptions, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
 import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
@@ -44,8 +44,9 @@ export const startMockSession: StartSession = async (_installation, options): Pr
   return sealSession({
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
-    prompt: async (input) => {
-      const result = await kernel.control({ kind: "prompt", input }, () => {
+    prompt: async (input, promptOptions?: PromptOptions) => {
+      const body = { kind: "prompt" as const, input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
+      const result = await kernel.control(body, () => {
       if (disposed) {
         return { kind: "rejected", reason: "session disposed" };
       }
