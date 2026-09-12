@@ -52,6 +52,51 @@ For a new surface, ask whether it makes the loop more legible: can an agent
 orient, act, observe, verify, checkpoint, and hand off with less guessing and
 less duplicated work? If not, keep it in a host experiment.
 
+## Replay boundary
+
+Two words that share a root name two different mechanisms. **Resume** is a
+runtime rebuilding model context from its own persisted material. **Replay**
+is OAR rebuilding an observer's event sequence from OAR's own appended
+stream. The boundary between them is a definition, not a description of what
+runtimes happen to support today.
+
+**Live replay has one source by construction.** A runtime's persisted record
+does not contain the live stream. Online, the runtime emits deltas at a finer
+grain than it stores; when it persists, those deltas are folded into whole
+messages, and the fold is lossy for anything below message grain. A cursor
+for continuing the live stream therefore does not exist on the runtime side
+in principle. It is not missing because nobody implemented it yet. Any system
+that needs live replay must append its own record stream. OAR's replay reads
+only the record stream OAR appended itself. Runtime side material (session
+files, thread ids, resume tokens) is used for diagnostics and for handing the
+runtime its own model context on resume. It is never a replay source.
+
+**The lifecycle has three tiers, each with an owner.** A *session* is the
+identity a runtime can reopen from its own material. A *turn* belongs to the
+server side session and can outlive any connection that started or watched
+it. A *connection* is a subscription relation with no address of its own.
+These are three lifecycles, not three views of one. OAR's lineage records the
+request the host itself received. Identity fields a runtime reports about
+itself (an `originator` string, a client supplied session id) are recorded
+as observations and never enter the contract.
+
+Two consequences follow from the runtime evidence and are part of the
+boundary:
+
+- **Connection identity and cursor are orthogonal.** A runtime can mint a
+  connection id and still offer no position to continue from (goose does
+  exactly this). Neither attribute can be derived from the other, so the
+  fact matrix records them in separate columns and no design may use "has a
+  connection id" as a proxy for "has a cursor".
+- **An identity without a minter is only a declaration.** Who mints an id
+  decides who is accountable for its ownership and lifecycle: the server,
+  the client that declared it, or nobody when the runtime merely reports a
+  string. Only a minter can answer for the id. Minting also does not imply
+  global uniqueness; a server can mint a per host date counter as easily as
+  a UUID. The matrix therefore records identity authority (server minted,
+  client declared, self reported) and uniqueness scope (global UUID, host
+  local, workspace local, date counter) as separate facts.
+
 ## Adapter vs foundation
 
 An adapter is judged by how much it covers today; a foundation is judged by
