@@ -6,6 +6,8 @@
 
 OAR (**O**pen **A**gent **R**untime) is a provider-independent programming interface for coding-agent runtimes: a solid foundation for building agent workspaces and other applications.
 
+**Delete harness logic and focus on outcomes and UX.**
+
 ## Supported runtimes
 
 Claude Code, Codex, Grok Build, Kimi Code, Pi
