@@ -23,7 +23,38 @@
  * Run: OPENAI_API_KEY=... OPENAI_ENVIRONMENT_KEY=... NODE_USE_ENV_PROXY=1 pnpm tsx experiments/agents-api-executor-probe.ts [--model gpt-6-astra]
  *   Writes oar-trial-run/agents-api-executor-<stamp>/{events.jsonl,findings.json}.
  *
- * ── OBSERVED: not yet run ───────────────────────────────────────────────────
+ * ── OBSERVED 2026-09-12, gpt-6-astra, codex 0.154.0 exec-server, macOS ──────
+ *
+ * E1 input with no executor: agent.session.requires_action after 1.8 s with
+ *    session.required_actions [{environment_connection, environment_id}].
+ *    ⚠️ the POST /events itself stays OPEN until the executor connects (it
+ *    returned 202 after 10.4 s, once connected); a first attempt that
+ *    awaited it behind the shell proxy died with "fetch failed" and that
+ *    session's input was gone for good. Executor connected 5.5 s after
+ *    start; the original input then ran WITHOUT resubmission. Stream order:
+ *    requires_action, environment.connected, idle, THEN turn.created.
+ * E2 SIGKILL the executor 5 s into `sleep 40`: environment.disconnected
+ *    20.6 s later; the command item.done arrives `failed` with output
+ *    "exec-server transport disconnected; failed to resume exec-server
+ *    session: recovery timed out after 25s"; the harness then reasoned
+ *    (reasoning item + reasoning_summary_* events DID appear here) and
+ *    replied that the command had not confirmed completion; turn.completed
+ *    51.6 s after the kill, turn.error null. Executor death is a failed tool
+ *    inside a completed turn, exactly as the docs warn.
+ * E3 a replacement `codex exec-server` on the SAME environment id connected
+ *    (environment.connected ~80 s after its start, past this script's 90 s
+ *    wait window measured from a slightly earlier point) and every later
+ *    command (ten of them) ran through it. Reconnect is slow but works.
+ * R1 five messages posted the instant turn.completed arrived, before idle:
+ *    5/5 started turns and completed. The single lost message in
+ *    agents-api-sandbox-probe.ts run 1 stays unexplained.
+ * E4 DELETE with the executor connected: 200; the session stream ended
+ *    with a bare EOF; the executor process was still alive 15 s later
+ *    (docs: deletion does not stop compute). The adapter must kill it.
+ * ⚠️ A self-hosted session whose first turn never ran (the E1 casualty
+ *    above) cannot be deleted: DELETE is 409 `conflict_error` "session has
+ *    no durably bound CCA root", also after a cancel, also after an
+ *    executor was connected to it and it went idle. It lingers.
  */
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";

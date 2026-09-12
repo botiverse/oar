@@ -8,7 +8,9 @@ API key, macOS) of
 (`environment: none`, twice) and
 [`experiments/agents-api-sandbox-probe.ts`](../../experiments/agents-api-sandbox-probe.ts)
 (`openai_hosted`, plus a `none` session with a function tool and a
-`self_hosted` attempt). **OAR has no Agents API adapter.** Claims are tagged [doc] or
+`self_hosted` run) and
+[`experiments/agents-api-executor-probe.ts`](../../experiments/agents-api-executor-probe.ts)
+(the `self_hosted` executor's lifecycle). **OAR has no Agents API adapter.** Claims are tagged [doc] or
 [env]; where the two disagree the [env] observation is stated and the doc
 claim kept for contrast. The announcement page itself returns 403 to
 non-browser fetchers, so it is not cited.
@@ -141,8 +143,34 @@ it had closed.
 - **Artifacts.** [env]: `GET /sessions/{id}/artifacts` lists files the turn
   left under `/workspace/outputs` with `turn_id`, `path`, `size_bytes`.
 - **Reasoning summaries.** [env]: `reasoning: {effort: medium, summary:
-  auto}` produced no reasoning events and no reasoning items on a trivial
-  task. Do not depend on the `reasoning` view.
+  auto}` produced no reasoning events on a trivial task, but a `reasoning`
+  item with `reasoning_summary_part.added` / `reasoning_summary_text.delta`
+  / `.done` events did appear when the model had something to decide (after
+  an executor died mid-command). The `reasoning` view is real but sparse.
+- **Environment connection is a required action, and the input request
+  blocks on it.** [env] (self-hosted): input sent with no executor gives
+  `agent.session.requires_action` in 1.8 s with
+  `required_actions: [{type: environment_connection, environment_id}]`,
+  and the `POST /events` itself stays open until an executor connects
+  (202 after 10.4 s here). A client whose proxy cuts that request loses the
+  input for good: the session then answered a late executor with `idle` and
+  no turn. When the executor connected in time, the parked input ran
+  without resubmission; the stream showed `requires_action`,
+  `environment.connected`, `idle`, then `turn.created`.
+- **Executor death is a failed tool, not a failed turn.** [env]: SIGKILL
+  on the executor 5 s into `sleep 40` produced `environment.disconnected`
+  20.6 s later, the command `item.done` with `status: failed` and output
+  "exec-server transport disconnected; failed to resume exec-server
+  session: recovery timed out after 25s", then reasoning, an honest reply,
+  and `turn.completed` 51.6 s after the kill with `turn.error` null. A
+  replacement executor on the same environment id connected about 80 s
+  after starting and every later command ran through it.
+- **Deletion leaves the executor running, and some sessions cannot be
+  deleted.** [env]: `DELETE` with the executor connected returned 200, the
+  stream ended with EOF, and the executor process was still alive 15 s
+  later. A self-hosted session whose first turn never ran answers `DELETE`
+  with 409 `conflict_error` "session has no durably bound CCA root", also
+  after a cancel and after an executor was connected to it; it lingers.
 - **Compaction is invisible.** The overview promises summarisation of
   previous work; no event or item type in the reference reports it. [doc: overview, ref-events]
 - **Usage is best-effort and mutable.** Turn and session usage "can be
@@ -210,7 +238,7 @@ adapter behavior. Rows marked *gap* need a contract decision, not just code.
 | Runtime→app requests | `agent.session.requires_action` with a `function_call` is a `toApp` request; the app's `tool_result` is its response. An adapter declaring no function tools never receives one. `environment_connection` has no OAR counterpart today (*gap*, see placement). |
 | Sub-agents | [env] the root stream carries no subagent turn events, no subagent text, and (with a sandbox) no subagent `command_execution` items; only `subagent.created` / `.closed` and coordination items whose `sender_agent_id` / `recipient_agent_id` name the parties. The subagent's command, its output, and its turn with usage exist under `/subagents/{sid}/items` and `/turns`. Records that do name a subagent can carry `agentPath = [subagent_id]`, but the subagent's own work is not on the stream: that is the `opaque` tier with a labelled edge, closer to kimi than to codex. `usage().byAgent` cannot be a fold. |
 | `contextUsage()` | Always null: no context-window figure is exposed. |
-| `dispose()` | *gap*. There is no process, so nothing exits. "Release the runtime" can only mean closing the SSE subscription; the session persists remotely and stays billable if its sandbox is alive. `DELETE /sessions/{id}` is a separate, destructive act (and does not stop self-hosted compute). The `exited` response is a local-process concept; the nearest remote analogue is `agent.session.failed`, and a stream disconnect is explicitly not death. |
+| `dispose()` | *gap*. The session has no process, so nothing exits on its side. "Release the runtime" can only mean closing the SSE subscription; the session persists remotely and stays billable if its sandbox is alive. `DELETE /sessions/{id}` is a separate, destructive act that [env] leaves a connected local executor running and is refused (409) for a session that never ran a turn. In the hybrid shape the adapter does own one process, the executor, and its exit is an `environment.disconnected` on the session ([env], 20 s later), not the session's end. The `exited` response is a local-process concept; the nearest remote analogue is `agent.session.failed`, and a stream disconnect is explicitly not death. |
 | Cursor | Within the adapter process, the retained log honours `afterSeq` as usual. A live-stream disconnect inside that lifetime loses events the server will not replay ([env]: no SSE ids, random `event_id`; a reopened stream sends an item-level snapshot and then stops delivering output deltas). The snapshot's `item.added` frames are runtime frames and can be recorded as events, but they are a restatement, not the missed deltas; the adapter must not present them as if nothing was lost. How to mark the gap honestly on the stream is open (see below). |
 | Usage views | [env] terminal turn events never carried usage, so a `usage` view cannot come from the stream. A truthful adapter emits none and leaves `usage()` null, or polls the turn resource after the fact and records the answer as its own observation, not as a runtime event. |
 | `listModels` / `accountUsage` | Not part of the Agents API; `/v1/models` and the platform dashboard respectively. |
@@ -311,16 +339,19 @@ echo LOCAL-OK'` in this repository's `cwd` with complete output. The
 registration URL has the shape
 `https://api.openai.com/v1/agents/api/connect/rt_<id>`; the executor is
 silent on stdout and stderr while connected. So an OAR adapter would carry
-two credentials and own one local process (the executor), whose exit is
-the environment's disconnect rather than the session's end. Untested:
-`environment.disconnected` on executor death mid-command, and reconnecting
-a replacement executor to the same environment id.
+two credentials and own one local process (the executor). The executor
+lifecycle is pinned ([env], executor probe): start it before the first
+input or accept that the input request blocks until it connects; its
+death mid-command surfaces as `environment.disconnected` plus a `failed`
+command item inside a turn that still completes; a replacement on the same
+environment id reconnects in about 80 s; and `DELETE` does not stop it, so
+the adapter kills it on dispose.
 
-Still open: whether the one observed loss of a 202-accepted message in the
-completed-but-not-idle window (first sandbox run) reproduces, since a
-deliberate retry of that timing started a turn normally; how compaction
-manifests on a long session; and whether `agent.session.failed` is ever
-followed by anything on the stream.
+Still open: the one observed loss of a 202-accepted message in the
+completed-but-not-idle window (first sandbox run) did not reproduce in
+five deliberate attempts, so it stays a single unexplained occurrence; how
+compaction manifests on a long session; and whether `agent.session.failed`
+is ever followed by anything on the stream.
 
 [changelog]: https://developers.openai.com/api/docs/changelog
 [overview]: https://developers.openai.com/api/docs/guides/agents-api/overview
