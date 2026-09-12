@@ -1,7 +1,9 @@
-# OAR as an agent control system
+# OAR as an agent-facing system
 
-OAR is a control plane and evidence substrate for agents that operate other
-agents. Runtime adapters are replaceable edges of one coherent system.
+OAR is a library and contract layer for embedding agent runtimes, plus an
+evidence substrate that makes their behavior inspectable. Runtime adapters are
+replaceable edges of one coherent system. A host or application supplies the
+control-plane policy around this layer.
 
 An agent using OAR should always be able to answer: what is available, what is
 true, what can I do, what happened, and how do I continue without guessing?
@@ -13,21 +15,22 @@ policy, storage, scheduling, and presentation.
 
 ```mermaid
 flowchart TB
-  Discover[Discover\ninstall · auth · models]
-  Declare[Declare\ncapabilities · limits · evidence]
-  Control[Control\nsession · prompt · steer · queue · abort]
-  Record[Record\nordered lossless stream]
-  Observe[Project\nstatus · model · usage · context · graph]
-  Continue[Continue\ncursor · resume · voyage · handoff]
-  Discover --> Declare --> Control --> Record --> Observe --> Continue
+  Discover[Discover<br/>install · auth · models]
+  Declare[Declare<br/>capabilities · limits · evidence]
+  Control[Control<br/>session · prompt · steer · queue · abort]
+  Record[Record<br/>ordered lossless stream]
+  Project[Project<br/>status · model · usage · context · graph]
+  Continue[Continue<br/>cursor · resume · voyage · handoff]
+  Discover --> Declare --> Control --> Record --> Project --> Continue
   Continue --> Discover
 ```
 
 - **Discover** is bounded: installation probing does not perform account I/O,
   and model/usage reads expose their authentication and resource cost.
-- **Declare** is the decision surface. A capability is available, unavailable,
-  or unknown for a stated reason; it never promises more than its interface
-  proves.
+- **Declare** is the decision surface. A capability declaration should make
+  support and limits legible without promising more than the selected
+  interface proves. The current session surface is deliberately smaller; see
+  the roadmap before treating richer states as shipped.
 - **Control** is explicit. Every action has a typed acceptance result and a
   known landing point; a rejection leaves the input with its caller.
 - **Record** is the evidence boundary. One ordered stream preserves native
@@ -76,8 +79,9 @@ boundary without reconstructing hidden adapter state.
   sensible, and who owns the next decision. Never infer this from silence.
 - **Composability:** shared mechanisms carry no runtime identity; runtime
   policy stays local; projections consume contracts only.
-- **Reversibility:** controls are bounded and explicit; rejected input remains
-  caller-owned; disposal and handoff are observable.
+- **Boundedness:** controls are bounded and explicit; rejected input remains
+  caller-owned; disposal and handoff are observable. A control may race with
+  runtime progress and is not implicitly reversible.
 - **Resource awareness:** cheap probes precede expensive runs; real logins and
   model calls are deliberate; deadlines, cancellation, and quota remain
   visible.
@@ -85,22 +89,28 @@ boundary without reconstructing hidden adapter state.
   information. Native payloads remain reachable and vendor extensions stay
   behind explicit capability boundaries.
 
-## How the system accumulates value
+## Accumulating value
 
-OAR is agent-accretive when each operation improves the next one:
+Leave a reusable artifact at every seam: a run leaves records; a probe leaves a
+script and conclusion; a design decision leaves rationale; a handoff leaves
+identity, cursor, and next action. Projections and caches remain disposable,
+so the source evidence can always rebuild them.
 
-- A stream becomes a voyage log or projection without losing source facts.
-- A surprising behavior becomes an experiment, regression test, and mapping.
-- A failed action leaves a typed rejection or honest gap, preventing repeats
-  under a false premise.
-- Capability and model decisions are data, so hosts can change runtimes without
-  rewriting task history.
-- Public contracts grow additively from evidence; unsettled semantics remain
-  explicitly unknown or open.
+## System quality axes
 
-The accumulation rule is: **leave a reusable artifact at every seam**. A run
-leaves records; a probe leaves a script and conclusion; a design decision
-leaves rationale; a handoff leaves identity, cursor, and next action.
+Three host-facing qualities guide additions to every layer:
+
+- **Developer experience:** a small, typed surface should be enough to inspect
+  and drive a runtime; examples, errors, and tests should reveal the next
+  operation without requiring vendor internals.
+- **Extensibility:** a new runtime, transport, or projection should attach at
+  one explicit seam and preserve existing contracts. Runtime-specific policy
+  belongs in a leaf adapter; shared layers grow only from boundaries shown by
+  more than one runtime.
+- **Debuggability:** every surprising result should be traceable from the
+  control request through ordered native records, projection inputs, and the
+  relevant experiment or test. A host may add richer diagnostics, but it must
+  not replace source evidence with a derived summary.
 
 ## Ownership and boundaries
 

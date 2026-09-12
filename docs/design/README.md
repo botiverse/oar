@@ -6,17 +6,14 @@ small and links deeper instead of inlining.
 | Read | To answer |
 |---|---|
 | [motivation.md](motivation.md) | Why does oar exist? What is the bet behind it? Who is it for? Why not use each harness directly? |
-| [hard-problems.md](hard-problems.md) | What exactly is hard about integrating an agent runtime? (15 problems, each with a real-runtime counterexample) |
+| [hard-problems.md](hard-problems.md) | What exactly is hard about integrating an agent runtime? (15 protocol problems, each with a real-runtime counterexample) |
 | [foundations.md](foundations.md) | Which of those problems are merely work, and which are foundations where an early mistake breaks consumers forever? |
 | [liveness.md](liveness.md) | "Is this agent alive or dead, and why?": the stability question every multi-agent application hits |
 | [system.md](system.md) | How discovery, control, evidence, projection, and continuation form one agent-facing system? |
 | [roadmap.md](roadmap.md) | Which system improvements are next, and what evidence gates them? |
 
-Suggested order: motivation → hard-problems → foundations → liveness. Each
-stands alone if you only need one answer.
-
-For the integrated model, read [system.md](system.md) after the foundations;
-the roadmap turns that model into bounded, evidence-backed increments.
+Suggested order: motivation → hard-problems → foundations → liveness → system
+→ roadmap. Each stands alone if you only need one answer.
 
 Related material elsewhere in the repo:
 
