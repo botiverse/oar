@@ -428,7 +428,8 @@ than the [`4f39251a`][native-source] pin used elsewhere on this page;
 by @Faye** is her app-server probe of 2026-09-12 ([message
 e7ee9658][faye-probe]), run over the websocket transport against a local
 Responses API mock with an isolated `CODEX_HOME`, so it speaks to server
-behaviour, not to OAR's stdio path; **vendor** is native documentation that
+behaviour, not to OAR's stdio path (death boundary results in [message
+7ea1e2c6][faye-death]); **vendor** is native documentation that
 no observation here has confirmed. Baselines: codex 0.154.0 (live contract,
 13 scenarios) and 0.149.0 (child thread probe).
 
@@ -444,8 +445,8 @@ the former only.
 | Column | Codex on OAR's path | Evidence |
 |---|---|---|
 | Session identity | The native thread id, a string returned in the `thread/start` or `thread/resume` reply and used as `Session.id`. Every record carries it as `sessionId`; notifications for a different `threadId` become child session records. It survives the OAR process because codex persists the thread as a rollout under `CODEX_HOME`, but only once a turn has completed. Before that the id lives only in the server's in memory loaded set: `thread/loaded/list` shows it, `thread/list` does not, the rollout `path` in the start reply does not exist on disk, and `thread/resume` fails `-32600 no rollout found` (observed by @Faye; matches the live contract observation on 0.154.0). | source [adapter][oar-session] lines 100 to 133; observed live contract resume scenario 0.154.0; observed by @Faye; source upstream [rollout crate][upstream-rollout] |
-| Connection identity | Implicit: the subscription relation is the identity, and no addressable id exists. On OAR's path one spawned process is one stdio connection; no frame carries a connection id, and request ids are per client integers starting at 1. Over the websocket transport neither the upgrade response nor the `initialize` reply carries one either (observed by @Faye). Inside the server a `ConnectionId` exists per transport connection: `thread_state.rs` keeps `live_connections` and a per thread set of subscribed connection ids, `thread/start` and `thread/resume` add the calling connection to that set, `thread/unsubscribe` removes it, and a closed connection drops its pending request contexts. It is never written to the wire. The allowed values for this column are none, implicit, and explicit id; codex is implicit. | source [transport][oar-transport]; source upstream [thread state][upstream-thread-state], [outgoing messages][upstream-outgoing]; observed by @Faye |
-| Transport cursor | Two kinds, filled separately. **Live stream cursor**, a position a reconnecting client hands back to receive the frames it missed: none. No notification carries a sequence field, `turnId` is a span label and a `thread/items/list` filter, and `thread/resume` on a running thread delivers history plus a fresh full copy of every later frame, not a continuation from a break (source upstream comment "sends the thread's history to the client and atomically subscribes for new updates"; observed by @Faye: after B resumes, A and B receive frame for frame identical method sequences). **History pagination cursor**: yes. `thread/resume` returns `itemsBackwardsCursor` and `turnsBackwardsCursor`, documented as opaque but observed as plaintext JSON `{ requestedThreadId, rolloutOrdinal, includeAnchor, scope }`, anchored on the append only rollout's ordinal, and consumed by `thread/items/list` and `thread/turns/list`. It pages the persisted log after the fact; it does not resume the live stream. OAR's `seq` is process local and is the only live cursor on this path. | source [kernel][oar-kernel] lines 168 to 183; source upstream [thread schema][upstream-thread-rs] lines 446 to 459; observed by @Faye (death boundary 待验证) |
+| Connection identity | Implicit: the subscription relation is the identity, and no addressable id exists. On OAR's path one spawned process is one stdio connection; no frame carries a connection id, and request ids are per client integers starting at 1. Over the websocket transport neither the upgrade response nor the `initialize` reply carries one either (observed by @Faye). Inside the server a `ConnectionId` exists per transport connection: `thread_state.rs` keeps `live_connections` and a per thread set of subscribed connection ids, `thread/start` and `thread/resume` add the calling connection to that set, `thread/unsubscribe` removes it, and a closed connection drops its pending request contexts. It is never written to the wire. The allowed values for this column are none, implicit, and explicit id; codex is implicit. A client death removes it from the subscriber set without any frame to the others. | source [transport][oar-transport]; source upstream [thread state][upstream-thread-state], [outgoing messages][upstream-outgoing]; observed by @Faye |
+| Transport cursor | Two kinds, filled separately. **Live stream cursor**, a position a reconnecting client hands back to receive the frames it missed: none. No notification carries a sequence field, `turnId` is a span label and a `thread/items/list` filter, and `thread/resume` on a running thread delivers history plus a fresh full copy of every later frame, not a continuation from a break (source upstream comment "sends the thread's history to the client and atomically subscribes for new updates"; observed by @Faye: after B resumes, A and B receive frame for frame identical method sequences). **History pagination cursor**: yes. `thread/resume` returns `itemsBackwardsCursor` and `turnsBackwardsCursor`, documented as opaque but observed as plaintext JSON `{ requestedThreadId, rolloutOrdinal, includeAnchor, scope }`. `rolloutOrdinal` is the explicit `ordinal` field every rollout line carries, monotonic from 0; a hand built cursor is accepted by `thread/items/list`, and the same cursor pages in both `sortDirection` values. It pages the persisted log after the fact and can never reach a delta, because deltas are not persisted (question 2), so the two cursor kinds differ in persistence granularity, not in API taste. OAR's `seq` is process local and is the only live cursor on this path. | source [kernel][oar-kernel] lines 168 to 183; source upstream [thread schema][upstream-thread-rs] lines 446 to 459; observed by @Faye |
 | Event stream scope | Per process stdout on OAR's path: every notification the server emits on this connection is one event record, including notifications for child threads, which arrive on the parent's connection (observed 0.149.0 and 0.154.0). The server has two notification layers. A broadcast layer (`thread/started`, `thread/name/updated`, `thread/status/changed`) reaches every initialized connection, including one that never named the thread; a subscription layer (`turn/*`, `item/*`, deltas, `thread/tokenUsage/updated`) reaches only connections subscribed through `thread/start` or `thread/resume`, each receiving a full copy. `thread/unsubscribe` closes the subscription layer only. An observer connection therefore sees whether a thread is busy but not what it is doing. The server unloads a thread that is idle with no subscribers. With one stdio process OAR is always the sole subscriber, so it sees both layers merged. | source [projection][oar-projection]; observed [child thread probe](../../experiments/codex-child-threads.ts); source upstream [outgoing messages][upstream-outgoing] (`Broadcast` versus `ToConnection` envelopes); observed by @Faye |
 | Runtime side resume material | The rollout file `rollout-<timestamp>-<threadId>.jsonl` under `CODEX_HOME/sessions`, indexed by a sqlite state database in the same home. It holds the items and events that `should_persist_response_item` and `should_persist_event_msg` admit: messages, reasoning, tool calls with their outputs, compaction markers, turn started, completed, aborted, and token counts. It does not hold app-server notifications as sent, deltas, server requests, or anything OAR appended. `thread/resume` with `excludeTurns: true` feeds it back to the model and replays nothing to OAR. Diagnostic reference only: OAR replays observers from its own appended stream, never from this file. | source upstream [persistence policy][upstream-policy]; source adapter line 103; observed [resume section](#connection-session-creation-and-resume) |
 | Vendor claim versus evidence | Confirmed by observation on 0.154.0: resume continuity with `excludeTurns`, steer, queue, interrupt, dispose mid turn, child notifications on the parent connection, `exited` after kill. Vendor only: websocket and unix socket transports, `codex app-server proxy`, the app-server daemon, Codex Cloud `history` resume, `ephemeral` threads, ingress overload error `-32001`. Unverified either way: two controllers on one thread, queue durability across process death, resumed reasoning content, compaction frames, what happens when a recorded server request is never answered. | this page, [open gaps](#verification-and-open-gaps); vendor [app-server README][upstream-readme] |
@@ -486,8 +487,12 @@ the former only.
    Records carry `sessionId` and `agentPath`; a notification whose
    `threadId` differs from the root becomes a child record, and collab
    items yield `tool_call` edges. There is no lease: two OAR Sessions
-   resuming one thread id are not arbitrated by codex (observed). Source:
-   adapter line 154, projection.
+   resuming one thread id are not arbitrated by codex (observed). The
+   rollout's first line, `session_meta`, records an `originator` equal to
+   the `clientInfo.name` the creating client sent in `initialize`, so a
+   thread OAR created is marked `oar`; it is a self reported string and
+   not verifiable (observed by @Faye). Source: adapter lines 63 and 154,
+   projection.
 5. **Capability honesty.** Declared `{ steer: true, queue: { durable: true },
    attribution: "nested" }`. Steer is `turn/steer { expectedTurnId }` and
    queue is `thread/queue/add { clientUserMessageId }`, both held by codex,
@@ -528,11 +533,16 @@ the former only.
    (vendor).
 2. **Does the runtime log keep every frame or only turn snapshots?**
    Neither. The rollout is a filtered item log: the persistence policy
-   admits selected response items and selected core events, one line each,
-   and rejects the rest. It never holds app-server notifications as they
-   were sent, so `item/started`, deltas, `thread/tokenUsage/updated`, server
-   requests, and OAR's own requests and rejections are absent by
-   construction. Source upstream [policy][upstream-policy].
+   admits selected response items and selected core events, one line each
+   with an explicit `ordinal`, and rejects the rest. It never holds
+   app-server notifications as they were sent, so `item/started`, deltas,
+   `thread/tokenUsage/updated`, server requests, and OAR's own requests and
+   rejections are absent by construction. A full turn that emitted five
+   `item/agentMessage/delta` frames on the wire left a 49 line rollout whose
+   line types were only `session_meta`, `turn_context`, `world_state`,
+   `response_item`, `event_msg` (`task_started`, `item_completed`,
+   `token_count`, `task_complete`), and `token_usage_record`, with no delta
+   (observed by @Faye). Source upstream [policy][upstream-policy].
 3. **Is a stream rebuilt from that log isomorphic to the original?** No.
    Absent: every OAR request and response record, `seq`, the pre-open
    frames, every delta, every server request. Recoverable: message content,
@@ -549,20 +559,26 @@ the former only.
    late joiner the frames emitted before it subscribed, other than through
    the history pages.
 5. **Is there a recognizable last frame on process death, and what does the
-   log say about an in flight tool call?** No runtime frame. The last record
-   is OAR's `exited` response with `requestId ""` (source, pre-open test).
-   The stream then holds a `tool_call_started` with no `tool_call_ended`,
-   and the child `turn/completed` may never arrive. Whether the rollout
-   holds the tool call without its output in that case, and where the
-   history cursor points after a kill, is 待验证 by @Faye's death boundary
-   probe.
+   log say about an in flight tool call?** Two deaths must be kept apart.
+   On OAR's path the process is the server, so killing it ends the thread:
+   no runtime frame marks it, the last record is OAR's `exited` response
+   with `requestId ""` (source, pre-open test), the stream then holds a
+   `tool_call_started` with no `tool_call_ended`, and the child
+   `turn/completed` may never arrive. On a shared server a client death is
+   not a thread event at all: the turn belongs to the server side thread,
+   a surviving subscriber receives every remaining frame through
+   `turn/completed` with nothing marking the originator's disappearance,
+   and a turn whose only client was killed still runs to `completed`, with
+   all items persisted, for a client that connects ten seconds later
+   (observed by @Faye). Whether the rollout holds a tool call without its
+   output when the server itself dies mid call was not probed.
 6. **Do hosted forms report environment lifecycle events?** Not on OAR's
    path. Upstream, a daemon or unix socket server outlives any one client
    and unloads idle unsubscribed threads; `thread/status/changed` is
    broadcast to every connection, so thread activity is visible to
-   observers, but whether a client is told about an unload, or about a peer
-   connection closing, is 待验证 (Faye's death boundary probe and the
-   daemon and proxy paths are still open).
+   observers, but a peer connection closing produces no frame (observed by
+   @Faye), and whether a client is told about an unload is 待验证; the
+   daemon and proxy paths are still open.
 
 ### Tool call outcome reporting
 
@@ -649,3 +665,4 @@ yet verified live.
 [upstream-item]: https://github.com/openai/codex/blob/2151d3a5/codex-rs/app-server-protocol/src/protocol/v2/item.rs
 [upstream-thread-rs]: https://github.com/openai/codex/blob/2151d3a5/codex-rs/app-server-protocol/src/protocol/v2/thread.rs
 [faye-probe]: raft://harness-investigation/5769c3d4/e7ee9658
+[faye-death]: raft://harness-investigation/5769c3d4/7ea1e2c6
