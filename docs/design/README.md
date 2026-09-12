@@ -9,12 +9,12 @@ small and links deeper instead of inlining.
 | [hard-problems.md](hard-problems.md) | What exactly is hard about integrating an agent runtime? (15 protocol problems, each with a real-runtime counterexample) |
 | [foundations.md](foundations.md) | Which of those problems are merely work, and which are foundations where an early mistake breaks consumers forever? |
 | [liveness.md](liveness.md) | "Is this agent alive or dead, and why?": the stability question every multi-agent application hits |
-| [patterns.md](patterns.md) | Where can each piece run? The application split into client and server, three patterns (the client drives the harness on its own host; your server drives a harness on the user's machine; your server drives an agent on a host you or a vendor provide, or on none), one diagram per pattern, who owns which layer, and what is shipped versus designed |
+| [Deployment patterns](https://raft-artifacts.com/p/open-agent-runtime/oar-deployment-patterns) (interactive, lives outside the repo) | Where can each piece run? Client, driver, harness, and environment; three patterns (the user runs the driver on their own machine; your backend drives the harness on the user's machine; your backend drives an agent on a host you or a vendor provide, or on none), one diagram per pattern, who owns which layer, and what is shipped versus designed |
 | [system.md](system.md) | How discovery, control, evidence, projection, and continuation form one agent-facing system? |
 | [roadmap.md](roadmap.md) | Which system improvements are next, and what evidence gates them? |
 
 Suggested order: motivation → hard-problems → foundations → liveness →
-patterns → system → roadmap. Each stands alone if you only need one answer.
+deployment patterns → system → roadmap. Each stands alone if you only need one answer.
 
 Related material elsewhere in the repo:
 
