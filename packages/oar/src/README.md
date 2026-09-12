@@ -48,3 +48,6 @@ flowchart TB
 - Test layers: `tests/` = fast pure unit tests only. `sea-trial/` = contract behavior judgments (`cases/`), their engine and vehicle (`harness/`), the mock fixture (`fixtures/`), and the single entry `pnpm sea-trial` (part of `pnpm check`, so CI runs the mock instance): backend picked by `OAR_TEST` (unset = mock; unavailable runtime = skip, OpenDAL semantics). `experiments/` = manual real-runtime experiment records (see its README inventory); never CI.
 - Installation probing is local-only. Account usage is a separate authenticated observation capability.
 - Behavior invariants live as comments on the exact contract member they constrain; every must/never has (or gets) a sea-trial case.
+- The agent-facing dependency direction is discovery/capabilities → control →
+  records → observe → continue. Keep host policy and persistence outside the
+  package; see [`docs/design/system.md`](../../../docs/design/system.md).

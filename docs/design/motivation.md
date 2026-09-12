@@ -3,7 +3,9 @@
 **oar exists so that applications embedding agent runtimes write one
 integration instead of N, against a contract that is lossless on the
 producer side, semantically clear on the consumer side, and honest about what
-each runtime can and cannot do.**
+each runtime can and cannot do. It is also a system an agent can operate
+without guessing: orient, choose, act, observe, verify, checkpoint, and hand
+off through linked, inspectable surfaces.**
 
 ## The problem
 
@@ -96,3 +98,20 @@ If an application uses exactly one harness and its native SDK fits, direct
 use is fine. oar pays off at two or more runtimes, or at one, when you want
 durability against harness churn and someone else to have already absorbed
 each vendor's quirks.
+
+## The agent-facing goal
+
+The consumer of OAR is often another agent or an automation loop, not only a
+human UI. Agent ergonomics therefore means that the system exposes the facts
+and decisions needed to operate it:
+
+- orientation is cheap and bounded;
+- controls state acceptance and ownership explicitly;
+- records preserve the evidence needed to explain a result;
+- projections can be discarded and rebuilt;
+- deadlines and quota are visible without weakening correctness; and
+- every investigation leaves a test, experiment, voyage, or handoff that
+  makes the next operation start further ahead.
+
+These are system invariants. The linked model and staged plan are in
+[`system.md`](system.md) and [`roadmap.md`](roadmap.md).

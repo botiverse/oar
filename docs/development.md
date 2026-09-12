@@ -4,6 +4,11 @@ How to work in this repo: the ad-hoc run-first loop, how to validate your
 changes, how to add a runtime or fix a runtime bug, the testing
 conventions, and the commit gate. Linked from the root `README.md` index.
 
+For system-level changes, start with [`docs/design/system.md`](design/system.md)
+and [`docs/design/roadmap.md`](design/roadmap.md). State which agent decision
+gets cheaper or more accurate, which layer owns the change, and which durable
+artifact lets the next worker continue.
+
 Deeper detail lives next to the code it describes:
 [`packages/oar/src/README.md`](../packages/oar/src/README.md) for the source
 layout, import rules, and ownership;
@@ -53,6 +58,9 @@ Three rules keep the loop honest:
   or extended a tool to get the run done, polish and commit that
   improvement as part of finishing the change, so the next run starts
   further ahead.
+- **Leave a handoff.** For work that spans turns or owners, record the runtime
+  identity, cursor or artifact, current conclusion, and next action. A status
+  message without a continuation is not an accumulated result.
 - **Real logins cost quota.** Repeatable ad-hoc runs belong on the mock or
   aimock backends; reach for a real installation deliberately, the same
   way `OAR_TEST=<real id>` is reserved for when vendor reality is in

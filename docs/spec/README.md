@@ -9,6 +9,11 @@
 > semantics). Principles pages never contain wire shapes; spec pages cite
 > the principles instead of restating them.
 
+The surrounding system model is in [`docs/design/system.md`](../design/system.md):
+this specification is the evidence boundary inside that model. Hosts add
+policy, storage, scheduling, and presentation around it without changing
+record meaning.
+
 ## The contract in one line
 
 The contract is one ordered, resumable record stream. Records split into three kinds

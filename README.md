@@ -22,6 +22,10 @@ Claude Code, Codex, Grok Build, Kimi Code, Pi
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
 | [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |
 
+The integrated agent-facing model and its implementation plan are
+[`docs/design/system.md`](docs/design/system.md) and
+[`docs/design/roadmap.md`](docs/design/roadmap.md).
+
 
 
 

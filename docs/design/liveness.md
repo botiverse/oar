@@ -50,3 +50,15 @@ oar cannot force a runtime to explain a hang. When the runtime is silent, we
 report observables (process state, last event, cursor position) and
 declare the rest unknown, rather than synthesizing a heartbeat. A fake
 "healthy" is worse than an honest "no signal since seq N".
+
+## Liveness in the agent loop
+
+At each checkpoint the host should have the last observed sequence, last native
+event, active control, elapsed wait, and applicable deadline. Those facts let
+policy choose to continue, inspect a runtime request, cancel, or hand off.
+The policy belongs to the host; OAR records facts and runtime outcomes.
+
+This keeps resource economics and liveness aligned: a deadline bounds what the
+host will spend without turning silence into a fabricated death event. A
+handoff carries the cursor and last observation so a new worker continues the
+same decision from evidence.

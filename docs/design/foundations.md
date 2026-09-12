@@ -39,6 +39,19 @@ be *right*:
 Stability (knowing whether an agent is alive or dead, and why) is also a
 foundation problem; it gets its own page: [liveness.md](liveness.md).
 
+## System coherence
+
+The foundations compose into a control loop. The agent-facing system is
+described in [system.md](system.md): discover, declare, control, record,
+project, and continue. Each layer has one owner and one dependency direction.
+This prevents a projection from becoming an unrecorded source of truth, an
+adapter from assuming host policy, or a resume token from being mistaken for
+replay.
+
+For a new surface, ask whether it makes the loop more legible: can an agent
+orient, act, observe, verify, checkpoint, and hand off with less guessing and
+less duplicated work? If not, keep it in a host experiment.
+
 ## Adapter vs foundation
 
 An adapter is judged by how much it covers today; a foundation is judged by
