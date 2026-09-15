@@ -1,6 +1,6 @@
 # Multica：接入抽象、测试接缝与 OAR 判断
 
-调研版本：`261522e3e3d71516d6b34d7c5ab1ccc8a4669718`（main，2026-09-08）。只读源码与 CI 配置，没有安装依赖、运行测试或做线上行为验证。以下链接固定到该 SHA。
+调研版本：`261522e3e3d71516d6b34d7c5ab1ccc8a4669718`（main，2026-09-08）。只读源码与 CI 配置，没有安装依赖、运行测试或做线上行为验证。以下链接固定到该 SHA。末尾「会话持久化与 replay」一节是 2026-09-15 的补充，基线 `a843b44a48b4cb3d94c08e0c56ddef1fc1105257`，链接固定到那个 SHA。
 
 ## 结论
 
@@ -83,4 +83,38 @@ ACP 有实际复用，而非每个名字完全重写：[`kimi.go:30-66`](https:/
 - **需要避免产品策略泄漏。** Multica 的任务 DB/coordinator 恢复、默认自动批准、特殊配置路径和 Codex rollout pinning 不一定都适合外部通用契约。OAR 应声明哪些是保障执行语义的机制，哪些由消费者提供 policy。
 - **可交付的区别应是外部可消费的兼容性承诺。** 例如共享 failure/lifecycle conformance；明确 native ID、raw event、replay/live continuity 的保真边界；版本化 fixture 与真实 CLI canary；capability 的显式 unsupported/unknown 行为。再用第二个真实消费者验证可以减少多少重复实现，而不是只在 OAR 仓库里证明 API 好看。
 - **静态研究尚不能证明“必须用 OAR”。** 尚需验证第三方消费者愿不愿采用独立依赖、Go 产品消费 TS/其他语言中间件的成本、维护和适配义务如何分担。无证据把产品用户数或成功归因到抽象层质量。
+
+## 补充：会话持久化与 replay（2026-09-15，基线 `a843b44a`）
+
+起因是 OAR 决定不提供 session history readback（见 [roadmap: decided against](../design/roadmap.md#session-history-readback-2026-09-15)），需要确认 Multica 在同一问题上的做法。结论：Multica 也是 **host 自存一份自家词汇的 transcript，原生 session 只保留 id 用于 resume**，从不读回 vendor 存储的历史。它比之前调研的几家更值得看的是围绕 resume 可信度的那套机制。
+
+### 存的是什么
+
+daemon 消费 `agent.Session.Messages`（`agent.Message`：text / thinking / tool-use / tool-result / status / error / log），转成 `TaskMessageData {seq, type, tool, content, input, output, created_at, output_truncated}` 上报，server 落到 `task_message(task_id, seq, type, tool, content, input jsonb, output, created_at, output_truncated)`。没有 raw 或 native 列，也没有 vendor 的 turn / item / call id。[消息表](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/migrations/026_task_messages.up.sql)、[协议类型](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/pkg/protocol/messages.go)、[转发循环](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/internal/daemon/daemon.go#L9290-L9500)
+
+细节说明这是有意的产品投影，不是事实存档：
+
+- **seq 是 daemon 进程内计数器**（`msgSeq.Add(1)`），text 和 thinking 先在 daemon 内累积成块、flush 时才拿 seq，tool_use / tool_result 逐条拿。跟 OAR 的 `coalesceText` 是同一个动机，但发生在持久化之前，块边界由 flush 时机决定，之后不可恢复。
+- **tool_result 只存 8 KiB 前缀**（`toolOutputPreview`），`output_truncated` 是三态，NULL 表示旧 daemon 没量过，客户端必须显示为未知而不是完整。tool_use 的 input 在 daemon 侧先 redact，server 侧再 redact 一次，理由是部署顺序不受控。[预览预算](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/internal/daemon/tool_output_preview.go)
+- **批量写入是一条语句、all-or-nothing、`ORDER BY seq` 是契约**，但 daemon 不重试这个端点，失败的 batch 整批丢。query 注释自己写明 transcript 因此可能缺一段，补上需要 retry 加 `(task_id, seq)` 唯一约束，目前没有。[批量插入](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/pkg/db/queries/task_message.sql)
+
+这和 OAR「一条流、单调 seq、不丢」的承诺是两种保证：Multica 的 seq 服务 UI 排序和增量拉取（`ListTaskMessagesSince`），不是持久 cursor；上一版 findings 说它「不是原始事件连续性中间件」在这里得到直接证据。
+
+### replay 和 live 是同一个 fold
+
+前端 `buildTimeline(msgs)` 按 seq 排序、合并相邻 text / thinking、redact，得到 `TimelineItem`。实时更新是「追加未见过的 seq 后重建」，并用按首条消息身份的 WeakMap 缓存避免每 100ms 全量 redact（MUL-7227）。冷加载读 `ListTaskMessages`，热更新读 `ListTaskMessagesSince`，两条路径进同一个函数。这与 OAR 的「transcript 是对 Event 流的 fold」同构，也是 Paseo、One Works 的做法。[timeline 构建](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/packages/views/common/task-transcript/build-timeline.ts)
+
+### resume：难点在可信度，不在读历史
+
+- 原生 session id 和 work_dir 存在 `agent_task_queue`，迁移注释直说目的是 `--resume <session_id>`；`PinTaskSession` 在运行中就落库，防 daemon 崩溃丢掉 resume 指针。[会话列](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/migrations/020_task_session.up.sql)
+- `Result.ResumeRejected` 是每个 adapter 的正向证据谓词。claude：错误文本和 stderr 尾部里匹配短语，或 claude 回的 session id 与请求的不一致；codex：`isCodexResumeOverflow`，resume 回复过大把 reader 撑爆时视为拒绝而非 codex 故障。注释明确否定了「SessionID 为空即 resume 被拒」的旧推断，因为 401 或缺二进制同样产生空 id。[claude 谓词](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/pkg/agent/claude.go#L850-L890)、[codex 溢出](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/pkg/agent/codex.go#L2715-L2730)
+- server 端 `ResumeUnsafeFailure` 维护一份「毒化会话」的 failure_reason 黑名单（iteration_limit、context_overflow、api_invalid_request、codex_semantic_inactivity、codex_resume_oversized）再加原始错误文本兜底（Anthropic 400 invalid_request_error、凭证未解析、provider 拒绝的空消息历史），命中则重试必须开新会话；`retiredSessionID` 让 server 清掉仍指向已放弃会话的指针。[resume 安全判定](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/internal/service/task.go#L5184-L5240)、[指针清理](https://github.com/multica-ai/multica/blob/a843b44a48b4cb3d94c08e0c56ddef1fc1105257/server/internal/service/task.go#L4810-L4830)
+
+三层都在做同一件事：从 vendor 的文本里猜「这个会话还能不能续」。这正是 OAR `TurnOutcome.failure` 的 `FailureClass` 想给 host 的结构化信号；Multica 的黑名单是 FailureClass 分类是否够用的现成检验清单。
+
+### 对 OAR 的含义
+
+- 再一个独立维护的 host 选择自存统一 transcript 加原生 resume，且没有从 vendor 存储读回历史。支持 roadmap 里 session history readback 的 decided-against。
+- 它为 transcript 付出的代价（8 KiB 截断、块边界不可恢复、丢 batch）都是产品选择，不是协议缺陷；OAR 若定位生产者，不应拿自己的 raw 层去比这一层，跟 oar-value-review 对 Lody 的判断一致。
+- 真正可抽取的共性是 resume 失败的分类和 late-event / fresh-session fence，不是历史读回。这是 synthesis-review 第 37 行「先补让 host 不猜 vendor 状态的事实」的又一例证。
 

@@ -118,8 +118,10 @@ fold when the fold changes; the runtime's native resume
 [prior-arts](../prior-arts/README.md) persists its own unified events and
 none reads native history back: Paseo's timeline items, Lody's session
 document, Synara's canonical journal, One Works' per-session `RuntimeEvent`
-JSONL, Orca's wire history; Herdr and Multica keep only the native id and
-re-run the native resume. The host contract is therefore: persist
+JSONL, Orca's wire history, Multica's `task_message` rows with daemon-assigned
+seq and 8 KiB tool-output previews ([follow-up](../prior-arts/multica-findings.md#补充会话持久化与-replay2026-09-15基线-a843b44a));
+Herdr keeps only the native id and re-runs the native resume. The host
+contract is therefore: persist
 `Session.events()` (or a voyage log when the native frames matter), keep
 `runtime` plus `Session.id`, resume natively.
 
