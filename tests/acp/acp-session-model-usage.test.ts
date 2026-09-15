@@ -57,8 +57,8 @@ const usageAfterResponse = [fixture, "usage-after-response"];
 /** `contextUsage().tokens` as read inside each turn_ended record, in order. */
 function tokensAtTurnEnded(session: Session): readonly (number | null)[] {
   const seen: (number | null)[] = [];
-  session.subscribe((record) => {
-    if (record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended")) {
+  session.rawEvents((record) => {
+    if (record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended")) {
       seen.push(session.contextUsage().value?.tokens ?? null);
     }
   });

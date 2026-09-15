@@ -128,7 +128,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         const state = turns.active();
         return state === null ? { kind: "rejected", reason: "no active turn" } : turns.abort(state);
       }),
-      subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+      rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),
       dispose: async () => {

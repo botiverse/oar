@@ -72,12 +72,12 @@ interface RecordEnvelope {
 ### Example 4 · Parent/child interleaving + the composite key
 
 ```
-seq=88  ✓ event  root          tool_call {id:"call_3", Task → spawn sub-agent}
-seq=89  ✓ event  path=["a1"]   assistant_text "Let me check first…"
-seq=90  ✓ event  root          assistant_text "Meanwhile I'll look elsewhere…"
+seq=88  ✓ frame  root          tool_call {id:"call_3", Task → spawn sub-agent}
+seq=89  ✓ frame  path=["a1"]   assistant_text "Let me check first…"
+seq=90  ✓ frame  root          assistant_text "Meanwhile I'll look elsewhere…"
         ↳ parent and child interleave in one stream; agentPath lets every
           record certify its own attribution
-seq=91  ✓ event  path=["a1"]   tool_call {id:"call_1", …}
+seq=91  ✓ frame  path=["a1"]   tool_call {id:"call_1", …}
         ↳ sharing a name with a historical call_1 in the parent stream is
           fine: identity = (agentPath, id), and (["a1"],"call_1") ≠
           ([],"call_1"). See hard spot 1 in runtime-matrix.md
@@ -153,8 +153,8 @@ deleted from the protocol.
   "Cost separation". With the upstream basis unsettled, exposing basis
   labels at the protocol surface would only transfer an unsettled problem
   to consumers. [acp: session-usage.mdx; end-turn-token-usage.mdx:26,97,101]
-- Usage itself is a seq-carrying event on the stream (the query rule in
-  [record-stream.md](record-stream.md)); `usage()` returns `{ value, seq }`,
+- Usage itself is a seq-carrying `usage` event read from a frame on the
+  stream (the query rule in [record-stream.md](record-stream.md)); `usage()` returns `{ value, seq }`,
   with `seq` naming the last record consumed by the fold. Per-agent
   attribution rides the envelope. [sym][src]
 

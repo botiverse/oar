@@ -25,7 +25,8 @@ oar run claude "What does this repo do?"
 
 ## `oar run`: the run-and-verify entrypoint
 
-By default `run` prints readable progress: assistant text verbatim, and
+By default `run` prints readable progress from the session's `events()`:
+assistant text verbatim (coalesced into blocks via `coalesceText`), and
 everything else as a bracketed meta line:
 
 ```
@@ -39,11 +40,11 @@ The repo is a pnpm workspace...
 Flags:
 
 - `--model <model>`: runtime-native model identifier.
-- `--json`: print the session records as JSON lines instead of
-  progress (events with their verbatim `native` frame and oar's `views`,
-  plus the request/response records of the run), and a final
+- `--json`: print the session records (`RawEvent`s) as JSON lines instead
+  of progress (frames with their verbatim `native` payload and oar's
+  `events`, plus the request/response records of the run), and a final
   `{"outcome": ...}` line.
-- `--record <file>`: additionally write the run as an `oar-voyage/2` JSONL
+- `--record <file>`: additionally write the run as an `oar-voyage/3` JSONL
   log (works in both output modes; the log always carries every record).
 
 A run without a record is an anecdote. When a run is meant to be evidence
@@ -59,9 +60,9 @@ behavior), pass `--record` so the claim points at a log anyone can read:
    and pin it with a test (`docs/development.md` has the test ladder).
 4. **Report honest outcomes.** A turn that failed or aborted is a finding,
    not something to retry until it looks clean: the exit code and the
-   runtime's own `turn_ended` view in the log say what actually happened.
+   runtime's own `turn_ended` event in the log say what actually happened.
 
-## The `oar-voyage/2` format
+## The `oar-voyage/3` format
 
 `--record` writes one JSON object per line, discriminated by `kind`. The
 format is defined and owned by `@botiverse/oar`, which exports the line
@@ -70,10 +71,10 @@ builders and `openVoyage` recorder; other tools (such as the
 or read the same format as consumers.
 
 - Line 1 is always the header:
-  `{"kind":"header","format":"oar-voyage/2","runtime","model?","cwd","sessionId","startedAt","recorder"}`
+  `{"kind":"header","format":"oar-voyage/3","runtime","model?","cwd","sessionId","startedAt","recorder"}`
   (`model` is omitted when none was requested; `recorder` names the writer,
-  e.g. `oar-cli/0.1.4`).
-- `{"kind":"record","record":{...}}`: one `SessionRecord` verbatim, no
+  e.g. `oar-cli/0.2.0`).
+- `{"kind":"record","record":{...}}`: one `RawEvent` verbatim, no
   filtering or re-timestamping. Human inputs are in the stream already as
   `request` records, so the format has no separate submission line; the
   `seq` on each record is the order.

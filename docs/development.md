@@ -32,7 +32,7 @@ session graph, the cursor).
 Run first, test second. Not every check starts life as a test: while shaping
 a change it is usually fastest to run the real thing and look. Drive the CLI
 (`oar run <runtime> "<prompt>"` shows a turn's progress live; add
-`--record <file>` to keep the run as an `oar-voyage/2` JSONL log; `oar list`,
+`--record <file>` to keep the run as an `oar-voyage/3` JSONL log; `oar list`,
 `oar installation <id>`, `oar usage <id>`, `oar models <id>` cover the
 observation surfaces),
 point a scratch `pnpm tsx` script at the public Session API, or reuse an
@@ -163,9 +163,12 @@ page and the experiments README.
    the runtime via `defineRuntime({ id, ... })`, listing only the
    capabilities the runtime honestly supports; an absent capability is
    correct, a faked one is not. The session adapter feeds a
-   `createSessionKernel()`: every native frame becomes exactly one `event`
-   record (`type`, `native` verbatim, `views` for what oar reads out of it,
-   never gated on turn state, never dropped, never synthesized); control
+   `createSessionKernel()`: every native frame becomes exactly one `Frame`
+   record via `kernel.frame()` (`type`, `native` verbatim, `events` holding
+   the `RuntimeEventBody`s oar reads out of it, never gated on turn state,
+   never dropped, never synthesized); the flat `Session.events()` surface is
+   derived from those records by the shared `eventsOf`, so an adapter never
+   builds it; control
    calls go through `kernel.control()` so request and response are records;
    the process exit is an `exited` response; and `capabilities` declares
    steer, queue durability and the attribution tier the runtime actually

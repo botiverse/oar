@@ -12,7 +12,7 @@
  * Run: pnpm tsx experiments/codex-session-adapter.ts   (requires logged-in `codex`)
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { awaitTurnEnd, codexRuntime, type SessionRecord } from "../packages/oar/src/index.js";
+import { awaitTurnEnd, codexRuntime, type RawEvent } from "../packages/oar/src/index.js";
 
 const installation = await codexRuntime.installation();
 if (installation.kind !== "available") {
@@ -20,22 +20,22 @@ if (installation.kind !== "available") {
 }
 
 const session = await codexRuntime.session(installation, { cwd: process.cwd() });
-const records: SessionRecord[] = [];
-session.subscribe((record) => {
+const records: RawEvent[] = [];
+session.rawEvents((record) => {
   records.push(record);
-  const label = record.kind === "event"
-    ? `${record.body.type} ${record.body.views.map((view) => view.kind).join(",")}`
+  const label = record.kind === "frame"
+    ? `${record.body.type} ${record.body.events.map((view) => view.kind).join(",")}`
     : `${record.kind} ${record.body.kind}`;
   process.stdout.write(`${record.seq} ${record.spanId?.slice(0, 8) ?? "-"} ${label}\n`);
 });
 
 const textAfter = (seq: number): string => records
-  .filter((record) => record.seq > seq && record.kind === "event")
-  .flatMap((record) => (record.kind === "event" ? record.body.views : []))
+  .filter((record) => record.seq > seq && record.kind === "frame")
+  .flatMap((record) => (record.kind === "frame" ? record.body.events : []))
   .map((view) => (view.kind === "text_delta" ? view.text : ""))
   .join("");
 const toolStartedAfter = (seq: number): boolean => records.some((record) =>
-  record.seq > seq && record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started"));
+  record.seq > seq && record.kind === "frame" && record.body.events.some((view) => view.kind === "tool_call_started"));
 
 // 1. steer folds into the same turn
 const first = await session.prompt([

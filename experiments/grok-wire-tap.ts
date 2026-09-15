@@ -20,7 +20,7 @@
  * by the profile): a one-word reply and a `spawn_subagent` delegation. Offline
  * mode (`--tap-log <file> --voyage <file>...`) tallies an existing tap log
  * (e.g. one written while experiments/live-contract.ts ran through the shim)
- * against the oar-voyage/2 logs of the same run.
+ * against the oar-voyage/3 logs of the same run.
  *
  * Run: pnpm tsx experiments/grok-wire-tap.ts [--keep] [--skip-subagent]
  *      pnpm tsx experiments/grok-wire-tap.ts --tap-log wire.jsonl --voyage a.voyage.jsonl [--voyage b.voyage.jsonl]
@@ -71,7 +71,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { grokRuntime, promptAndWait, type SessionRecord } from "../packages/oar/src/index.js";
+import { grokRuntime, promptAndWait, type RawEvent } from "../packages/oar/src/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../packages/oar/src/shared/json.js";
 
 // ─── arguments ────────────────────────────────────────────────────────────
@@ -205,13 +205,13 @@ interface StreamTally {
   readonly sessionIds: string[];
 }
 
-export function tallyStream(records: readonly SessionRecord[]): StreamTally {
+export function tallyStream(records: readonly RawEvent[]): StreamTally {
   const stream: StreamTally = { eventTypes: {}, eventTypesBySession: {}, toAppRequests: {}, toAppAnswers: 0, sessionIds: [] };
   for (const record of records) {
     if (!stream.sessionIds.includes(record.sessionId)) {
       stream.sessionIds.push(record.sessionId);
     }
-    if (record.kind === "event") {
+    if (record.kind === "frame") {
       bump(stream.eventTypes, record.body.type);
       bump(stream.eventTypesBySession, `${record.sessionId.slice(0, 8)} ${record.body.type}`);
     } else if (record.kind === "request" && record.direction === "toApp" && record.body.kind === "native") {
@@ -250,13 +250,13 @@ export function diffWireAgainstStream(wire: WireTally, stream: StreamTally): str
   return missing;
 }
 
-function readVoyageRecords(file: string): SessionRecord[] {
-  const records: SessionRecord[] = [];
+function readVoyageRecords(file: string): RawEvent[] {
+  const records: RawEvent[] = [];
   for (const line of readFileSync(file, "utf8").split("\n").filter((part) => part.length > 0)) {
     const entry = asRecord(parseJson(line));
     if (entry?.kind === "record") {
-      // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- an oar-voyage/2 line is a stamped record.
-      records.push(entry.record as SessionRecord);
+      // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- an oar-voyage/3 line is a stamped record.
+      records.push(entry.record as RawEvent);
     }
   }
   return records;
@@ -312,7 +312,7 @@ const prompts = [
   ]),
 ];
 const outcomes: unknown[] = [];
-const records: SessionRecord[] = [];
+const records: RawEvent[] = [];
 const graphs: unknown[] = [];
 for (const prompt of prompts) {
   // eslint-disable-next-line no-await-in-loop

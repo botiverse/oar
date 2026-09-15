@@ -1,6 +1,6 @@
 import type {
-  EventBody,
-  EventView,
+  FrameBody,
+  RuntimeEventBody,
   ResponseBody,
   TokenTotals,
   TurnOutcome,
@@ -18,15 +18,15 @@ import { claudeContextUsageFromResult } from "./context-usage.js";
  * list. No transport, no side effects, so it is trivially unit-testable and
  * shared verbatim between live and replay.
  *
- * Rules the fold enforces: EVERY frame becomes exactly one event record
- * (verbatim `native`, views in block order); nothing is gated on whether a
+ * Rules the fold enforces: EVERY frame becomes exactly one frame
+ * (verbatim `native`, events in block order); nothing is gated on whether a
  * turn is "open"; the turn's end is claude's own `result` frame; attribution
  * comes from `parent_tool_use_id` (a child's path is its parent's path plus
  * the Task tool_use id that spawned it).
  */
 
 export type ProjectionCommand =
-  | { readonly kind: "event"; readonly body: EventBody; readonly agentPath: readonly string[] }
+  | { readonly kind: "frame"; readonly body: FrameBody; readonly agentPath: readonly string[] }
   /** claude answered one of our `control_request`s (interrupt): the response to that request record. */
   | { readonly kind: "respond"; readonly requestId: string; readonly body: ResponseBody }
   /** claude asked US something (`control_request`): a toApp request record, verbatim. */
@@ -39,7 +39,7 @@ export type ProjectionCommand =
  * completed. `agents` maps every tool_use id seen to the agentPath of the
  * message that carried it, so a frame with `parent_tool_use_id` attributes to
  * that tool call's agent plus the call; nested Task calls nest the path.
- * `tokens` accumulates per-agent result usage so usage views are cumulative.
+ * `tokens` accumulates per-agent result usage so usage events are cumulative.
  */
 export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
@@ -71,8 +71,8 @@ function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
   return content.map((block) => asRecord(block)).filter((block) => block !== null);
 }
 
-function assistantViews(message: JsonRecord): EventView[] {
-  const out: EventView[] = [];
+function assistantViews(message: JsonRecord): RuntimeEventBody[] {
+  const out: RuntimeEventBody[] = [];
   for (const block of contentBlocks(message)) {
     switch (String(block.type)) {
       case "text": {
@@ -109,8 +109,8 @@ function assistantViews(message: JsonRecord): EventView[] {
   return out;
 }
 
-function toolResultViews(message: JsonRecord): EventView[] {
-  const out: EventView[] = [];
+function toolResultViews(message: JsonRecord): RuntimeEventBody[] {
+  const out: RuntimeEventBody[] = [];
   for (const block of contentBlocks(message)) {
     if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
       const output = block.content === undefined ? undefined : JSON.stringify(block.content);
@@ -197,29 +197,29 @@ export function foldClaudeStdout(
 ): { readonly state: ClaudeProjectionState; readonly commands: readonly ProjectionCommand[] } {
   const type = frameType(message);
   const agentPath = attributionOf(state, message);
-  const event = (body: Omit<EventBody, "type" | "native">, next: ClaudeProjectionState = state): { state: ClaudeProjectionState; commands: ProjectionCommand[] } =>
-    ({ state: next, commands: [{ kind: "event", body: { type, native: message, ...body }, agentPath }] });
+  const event = (body: Omit<FrameBody, "type" | "native">, next: ClaudeProjectionState = state): { state: ClaudeProjectionState; commands: ProjectionCommand[] } =>
+    ({ state: next, commands: [{ kind: "frame", body: { type, native: message, ...body }, agentPath }] });
 
   switch (String(message.type)) {
     case "assistant":
-      return event({ views: assistantViews(message) }, rememberToolUses(state, message, agentPath));
+      return event({ events: assistantViews(message) }, rememberToolUses(state, message, agentPath));
     case "user":
-      return event({ views: toolResultViews(message) });
+      return event({ events: toolResultViews(message) });
     case "result": {
-      const views: EventView[] = [{ kind: "turn_ended", outcome: resultOutcome(state, message) }];
+      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: resultOutcome(state, message) }];
       const accumulated = accumulate(state, agentPath, message);
       const context = claudeContextUsageFromResult(message);
       if (accumulated !== null || context !== null) {
-        views.push({ kind: "usage", usage: {
+        events.push({ kind: "usage", usage: {
           ...(context === null ? {} : { context }),
           ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
         } });
       }
-      return event({ views }, { ...(accumulated?.state ?? state), abortRequested: false });
+      return event({ events }, { ...(accumulated?.state ?? state), abortRequested: false });
     }
     case "system": {
       const model = message.subtype === "init" && typeof message.model === "string" ? message.model : null;
-      return event({ views: model === null ? [] : [{ kind: "model", model }] });
+      return event({ events: model === null ? [] : [{ kind: "model", model }] });
     }
     case "control_response": {
       // claude answering one of OUR control_requests (interrupt): the frame IS
@@ -229,7 +229,7 @@ export function foldClaudeStdout(
       const response = asRecord(message.response);
       const requestId = typeof response?.request_id === "string" ? response.request_id : null;
       if (requestId === null) {
-        return event({ views: [] });
+        return event({ events: [] });
       }
       const error = typeof response?.error === "string" ? response.error : null;
       return { state, commands: [{
@@ -248,12 +248,12 @@ export function foldClaudeStdout(
       return {
         state,
         commands: [
-          { kind: "event", body: { type, native: message, views: [] }, agentPath },
+          { kind: "frame", body: { type, native: message, events: [] }, agentPath },
           { kind: "toApp", id, type: subtype, native: message },
         ],
       };
     }
     default:
-      return event({ views: [] });
+      return event({ events: [] });
   }
 }

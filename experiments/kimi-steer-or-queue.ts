@@ -11,7 +11,7 @@
  * request record of its own (the queue request is the caller's record).
  *
  * Run: pnpm tsx experiments/kimi-steer-or-queue.ts [--out <dir>]
- * Burns tokens for two short kimi turns; writes an oar-voyage/2 log.
+ * Burns tokens for two short kimi turns; writes an oar-voyage/3 log.
  *
  * ── OBSERVED 2026-09-11, kimi 0.42.0, darwin arm64 ──
  * See docs/runtimes/kimi.md ("Prompting, steering, queuing, and cancellation"
@@ -40,7 +40,7 @@ const log = openVoyage(voyagePath, {
   startedAt: Date.now(),
   recorder: "experiments/kimi-steer-or-queue.ts",
 });
-session.subscribe((record) => {
+session.rawEvents((record) => {
   log.record(record);
 }, { sessionId: session.id, afterSeq: -1 });
 
@@ -48,7 +48,7 @@ const first = await session.prompt("Use your shell tool to run exactly: sleep 5;
 assert.equal(first.response.body.kind, "accepted");
 // Wait for the tool call so the turn is unmistakably active.
 const deadline = Date.now() + 120_000;
-while (!session.records().some((record) => record.seq > first.request.seq && record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started"))) {
+while (!session.records().some((record) => record.seq > first.request.seq && record.kind === "frame" && record.body.events.some((view) => view.kind === "tool_call_started"))) {
   assert.ok(Date.now() < deadline, "no tool call started within 120 s");
   // eslint-disable-next-line no-await-in-loop
   await delay(100);
@@ -57,12 +57,12 @@ const landed = await session.steerOrQueue("Reply with exactly QUEUED-OK and noth
 const steerRecord = session.records().find((record): record is RequestRecord => record.kind === "request" && record.body.kind === "steer");
 const steerAnswer = session.records().find((record) => record.kind === "response" && steerRecord !== undefined && record.requestId === steerRecord.id);
 const firstOutcome = await awaitTurnEnd(session, first.request.seq);
-const firstEnd = session.records().find((record) => record.seq > first.request.seq && record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended"));
+const firstEnd = session.records().find((record) => record.seq > first.request.seq && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"));
 assert.ok(firstEnd !== undefined);
 const secondOutcome = await awaitTurnEnd(session, firstEnd.seq);
-const secondEnd = session.records().find((record) => record.seq > firstEnd.seq && record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended"));
+const secondEnd = session.records().find((record) => record.seq > firstEnd.seq && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"));
 const between = session.records().filter((record) => record.seq > firstEnd.seq && record.seq < (secondEnd?.seq ?? Number.POSITIVE_INFINITY));
-const secondText = between.flatMap((record) => (record.kind === "event" ? record.body.views.flatMap((view) => (view.kind === "text_delta" ? [view.text] : [])) : [])).join("");
+const secondText = between.flatMap((record) => (record.kind === "frame" ? record.body.events.flatMap((view) => (view.kind === "text_delta" ? [view.text] : [])) : [])).join("");
 await session.dispose();
 log.end("done");
 

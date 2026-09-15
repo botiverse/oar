@@ -1,11 +1,11 @@
 /**
  * Browser-safe observe subpath: the pure derivation utilities over
- * SessionRecords, with ZERO Node and ZERO adapter imports. A renderer can
+ * RawEvents, with ZERO Node and ZERO adapter imports. A renderer can
  * value-import `@botiverse/oar/observe` directly without dragging the runtime
  * adapters (node:child_process, the pi SDK, …) into a browser bundle. The
  * root `@botiverse/oar` re-exports these too, for Node consumers.
  */
-export { aggregateDeltas } from "./aggregate-events.js";
+export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./events.js";
 export { initialStatus, reduceStatus, stallOf } from "./agent-status.js";
 export type { AgentStatus, RunningPhase } from "./agent-status.js";
 export { observeStalls } from "./stall-observer.js";

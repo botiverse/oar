@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { ControlResult, ResponseBody, SessionRecord } from "../../packages/oar/src/contracts/session.js";
+import type { ControlResult, ResponseBody, RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -80,15 +80,15 @@ function scriptedAppServer(options: { interruptFails?: boolean } = {}): FakeLine
   return fake;
 }
 
-function skeleton(records: readonly SessionRecord[]): string[] {
+function skeleton(records: readonly RawEvent[]): string[] {
   return records.map((record) => {
     switch (record.kind) {
       case "request":
         return `${record.direction} ${record.body.kind}${record.body.kind === "native" ? `:${record.body.type}` : ""}`;
       case "response":
         return `response ${record.body.kind}`;
-      case "event":
-        return `event ${record.body.type}${record.spanId === undefined ? "" : ` span=${record.spanId}`}${record.body.views.length === 0 ? "" : ` → ${record.body.views.map((view) => view.kind).join(",")}`}`;
+      case "frame":
+        return `event ${record.body.type}${record.spanId === undefined ? "" : ` span=${record.spanId}`}${record.body.events.length === 0 ? "" : ` → ${record.body.events.map((view) => view.kind).join(",")}`}`;
       default:
         return "?";
     }

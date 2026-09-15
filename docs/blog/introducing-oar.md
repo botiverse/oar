@@ -128,10 +128,11 @@ const installation = await grok.installation?.();
 
 if (installation?.kind === "available") {
   const session = await grok.session(installation, { cwd: process.cwd() });
-  session.subscribe((record) => {
-    // record.kind: "event" (the runtime's frame, verbatim, plus oar's views),
-    // "request" (prompt/steer/abort/dispose, or the runtime asking the app),
-    // "response" (accepted/rejected, oar's answer, the process exit)
+  session.events((event) => {
+    // event.kind: text_delta, reasoning, tool_call_started/ended, turn_started,
+    // turn_ended, usage, model, control_rejected, exited; each with seq and agentPath.
+    // session.rawEvents() exposes the record stream underneath: "frame" (the
+    // runtime's frame, verbatim, plus oar's events), "request", "response".
   });
   const run = await promptAndWait(session, "Inspect this repository");
   console.log(run.kind === "ended" ? run.outcome : run.reason);
@@ -179,7 +180,7 @@ oar run claude "What does this repo do?"
 oar run codex "Summarize the tests" --record run.jsonl
 ```
 
-`oar run --record` writes the whole run as an `oar-voyage/2` JSONL log: a
+`oar run --record` writes the whole run as an `oar-voyage/3` JSONL log: a
 header, every record of the stream verbatim (the runtime's frames, the
 prompt and every other control action, their answers), and an end
 marker. We use it as the unit of evidence: a claim about runtime behavior
@@ -205,10 +206,11 @@ change in the same commit as the code that changes them.
 ## What is not finalized
 
 The shipped API is the record stream: one ordered, resumable stream in
-which records split into event, request and response, every record
+which records split into frame, request and response, every record
 self-attributes (session id plus agent path), and a monotonic sequence
 number is the cursor. Every frame a runtime emits is in the stream
-verbatim; oar's typed reading of it rides alongside as views. The full
+verbatim; oar's typed reading of it rides alongside as events, and
+`session.events()` delivers those readings flat. The full
 contract is in [`docs/spec/`](../spec/README.md).
 
 **[not finalized]** Three points remain explicitly open: whether the

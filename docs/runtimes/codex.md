@@ -46,19 +46,19 @@ app-server contract merely because operation names resemble each other.
 
 OAR starts one `codex app-server` process per Session, speaks the app-server's
 own protocol version 2 over stdio, and exposes it as the
-[record stream](../spec/README.md): every notification is one event record
-(params verbatim in `native`, oar's reading in `views`), every control call is
+[record stream](../spec/README.md): every notification is one Frame record
+(params verbatim in `native`, oar's reading in `events`), every control call is
 a request record answered by the RPC reply, and codex's own `turn/completed`
 is the turn's end. The adapter declares `capabilities: { steer: true, queue:
 { durable: true }, attribution: "nested" }`.
 
 | Native concept or boundary | Current OAR mapping |
 |---|---|
-| Thread identity | `Session.id` is the native thread id; the `thread/start` / `thread/resume` reply is the open event record (`type` = the method), carrying the `model` view. Frames the app-server sends before that reply (notifications and server requests alike) are held in one queue and recorded ahead of it in wire order; the open event sits at the reply's own wire position, so frames codex writes after the reply (`thread/started`) follow it whatever the chunking. |
-| Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` view: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
-| Items and notifications | One event per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage`; everything else is an event with no views. |
+| Thread identity | `Session.id` is the native thread id; the `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event. Frames the app-server sends before that reply (notifications and server requests alike) are held in one queue and recorded ahead of it in wire order; the open frame sits at the reply's own wire position, so frames codex writes after the reply (`thread/started`) follow it whatever the chunking. |
+| Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` event: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage`; everything else is a frame with no events. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The response is recorded as the reply line is read, so it sits before notifications codex wrote after it. |
-| Effective configuration | `model()` folds the `model` view of the open reply; most native configuration has no public mutator. |
+| Effective configuration | `model()` folds the `model` event of the open reply; most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays a dangling request. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. The app-server delivers child-thread notifications on the parent's connection ([env] 0.149.0, 0.154.0); without an item naming the thread no edge is fabricated. |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
@@ -153,10 +153,10 @@ records a `prompt` request, sends one text input, and records the RPC reply as
 the `accepted` response, or `rejected` with the RPC error message, `rejected:
 codex turn/start returned no turn id`, or `rejected: busy` while a root turn
 is active (including a queued turn codex started on its own). Completion is
-codex's `turn/completed` with a `turn_ended` view, exactly one per prompt
-(live-contract `multi-turn`). A basic one-word turn was 33 records with view
+codex's `turn/completed` with a `turn_ended` event, exactly one per prompt
+(live-contract `multi-turn`). A basic one-word turn was 33 records with event
 kinds `model, reasoning, text_delta, usage, turn_ended`, one `spanId`, dense
-seqs, every event carrying `native`, and `dispose` answered `exited { code:
+seqs, every frame carrying `native`, and `dispose` answered `exited { code:
 null }` (live-contract `basic`). No image/skill input, structured-output
 schema, or per-turn configuration is exposed. [Adapter][oar-session].
 
@@ -235,13 +235,13 @@ backpressure. Tool detail: a `commandExecution` item yields `tool_call_started`
 with the command as input (`/bin/zsh -lc 'echo …'`) and `tool_call_ended` with
 `exit <code>\n<aggregated output>`, same `callId` (the item id, `call_…`); the
 raw `function_call` names `exec_command`; `item/commandExecution/outputDelta`
-frames carry stdout with no view (live-contract `tool-detail`;
+frames carry stdout with no event (live-contract `tool-detail`;
 [item-detail tests](../../tests/codex/codex-item-detail.test.ts)). The guide
 marks rollback deprecated; OAR does not expose it.
 
 **Reasoning:** `thread/start` sends `experimentalRawEvents: true`; reasoning
-views come from the `rawResponseItem/completed` frames it enables
-(`item/started|completed` reasoning items carry no view). The generated
+events come from the `rawResponseItem/completed` frames it enables
+(`item/started|completed` reasoning items carry no event). The generated
 protocol schema (`codex app-server generate-json-schema`, [env] 0.154.0) lists
 the flag on neither `ThreadStartParams` nor `ThreadResumeParams`, yet
 `thread/start` with it yields raw frames: every turn opens with the raw
@@ -249,7 +249,7 @@ the flag on neither `ThreadStartParams` nor `ThreadResumeParams`, yet
 prompt), then reasoning / `function_call` / `function_call_output` / assistant
 message items, while a resumed thread yields none, and sending the flag on
 `thread/resume` is inert: a resumed stream shows only `item/started|completed`
-reasoning with empty summary/content, so there are no `reasoning` views after
+reasoning with empty summary/content, so there are no `reasoning` events after
 resume. On `gpt-5.3-codex-spark` every reasoning step is `item/started` +
 `item/completed { type: "reasoning", summary: [], content: [] }` plus one raw
 reasoning item with empty `summary` and an `encrypted_content` → `reasoning
@@ -266,7 +266,7 @@ OAR records notifications of other thread ids as child-session records
 (`sessionId` is the child thread, a `graph()` node) and adds a `tool_call`
 edge from the sender (`senderThreadId`, else the root) to each
 `receiverThreadIds` / `agentThreadId` entry that is not the sender; the items
-themselves are events with no views. Lineage (an edge) stays distinct from
+themselves are frames with no events. Lineage (an edge) stays distinct from
 observation (a node), and no edge is fabricated. `agentPath` stays `[]` on
 every record: attribution is `nested` (child session ids), not agent paths.
 On the wire, with `multi_agent` enabled ([env]; the item vocabulary differs
@@ -319,7 +319,7 @@ by build):
 ### Models, instructions, and context
 
 **Mapped:** `model` on open selects the model for `thread/start` /
-`thread/resume`; `model()` folds the `model` view of the open reply (the
+`thread/resume`; `model()` folds the `model` event of the open reply (the
 runtime's readback, available at open), and a mismatch between an explicit
 request and the readback fails the open. Opening with a model that does not
 exist succeeds (the slug is read back, with a `warning`); the first
@@ -348,8 +348,8 @@ still exits 0 with its built-in fallback list, so the lister never reports
 [list probe](../../experiments/codex-list-models.ts).
 
 **Context (mapped):** native usage separates `total`, `last`, and nullable
-`modelContextWindow`. Each `thread/tokenUsage/updated` is an event with a
-`usage` view: `context` = `last.totalTokens` (the last model call's input,
+`modelContextWindow`. Each `thread/tokenUsage/updated` is a frame with a
+`usage` event: `context` = `last.totalTokens` (the last model call's input,
 cached tokens included, plus its output: what the context holds once the
 reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
 = `total` input/output, the cumulative figure for the root thread.
@@ -362,7 +362,7 @@ builds) the occupancy is unknown: the cumulative input stands in as `tokens`
 and the window and percent are null: the cumulative total is never read
 against the window; when only the window is absent, `tokens` is `last`'s and
 the window/percent are null. `contextUsage()` and `usage()` are folds over
-these views, scoped to the root session.
+these events, scoped to the root session.
 
 The two figures diverge live: over three one-word turns `total.inputTokens`
 grew 12661 → 28404 → 44166 while `last.totalTokens` stayed 12684 → 15749 →
@@ -374,7 +374,7 @@ The cumulative total is spend, not occupancy; `contextUsage()` reads about
 arrives per model call, so a tool turn reports twice. Native manual compaction
 (`thread/compact/start`) has no typed OAR operation; the vendor instruction
 test defers compaction survival until it does. `account/rateLimits/updated`
-follows each model call and has no view ([env] 0.154.0: `limitId: "codex"`,
+follows each model call and has no event ([env] 0.154.0: `limitId: "codex"`,
 `planType: "pro"`, primary 300-min and secondary 10080-min windows; the
 notification reflects the thread model's own windows: a Spark thread
 reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
@@ -454,7 +454,7 @@ Open gaps:
   compaction and instruction survival through it are not, and
   `thread/compact/start` is unreachable through the Session API.
 - Resumed reasoning visibility: blocked because raw events cannot be
-  enabled on `thread/resume`, so a resumed session has no `reasoning` views.
+  enabled on `thread/resume`, so a resumed session has no `reasoning` events.
 - Queue durability across process death: only the drained subsequent turn is
   verified.
 - Server requests are recorded, never answered; no configuration requiring

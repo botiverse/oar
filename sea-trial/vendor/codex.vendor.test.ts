@@ -118,7 +118,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       await runTurn(session, "say hi");
       assertContextUsage(session.contextUsage().value);
       const usageRecords = session.records().filter((record) =>
-        record.kind === "event" && record.body.type === "thread/tokenUsage/updated");
+        record.kind === "frame" && record.body.type === "thread/tokenUsage/updated");
       expect(usageRecords.length).toBeGreaterThan(0);
       const usage = session.usage().value;
       expect(usage.total !== null && usage.total.input >= 0).toBe(true);
@@ -142,7 +142,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       for (const [index, record] of records.entries()) {
         expect(record.seq).toBe(index);
       }
-      const types = records.map((record) => (record.kind === "event" ? record.body.type : `${record.kind}:${record.body.kind}`));
+      const types = records.map((record) => (record.kind === "frame" ? record.body.type : `${record.kind}:${record.body.kind}`));
       // The open event is the thread/start reply; frames the app-server sent
       // before the thread existed (0.154.0: remoteControl/status/changed right
       // after initialize) are held and recorded ahead of it: events, or toApp

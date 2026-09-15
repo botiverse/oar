@@ -2,12 +2,12 @@
 import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import {
-  aggregateDeltas,
   awaitTurnEnd,
   openVoyage,
   runtimes,
+  type EventObserver,
+  type RawEventObserver,
   type Runtime,
-  type SessionObserver,
 } from "@botiverse/oar";
 import { readModels, renderModels } from "./models.js";
 import { createProgressRenderer } from "./progress.js";
@@ -105,18 +105,17 @@ program
     }
   });
 
-const jsonObserver: SessionObserver = (record) => {
+const jsonObserver: RawEventObserver = (record) => {
   process.stdout.write(`${JSON.stringify(record)}\n`);
 };
 
-function progressObserver(runtimeId: string): SessionObserver {
+function progressObserver(runtimeId: string): EventObserver {
   const render = createProgressRenderer(runtimeId);
-  const renderTo: SessionObserver = (record) => {
-    for (const line of render(record)) {
+  return (event) => {
+    for (const line of render(event)) {
       process.stdout.write(`${line}\n`);
     }
   };
-  return aggregateDeltas(renderTo, { maxHoldMs: 250 });
 }
 
 program
@@ -124,7 +123,7 @@ program
   .description("Run one turn in a fresh session and show its progress")
   .option("--model <model>", "runtime-native model identifier")
   .option("--json", "print the session records as JSON lines instead of progress")
-  .option("--record <file>", "write the run as an oar-voyage/2 JSONL log")
+  .option("--record <file>", "write the run as an oar-voyage/3 JSONL log")
   .action(async (
     id: string,
     prompt: string,
@@ -156,14 +155,19 @@ program
           startedAt: Date.now(),
           recorder: `oar-cli/${packageVersion()}`,
         });
-    const print = flags.json === true ? jsonObserver : progressObserver(id);
     // Replay from the start so the log and the output carry the records the
     // adapter stamped while opening (model, handshake frames), not only what
     // arrives after this subscription.
-    session.subscribe((record) => {
+    const cursor = { sessionId: session.id, afterSeq: -1 };
+    session.rawEvents((record) => {
       recorder?.record(record);
-      print(record);
-    }, { sessionId: session.id, afterSeq: -1 });
+      if (flags.json === true) {
+        jsonObserver(record);
+      }
+    }, cursor);
+    if (flags.json !== true) {
+      session.events(progressObserver(id), { cursor, coalesceText: { maxHoldMs: 250 } });
+    }
     const result = await session.prompt(prompt);
     if (result.response.body.kind !== "accepted") {
       process.stderr.write(`prompt not accepted: ${JSON.stringify(result.response.body)}\n`);

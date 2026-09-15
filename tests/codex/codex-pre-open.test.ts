@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { SessionRecord } from "../../packages/oar/src/contracts/session.js";
+import type { RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
@@ -14,9 +14,9 @@ afterEach(() => {
   spawnLineProcess.mockReset();
 });
 
-function describe(record: SessionRecord): string {
+function describe(record: RawEvent): string {
   switch (record.kind) {
-    case "event":
+    case "frame":
       return `event ${record.body.type}`;
     case "request":
       return `${record.direction} ${record.body.kind === "native" ? record.body.type : record.body.kind}`;

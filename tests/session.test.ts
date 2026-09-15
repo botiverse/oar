@@ -1,13 +1,10 @@
 import assert from "node:assert/strict";
 import { afterEach, expect, test, vi } from "vitest";
-import { aggregateDeltas } from "../packages/oar/src/observe/aggregate-events.js";
+import { coalesceText, eventsOf } from "../packages/oar/src/observe/events.js";
 import { simpleStateOf as simpleStateOfSync } from "../packages/oar/src/observe/observe-agent.js";
 import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
-import type { EventView, SessionObserver, SessionRecord } from "../packages/oar/src/index.js";
+import type { Event, EventObserver, RawEvent, RuntimeEventBody } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
-
-const aggregateDeltasSync = (observer: SessionObserver): SessionObserver =>
-  aggregateDeltas(observer, { maxHoldMs: 100 });
 
 afterEach(() => {
   vi.useRealTimers();
@@ -15,46 +12,51 @@ afterEach(() => {
 
 const installation = { kind: "available", via: "bundled" } as const;
 
-/** One line per record: `kind[:detail]`, the compact skeleton the tests assert on. */
-function describe(record: SessionRecord): string {
-  switch (record.kind) {
-    case "request":
-      return `request ${record.body.kind}`;
-    case "response":
-      return `response ${record.body.kind}`;
-    case "event":
-      return record.body.views.length === 0
-        ? `event ${record.body.type}`
-        : record.body.views.map((view) => (view.kind === "text_delta" ? `text:${view.text}` : view.kind)).join("+");
-    default:
-      return "?";
+/** One line per event: `kind[:detail]`. */
+function describeEvent(item: Event): string {
+  if (item.kind === "text_delta") {
+    return `text:${item.text}`;
   }
+  if (item.kind === "reasoning") {
+    return item.content.kind === "text" ? `reasoning:${item.content.text}` : `reasoning:${item.content.kind}`;
+  }
+  return item.kind === "control_rejected" ? `control_rejected:${item.action}` : item.kind;
 }
 
-async function runAggregated(): Promise<string[]> {
+async function runEvents(options: { coalesceText?: boolean | { maxHoldMs: number } }): Promise<string[]> {
   const session = await startMockSession(installation, { cwd: process.cwd() });
-  const merged: string[] = [];
-  session.subscribe(aggregateDeltas((record) => {
-    merged.push(describe(record));
-  }));
+  const seen: string[] = [];
+  session.events((item) => {
+    seen.push(`${String(item.seq)} ${describeEvent(item)}`);
+  }, options);
   const result = await session.prompt("hello");
   await session.steer("extra");
   await awaitTurnEnd(session, result.request.seq);
   await session.dispose();
-  return merged;
+  return seen;
 }
 
-test("aggregateDeltas merges consecutive deltas and preserves order", async () => {
-  expect(await runAggregated()).toMatchInlineSnapshot(`
+test("events() reads the flat events off the stream: one per reading, sharing the record's seq", async () => {
+  expect(await runEvents({})).toMatchInlineSnapshot(`
     [
-      "request prompt",
-      "response accepted",
-      "request steer",
-      "response accepted",
-      "text:echo:hellosteer:extra",
-      "turn_ended+usage",
-      "request dispose",
-      "response exited",
+      "1 turn_started",
+      "5 text:echo:hello",
+      "6 text:steer:extra",
+      "7 turn_ended",
+      "7 usage",
+      "9 exited",
+    ]
+  `);
+});
+
+test("events({ coalesceText }) merges consecutive text into one event carrying the last piece's seq", async () => {
+  expect(await runEvents({ coalesceText: true })).toMatchInlineSnapshot(`
+    [
+      "1 turn_started",
+      "6 text:echo:hellosteer:extra",
+      "7 turn_ended",
+      "7 usage",
+      "9 exited",
     ]
   `);
 });
@@ -90,24 +92,30 @@ test("observeStalls reports a silent active turn (virtual time)", async () => {
 });
 
 let seqCounter = 0;
-function event(views: EventView[], overrides: { agentPath?: readonly string[]; seq?: number; receivedAt?: number } = {}): SessionRecord {
+function event(events: RuntimeEventBody[], overrides: { agentPath?: readonly string[]; seq?: number; receivedAt?: number } = {}): RawEvent {
   seqCounter += 1;
   return {
     sessionId: "s",
     agentPath: overrides.agentPath ?? [],
     seq: overrides.seq ?? seqCounter,
     receivedAt: overrides.receivedAt ?? 0,
-    kind: "event",
-    body: { type: "fixture", native: null, views },
+    kind: "frame",
+    body: { type: "fixture", native: null, events },
   };
 }
 
-test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time)", () => {
+const flat = (observer: EventObserver) => (record: RawEvent): void => {
+  for (const item of eventsOf(record)) {
+    observer(item);
+  }
+};
+
+test("coalesceText maxHoldMs flushes a held block on quiescence (virtual time)", () => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const seen: string[] = [];
-  const observer = aggregateDeltasSync((record) => {
-    seen.push(describe(record));
-  });
+  const observer = flat(coalesceText((item) => {
+    seen.push(describeEvent(item));
+  }, { maxHoldMs: 100 }));
   observer(event([{ kind: "text_delta", text: "a" }]));
   observer(event([{ kind: "text_delta", text: "b" }]));
   vi.advanceTimersByTime(99);
@@ -116,26 +124,25 @@ test("aggregateDeltas maxHoldMs flushes a held block on quiescence (virtual time
   assert.deepEqual(seen, ["text:ab"], "quiescence flush after maxHoldMs");
 });
 
-test("aggregateDeltas merges readable reasoning without swallowing redaction, per agent", () => {
+test("coalesceText merges readable reasoning without swallowing redaction, per agent", () => {
   const seen: string[] = [];
-  const observer = aggregateDeltas((record) => {
-    const view = record.kind === "event" ? record.body.views[0] : undefined;
-    const text = view?.kind === "reasoning" && view.content.kind === "text" ? view.content.text : (view?.kind ?? record.kind);
-    seen.push(`${record.agentPath.join("/") || "root"}:${text}`);
-  });
+  const observer = flat(coalesceText((item) => {
+    const text = item.kind === "reasoning" && item.content.kind === "text" ? item.content.text : item.kind;
+    seen.push(`${item.agentPath.join("/") || "root"}:${text}`);
+  }));
   observer(event([{ kind: "reasoning", content: { kind: "text", text: "read" } }]));
   observer(event([{ kind: "reasoning", content: { kind: "text", text: "ing" } }]));
   observer(event([{ kind: "reasoning", content: { kind: "text", text: "child" } }], { agentPath: ["a1"] }));
   observer(event([{ kind: "reasoning", content: { kind: "redacted" } }]));
   observer(event([{ kind: "text_delta", text: "x" }, { kind: "tool_call_started", callId: "c", tool: "t" }]));
-  assert.deepEqual(seen, ["root:reading", "a1:child", "root:reasoning", "root:text_delta"]);
+  assert.deepEqual(seen, ["root:reading", "a1:child", "root:reasoning", "root:text_delta", "root:tool_call_started"]);
 });
 
-const promptRecord: SessionRecord = { sessionId: "s", agentPath: [], seq: 0, receivedAt: 1000, kind: "request", id: "rq", direction: "toRuntime", body: { kind: "prompt", input: "hi" } };
+const promptRecord: RawEvent = { sessionId: "s", agentPath: [], seq: 0, receivedAt: 1000, kind: "request", id: "rq", direction: "toRuntime", body: { kind: "prompt", input: "hi" } };
 
 test("reduceStatus follows the documented transition table", async () => {
   const { initialStatus, reduceStatus } = await import("../packages/oar/src/observe/agent-status.js");
-  const fold = (records: SessionRecord[]): unknown[] => {
+  const fold = (records: RawEvent[]): unknown[] => {
     let status = initialStatus;
     const seen: unknown[] = [];
     for (const record of records) {
@@ -177,9 +184,9 @@ test("reduceStatus: stall, rejected prompt, and exit leave running", async () =>
   assert.deepEqual(stallOf(runningAt, 1400, 500), null);
   assert.deepEqual(stallOf(runningAt, 1600, 500), { sinceSeq: 0, silentForMs: 600 });
   assert.equal(stallOf(initialStatus, 99_999, 1), null);
-  const rejected: SessionRecord = { sessionId: "s", agentPath: [], seq: 1, receivedAt: 1001, kind: "response", requestId: "rq", body: { kind: "rejected", reason: "busy" } };
+  const rejected: RawEvent = { sessionId: "s", agentPath: [], seq: 1, receivedAt: 1001, kind: "response", requestId: "rq", body: { kind: "rejected", reason: "busy" } };
   assert.deepEqual(reduceStatus(runningAt, rejected), { kind: "idle" }, "a rejected prompt never became a turn");
-  const exited: SessionRecord = { sessionId: "s", agentPath: [], seq: 2, receivedAt: 1002, kind: "response", requestId: "", body: { kind: "exited", code: 1 } };
+  const exited: RawEvent = { sessionId: "s", agentPath: [], seq: 2, receivedAt: 1002, kind: "response", requestId: "", body: { kind: "exited", code: 1 } };
   assert.equal(reduceStatus(runningAt, exited).kind, "idle");
 });
 

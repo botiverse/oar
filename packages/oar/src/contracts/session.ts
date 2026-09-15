@@ -1,22 +1,26 @@
 import type {
   ContextUsage,
   Cursor,
+  Event,
   PromptLineage,
+  RawEvent,
   RequestRecord,
   ResponseRecord,
   SessionGraph,
-  SessionRecord,
   TokenTotals,
 } from "./records.js";
 import type { AvailableInstallation } from "./installation.js";
 
 export type {
   ContextUsage,
+  ControlAction,
+  ControlEventBody,
   Cursor,
+  Event,
   EventBody,
-  EventRecord,
-  EventView,
   FailureClass,
+  Frame,
+  FrameBody,
   PromptLineage,
   ReasoningContent,
   RecordEnvelope,
@@ -26,10 +30,11 @@ export type {
   RequestRecord,
   ResponseBody,
   ResponseRecord,
+  RuntimeEventBody,
   SessionEdge,
   SessionGraph,
   SessionNode,
-  SessionRecord,
+  RawEvent,
   TokenTotals,
   TurnOutcome,
   UsageReport,
@@ -53,9 +58,11 @@ export interface PromptOptions {
  * The external promise (docs/spec): everything the runtime said is in the
  * stream, nothing oar didn't observe is in it, every record knows whose it
  * is, and the stream is readable again from any position. Records split by
- * OBLIGATION into three kinds, event (the runtime's own words), request (an
+ * OBLIGATION into three kinds, frame (the runtime's own words), request (an
  * action that expects an outcome) and response (points at a request), and
- * travel on one channel with one monotonic `seq`. Behavior invariants live as
+ * travel on one channel with one monotonic `seq`. Consumers who do not want
+ * records read the stream as flat `Event`s through `events()`; `rawEvents()`
+ * and `records()` are the stream itself. Behavior invariants live as
  * comments on the member they constrain; each "must/never" has (or gets) a
  * sea-trial case.
  *
@@ -127,8 +134,23 @@ export interface SessionCapabilities {
   readonly attribution: AttributionTier;
 }
 
-export type SessionObserver = (record: SessionRecord) => void;
+export type RawEventObserver = (record: RawEvent) => void;
+export type EventObserver = (event: Event) => void;
 export type Unsubscribe = () => void;
+
+export interface EventsOptions {
+  /** Replay retained records after `afterSeq` first, then continue live (same semantics as `rawEvents`). */
+  readonly cursor?: Cursor;
+  /**
+   * Merge consecutive `text_delta` (and readable `reasoning`) events of one
+   * agent into one event instead of a token stream. A merged event carries the
+   * LAST piece's envelope. It flushes when the kind or agent changes, another
+   * event arrives, or (with `maxHoldMs`) the stream goes quiet for that long,
+   * so a stalled model pause cannot hold text hostage. Off by default: events
+   * are then synchronous and one-to-one with what was read from the stream.
+   */
+  readonly coalesceText?: boolean | { readonly maxHoldMs: number };
+}
 
 /**
  * The SPI face: what an adapter actually builds. The API face extends it
@@ -141,14 +163,22 @@ export interface AdapterSession {
   steer(input: string): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.
-  subscribe(observer: SessionObserver, cursor?: Cursor): Unsubscribe; // side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
-  records(): readonly SessionRecord[]; // every record this process observed, in seq order
+  rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
+  records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
   dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent. After an exit the stream already holds (the runtime died on its own), the request is answered `accepted` immediately; nothing is left to release.
 }
 
 /** The API face: the SPI plus surfaces sealSession derives from the stream. */
 export interface Session extends AdapterSession {
+  /**
+   * The consumer face of the stream: every fact oar read, flat and attributed
+   * (`eventsOf` applied to each record). One frame with three readings is
+   * three events sharing a `seq`; a record oar read nothing from yields none.
+   * Same side-tap rules as `rawEvents`. This is the surface to start with;
+   * reach for `rawEvents` / `records()` when the native frame matters.
+   */
+  events(observer: EventObserver, options?: EventsOptions): Unsubscribe;
   /** Latest `model` event; null until the runtime has said one. A fold, not an echo of the request. */
   model(): QueryResult<string | null>;
   /** THIS session's token total plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). A derived child session (own `sessionId`, in `graph()`) is not aggregated here; its usage is in its own records. */

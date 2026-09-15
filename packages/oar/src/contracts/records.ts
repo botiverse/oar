@@ -1,6 +1,15 @@
 /**
- * The record stream: envelope, the three record kinds, event bodies and
- * views, request/response bodies, and the session graph + cursor types.
+ * The record stream and the events read off it. Three words, three layers:
+ *
+ * - `Event`: the consumer face. One flat, attributed fact (text, a tool
+ *   call, a turn end, a process exit …). What `Session.events()` delivers.
+ * - `RawEvent`: one record of the underlying stream, three kinds by
+ *   obligation: `Frame` (the runtime's own words), `RequestRecord` (an
+ *   action expecting an outcome), `ResponseRecord` (points at a request).
+ *   What `Session.rawEvents()` / `records()` deliver.
+ * - `Frame`: a RawEvent carrying one runtime frame verbatim (`type`,
+ *   `native`) plus the events oar read out of it.
+ *
  * Semantics live in docs/spec; the session control surface that produces
  * these records is in ./session.ts.
  */
@@ -25,12 +34,12 @@ export interface RecordEnvelope {
   readonly receivedAt: number;
 }
 
-export type RecordKind = "event" | "request" | "response";
+export type RecordKind = "frame" | "request" | "response";
 
-/** The runtime's own words. oar never synthesizes an event and never drops one: whatever the runtime said enters the stream, even after a span ended. */
-export interface EventRecord extends RecordEnvelope {
-  readonly kind: "event";
-  readonly body: EventBody;
+/** The runtime's own words. oar never synthesizes a frame and never drops one: whatever the runtime said enters the stream, even after a span ended. */
+export interface Frame extends RecordEnvelope {
+  readonly kind: "frame";
+  readonly body: FrameBody;
 }
 
 export type RequestDirection = "toRuntime" | "toApp";
@@ -50,24 +59,25 @@ export interface ResponseRecord extends RecordEnvelope {
   readonly body: ResponseBody;
 }
 
-export type SessionRecord = EventRecord | RequestRecord | ResponseRecord;
+/** One record of the stream. */
+export type RawEvent = Frame | RequestRecord | ResponseRecord;
 
 /**
- * An event body carries the runtime's frame verbatim plus oar's typed reading
- * of it. `native` is the source of truth; `views` is a projection for
+ * A frame body carries the runtime's frame verbatim plus oar's typed reading
+ * of it. `native` is the source of truth; `events` is a projection for
  * consumers that want the cross-runtime vocabulary without parsing five wire
  * formats. One frame is one record: a claude assistant message with a
- * thinking block, a text block and a tool_use block is ONE event with three
- * views, in the frame's own order. A frame oar does not interpret still
- * enters the stream, with `type` and `native` and no views.
+ * thinking block, a text block and a tool_use block is ONE frame with three
+ * events, in the frame's own order. A frame oar does not interpret still
+ * enters the stream, with `type` and `native` and no events.
  */
-export interface EventBody {
+export interface FrameBody {
   /** Runtime-native discriminator: claude `type[/subtype]`, codex notification method, pi event type, ACP `sessionUpdate`. */
   readonly type: string;
   /** The frame as the runtime sent it (JSON-safe). Never trimmed, never re-shaped. */
   readonly native: unknown;
-  /** oar's readings of the frame, in frame order; empty when oar has none. */
-  readonly views: readonly EventView[];
+  /** What oar read out of the frame, in frame order; empty when oar read nothing. Only runtime-said kinds appear here. */
+  readonly events: readonly RuntimeEventBody[];
 }
 
 export type ReasoningContent =
@@ -84,8 +94,8 @@ export interface TokenTotals {
 /**
  * What a usage-bearing frame says. `context` is current context fullness as
  * the runtime reports it; `tokens` is the runtime's running total for this
- * record's `agentPath`, already resolved by the adapter (which runtime view is
- * authoritative and how overlapping views deduplicate never crosses this
+ * record's `agentPath`, already resolved by the adapter (which runtime figure is
+ * authoritative and how overlapping events deduplicate never crosses this
  * surface; see docs/spec/attribution.md, "usage: one constraint").
  */
 export interface UsageReport {
@@ -93,7 +103,13 @@ export interface UsageReport {
   readonly tokens?: TokenTotals;
 }
 
-export type EventView =
+/**
+ * The runtime-said event kinds: what a Frame can carry. `text_delta` is at
+ * the granularity the runtime emits (claude: a whole text block per frame;
+ * pi and codex: token-sized pieces); `Session.events({ coalesceText })`
+ * merges consecutive pieces for consumers who want blocks.
+ */
+export type RuntimeEventBody =
   | { readonly kind: "text_delta"; readonly text: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. */
   | { readonly kind: "reasoning"; readonly content: ReasoningContent }
@@ -117,6 +133,36 @@ export type EventView =
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string };
+
+/** The toRuntime control actions a Session issues. */
+export type ControlAction = "prompt" | "steer" | "queue" | "abort" | "dispose";
+
+/**
+ * Event kinds read off request and response records, so a consumer of
+ * `Session.events()` sees the control facts that matter without handling
+ * record kinds: a turn's start (the prompt request), the process exit, and a
+ * control action the runtime or adapter refused. Never carried by a Frame.
+ */
+export type ControlEventBody =
+  /** A prompt request was recorded: the turn's start. `requestId` pairs it with a later `control_rejected` when the prompt did not begin a turn. */
+  | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string; readonly lineage?: PromptLineage }
+  /** A `toRuntime` control action was rejected; the caller still owns the input. */
+  | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly reason: string }
+  /** The runtime process exited (an `exited` response). */
+  | { readonly kind: "exited"; readonly code: number | null };
+
+/** Every event kind `Session.events()` can deliver. */
+export type EventBody = RuntimeEventBody | ControlEventBody;
+
+/**
+ * The consumer face of the stream: one attributed fact. An Event is an
+ * EventBody plus the envelope of the record it was read from, so it carries
+ * `seq` (several events read from one frame share it), `agentPath`,
+ * `spanId` and `receivedAt` without the consumer touching the record. Lossy
+ * by design (no `native`, no `type`), and always re-derivable from the
+ * RawEvent stream via `eventsOf`.
+ */
+export type Event = EventBody & RecordEnvelope;
 
 export type RequestBody =
   | { readonly kind: "prompt"; readonly input: string; readonly lineage?: PromptLineage }

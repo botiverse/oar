@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { EventView } from "../../packages/oar/src/contracts/session.js";
+import type { EventBody } from "../../packages/oar/src/contracts/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "../../packages/oar/src/shared/acp/projection.js";
 import type { JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -18,7 +18,7 @@ function textContent(text: string): JsonRecord[] {
 }
 
 /** The opening `tool_call` carries the tool's name only as `title`, and no `rawInput`. */
-function opening(state: AcpProjectionState, toolCallId: string, tool: { readonly title: string; readonly kind: string }): EventView[] {
+function opening(state: AcpProjectionState, toolCallId: string, tool: { readonly title: string; readonly kind: string }): EventBody[] {
   return projectAcpUpdate(state, { toolCallId, ...tool, status: "pending", content: textContent(""), sessionUpdate: "tool_call" });
 }
 

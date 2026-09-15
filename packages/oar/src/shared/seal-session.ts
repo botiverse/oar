@@ -3,12 +3,14 @@ import type {
   Session,
   SteerOrQueueResult,
 } from "../contracts/session.js";
+import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, modelOf, usageOf } from "../observe/usage.js";
 
 /**
- * Derive the API face of a Session from what the adapter built: the stream
- * folds (model / usage / contextUsage are projections over `records()`, never
- * adapter-held snapshots) and the steer-or-queue policy. Method-style so
+ * Derive the API face of a Session from what the adapter built: the flat
+ * `events()` reading of the stream, the stream folds (model / usage /
+ * contextUsage are projections over `records()`, never adapter-held
+ * snapshots) and the steer-or-queue policy. Method-style so
  * consumers discover the surfaces in autocomplete; one implementation instead
  * of one per adapter.
  */
@@ -29,6 +31,13 @@ export function sealSession(adapterSession: AdapterSession): Session {
   };
   return {
     ...adapterSession,
+    events: (observer, options = {}) => {
+      const coalesce = options.coalesceText ?? false;
+      const target = coalesce === false
+        ? observer
+        : coalesceText(observer, coalesce === true ? {} : { maxHoldMs: coalesce.maxHoldMs });
+      return adapterSession.rawEvents(eventsReader(target), options.cursor);
+    },
     model: () => modelOf(adapterSession.records(), adapterSession.id),
     usage: () => usageOf(adapterSession.records(), adapterSession.id),
     contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),

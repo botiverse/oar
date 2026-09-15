@@ -1,4 +1,4 @@
-import type { EventView, SessionRecord, TurnOutcome } from "../contracts/session.js";
+import type { RawEvent, RuntimeEventBody, TurnOutcome } from "../contracts/session.js";
 
 /**
  * status = fold(records). The reducer is pure (no clock, no IO), so status
@@ -12,7 +12,7 @@ import type { EventView, SessionRecord, TurnOutcome } from "../contracts/session
  * it, every root-agent record of any session is folded (single-session
  * streams). Phase transitions come from the root agent's own records only;
  * `lastEventAt`, the liveness clock, refreshes on EVERY record attributable
- * to the session (child agents, child sessions, viewless frames), because a
+ * to the session (child agents, child sessions, frames oar read nothing from), because a
  * delegated sub-agent working is not a stalled root.
  *
  * Transition table:
@@ -49,7 +49,7 @@ export type AgentStatus =
 
 export const initialStatus: AgentStatus = { kind: "idle" };
 
-function running(previous: AgentStatus, record: SessionRecord, phase: RunningPhase): AgentStatus {
+function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): AgentStatus {
   const sinceSeq = previous.kind === "running" ? previous.sinceSeq : record.seq;
   const requestId = previous.kind === "running" ? previous.requestId : undefined;
   return {
@@ -61,13 +61,13 @@ function running(previous: AgentStatus, record: SessionRecord, phase: RunningPha
   };
 }
 
-export function reduceStatus(previous: AgentStatus, record: SessionRecord, sessionId?: string): AgentStatus {
+export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?: string): AgentStatus {
   const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
   if (foreignSession && !belongsToSession(record, sessionId)) {
     return previous;
   }
-  if (foreignSession || record.agentPath.length > 0 || (record.kind === "event" && record.body.views.length === 0)) {
-    // A child agent, a child session, or a frame without a view: the session is
+  if (foreignSession || record.agentPath.length > 0 || (record.kind === "frame" && record.body.events.length === 0)) {
+    // A child agent, a child session, or a frame oar read nothing from: the session is
     // alive, so the clock moves, but the root agent's phase does not.
     return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
   }
@@ -84,10 +84,10 @@ export function reduceStatus(previous: AgentStatus, record: SessionRecord, sessi
         return { kind: "idle", lastTurnOutcome: { kind: "failed", reason: "runtime exited", failure: "runtime_exited" } };
       }
       return previous;
-    case "event": {
+    case "frame": {
       let status = previous;
-      for (const view of record.body.views) {
-        status = reduceView(status, record, view);
+      for (const event of record.body.events) {
+        status = reduceEvent(status, record, event);
       }
       return status;
     }
@@ -96,18 +96,18 @@ export function reduceStatus(previous: AgentStatus, record: SessionRecord, sessi
   }
 }
 
-function reduceView(previous: AgentStatus, record: SessionRecord, view: EventView): AgentStatus {
-  switch (view.kind) {
+function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEventBody): AgentStatus {
+  switch (event.kind) {
     case "reasoning":
       return running(previous, record, "thinking");
     case "text_delta":
       return running(previous, record, "responding");
     case "tool_call_started":
-      return running(previous, record, { tool: view.tool, callId: view.callId });
+      return running(previous, record, { tool: event.tool, callId: event.callId });
     case "tool_call_ended":
       return running(previous, record, "waiting_model");
     case "turn_ended":
-      return { kind: "idle", lastTurnOutcome: view.outcome };
+      return { kind: "idle", lastTurnOutcome: event.outcome };
     case "usage":
     case "model":
       return previous;
@@ -122,7 +122,7 @@ function reduceView(previous: AgentStatus, record: SessionRecord, view: EventVie
  * counts; the hook exists so a consumer folding a merged multi-session log can
  * narrow it.
  */
-function belongsToSession(_record: SessionRecord, _sessionId: string): boolean {
+function belongsToSession(_record: RawEvent, _sessionId: string): boolean {
   return true;
 }
 

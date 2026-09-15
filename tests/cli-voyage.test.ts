@@ -8,14 +8,14 @@ import {
   headerLine,
   openVoyage,
   recordLine,
-  type SessionRecord,
+  type RawEvent,
 } from "../packages/oar/src/index.js";
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-const request: SessionRecord = {
+const request: RawEvent = {
   sessionId: "s-1",
   agentPath: [],
   seq: 2,
@@ -26,16 +26,16 @@ const request: SessionRecord = {
   body: { kind: "prompt", input: "hi" },
 };
 
-const event: SessionRecord = {
+const event: RawEvent = {
   sessionId: "s-1",
   agentPath: ["a1"],
   seq: 3,
   receivedAt: 1100,
-  kind: "event",
-  body: { type: "assistant", native: { type: "assistant" }, views: [{ kind: "text_delta", text: "hello" }] },
+  kind: "frame",
+  body: { type: "assistant", native: { type: "assistant" }, events: [{ kind: "text_delta", text: "hello" }] },
 };
 
-test("headerLine pins the oar-voyage/2 header shape", () => {
+test("headerLine pins the oar-voyage/3 header shape", () => {
   expect(headerLine({
     runtime: "claude",
     model: "opus",
@@ -43,7 +43,7 @@ test("headerLine pins the oar-voyage/2 header shape", () => {
     sessionId: "s-1",
     startedAt: 1000,
     recorder: "oar-cli/0.0.5",
-  })).toMatchInlineSnapshot(`"{"kind":"header","format":"oar-voyage/2","runtime":"claude","model":"opus","cwd":"/work","sessionId":"s-1","startedAt":1000,"recorder":"oar-cli/0.0.5"}"`);
+  })).toMatchInlineSnapshot(`"{"kind":"header","format":"oar-voyage/3","runtime":"claude","model":"opus","cwd":"/work","sessionId":"s-1","startedAt":1000,"recorder":"oar-cli/0.0.5"}"`);
 });
 
 test("headerLine omits model entirely when none was requested", () => {
@@ -63,7 +63,7 @@ test("endLine pins its shape", () => {
   );
 });
 
-test("recordLine wraps the SessionRecord verbatim, requests included", () => {
+test("recordLine wraps the RawEvent verbatim, requests included", () => {
   assert.deepEqual(JSON.parse(recordLine(event)), { kind: "record", record: event });
   assert.deepEqual(JSON.parse(recordLine(request)), { kind: "record", record: request });
 });

@@ -48,7 +48,7 @@ export function observeAgent(session: Session, options: ObserveAgentOptions): Ag
     }
   };
 
-  const unsubscribe = session.subscribe((record) => {
+  const unsubscribe = session.rawEvents((record) => {
     status = reduceStatus(status, record, session.id);
     push();
   });

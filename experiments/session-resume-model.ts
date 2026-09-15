@@ -108,9 +108,9 @@ async function runTurn(
 ): Promise<{ id: string; text: string }> {
   const session = await runtime.session(installation, sessionOptions);
   const texts: string[] = [];
-  session.subscribe((record) => {
-    if (record.kind === "event") {
-      for (const view of record.body.views) {
+  session.rawEvents((record) => {
+    if (record.kind === "frame") {
+      for (const view of record.body.events) {
         if (view.kind === "text_delta") {
           texts.push(view.text);
         }

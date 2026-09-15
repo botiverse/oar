@@ -16,7 +16,7 @@ export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
 
 /*
  * Bundled pi SDK mapping (in-process, no fork; settled 2026-08-21, record
- * stream 2026-09-11): every SDK event is one event record; pi's own
+ * stream 2026-09-11): every SDK event is one frame; pi's own
  * `agent_settled` is the turn end; steer acceptance means entry into pi's queue;
  * abort is cooperative. Resume opens the cwd's session file by id and
  * options.model resolves through the ModelRuntime (see resolve.ts).
@@ -98,10 +98,10 @@ export const piSession: StartSession = async (installation, options) => {
         if (launch === token && gate.running) {
           const reason = error instanceof Error ? error.message : "pi prompt failed";
           gate.running = false;
-          kernel.event({
+          kernel.frame({
             type: "pi/prompt_rejected",
             native: { message: reason },
-            views: [{ kind: "turn_ended", outcome: { kind: "failed", reason, failure: classifyFailure(reason) } }],
+            events: [{ kind: "turn_ended", outcome: { kind: "failed", reason, failure: classifyFailure(reason) } }],
           });
           drainHeld();
         }
@@ -122,14 +122,14 @@ export const piSession: StartSession = async (installation, options) => {
       if (decided.kind === "rejected") {
         // The queue took the input over; pi refusing it is not silent: pi's
         // refusal enters the stream (no turn ever started, so no turn end).
-        kernel.event({ type: "pi/prompt_rejected", native: { message: decided.reason, input: next }, views: [] });
+        kernel.frame({ type: "pi/prompt_rejected", native: { message: decided.reason, input: next }, events: [] });
         drainHeld();
       }
     })();
   }
 
-  // Drive the pure projection fold: one SDK event → one event record. The
-  // fold owns views and outcome classification; this owns the run gate.
+  // Drive the pure projection fold: one SDK event → one frame. The
+  // fold owns events and outcome classification; this owns the run gate.
   piAgentSession.subscribe((event) => {
     if (event.type === "agent_start") {
       gate.running = true;
@@ -146,8 +146,8 @@ export const piSession: StartSession = async (installation, options) => {
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
     for (const command of commands) {
-      kernel.event(command.body);
-      if (command.body.views.some((view) => view.kind === "turn_ended")) {
+      kernel.frame(command.body);
+      if (command.body.events.some((item) => item.kind === "turn_ended")) {
         gate.running = false;
         drainHeld();
       }
@@ -159,10 +159,10 @@ export const piSession: StartSession = async (installation, options) => {
     // The SDK's own report of the model in effect at open, captured as the
     // runtime's word (never the request echoed: the mismatch check above
     // already rejected a request pi did not apply).
-    kernel.event({
+    kernel.frame({
       type: "pi/session_opened",
       native: { sessionId: piAgentSession.sessionId, model: openedModel },
-      views: [{ kind: "model", model: openedModel }],
+      events: [{ kind: "model", model: openedModel }],
     });
   }
 
@@ -220,7 +220,7 @@ export const piSession: StartSession = async (installation, options) => {
       });
       return result;
     },
-    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {

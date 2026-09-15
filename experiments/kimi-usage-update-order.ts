@@ -73,8 +73,8 @@ type Tokens = number | null;
 /** `contextUsage().tokens` as read inside each turn_ended record's observer, in order. */
 function tokensAtTurnEnded(session: Session): readonly Tokens[] {
   const seen: Tokens[] = [];
-  session.subscribe((record) => {
-    if (record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended")) {
+  session.rawEvents((record) => {
+    if (record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended")) {
       seen.push(session.contextUsage().value?.tokens ?? null);
     }
   });

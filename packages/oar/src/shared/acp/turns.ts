@@ -1,5 +1,5 @@
 import type {
-  EventView,
+  RuntimeEventBody,
   RequestRecord,
   ResponseBody,
   TokenTotals,
@@ -20,11 +20,11 @@ import type { UsageUpdateGate } from "./usage-wait.js";
 /**
  * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
  * host-held queue, cancel with a kill fallback. The RPC ANSWER is the
- * runtime's own turn end and is recorded as an event with a turn_ended view;
+ * runtime's own turn end and is recorded as an event with a turn_ended event;
  * a rejected RPC is likewise the runtime's word (a prompt-error event). The
  * process dying is not; that is the `exited` response the session records
  * from its exit observer. One turn may span several prompt RPCs (grok's
- * send-now steer): each answer is its own event; the turn_ended view rides
+ * send-now steer): each answer is its own event; the turn_ended event rides
  * the answer that closes the turn, carrying the LATEST request's outcome.
  */
 export interface ActiveTurn {
@@ -78,20 +78,20 @@ export function createAcpTurns(deps: {
   const finishRequest = (
     state: ActiveTurn,
     requestNumber: number,
-    frame: { readonly type: string; readonly native: unknown; readonly context: EventView | null },
+    frame: { readonly type: string; readonly native: unknown; readonly context: RuntimeEventBody | null },
     outcome: TurnOutcome,
   ): void => {
     state.pending.delete(requestNumber);
     state.outcomes.set(requestNumber, outcome);
     const closes = state.pending.size === 0;
-    const views: EventView[] = [];
+    const events: RuntimeEventBody[] = [];
     if (closes) {
-      views.push({ kind: "turn_ended", outcome: state.outcomes.get(state.latestRequest) ?? outcome });
+      events.push({ kind: "turn_ended", outcome: state.outcomes.get(state.latestRequest) ?? outcome });
     }
     if (frame.context !== null) {
-      views.push(frame.context);
+      events.push(frame.context);
     }
-    kernel.event({ type: frame.type, native: frame.native, views });
+    kernel.frame({ type: frame.type, native: frame.native, events });
     if (closes) {
       closeTurn(state);
     }

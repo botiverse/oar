@@ -12,7 +12,7 @@ import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-
 export interface StallInfo {
   readonly sinceSeq: number;
   readonly silentForMs: number;
-  /** `kind` of the last folded record, with the event's last view kind when it had one (e.g. `event:tool_call_started`). */
+  /** `kind` of the last folded record, with the frame's last event kind when it had one (e.g. `frame:tool_call_started`). */
   readonly lastRecordKind: string;
 }
 
@@ -40,10 +40,10 @@ export function observeStalls(
     }, options.stallAfterMs);
   };
 
-  const unsubscribe = session.subscribe((record) => {
+  const unsubscribe = session.rawEvents((record) => {
     status = reduceStatus(status, record, session.id);
-    const lastView = record.kind === "event" ? record.body.views.at(-1) : undefined;
-    lastRecordKind = lastView === undefined ? record.kind : `event:${lastView.kind}`;
+    const lastEvent = record.kind === "frame" ? record.body.events.at(-1) : undefined;
+    lastRecordKind = lastEvent === undefined ? record.kind : `frame:${lastEvent.kind}`;
     if (status.kind === "running") {
       arm();
     } else {

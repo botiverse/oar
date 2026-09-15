@@ -68,9 +68,9 @@ async function open(id: string, options: { model?: string; resume?: string }): P
 
 async function oneTurn(session: Session, prompt: string): Promise<string> {
   const texts: string[] = [];
-  session.subscribe((entry) => {
-    if (entry.kind === "event") {
-      for (const view of entry.body.views) {
+  session.rawEvents((entry) => {
+    if (entry.kind === "frame") {
+      for (const view of entry.body.events) {
         if (view.kind === "text_delta") {
           texts.push(view.text);
         }

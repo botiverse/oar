@@ -45,7 +45,7 @@ export interface AcpSessionProfile {
    * 1.0.25 `_meta.usage`, live 2026-09-11: a per-prompt ledger summed over
    * the prompt's model calls, not a session total). The turn machinery keeps
    * the running session sum and stamps the cumulative figure on the answer's
-   * usage view, so `Session.usage()` is directly summable per its contract.
+   * usage event, so `Session.usage()` is directly summable per its contract.
    */
   readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;

@@ -39,7 +39,7 @@ outcome. Claude's stream-json `tool_result.is_error` ([src]) maps to
 Grok and Kimi ACP `tool_call_update.status` ([src]) maps
 `completed`/`failed`. A frame without the corresponding native field leaves
 `result` absent. OAR never derives a result from output, exit codes, or
-timing, and the native frame remains verbatim beside the view.
+timing, and the native frame remains verbatim beside the event.
 
 The #1/#2/#3 tiers are the attribution spectrum defined in
 [attribution.md](attribution.md).
@@ -111,10 +111,10 @@ either lost or misattributed to the next turn.
 ### Example 8 · Background sub-agent: parent turn ends, child stream continues
 
 ```
-seq=120  ✓ event  root           result {…}
+seq=120  ✓ frame  root           result {…}
          ↳ the parent turn's completion event has arrived
-seq=121  ✓ event  path=["bg-7"]  tool_result {…}
-seq=122  ✓ event  path=["bg-7"]  completed {usage:…}
+seq=121  ✓ frame  path=["bg-7"]  tool_result {…}
+seq=122  ✓ frame  path=["bg-7"]  completed {usage:…}
          ↳ the background child is still alive; records keep entering the
            stream, correctly attributed; a settled-gate would swallow
            121 and 122 here

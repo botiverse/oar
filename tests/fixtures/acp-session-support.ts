@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import type { Session, SessionRecord } from "../../packages/oar/src/contracts/session.js";
+import type { Session, RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../packages/oar/src/shared/acp/session.js";
 
 /** The scripted ACP agent (fake-acp-agent.mjs) and the session helpers the ACP tests share. */
@@ -39,15 +39,15 @@ export async function start(
   });
 }
 
-/** Compact skeleton of one record for assertions: kind, type/body kind, views. */
-export function describe(record: SessionRecord): string {
+/** Compact skeleton of one record for assertions: kind, type/body kind, events. */
+export function describe(record: RawEvent): string {
   switch (record.kind) {
     case "request":
       return `${record.direction === "toApp" ? "toApp" : "request"} ${record.body.kind === "native" ? record.body.type : record.body.kind}`;
     case "response":
       return `response ${record.body.kind}`;
-    case "event": {
-      const views = record.body.views.map((view) => {
+    case "frame": {
+      const events = record.body.events.map((view) => {
         switch (view.kind) {
           case "text_delta":
             return `text:${view.text}`;
@@ -65,7 +65,7 @@ export function describe(record: SessionRecord): string {
             return "?";
         }
       });
-      return `event ${record.body.type}${views.length === 0 ? "" : ` → ${views.join(", ")}`}`;
+      return `event ${record.body.type}${events.length === 0 ? "" : ` → ${events.join(", ")}`}`;
     }
     default:
       return "?";

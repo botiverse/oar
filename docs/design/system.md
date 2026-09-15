@@ -35,8 +35,12 @@ flowchart TB
   known landing point; a rejection leaves the input with its caller.
 - **Record** is the evidence boundary. One ordered stream preserves native
   payloads, attribution, and control obligations.
-- **Project** is disposable read-model code. Status, liveness, usage, and UI
-  views are folds over records and can be rebuilt without changing history.
+- **Project** is disposable read-model code. The default read model is the
+  flat `Event` stream (`Session.events()`), a projection over the record
+  stream that hides record kinds and native frames without removing them:
+  `rawEvents()` keeps every native payload reachable underneath. Status,
+  liveness, usage, and UI views are further folds over records and can be
+  rebuilt without changing history.
 - **Continue** is how work compounds: cursors, native resume identities,
   voyage logs, experiments, tests, and handoffs prevent rediscovery.
 

@@ -16,10 +16,12 @@ record meaning.
 
 ## The contract in one line
 
-The contract is one ordered, resumable record stream. Records split into three kinds
-by obligation (event / request / response), every record self-attributes
-(session graph + `agentPath`), and a monotonic `seq` on the stream is the
-cursor.
+The contract is one ordered, resumable record stream. Records (`RawEvent`)
+split into three kinds by obligation (frame / request / response), every
+record self-attributes (session graph + `agentPath`), and a monotonic `seq`
+on the stream is the cursor. Consumers read the stream as flat, attributed
+`Event`s through `Session.events()`; `rawEvents()` and `records()` are the
+stream itself.
 
 The external promise: everything the runtime said is in the stream, nothing
 oar didn't observe is in it, every record knows whose it is, and the stream
@@ -51,22 +53,28 @@ follow the TypeScript contracts.
 Implemented by every adapter (claude, codex, pi, grok, kimi) and pinned by
 the shared behavior suite (`sea-trial/cases/session.ts`):
 
-- one stream of `event` / `request` / `response` records with a dense
+- one stream of `frame` / `request` / `response` records with a dense
   monotonic `seq`, `sessionId`, `agentPath`, optional runtime-native
   `spanId`, and `receivedAt`;
-- every runtime frame recorded verbatim as an event (`type`, `native`) with
-  oar's typed `views` beside it: nothing gated, nothing dropped, nothing
-  synthesized; the turn's start is the prompt request, its end the
+- every runtime frame recorded verbatim as a `Frame` (`type`, `native`)
+  with oar's typed `events` beside it: nothing gated, nothing dropped,
+  nothing synthesized; the turn's start is the prompt request, its end the
   runtime's own completion event;
+- the consumer face: `events()` delivers every reading as a flat `Event`
+  (an event body plus the record's envelope), including `turn_started`,
+  `control_rejected` and `exited` read off request/response records; a
+  pure projection (`eventsOf`) over the stream, never a second source of
+  truth;
 - control as records: prompt / steer / queue / abort / dispose requests
   answered `accepted` / `rejected`; runtime→app requests recorded `toApp`
   and oar's automatic answer as `answered`; the process exit as `exited`;
 - queries as folds: `model()`, `usage()`, and `contextUsage()` project over
   `records()` and return `{ value, seq }`, where `seq` is the last record the
   fold consumed (or `-1` before any record);
-- the cursor for the lifetime of the adapter process: `subscribe(observer,
-  {sessionId, afterSeq})` replays the retained records after that position
-  and continues live, without loss or duplication;
+- the cursor for the lifetime of the adapter process: `rawEvents(observer,
+  {sessionId, afterSeq})` (and `events(observer, { cursor })`) replays the
+  retained records after that position and continues live, without loss or
+  duplication;
 - the session graph with true sessions only, and an explicit attribution
   tier per adapter (`capabilities.attribution`);
 - `SessionOptions.resume` reopening the runtime-native conversation with a
@@ -97,7 +105,7 @@ create a session-graph edge.
 
 Record markers, used symbol+word so nothing depends on color:
 
-- ✓ `event`: the runtime's own words
+- ✓ `frame`: the runtime's own words
 - ◆ `request`: an action record that expects an outcome
 - ◇ `response`: always points at a request
 - ○ absence: an outcome that was never observed (honest gap)

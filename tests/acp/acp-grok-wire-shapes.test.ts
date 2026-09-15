@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { EventRecord } from "../../packages/oar/src/contracts/session.js";
+import type { Frame } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import {
   GROK_EXTENSION_NOTIFICATIONS,
@@ -95,20 +95,20 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   assert.equal(run.kind, "ended");
   assert.deepEqual(session.graph().nodes.map((node) => node.id), ["fake-session", "fake-child-grok"]);
   assert.deepEqual(session.graph().edges, [{ parent: "fake-session", child: "fake-child-grok", via: "tool_call" }]);
-  const vendor = session.records().filter((record) => record.kind === "event" && record.body.type === "_x.ai/session_notification");
+  const vendor = session.records().filter((record) => record.kind === "frame" && record.body.type === "_x.ai/session_notification");
   assert.equal(vendor.length, 5, "spawned, progress, the child's response_completed + turn_completed, finished: each recorded verbatim");
   const lifecycle = vendor.filter((record) => record.sessionId === "fake-session");
   assert.deepEqual(
-    lifecycle.map((record) => (record.kind === "event" ? asRecord(asRecord(record.body.native)?.update)?.sessionUpdate : null)),
+    lifecycle.map((record) => (record.kind === "frame" ? asRecord(asRecord(record.body.native)?.update)?.sessionUpdate : null)),
     ["subagent_spawned", "subagent_progress", "subagent_finished"],
     "a frame that names a child but carries the parent's envelope is the parent's",
   );
   for (const record of vendor) {
-    assert.ok(record.kind === "event");
-    assert.deepEqual(record.body.views, []);
+    assert.ok(record.kind === "frame");
+    assert.deepEqual(record.body.events, []);
   }
   const [spawned] = lifecycle;
-  assert.ok(spawned?.kind === "event");
+  assert.ok(spawned?.kind === "frame");
   assert.deepEqual(spawned.body.native, {
     sessionId: "fake-session",
     update: { sessionUpdate: "subagent_spawned", subagent_id: "fake-child-grok", parent_session_id: "fake-session", child_session_id: "fake-child-grok", subagent_type: "general-purpose", description: "Echo", model: "fixture-model-x" },
@@ -123,7 +123,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
     "event _x.ai/session_notification",
   ]);
   assert.deepEqual(
-    child.slice(2).map((record) => (record.kind === "event" ? asRecord(record.body.native) : null)),
+    child.slice(2).map((record) => (record.kind === "frame" ? asRecord(record.body.native) : null)),
     [
       { sessionId: "fake-child-grok", update: { sessionUpdate: "response_completed", usage: { input_tokens: 80, output_tokens: 8, cache_read_input_tokens: 0 } } },
       { sessionId: "fake-child-grok", update: { sessionUpdate: "turn_completed", prompt_id: "child-prompt", stop_reason: "end_turn", usage: { inputTokens: 80, outputTokens: 8, totalTokens: 88, modelCalls: 1 } } },
@@ -137,7 +137,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   await session.dispose();
 });
 
-// oxlint-disable-next-line eslint/max-statements -- two turns, the fold after each, and both stamped views.
+// oxlint-disable-next-line eslint/max-statements -- two turns, the fold after each, and both stamped events.
 test("grok per-prompt ledgers accumulate into the session total, stamped cumulative on each answer", async () => {
   const session = await start(grokProfile);
   const first = await promptAndWait(session, "grok-usage");
@@ -147,7 +147,7 @@ test("grok per-prompt ledgers accumulate into the session total, stamped cumulat
   assert.equal(second.kind, "ended");
   assert.deepEqual(session.usage().value, { total: { input: 200, output: 14 } });
   assert.deepEqual(session.contextUsage().value, { tokens: 1002, contextWindow: null, percent: null });
-  const answers = session.records().flatMap((record) => (record.kind === "event" && record.body.type === "session/prompt" ? [record.body.views] : []));
+  const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));
   assert.deepEqual(answers, [
     [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1001, contextWindow: null, percent: null }, tokens: { input: 100, output: 7 } } }],
     [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1002, contextWindow: null, percent: null }, tokens: { input: 200, output: 14 } } }],
@@ -157,18 +157,18 @@ test("grok per-prompt ledgers accumulate into the session total, stamped cumulat
 
 const QUEUE_CHANGED = { sessionId: "fake-session", entries: [{ id: "queue-1", version: 0, kind: "prompt", text: "grok-usage", position: 0 }] };
 
-async function queueChangedRecords(profile: Parameters<typeof start>[0]): Promise<readonly EventRecord[]> {
+async function queueChangedRecords(profile: Parameters<typeof start>[0]): Promise<readonly Frame[]> {
   const session = await start(profile);
   const run = await promptAndWait(session, "grok-usage");
   assert.equal(run.kind, "ended");
   await session.dispose();
-  return session.records().filter((record): record is EventRecord => record.kind === "event" && record.body.type === "_x.ai/queue/changed");
+  return session.records().filter((record): record is Frame => record.kind === "frame" && record.body.type === "_x.ai/queue/changed");
 }
 
 test("a listed vendor method (`_x.ai/queue/changed`) reaches the stream verbatim under the root", async () => {
   const [queue, ...rest] = await queueChangedRecords(grokProfile);
   assert.ok(queue !== undefined && rest.length === 0);
-  assert.deepEqual(queue.body, { type: "_x.ai/queue/changed", native: QUEUE_CHANGED, views: [] });
+  assert.deepEqual(queue.body, { type: "_x.ai/queue/changed", native: QUEUE_CHANGED, events: [] });
   assert.equal(queue.sessionId, "fake-session");
 });
 
@@ -187,7 +187,7 @@ test("a send-now steer's two answers are two per-prompt ledgers: summed once, st
   const steered = await session.steer("grok-steer-new");
   assert.equal(steered.response.body.kind, "accepted");
   assert.deepEqual(await awaitTurnEnd(session, base.request.seq), { kind: "completed" });
-  const answers = session.records().flatMap((record) => (record.kind === "event" && record.body.type === "session/prompt" ? [record.body.views] : []));
+  const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));
   assert.deepEqual(answers, [
     [{ kind: "usage", usage: { context: { tokens: 16_998, contextWindow: null, percent: null }, tokens: { input: 16_776, output: 222 } } }],
     [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 17_405, contextWindow: null, percent: null }, tokens: { input: 51_196, output: 501 } } }],

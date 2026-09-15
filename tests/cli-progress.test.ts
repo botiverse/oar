@@ -1,18 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { EventView, SessionRecord } from "../packages/oar/src/index.js";
+import type { Event, EventBody } from "../packages/oar/src/index.js";
 import { createProgressRenderer, renderOutcome } from "../packages/cli/src/progress.js";
 
 let seq = 0;
-function at(receivedAt: number, views: EventView[], agentPath: readonly string[] = []): SessionRecord {
+function at(receivedAt: number, events: EventBody[], agentPath: readonly string[] = []): Event[] {
   seq += 1;
-  return { sessionId: "s-1", agentPath, seq, receivedAt, kind: "event", body: { type: "fixture", native: {}, views } };
+  return events.map((event) => ({ ...event, sessionId: "s-1", agentPath, seq, receivedAt }));
 }
 
-test("renderer prints nothing for control records, uninterpreted frames, empty text, and non-text reasoning", () => {
-  const render = createProgressRenderer("claude");
-  const request: SessionRecord = { sessionId: "s-1", agentPath: [], seq: 0, receivedAt: 0, kind: "request", id: "r", direction: "toRuntime", body: { kind: "prompt", input: "hi" } };
-  assert.deepEqual(render(request), []);
+/** Render a batch of events read from one record, concatenating their lines. */
+function renderAll(render: (event: Event) => readonly string[]): (events: Event[]) => string[] {
+  return (events) => events.flatMap((event) => [...render(event)]);
+}
+
+test("renderer prints nothing for turn starts, usage, model, empty text, and non-text reasoning", () => {
+  const render = renderAll(createProgressRenderer("claude"));
+  assert.deepEqual(render(at(0, [{ kind: "turn_started", requestId: "r", input: "hi" }])), []);
   assert.deepEqual(render(at(0, [])), []);
   assert.deepEqual(render(at(1, [{ kind: "text_delta", text: "" }])), []);
   assert.deepEqual(render(at(2, [{ kind: "reasoning", content: { kind: "redacted" } }])), []);
@@ -22,7 +26,7 @@ test("renderer prints nothing for control records, uninterpreted frames, empty t
 });
 
 test("renderer prints assistant text verbatim and thinking bracketed, one line per view", () => {
-  const render = createProgressRenderer("claude");
+  const render = renderAll(createProgressRenderer("claude"));
   assert.deepEqual(render(at(0, [{ kind: "text_delta", text: "The answer is 4." }])), ["The answer is 4."]);
   assert.deepEqual(
     render(at(1, [{ kind: "reasoning", content: { kind: "text", text: "2 + 2..." } }, { kind: "text_delta", text: "4" }])),
@@ -31,7 +35,7 @@ test("renderer prints assistant text verbatim and thinking bracketed, one line p
 });
 
 test("renderer labels tool calls via classifyTool and times them from receivedAt", () => {
-  const render = createProgressRenderer("claude");
+  const render = renderAll(createProgressRenderer("claude"));
   const bashInput = JSON.stringify({ command: "echo hi" });
   assert.deepEqual(
     render(at(1000, [{ kind: "tool_call_started", callId: "c1", tool: "Bash", input: bashInput }])),
@@ -41,13 +45,13 @@ test("renderer labels tool calls via classifyTool and times them from receivedAt
 });
 
 test("renderer handles a tool call without detail and an unknown callId", () => {
-  const render = createProgressRenderer("codex");
+  const render = renderAll(createProgressRenderer("codex"));
   assert.deepEqual(render(at(0, [{ kind: "tool_call_started", callId: "c1", tool: "webSearch" }])), ["[Searching the web]"]);
   assert.deepEqual(render(at(100, [{ kind: "tool_call_ended", callId: "never-started" }])), ["[Done]"]);
 });
 
 test("renderer prefixes sub-agent records with their agent path and keys tool calls per agent", () => {
-  const render = createProgressRenderer("claude");
+  const render = renderAll(createProgressRenderer("claude"));
   assert.deepEqual(render(at(0, [{ kind: "tool_call_started", callId: "c1", tool: "Read" }], ["task-1"])), ["[task-1] [Reading file]"]);
   assert.deepEqual(render(at(0, [{ kind: "tool_call_started", callId: "c1", tool: "Bash" }])), ["[Running command]"]);
   assert.deepEqual(render(at(500, [{ kind: "tool_call_ended", callId: "c1" }], ["task-1"])), ["[task-1] [Read file] (0.5s)"]);
@@ -63,7 +67,9 @@ test("renderOutcome covers completed, aborted, and failed", () => {
   );
 });
 
-test("turn_ended renders through renderOutcome", () => {
-  const render = createProgressRenderer("claude");
+test("turn_ended renders through renderOutcome; control rejections and exits print bracketed", () => {
+  const render = renderAll(createProgressRenderer("claude"));
   assert.deepEqual(render(at(0, [{ kind: "turn_ended", outcome: { kind: "completed" } }])), ["[turn completed]"]);
+  assert.deepEqual(render(at(0, [{ kind: "control_rejected", requestId: "r", action: "steer", reason: "not_steerable" }])), ["[steer rejected] not_steerable"]);
+  assert.deepEqual(render(at(0, [{ kind: "exited", code: 143 }])), ["[runtime exited: 143]"]);
 });

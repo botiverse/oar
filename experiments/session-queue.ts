@@ -7,7 +7,7 @@
  * Run: pnpm tsx experiments/session-queue.ts <claude|codex>
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { awaitTurnEnd, runtimes, type SessionRecord } from "../packages/oar/src/index.js";
+import { awaitTurnEnd, runtimes, type RawEvent } from "../packages/oar/src/index.js";
 
 const runtime = runtimes.require(process.argv[2] ?? "claude");
 const model = runtime.id === "claude" ? { model: "haiku" } : {};
@@ -16,11 +16,11 @@ if (probed?.kind !== "available") {
   throw new Error(`${runtime.id} is not available`);
 }
 const session = await runtime.session(probed, { cwd: process.cwd(), ...model });
-const records: SessionRecord[] = [];
-session.subscribe((record) => {
+const records: RawEvent[] = [];
+session.rawEvents((record) => {
   records.push(record);
-  const detail = record.kind === "event" ? record.body.views.map((view) => (view.kind === "text_delta" ? ` ${JSON.stringify(view.text.slice(0, 40))}` : ` ${view.kind}`)).join("") : "";
-  process.stdout.write(`${record.seq} ${record.kind} ${record.kind === "event" ? record.body.type : record.body.kind}${detail}\n`);
+  const detail = record.kind === "frame" ? record.body.events.map((view) => (view.kind === "text_delta" ? ` ${JSON.stringify(view.text.slice(0, 40))}` : ` ${view.kind}`)).join("") : "";
+  process.stdout.write(`${record.seq} ${record.kind} ${record.kind === "frame" ? record.body.type : record.body.kind}${detail}\n`);
 });
 
 const first = await session.prompt(
@@ -31,7 +31,7 @@ const first = await session.prompt(
 if (first.response.body.kind !== "accepted") {
   throw new Error("busy");
 }
-while (!records.some((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started"))) {
+while (!records.some((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "tool_call_started"))) {
   // eslint-disable-next-line no-await-in-loop
   await delay(100);
 }
@@ -41,14 +41,14 @@ if (session.capabilities.queue === null) {
 const queued = await session.queue("Reply with exactly ok-q and nothing else.");
 process.stdout.write(`queued during active turn (durable=${String(session.capabilities.queue.durable)}) -> ${queued.response.body.kind}\n`);
 const firstEnd = await awaitTurnEnd(session, first.request.seq);
-const firstEndSeq = records.findLast((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended"))?.seq ?? first.request.seq;
+const firstEndSeq = records.findLast((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"))?.seq ?? first.request.seq;
 process.stdout.write(`first turn ${firstEnd.kind}\n`);
 
 // The queued input must run as a spontaneous next turn.
 const deadline = Date.now() + 60_000;
 const answered = (): boolean => records
-  .filter((record) => record.seq > firstEndSeq && record.kind === "event")
-  .flatMap((record) => (record.kind === "event" ? record.body.views : []))
+  .filter((record) => record.seq > firstEndSeq && record.kind === "frame")
+  .flatMap((record) => (record.kind === "frame" ? record.body.events : []))
   .map((view) => (view.kind === "text_delta" ? view.text : ""))
   .join("")
   .includes("ok-q");

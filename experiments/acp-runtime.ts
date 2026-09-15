@@ -2,7 +2,7 @@
  * LIVE RUN OF THE PUBLIC GROK/KIMI RUNTIME ADAPTER.
  *
  * Pins the real executable handshake, one shell-tool turn, the record
- * stream (every frame recorded, views, toApp terminal/permission requests,
+ * stream (every frame recorded, events, toApp terminal/permission requests,
  * child-session records and the graph), and the vendor account-usage
  * surface. It prints only a structural summary: no prompt text, tool
  * input/output, paths, or tokens.
@@ -19,7 +19,7 @@ import {
   kimiRuntime,
   promptAndWait,
   type Runtime,
-  type SessionRecord,
+  type RawEvent,
 } from "../packages/oar/src/index.js";
 
 const [runtimeName] = process.argv.slice(2);
@@ -49,12 +49,12 @@ const run = await promptAndWait(session, [
 assert.equal(run.kind, "ended", "prompt was not accepted");
 assert.deepEqual(run.outcome, { kind: "completed" });
 
-const records: readonly SessionRecord[] = session.records();
-const views = records.flatMap((record) => (record.kind === "event" ? record.body.views : []));
-const text = views
+const records: readonly RawEvent[] = session.records();
+const events = records.flatMap((record) => (record.kind === "frame" ? record.body.events : []));
+const text = events
   .flatMap((view) => (view.kind === "text_delta" ? [view.text] : []))
   .join("");
-const tools = views.flatMap((view) => (view.kind === "tool_call_started" ? [view.tool] : []));
+const tools = events.flatMap((view) => (view.kind === "tool_call_started" ? [view.tool] : []));
 assert.ok(text.includes("OAR_ACP_DONE"), "runtime did not return the completion marker");
 assert.ok(tools.length > 0, "runtime did not expose a shell tool call");
 
@@ -63,8 +63,8 @@ const usage = runtime.accountUsage === undefined
   : await runtime.accountUsage(installation);
 const contextUsage = session.contextUsage().value;
 const skeleton = records.map((record) => {
-  if (record.kind === "event") {
-    const kinds = record.body.views.map((view) => view.kind).join("+");
+  if (record.kind === "frame") {
+    const kinds = record.body.events.map((view) => view.kind).join("+");
     return `event ${record.body.type}${kinds === "" ? "" : ` → ${kinds}`}${record.sessionId === session.id ? "" : " (child session)"}`;
   }
   return record.kind === "request"

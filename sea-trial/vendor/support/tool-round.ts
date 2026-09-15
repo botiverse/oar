@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { Session, SessionRecord } from "../../../packages/oar/src/contracts/session.js";
+import type { Session, RawEvent } from "../../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../../packages/oar/src/observe/turns.js";
 import type { LLMock } from "../../harness/aimock.js";
 import { openTrace, record } from "../../harness/trace.js";
@@ -29,11 +29,11 @@ export function toolRoundFixtures(
 
 /**
  * Structural skeleton of a turn from the ROOT agent's records: the control
- * records plus the tool lifecycle and turn end views, deltas and
+ * records plus the tool lifecycle and turn end events, deltas and
  * uninterpreted frames elided. Records of one turn are those after the
  * prompt request up to and including the turn end.
  */
-export function turnSkeleton(records: readonly SessionRecord[], fromSeq: number): readonly string[] {
+export function turnSkeleton(records: readonly RawEvent[], fromSeq: number): readonly string[] {
   const skeleton: string[] = [];
   for (const entry of records) {
     if (entry.seq < fromSeq || entry.agentPath.length > 0) {
@@ -44,7 +44,7 @@ export function turnSkeleton(records: readonly SessionRecord[], fromSeq: number)
     } else if (entry.kind === "response") {
       skeleton.push(`response:${entry.body.kind}`);
     } else {
-      for (const view of entry.body.views) {
+      for (const view of entry.body.events) {
         if (view.kind === "tool_call_started") {
           skeleton.push(`tool_call_started:${view.tool}`);
         } else if (view.kind === "tool_call_ended") {

@@ -42,17 +42,17 @@ expose every agent in the native session. OAR uses `kimi acp`.
 
 OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
-recorded verbatim as an event's `native`; the cross-runtime `views` are what
+recorded verbatim as a frame's `native`; the cross-runtime `events` are what
 OAR read out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | `kimi-code` executable | One `kimi acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
 | Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0; no history rebuild). |
-| Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are event records with a `model` view where they report one; pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` is a fold over the stream. |
+| Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are Frame records with a `model` event where they report one; pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` is a fold over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one event with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier declared `opaque`. |
-| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is an event with the `turn_ended` view. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback. |
-| Typed events, history, and child graph | Views for message/thought/tool/usage/model updates; unknown kinds recorded with no views. No child session ever arrives on this transport, so the graph holds the root only. |
+| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is a frame with the `turn_ended` event. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback. |
+| Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. No child session ever arrives on this transport, so the graph holds the root only. |
 | Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record and OAR's fixed-policy answer the `answered` response. |
 
 See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
@@ -60,7 +60,7 @@ See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
 [session controller](../../packages/oar/src/shared/acp/session.ts),
 [record placement](../../packages/oar/src/shared/acp/records.ts),
 [turn machinery](../../packages/oar/src/shared/acp/turns.ts),
-[view projection](../../packages/oar/src/shared/acp/projection.ts), and
+[event projection](../../packages/oar/src/shared/acp/projection.ts), and
 [client app](../../packages/oar/src/shared/acp/client-app.ts), alongside
 the [native ACP reference](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/docs/en/reference/kimi-acp.md).
 
@@ -101,10 +101,10 @@ method, passes `mcpServers: []`, applies a requested model through
 answer advertises it (in `modes` or the `mode` config option). Every opening
 request has a 30-second deadline; spawn, auth, and creation failures reject
 session construction with the process killed. The opening stream is six
-events: `initialize`, `authenticate` (`{}`), `session/new` (model view), then
+events: `initialize`, `authenticate` (`{}`), `session/new` (model event), then
 three pushes: `available_commands_update` (the slash commands, `compact`
 first) right after the `session/new` answer, and `current_mode_update`
-(`yolo`) plus `config_option_update` (model view again) between the
+(`yolo`) plus `config_option_update` (model event again) between the
 `session/set_mode` request and its `{}` answer. Opening takes about 1.9 s
 (`basic`). Credentials and persisted sessions must be accessible in the
 subprocess's configured data root.
@@ -163,7 +163,7 @@ is explicitly unsupported in the capability declaration.
 **Prompt (mapped):** `prompt(string)` records a prompt request answered
 `accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
 the transport error when the process is gone). The RPC answer is recorded as
-event `session/prompt` with the `turn_ended` view; an RPC error answer as
+frame `session/prompt` with the `turn_ended` event; an RPC error answer as
 `session/prompt/error` with a failed end
 ([test](../../tests/acp/acp-session.test.ts)); a second `prompt()` during a
 turn is `rejected busy` (`busy-and-late-control`).
@@ -195,11 +195,11 @@ lands after the turn end. Effects on background children are **unverified**.
 
 **Outcomes:** native ACP [maps most non-auth failures to `end_turn`](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/events-map.ts#L59-L74);
 blocked/filtered cases become `refusal`, while auth failures use the RPC
-error channel. OAR's `turn_ended` view maps `cancelled` to aborted and every
+error channel. OAR's `turn_ended` event maps `cancelled` to aborted and every
 other stop reason to completed; the answer itself is in the event's `native`,
 so a consumer can still read `refusal` or any other stop reason the runtime
 gave. This separates loss before OAR receives a response (native) from OAR's
-reading (the view). Opening with an unknown model makes `session/set_model`
+reading (the event). Opening with an unknown model makes `session/set_model`
 answer a JSON-RPC error `-32603 "Internal error"` with `data.details`
 `Model "<id>" is not configured in config.toml.`; session construction
 rejects with the SDK's `RequestError` (message `Internal error`, the details
@@ -218,7 +218,7 @@ request answered `accepted` (`kill-runtime`;
 
 ### Observation, children, and history
 
-**Mapped:** every update is an event with `native` verbatim; views carry
+**Mapped:** every update is a frame with `native` verbatim; events carry
 text (`agent_message_chunk` → `text_delta`), reasoning, tool boundaries,
 context snapshots, and model reports. Reasoning arrives as
 `agent_thought_chunk` text deltas ending with an empty chunk (`reasoning:
@@ -283,7 +283,7 @@ Native ACP config options cover model, thinking, and mode, with
 
 **Mapped:** open-time model selection (`SessionOptions.model` →
 `session/set_model`) and early config-update readback: `Session.model()` is
-the latest `model` view, read from `configOptions` id `model` on the open
+the latest `model` event, read from `configOptions` id `model` on the open
 answer and from every `config_option_update`, never from the request
 parameter. Public mid-session setters are absent. The
 [model lister](../../packages/oar/src/runtimes/kimi/list-models.ts) creates a

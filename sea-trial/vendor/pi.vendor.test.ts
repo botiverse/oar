@@ -23,7 +23,7 @@ function withoutHostSkills(system: string): string {
 
 function toolStartedAfter(session: Session, seq: number): boolean {
   for (const record of session.records()) {
-    if (record.seq > seq && record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started")) {
+    if (record.seq > seq && record.kind === "frame" && record.body.events.some((view) => view.kind === "tool_call_started")) {
       return true;
     }
   }
@@ -125,7 +125,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       // pi's session-scoped compaction events are not dropped: they enter the
       // stream verbatim, with no view.
       const compactionTypes = session.records()
-        .flatMap((record) => (record.kind === "event" && record.body.type.startsWith("compaction_") ? [record.body.type] : []));
+        .flatMap((record) => (record.kind === "frame" && record.body.type.startsWith("compaction_") ? [record.body.type] : []));
       expect(compactionTypes).toContain("compaction_start");
       expect(compactionTypes).toContain("compaction_end");
       await session.dispose();
@@ -174,7 +174,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       const session = await runtimeUnderTest(runtime, undefined).startSession();
       await runTurn(session, "say hi");
       assertContextUsage(session.contextUsage().value);
-      const types = session.records().flatMap((record) => (record.kind === "event" ? [record.body.type] : []));
+      const types = session.records().flatMap((record) => (record.kind === "frame" ? [record.body.type] : []));
       expect(types).toContain("agent_start");
       expect(types).toContain("agent_end");
       expect(types.at(-1)).toBe("agent_settled");

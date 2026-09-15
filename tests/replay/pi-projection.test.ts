@@ -18,7 +18,7 @@ import { parseJson } from "../../packages/oar/src/shared/json.js";
  * fidelity as the pi-aimock behavior tests; the event SHAPES are pi's own.
  * The recorded events fold through the production projection; the
  * type|record table snapshots to a FILE beside the input. Every SDK event
- * yields exactly one event record (nothing is dropped); the views column
+ * yields exactly one event record (nothing is dropped); the events column
  * is what oar read out of it.
  */
 
@@ -26,7 +26,7 @@ const here = import.meta.dirname;
 const scenarios = ["tool-round"];
 
 function describeCommand(command: ProjectionCommand): string {
-  const views = command.body.views.map((view) => {
+  const events = command.body.events.map((view) => {
     if (view.kind === "tool_call_started") {
       return `tool_call_started ${view.tool}`;
     }
@@ -41,7 +41,7 @@ function describeCommand(command: ProjectionCommand): string {
     }
     return view.kind;
   });
-  return `event${views.length === 0 ? "" : ` → ${views.join(", ")}`}`;
+  return `event${events.length === 0 ? "" : ` → ${events.join(", ")}`}`;
 }
 
 function parseEvent(line: string): AgentSessionEvent {
@@ -87,12 +87,12 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
   const agentEnd: AgentSessionEvent = { type: "agent_settled" };
   const context = { tokens: 42, contextWindow: 1000, percent: 4 };
   const completed = foldPiEvent(piPrompted(initialPiProjection), agentEnd, { context });
-  expect(completed.commands[0]?.body.views).toEqual([
+  expect(completed.commands[0]?.body.events).toEqual([
     { kind: "turn_ended", outcome: { kind: "completed" } },
     { kind: "usage", usage: { context } },
   ]);
   const aborted = foldPiEvent(piAbortRequested(piPrompted(initialPiProjection)), agentEnd);
-  expect(aborted.commands[0]?.body.views).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
+  expect(aborted.commands[0]?.body.events).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
   const errored = foldPiEvent(piPrompted(initialPiProjection), {
     type: "turn_end",
     // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- only the fields the fold reads matter here
@@ -100,7 +100,7 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
     toolResults: [],
   });
   const ended = foldPiEvent(errored.state, agentEnd);
-  expect(ended.commands[0]?.body.views[0]).toEqual({
+  expect(ended.commands[0]?.body.events[0]).toEqual({
     kind: "turn_ended",
     outcome: { kind: "failed", reason: "400 bad request", failure: "invalid_request" },
   });
@@ -108,11 +108,11 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
 
 test("pi tool_execution_end maps the explicit isError flag", () => {
   const failed = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-fail", true));
-  expect(failed.commands[0]?.body.views).toEqual([
+  expect(failed.commands[0]?.body.events).toEqual([
     { kind: "tool_call_ended", callId: "tool-fail", output: JSON.stringify("boom"), result: "failed" },
   ]);
   const successful = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-success", false));
-  expect(successful.commands[0]?.body.views).toEqual([
+  expect(successful.commands[0]?.body.events).toEqual([
     { kind: "tool_call_ended", callId: "tool-success", output: JSON.stringify("boom"), result: "ok" },
   ]);
 });

@@ -16,11 +16,11 @@ export const startMockSession: StartSession = async (_installation, options): Pr
   let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
   let disposed = false;
   const say = (text: string): void => {
-    kernel.event({ type: "mock/text", native: { text }, views: [{ kind: "text_delta", text }] });
+    kernel.frame({ type: "mock/text", native: { text }, events: [{ kind: "text_delta", text }] });
   };
   const end = (outcome: "completed" | "aborted"): void => {
     active = null;
-    kernel.event({ type: "mock/end", native: { outcome, used: 1 }, views: [
+    kernel.frame({ type: "mock/end", native: { outcome, used: 1 }, events: [
       { kind: "turn_ended", outcome: { kind: outcome } },
       { kind: "usage", usage: { context: { tokens: 1, contextWindow: 100, percent: 1 }, tokens: { input: 1, output: 1 } } },
     ] });
@@ -40,7 +40,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     }, 10);
     active = { timer, aborted: false };
   }
-  kernel.event({ type: "mock/model", native: { model: "mock-1" }, views: [{ kind: "model", model: "mock-1" }] });
+  kernel.frame({ type: "mock/model", native: { model: "mock-1" }, events: [{ kind: "model", model: "mock-1" }] });
   return sealSession({
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
@@ -92,7 +92,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       });
       return result;
     },
-    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {

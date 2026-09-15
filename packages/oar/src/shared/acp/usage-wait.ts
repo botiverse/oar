@@ -17,7 +17,7 @@ import type { AcpSessionProfile } from "./profile.js";
 export interface UsageUpdateGate {
   /** Forget any update seen so far; call before sending the prompt. */
   readonly arm: () => void;
-  /** Feed every recorded root update; only one that carried a usage view (its seq) counts as arrival. */
+  /** Feed every recorded root update; only one that carried a usage event (its seq) counts as arrival. */
   readonly observe: (usageSeq: number | undefined) => void;
   /**
    * After the prompt response: resolve once a usage_update arrived since

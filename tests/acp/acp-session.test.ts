@@ -4,7 +4,7 @@ import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turn
 import { describe, start, tail } from "../fixtures/acp-session-support.js";
 
 // oxlint-disable-next-line eslint/max-statements -- one specimen turn, asserted end to end.
-test("ACP session records every update verbatim with its views, and the prompt answer as the turn end", async () => {
+test("ACP session records every update verbatim with its events, and the prompt answer as the turn end", async () => {
   const session = await start();
   const run = await promptAndWait(session, "tool");
   assert.equal(run.kind, "ended");
@@ -20,9 +20,9 @@ test("ACP session records every update verbatim with its views, and the prompt a
     "event usage_update → usage",
     "event session/prompt → turn_ended:completed",
   ]);
-  const toolEnded = session.records().find((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_ended"));
-  assert.ok(toolEnded?.kind === "event");
-  assert.deepEqual(toolEnded.body.views, [{
+  const toolEnded = session.records().find((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "tool_call_ended"));
+  assert.ok(toolEnded?.kind === "frame");
+  assert.deepEqual(toolEnded.body.events, [{
     kind: "tool_call_ended",
     callId: "call-read",
     output: JSON.stringify({ content: "fixture-value" }),
@@ -60,13 +60,13 @@ test("ACP session rejects a second prompt busy and drains its host-held queue as
   assert.equal(aborted.response.body.kind, "accepted");
   assert.deepEqual(await awaitTurnEnd(session, first.request.seq), { kind: "aborted" });
   // The queued input runs as its own turn: it has an end but no prompt request of its own.
-  const ended = session.records().find((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended" && view.outcome.kind === "aborted"));
+  const ended = session.records().find((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended" && view.outcome.kind === "aborted"));
   assert.ok(ended !== undefined);
   const outcome = await awaitTurnEnd(session, ended.seq);
   assert.deepEqual(outcome, { kind: "completed" });
   const requests = session.records().filter((record) => record.kind === "request" && record.body.kind === "prompt");
   assert.equal(requests.length, 2, "only the two explicit prompts are prompt requests");
-  assert.ok(session.records().some((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "text_delta" && view.text === "echo:queued")));
+  assert.ok(session.records().some((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "text_delta" && view.text === "echo:queued")));
   const late = await session.abort();
   assert.deepEqual(late.response.body, { kind: "rejected", reason: "no active turn" });
   await session.dispose();
@@ -79,10 +79,10 @@ test("ACP native steer (send-now) folds both prompt answers into one turn with o
   const steered = await session.steer("steer-new");
   assert.equal(steered.response.body.kind, "accepted");
   assert.deepEqual(await awaitTurnEnd(session, base.request.seq), { kind: "completed" });
-  const answers = session.records().filter((record) => record.kind === "event" && record.body.type === "session/prompt");
+  const answers = session.records().filter((record) => record.kind === "frame" && record.body.type === "session/prompt");
   assert.equal(answers.length, 2, "each prompt RPC answer is its own event");
-  assert.deepEqual(answers.map((record) => (record.kind === "event" ? record.body.views.map((view) => view.kind) : [])), [[], ["turn_ended"]]);
-  assert.ok(session.records().some((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "text_delta" && view.text === "steer:steer-new")));
+  assert.deepEqual(answers.map((record) => (record.kind === "frame" ? record.body.events.map((view) => view.kind) : [])), [[], ["turn_ended"]]);
+  assert.ok(session.records().some((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "text_delta" && view.text === "steer:steer-new")));
   await session.dispose();
 });
 
@@ -129,7 +129,7 @@ test("ACP prompt errors are the runtime's word; a process exit is oar's observat
       "reason": "Authentication required",
     }
   `);
-  assert.ok(authSession.records().some((record) => record.kind === "event" && record.body.type === "session/prompt/error"));
+  assert.ok(authSession.records().some((record) => record.kind === "frame" && record.body.type === "session/prompt/error"));
   await authSession.dispose();
 
   const exitSession = await start();
@@ -167,14 +167,14 @@ test("ACP resume keeps the runtime-native session id and remains usable", async 
   await resumed.dispose();
 });
 
-// oxlint-disable-next-line eslint/max-statements -- envelope, views, graph node and absent edge in one place.
+// oxlint-disable-next-line eslint/max-statements -- envelope, events, graph node and absent edge in one place.
 test("a foreign session id is a derived child session: its own envelope id, a graph node, never dropped", async () => {
   const session = await start();
   const run = await promptAndWait(session, "spawn-child");
   assert.equal(run.kind, "ended");
   const child = session.records().find((record) => record.sessionId === "fake-child");
-  assert.ok(child?.kind === "event");
-  assert.deepEqual(child.body.views, [{ kind: "text_delta", text: "child-says-hi" }]);
+  assert.ok(child?.kind === "frame");
+  assert.deepEqual(child.body.events, [{ kind: "text_delta", text: "child-says-hi" }]);
   assert.deepEqual(child.agentPath, []);
   assert.deepEqual(session.graph().nodes.map((node) => node.id), ["fake-session", "fake-child"]);
   // Not subscribed to the vendor lifecycle method: no edge can be claimed.
@@ -186,10 +186,10 @@ test("a subscribed extension notification is recorded verbatim and links parent 
   const session = await start({ extensionNotifications: ["_x.ai/session_notification"] });
   const run = await promptAndWait(session, "spawn-child");
   assert.equal(run.kind, "ended");
-  const lifecycle = session.records().find((record) => record.kind === "event" && record.body.type === "_x.ai/session_notification");
-  assert.ok(lifecycle?.kind === "event");
+  const lifecycle = session.records().find((record) => record.kind === "frame" && record.body.type === "_x.ai/session_notification");
+  assert.ok(lifecycle?.kind === "frame");
   assert.deepEqual(lifecycle.body.native, { parentSessionId: "fake-session", sessionId: "fake-child", kind: "spawned" });
-  assert.deepEqual(lifecycle.body.views, []);
+  assert.deepEqual(lifecycle.body.events, []);
   assert.deepEqual(session.graph().edges, [{ parent: "fake-session", child: "fake-child", via: "tool_call" }]);
   await session.dispose();
 });

@@ -3,28 +3,41 @@
 Provider-independent TypeScript contracts and built-in implementations for controlling and observing Claude, Codex, Grok, Kimi, and Pi.
 
 ```ts
-import { runtimes } from "@botiverse/oar";
+import { promptAndWait, runtimes } from "@botiverse/oar";
 
 const runtime = runtimes.require("grok");
 const installation = await runtime.installation?.();
 
 if (installation?.kind === "available") {
   const session = await runtime.session(installation, { cwd: process.cwd() });
-  const result = session.prompt("Inspect this repository");
-  if (result.kind === "turn") {
-    console.log(await result.turn.outcome);
-  }
-  console.log(await runtime.accountUsage?.(installation));
+  session.events((event) => {
+    switch (event.kind) {
+      case "text_delta": process.stdout.write(event.text); break;
+      case "tool_call_started": console.log(`[${event.tool}]`); break;
+      case "turn_ended": console.log(event.outcome.kind); break;
+    }
+  }, { coalesceText: true });
+  const run = await promptAndWait(session, "Inspect this repository");
+  console.log(run.kind === "ended" ? run.outcome : run.reason);
+  console.log(session.usage(), await runtime.accountUsage?.(installation));
   await session.dispose();
 }
 ```
+
+`session.events()` delivers flat, attributed `Event`s (text, reasoning,
+tool calls, turn start and end, usage, model, control rejections, the
+process exit), each carrying the `seq` and `agentPath` of the record it was
+read from. It is a projection over the record stream: `session.rawEvents()`
+and `session.records()` expose that stream (`RawEvent`: `Frame` with the
+native payload verbatim, `RequestRecord`, `ResponseRecord`) for consumers
+who need the runtime's own frames.
 
 ## Public exports
 
 The package has exactly two public entry points:
 
 - `@botiverse/oar`: the full surface (runtime registry, adapters, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
-- `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `SessionEvent`s (`observeAgent`, `reduceStatus`, `aggregateDeltas`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
+- `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
 
 Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 

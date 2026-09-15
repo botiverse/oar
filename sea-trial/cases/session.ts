@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { ControlResult, RequestRecord, ResponseRecord, Session, SessionRecord, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
+import type { ControlResult, RequestRecord, ResponseRecord, Session, RawEvent, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
 import type { TrialCase } from "../harness/runner.js";
 
@@ -16,22 +16,22 @@ async function runTurn(session: Session, input: string): Promise<TurnOutcome> {
 }
 
 /** Root-agent records of one turn: from the prompt request through the runtime's turn end. */
-function turnRecords(records: readonly SessionRecord[], result: ControlResult): readonly SessionRecord[] {
+function turnRecords(records: readonly RawEvent[], result: ControlResult): readonly RawEvent[] {
   const start = records.findIndex((record) => record.seq === result.request.seq);
   assert.ok(start !== -1, "the prompt request is in the retained log");
-  const slice: SessionRecord[] = [];
+  const slice: RawEvent[] = [];
   for (const record of records.slice(start)) {
     slice.push(record);
-    if (record.agentPath.length === 0 && record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended")) {
+    if (record.agentPath.length === 0 && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended")) {
       break;
     }
   }
   return slice;
 }
 
-function rootTurnEnds(records: readonly SessionRecord[]): readonly SessionRecord[] {
+function rootTurnEnds(records: readonly RawEvent[]): readonly RawEvent[] {
   return records.filter((record) =>
-    record.agentPath.length === 0 && record.kind === "event" && record.body.views.some((view) => view.kind === "turn_ended"));
+    record.agentPath.length === 0 && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"));
 }
 
 export const sessionCases: readonly TrialCase[] = [
@@ -67,8 +67,8 @@ export const sessionCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
-      const live: SessionRecord[] = [];
-      session.subscribe((record) => {
+      const live: RawEvent[] = [];
+      session.rawEvents((record) => {
         live.push(record);
       });
       const result = await accepted(session, "hello");
@@ -79,12 +79,12 @@ export const sessionCases: readonly TrialCase[] = [
       const accept = turn.find((record) => record.kind === "response" && record.requestId === result.request.id);
       assert.ok(accept?.kind === "response" && accept.body.kind === "accepted", "the accept answers the request inside the turn");
       const last = turn.at(-1);
-      assert.ok(last?.kind === "event" && last.body.views.some((view) => view.kind === "turn_ended"), "the turn ends with the runtime's own turn_ended event");
+      assert.ok(last?.kind === "frame" && last.body.events.some((view) => view.kind === "turn_ended"), "the turn ends with the runtime's own turn_ended event");
       for (const [index, record] of turn.entries()) {
         if (record.agentPath.length === 0) {
           assert.equal(record.sessionId, session.id, "root records carry the session id");
         }
-        if (record.kind === "event") {
+        if (record.kind === "frame") {
           assert.ok(record.body.type.length > 0, "every event names its runtime-native type");
           assert.notEqual(record.body.native, undefined, "every event carries the runtime's frame verbatim");
         }
@@ -148,11 +148,11 @@ export const sessionCases: readonly TrialCase[] = [
     async run(subject) {
       const session = await subject.startSession();
       const seen: string[] = [];
-      session.subscribe(() => {
+      session.rawEvents(() => {
         throw new Error("observer deliberately hostile");
       });
-      session.subscribe((record) => {
-        seen.push(record.kind === "event" ? record.body.views.map((view) => view.kind).join("+") : `${record.kind}:${record.kind === "request" ? record.body.kind : record.body.kind}`);
+      session.rawEvents((record) => {
+        seen.push(record.kind === "frame" ? record.body.events.map((view) => view.kind).join("+") : `${record.kind}:${record.kind === "request" ? record.body.kind : record.body.kind}`);
       });
       const outcome = await runTurn(session, "hello");
       assert.deepEqual(outcome, { kind: "completed" }, "a throwing observer affected the run");
@@ -242,7 +242,7 @@ export const sessionCases: readonly TrialCase[] = [
       await awaitTurnEnd(session, first.request.seq);
       const afterSeq = first.request.seq;
       const seen: number[] = [];
-      session.subscribe((record) => {
+      session.rawEvents((record) => {
         seen.push(record.seq);
       }, { sessionId: session.id, afterSeq });
       const expectedReplay = session.records().filter((record) => record.seq > afterSeq).map((record) => record.seq);

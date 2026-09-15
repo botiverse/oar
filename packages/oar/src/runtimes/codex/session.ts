@@ -22,12 +22,12 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
  * - initialize → initialized, thread/start {cwd, approvalPolicy:never}
  * - turn/start {threadId, input} → {turn{id}}: the RPC reply is the prompt's
  *   accepted response; completion is codex's own turn/completed notification
- *   (turn.status completed | interrupted | failed): the turn_ended view.
+ *   (turn.status completed | interrupted | failed): the turn_ended event.
  * - steer: turn/steer with the expectedTurnId precondition (race adjudicated
  *   at the runtime); a typed refusal is a rejected response.
  * - abort: turn/interrupt {threadId, turnId}; the reply is the abort's
  *   accepted/rejected response, the outcome is turn/completed.
- * - every notification is one event record (verbatim params); notifications
+ * - every notification is one frame (verbatim params); notifications
  *   of other threads are child-session records; collab items link them.
  * - server-initiated requests are recorded as toApp requests, unanswered.
  * - reachability (exited / disposed) is the kernel's, read off the stream;
@@ -120,7 +120,7 @@ export const codexSession: StartSession = async (installation, options) => {
     throw new TypeError("codex thread start/resume returned no thread id");
   }
   // Both responses report the model actually active (Session.model() reads
-  // it back as a model view on the open event). Still check it against the
+  // it back as a model event on the open frame). Still check it against the
   // request: codex's resume_running_thread ignores overrides for a thread
   // that is already loaded and busy (warn "thread/resume overrides ignored
   // for loaded thread") and answers with the old model; a caller who asked
@@ -142,10 +142,10 @@ export const codexSession: StartSession = async (installation, options) => {
   let disposeRequest: RequestRecord | null = null;
 
   recordOpen = (): void => {
-    kernel.event({
+    kernel.frame({
       type: openMethod,
       native: started,
-      views: effectiveModel === null ? [] : [{ kind: "model", model: effectiveModel }],
+      events: effectiveModel === null ? [] : [{ kind: "model", model: effectiveModel }],
     });
   };
   // Drive the pure projection fold, applying its commands to the kernel; the
@@ -167,11 +167,11 @@ export const codexSession: StartSession = async (installation, options) => {
     state.projection = nextProjection;
     for (const command of commands) {
       switch (command.kind) {
-        case "event":
+        case "frame":
           if (command.sessionId !== undefined) {
             kernel.node(command.sessionId);
           }
-          kernel.event(command.body, {
+          kernel.frame(command.body, {
             ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
             ...(command.spanId === undefined ? {} : { spanId: command.spanId }),
           });
@@ -275,7 +275,7 @@ export const codexSession: StartSession = async (installation, options) => {
     steer: via(steerPlan),
     queue: via(queuePlan),
     abort: via(abortPlan),
-    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {

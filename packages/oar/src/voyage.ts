@@ -1,15 +1,16 @@
 import { closeSync, openSync, writeSync } from "node:fs";
-import type { SessionRecord } from "./contracts/session.js";
+import type { RawEvent } from "./contracts/session.js";
 
-// The oar-voyage/2 JSONL format: one JSON object per line, discriminated by
-// `kind`. Line 1 is `header`; `record` wraps one SessionRecord verbatim (no
+// The oar-voyage/3 JSONL format (3: records carry the frame / request /
+// response kinds and the `events` field): one JSON object per line,
+// discriminated by `kind`. Line 1 is `header`; `record` wraps one RawEvent verbatim (no
 // filtering or re-timestamping: human inputs are in the stream already, as
 // request records); `end` is the last line; a log without it is a truncated
 // capture. All timestamps are Unix epoch milliseconds on the same clock as
 // `receivedAt`. The format is defined and owned by oar; other tools may
 // consume it.
 
-export const VOYAGE_FORMAT = "oar-voyage/2";
+export const VOYAGE_FORMAT = "oar-voyage/3";
 
 export interface VoyageHeader {
   readonly runtime: string;
@@ -33,7 +34,7 @@ export function headerLine(header: VoyageHeader): string {
   });
 }
 
-export function recordLine(record: SessionRecord): string {
+export function recordLine(record: RawEvent): string {
   return JSON.stringify({ kind: "record", record });
 }
 
@@ -42,7 +43,7 @@ export function endLine(at: number, reason: string): string {
 }
 
 export interface VoyageRecorder {
-  record(record: SessionRecord): void;
+  record(record: RawEvent): void;
   end(reason: string): void;
 }
 

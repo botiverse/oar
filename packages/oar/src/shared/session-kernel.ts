@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import type {
   ControlResult,
   Cursor,
-  EventBody,
-  EventRecord,
+  FrameBody,
+  Frame,
   RequestBody,
   RequestDirection,
   RequestRecord,
@@ -11,8 +11,8 @@ import type {
   ResponseRecord,
   SessionEdge,
   SessionGraph,
-  SessionObserver,
-  SessionRecord,
+  RawEventObserver,
+  RawEvent,
   Unsubscribe,
 } from "../contracts/session.js";
 
@@ -33,7 +33,7 @@ export interface RecordAt {
  * - the envelope: dense monotonic `seq`, `receivedAt`, and attribution
  *   (`sessionId` / `agentPath` / `spanId`) from `RecordAt`
  *   (attribution.md, "The record envelope");
- * - the retained log behind `records()` and the cursor: `subscribe()` with
+ * - the retained log behind `records()` and the cursor: `rawEvents()` with
  *   a cursor replays every retained record after `afterSeq`, then continues
  *   live (session-graph-and-cursor.md, "The resumable cursor");
  * - synchronous, never-awaited observer fan-out that swallows observer
@@ -51,12 +51,12 @@ export interface RecordAt {
  * prunes facts (record-stream.md, "The rules"). The single-active-turn rule
  * is the adapter's control decision and shows up as a rejected prompt
  * response, never as a dropped event. Adapters keep only runtime-specific
- * pumping (frame → `event()`) and control decisions (busy, not_steerable).
+ * pumping (frame → `frame()`) and control decisions (busy, not_steerable).
  */
 export interface SessionKernel {
   readonly sessionId: string;
   /** Append the runtime's frame. Returns the stamped record. */
-  event(body: EventBody, at?: RecordAt): EventRecord;
+  frame(body: FrameBody, at?: RecordAt): Frame;
   /** Append a request; `id` defaults to a fresh UUID (runtime-issued ids for `toApp` requests keep their own). */
   request(direction: RequestDirection, body: RequestBody, at?: RecordAt & { readonly id?: string }): RequestRecord;
   /** Append a response pointing at `requestId`. */
@@ -76,8 +76,8 @@ export interface SessionKernel {
    * apply it themselves; adapter-held liveness flags are not needed.
    */
   unreachable(): { readonly kind: "rejected"; readonly reason: string } | null;
-  subscribe(observer: SessionObserver, cursor?: Cursor): Unsubscribe;
-  records(): readonly SessionRecord[];
+  rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe;
+  records(): readonly RawEvent[];
   graph(): SessionGraph;
   /** Add a derived session and the edge that explains it; idempotent per (parent, child, via). */
   link(edge: SessionEdge): void;
@@ -96,7 +96,7 @@ async function settle(
   }
 }
 
-function deliver(observer: SessionObserver, record: SessionRecord): void {
+function deliver(observer: RawEventObserver, record: RawEvent): void {
   try {
     observer(record);
   } catch {
@@ -105,15 +105,15 @@ function deliver(observer: SessionObserver, record: SessionRecord): void {
 }
 
 export function createSessionKernel(sessionId: string = randomUUID()): SessionKernel {
-  const observers = new Set<SessionObserver>();
-  const log: SessionRecord[] = [];
+  const observers = new Set<RawEventObserver>();
+  const log: RawEvent[] = [];
   const nodes = new Map<string, { readonly id: string }>([[sessionId, { id: sessionId }]]);
   const edges: SessionEdge[] = [];
   let seq = 0;
   let exited = false;
   let disposing = false;
 
-  const append = <T extends SessionRecord>(build: (envelope: {
+  const append = <T extends RawEvent>(build: (envelope: {
     readonly sessionId: string;
     readonly agentPath: readonly string[];
     readonly spanId?: string;
@@ -155,7 +155,7 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
 
   return {
     sessionId,
-    event: (body, at) => append((envelope) => ({ ...envelope, kind: "event", body }), at),
+    frame: (body, at) => append((envelope) => ({ ...envelope, kind: "frame", body }), at),
     request,
     respond,
     async control(body, decide, at) {
@@ -165,7 +165,7 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
       return { request: issued, response: respond(issued.id, decided, at) };
     },
     unreachable,
-    subscribe(observer, cursor) {
+    rawEvents(observer, cursor) {
       if (cursor !== undefined) {
         if (cursor.sessionId !== sessionId) {
           throw new Error(`cursor belongs to session ${cursor.sessionId}, not ${sessionId}`);

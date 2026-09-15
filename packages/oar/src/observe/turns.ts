@@ -1,4 +1,4 @@
-import type { ControlResult, Session, SessionRecord, TurnOutcome } from "../contracts/session.js";
+import type { ControlResult, Session, RawEvent, TurnOutcome } from "../contracts/session.js";
 
 /**
  * Turn helpers for consumers. A turn is a SPAN on the stream, not a control
@@ -15,11 +15,11 @@ import type { ControlResult, Session, SessionRecord, TurnOutcome } from "../cont
 
 /**
  * The root-agent turn end after `afterSeq`, if the stream already holds one:
- * the runtime's turn_ended view, or an observed process exit. When `sessionId`
+ * the runtime's turn_ended event, or an observed process exit. When `sessionId`
  * is given, only that session's records count.
  */
 export function turnEndAfter(
-  records: readonly SessionRecord[],
+  records: readonly RawEvent[],
   afterSeq: number,
   sessionId?: string,
 ): TurnOutcome | null {
@@ -30,8 +30,8 @@ export function turnEndAfter(
     if (sessionId !== undefined && record.sessionId !== sessionId) {
       continue;
     }
-    if (record.kind === "event") {
-      const ended = record.body.views.find((view) => view.kind === "turn_ended");
+    if (record.kind === "frame") {
+      const ended = record.body.events.find((event) => event.kind === "turn_ended");
       if (ended?.kind === "turn_ended") {
         return ended.outcome;
       }
@@ -51,7 +51,7 @@ export function turnEndAfter(
 export async function awaitTurnEnd(session: Session, afterSeq: number): Promise<TurnOutcome> {
   const { promise, resolve } = Promise.withResolvers<TurnOutcome>();
   let done = false;
-  const unsubscribe = session.subscribe((record) => {
+  const unsubscribe = session.rawEvents((record) => {
     if (done) {
       return;
     }

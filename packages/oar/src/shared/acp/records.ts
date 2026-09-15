@@ -1,4 +1,4 @@
-import type { EventView } from "../../contracts/session.js";
+import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { acpReportedModel } from "./model.js";
@@ -9,7 +9,7 @@ import type { UsageUpdateGate } from "./usage-wait.js";
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
  * verbatim; this module only decides the envelope (which session id) and the
- * views. Nothing is filtered: an update for a session id other than the root
+ * events. Nothing is filtered: an update for a session id other than the root
  * is a derived child session, recorded under ITS id and added to the graph
  * (filtering by session id is the adapter red line in
  * docs/spec/runtime-matrix.md).
@@ -25,7 +25,7 @@ export interface AcpRecorder {
   update(notification: SessionNotification): void;
   /** A vendor extension notification, verbatim; a parent/child session pair in it links the graph. */
   extension(method: string, params: JsonRecord): void;
-  /** A handshake answer (initialize, session/new|resume|load, session/set_model): the runtime's word, with its model report as a view. */
+  /** A handshake answer (initialize, session/new|resume|load, session/set_model): the runtime's word, with its model report as an event. */
   step(method: string, response: JsonRecord): void;
   /** A runtime→app request, verbatim, under the runtime's own request id. */
   requested(id: string, method: string, params: unknown): void;
@@ -112,11 +112,11 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
         if (foreign) {
           kernel.node(sessionId);
         }
-        const views: EventView[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
+        const events: RuntimeEventBody[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
         const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
-        const record = kernel.event({ type, native: notification, views }, foreign ? { sessionId } : undefined);
+        const record = kernel.frame({ type, native: notification, events }, foreign ? { sessionId } : undefined);
         if (!foreign) {
-          usageGate.observe(views.some((view) => view.kind === "usage") ? record.seq : undefined);
+          usageGate.observe(events.some((event) => event.kind === "usage") ? record.seq : undefined);
         }
       });
     },
@@ -133,14 +133,14 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
         if (foreign) {
           kernel.node(sessionId);
         }
-        kernel.event({ type: method, native: params, views: [] }, foreign ? { sessionId } : undefined);
+        kernel.frame({ type: method, native: params, events: [] }, foreign ? { sessionId } : undefined);
         linkFromExtension(kernel, params);
       });
     },
     step(method, response) {
       write((kernel) => {
         const model = acpReportedModel(response);
-        kernel.event({ type: method, native: response, views: model === null ? [] : [{ kind: "model", model }] });
+        kernel.frame({ type: method, native: response, events: model === null ? [] : [{ kind: "model", model }] });
       });
     },
     requested(id, method, params) {

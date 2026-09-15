@@ -15,7 +15,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  * codex ...`, scrubbed to consumed fields) folds through the production
  * projection; the frame|records table snapshots to a FILE beside the input.
  * Every notification yields exactly one event (nothing is dropped); the
- * views column is what oar read out of it.
+ * events column is what oar read out of it.
  */
 
 const here = import.meta.dirname;
@@ -26,9 +26,9 @@ function describeCommand(command: ProjectionCommand): string {
   switch (command.kind) {
     case "link":
       return `link ${command.edge.parent} → ${command.edge.child} (${command.edge.via})`;
-    case "event": {
+    case "frame": {
       const where = command.sessionId === undefined ? "" : ` @thread:${command.sessionId}`;
-      const views = command.body.views.map((view) => {
+      const events = command.body.events.map((view) => {
         switch (view.kind) {
           case "tool_call_started":
             return `tool_call_started ${view.tool}`;
@@ -45,7 +45,7 @@ function describeCommand(command: ProjectionCommand): string {
             return "?";
         }
       });
-      return `event${where}${views.length === 0 ? "" : ` → ${views.join(", ")}`}`;
+      return `event${where}${events.length === 0 ? "" : ` → ${events.join(", ")}`}`;
     }
     default:
       return "?";
@@ -114,7 +114,7 @@ test("codex notifications of another thread are child-session records; collab it
   ]);
   const { commands } = foldCodexNotification(initialCodexProjection(ROOT), "item/agentMessage/delta", { threadId: "thread-child", turnId: "t-child", delta: "x" });
   const [event] = commands;
-  expect(event?.kind === "event" ? event.spanId : null).toBe("t-child");
+  expect(event?.kind === "frame" ? event.spanId : null).toBe("t-child");
 });
 
 test("codex error detail folds into the failed turn_ended and usage is the cumulative total", () => {
@@ -123,13 +123,13 @@ test("codex error detail folds into the failed turn_ended and usage is the cumul
   ({ state } = errored);
   const completed = foldCodexNotification(state, "turn/completed", { threadId: ROOT, turn: { id: "t1", status: "failed" } });
   const [end] = completed.commands;
-  expect(end?.kind === "event" ? end.body.views : null).toEqual([
+  expect(end?.kind === "frame" ? end.body.events : null).toEqual([
     { kind: "turn_ended", outcome: { kind: "failed", reason: "failed: boom: quota", failure: "quota" } },
   ]);
   expect(completed.state.lastErrorDetail).toBeNull();
   const usage = foldCodexNotification(state, "thread/tokenUsage/updated", { threadId: ROOT, tokenUsage: { total: { inputTokens: 120, outputTokens: 30 } } });
   const { commands: [record] } = usage;
-  expect(record?.kind === "event" ? record.body.views : null).toEqual([
+  expect(record?.kind === "frame" ? record.body.events : null).toEqual([
     { kind: "usage", usage: { context: { tokens: 120, contextWindow: null, percent: null }, tokens: { input: 120, output: 30 } } },
   ]);
 });
@@ -139,14 +139,14 @@ test("codex tool completion maps an explicit item status and otherwise leaves re
     threadId: ROOT,
     item: { type: "commandExecution", id: "exec-fail", status: "failed", aggregatedOutput: "boom" },
   });
-  expect(failed.commands[0]?.kind === "event" ? failed.commands[0].body.views : null).toEqual([
+  expect(failed.commands[0]?.kind === "frame" ? failed.commands[0].body.events : null).toEqual([
     { kind: "tool_call_ended", callId: "exec-fail", output: "failed\nboom", result: "failed" },
   ]);
   const unknown = foldCodexNotification(initialCodexProjection(ROOT), "item/completed", {
     threadId: ROOT,
     item: { type: "commandExecution", id: "exec-unknown", aggregatedOutput: "?" },
   });
-  expect(unknown.commands[0]?.kind === "event" ? unknown.commands[0].body.views : null).toEqual([
+  expect(unknown.commands[0]?.kind === "frame" ? unknown.commands[0].body.events : null).toEqual([
     { kind: "tool_call_ended", callId: "exec-unknown", output: "?" },
   ]);
 });
@@ -170,7 +170,7 @@ test("codex context fullness is the last model call's total against modelContext
       modelContextWindow: 121_600,
     },
   });
-  expect(record?.kind === "event" ? record.body.views : null).toEqual([
+  expect(record?.kind === "frame" ? record.body.events : null).toEqual([
     { kind: "usage", usage: { context: { tokens: 15_774, contextWindow: 121_600, percent: 13 }, tokens: { input: 44_166, output: 35 } } },
   ]);
   const nullWindow = foldCodexNotification(state, "thread/tokenUsage/updated", {
@@ -178,7 +178,7 @@ test("codex context fullness is the last model call's total against modelContext
     tokenUsage: { total: { inputTokens: 200, outputTokens: 5 }, last: { totalTokens: 85, inputTokens: 80, outputTokens: 5 }, modelContextWindow: null },
   });
   const [fallback] = nullWindow.commands;
-  expect(fallback?.kind === "event" ? fallback.body.views : null).toEqual([
+  expect(fallback?.kind === "frame" ? fallback.body.events : null).toEqual([
     { kind: "usage", usage: { context: { tokens: 85, contextWindow: null, percent: null }, tokens: { input: 200, output: 5 } } },
   ]);
   // No `last` (older builds): occupancy is unknown, so the window is null and
@@ -189,7 +189,7 @@ test("codex context fullness is the last model call's total against modelContext
     tokenUsage: { total: { inputTokens: 200, outputTokens: 5 }, modelContextWindow: 121_600 },
   });
   const [unknown] = noLast.commands;
-  expect(unknown?.kind === "event" ? unknown.body.views : null).toEqual([
+  expect(unknown?.kind === "frame" ? unknown.body.events : null).toEqual([
     { kind: "usage", usage: { context: { tokens: 200, contextWindow: null, percent: null }, tokens: { input: 200, output: 5 } } },
   ]);
 });

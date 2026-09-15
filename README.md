@@ -37,11 +37,11 @@ const installation = await grok.installation?.();
 
 if (installation?.kind === "available") {
   const session = await grok.session(installation, { cwd: process.cwd() });
-  session.subscribe((record) => {
-    if (record.kind === "event") {
-      for (const view of record.body.views) {
-        if (view.kind === "text_delta") process.stdout.write(view.text);
-      }
+  session.events((event) => {
+    switch (event.kind) {
+      case "text_delta": process.stdout.write(event.text); break;
+      case "tool_call_started": console.log(`[${event.tool}]`); break;
+      case "turn_ended": console.log(event.outcome.kind); break;
     }
   });
   const run = await promptAndWait(session, "Inspect this repository");
@@ -49,6 +49,12 @@ if (installation?.kind === "available") {
   await session.dispose();
 }
 ```
+
+`events()` is the flat, attributed reading of the session: one `Event` per
+fact, with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to
+get text in blocks instead of pieces. When the runtime's own frame matters,
+`session.rawEvents()` and `session.records()` expose the underlying record
+stream with every native payload verbatim.
 
 
 

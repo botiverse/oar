@@ -1,8 +1,8 @@
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
 import type {
   ContextUsage,
-  EventBody,
-  EventView,
+  FrameBody,
+  RuntimeEventBody,
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
@@ -13,19 +13,19 @@ import { asNumber, asRecord } from "../../shared/json.js";
  * The pi SDK-event → record projection as a PURE FOLD (see
  * runtimes/claude/projection.ts). Every SDK event becomes exactly ONE event
  * command: the event object verbatim as `native`, `type` = its SDK type, and
- * the views oar read out of it. Nothing is gated on turn state and nothing
+ * the events oar read out of it. Nothing is gated on turn state and nothing
  * is dropped; the session-scoped events (compaction, queue, retry, …)
- * enter the stream with no views, inside the turn they belong to. pi has no native turn id (no spanId) and no native sub-agents
+ * enter the stream with no events, inside the turn they belong to. pi has no native turn id (no spanId) and no native sub-agents
  * (agentPath is always root).
  *
  * `abortRequested` / `providerError` are control-plane and error inputs the
  * provider stream alone does not carry; `tokens` is the running per-session
- * total so usage views are cumulative, as the contract requires.
+ * total so usage events are cumulative, as the contract requires.
  */
 
 export interface ProjectionCommand {
-  readonly kind: "event";
-  readonly body: EventBody;
+  readonly kind: "frame";
+  readonly body: FrameBody;
 }
 
 export interface PiProjectionState {
@@ -69,7 +69,7 @@ export interface PiFoldExtra {
 
 interface Step {
   readonly state: PiProjectionState;
-  readonly views: readonly EventView[];
+  readonly events: readonly RuntimeEventBody[];
 }
 
 function jsonDetail(value: unknown): string | undefined {
@@ -89,20 +89,20 @@ function foldMessageUpdate(
 ): Step {
   switch (inner.type) {
     case "text_delta":
-      return { state, views: [{ kind: "text_delta", text: inner.delta }] };
+      return { state, events: [{ kind: "text_delta", text: inner.delta }] };
     case "thinking_delta":
       return inner.delta.length > 0
-        ? { state: { ...state, reasoningHadText: true }, views: [{ kind: "reasoning", content: { kind: "text", text: inner.delta } }] }
-        : { state, views: [] };
+        ? { state: { ...state, reasoningHadText: true }, events: [{ kind: "reasoning", content: { kind: "text", text: inner.delta } }] }
+        : { state, events: [] };
     case "error":
       // pi's prompt() RESOLVES even when the provider errored; the failure
       // only surfaces here (pinned by the pi vendor 400 test).
-      return { state: { ...state, providerError: inner.error.errorMessage ?? inner.reason }, views: [] };
+      return { state: { ...state, providerError: inner.error.errorMessage ?? inner.reason }, events: [] };
     case "thinking_start":
-      return { state: { ...state, reasoningHadText: false }, views: [] };
+      return { state: { ...state, reasoningHadText: false }, events: [] };
     case "thinking_end":
-      return state.reasoningHadText ? { state, views: [] } : { state, views: [{ kind: "reasoning", content: { kind: "empty" } }] };
-    // Block boundaries and toolcall framing carry no view (toolcalls arrive
+      return state.reasoningHadText ? { state, events: [] } : { state, events: [{ kind: "reasoning", content: { kind: "empty" } }] };
+    // Block boundaries and toolcall framing carry no event (toolcalls arrive
     // via the outer tool_execution_* events); the frame itself is recorded.
     case "start":
     case "done":
@@ -111,9 +111,9 @@ function foldMessageUpdate(
     case "toolcall_start":
     case "toolcall_delta":
     case "toolcall_end":
-      return { state, views: [] };
+      return { state, events: [] };
   }
-  return { state, views: [] };
+  return { state, events: [] };
 }
 
 /** Cumulative per-session tokens after an assistant message's own usage. */
@@ -121,13 +121,13 @@ function accumulate(state: PiProjectionState, message: unknown): Step {
   const record = asRecord(message);
   const usage = asRecord(record?.usage);
   if (record?.role !== "assistant" || usage === null) {
-    return { state, views: [] };
+    return { state, events: [] };
   }
   const tokens: TokenTotals = {
     input: state.tokens.input + (asNumber(usage.input) ?? 0) + (asNumber(usage.cacheRead) ?? 0) + (asNumber(usage.cacheWrite) ?? 0),
     output: state.tokens.output + (asNumber(usage.output) ?? 0),
   };
-  return { state: { ...state, tokens }, views: [{ kind: "usage", usage: { tokens } }] };
+  return { state: { ...state, tokens }, events: [{ kind: "usage", usage: { tokens } }] };
 }
 
 function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldExtra): Step {
@@ -138,11 +138,11 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
       // progress"). The context read here is therefore post-compaction.
-      const views: EventView[] = [{ kind: "turn_ended", outcome: piRunOutcome(state) }];
+      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: piRunOutcome(state) }];
       if (extra.context !== undefined && extra.context !== null) {
-        views.push({ kind: "usage", usage: { context: extra.context } });
+        events.push({ kind: "usage", usage: { context: extra.context } });
       }
-      return { state: piPrompted(state), views };
+      return { state: piPrompted(state), events };
     }
     case "message_update":
       return foldMessageUpdate(state, event.assistantMessageEvent);
@@ -150,14 +150,14 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       return accumulate(state, event.message);
     case "tool_execution_start": {
       const input = jsonDetail(event.args);
-      return { state, views: [input === undefined
+      return { state, events: [input === undefined
         ? { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName }
         : { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName, input }] };
     }
     case "tool_execution_end": {
       const output = jsonDetail(event.result);
       const result = typeof event.isError === "boolean" ? (event.isError ? "failed" as const : "ok" as const) : undefined;
-      return { state, views: [output === undefined
+      return { state, events: [output === undefined
         ? { kind: "tool_call_ended", callId: event.toolCallId, ...(result === undefined ? {} : { result }) }
         : { kind: "tool_call_ended", callId: event.toolCallId, output, ...(result === undefined ? {} : { result }) }] };
     }
@@ -165,10 +165,10 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // A provider failure surfaces only as stopReason "error" on the turn's
       // final assistant message (pinned by the pi vendor 400 test).
       return event.message.role === "assistant" && event.message.stopReason === "error"
-        ? { state: { ...state, providerError: event.message.errorMessage ?? "provider error" }, views: [] }
-        : { state, views: [] };
-    // Recorded with no view (an exhaustive switch makes a NEW pi event type a
-    // compile error, forcing a conscious viewed-or-plain decision on each
+        ? { state: { ...state, providerError: event.message.errorMessage ?? "provider error" }, events: [] }
+        : { state, events: [] };
+    // Recorded with no event (an exhaustive switch makes a NEW pi event type a
+    // compile error, forcing a conscious event-or-plain decision on each
     // future addition).
     case "agent_start":
     case "agent_end":
@@ -187,12 +187,12 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "summarization_retry_scheduled":
     case "summarization_retry_attempt_start":
     case "summarization_retry_finished":
-      return { state, views: [] };
+      return { state, events: [] };
   }
-  return { state, views: [] };
+  return { state, events: [] };
 }
 
-/** Fold one pi SDK event into the next state plus the one event command it produces. */
+/** Fold one pi SDK event into the next state plus the one frame command it produces. */
 export function foldPiEvent(
   state: PiProjectionState,
   event: AgentSessionEvent,
@@ -201,6 +201,6 @@ export function foldPiEvent(
   const next = step(state, event, extra);
   return {
     state: next.state,
-    commands: [{ kind: "event", body: { type: event.type, native: event, views: next.views } }],
+    commands: [{ kind: "frame", body: { type: event.type, native: event, events: next.events } }],
   };
 }

@@ -1,7 +1,7 @@
 /**
  * LIVE CONTRACT BATTERY: the record-stream promises, exercised against a
  * REAL runtime through the public Session API, one scenario at a time, with
- * every scenario's full stream kept as an oar-voyage/2 log.
+ * every scenario's full stream kept as an oar-voyage/3 log.
  *
  * The shared behavior suite (sea-trial/cases) asserts the minimum every
  * backend must honor. This battery asks the stronger questions a scripted
@@ -33,7 +33,7 @@ import {
   type SessionOptions,
   type RequestRecord,
   type ResponseRecord,
-  type SessionRecord,
+  type RawEvent,
   type VoyageRecorder,
 } from "../packages/oar/src/index.js";
 import { selectBackend } from "../sea-trial/harness/backends.js";
@@ -125,14 +125,14 @@ async function waitUntil(predicate: () => boolean, ms: number, what: string): Pr
   }
 }
 
-/** Root-session, root-agent text views after `seq` (up to and including the first turn_ended when `untilEnd`). */
+/** Root-session, root-agent text events after `seq` (up to and including the first turn_ended when `untilEnd`). */
 function rootText(session: Session, afterSeq: number, untilEnd = true): string {
   const parts: string[] = [];
   const own = session.records().filter((record) =>
-    record.seq > afterSeq && record.kind === "event" && record.sessionId === session.id && record.agentPath.length === 0);
+    record.seq > afterSeq && record.kind === "frame" && record.sessionId === session.id && record.agentPath.length === 0);
   for (const record of own) {
     let ended = false;
-    for (const view of record.kind === "event" ? record.body.views : []) {
+    for (const view of record.kind === "frame" ? record.body.events : []) {
       if (view.kind === "text_delta") {
         parts.push(view.text);
       }
@@ -147,21 +147,21 @@ function rootText(session: Session, afterSeq: number, untilEnd = true): string {
   return parts.join("");
 }
 
-function rootTurnEnds(session: Session, afterSeq = -1): readonly SessionRecord[] {
+function rootTurnEnds(session: Session, afterSeq = -1): readonly RawEvent[] {
   return session.records().filter((record) =>
-    record.seq > afterSeq && record.kind === "event" && record.sessionId === session.id
-    && record.agentPath.length === 0 && record.body.views.some((view) => view.kind === "turn_ended"));
+    record.seq > afterSeq && record.kind === "frame" && record.sessionId === session.id
+    && record.agentPath.length === 0 && record.body.events.some((view) => view.kind === "turn_ended"));
 }
 
 function toolStartedAfter(session: Session, afterSeq: number): boolean {
   return session.records().some((record) =>
-    record.seq > afterSeq && record.kind === "event" && record.body.views.some((view) => view.kind === "tool_call_started"));
+    record.seq > afterSeq && record.kind === "frame" && record.body.events.some((view) => view.kind === "tool_call_started"));
 }
 
-function describeRecord(record: SessionRecord): string {
-  if (record.kind === "event") {
-    const views = record.body.views.map((view) => view.kind).join(",");
-    return `${record.body.type}${views === "" ? "" : ` → ${views}`}`;
+function describeRecord(record: RawEvent): string {
+  if (record.kind === "frame") {
+    const events = record.body.events.map((view) => view.kind).join(",");
+    return `${record.body.type}${events === "" ? "" : ` → ${events}`}`;
   }
   return `${record.kind} ${record.body.kind}`;
 }
@@ -232,9 +232,9 @@ const scenarios: Scenario[] = [
       facts.outcome = outcome;
       facts.text = text.slice(0, 200);
       facts.recordCount = records.length;
-      facts.eventTypes = [...new Set(records.flatMap((record) => (record.kind === "event" ? [record.body.type] : [])))];
-      facts.viewKinds = [...new Set(records.flatMap((record) => (record.kind === "event" ? record.body.views.map((view) => view.kind) : [])))];
-      facts.everyEventHasNative = records.every((record) => record.kind !== "event" || (record.body.native !== undefined && record.body.native !== null));
+      facts.eventTypes = [...new Set(records.flatMap((record) => (record.kind === "frame" ? [record.body.type] : [])))];
+      facts.viewKinds = [...new Set(records.flatMap((record) => (record.kind === "frame" ? record.body.events.map((view) => view.kind) : [])))];
+      facts.everyEventHasNative = records.every((record) => record.kind !== "frame" || (record.body.native !== undefined && record.body.native !== null));
       facts.spanIds = new Set(records.flatMap((record) => (record.spanId === undefined ? [] : [record.spanId]))).size;
       facts.seqDense = records.every((record, index) => record.seq === index);
       facts.model = session.model().value;
@@ -242,7 +242,7 @@ const scenarios: Scenario[] = [
       facts.usageTokensNonZero = (session.usage().value.total?.input ?? 0) > 0;
       facts.contextUsage = session.contextUsage().value;
       facts.capabilities = session.capabilities;
-      facts.recordsBeforeOpen = records.findIndex((record) => record.kind === "event" && record.body.views.some((view) => view.kind === "model"));
+      facts.recordsBeforeOpen = records.findIndex((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "model"));
       await session.dispose();
       facts.tail = session.records().slice(-3).map((record) => describeRecord(record));
       const dispose = session.records().find((record): record is RequestRecord => record.kind === "request" && record.body.kind === "dispose");
@@ -292,16 +292,16 @@ const scenarios: Scenario[] = [
       const session = await open();
       const result = accepted(await session.prompt(`${shell("echo TOOL-MARK-4412")}. Then reply with exactly the printed line.`), "prompt");
       const outcome = await awaitTurnEnd(session, result.request.seq);
-      const views = session.records().filter((record) => record.seq > result.request.seq && record.kind === "event").flatMap((record) => (record.kind === "event" ? record.body.views : []));
-      const started = views.filter((view) => view.kind === "tool_call_started");
-      const ended = views.filter((view) => view.kind === "tool_call_ended");
+      const events = session.records().filter((record) => record.seq > result.request.seq && record.kind === "frame").flatMap((record) => (record.kind === "frame" ? record.body.events : []));
+      const started = events.filter((view) => view.kind === "tool_call_started");
+      const ended = events.filter((view) => view.kind === "tool_call_ended");
       facts.outcome = outcome;
-      const startedViews = views.flatMap((view) => (view.kind === "tool_call_started" ? [view] : []));
-      const endedViews = views.flatMap((view) => (view.kind === "tool_call_ended" ? [view] : []));
+      const startedViews = events.flatMap((view) => (view.kind === "tool_call_started" ? [view] : []));
+      const endedViews = events.flatMap((view) => (view.kind === "tool_call_ended" ? [view] : []));
       facts.toolCalls = startedViews.map((view) => ({ tool: view.tool, callId: view.callId, inputHasCommand: view.input?.includes("TOOL-MARK-4412") ?? false, input: view.input?.slice(0, 120) }));
       facts.toolEnds = endedViews.map((view) => ({ callId: view.callId, outputHasMarker: view.output?.includes("TOOL-MARK-4412") ?? false, output: view.output?.slice(0, 120) }));
       facts.callIdsMatch = startedViews.every((start) => endedViews.some((end) => end.callId === start.callId));
-      facts.reasoningViews = views.flatMap((view) => (view.kind === "reasoning" ? [view.content.kind] : [])).slice(0, 10);
+      facts.reasoningViews = events.flatMap((view) => (view.kind === "reasoning" ? [view.content.kind] : [])).slice(0, 10);
       facts.text = rootText(session, result.request.seq).slice(0, 200);
       await session.dispose();
       if (started.length === 0 || ended.length === 0) {
@@ -468,7 +468,7 @@ const scenarios: Scenario[] = [
       const result = accepted(await session.prompt(`${shell("sleep 3; echo CUR")}. Then reply with exactly CURSOR-OK.`), "prompt");
       await delay(500);
       const seen: number[] = [];
-      session.subscribe((record) => {
+      session.rawEvents((record) => {
         seen.push(record.seq);
       }, { sessionId: session.id, afterSeq: result.request.seq });
       const replayedCount = seen.length;
@@ -479,7 +479,7 @@ const scenarios: Scenario[] = [
       facts.liveCount = seen.length - replayedCount;
       facts.contiguous = JSON.stringify(seen) === JSON.stringify(expected);
       const fromStart: number[] = [];
-      session.subscribe((record) => {
+      session.rawEvents((record) => {
         fromStart.push(record.seq);
       }, { sessionId: session.id, afterSeq: -1 });
       facts.fullReplayMatchesLog = JSON.stringify(fromStart) === JSON.stringify(session.records().map((record) => record.seq));
@@ -543,17 +543,17 @@ const scenarios: Scenario[] = [
       const childSessions = [...new Set(records.filter((record) => record.sessionId !== session.id).map((record) => record.sessionId))];
       const knownViewless = new Set<string>();
       const typesByOrigin: Record<string, number> = {};
-      const originOf = (record: SessionRecord): string => {
+      const originOf = (record: RawEvent): string => {
         if (record.sessionId !== session.id) {
           return "childSession";
         }
         return record.agentPath.length === 0 ? "root" : "agentPath";
       };
       for (const record of records) {
-        if (record.kind === "event") {
+        if (record.kind === "frame") {
           const key = `${originOf(record)}:${record.body.type}`;
           typesByOrigin[key] = (typesByOrigin[key] ?? 0) + 1;
-          if (record.body.views.length === 0) {
+          if (record.body.events.length === 0) {
             knownViewless.add(record.body.type);
           }
         }
@@ -569,8 +569,8 @@ const scenarios: Scenario[] = [
       facts.usage = session.usage().value;
       facts.tier = session.capabilities.attribution;
       // Sub-agent linkage as the runtime spells it: any frame carrying a parent/child pair.
-      const linkageFrames = records.filter((record) => record.kind === "event" && /parent_session_id|parentSessionId|child_session_id|childSessionId|subagent_spawned|subagent_finished|parent_tool_use_id|parentThreadId|receiverThreadIds/u.test(JSON.stringify(record.body.native))).slice(0, 6);
-      facts.linkageFrames = linkageFrames.map((record) => (record.kind === "event" ? { seq: record.seq, type: record.body.type, native: JSON.stringify(record.body.native).slice(0, 400) } : null));
+      const linkageFrames = records.filter((record) => record.kind === "frame" && /parent_session_id|parentSessionId|child_session_id|childSessionId|subagent_spawned|subagent_finished|parent_tool_use_id|parentThreadId|receiverThreadIds/u.test(JSON.stringify(record.body.native))).slice(0, 6);
+      facts.linkageFrames = linkageFrames.map((record) => (record.kind === "frame" ? { seq: record.seq, type: record.body.type, native: JSON.stringify(record.body.native).slice(0, 400) } : null));
       await session.dispose();
       if (outcome.kind !== "completed") {
         fail(`turn ${JSON.stringify(outcome)}`);
@@ -694,7 +694,7 @@ async function runScenario(scenario: Scenario): Promise<ScenarioResult> {
       recorder: "experiments/live-contract.ts",
     });
     const log = recording.current;
-    recording.unsubscribe.push(session.subscribe((record) => {
+    recording.unsubscribe.push(session.rawEvents((record) => {
       log.record(record);
     }, { sessionId: session.id, afterSeq: -1 }));
     return session;

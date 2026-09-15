@@ -7,11 +7,11 @@ these contracts, see [`docs/runtimes/`](../../../docs/runtimes/README.md).
 src/
   index.ts                 # public exports + built-in composition
   registry.ts              # runtime collection and lookup
-  voyage.ts                # oar-voyage/1 evidence log: line builders + recorder
+  voyage.ts                # oar-voyage/3 evidence log: line builders + recorder
   contracts/               # provider-independent agreements
   runtimes/<id>/           # one runtime, split by capability
   shared/                  # mechanisms + shared contract implementations
-  observe/                 # consumer-side derivations over the record stream (status fold, turn helpers, usage folds)
+  observe/                 # consumer-side derivations over the record stream (events.ts: eventsOf + coalesceText behind Session.events(); status fold, turn helpers, usage folds)
 ```
 
 ```mermaid

@@ -43,10 +43,10 @@ services and one `AgentSession`; it does not use the replacement-oriented
 |---|---|
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
 | Session file header ID | `Session.id`; resume resolves this ID to a file in the cwd's session directory. The record stream starts at seq 0 on every open; history is not rebuilt. |
-| Agent run | A span on the stream: from the `prompt` request record (accepted once pi emits `agent_start`) to pi's own `agent_settled` event, whose `turn_ended` view carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
+| Agent run | A span on the stream: from the `prompt` request record (accepted once pi emits `agent_start`) to pi's own `agent_settled` event, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | Native history tree and replacement APIs | Resume is mapped; branch navigation, fork, import, and history access are not exposed. |
-| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` view on a `pi/session_opened` event. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
-| SDK event stream | Every `AgentSessionEvent` is exactly one event record, verbatim as `native`, with oar's views (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events (compaction, queue, retry, entry, settings) are in the stream with no view. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
+| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` event on a `pi/session_opened` frame. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
+| SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with oar's events (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events (compaction, queue, retry, entry, settings) are in the stream with no event. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected; `queue` is an adapter-held FIFO (`durable: false`). `abort` is answered at delivery, ahead of pi's own aborted `agent_settled`. |
 | Provider HTTP | Before the first provider request the adapter sets undici's global dispatcher to an `EnvHttpProxyAgent` (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, pi's `httpProxy` setting as the fallback, pi's idle timeout): the proxy half of what every pi entry point installs, without pi's global fetch replacement; process-global. |
 
@@ -124,7 +124,7 @@ writers are **unverified**.
 The response is `accepted` once pi emits `agent_start`, or `rejected` with pi's
 own message when the promise rejects first (e.g. "Cannot submit a prompt while
 compaction is in progress"). The turn is the span up to pi's `agent_settled`
-event: its `turn_ended` view carries completed / aborted / failed. `agent_end`
+event: its `turn_ended` event carries completed / aborted / failed. `agent_end`
 is recorded but does not end the turn: pi runs threshold compaction and auto-
 retries between `agent_end` and `agent_settled` and refuses prompts meanwhile
 (pinned with the pi-aimock compaction recipe in the
@@ -134,7 +134,7 @@ only as `stopReason: "error"` on the turn's final assistant message and the
 `message_update` error frame), so the projection carries error state into the
 outcome. A run pi fails after starting, without its own settlement, is
 recorded as a `pi/prompt_rejected` event carrying pi's message with a failed
-`turn_ended` view, pi's word, not a synthesized boundary. A second prompt
+`turn_ended` event, pi's word, not a synthesized boundary. A second prompt
 during a run is `rejected` `busy` (`busy-and-late-control` scenario). Native
 prompt preflight callbacks and image inputs are **not exposed**.
 [SDK][native-sdk], [projection](../../packages/oar/src/runtimes/pi/projection.ts).
@@ -174,7 +174,7 @@ has ended: callers `awaitTurnEnd` before the next prompt, or the prompt is
 `Command aborted`, pi still starts the next internal turn, whose assistant
 message arrives with `stopReason: "error"` / `errorMessage: "This operation
 was aborted"`, then `agent_end`, then `agent_settled`; the projection's abort
-intent outranks that error, so the `turn_ended` view is `aborted`, not
+intent outranks that error, so the `turn_ended` event is `aborted`, not
 `failed`. A late abort is `rejected` `no active turn`. The ordering
 (`request:abort`, `response:accepted`, `tool_call_ended`,
 `turn_ended:aborted`) is pinned by the [vendor test](../../sea-trial/vendor/pi.vendor.test.ts)
@@ -192,17 +192,17 @@ no process exit to record. Afterwards `prompt`/`steer`/`queue` are `rejected`
 
 ### Observation, history, and children
 
-**Mapped:** every SDK event is one event record with the event object as
+**Mapped:** every SDK event is one Frame record with the event object as
 `native`; nothing is dropped. Views cover text/thinking deltas, empty
 reasoning, tool start (with JSON arguments) and end (with JSON result),
 cumulative token usage from assistant `message_end` usage, and the turn end.
 Message boundaries, tool progress updates, compaction, queue, retry, entry and
-settings events are in the stream with no view. The exhaustive projection
+settings events are in the stream with no event. The exhaustive projection
 switch makes a new pi event type a compile error. Live shape on the baseline
-model: a one-shot turn is 17 records, seq dense, views `model`, `reasoning`,
+model: a one-shot turn is 17 records, seq dense, events `model`, `reasoning`,
 `text_delta`, `usage`, `turn_ended`, no `spanId` (`basic` scenario);
 `gpt-5.3-codex-spark` streams `thinking_start`/`thinking_end` with no deltas,
-so its reasoning view is `reasoning` `empty`, never text; `tool_call_started`
+so its reasoning event is `reasoning` `empty`, never text; `tool_call_started`
 input is pi's `args` as JSON (`{"command":"echo …"}`), `tool_call_ended`
 output is pi's `result` (`{"content":[{"type":"text","text":"…"}]}`), the
 callIds match, and pi's callId for this provider is the codex Responses pair
@@ -228,7 +228,7 @@ scenario is skipped for pi (no native sub-agents).
 ### Models, instructions, and context
 
 **Mapped:** initial/resume `provider/model` selection uses the extension-aware
-ModelRuntime; `Session.model()` folds the `model` view of the
+ModelRuntime; `Session.model()` folds the `model` event of the
 `pi/session_opened` event, which carries `AgentSession.model` as the SDK
 reported it at open (pi exposes no later model-change event to OAR). The
 adapter checks the spelling before pi is asked: a bare `oar-no-such-model-xyz`
@@ -261,7 +261,7 @@ configuration through threshold auto-compaction and cuts the host-skills
 block before its snapshot, since that block is the host's, present or absent
 per machine.
 
-**Mapped:** the `agent_settled` event carries a `usage` view with native
+**Mapped:** the `agent_settled` frame carries a `usage` event with native
 `getContextUsage()` read at that moment (post-compaction; tokens null when
 unknown), so `Session.contextUsage()` (a fold) is current at turn end.
 `usage()` is the cumulative per-session total; its input counts pi's

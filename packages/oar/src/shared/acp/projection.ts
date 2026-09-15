@@ -1,6 +1,6 @@
 import type {
   ContextUsage,
-  EventView,
+  RuntimeEventBody,
   TurnOutcome,
 } from "../../contracts/session.js";
 import { classifyFailure } from "../failure-class.js";
@@ -9,10 +9,10 @@ import { AcpError } from "./errors.js";
 import { acpReportedModel } from "./model.js";
 
 /**
- * ACP `session/update` → views, as a pure projection. Every update becomes
- * exactly one event record (the adapter records the notification verbatim as
+ * ACP `session/update` → events, as a pure projection. Every update becomes
+ * exactly one frame (the adapter records the notification verbatim as
  * `native`); this file only decides what oar READ out of it. Unknown update
- * kinds yield no views and are still recorded.
+ * kinds yield no events and are still recorded.
  */
 
 interface ToolState {
@@ -84,18 +84,18 @@ function toolName(update: JsonRecord): string {
   return typeof update.kind === "string" ? update.kind : "tool";
 }
 
-function projectTool(state: AcpProjectionState, update: JsonRecord): EventView[] {
+function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEventBody[] {
   const callId = typeof update.toolCallId === "string" ? update.toolCallId : null;
   if (callId === null) {
     return [];
   }
-  const views: EventView[] = [];
+  const events: RuntimeEventBody[] = [];
   let tool = state.tools.get(callId);
   if (tool === undefined) {
     tool = { callId, ended: false };
     state.tools.set(callId, tool);
     const input = detail(update.rawInput);
-    views.push({
+    events.push({
       kind: "tool_call_started",
       callId,
       tool: toolName(update),
@@ -114,14 +114,14 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): EventView[]
     } else if (update.status === "failed") {
       result = "failed";
     }
-    views.push({
+    events.push({
       kind: "tool_call_ended",
       callId,
       ...(output === undefined ? {} : { output }),
       ...(result === undefined ? {} : { result }),
     });
   }
-  return views;
+  return events;
 }
 
 /** Context fullness from a `usage_update` (`used` / `size`), when it carries any. */
@@ -137,7 +137,7 @@ export function acpContextUsage(update: JsonRecord): ContextUsage | null {
   return { tokens, contextWindow, percent };
 }
 
-function reasoningView(value: unknown): EventView {
+function reasoningView(value: unknown): RuntimeEventBody {
   const text = textContent(value);
   return {
     kind: "reasoning",
@@ -149,30 +149,30 @@ function reasoningView(value: unknown): EventView {
   };
 }
 
-/** The views oar reads out of one `session/update`; the update itself is recorded verbatim by the caller. */
-export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord): EventView[] {
-  const views: EventView[] = [];
+/** The events oar reads out of one `session/update`; the update itself is recorded verbatim by the caller. */
+export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord): RuntimeEventBody[] {
+  const events: RuntimeEventBody[] = [];
   switch (update.sessionUpdate) {
     case "usage_update": {
       const context = acpContextUsage(update);
       if (context !== null) {
-        views.push({ kind: "usage", usage: { context } });
+        events.push({ kind: "usage", usage: { context } });
       }
       break;
     }
     case "agent_message_chunk": {
       const text = textContent(update.content);
       if (text !== null && text.length > 0) {
-        views.push({ kind: "text_delta", text });
+        events.push({ kind: "text_delta", text });
       }
       break;
     }
     case "agent_thought_chunk":
-      views.push(reasoningView(update.content));
+      events.push(reasoningView(update.content));
       break;
     case "tool_call":
     case "tool_call_update":
-      views.push(...projectTool(state, update));
+      events.push(...projectTool(state, update));
       break;
     default:
       break;
@@ -181,9 +181,9 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord):
   // grok's `_meta.model`) is also a model report.
   const model = acpReportedModel(update);
   if (model !== null) {
-    views.push({ kind: "model", model });
+    events.push({ kind: "model", model });
   }
-  return views;
+  return events;
 }
 
 /** The outcome an ACP prompt answer reports: `cancelled` is the runtime honoring session/cancel. */

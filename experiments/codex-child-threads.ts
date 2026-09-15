@@ -16,7 +16,7 @@
  * Run: pnpm tsx experiments/codex-child-threads.ts   (requires logged-in `codex`
  * with the `multi_agent` feature enabled; `codex features list` shows it)
  */
-import { awaitTurnEnd, codexRuntime, type SessionRecord, type TurnOutcome } from "../packages/oar/src/index.js";
+import { awaitTurnEnd, codexRuntime, type RawEvent, type TurnOutcome } from "../packages/oar/src/index.js";
 
 const COLLAB = new Set(["collabAgentToolCall", "collabToolCall", "subAgentActivity"]);
 function asRec(value: unknown): Record<string, unknown> | null {
@@ -34,9 +34,9 @@ process.stdout.write(`root thread ${session.id}\n`);
 
 const methods = new Map<string, number>();
 const threadIds = new Set<string>();
-session.subscribe((record: SessionRecord) => {
+session.rawEvents((record: RawEvent) => {
   const tag = record.sessionId === session.id ? "root" : `child:${record.sessionId.slice(0, 8)}`;
-  if (record.kind !== "event") {
+  if (record.kind !== "frame") {
     process.stdout.write(`${record.seq} ${tag} ${record.kind} ${record.body.kind}\n`);
     return;
   }
@@ -85,11 +85,11 @@ if (prompt.response.body.kind !== "accepted") {
 const observed = await awaitTurnEnd(session, prompt.request.seq);
 process.stdout.write(`awaitTurnEnd resolved: ${JSON.stringify(observed)}\n`);
 const rootWait = Promise.withResolvers<TurnOutcome>();
-session.subscribe((record) => {
-  if (record.kind !== "event" || record.sessionId !== session.id) {
+session.rawEvents((record) => {
+  if (record.kind !== "frame" || record.sessionId !== session.id) {
     return;
   }
-  for (const view of record.body.views) {
+  for (const view of record.body.events) {
     if (view.kind === "turn_ended") {
       rootWait.resolve(view.outcome);
     }
@@ -99,8 +99,8 @@ const rootOutcome = await rootWait.promise;
 process.stdout.write(`root turn/completed outcome: ${JSON.stringify(rootOutcome)}\n`);
 
 const textOf = (own: boolean): string => session.records()
-  .filter((r) => r.kind === "event" && r.seq > prompt.request.seq && (r.sessionId === session.id) === own)
-  .flatMap((r) => (r.kind === "event" ? r.body.views : []))
+  .filter((r) => r.kind === "frame" && r.seq > prompt.request.seq && (r.sessionId === session.id) === own)
+  .flatMap((r) => (r.kind === "frame" ? r.body.events : []))
   .map((v) => (v.kind === "text_delta" ? v.text : ""))
   .join("");
 process.stdout.write(`root final text: ${JSON.stringify(textOf(true).slice(0, 300))}\n`);

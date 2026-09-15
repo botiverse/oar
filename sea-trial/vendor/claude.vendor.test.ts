@@ -1,6 +1,6 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import type { SessionRecord } from "../../packages/oar/src/contracts/session.js";
+import type { RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index.js";
 import { assertContextUsage, expectAvailable, promptTurn, runTurn, withProcessEnv } from "./support/asserts.js";
@@ -90,8 +90,8 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       // in the stream verbatim (the stream drops nothing), so list their
       // types.
       const fromRuntime = session.records()
-        .filter((record): record is Extract<SessionRecord, { kind: "event" }> => record.kind === "event" && record.seq > result.request.seq)
-        .map((record) => `${record.body.type}${record.body.views.length === 0 ? "" : ` → ${record.body.views.map((view) => view.kind).join(",")}`}`);
+        .filter((record): record is Extract<RawEvent, { kind: "frame" }> => record.kind === "frame" && record.seq > result.request.seq)
+        .map((record) => `${record.body.type}${record.body.events.length === 0 ? "" : ` → ${record.body.events.map((view) => view.kind).join(",")}`}`);
       expect({ settled, endedTurn: fromRuntime.some((line) => line.includes("turn_ended")) }).toMatchInlineSnapshot(`
         {
           "endedTurn": false,
@@ -200,7 +200,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       // The dispose request is answered by the exit oar observed.
       await session.dispose();
       const tail = session.records().slice(-2);
-      expect(tail.map((record) => (record.kind === "event" ? record.body.type : record.body.kind))).toEqual(["dispose", "exited"]);
+      expect(tail.map((record) => (record.kind === "frame" ? record.body.type : record.body.kind))).toEqual(["dispose", "exited"]);
     } finally {
       await env.stop();
     }

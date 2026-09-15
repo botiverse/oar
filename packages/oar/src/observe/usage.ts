@@ -1,7 +1,7 @@
 import type {
   ContextUsage,
   QueryResult,
-  SessionRecord,
+  RawEvent,
   SessionUsage,
   TokenTotals,
 } from "../contracts/session.js";
@@ -27,35 +27,35 @@ function pathKey(agentPath: readonly string[]): string {
   return JSON.stringify(agentPath);
 }
 
-function inSession(record: SessionRecord, sessionId: string | undefined): boolean {
+function inSession(record: RawEvent, sessionId: string | undefined): boolean {
   return sessionId === undefined || record.sessionId === sessionId;
 }
 
 /** The latest model the runtime reported for the root agent; null before any. */
-export function modelOf(records: readonly SessionRecord[], sessionId?: string): QueryResult<string | null> {
+export function modelOf(records: readonly RawEvent[], sessionId?: string): QueryResult<string | null> {
   let value: string | null = null;
   let seq = -1;
   for (const record of records) {
     if (!inSession(record, sessionId)) { continue; }
     seq = record.seq;
-    if (record.kind === "event" && record.agentPath.length === 0) {
-      const view = record.body.views.findLast((candidate) => candidate.kind === "model");
-      if (view?.kind === "model") { value = view.model; }
+    if (record.kind === "frame" && record.agentPath.length === 0) {
+      const event = record.body.events.findLast((candidate) => candidate.kind === "model");
+      if (event?.kind === "model") { value = event.model; }
     }
   }
   return { value, seq };
 }
 
 /** The latest context fullness the runtime reported for the root agent; null before any. */
-export function contextUsageOf(records: readonly SessionRecord[], sessionId?: string): QueryResult<ContextUsage | null> {
+export function contextUsageOf(records: readonly RawEvent[], sessionId?: string): QueryResult<ContextUsage | null> {
   let value: ContextUsage | null = null;
   let seq = -1;
   for (const record of records) {
     if (!inSession(record, sessionId)) { continue; }
     seq = record.seq;
-    if (record.kind === "event" && record.agentPath.length === 0) {
-      const view = record.body.views.findLast((candidate) => candidate.kind === "usage" && candidate.usage.context !== undefined);
-      if (view?.kind === "usage" && view.usage.context !== undefined) { value = view.usage.context; }
+    if (record.kind === "frame" && record.agentPath.length === 0) {
+      const event = record.body.events.findLast((candidate) => candidate.kind === "usage" && candidate.usage.context !== undefined);
+      if (event?.kind === "usage" && event.usage.context !== undefined) { value = event.usage.context; }
     }
   }
   return { value, seq };
@@ -69,18 +69,18 @@ export function contextUsageOf(records: readonly SessionRecord[], sessionId?: st
  * total. Agents are the `agentPath`s of THIS session; derived child sessions
  * are not agents of it.
  */
-export function usageOf(records: readonly SessionRecord[], sessionId?: string): QueryResult<SessionUsage> {
+export function usageOf(records: readonly RawEvent[], sessionId?: string): QueryResult<SessionUsage> {
   const latest = new Map<string, { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }>();
   let seq = -1;
   for (const record of records) {
     if (!inSession(record, sessionId)) { continue; }
     seq = record.seq;
-    if (record.kind !== "event") {
+    if (record.kind !== "frame") {
       continue;
     }
-    for (const view of record.body.views) {
-      if (view.kind === "usage" && view.usage.tokens !== undefined) {
-        latest.set(pathKey(record.agentPath), { agentPath: record.agentPath, tokens: view.usage.tokens });
+    for (const event of record.body.events) {
+      if (event.kind === "usage" && event.usage.tokens !== undefined) {
+        latest.set(pathKey(record.agentPath), { agentPath: record.agentPath, tokens: event.usage.tokens });
       }
     }
   }

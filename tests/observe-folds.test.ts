@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { AdapterSession, ControlResult, EventBody, EventView, SessionRecord, TurnOutcome } from "../packages/oar/src/index.js";
+import type { AdapterSession, ControlResult, FrameBody, RuntimeEventBody, RawEvent, TurnOutcome } from "../packages/oar/src/index.js";
 import { awaitTurnEnd, turnEndAfter } from "../packages/oar/src/observe/turns.js";
 import { contextUsageOf, modelOf, usageOf } from "../packages/oar/src/observe/usage.js";
 import { sealSession } from "../packages/oar/src/shared/seal-session.js";
@@ -19,7 +19,7 @@ import { createSessionKernel, type SessionKernel } from "../packages/oar/src/sha
 const ROOT = "root-thread";
 const CHILD = "child-thread";
 
-function usage(input: number, output: number): EventView {
+function usage(input: number, output: number): RuntimeEventBody {
   return { kind: "usage", usage: { context: { tokens: input, contextWindow: null, percent: null }, tokens: { input, output } } };
 }
 
@@ -33,21 +33,21 @@ function sessionOver(kernel: SessionKernel): AdapterSession {
     steer: async (input) => control({ kind: "steer", input }),
     queue: async (input) => control({ kind: "queue", input }),
     abort: async () => control({ kind: "abort" }),
-    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {},
   };
 }
 
-function turnEnded(outcome: TurnOutcome): EventBody {
-  return { type: "turn/completed", native: {}, views: [{ kind: "turn_ended", outcome }] };
+function turnEnded(outcome: TurnOutcome): FrameBody {
+  return { type: "turn/completed", native: {}, events: [{ kind: "turn_ended", outcome }] };
 }
 
 /** A child session (own sessionId, agentPath []) reports its turn end; the root's prompt is still open. */
 function childTurnEndsFirst(kernel: SessionKernel, afterSeq: number): void {
   kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" });
-  const childEnd = kernel.event(turnEnded({ kind: "completed" }), { sessionId: CHILD });
+  const childEnd = kernel.frame(turnEnded({ kind: "completed" }), { sessionId: CHILD });
   assert.equal(childEnd.sessionId, CHILD);
   assert.deepEqual(childEnd.agentPath, []);
   assert.equal(turnEndAfter(kernel.records(), afterSeq, ROOT), null, "the child's turn end is not the root's");
@@ -69,20 +69,20 @@ test("a derived child session's turn end does not end the root session's turn", 
   await Promise.resolve();
   assert.equal(settled, false, "awaitTurnEnd is still waiting for the root session");
 
-  kernel.event(turnEnded({ kind: "aborted" }));
+  kernel.frame(turnEnded({ kind: "aborted" }));
   assert.deepEqual(await waiting, { kind: "aborted" }, "it resolves on the root session's own turn end");
 });
 
 /** Root and child each report a model and a cumulative usage figure; the child's live in the child's records. */
 function rootAndChildReport(kernel: SessionKernel): void {
-  kernel.event({ type: "thread/start", native: {}, views: [{ kind: "model", model: "root-model" }] });
-  kernel.event({ type: "thread/tokenUsage/updated", native: {}, views: [usage(100, 10)] });
+  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "model", model: "root-model" }] });
+  kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(100, 10)] });
   kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" });
-  kernel.event({ type: "thread/start", native: {}, views: [{ kind: "model", model: "child-model" }] }, { sessionId: CHILD });
-  kernel.event({ type: "thread/tokenUsage/updated", native: {}, views: [usage(500, 50)] }, { sessionId: CHILD });
+  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "model", model: "child-model" }] }, { sessionId: CHILD });
+  kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(500, 50)] }, { sessionId: CHILD });
 }
 
-function assertChildFoldsByItsOwnId(records: readonly SessionRecord[]): void {
+function assertChildFoldsByItsOwnId(records: readonly RawEvent[]): void {
   assert.equal(modelOf(records, CHILD).value, "child-model", "the child's own answers are in its own records");
   assert.deepEqual(usageOf(records, CHILD).value, { total: { input: 500, output: 50 } });
   assert.deepEqual(contextUsageOf(records, CHILD).value, { tokens: 500, contextWindow: null, percent: null });
@@ -106,7 +106,7 @@ test("model, usage and contextUsage fold only the root session's records", () =>
   assertRootReadbackSeqs(session);
   assertChildFoldsByItsOwnId(session.records());
 
-  kernel.event({ type: "thread/tokenUsage/updated", native: {}, views: [usage(120, 12)] }, { agentPath: ["worker"] });
+  kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(120, 12)] }, { agentPath: ["worker"] });
   assert.deepEqual(session.usage().value, {
     total: { input: 220, output: 22 },
     byAgent: [

@@ -55,8 +55,8 @@ Every shipped runtime does this in a single channel:
 
 ## The rules
 
-**event**: the runtime's own words. Expects no reply; append-only;
-monotonic seq. oar never synthesizes an event. Turn boundaries, the one
+**frame**: the runtime's own words. Expects no reply; append-only;
+monotonic seq. oar never synthesizes a frame. Turn boundaries, the one
 tempting synthesis case, have real replacements: the turn's start *is* the
 prompt request itself, and its end is the runtime's own completion event
 (claude's `result`, codex's `turn/completed`); if a runtime doesn't report
@@ -74,7 +74,7 @@ understanding the body, and only `direction` makes that possible.
 guaranteed. A response exists *only* when oar observed an outcome the
 runtime will not say itself (e.g. the process exit code after a dispose).
 Outcomes the runtime does say (a prompt completing) are answered by its
-own events, and oar adds no echoing response; otherwise the synthesized
+own frames, and oar adds no echoing response; otherwise the synthesized
 `turn_ended` returns under a new name. A request without a response is an
 honest record: the action was initiated and the outcome was not observed
 (crash, oar itself killed). Backfilling a guessed response is forbidden.
@@ -101,7 +101,7 @@ Further rules:
 - **A turn is a span on the stream, not a control object.** The envelope
   carries an optional `spanId` holding only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn id,
-  such as pi's session-scoped events, simply have none.
+  such as pi's session-scoped frames, simply have none.
 - **Query is a projection over the stream.** `model()`, `usage()`, and
   `contextUsage()` are folds over the retained records and return
   `{ value, seq }`; `seq` is the last record consumed, or `-1` before any
@@ -110,10 +110,12 @@ Further rules:
 ## Record contracts
 
 ```ts
-type RecordKind = "event" | "request" | "response";
+type RecordKind = "frame" | "request" | "response";
 // kind is theoretically derivable from field shape (kimi-cli's wire
 // distinguishes by the presence of id), but TS discriminated unions need
 // an explicit discriminant, kept as the one deliberate convenience field.
+
+type RawEvent = Frame | RequestRecord | ResponseRecord;  // one record of the stream
 
 interface RecordEnvelope {
   sessionId: string;            // runtime-native; a derived child session carries its own
@@ -123,23 +125,24 @@ interface RecordEnvelope {
   receivedAt: number;           // best-effort observation time, outside the determinism guarantee
 }
 
-interface EventRecord extends RecordEnvelope {
-  kind: "event";                // runtime verbatim; oar never synthesizes
-  body: EventBody;
+interface Frame extends RecordEnvelope {
+  kind: "frame";                // runtime verbatim; oar never synthesizes
+  body: FrameBody;
 }
 
-interface EventBody {
+interface FrameBody {
   type: string;                 // runtime-native discriminator (claude type[/subtype], codex method, pi event type, ACP sessionUpdate)
   native: unknown;              // the frame as the runtime sent it, never trimmed or re-shaped
-  views: readonly EventView[];  // oar's readings of the frame, in frame order; [] when oar has none
+  events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
 }
-// EventView: text_delta | reasoning | tool_call_started |
+// RuntimeEventBody: text_delta | reasoning | tool_call_started |
 // tool_call_ended {callId, output?, result?: "ok" | "failed"} |
 // turn_ended {outcome} | usage {context?, tokens?} | model {model}.
-// `views` is a LIST because one frame can say several things (a claude
-// assistant message with thinking + text + tool_use is one record with
-// three views) and one frame must stay one record; splitting it would
+// `events` is a LIST because one frame can say several things (a claude
+// assistant message with thinking + text + tool_use is one frame carrying
+// three events) and one frame must stay one record; splitting it would
 // duplicate `native`, merging frames would lose the runtime's own framing.
+// `Session.events()` delivers those three as three Events sharing the seq.
 
 interface RequestRecord extends RecordEnvelope {
   kind: "request";
@@ -168,14 +171,14 @@ interface ResponseRecord extends RecordEnvelope {
 ```
 
 The control surface that produces these records (`Session.prompt / steer /
-queue / abort / dispose`, `subscribe(observer, cursor?)`, `records()`,
+queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
 `graph()`, and the folds `model() / usage() / contextUsage()`) is
 documented on the contract itself; `prompt / steer / queue / abort` return
 both records they appended (`ControlResult`), so the request's `seq` is
 where the action sits in the stream. `dispose()` returns void: its request
 and the `exited` response are read from the stream like everything else.
 Each query returns `{ value, seq }`, with `seq` identifying the last record
-consumed by its fold (or `-1` before any record). A `tool_call_ended` view may
+consumed by its fold (or `-1` before any record). A `tool_call_ended` event may
 carry `result: "ok" | "failed"` only when the runtime explicitly reports the
 outcome; oar never infers it from output, exit codes, or timing. When no
 runtime outcome is present, the key is absent.
@@ -186,6 +189,45 @@ the root's ([env] 0.149.0), and the child's cumulative usage would
 otherwise overwrite the root's under `agentPath []`. Scope a fold to a
 child by passing its `sessionId` (`usageOf(records, sessionId)`).
 
+## The Event layer: the consumer face, a projection over the stream
+
+Most consumers do not want records; they want the facts. `Session.events()`
+delivers them as flat `Event`s, and it is the surface to start with;
+`rawEvents()` and `records()` are the stream itself, for when the native
+frame matters.
+
+```ts
+type Event = EventBody & RecordEnvelope;      // one attributed fact
+type EventBody = RuntimeEventBody | ControlEventBody;
+// ControlEventBody, read off request/response records so the consumer
+// never handles record kinds:
+//   turn_started {requestId, input, lineage?}   ← a prompt request
+//   control_rejected {requestId, action, reason} ← a rejected response
+//   exited {code}                                ← an exited response
+```
+
+The rules that make this a projection and not a second source of truth:
+
+- **Pure derivation.** `eventsOf(record)` (observe/events.ts) reads the
+  events out of one record: each entry of a Frame's `events` stamped with
+  the frame's envelope, a `turn_started` for a prompt request, a
+  `control_rejected` for a rejected response, an `exited` for the exit.
+  `events()` is `rawEvents()` with `eventsOf` applied to every record, so a
+  retained log replays into exactly the events the live subscription
+  delivered.
+- **Several events, one seq.** Events read from one frame share its `seq`,
+  `agentPath`, `spanId` and `receivedAt`; `seq` is how a consumer gets back
+  to the frame. A record oar read nothing from yields no event.
+- **Lossy by design, never lossy in the stream.** An Event carries no
+  `native` and no `type`. The Frame underneath keeps both, so nothing is
+  lost by choosing the consumer face.
+- **Coalescing is a consumer option.** `text_delta` arrives at the
+  granularity the runtime emits (claude: a whole block per frame; pi and
+  codex: token-sized pieces). `events(observer, { coalesceText })` merges
+  consecutive text (or readable reasoning) of one agent into one event
+  carrying the last piece's envelope; off by default, so events stay
+  synchronous and one-to-one with what was read.
+
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 
 ```
@@ -193,11 +235,11 @@ seq=17  ◆ request   root  id=rq-9   prompt "run the tests"
         ↳ the turn's start is this request itself: no synthesized turn_started
 seq=18  ◇ response  root  →rq-9     accepted
         ↳ control answers only "taken over": the message was written to claude's stdin
-seq=19  ✓ event     root            assistant   → text_delta "Running them…", tool_call_started call_1
-        ↳ ONE frame, one record, two views in the frame's order; `native` is the whole message
-seq=20  ✓ event     root            user        → tool_call_ended call_1
-seq=21  ✓ event     root            result      → turn_ended completed, usage {in:12034, out:512}
-        ↳ the turn's end = the runtime's own completion event, projected as a view.
+seq=19  ✓ frame     root            assistant   → text_delta "Running them…", tool_call_started call_1
+        ↳ ONE frame, one record, two events in the frame's order; `native` is the whole message
+seq=20  ✓ frame     root            user        → tool_call_ended call_1
+seq=21  ✓ frame     root            result      → turn_ended completed, usage {in:12034, out:512}
+        ↳ the turn's end = the runtime's own completion event, projected as a turn_ended event.
           rq-9 gets no further response: the runtime said the outcome itself;
           oar does not restate it
 ```
@@ -206,10 +248,10 @@ seq=21  ✓ event     root            result      → turn_ended completed, usag
 
 ```
 seq=40  ◆ request   root  id=rq-12  dispose
-seq=41  ✓ event     root            tool_result {call:"call_7", …}
+seq=41  ✓ frame     root            tool_result {call:"call_7", …}
         ↳ arrived after the kill was requested, before the process died;
           a settled-gate would swallow it, the stream keeps it
-seq=42  ✓ event     root            result {usage:{in:45231, out:8120}, …}
+seq=42  ✓ frame     root            result {usage:{in:45231, out:8120}, …}
         ↳ usage is in-stream, with a seq, replayable, never a snapshot
           held beside the stream
 seq=43  ◇ response  root  →rq-12    exited {code:143}

@@ -34,7 +34,7 @@
  * `available_commands_update` 1, `current_mode_update` 1,
  * `config_option_update` 1, `session_info_update` 1 (all viewless),
  * `agent_thought_chunk` 22, `tool_call` 1, `tool_call_update` 14,
- * `agent_message_chunk` 7, `usage_update` 1 (with views). Every inbound
+ * `agent_message_chunk` 7, `usage_update` 1 (with events). Every inbound
  * request is a `toApp` request record with its answer. `missingFromStream: []`.
  * The `session/set_mode` and `session/close` answers are the only inbound
  * frames with no record of their own (the profile's own bookkeeping calls).
@@ -141,7 +141,7 @@ for (const raw of readFileSync(tapLog, "utf8").split("\n").filter((line) => line
 
 const stream: { readonly eventTypes: Tally; readonly toAppRequests: Tally; toAppAnswers: number } = { eventTypes: {}, toAppRequests: {}, toAppAnswers: 0 };
 for (const record of session.records()) {
-  if (record.kind === "event") {
+  if (record.kind === "frame") {
     bump(stream.eventTypes, record.body.type);
   } else if (record.kind === "request" && record.direction === "toApp" && record.body.kind === "native") {
     bump(stream.toAppRequests, record.body.type);

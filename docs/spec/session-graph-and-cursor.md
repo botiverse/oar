@@ -85,8 +85,9 @@ interface Cursor { sessionId: string; afterSeq: number; }
 // one sub-agent". For a single-agent view, resume the whole
 // stream and filter client-side by agentPath; the protocol keeps no
 // field for an unevidenced need.
-// Shipped: Session.subscribe(observer, cursor) replays every retained
-// record with seq > afterSeq synchronously, then continues live;
+// Shipped: Session.rawEvents(observer, cursor) replays every retained
+// record with seq > afterSeq synchronously, then continues live, and
+// Session.events(observer, { cursor }) does the same for the flat Events;
 // Session.records() is the retained log. A cursor for another session id
 // throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
 ```

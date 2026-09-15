@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { awaitTurnEnd, promptAndWait } from "../packages/oar/src/observe/turns.js";
-import type { RequestRecord, ResponseRecord, SessionRecord } from "../packages/oar/src/index.js";
+import type { RequestRecord, ResponseRecord, RawEvent } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 
 const installation = { kind: "available", via: "bundled" } as const;
 
-function describe(record: SessionRecord): string {
-  if (record.kind === "event") {
-    return record.body.views.length === 0 ? `event ${record.body.type}` : record.body.views.map((view) => view.kind).join("+");
+function describe(record: RawEvent): string {
+  if (record.kind === "frame") {
+    return record.body.events.length === 0 ? `event ${record.body.type}` : record.body.events.map((view) => view.kind).join("+");
   }
   return `${record.kind} ${record.body.kind}`;
 }
 
-function assertDenseRootOrder(records: readonly SessionRecord[], sessionId: string): void {
+function assertDenseRootOrder(records: readonly RawEvent[], sessionId: string): void {
   for (const [index, record] of records.entries()) {
     assert.equal(record.seq, index, "seq is dense and starts at 0");
     assert.equal(record.sessionId, sessionId);
@@ -21,7 +21,7 @@ function assertDenseRootOrder(records: readonly SessionRecord[], sessionId: stri
   }
 }
 
-function acceptedPrompt(records: readonly SessionRecord[]): { prompt: RequestRecord; accepted: ResponseRecord } {
+function acceptedPrompt(records: readonly RawEvent[]): { prompt: RequestRecord; accepted: ResponseRecord } {
   const prompt = records.find((record): record is RequestRecord => record.kind === "request" && record.body.kind === "prompt");
   assert.ok(prompt !== undefined);
   const accepted = records.find((record): record is ResponseRecord => record.kind === "response" && record.requestId === prompt.id);
@@ -42,7 +42,7 @@ test("the stream is one total order: requests, responses and events share seq", 
 
 function subscribeAfter(session: Awaited<ReturnType<typeof startMockSession>>, afterSeq: number): number[] {
   const seen: number[] = [];
-  session.subscribe((record) => {
+  session.rawEvents((record) => {
     seen.push(record.seq);
   }, { sessionId: session.id, afterSeq });
   return seen;
@@ -63,7 +63,7 @@ test("subscribe with a cursor replays retained records after afterSeq, then cont
   const replayedCount = seen.length;
   await promptAndWait(session, "two");
   assertContiguousAfter(seen, afterSeq, replayedCount);
-  assert.throws(() => session.subscribe(() => {}, { sessionId: "other", afterSeq: 0 }), /cursor belongs to session other/u);
+  assert.throws(() => session.rawEvents(() => {}, { sessionId: "other", afterSeq: 0 }), /cursor belongs to session other/u);
   await session.dispose();
 });
 

@@ -16,7 +16,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  * FILE beside the input: input is a file, so the output is too. The snapshot
  * shows each raw frame next to the record(s) it produced: the living
  * "what the provider sends → how we project it" specimen and a regression net.
- * Every frame yields exactly one event (nothing is dropped); the views
+ * Every frame yields exactly one event (nothing is dropped); the events
  * column is what oar read out of it.
  */
 
@@ -29,9 +29,9 @@ function describeCommand(command: ProjectionCommand): string {
       return `respond ${command.requestId} ${command.body.kind}`;
     case "toApp":
       return `toApp ${command.type}`;
-    case "event": {
+    case "frame": {
       const at = command.agentPath.length === 0 ? "" : ` @${command.agentPath.join("/")}`;
-      const views = command.body.views.map((view) => {
+      const events = command.body.events.map((view) => {
         switch (view.kind) {
           case "tool_call_started":
             return `tool_call_started ${view.tool}`;
@@ -48,7 +48,7 @@ function describeCommand(command: ProjectionCommand): string {
             return "?";
         }
       });
-      return `event${at}${views.length === 0 ? "" : ` → ${views.join(", ")}`}`;
+      return `event${at}${events.length === 0 ? "" : ` → ${events.join(", ")}`}`;
     }
     default:
       return "?";
@@ -102,7 +102,7 @@ test("claude sub-agent frames attribute to the Task call that spawned them, nest
     const { state: next, commands } = foldClaudeStdout(state, frame);
     state = next;
     for (const command of commands) {
-      if (command.kind === "event") {
+      if (command.kind === "frame") {
         paths.push(command.agentPath.join("/") || "root");
       }
     }
@@ -123,8 +123,8 @@ function usageTotals(frames: readonly Record<string, unknown>[]): string[] {
     const { state: next, commands } = foldClaudeStdout(state, frame);
     state = next;
     for (const command of commands) {
-      if (command.kind === "event") {
-        const usage = command.body.views.find((view) => view.kind === "usage");
+      if (command.kind === "frame") {
+        const usage = command.body.events.find((view) => view.kind === "usage");
         totals.push(`${command.agentPath.join("/") || "root"}:${JSON.stringify(usage?.kind === "usage" ? usage.usage.tokens : null)}`);
       }
     }
@@ -145,14 +145,14 @@ test("claude tool_result maps only its explicit is_error outcome", () => {
     type: "user",
     message: { content: [{ type: "tool_result", tool_use_id: "c-fail", is_error: true, content: "nope" }] },
   });
-  expect(failed.commands[0]?.kind === "event" ? failed.commands[0].body.views : null).toEqual([
+  expect(failed.commands[0]?.kind === "frame" ? failed.commands[0].body.events : null).toEqual([
     { kind: "tool_call_ended", callId: "c-fail", output: JSON.stringify("nope"), result: "failed" },
   ]);
   const absent = foldClaudeStdout(failed.state, {
     type: "user",
     message: { content: [{ type: "tool_result", tool_use_id: "c-unknown", content: "?" }] },
   });
-  expect(absent.commands[0]?.kind === "event" ? absent.commands[0].body.views : null).toEqual([
+  expect(absent.commands[0]?.kind === "frame" ? absent.commands[0].body.events : null).toEqual([
     { kind: "tool_call_ended", callId: "c-unknown", output: JSON.stringify("?") },
   ]);
 });

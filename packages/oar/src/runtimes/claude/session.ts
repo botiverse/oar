@@ -24,7 +24,7 @@ import {
  *   the ACTIVE turn at the next model-step boundary (steer), or becomes the
  *   next turn when no step remains. Landing shows up in the event stream.
  * - each turn is framed by its own system/init … result pair; the `result`
- *   frame is claude's own turn end and becomes the turn_ended view.
+ *   frame is claude's own turn end and becomes the turn_ended event.
  * - `control_request {subtype:"interrupt"}` is acked with control_response
  *   (the abort request's response record) and claude settles the turn with
  *   an error-subtype result.
@@ -109,9 +109,9 @@ export const claudeSession: StartSession = async (installation, options) => {
     let ended = false;
     for (const command of commands) {
       switch (command.kind) {
-        case "event": {
-          const record = kernel.event(command.body, { agentPath: command.agentPath });
-          if (record.agentPath.length === 0 && command.body.views.some((view) => view.kind === "turn_ended")) {
+        case "frame": {
+          const record = kernel.frame(command.body, { agentPath: command.agentPath });
+          if (record.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_ended")) {
             ended = true;
           }
           break;
@@ -198,7 +198,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       }
       state.projection = claudeAbortRequested(state.projection);
       const { promise, resolve } = Promise.withResolvers<ControlResult>();
-      const unsubscribe = kernel.subscribe((record) => {
+      const unsubscribe = kernel.rawEvents((record) => {
         if (record.kind === "response" && record.requestId === requestId) {
           resolve({ request, response: record });
         }
@@ -212,7 +212,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       unsubscribe();
       return result;
     },
-    subscribe: (observer, cursor) => kernel.subscribe(observer, cursor),
+    rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     dispose: async () => {

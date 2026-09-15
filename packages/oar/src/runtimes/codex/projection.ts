@@ -1,6 +1,6 @@
 import type {
-  EventBody,
-  EventView,
+  FrameBody,
+  RuntimeEventBody,
   SessionEdge,
   TurnOutcome,
 } from "../../contracts/session.js";
@@ -12,7 +12,7 @@ import { codexReasoningContent } from "./reasoning.js";
 /**
  * The codex notification → record projection as a PURE FOLD (see
  * runtimes/claude/projection.ts for the shape). Every notification becomes
- * exactly one event command: verbatim `native`, views in oar's vocabulary,
+ * exactly one frame command: verbatim `native`, events in oar's vocabulary,
  * the runtime's own turn id as `spanId`. Plus, for collaboration items that
  * name other threads, a link command for the session graph. Nothing is gated
  * on turn state and nothing is dropped; the adapter applies the commands and
@@ -26,8 +26,8 @@ const COLLAB_ITEM_TYPES = new Set(["collabAgentToolCall", "collabToolCall", "sub
 
 export type ProjectionCommand =
   | {
-      readonly kind: "event";
-      readonly body: EventBody;
+      readonly kind: "frame";
+      readonly body: FrameBody;
       /** Runtime-native turn id when the notification carries one. */
       readonly spanId?: string;
       /** Set when the notification belongs to another thread: a derived child session. */
@@ -63,7 +63,7 @@ function outcomeFromStatus(status: unknown): TurnOutcome {
   }
 }
 
-function toolViews(method: string, item: JsonRecord | null): EventView[] {
+function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] {
   const itemType = typeof item?.type === "string" ? item.type : "";
   if (!TOOL_ITEM_TYPES.has(itemType)) {
     return [];
@@ -113,7 +113,7 @@ function settleOutcome(state: CodexProjectionState, status: unknown): TurnOutcom
  * cumulative input stands in as `tokens` and the window and percent are
  * null: the cumulative total is never read against the window.
  */
-function usageViews(params: JsonRecord): EventView[] {
+function usageViews(params: JsonRecord): RuntimeEventBody[] {
   const tokenUsage = asRecord(params.tokenUsage);
   const total = asRecord(tokenUsage?.total);
   if (total === null) {
@@ -154,7 +154,7 @@ function spanIdOf(params: JsonRecord): string | undefined {
   return typeof turnId === "string" ? turnId : undefined;
 }
 
-function viewsFor(state: CodexProjectionState, method: string, params: JsonRecord): EventView[] {
+function viewsFor(state: CodexProjectionState, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
     case "item/agentMessage/delta":
       return typeof params.delta === "string" ? [{ kind: "text_delta", text: params.delta }] : [];
@@ -183,8 +183,8 @@ export function foldCodexNotification(
   const threadId = typeof params.threadId === "string" ? params.threadId : state.rootThreadId;
   const spanId = spanIdOf(params);
   const event: ProjectionCommand = {
-    kind: "event",
-    body: { type: method, native: params, views: viewsFor(state, method, params) },
+    kind: "frame",
+    body: { type: method, native: params, events: viewsFor(state, method, params) },
     ...(spanId === undefined ? {} : { spanId }),
     ...(threadId === state.rootThreadId ? {} : { sessionId: threadId }),
   };
