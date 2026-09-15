@@ -128,8 +128,25 @@ export type RuntimeEventBody =
       /** The runtime's explicit tool outcome; absent when it reported none. */
       readonly result?: "ok" | "failed";
     }
+  /** Partial output of a running tool call, when the runtime streams it (pi `tool_execution_update`, codex `item/commandExecution/outputDelta`, an ACP `tool_call_update` carrying `rawOutput`). claude streams none. */
+  | { readonly kind: "tool_call_progress"; readonly callId: string; readonly output?: string }
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_end`, an ACP prompt answer). The turn's start is the prompt request record itself; if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
+  /**
+   * The runtime began compacting its context. `trigger` is the runtime's own
+   * word for why (pi: manual | threshold | overflow; codex: none). claude
+   * reports only the boundary after the fact, so it never says this.
+   */
+  | { readonly kind: "compaction_started"; readonly trigger?: string }
+  /**
+   * The runtime finished (or gave up) compacting (pi `compaction_end`, claude
+   * `system/compact_boundary`, codex `contextCompaction` item completed).
+   * `trigger` as above (claude: manual | auto); `reason` is the runtime's
+   * error text when it failed. ACP runtimes report no compaction.
+   */
+  | { readonly kind: "compaction_ended"; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string }
+  /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`). Other shipped runtimes retry silently or not at all. */
+  | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string };
@@ -140,14 +157,19 @@ export type ControlAction = "prompt" | "steer" | "queue" | "abort" | "dispose";
 /**
  * Event kinds read off request and response records, so a consumer of
  * `Session.events()` sees the control facts that matter without handling
- * record kinds: a turn's start (the prompt request), the process exit, and a
- * control action the runtime or adapter refused. Never carried by a Frame.
+ * record kinds: a turn's start (the prompt request), a control action the runtime or
+ * adapter refused, a runtime→app request and oar's answer to it, and the
+ * process exit. Never carried by a Frame.
  */
 export type ControlEventBody =
   /** A prompt request was recorded: the turn's start. `requestId` pairs it with a later `control_rejected` when the prompt did not begin a turn. */
   | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string; readonly lineage?: PromptLineage }
   /** A `toRuntime` control action was rejected; the caller still owns the input. */
   | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly reason: string }
+  /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; the body is on the request record. */
+  | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
+  /** oar answered a `toApp` request automatically (an `answered` response). */
+  | { readonly kind: "app_answered"; readonly requestId: string }
   /** The runtime process exited (an `exited` response). */
   | { readonly kind: "exited"; readonly code: number | null };
 

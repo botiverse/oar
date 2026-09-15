@@ -218,6 +218,13 @@ export function foldClaudeStdout(
       return event({ events }, { ...(accumulated?.state ?? state), abortRequested: false });
     }
     case "system": {
+      if (message.subtype === "compact_boundary") {
+        // claude reports compaction only after the fact: the boundary frame
+        // carries compact_metadata {trigger: manual | auto, pre_tokens, …}
+        // ([sym] 2.1.272); there is no start frame, so no compaction_started.
+        const trigger = asRecord(message.compact_metadata)?.trigger;
+        return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] });
+      }
       const model = message.subtype === "init" && typeof message.model === "string" ? message.model : null;
       return event({ events: model === null ? [] : [{ kind: "model", model }] });
     }

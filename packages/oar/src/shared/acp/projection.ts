@@ -105,6 +105,13 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
   const terminal = update.status === "completed"
     || update.status === "failed"
     || update.status === "cancelled";
+  if (!tool.ended && !terminal && events.length === 0 && update.rawOutput !== undefined) {
+    // A later non-terminal update with rawOutput is streamed output. `content`
+    // is NOT used here: kimi streams the call's ARGUMENTS as content while
+    // in_progress (wire-shapes test), which is input, not output.
+    const output = detail(update.rawOutput);
+    events.push({ kind: "tool_call_progress", callId, ...(output === undefined ? {} : { output }) });
+  }
   if (!tool.ended && terminal) {
     tool.ended = true;
     const output = detail(update.rawOutput) ?? detail(update.content);

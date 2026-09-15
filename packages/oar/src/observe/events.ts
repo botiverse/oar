@@ -10,7 +10,8 @@ import type {
  * The consumer face of the stream. `eventsOf` reads the flat, attributed
  * `Event`s out of one record: every reading of a Frame (each stamped with the
  * frame's envelope, so events read from one frame share its `seq`), the turn
- * start a prompt request is, a rejected control action, and the process exit.
+ * start a prompt request is, a rejected control action, a runtime→app request
+ * and oar's answer, and the process exit.
  * A record oar read nothing from yields no events. Pure given `actions`, the
  * kinds of the toRuntime requests seen so far (a rejected response names
  * only its `requestId`; `controlActionsOf` builds the map from a log), so a
@@ -24,7 +25,11 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, ControlA
     case "frame":
       return record.body.events.map((event): Event => ({ ...event, ...envelope }));
     case "request":
-      return record.direction === "toRuntime" && record.body.kind === "prompt"
+      if (record.direction === "toApp") {
+        const type = record.body.kind === "native" ? record.body.type : record.body.kind;
+        return [{ kind: "app_request", requestId: record.id, type, ...envelope }];
+      }
+      return record.body.kind === "prompt"
         ? [{
             kind: "turn_started",
             requestId: record.id,
@@ -36,6 +41,9 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, ControlA
     case "response":
       if (record.body.kind === "exited") {
         return [{ kind: "exited", code: record.body.code, ...envelope }];
+      }
+      if (record.body.kind === "answered") {
+        return [{ kind: "app_answered", requestId: record.requestId, ...envelope }];
       }
       if (record.body.kind === "rejected") {
         const action = actions.get(record.requestId);

@@ -22,6 +22,9 @@ import type { RawEvent, RuntimeEventBody, TurnOutcome } from "../contracts/sessi
  *   event text_delta                  → running/responding
  *   event tool_call_started           → running/{tool, callId}
  *   event tool_call_ended             → running/waiting_model   (the model consumes the result next)
+ *   event tool_call_progress          → running, phase unchanged (the clock moves)
+ *   event compaction_started          → running/compacting
+ *   event compaction_ended, retry     → running/waiting_model
  *   event turn_ended                  → idle{lastTurnOutcome}   (the runtime's own completion)
  *   response exited                   → idle{failed runtime_exited} if a turn was running
  * The fold is total: a mid-turn event while idle adopts that turn (a consumer
@@ -32,6 +35,7 @@ export type RunningPhase =
   | "waiting_model"
   | "thinking"
   | "responding"
+  | "compacting"
   | { readonly tool: string; readonly callId: string };
 
 export type AgentStatus =
@@ -105,7 +109,13 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "tool_call_started":
       return running(previous, record, { tool: event.tool, callId: event.callId });
     case "tool_call_ended":
+    case "compaction_ended":
+    case "retry":
       return running(previous, record, "waiting_model");
+    case "compaction_started":
+      return running(previous, record, "compacting");
+    case "tool_call_progress":
+      return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
       return { kind: "idle", lastTurnOutcome: event.outcome };
     case "usage":

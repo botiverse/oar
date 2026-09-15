@@ -56,10 +56,10 @@ is the turn's end. The adapter declares `capabilities: { steer: true, queue:
 |---|---|
 | Thread identity | `Session.id` is the native thread id; the `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event. Frames the app-server sends before that reply (notifications and server requests alike) are held in one queue and recorded ahead of it in wire order; the open frame sits at the reply's own wire position, so frames codex writes after the reply (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` event: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
-| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `thread/tokenUsage/updated` → `usage`; everything else is a frame with no events. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; a `contextCompaction` item → `compaction_started` on `item/started` and `compaction_ended` (completed, no trigger) on `item/completed`; the deprecated `thread/compacted` notification ends an open compaction only when the item did not already (the projection's `compacting` flag dedupes; the schema marks it "Deprecated: Use ContextCompaction item type instead") [env 0.154.0]; `thread/tokenUsage/updated` → `usage`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The response is recorded as the reply line is read, so it sits before notifications codex wrote after it. |
 | Effective configuration | `model()` folds the `model` event of the open reply; most native configuration has no public mutator. |
-| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays a dangling request. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays a dangling request. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. The app-server delivers child-thread notifications on the parent's connection ([env] 0.149.0, 0.154.0); without an item naming the thread no edge is fabricated. |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
@@ -372,8 +372,12 @@ The cumulative total is spend, not occupancy; `contextUsage()` reads about
 (live-contract `multi-turn`, `basic`;
 [replay test](../../tests/replay/codex-projection.test.ts)). One notification
 arrives per model call, so a tool turn reports twice. Native manual compaction
-(`thread/compact/start`) has no typed OAR operation; the vendor instruction
-test defers compaction survival until it does. `account/rateLimits/updated`
+(`thread/compact/start`, a client request) has no typed OAR operation; the
+vendor instruction test defers compaction survival until it does. A compaction
+codex performs is observable: its `contextCompaction` item yields
+`compaction_started` / `compaction_ended` events, and the deprecated
+`thread/compacted` notification closes an open compaction only when the item
+did not already [env 0.154.0 schema; not yet reached live]. `account/rateLimits/updated`
 follows each model call and has no event ([env] 0.154.0: `limitId: "codex"`,
 `planType: "pro"`, primary 300-min and secondary 10080-min windows; the
 notification reflects the thread model's own windows: a Spark thread

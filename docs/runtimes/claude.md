@@ -39,10 +39,11 @@ Programs have two relevant entry points:
 |---|---|
 | CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. The exit is an `exited` response record (answering `dispose` when OAR caused it). |
 | Persistent session ID | `Session.id`; supplied through `--session-id` or `--resume`. Every record carries it as `sessionId`. |
-| stream-json frame | Exactly one `Frame` record per stdout line: `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, turn_ended, usage, model). Frames OAR does not interpret (`rate_limit_event`, `system/thinking_tokens`, …) are recorded with no events. No `spanId`: claude frames carry no turn id. |
+| stream-json frame | Exactly one `Frame` record per stdout line: `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, turn_ended, usage, model, compaction_ended). Frames OAR does not interpret (`rate_limit_event`, `system/thinking_tokens`, …) are recorded with no events. No `spanId`: claude frames carry no turn id. |
 | User turn and `result` | The turn's start is the `prompt` request record; the `result` frame is the turn's end, projected as a `turn_ended` event (aborted when OAR's own interrupt was outstanding, failed on `is_error`, else completed) plus a `usage` event. |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]`: a frame attributes to the Task tool_use that spawned it, nested through that call's own agent. `capabilities.attribution` is `attributed`. Child usage is not attributed (unverified). |
-| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is recorded as a `toApp` request (unanswered; none arrive under `--dangerously-skip-permissions`). |
+| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is recorded as a `toApp` request (unanswered; none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
+| `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | Only a small subset is represented by OAR startup options and control methods. |
 
 Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
@@ -192,8 +193,10 @@ three one-word turns `usage().value.total.input` grew by about 22k per turn
 (cache reads included) while `contextUsage().value.tokens` stayed near 22k. Official
 documentation describes result usage as aggregate main-loop usage for the
 user turn, so the context figure is **unverified as current fullness**
-across multiple model steps. Native compaction still runs; its frames are in
-the stream verbatim but OAR has no event for them.
+across multiple model steps. Native compaction still runs; its
+`system/compact_boundary` frame is recorded verbatim and read as a
+`compaction_ended` event (`trigger` manual or auto) [sym 2.1.272]; there is
+no start frame and no compaction_started.
 [Usage calculation](../../packages/oar/src/runtimes/claude/context-usage.ts),
 [native usage](https://code.claude.com/docs/en/agent-sdk/cost-tracking).
 

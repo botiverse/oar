@@ -116,3 +116,76 @@ test("pi tool_execution_end maps the explicit isError flag", () => {
     { kind: "tool_call_ended", callId: "tool-success", output: JSON.stringify("boom"), result: "ok" },
   ]);
 });
+
+const fold = (state: PiProjectionState, event: AgentSessionEvent): { state: PiProjectionState; events: unknown } => {
+  const { state: next, commands } = foldPiEvent(state, event);
+  return { state: next, events: commands.map((command) => command.body.events) };
+};
+
+test("pi compaction events carry pi's own trigger and failure reason", () => {
+  const state = piPrompted(initialPiProjection);
+  const started = fold(state, { type: "compaction_start", reason: "threshold" });
+  const failed = fold(started.state, { type: "compaction_end", reason: "threshold", result: undefined, aborted: false, willRetry: true, errorMessage: "summary call failed" });
+  const aborted = fold(failed.state, { type: "compaction_end", reason: "manual", result: undefined, aborted: true, willRetry: false });
+  expect([started.events, failed.events, aborted.events]).toMatchInlineSnapshot(`
+    [
+      [
+        [
+          {
+            "kind": "compaction_started",
+            "trigger": "threshold",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "kind": "compaction_ended",
+            "outcome": "failed",
+            "reason": "summary call failed",
+            "trigger": "threshold",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "kind": "compaction_ended",
+            "outcome": "aborted",
+            "trigger": "manual",
+          },
+        ],
+      ],
+    ]
+  `);
+});
+
+test("pi retry and tool progress events", () => {
+  const state = piPrompted(initialPiProjection);
+  const retry = fold(state, { type: "auto_retry_start", attempt: 2, maxAttempts: 3, delayMs: 1500, errorMessage: "overloaded" });
+  const progress = fold(retry.state, { type: "tool_execution_update", toolCallId: "call_1", toolName: "bash", args: {}, partialResult: { content: [{ type: "text", text: "half" }], details: {} } });
+  expect([retry.events, progress.events]).toMatchInlineSnapshot(`
+    [
+      [
+        [
+          {
+            "attempt": 2,
+            "delayMs": 1500,
+            "kind": "retry",
+            "maxAttempts": 3,
+            "reason": "overloaded",
+          },
+        ],
+      ],
+      [
+        [
+          {
+            "callId": "call_1",
+            "kind": "tool_call_progress",
+            "output": "{"content":[{"type":"text","text":"half"}],"details":{}}",
+          },
+        ],
+      ],
+    ]
+  `);
+});

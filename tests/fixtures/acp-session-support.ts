@@ -60,6 +60,10 @@ export function describe(record: RawEvent): string {
           case "reasoning":
           case "tool_call_ended":
           case "usage":
+          case "tool_call_progress":
+          case "compaction_started":
+          case "compaction_ended":
+          case "retry":
             return view.kind;
           default:
             return "?";

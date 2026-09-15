@@ -59,11 +59,24 @@ export function createProgressRenderer(
       }
       case "turn_ended":
         return [`${agent}${renderOutcome(event.outcome)}`];
+      case "compaction_started":
+        return [`${agent}[compacting${event.trigger === undefined ? "" : `: ${event.trigger}`}]`];
+      case "compaction_ended":
+        if (event.outcome === "completed") {
+          return [`${agent}[compacted]`];
+        }
+        return [`${agent}[compaction ${event.outcome}]${event.reason === undefined ? "" : ` ${event.reason}`}`];
+      case "retry":
+        return [`${agent}[retry ${String(event.attempt)}${event.maxAttempts === undefined ? "" : `/${String(event.maxAttempts)}`}]${event.reason === undefined ? "" : ` ${event.reason}`}`];
+      case "app_request":
+        return [`${agent}[waiting for app: ${event.type}]`];
       case "control_rejected":
         return [`${agent}[${event.action} rejected] ${event.reason}`];
       case "exited":
         return [`${agent}[runtime exited${event.code === null ? "" : `: ${String(event.code)}`}]`];
       case "turn_started":
+      case "tool_call_progress":
+      case "app_answered":
       case "usage":
       case "model":
         return [];

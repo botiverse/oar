@@ -43,6 +43,10 @@ function describeCommand(command: ProjectionCommand): string {
           case "tool_call_ended":
           case "usage":
           case "model":
+          case "tool_call_progress":
+          case "compaction_started":
+          case "compaction_ended":
+          case "retry":
             return view.kind;
           default:
             return "?";
@@ -155,4 +159,25 @@ test("claude tool_result maps only its explicit is_error outcome", () => {
   expect(absent.commands[0]?.kind === "frame" ? absent.commands[0].body.events : null).toEqual([
     { kind: "tool_call_ended", callId: "c-unknown", output: JSON.stringify("?") },
   ]);
+});
+
+test("claude compact_boundary is the runtime's after-the-fact compaction report", () => {
+  const { commands } = foldClaudeStdout(claudePrompted(initialClaudeProjection), {
+    type: "system",
+    subtype: "compact_boundary",
+    compact_metadata: { trigger: "manual", pre_tokens: 120_000 },
+    session_id: "s",
+    uuid: "u",
+  });
+  expect(commands.map((command) => (command.kind === "frame" ? command.body.events : command.kind))).toMatchInlineSnapshot(`
+    [
+      [
+        {
+          "kind": "compaction_ended",
+          "outcome": "completed",
+          "trigger": "manual",
+        },
+      ],
+    ]
+  `);
 });

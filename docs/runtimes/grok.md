@@ -50,10 +50,10 @@ OAR read out of it. Control calls are request/response record pairs.
 | Persistent native session | `Session.id` preserves its ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0; no history rebuild). |
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are Frame records; the model they report is a `model` event, so `Session.model()` is a fold. |
 | Prompt delivery and native execution | `prompt()` is a `toRuntime` request answered accepted/`busy`; each `session/prompt` RPC answer is a frame, and the one closing the turn carries the `turn_ended` event (newest request's outcome) plus a `usage` event. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
-| `session/update` notifications | One frame per notification, `native` verbatim, for EVERY session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
+| `session/update` notifications | One frame per notification, `native` verbatim, for EVERY session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. A non-terminal `tool_call_update` for a known call that carries `rawOutput` is a `tool_call_progress` event (its `content` is never read as progress). Grok reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. |
 | `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded verbatim with no events under the session id its envelope names; one naming a parent/child session pair links `Session.graph()` (`via: "tool_call"`). |
 | Native child sessions | An update or vendor frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier declared `nested`; `capabilities` are `{ steer: true, queue: { durable: false }, attribution: "nested" }`. |
-| Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. |
+| Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
 The implementation is divided between the [Grok profile](../../packages/oar/src/runtimes/grok/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
@@ -361,7 +361,9 @@ test](../../tests/acp/acp-grok-wire-shapes.test.ts).)
 
 Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)
 exists through `x.ai/compact_conversation`; automatic compaction remains
-native harness behavior. OAR has no typed compaction operation.
+native harness behavior. OAR has no typed compaction operation, and no ACP
+frame reports one, so Grok sessions never carry `compaction_started` or
+`compaction_ended` events.
 
 ### Tools, MCP, and permissions
 

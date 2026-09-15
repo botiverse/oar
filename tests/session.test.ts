@@ -252,3 +252,16 @@ test("simpleStateOf reports error only as idle-after-failure", () => {
   const stuckBeatsBusy = { ...running, stall: { sinceSeq: 0, silentForMs: 99 } };
   assert.equal(simpleStateOfSync(stuckBeatsBusy), "stuck");
 });
+
+test("reduceStatus: compaction and retry are running phases; tool progress only moves the clock", async () => {
+  const { initialStatus, reduceStatus } = await import("../packages/oar/src/observe/agent-status.js");
+  let status = reduceStatus(initialStatus, promptRecord);
+  status = reduceStatus(status, event([{ kind: "tool_call_started", callId: "c", tool: "bash" }], { receivedAt: 1 }));
+  status = reduceStatus(status, event([{ kind: "tool_call_progress", callId: "c", output: "…" }], { receivedAt: 2 }));
+  assert.deepEqual(status.kind === "running" ? [status.phase, status.lastEventAt] : status, [{ tool: "bash", callId: "c" }, 2]);
+  status = reduceStatus(status, event([{ kind: "compaction_started", trigger: "threshold" }], { receivedAt: 3 }));
+  assert.equal(status.kind === "running" ? status.phase : status.kind, "compacting");
+  status = reduceStatus(status, event([{ kind: "compaction_ended", outcome: "completed" }], { receivedAt: 4 }));
+  status = reduceStatus(status, event([{ kind: "retry", attempt: 1 }], { receivedAt: 5 }));
+  assert.equal(status.kind === "running" ? status.phase : status.kind, "waiting_model");
+});

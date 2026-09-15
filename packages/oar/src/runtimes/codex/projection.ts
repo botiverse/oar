@@ -42,10 +42,23 @@ export type ProjectionCommand =
 export interface CodexProjectionState {
   readonly rootThreadId: string;
   readonly lastErrorDetail: string | null;
+  /**
+   * A root-thread compaction is open (its `contextCompaction` item started).
+   * codex says "compacted" twice, as the item's completion and as the
+   * deprecated `thread/compacted` notification ([env] 0.154.0 schema); the
+   * flag lets the second report close nothing instead of ending twice.
+   */
+  readonly compacting: boolean;
 }
 
 export function initialCodexProjection(rootThreadId: string): CodexProjectionState {
-  return { rootThreadId, lastErrorDetail: null };
+  return { rootThreadId, lastErrorDetail: null, compacting: false };
+}
+
+const COMPACTION_ITEM_TYPE = "contextCompaction";
+
+function isCompactionItem(params: JsonRecord): boolean {
+  return asRecord(params.item)?.type === COMPACTION_ITEM_TYPE;
 }
 
 // The runtime's own status is the truth: an interrupt that landed reports
@@ -158,13 +171,21 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
   switch (method) {
     case "item/agentMessage/delta":
       return typeof params.delta === "string" ? [{ kind: "text_delta", text: params.delta }] : [];
+    case "item/commandExecution/outputDelta":
+      // Streamed stdout of a running command item; `itemId` is the tool call.
+      return typeof params.itemId === "string"
+        ? [{ kind: "tool_call_progress", callId: params.itemId, ...(typeof params.delta === "string" ? { output: params.delta } : {}) }]
+        : [];
+    case "thread/compacted":
+      return state.compacting ? [{ kind: "compaction_ended", outcome: "completed" }] : [];
     case "rawResponseItem/completed": {
       const content = codexReasoningContent(asRecord(params.item));
       return content === null ? [] : [{ kind: "reasoning", content }];
     }
     case "item/started":
+      return isCompactionItem(params) ? [{ kind: "compaction_started" }] : toolViews(method, asRecord(params.item));
     case "item/completed":
-      return toolViews(method, asRecord(params.item));
+      return isCompactionItem(params) ? [{ kind: "compaction_ended", outcome: "completed" }] : toolViews(method, asRecord(params.item));
     case "turn/completed":
       return [{ kind: "turn_ended", outcome: settleOutcome(state, asRecord(params.turn)?.status) }];
     case "thread/tokenUsage/updated":
@@ -203,6 +224,10 @@ export function foldCodexNotification(
     }
   } else if (method === "turn/completed" && threadId === state.rootThreadId) {
     next = { ...state, lastErrorDetail: null };
+  } else if (threadId === state.rootThreadId && isCompactionItem(params) && (method === "item/started" || method === "item/completed")) {
+    next = { ...state, compacting: method === "item/started" };
+  } else if (method === "thread/compacted" && threadId === state.rootThreadId) {
+    next = { ...state, compacting: false };
   }
   return { state: next, commands: [event, ...links] };
 }

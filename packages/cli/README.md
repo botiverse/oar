@@ -27,7 +27,10 @@ oar run claude "What does this repo do?"
 
 By default `run` prints readable progress from the session's `events()`:
 assistant text verbatim (coalesced into blocks via `coalesceText`), and
-everything else as a bracketed meta line:
+everything else as a bracketed meta line (`[compacting: threshold]`,
+`[compacted]` or `[compaction failed] reason`, `[retry 2/3] reason`,
+`[waiting for app: type]`; tool progress deltas and oar's own answers to
+app requests print nothing):
 
 ```
 [thinking] The user wants...

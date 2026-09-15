@@ -61,10 +61,12 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   nothing synthesized; the turn's start is the prompt request, its end the
   runtime's own completion event;
 - the consumer face: `events()` delivers every reading as a flat `Event`
-  (an event body plus the record's envelope), including `turn_started`,
-  `control_rejected` and `exited` read off request/response records; a
-  pure projection (`eventsOf`) over the stream, never a second source of
-  truth;
+  (an event body plus the record's envelope): text, reasoning, tool call
+  start / progress / end, turn end, usage, model, compaction start / end and
+  retry as the runtime says them, plus `turn_started`, `control_rejected`,
+  `app_request`, `app_answered` and `exited` read off request/response
+  records; a pure projection (`eventsOf`) over the stream, never a second
+  source of truth;
 - control as records: prompt / steer / queue / abort / dispose requests
   answered `accepted` / `rejected`; runtime→app requests recorded `toApp`
   and oar's automatic answer as `answered`; the process exit as `exited`;

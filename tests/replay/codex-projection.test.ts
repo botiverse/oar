@@ -40,6 +40,10 @@ function describeCommand(command: ProjectionCommand): string {
           case "tool_call_ended":
           case "usage":
           case "model":
+          case "tool_call_progress":
+          case "compaction_started":
+          case "compaction_ended":
+          case "retry":
             return view.kind;
           default:
             return "?";
@@ -192,4 +196,40 @@ test("codex context fullness is the last model call's total against modelContext
   expect(unknown?.kind === "frame" ? unknown.body.events : null).toEqual([
     { kind: "usage", usage: { context: { tokens: 200, contextWindow: null, percent: null }, tokens: { input: 200, output: 5 } } },
   ]);
+});
+
+test("codex compaction is the contextCompaction item; the deprecated thread/compacted closes nothing twice", () => {
+  expect(foldFrames([
+    { method: "item/started", params: { threadId: ROOT, turnId: "t1", item: { id: "cc_1", type: "contextCompaction" } } },
+    { method: "item/completed", params: { threadId: ROOT, turnId: "t1", item: { id: "cc_1", type: "contextCompaction" } } },
+    { method: "thread/compacted", params: { threadId: ROOT, turnId: "t1" } },
+    { method: "item/commandExecution/outputDelta", params: { threadId: ROOT, turnId: "t1", itemId: "call_9", delta: "hello\n" } },
+  ])).toMatchInlineSnapshot(`
+    [
+      "event → compaction_started",
+      "event → compaction_ended",
+      "event",
+      "event → tool_call_progress",
+    ]
+  `);
+});
+
+const frameEvents = (result: { commands: readonly { kind: string; body?: { events: readonly unknown[] } }[] }): unknown =>
+  result.commands.flatMap((command) => (command.kind === "frame" ? command.body?.events ?? [] : []));
+
+test("codex thread/compacted alone ends an open compaction once", () => {
+  const started = foldCodexNotification(initialCodexProjection(ROOT), "item/started", { threadId: ROOT, item: { id: "cc_2", type: "contextCompaction" } });
+  const compacted = foldCodexNotification(started.state, "thread/compacted", { threadId: ROOT, turnId: "t2" });
+  const again = foldCodexNotification(compacted.state, "thread/compacted", { threadId: ROOT, turnId: "t2" });
+  expect([frameEvents(compacted), frameEvents(again)]).toMatchInlineSnapshot(`
+    [
+      [
+        {
+          "kind": "compaction_ended",
+          "outcome": "completed",
+        },
+      ],
+      [],
+    ]
+  `);
 });

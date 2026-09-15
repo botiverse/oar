@@ -76,6 +76,17 @@ test("ACP tool_call_update maps failed status and omits result when status is ab
   assert.deepEqual(unknown, [{ kind: "tool_call_started", callId: "unknown", tool: "tool" }]);
 });
 
+test("a non-terminal tool_call_update with rawOutput is tool progress; one with content only is not", () => {
+  const state = createAcpProjectionState();
+  opening(state, BASH_ID, { title: "Bash", kind: "execute" });
+  const argumentsOnly = projectAcpUpdate(state, { toolCallId: BASH_ID, status: "in_progress", content: textContent("{\"command\":\"ls\"}"), sessionUpdate: "tool_call_update" });
+  assert.deepEqual(argumentsOnly, [], "streamed arguments are input, not progress output");
+  const streamed = projectAcpUpdate(state, { toolCallId: BASH_ID, status: "in_progress", rawOutput: "partial", sessionUpdate: "tool_call_update" });
+  assert.deepEqual(streamed, [{ kind: "tool_call_progress", callId: BASH_ID, output: "partial" }]);
+  const done = projectAcpUpdate(state, { toolCallId: BASH_ID, status: "completed", rawOutput: "partial and rest", sessionUpdate: "tool_call_update" });
+  assert.deepEqual(done, [{ kind: "tool_call_ended", callId: BASH_ID, output: "partial and rest", result: "ok" }]);
+});
+
 test("a name-bearing frame still labels the tool by name, and a kind-only frame by kind", () => {
   const state = createAcpProjectionState();
   assert.deepEqual(

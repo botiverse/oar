@@ -136,8 +136,12 @@ interface FrameBody {
   events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
 }
 // RuntimeEventBody: text_delta | reasoning | tool_call_started |
+// tool_call_progress {callId, output?} |
 // tool_call_ended {callId, output?, result?: "ok" | "failed"} |
-// turn_ended {outcome} | usage {context?, tokens?} | model {model}.
+// turn_ended {outcome} | usage {context?, tokens?} | model {model} |
+// compaction_started {trigger?} |
+// compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
+// retry {attempt, maxAttempts?, delayMs?, reason?}.
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
 // three events) and one frame must stay one record; splitting it would
@@ -203,15 +207,49 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 // never handles record kinds:
 //   turn_started {requestId, input, lineage?}   ← a prompt request
 //   control_rejected {requestId, action, reason} ← a rejected response
+//   app_request {requestId, type}                ← a toApp request
+//   app_answered {requestId}                     ← an answered response
 //   exited {code}                                ← an exited response
 ```
+
+Which runtimes say which kinds (runtime pages hold the evidence):
+
+- `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
+  `turn_ended`, `usage`, `model`: every shipped adapter.
+- `tool_call_progress`: partial output of a running tool. pi
+  `tool_execution_update` (the partial result as JSON) [src 0.84.2]; codex
+  `item/commandExecution/outputDelta` (`callId` is the item id, `output`
+  the delta) [env 0.154.0 schema]; ACP (grok, kimi) a non-terminal
+  `tool_call_update` for a known call that carries `rawOutput`, never its
+  `content` (kimi streams the call's ARGUMENTS as content while
+  `in_progress`). claude streams none.
+- `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
+  manual | threshold | overflow); codex `item/started` for a
+  `contextCompaction` item (no trigger). claude never: it reports only the
+  boundary after the fact. ACP never.
+- `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
+  `errorMessage` → failed with that reason, else completed; `trigger` as
+  above); claude `system/compact_boundary` → completed with `trigger` from
+  `compact_metadata.trigger` (manual | auto) [sym 2.1.272]; codex
+  `item/completed` for the `contextCompaction` item → completed, while the
+  deprecated `thread/compacted` notification closes an open compaction only
+  when the item did not already (the projection dedupes, so codex never ends
+  a compaction twice) [env 0.154.0 schema]. ACP never.
+- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
+  other shipped runtime exposes a retry (claude retries silently).
+- `app_request` / `app_answered`: any adapter that records `toApp` requests
+  (claude `control_request`, codex server requests, ACP permission and
+  terminal requests) and, for `app_answered`, one whose automatic reply is
+  recorded (the ACP adapters); `type` is the runtime's method or subtype.
 
 The rules that make this a projection and not a second source of truth:
 
 - **Pure derivation.** `eventsOf(record)` (observe/events.ts) reads the
   events out of one record: each entry of a Frame's `events` stamped with
-  the frame's envelope, a `turn_started` for a prompt request, a
-  `control_rejected` for a rejected response, an `exited` for the exit.
+  the frame's envelope, a `turn_started` for a prompt request, an
+  `app_request` for a toApp request, a `control_rejected` for a rejected
+  response, an `app_answered` for an answered response, an `exited` for
+  the exit.
   `events()` is `rawEvents()` with `eventsOf` applied to every record, so a
   retained log replays into exactly the events the live subscription
   delivered.

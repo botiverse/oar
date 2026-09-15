@@ -51,7 +51,9 @@ if (installation?.kind === "available") {
 ```
 
 `events()` is the flat, attributed reading of the session: one `Event` per
-fact, with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to
+fact (text, reasoning, tool call start / progress / end, turn start and
+end, usage, model, compaction, retry, app requests, control rejections, the
+process exit), with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to
 get text in blocks instead of pieces. When the runtime's own frame matters,
 `session.rawEvents()` and `session.records()` expose the underlying record
 stream with every native payload verbatim.

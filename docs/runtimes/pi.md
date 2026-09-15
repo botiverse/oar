@@ -46,7 +46,7 @@ services and one `AgentSession`; it does not use the replacement-oriented
 | Agent run | A span on the stream: from the `prompt` request record (accepted once pi emits `agent_start`) to pi's own `agent_settled` event, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | Native history tree and replacement APIs | Resume is mapped; branch navigation, fork, import, and history access are not exposed. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` event on a `pi/session_opened` frame. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
-| SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with oar's events (text, reasoning, tool lifecycle, cumulative usage, turn end). The session-scoped events (compaction, queue, retry, entry, settings) are in the stream with no event. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
+| SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with oar's events (text, reasoning, tool lifecycle including `tool_execution_update` → `tool_call_progress`, cumulative usage, turn end, `compaction_start`/`compaction_end` → `compaction_started`/`compaction_ended` with pi's reason as `trigger`, `auto_retry_start` and `summarization_retry_scheduled` → `retry`). The remaining session-scoped events (queue, entry, settings, bash execution, retry end) are in the stream with no event. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected; `queue` is an adapter-held FIFO (`durable: false`). `abort` is answered at delivery, ahead of pi's own aborted `agent_settled`. |
 | Provider HTTP | Before the first provider request the adapter sets undici's global dispatcher to an `EnvHttpProxyAgent` (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, pi's `httpProxy` setting as the fallback, pi's idle timeout): the proxy half of what every pi entry point installs, without pi's global fetch replacement; process-global. |
 
@@ -196,9 +196,17 @@ no process exit to record. Afterwards `prompt`/`steer`/`queue` are `rejected`
 `native`; nothing is dropped. Views cover text/thinking deltas, empty
 reasoning, tool start (with JSON arguments) and end (with JSON result),
 cumulative token usage from assistant `message_end` usage, and the turn end.
-Message boundaries, tool progress updates, compaction, queue, retry, entry and
-settings events are in the stream with no event. The exhaustive projection
-switch makes a new pi event type a compile error. Live shape on the baseline
+`tool_execution_update` is a `tool_call_progress` event whose `output` is
+the partial result as JSON; `compaction_start` is `compaction_started`
+(`trigger` = pi's reason: `manual` | `threshold` | `overflow`) and
+`compaction_end` is `compaction_ended` (`aborted` → aborted, an
+`errorMessage` → failed with that reason, else completed; `willRetry` is in
+`native` and the retry announces itself); `auto_retry_start` and
+`summarization_retry_scheduled` are `retry` events with `attempt`,
+`maxAttempts`, `delayMs` and the error message as `reason` [src 0.84.2
+types]. Message boundaries, queue, entry, settings and retry-end events are
+in the stream with no event. The exhaustive projection switch makes a new pi
+event type a compile error. Live shape on the baseline
 model: a one-shot turn is 17 records, seq dense, events `model`, `reasoning`,
 `text_delta`, `usage`, `turn_ended`, no `spanId` (`basic` scenario);
 `gpt-5.3-codex-spark` streams `thinking_start`/`thinking_end` with no deltas,
@@ -270,7 +278,8 @@ with totals growing across turns (live on the baseline model: a one-shot turn
 `{input: 1381, output: 39}` with `contextUsage().value` `{tokens: 1420,
 contextWindow: 128000}`; three turns 1377 → 2772 → 4186 input;
 `basic`/`multi-turn` scenarios). `compaction_start`/`compaction_end` are in
-the stream verbatim (viewless); they are pinned with the pi-aimock recipe
+the stream verbatim and read as `compaction_started`/`compaction_ended`
+events; they are pinned with the pi-aimock recipe
 (tiny `contextWindow` plus fat reported usage plus compaction settings) and
 have not been reached with a real provider: live contexts stay near 1.4k of
 128k tokens. Explicit compact/abort-compaction controls are **not exposed**.

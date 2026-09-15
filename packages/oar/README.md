@@ -25,9 +25,12 @@ if (installation?.kind === "available") {
 ```
 
 `session.events()` delivers flat, attributed `Event`s (text, reasoning,
-tool calls, turn start and end, usage, model, control rejections, the
-process exit), each carrying the `seq` and `agentPath` of the record it was
-read from. It is a projection over the record stream: `session.rawEvents()`
+tool call start / progress / end, turn start and end, usage, model,
+compaction start / end, retry, runtime→app requests and oar's answers,
+control rejections, the process exit), each carrying the `seq` and
+`agentPath` of the record it was read from. Kinds a runtime never says
+(claude has no compaction start, ACP runtimes no compaction or retry) simply
+never appear; the runtime pages say which. It is a projection over the record stream: `session.rawEvents()`
 and `session.records()` expose that stream (`RawEvent`: `Frame` with the
 native payload verbatim, `RequestRecord`, `ResponseRecord`) for consumers
 who need the runtime's own frames.

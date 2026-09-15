@@ -154,6 +154,28 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
         ? { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName }
         : { kind: "tool_call_started", callId: event.toolCallId, tool: event.toolName, input }] };
     }
+    case "tool_execution_update": {
+      const output = jsonDetail(event.partialResult);
+      return { state, events: [output === undefined
+        ? { kind: "tool_call_progress", callId: event.toolCallId }
+        : { kind: "tool_call_progress", callId: event.toolCallId, output }] };
+    }
+    case "compaction_start":
+      return { state, events: [{ kind: "compaction_started", trigger: event.reason }] };
+    case "compaction_end": {
+      // pi's own flags decide: aborted wins, then an error message, else done.
+      // `willRetry` means pi will try again; the retry announces itself.
+      let outcome: "completed" | "aborted" | "failed" = "completed";
+      if (event.aborted) {
+        outcome = "aborted";
+      } else if (event.errorMessage !== undefined) {
+        outcome = "failed";
+      }
+      return { state, events: [{ kind: "compaction_ended", outcome, trigger: event.reason, ...(event.errorMessage === undefined ? {} : { reason: event.errorMessage }) }] };
+    }
+    case "auto_retry_start":
+    case "summarization_retry_scheduled":
+      return { state, events: [{ kind: "retry", attempt: event.attempt, maxAttempts: event.maxAttempts, delayMs: event.delayMs, reason: event.errorMessage }] };
     case "tool_execution_end": {
       const output = jsonDetail(event.result);
       const result = typeof event.isError === "boolean" ? (event.isError ? "failed" as const : "ok" as const) : undefined;
@@ -174,17 +196,12 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "agent_end":
     case "turn_start":
     case "message_start":
-    case "tool_execution_update":
     case "bash_execution_update":
-    case "compaction_start":
-    case "compaction_end":
     case "queue_update":
     case "entry_appended":
     case "session_info_changed":
     case "thinking_level_changed":
-    case "auto_retry_start":
     case "auto_retry_end":
-    case "summarization_retry_scheduled":
     case "summarization_retry_attempt_start":
     case "summarization_retry_finished":
       return { state, events: [] };

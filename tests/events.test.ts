@@ -57,6 +57,36 @@ test("eventsOf yields nothing for an accepted response or a frame oar read nothi
   `);
 });
 
+test("eventsOf reads a toApp request as app_request and oar's answer as app_answered", () => {
+  const asked: RawEvent = { sessionId: "s", agentPath: [], seq: 5, receivedAt: 0, kind: "request", id: "perm-1", direction: "toApp", body: { kind: "native", type: "can_use_tool", native: { tool: "Bash" } } };
+  const answered: RawEvent = { sessionId: "s", agentPath: [], seq: 6, receivedAt: 0, kind: "response", requestId: "perm-1", body: { kind: "answered", native: { allow: true } } };
+  expect([eventsOf(asked), eventsOf(answered)]).toMatchInlineSnapshot(`
+    [
+      [
+        {
+          "agentPath": [],
+          "kind": "app_request",
+          "receivedAt": 0,
+          "requestId": "perm-1",
+          "seq": 5,
+          "sessionId": "s",
+          "type": "can_use_tool",
+        },
+      ],
+      [
+        {
+          "agentPath": [],
+          "kind": "app_answered",
+          "receivedAt": 0,
+          "requestId": "perm-1",
+          "seq": 6,
+          "sessionId": "s",
+        },
+      ],
+    ]
+  `);
+});
+
 const describe = (item: { seq: number; kind: string }): string => `${String(item.seq)} ${item.kind}`;
 
 /** Subscribe from the start of the stream and collect `seq kind` lines. */

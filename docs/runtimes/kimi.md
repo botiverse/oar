@@ -52,8 +52,8 @@ OAR read out of it. Control calls are request/response record pairs.
 | Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are Frame records with a `model` event where they report one; pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` is a fold over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one event with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier declared `opaque`. |
 | Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is a frame with the `turn_ended` event. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback. |
-| Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. No child session ever arrives on this transport, so the graph holds the root only. |
-| Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record and OAR's fixed-policy answer the `answered` response. |
+| Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. A non-terminal `tool_call_update` carrying `rawOutput` is a `tool_call_progress` event; the argument-streaming updates (content only) are not. Kimi reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. No child session ever arrives on this transport, so the graph holds the root only. |
+| Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record and OAR's fixed-policy answer the `answered` response; `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
 See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
@@ -233,7 +233,9 @@ carries token totals, only `usage_update` context.
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
 `content` text block, and no `rawInput`, so `tool_call_started` has no
 `input`. The arguments then stream as partial-JSON `content` text over a
-dozen `tool_call_update` frames (viewless), and one more update carries the
+dozen `tool_call_update` frames (no event: `content` while `in_progress` is
+input, not output, so it is never read as `tool_call_progress`; only an
+update carrying `rawOutput` would be), and one more update carries the
 full `rawInput` (`{"command": …}`) with `title` "Running: …". The command runs
 through `terminal/create` (`/bin/bash -c "cd '<cwd>' && …"`, env `NO_COLOR`,
 `TERM=dumb`, …), `wait_for_exit`, `output`, `release`, each a `toApp` request
@@ -313,9 +315,11 @@ system prompt). Per-agent usage remains unexposed.
 
 Native agent compaction exists; ACP
 [`/compact` dispatches a background task](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/builtin-commands.ts#L100-L110).
-OAR has no typed compact operation. Prompt text can reach that slash route,
-but completion text emitted after the OAR Turn ends is dropped; prompt
-completion does not establish compaction completion.
+OAR has no typed compact operation, and no ACP frame reports a compaction,
+so Kimi sessions never carry `compaction_started` or `compaction_ended`
+events. Prompt text can reach that slash route, but completion text emitted
+after the OAR Turn ends is dropped; prompt completion does not establish
+compaction completion.
 
 ### Tools, permissions, and extensions
 

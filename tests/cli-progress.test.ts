@@ -73,3 +73,13 @@ test("turn_ended renders through renderOutcome; control rejections and exits pri
   assert.deepEqual(render(at(0, [{ kind: "control_rejected", requestId: "r", action: "steer", reason: "not_steerable" }])), ["[steer rejected] not_steerable"]);
   assert.deepEqual(render(at(0, [{ kind: "exited", code: 143 }])), ["[runtime exited: 143]"]);
 });
+
+test("renderer prints compaction, retry and app requests bracketed, and nothing for tool progress or answers", () => {
+  const render = renderAll(createProgressRenderer("pi"));
+  assert.deepEqual(render(at(0, [{ kind: "compaction_started", trigger: "threshold" }])), ["[compacting: threshold]"]);
+  assert.deepEqual(render(at(0, [{ kind: "compaction_ended", outcome: "completed", trigger: "manual" }])), ["[compacted]"]);
+  assert.deepEqual(render(at(0, [{ kind: "compaction_ended", outcome: "failed", reason: "boom" }])), ["[compaction failed] boom"]);
+  assert.deepEqual(render(at(0, [{ kind: "retry", attempt: 2, maxAttempts: 3, reason: "overloaded" }])), ["[retry 2/3] overloaded"]);
+  assert.deepEqual(render(at(0, [{ kind: "app_request", requestId: "p", type: "can_use_tool" }])), ["[waiting for app: can_use_tool]"]);
+  assert.deepEqual(render(at(0, [{ kind: "tool_call_progress", callId: "c", output: "x" }, { kind: "app_answered", requestId: "p" }])), []);
+});
