@@ -1,5 +1,8 @@
 # Kimi
 
+Independent inventories (2026-09-16): all three independent queries return unsupported on the selected interface. The separately probed Web API is not used.
+See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
+
 Evidence baseline: native source
 [`kimi-code` `f9ca33376`](https://github.com/MoonshotAI/kimi-code/tree/f9ca33376)
 (0.41.0, reviewed 2026-09-08). The checked-in

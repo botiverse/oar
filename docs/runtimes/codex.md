@@ -1,5 +1,8 @@
 # Codex
 
+Independent inventories (2026-09-16): skills/list and paginated mcpServerStatus/list; tools are explicitly MCP-only.
+See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
+
 Evidence baseline: OAR source as of 2026-09-11; native source pinned to
 [`4f39251a`][native-source] (2026-08-22); the app-server guide is rolling
 documentation. Live observations below come from **codex-cli 0.154.0**

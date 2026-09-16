@@ -1,3 +1,4 @@
+import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAccountUsage } from "./account-usage.js";
 import { codexInstallation } from "./installation.js";
@@ -6,6 +7,9 @@ import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
+  skills: codexSkills,
+  mcpServers: codexMcpServers,
+  tools: codexTools,
   installation: codexInstallation,
   accountUsage: codexAccountUsage,
   listModels: codexListModels,

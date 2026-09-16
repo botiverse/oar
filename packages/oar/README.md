@@ -80,3 +80,26 @@ HTTP quota endpoint. A native `rate_limits_available: false` becomes
 `quota_unavailable`; it does not prove invalid credentials. Older CLIs that
 reject the control request return `endpoint_unavailable`. Query-process session
 totals are not returned as account usage.
+
+## Native inventories
+
+Every runtime exposes `skills(installation, options?)`,
+`mcpServers(installation, options?)`, and `tools(installation, options?)`.
+Options are `{ cwd?: string, timeoutMs?: number }`; cwd defaults to
+`process.cwd()`. Queries independently discover native information and do not
+inspect an existing Session or submit a model prompt.
+
+Results distinguish `ok`, `unsupported`, and `unavailable`. Successful results
+contain `items`, `scope.cwd`, `observedAt`, `view`, and `partial`. A
+`mcp-only` view excludes built-in tools. Unknown schema or state fields stay
+absent, and an unsupported query never pretends to be an empty catalog.
+
+Codex and Claude expose skills and MCP discovery (tools are MCP-only); Grok
+exposes independent skills/MCP configuration discovery; Pi exposes skills and
+registered tools with active membership. Kimi inventory is unsupported on the
+selected transport. Native startup can load extensions and connect configured
+MCP servers.
+
+Custom runtimes should use `defineRuntime`, which fills unavailable inventory
+methods with explicit unsupported results. A manually constructed `Runtime`
+must implement the three methods.

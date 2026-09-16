@@ -1,5 +1,8 @@
 # Claude Code
 
+Independent inventories (2026-09-16): context skill frontmatter and mcp_status; tools are explicitly MCP-only, with bounded startup polling.
+See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
+
 Evidence baseline: OAR source as of 2026-09-11; official documentation is
 rolling. Live observations below come from **claude 2.1.268** (darwin arm64,
 haiku) through [`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)

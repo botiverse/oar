@@ -36,6 +36,7 @@ concurrent prompt queueing (no shipped runtime needs it; see
 
 | Read | To answer |
 |---|---|
+| [inventory.md](inventory.md) | Independent skills, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
 | [session-graph-and-cursor.md](session-graph-and-cursor.md) | What goes in the session graph, and how does resumable reading work? |

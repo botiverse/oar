@@ -15,8 +15,16 @@ const neverSession: Runtime["session"] = async () => {
   throw new Error("not exercised");
 };
 
+const noInventory = async () => ({
+  kind: "unsupported" as const,
+  code: "native_query_unavailable" as const,
+  reason: "not exercised",
+});
+const inventories = { skills: noInventory, mcpServers: noInventory, tools: noInventory };
+
 test("readModels reports unsupported when the runtime has no listModels", async () => {
   const runtime: Runtime = {
+    ...inventories,
     id: "bare",
     session: neverSession,
     installation: async () => {
@@ -33,6 +41,7 @@ test("readModels reports unsupported when the runtime has no listModels", async 
 
 test("readModels echoes the installation and null models when not available", async () => {
   const runtime: Runtime = {
+    ...inventories,
     id: "gone",
     session: neverSession,
     installation: async () => {
@@ -56,6 +65,7 @@ test("readModels echoes the installation and null models when not available", as
 test("readModels forwards the installation and timeout to listModels", async () => {
   const seen: unknown[] = [];
   const runtime: Runtime = {
+    ...inventories,
     id: "ok",
     session: neverSession,
     installation: async () => {

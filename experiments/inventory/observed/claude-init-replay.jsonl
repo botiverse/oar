@@ -1,0 +1,1 @@
+{"inventories": {"mcp_servers": {"count": 2, "itemTypes": ["dict"]}, "skills": {"count": 21, "itemTypes": ["str"]}, "tools": {"count": 25, "itemTypes": ["str"]}}, "runtime": "claude", "surface": "historical system/init replay", "version": "2.1.272"}

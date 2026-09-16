@@ -1,0 +1,13 @@
+{"runtime": "kimi", "surface": "version", "version": "0.42.0"}
+{"runtime": "kimi", "surface": "ACP initialize", "capabilities": {"loadSession": true, "promptCapabilities": {"image": true, "audio": false, "embeddedContext": true}, "sessionCapabilities": {"list": {}, "resume": {}, "close": {}, "delete": {}, "fork": {}, "additionalDirectories": {}}, "mcpCapabilities": {"http": true, "sse": true}, "auth": {"logout": {}}}}
+{"runtime": "kimi", "surface": "skills/list", "outcome": "rejected", "errorCode": -32601}
+{"runtime": "kimi", "surface": "tools/list", "outcome": "rejected", "errorCode": -32601}
+{"runtime": "kimi", "surface": "mcp/list", "outcome": "rejected", "errorCode": -32601}
+{"runtime": "kimi", "surface": "GET /api/v2/mcp/servers", "servers": {"count": 0, "fields": []}}
+{"runtime": "kimi", "surface": "GET /api/v2/mcp/auth-statuses?verify=false", "servers": {"count": 0, "fields": []}}
+{"runtime": "kimi", "surface": "POST /api/v1/sessions", "outcome": "created own empty probe session", "fields": ["agent_config", "archived", "busy", "created_at", "id", "last_seq", "main_turn_active", "message_count", "metadata", "pending_interaction", "permission_rules", "title", "updated_at", "usage", "workspace_id"]}
+{"runtime": "kimi", "surface": "GET /api/v1/sessions/{own-probe-id}/skills", "skills": {"count": 10, "fields": ["description", "disable_model_invocation", "name", "path", "source", "type"], "source": {"builtin": 9, "user": 1}, "descriptionPresent": 10}}
+{"runtime": "kimi", "surface": "GET /api/v1/tools?session_id={own-probe-id}", "tools": {"count": 27, "fields": ["active", "description", "input_schema", "name", "source"], "active": {"True": 27}, "source": {"builtin": 27}, "input_schemaPresent": 0, "descriptionPresent": 27}}
+{"runtime": "kimi", "surface": "GET /api/v1/mcp/servers", "scope": "native most-recent session selection, not a session-id parameter", "servers": {"count": 0, "fields": []}}
+{"runtime": "kimi", "surface": "GET /api/v1/workspaces/{workspace-id}/skills", "skills": {"count": 10, "fields": ["description", "disable_model_invocation", "name", "path", "source", "type"], "source": {"builtin": 9, "user": 1}, "descriptionPresent": 10}}
+{"runtime": "kimi", "surface": "cleanup own probe session", "responseFields": ["deleted"], "deleted": true}

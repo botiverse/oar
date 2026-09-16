@@ -1,3 +1,4 @@
+import { claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { claudeAccountUsage } from "./account-usage.js";
 import { claudeInstallation } from "./installation.js";
@@ -6,6 +7,10 @@ import { claudeSession } from "./session.js";
 
 export const claudeRuntime = defineRuntime({
   id: "claude",
+  skills: claudeSkills,
+  mcpServers: claudeMcpServers,
+  tools: claudeTools,
+
   installation: claudeInstallation,
   accountUsage: claudeAccountUsage,
   listModels: claudeListModels,

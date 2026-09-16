@@ -1,5 +1,8 @@
 # Grok runtime
 
+Independent inventories (2026-09-16): inspect --json skills and configured/compatibility MCP entries. Independent tools queries are unsupported; no ACP session is created.
+See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
+
 Evidence baseline: native source
 [`grok-build` `bc7f02e`](https://github.com/xai-org/grok-build/tree/bc7f02e)
 (Grok 1.0.12); the [wire snapshot](../../tests/replay/fixtures/grok-acp-v1.vendor.json)

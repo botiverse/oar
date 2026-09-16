@@ -1,5 +1,8 @@
 # Pi
 
+Independent inventories (2026-09-16): resource-loader skills and registered tools with parameter schemas and active membership. Core MCP discovery remains unsupported.
+See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
+
 Evidence baseline: OAR source as of 2026-09-11. Native references are pinned
 to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`), the version of the bundled

@@ -78,6 +78,31 @@ program
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 
+for (const [command, method] of [["skills", "skills"], ["mcps", "mcpServers"], ["tools", "tools"]] as const) {
+  program.command(`${command  } [runtime]`)
+    .description(`Query native ${  command  } inventory for a working directory (JSON)`)
+    .option("--cwd <directory>", "working directory; defaults to process.cwd()")
+    .option("--timeout <ms>", "per-runtime timeout in milliseconds")
+    .action(async (id: string | undefined, flags: { cwd?: string; timeout?: string }) => {
+      const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
+      if (timeoutMs !== undefined && (!Number.isInteger(timeoutMs) || timeoutMs <= 0)) {
+        program.error("--timeout must be a positive integer");
+      }
+      const options = {
+        ...(flags.cwd === undefined ? {} : { cwd: flags.cwd }),
+        ...(timeoutMs === undefined ? {} : { timeoutMs }),
+      };
+      const results = await Promise.all(selected(id).map(async (runtime) => {
+        const installation = await runtime.installation?.();
+        if (installation?.kind !== "available") {
+          return { runtimeId: runtime.id, installation: installation ?? null, inventory: null };
+        }
+        return { runtimeId: runtime.id, inventory: await runtime[method](installation, options) };
+      }));
+      process.stdout.write(`${JSON.stringify(results, null, 2)  }\n`);
+    });
+}
+
 program
   .command("models [runtime]")
   .description("List models each available installation can run right now")

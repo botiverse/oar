@@ -59,6 +59,7 @@ export function startAppServerClient(
   command: string,
   env?: Readonly<Record<string, string>>,
   configOverrides: Readonly<Record<string, string>> = {},
+  cwd?: string,
 ): AppServerClient {
   // -c KEY=VALUE injects config at launch. This is the ONLY seam that reaches
   // codex's exec tool: thread/start.sandboxMode does not (pinned on a real
@@ -67,7 +68,7 @@ export function startAppServerClient(
   const child = spawnLineProcess(
     command,
     ["app-server", ...overrideArgs, "--listen", "stdio://"],
-    env === undefined ? {} : { env: { ...process.env, ...env } },
+    { ...(cwd === undefined ? {} : { cwd }), ...(env === undefined ? {} : { env: { ...process.env, ...env } }) },
   );
   const pending = new Map<number, Pending>();
   // Inbound frames and marks share one queue until `handle` registers the

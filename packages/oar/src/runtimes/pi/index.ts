@@ -1,3 +1,4 @@
+import { piSkills, piTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { piInstallation } from "./installation.js";
 import { piListModels } from "./list-models.js";
@@ -10,6 +11,8 @@ import { piSession } from "./session.js";
  */
 export const piRuntime = defineRuntime({
   id: "pi",
+  skills: piSkills,
+  tools: piTools,
   installation: piInstallation,
   listModels: piListModels,
   session: piSession,

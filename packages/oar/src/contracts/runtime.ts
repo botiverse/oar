@@ -1,10 +1,11 @@
+import type { InventoryResult, RuntimeInventories } from "./inventory.js";
 import type { AccountUsageReader } from "./account-usage.js";
 import type { InstallationProbe } from "./installation.js";
 import type { ModelLister } from "./list-models.js";
 import type { StartSession } from "./session.js";
 
 /** One provider-independent runtime adoption unit. */
-export interface Runtime {
+export interface Runtime extends RuntimeInventories {
   readonly id: string;
   readonly session: StartSession; // the core capability: a runtime without sessions is not usable
   readonly installation?: InstallationProbe;
@@ -12,6 +13,15 @@ export interface Runtime {
   readonly listModels?: ModelLister;
 }
 
-export function defineRuntime<const T extends Runtime>(runtime: T): T {
-  return runtime;
+async function unsupported(): Promise<InventoryResult<never>> {
+  await Promise.resolve();
+  return {
+    kind: "unsupported",
+    code: "transport_unavailable",
+    reason: "The selected runtime interface does not expose this inventory",
+  };
+}
+
+export function defineRuntime<const T extends Omit<Runtime, keyof RuntimeInventories> & Partial<RuntimeInventories>>(runtime: T): T & RuntimeInventories {
+  return { skills: unsupported, mcpServers: unsupported, tools: unsupported, ...runtime };
 }

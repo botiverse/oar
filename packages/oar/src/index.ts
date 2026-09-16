@@ -5,6 +5,8 @@ import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
 
+export type { InventoryScope, InventoryOptions, SkillEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./contracts/inventory.js";
+
 export type {
   AccountUsageUnsupportedReason,
   AccountUsageReauthReason,

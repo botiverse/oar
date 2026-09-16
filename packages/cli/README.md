@@ -87,3 +87,21 @@ or read the same format as consumers.
 All timestamps are Unix epoch milliseconds on the same clock as each
 record's `receivedAt`. Lines are written synchronously in arrival order, so
 a crashed run still leaves a readable prefix.
+
+
+## Native inventories
+
+```sh
+oar skills codex --cwd /path/to/project
+oar mcps claude --cwd /path/to/project --timeout 15000
+oar tools pi
+```
+
+Each command prints JSON. Omit the runtime to query all runtimes. The directory
+defaults to the current working directory. These are independent discovery
+queries; no existing agent is inspected. Check `kind`, `view` and `partial`
+before displaying results: `mcp-only` excludes built-in tools, unsupported
+queries are not empty lists, and a pending/failed MCP connection can produce a
+partial catalog. Native startup can load extensions and connect configured MCP
+servers; no model prompt is sent.
+See the [inventory contract](../../docs/spec/inventory.md).

@@ -12,6 +12,9 @@ not an OAR backend or prospective consumer.
 
 ## Pages
 
+Cross-runtime investigation: [native skills, MCP and tools inventories](inventory.md)
+(local probes, 2026-09-16).
+
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|
 | [Claude Code](claude.md) | CLI print mode, bidirectional `stream-json` | Persistent conversations, user turns versus model steps, input delivery, native children, usage |
