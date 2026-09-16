@@ -10,7 +10,55 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 
 ## Supported runtimes
 
-Claude Code, Codex, Grok Build, Kimi Code, Pi
+<table>
+  <tr>
+    <td align="center" width="112">
+      <a href="docs/runtimes/claude.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/claude.svg">
+          <img src="packages/oar/assets/brands/claude.svg" width="32" height="32" alt="">
+        </picture><br>
+        Claude Code
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/codex.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/codex-on-dark.svg">
+          <img src="packages/oar/assets/brands/codex-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Codex
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/grok.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/grok-on-dark.svg">
+          <img src="packages/oar/assets/brands/grok-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Grok Build
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/kimi.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/kimi-on-dark.svg">
+          <img src="packages/oar/assets/brands/kimi-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Kimi Code
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/pi.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/pi-on-dark.svg">
+          <img src="packages/oar/assets/brands/pi-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Pi
+      </a>
+    </td>
+  </tr>
+</table>
 
 ## Docs
 
