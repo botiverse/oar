@@ -133,3 +133,8 @@ it; replace stale conclusions rather than building a chronological diary.
 Adding a runtime page updates this index and the root knowledge index.
 Follow the [development workflow](../development.md) for implementation and
 validation. These pages inform that work; they do not replace its tests.
+
+## Input cancellation
+
+[Steer, queue and cancellation](input-cancellation.md) compares native surfaces,
+adapter-owned queues, abort semantics and the remaining verification gaps.

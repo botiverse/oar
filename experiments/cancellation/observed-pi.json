@@ -1,0 +1,8 @@
+{
+  "version": "0.84.2",
+  "mode": "installed SDK methods with mock receiver; no live turn",
+  "abortClearsQueues": false,
+  "clearQueueScope": "all steering and followUp",
+  "returnsRemovedMessages": true,
+  "preservesDuplicateEntries": true
+}

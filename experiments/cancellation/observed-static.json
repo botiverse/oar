@@ -1,0 +1,155 @@
+{
+  "date": "2026-09-16",
+  "mode": "offline-static; no behavioral guarantee from markers",
+  "runtimes": {
+    "codex": {
+      "version": "codex-cli 0.154.0",
+      "schemas": {
+        "ThreadQueueAddResponse": {
+          "required": [
+            "queuedSubmission"
+          ],
+          "properties": {
+            "queuedSubmission": {
+              "$ref": "#/definitions/QueuedSubmission"
+            }
+          }
+        },
+        "ThreadQueueDeleteParams": {
+          "required": [
+            "queuedSubmissionId",
+            "threadId"
+          ],
+          "properties": {
+            "queuedSubmissionId": {
+              "type": "string"
+            },
+            "threadId": {
+              "type": "string"
+            }
+          }
+        },
+        "ThreadQueueDeleteResponse": {
+          "required": [
+            "deleted"
+          ],
+          "properties": {
+            "deleted": {
+              "type": "boolean"
+            }
+          }
+        },
+        "TurnSteerParams": {
+          "required": [
+            "expectedTurnId",
+            "input",
+            "threadId"
+          ],
+          "properties": {
+            "additionalContext": {
+              "additionalProperties": {
+                "$ref": "#/definitions/AdditionalContextEntry"
+              },
+              "description": "Optional client-provided context fragments keyed by an opaque source identifier.",
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "clientUserMessageId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "expectedTurnId": {
+              "description": "Required active turn id precondition. The request fails when it does not match the currently active turn.",
+              "type": "string"
+            },
+            "input": {
+              "items": {
+                "$ref": "#/definitions/UserInput"
+              },
+              "type": "array"
+            },
+            "responsesapiClientMetadata": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Optional metadata to enrich Codex's ResponsesAPI turn metadata.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+              "type": [
+                "object",
+                "null"
+              ]
+            },
+            "threadId": {
+              "type": "string"
+            }
+          }
+        },
+        "TurnSteerResponse": {
+          "required": [
+            "turnId"
+          ],
+          "properties": {
+            "turnId": {
+              "type": "string"
+            }
+          }
+        },
+        "TurnInterruptParams": {
+          "required": [
+            "threadId",
+            "turnId"
+          ],
+          "properties": {
+            "threadId": {
+              "type": "string"
+            },
+            "turnId": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "claude": {
+      "version": "2.1.273 (Claude Code)",
+      "sha256": "953e9880dbcb0b70f31c1f508de6a3fd389753d131688557fd992da9184693fb",
+      "markers": {
+        "control_cancel_request": 71508228,
+        "cancel_queued": 71292138,
+        "cancelQueued": 79691069,
+        "interrupt_cancel_queued_v1": 71292128,
+        "interrupt_receipt_v1": 71292076,
+        "msg_lifecycle_v1": 71292104
+      }
+    },
+    "grok": {
+      "version": "grok 1.0.30 (04b7ffed98c6)",
+      "sha256": "d53b6e543e482716236748914331db50145c696ac7af91f1ebdedcf5654cfecb",
+      "markers": {
+        "x.ai/queue/remove": 115250827,
+        "x.ai/queue/clear": 115108192,
+        "x.ai/queue/edit": 115253472,
+        "x.ai/queue/hold_edit": 115254954,
+        "x.ai/queue/release_edit": 115254851,
+        "x.ai/queue/reorder": 115255491,
+        "target_prompt_id": 115108512,
+        "removedFromQueue": 115108528,
+        "session/cancel": 108743170
+      }
+    },
+    "kimi": {
+      "version": "0.42.0",
+      "sha256": "d764fdef26f1bb108cc74c7fbb40fdbe23f67d8c507cf93a2f9faa4dffb9f8df",
+      "markers": {
+        "session/cancel": 104596952,
+        "async cancel(params)": 92688526,
+        "acpSession.cancel()": 104825875,
+        "this.agent.cancel({ turnId })": 104807874,
+        "driver.cancelRequested = true": 104807610
+      }
+    }
+  }
+}
