@@ -1,0 +1,74 @@
+{
+  "runtime": "claude",
+  "outcome": {
+    "kind": "completed"
+  },
+  "steerResponse": {
+    "kind": "accepted"
+  },
+  "steerSeq": 4,
+  "requests": [
+    {
+      "index": 0,
+      "markerInMessages": false
+    },
+    {
+      "index": 1,
+      "markerInMessages": true
+    }
+  ],
+  "timeline": [
+    {
+      "seq": 0,
+      "kind": "request"
+    },
+    {
+      "seq": 1,
+      "kind": "response",
+      "native": {
+        "kind": "accepted"
+      }
+    },
+    {
+      "seq": 2,
+      "kind": "frame",
+      "type": "system/init"
+    },
+    {
+      "seq": 3,
+      "kind": "frame",
+      "type": "assistant"
+    },
+    {
+      "seq": 4,
+      "kind": "request",
+      "marker": true,
+      "native": {
+        "kind": "steer",
+        "input": "OAR_STEER_DELIVERY_7C92"
+      }
+    },
+    {
+      "seq": 5,
+      "kind": "response",
+      "native": {
+        "kind": "accepted"
+      }
+    },
+    {
+      "seq": 6,
+      "kind": "frame",
+      "type": "user"
+    },
+    {
+      "seq": 7,
+      "kind": "frame",
+      "type": "assistant"
+    },
+    {
+      "seq": 8,
+      "kind": "frame",
+      "type": "result/success"
+    }
+  ]
+}

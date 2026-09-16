@@ -1,0 +1,236 @@
+{
+  "runtime": "pi",
+  "outcome": {
+    "kind": "completed"
+  },
+  "steerResponse": {
+    "kind": "accepted"
+  },
+  "steerSeq": 14,
+  "requests": [
+    {
+      "index": 0,
+      "markerInMessages": false
+    },
+    {
+      "index": 1,
+      "markerInMessages": true
+    }
+  ],
+  "timeline": [
+    {
+      "seq": 1,
+      "kind": "request"
+    },
+    {
+      "seq": 2,
+      "kind": "frame",
+      "type": "agent_start"
+    },
+    {
+      "seq": 3,
+      "kind": "frame",
+      "type": "turn_start"
+    },
+    {
+      "seq": 4,
+      "kind": "response",
+      "native": {
+        "kind": "accepted"
+      }
+    },
+    {
+      "seq": 5,
+      "kind": "frame",
+      "type": "message_start"
+    },
+    {
+      "seq": 6,
+      "kind": "frame",
+      "type": "message_end"
+    },
+    {
+      "seq": 7,
+      "kind": "frame",
+      "type": "message_start"
+    },
+    {
+      "seq": 8,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 9,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 10,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 11,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 12,
+      "kind": "frame",
+      "type": "message_end"
+    },
+    {
+      "seq": 13,
+      "kind": "frame",
+      "type": "tool_execution_start"
+    },
+    {
+      "seq": 14,
+      "kind": "request",
+      "marker": true,
+      "native": {
+        "kind": "steer",
+        "input": "OAR_STEER_DELIVERY_7C92"
+      }
+    },
+    {
+      "seq": 15,
+      "kind": "frame",
+      "type": "queue_update",
+      "marker": true,
+      "native": {
+        "type": "queue_update",
+        "steering": [
+          "OAR_STEER_DELIVERY_7C92"
+        ],
+        "followUp": []
+      }
+    },
+    {
+      "seq": 16,
+      "kind": "response",
+      "native": {
+        "kind": "accepted"
+      }
+    },
+    {
+      "seq": 17,
+      "kind": "frame",
+      "type": "tool_execution_update"
+    },
+    {
+      "seq": 18,
+      "kind": "frame",
+      "type": "tool_execution_update"
+    },
+    {
+      "seq": 19,
+      "kind": "frame",
+      "type": "tool_execution_end"
+    },
+    {
+      "seq": 20,
+      "kind": "frame",
+      "type": "message_start"
+    },
+    {
+      "seq": 21,
+      "kind": "frame",
+      "type": "message_end"
+    },
+    {
+      "seq": 22,
+      "kind": "frame",
+      "type": "turn_end"
+    },
+    {
+      "seq": 23,
+      "kind": "frame",
+      "type": "turn_start"
+    },
+    {
+      "seq": 24,
+      "kind": "frame",
+      "type": "queue_update"
+    },
+    {
+      "seq": 25,
+      "kind": "frame",
+      "type": "message_start",
+      "marker": true,
+      "native": {
+        "type": "message_start",
+        "message": {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "OAR_STEER_DELIVERY_7C92"
+            }
+          ],
+          "timestamp": 1789573850711
+        }
+      }
+    },
+    {
+      "seq": 26,
+      "kind": "frame",
+      "type": "message_end",
+      "marker": true,
+      "native": {
+        "type": "message_end",
+        "message": {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "OAR_STEER_DELIVERY_7C92"
+            }
+          ],
+          "timestamp": 1789573850711
+        }
+      }
+    },
+    {
+      "seq": 27,
+      "kind": "frame",
+      "type": "message_start"
+    },
+    {
+      "seq": 28,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 29,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 30,
+      "kind": "frame",
+      "type": "message_update"
+    },
+    {
+      "seq": 31,
+      "kind": "frame",
+      "type": "message_end"
+    },
+    {
+      "seq": 32,
+      "kind": "frame",
+      "type": "turn_end"
+    },
+    {
+      "seq": 33,
+      "kind": "frame",
+      "type": "agent_end",
+      "marker": true
+    },
+    {
+      "seq": 34,
+      "kind": "frame",
+      "type": "agent_settled"
+    }
+  ]
+}

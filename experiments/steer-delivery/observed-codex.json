@@ -1,0 +1,296 @@
+{
+  "runtime": "codex",
+  "outcome": {
+    "kind": "completed"
+  },
+  "steerResponse": {
+    "kind": "accepted",
+    "native": {
+      "turnId": "01a0aae9-e176-7740-a156-b232bed8b2df"
+    }
+  },
+  "steerSeq": 19,
+  "requests": [
+    {
+      "index": 0,
+      "markerInMessages": false
+    },
+    {
+      "index": 1,
+      "markerInMessages": true
+    }
+  ],
+  "timeline": [
+    {
+      "seq": 3,
+      "kind": "request"
+    },
+    {
+      "seq": 4,
+      "kind": "frame",
+      "type": "warning"
+    },
+    {
+      "seq": 5,
+      "kind": "response",
+      "native": {
+        "kind": "accepted",
+        "native": {
+          "turn": {
+            "id": "01a0aae9-e176-7740-a156-b232bed8b2df",
+            "items": [],
+            "itemsView": "notLoaded",
+            "status": "inProgress",
+            "error": null,
+            "startedAt": null,
+            "completedAt": null,
+            "durationMs": null
+          }
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "kind": "frame",
+      "type": "thread/status/changed"
+    },
+    {
+      "seq": 7,
+      "kind": "frame",
+      "type": "turn/started"
+    },
+    {
+      "seq": 8,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 9,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 10,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 11,
+      "kind": "frame",
+      "type": "item/started"
+    },
+    {
+      "seq": 12,
+      "kind": "frame",
+      "type": "item/completed"
+    },
+    {
+      "seq": 13,
+      "kind": "frame",
+      "type": "item/started"
+    },
+    {
+      "seq": 14,
+      "kind": "frame",
+      "type": "item/completed"
+    },
+    {
+      "seq": 15,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 16,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 17,
+      "kind": "frame",
+      "type": "rawResponse/completed"
+    },
+    {
+      "seq": 18,
+      "kind": "frame",
+      "type": "item/started"
+    },
+    {
+      "seq": 19,
+      "kind": "request",
+      "marker": true,
+      "native": {
+        "kind": "steer",
+        "input": "OAR_STEER_DELIVERY_7C92"
+      }
+    },
+    {
+      "seq": 20,
+      "kind": "response",
+      "native": {
+        "kind": "accepted",
+        "native": {
+          "turnId": "01a0aae9-e176-7740-a156-b232bed8b2df"
+        }
+      }
+    },
+    {
+      "seq": 21,
+      "kind": "frame",
+      "type": "item/commandExecution/outputDelta"
+    },
+    {
+      "seq": 22,
+      "kind": "frame",
+      "type": "item/completed"
+    },
+    {
+      "seq": 23,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 24,
+      "kind": "frame",
+      "type": "thread/tokenUsage/updated"
+    },
+    {
+      "seq": 25,
+      "kind": "frame",
+      "type": "account/rateLimits/updated"
+    },
+    {
+      "seq": 26,
+      "kind": "frame",
+      "type": "rawResponseItem/completed",
+      "marker": true,
+      "native": {
+        "threadId": "01a0aae9-e11e-7053-a8dd-37a9f962b076",
+        "turnId": "01a0aae9-e176-7740-a156-b232bed8b2df",
+        "item": {
+          "type": "message",
+          "id": "msg_01a0aae9-eb07-75b0-9b29-8049b1e58819",
+          "role": "user",
+          "content": [
+            {
+              "type": "input_text",
+              "text": "OAR_STEER_DELIVERY_7C92"
+            }
+          ],
+          "internal_chat_message_metadata_passthrough": {
+            "turn_id": "01a0aae9-e176-7740-a156-b232bed8b2df",
+            "create_time": 1789573851.911819,
+            "content_item_kinds": [
+              "user.text"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "seq": 27,
+      "kind": "frame",
+      "type": "item/started",
+      "marker": true,
+      "native": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a0aae9-eb08-74d0-8357-9810ba5728b0",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "OAR_STEER_DELIVERY_7C92",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a0aae9-e11e-7053-a8dd-37a9f962b076",
+        "turnId": "01a0aae9-e176-7740-a156-b232bed8b2df",
+        "startedAtMs": 1789573851912
+      }
+    },
+    {
+      "seq": 28,
+      "kind": "frame",
+      "type": "item/completed",
+      "marker": true,
+      "native": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a0aae9-eb08-74d0-8357-9810ba5728b0",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "OAR_STEER_DELIVERY_7C92",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a0aae9-e11e-7053-a8dd-37a9f962b076",
+        "turnId": "01a0aae9-e176-7740-a156-b232bed8b2df",
+        "completedAtMs": 1789573851912
+      }
+    },
+    {
+      "seq": 29,
+      "kind": "frame",
+      "type": "item/started"
+    },
+    {
+      "seq": 30,
+      "kind": "frame",
+      "type": "item/completed"
+    },
+    {
+      "seq": 31,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 32,
+      "kind": "frame",
+      "type": "item/started"
+    },
+    {
+      "seq": 33,
+      "kind": "frame",
+      "type": "item/agentMessage/delta"
+    },
+    {
+      "seq": 34,
+      "kind": "frame",
+      "type": "item/completed"
+    },
+    {
+      "seq": 35,
+      "kind": "frame",
+      "type": "rawResponseItem/completed"
+    },
+    {
+      "seq": 36,
+      "kind": "frame",
+      "type": "rawResponse/completed"
+    },
+    {
+      "seq": 37,
+      "kind": "frame",
+      "type": "thread/tokenUsage/updated"
+    },
+    {
+      "seq": 38,
+      "kind": "frame",
+      "type": "account/rateLimits/updated"
+    },
+    {
+      "seq": 39,
+      "kind": "frame",
+      "type": "thread/status/changed"
+    },
+    {
+      "seq": 40,
+      "kind": "frame",
+      "type": "turn/completed"
+    }
+  ]
+}

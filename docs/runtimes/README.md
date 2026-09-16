@@ -138,3 +138,6 @@ validation. These pages inform that work; they do not replace its tests.
 
 [Steer, queue and cancellation](input-cancellation.md) compares native surfaces,
 adapter-owned queues, abort semantics and the remaining verification gaps.
+
+[Steer delivery and conversation reconstruction](steer-delivery.md) records
+request/response shapes, native identity probes and proposed consumer support.

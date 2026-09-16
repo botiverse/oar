@@ -1,0 +1,70 @@
+{
+  "runtime": "claude",
+  "inputId": "11111111-2222-4333-8444-555555555555",
+  "sent": true,
+  "provider": [
+    false,
+    true
+  ],
+  "frames": [
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "run the tool"
+          }
+        ]
+      },
+      "session_id": "b212b508-913d-4819-9a04-35ef1365ecc5",
+      "parent_tool_use_id": null,
+      "uuid": "68ddeb9f-9a79-4f88-8c4e-c8166d9b2ccc",
+      "timestamp": "2026-09-16T15:50:02.699Z",
+      "isReplay": true
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_B0ssOoeifa4CcVCz",
+            "type": "tool_result",
+            "content": "boundary",
+            "is_error": false
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "b212b508-913d-4819-9a04-35ef1365ecc5",
+      "uuid": "c1f412ca-43da-4fe0-bc73-4210cb7f1a55",
+      "timestamp": "2026-09-16T15:50:06.024Z",
+      "tool_use_result": {
+        "stdout": "boundary",
+        "stderr": "",
+        "interrupted": false,
+        "isImage": false,
+        "noOutputExpected": false
+      }
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "OAR_NATIVE_STEER_ID_7C92"
+          }
+        ]
+      },
+      "session_id": "b212b508-913d-4819-9a04-35ef1365ecc5",
+      "parent_tool_use_id": null,
+      "uuid": "11111111-2222-4333-8444-555555555555",
+      "timestamp": "2026-09-16T15:50:02.849Z",
+      "isReplay": true
+    }
+  ]
+}

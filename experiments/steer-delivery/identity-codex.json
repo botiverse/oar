@@ -1,0 +1,86 @@
+{
+  "runtime": "codex",
+  "inputId": "11111111-2222-4333-8444-555555555555",
+  "sent": true,
+  "reply": {
+    "turnId": "01a0aae9-27a9-79e3-8d0a-1119a95486fc"
+  },
+  "provider": [
+    false,
+    true
+  ],
+  "frames": [
+    {
+      "method": "item/started",
+      "item": {
+        "type": "userMessage",
+        "id": "01a0aae9-27df-7201-9bd5-3c75e875be93",
+        "clientId": null,
+        "content": [
+          {
+            "type": "text",
+            "text": "run the tool",
+            "text_elements": []
+          }
+        ]
+      },
+      "threadId": "01a0aae9-277f-7763-8afe-242ac3ca75bb",
+      "turnId": "01a0aae9-27a9-79e3-8d0a-1119a95486fc",
+      "startedAtMs": 1789573801951
+    },
+    {
+      "method": "item/completed",
+      "item": {
+        "type": "userMessage",
+        "id": "01a0aae9-27df-7201-9bd5-3c75e875be93",
+        "clientId": null,
+        "content": [
+          {
+            "type": "text",
+            "text": "run the tool",
+            "text_elements": []
+          }
+        ]
+      },
+      "threadId": "01a0aae9-277f-7763-8afe-242ac3ca75bb",
+      "turnId": "01a0aae9-27a9-79e3-8d0a-1119a95486fc",
+      "completedAtMs": 1789573801951
+    },
+    {
+      "method": "item/started",
+      "item": {
+        "type": "userMessage",
+        "id": "01a0aae9-3038-79f1-b273-9e4956433a38",
+        "clientId": "11111111-2222-4333-8444-555555555555",
+        "content": [
+          {
+            "type": "text",
+            "text": "OAR_NATIVE_STEER_ID_7C92",
+            "text_elements": []
+          }
+        ]
+      },
+      "threadId": "01a0aae9-277f-7763-8afe-242ac3ca75bb",
+      "turnId": "01a0aae9-27a9-79e3-8d0a-1119a95486fc",
+      "startedAtMs": 1789573804088
+    },
+    {
+      "method": "item/completed",
+      "item": {
+        "type": "userMessage",
+        "id": "01a0aae9-3038-79f1-b273-9e4956433a38",
+        "clientId": "11111111-2222-4333-8444-555555555555",
+        "content": [
+          {
+            "type": "text",
+            "text": "OAR_NATIVE_STEER_ID_7C92",
+            "text_elements": []
+          }
+        ]
+      },
+      "threadId": "01a0aae9-277f-7763-8afe-242ac3ca75bb",
+      "turnId": "01a0aae9-27a9-79e3-8d0a-1119a95486fc",
+      "completedAtMs": 1789573804088
+    }
+  ]
+}
