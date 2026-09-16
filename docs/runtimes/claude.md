@@ -220,9 +220,16 @@ to the child process; `CLAUDECODE` is cleared before applying that overlay.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts).
 
 Installation checks `OAR_CLAUDE_BIN`/PATH. Account usage is separate from session
-context: the reader uses auth status and persisted profile-scoped OAuth
-credentials for subscription windows. Inference credentials alone do not imply
-account-usage access. Login management is **not exposed**.
+context: the reader sends native stream-json `initialize` and `get_usage`
+(`skip_behaviors: true`) control requests without a prompt. It reads neither
+credential files nor Keychain and makes no direct provider HTTP requests.
+`rate_limits_available: false` maps to `unsupported/quota_unavailable` without
+guessing an authentication cause; unsupported control requests map to
+`unsupported/endpoint_unavailable`. Available replies map native five-hour,
+weekly, model-scoped and enabled extra-usage windows. The new process's session
+totals are not account usage and are not exposed here. The native API is
+experimental (verified on 2.1.273); older versions can lack it. Login management
+is **not exposed**.
 [Installation](../../packages/oar/src/runtimes/claude/installation.ts),
 [account usage](../../packages/oar/src/runtimes/claude/account-usage.ts).
 

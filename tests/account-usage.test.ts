@@ -1,8 +1,4 @@
 import { expect, test } from "vitest";
-import {
-  claudeAccountPlan,
-  projectClaudeUsage,
-} from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { accountEmail, projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
 import {
   grokAccountEmail,
@@ -123,39 +119,6 @@ test("codex projection merges an extra-only indexed view", () => {
   `);
 });
 
-test("claude projection maps the usage endpoint's limits array", () => {
-  const snapshot = projectClaudeUsage({
-    limits: [
-      { kind: "session", percent: 7, severity: "normal", resets_at: "2026-08-22T09:59:00.000Z", scope: null },
-      { kind: "weekly_all", percent: 14, severity: "normal", resets_at: "2026-08-28T06:59:00.000Z", scope: null },
-      { kind: "weekly_scoped", percent: 100, severity: "critical", resets_at: null,
-        scope: { model: { display_name: "Fable" } } },
-    ],
-  });
-  expect(snapshot).toMatchInlineSnapshot(`
-    {
-      "kind": "available",
-      "rateLimited": true,
-      "windows": [
-        {
-          "label": "Current session",
-          "resetsAt": "2026-08-22T09:59:00.000Z",
-          "usedRatio": 0.07,
-        },
-        {
-          "label": "Current week (all models)",
-          "resetsAt": "2026-08-28T06:59:00.000Z",
-          "usedRatio": 0.14,
-        },
-        {
-          "label": "Current week (Fable)",
-          "usedRatio": 1,
-        },
-      ],
-    }
-  `);
-});
-
 test("codex projection includes the account email when supplied", () => {
   const snapshot = projectCodexUsage(
     { rateLimits: { planType: "pro", primary: { usedPercent: 10, windowDurationMins: 300 } } },
@@ -171,32 +134,6 @@ test("codex accountEmail accepts only a chatgpt account", () => {
     .toBeUndefined();
   expect(accountEmail({ account: { type: "chatgpt", email: 42 } })).toBeUndefined();
   expect(accountEmail({})).toBeUndefined();
-});
-
-test("claude projection includes the account identity when supplied", () => {
-  const snapshot = projectClaudeUsage(
-    { limits: [{ kind: "weekly_scoped", percent: 22, severity: "normal", resets_at: null,
-      scope: { model: { display_name: "Fable" } } }] },
-    "person@example.com",
-    "max",
-  );
-  expect(snapshot).toMatchObject({
-    kind: "available",
-    email: "person@example.com",
-    plan: "max",
-  });
-});
-
-test("claude account plan accepts only an explicit confirmed-login tier", () => {
-  expect(claudeAccountPlan({ loggedIn: true, subscriptionType: " max " })).toBe("max");
-  expect(claudeAccountPlan({ loggedIn: false, subscriptionType: "max" })).toBeUndefined();
-  expect(claudeAccountPlan({ loggedIn: true, subscriptionType: "" })).toBeUndefined();
-  expect(claudeAccountPlan({ loggedIn: true, subscriptionType: 42 })).toBeUndefined();
-});
-
-test("claude projection throws when the endpoint reports no limits", () => {
-  expect(() => projectClaudeUsage({ limits: [] })).toThrow(/no usable windows/u);
-  expect(() => projectClaudeUsage({})).toThrow(/no usable windows/u);
 });
 
 test("grok projection preserves the vendor billing window and authenticated email", () => {

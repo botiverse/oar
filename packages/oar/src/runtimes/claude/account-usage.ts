@@ -1,239 +1,156 @@
-import { readFileSync } from "node:fs";
-import { homedir, platform } from "node:os";
-import { join } from "node:path";
-import type {
-  AccountUsageReader,
-  AccountUsageSnapshot,
-  AccountUsageWindow,
-  UtcInstant,
-} from "../../contracts/account-usage.js";
-import { runExecutable } from "../../shared/executable/index.js";
+import { randomUUID } from "node:crypto";
+import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
+import { spawnLineProcess } from "../../shared/executable/index.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
-import { asNumber, asRecord, parseJson } from "../../shared/json.js";
+import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 
-const USAGE_ENDPOINT = "https://api.anthropic.com/api/oauth/usage";
-// The structured usage endpoint is gated behind the OAuth beta and requires a
-// full `/login` token carrying the `user:profile` scope. Inference-only tokens
-// (env CLAUDE_CODE_OAUTH_TOKEN / injected FDs) lack that scope, so this reader
-// only consults the persisted login credential.
-const OAUTH_BETA = "oauth-2025-04-20";
-const PROFILE_SCOPE = "user:profile";
-
-interface StoredOAuth {
-  readonly accessToken: string;
-  readonly hasProfileScope: boolean;
-}
-
-function parseStoredOAuth(raw: string): StoredOAuth | null {
-  const oauth = asRecord(asRecord(parseJson(raw))?.claudeAiOauth);
-  const accessToken = oauth?.accessToken;
-  if (typeof accessToken !== "string" || accessToken.length === 0) {
+function windowOf(label: string, value: unknown): AccountUsageWindow | null {
+  const entry = asRecord(value);
+  const percent = asNumber(entry?.utilization);
+  if (percent === null || percent < 0) {
     return null;
   }
-  const scopes = oauth?.scopes;
-  const hasProfileScope = Array.isArray(scopes) && scopes.includes(PROFILE_SCOPE);
-  return { accessToken, hasProfileScope };
+  const reset = typeof entry?.resets_at === "string" ? utcInstantFromDate(new Date(entry.resets_at)) : null;
+  return {
+    label,
+    usedRatio: Math.min(1, Number((percent / 100).toFixed(6))),
+    ...(reset === null ? {} : { resetsAt: reset }),
+  };
 }
 
-function credentialsFilePath(): string {
-  const base = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-  return join(base, ".credentials.json");
-}
-
-/**
- * Read Claude Code's persisted `/login` OAuth credential, mirroring the
- * `getClaudeAIOAuthTokens()` fallback: the plaintext credentials file (Linux,
- * and the macOS/Windows fallback), then the macOS Keychain, which stores the
- * same JSON blob. Any failure degrades to `null`; never throws.
- */
-async function readStoredOAuth(timeoutMs: number): Promise<StoredOAuth | null> {
-  try {
-    return parseStoredOAuth(readFileSync(credentialsFilePath(), "utf8"));
-  } catch {
-    // No file (or unreadable): fall through to the platform keystore.
+/** Native get_usage reply, not the HTTP endpoint's unrelated limits[] shape. */
+export function projectClaudeUsage(payload: unknown, email?: string): AccountUsageSnapshot {
+  const root = asRecord(payload);
+  if (root?.rate_limits_available === false) {
+    // The CLI does not distinguish auth mode, missing scope, etc. here.
+    return { kind: "unsupported", reason: "quota_unavailable" };
   }
-  if (platform() === "darwin") {
-    const keychain = await runExecutable(
-      "security",
-      ["find-generic-password", "-w", "-s", "Claude Code-credentials"],
-      { timeoutMs },
-    );
-    if (keychain.ok) {
-      try {
-        return parseStoredOAuth(keychain.stdout);
-      } catch {
-        return null;
-      }
-    }
+  if (root?.rate_limits_available !== true) {
+    throw new Error("Claude get_usage returned an invalid availability flag");
   }
-  return null;
-}
-
-function usageWindowLabel(kind: unknown, scope: Record<string, unknown> | null): string {
-  const modelName = asRecord(scope?.model)?.display_name;
-  switch (kind) {
-    case "session":
-      return "Current session";
-    case "weekly_all":
-      return "Current week (all models)";
-    case "weekly_scoped":
-      return typeof modelName === "string" ? `Current week (${modelName})` : "Current week";
-    default:
-      return typeof kind === "string" && kind.length > 0 ? kind : "Usage limit";
+  const limits = asRecord(root.rate_limits);
+  if (limits === null) {
+    // Available in principle, but the runtime could not supply a snapshot.
+    throw new Error("Claude get_usage did not return account rate limits");
   }
-}
-
-async function fetchUsage(accessToken: string, version: string, timeoutMs: number): Promise<Response> {
-  try {
-    return await fetch(USAGE_ENDPOINT, {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "anthropic-beta": OAUTH_BETA,
-        "Content-Type": "application/json",
-        "User-Agent": `claude-code/${version}`,
-      },
-      signal: AbortSignal.timeout(Math.min(timeoutMs, 5000)),
-    });
-  } catch (error) {
-    throw new Error("Failed to reach Claude usage endpoint", { cause: error });
-  }
-}
-
-function resetInstant(value: unknown): UtcInstant | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : utcInstantFromDate(date);
-}
-
-/**
- * Project the `/api/oauth/usage` payload. The authoritative shape is its
- * `limits` array; a representative (subscription) response is:
- *
- * ```json
- * {
- *   "limits": [
- *     { "kind": "session", "group": "session", "percent": 17, "severity": "normal",
- *       "resets_at": "2026-08-26T13:49:59.725522+00:00", "scope": null, "is_active": false },
- *     { "kind": "weekly_all", "group": "weekly", "percent": 72, "severity": "normal",
- *       "resets_at": "2026-08-28T06:59:59.725547+00:00", "scope": null, "is_active": false },
- *     { "kind": "weekly_scoped", "group": "weekly", "percent": 100, "severity": "critical",
- *       "resets_at": "2026-08-28T06:59:59.725963+00:00",
- *       "scope": { "model": { "display_name": "Fable" } }, "is_active": true }
- *   ]
- * }
- * ```
- */
-export function projectClaudeUsage(
-  payload: unknown,
-  email?: string,
-  plan?: string,
-): AccountUsageSnapshot {
-  const limits = asRecord(payload)?.limits;
   const windows: AccountUsageWindow[] = [];
-  let rateLimited = false;
-  if (Array.isArray(limits)) {
-    for (const entry of limits) {
-      const limit = asRecord(entry);
-      const percent = asNumber(limit?.percent);
-      if (limit === null || percent === null || percent < 0) {
-        continue;
-      }
-      const resetsAt = resetInstant(limit.resets_at);
-      windows.push({
-        label: usageWindowLabel(limit.kind, asRecord(limit.scope)),
-        usedRatio: Number((percent / 100).toFixed(6)),
-        ...(resetsAt === null ? {} : { resetsAt }),
-      });
-      rateLimited ||= limit.severity === "critical" || percent >= 100;
+  const add = (label: string, value: unknown): void => {
+    const window = windowOf(label, value);
+    if (window !== null) {
+      windows.push(window);
     }
+  };
+  add("Current session", limits.five_hour);
+  add("Current week (all models)", limits.seven_day);
+  add("Current week (OAuth apps)", limits.seven_day_oauth_apps);
+  if (Array.isArray(limits.model_scoped)) {
+    for (const entry of asRecordList(limits.model_scoped)) {
+      if (typeof entry.display_name === "string" && entry.display_name.trim().length > 0) {
+        add(`Current week (${entry.display_name})`, entry);
+      }
+    }
+  } else {
+    add("Current week (Opus)", limits.seven_day_opus);
+    add("Current week (Sonnet)", limits.seven_day_sonnet);
+  }
+  const includedExhausted = windows.some((window) => window.usedRatio >= 1);
+  const extra = asRecord(limits.extra_usage);
+  const extraWindow = extra?.is_enabled === true ? windowOf("Extra usage", extra) : null;
+  if (extraWindow !== null) {
+    windows.push(extraWindow);
   }
   if (windows.length === 0) {
-    throw new Error("Claude usage endpoint returned no usable windows");
+    throw new Error("Claude get_usage returned no usable windows");
   }
+  const plan = typeof root.subscription_type === "string" ? root.subscription_type.trim() : "";
   return {
     kind: "available",
-    ...(plan === undefined ? {} : { plan }),
+    ...(plan.length === 0 ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
-    rateLimited,
+    rateLimited: includedExhausted && !(extraWindow !== null && extraWindow.usedRatio < 1),
     windows,
   };
 }
 
-/** Extract Claude Code's explicit subscription tier from a confirmed login. */
-export function claudeAccountPlan(payload: unknown): string | undefined {
-  const authStatus = asRecord(payload);
-  if (authStatus?.loggedIn !== true || typeof authStatus.subscriptionType !== "string") {
-    return undefined;
+function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
+  const detail = typeof reply.error === "string" ? reply.error : "Malformed control response";
+  if (/unsupported control request subtype|unknown control request|not supported in this context|not available on this connection/iu.test(detail)) {
+    return { kind: "unsupported", reason: "endpoint_unavailable" };
   }
-  const plan = authStatus.subscriptionType.trim();
-  return plan.length > 0 ? plan : undefined;
-}
-
-function isConfirmedNonSubscriptionLogin(authStatus: Record<string, unknown>): boolean {
-  if (typeof authStatus.apiKeySource === "string") {
-    return true;
+  if (/not logged in|authentication required|please (?:run )?\/login/iu.test(detail)) {
+    return { kind: "reauth_required", reason: "not_authenticated" };
   }
-  // Claude Code reports externally supplied auth tokens (including custom API
-  // endpoints) as `oauth_token`. They authenticate inference, not a claude.ai
-  // subscription, so the profile-scoped usage endpoint is inapplicable.
-  return typeof authStatus.authMethod === "string"
-    && authStatus.authMethod !== "claude.ai";
+  throw new Error(`Claude usage control request failed: ${detail}`);
 }
 
 /**
- * Reads Claude account usage in two steps: `claude auth status --json` for the
- * login gate and account email, then a single read-only request to Anthropic's
- * structured usage endpoint using the persisted `/login` OAuth token. This
- * replaces the older `claude -p /usage` subprocess, which was slower and only
- * returned pre-rendered text.
+ * Only native control queries; no prompt, credential reads or direct HTTP.
+ * Fresh-process session totals are deliberately not exposed as account usage.
+ * initialize provides optional account identity; get_usage owns quota access.
  */
 export const claudeAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  const command = installation.command;
-  const timeoutMs = options.timeoutMs ?? 15_000;
-  const env = { ...process.env, CLAUDECODE: undefined };
-  const auth = await runExecutable(command, ["auth", "status", "--json"], { env, timeoutMs });
-  if (!auth.ok && auth.exitCode === null) {
-    throw new Error("Failed to read Claude authentication status");
+  const child = spawnLineProcess(installation.command, [
+    "-p", "--input-format", "stream-json", "--output-format", "stream-json",
+    "--verbose", "--no-session-persistence",
+  ], { env: { ...process.env, CLAUDECODE: undefined } });
+  let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
+  let ended = false;
+  let timedOut = false;
+  child.onLine((line) => {
+    const message = asRecord(parseJson(line));
+    const inner = asRecord(message?.response);
+    if (message?.type === "control_response" && pending !== null && inner?.request_id === pending.id) {
+      pending.resolve(inner);
+    }
+  });
+  child.onExit(() => {
+    ended = true;
+    pending?.resolve(null);
+  });
+  child.stdin.on("error", () => {
+    ended = true;
+    pending?.resolve(null);
+  });
+  const timer = setTimeout(() => {
+    timedOut = true;
+    pending?.resolve(null);
+    child.kill();
+  }, options.timeoutMs ?? 15_000);
+  const query = async (request: JsonRecord): Promise<JsonRecord> => {
+    if (ended || timedOut) {
+      throw new Error("Claude exited or timed out before answering usage queries");
+    }
+    const id = `oar-usage-${randomUUID()}`;
+    const { promise, resolve } = Promise.withResolvers<JsonRecord | null>();
+    pending = { id, resolve };
+    child.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);
+    const reply = await promise;
+    pending = null;
+    if (reply === null) {
+      throw new Error("Claude exited or timed out before answering usage query");
+    }
+    return reply;
+  };
+  try {
+    await child.spawned;
+    const initialized = await query({ subtype: "initialize" });
+    if (initialized.subtype !== "success") {
+      return controlFailure(initialized);
+    }
+    const account = asRecord(asRecord(initialized.response)?.account);
+    const email = typeof account?.email === "string" && account.email.trim().length > 0
+      ? account.email.trim() : undefined;
+    const reply = await query({ subtype: "get_usage", skip_behaviors: true });
+    if (reply.subtype !== "success") {
+      return controlFailure(reply);
+    }
+    return projectClaudeUsage(reply.response, email);
+  } finally {
+    clearTimeout(timer);
+    child.kill();
+    await child.exited;
   }
-  const authStatus = asRecord(parseJson(auth.stdout));
-  if (!auth.ok || authStatus?.loggedIn === false) {
-    return { kind: "reauth_required", reason: "not_authenticated" };
-  }
-  // Only a confirmed login exposes an account email (pinned by the owner's
-  // `loggedIn === true` requirement); an absent or non-string email is dropped.
-  const email = authStatus?.loggedIn === true && typeof authStatus.email === "string"
-    ? authStatus.email
-    : undefined;
-  const plan = claudeAccountPlan(authStatus);
-  if (authStatus?.loggedIn === true && isConfirmedNonSubscriptionLogin(authStatus)) {
-    // Inference credentials take precedence over any claude.ai login, and
-    // non-subscription billing has no profile usage windows.
-    return { kind: "unsupported", reason: "unsupported_auth_mode" };
-  }
-
-  const stored = await readStoredOAuth(timeoutMs);
-  if (stored === null) {
-    // No persisted profile-scoped login token means the usage endpoint would
-    // reject the request; treat it as needing a fresh `/login`.
-    return { kind: "reauth_required", reason: "credentials_missing" };
-  }
-
-  if (!stored.hasProfileScope) {
-    return { kind: "reauth_required", reason: "scope_missing" };
-  }
-
-  const response = await fetchUsage(stored.accessToken, installation.version ?? "0.0.0", timeoutMs);
-  if (response.status === 401 || response.status === 403) {
-    return { kind: "reauth_required", reason: "credentials_rejected" };
-  }
-  if (!response.ok) {
-    throw new Error(`Claude usage endpoint returned HTTP ${response.status}`);
-  }
-  const payload: unknown = parseJson(await response.text());
-  return projectClaudeUsage(payload, email, plan);
 };

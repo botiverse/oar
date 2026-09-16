@@ -72,5 +72,11 @@ reasons must be presented as unknown rather than guessed.
 
 Operational failures (network errors, timeouts, malformed responses) still reject
 the promise. Reasons do not include tokens, credential values, or raw provider
-responses. This change does not alter authentication precedence, refresh tokens,
-or probe endpoints that were previously skipped.
+responses.
+
+Claude account usage delegates to its native stream-json `get_usage` request
+(with `skip_behaviors: true`). OAR does not read Claude credentials or call its
+HTTP quota endpoint. A native `rate_limits_available: false` becomes
+`quota_unavailable`; it does not prove invalid credentials. Older CLIs that
+reject the control request return `endpoint_unavailable`. Query-process session
+totals are not returned as account usage.
