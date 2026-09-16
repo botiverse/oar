@@ -66,7 +66,7 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 | Read                                         | To answer                                                                |
 | -------------------------------------------- | ------------------------------------------------------------------------ |
 | [docs/design/](docs/design/README.md)        | Why oar exists and which design problems it treats as load-bearing       |
-| [docs/spec/](docs/spec/README.md)            | The concrete record-stream contract (record shapes, attribution, cursor) |
+| [docs/spec/](docs/spec/README.md)            | Record-stream and query contracts |
 | [docs/spec/inventory.md](docs/spec/inventory.md) | Independent native skills, MCP server and tool queries |
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
 | [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |
