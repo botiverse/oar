@@ -148,5 +148,5 @@ export const runtimes = new RuntimeRegistry([
   piRuntime,
 ]);
 
-export { runtimeBrands } from "./brands.js";
+export { runtimeBrands, runtimeBrandIcon } from "./brands.js";
 export type { RuntimeBrand } from "./brands.js";

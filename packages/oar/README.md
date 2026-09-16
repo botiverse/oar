@@ -122,3 +122,14 @@ Their attribution and licenses ship in `assets/brands/NOTICE.md`. Pi uses the of
 Custom runtimes created with `defineRuntime` may supply `brand`; otherwise it
 defaults to `{ name: runtime.id, icon: null }`. Runtime branding identifies the
 provider and is independent of an application's project avatars.
+
+`brand.icons?.light` and `brand.icons?.dark` optionally override the default for
+light and dark **backgrounds**. They are not required to be distinct or both
+present. `runtimeBrandIcon(brand, theme)` returns the matching variant, falling
+back to `brand.icon` (including null for brands without artwork). Hosts choose
+the theme from their own surface, not necessarily the operating system setting.
+
+```ts
+import { runtimeBrands, runtimeBrandIcon } from "@botiverse/oar/brands";
+const src = runtimeBrandIcon(runtimeBrands.codex, "dark");
+```
