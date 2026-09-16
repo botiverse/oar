@@ -1,0 +1,2 @@
+# Keep distributed SVG bytes identical to the embedded brand resources.
+packages/oar/assets/brands/*.svg text eol=lf

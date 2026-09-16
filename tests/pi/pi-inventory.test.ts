@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { piSkills, piTools } from "../../packages/oar/src/runtimes/pi/inventory.js";
 
@@ -33,13 +34,14 @@ function session() {
 test("Pi independently discovers skills, retaining invocation restrictions and diagnostic partial state", async () => {
   const agent = session();
   sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+  const cwd = resolve("/project-b");
   const result = await piSkills(bundled, { cwd: "/project-b" });
   expect(result).toMatchObject({
-    kind: "ok", partial: true, view: "discovered", scope: { kind: "workspace", cwd: "/project-b" },
+    kind: "ok", partial: true, view: "discovered", scope: { kind: "workspace", cwd },
     items: [{ name: "review", description: "Review", path: "/skills/review", source: "project", disableModelInvocation: true }],
   });
-  expect(sdk.createAgentSessionServices).toHaveBeenCalledWith({ cwd: "/project-b", agentDir: "/fake/agent" });
-  expect(sdk.SessionManager.inMemory).toHaveBeenCalledWith("/project-b");
+  expect(sdk.createAgentSessionServices).toHaveBeenCalledWith({ cwd, agentDir: "/fake/agent" });
+  expect(sdk.SessionManager.inMemory).toHaveBeenCalledWith(cwd);
   expect(agent.dispose).toHaveBeenCalledOnce();
 });
 
