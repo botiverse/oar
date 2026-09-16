@@ -17,7 +17,7 @@ Claude Code, Codex, Grok Build, Kimi Code, Pi
 
 | Read                                         | To answer                                                                |
 | -------------------------------------------- | ------------------------------------------------------------------------ |
-| [docs/design/](docs/design/README.md)        | Why oar exists and which design problems it treats as load-bearing       |
+| [docs/design/](docs/design/README.md)        | Why oar exists, which design problems it treats as load-bearing, and where each piece can run (deployment patterns) |
 | [docs/spec/](docs/spec/README.md)            | The concrete record-stream contract (record shapes, attribution, cursor) |
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
 | [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |
