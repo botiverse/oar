@@ -86,7 +86,7 @@ ACP 有实际复用，而非每个名字完全重写：[`kimi.go:30-66`](https:/
 
 ## 补充：会话持久化与 replay（2026-09-15，基线 `a843b44a`）
 
-起因是 OAR 决定不提供 session history readback（见 [roadmap: decided against](../design/roadmap.md#session-history-readback-2026-09-15)），需要确认 Multica 在同一问题上的做法。结论：Multica 也是 **host 自存一份自家词汇的 transcript，原生 session 只保留 id 用于 resume**，从不读回 vendor 存储的历史。它比之前调研的几家更值得看的是围绕 resume 可信度的那套机制。
+起因是 OAR 决定不提供 session history readback（见 [design decision: session history readback](../design/decisions.md#session-history-readback-2026-09-15)），需要确认 Multica 在同一问题上的做法。结论：Multica 也是 **host 自存一份自家词汇的 transcript，原生 session 只保留 id 用于 resume**，从不读回 vendor 存储的历史。它比之前调研的几家更值得看的是围绕 resume 可信度的那套机制。
 
 ### 存的是什么
 
@@ -114,7 +114,7 @@ daemon 消费 `agent.Session.Messages`（`agent.Message`：text / thinking / too
 
 ### 对 OAR 的含义
 
-- 再一个独立维护的 host 选择自存统一 transcript 加原生 resume，且没有从 vendor 存储读回历史。支持 roadmap 里 session history readback 的 decided-against。
+- 再一个独立维护的 host 选择自存统一 transcript 加原生 resume，且没有从 vendor 存储读回历史。支持 [session history readback 设计决策](../design/decisions.md#session-history-readback-2026-09-15)。
 - 它为 transcript 付出的代价（8 KiB 截断、块边界不可恢复、丢 batch）都是产品选择，不是协议缺陷；OAR 若定位生产者，不应拿自己的 raw 层去比这一层，跟 oar-value-review 对 Lody 的判断一致。
 - 真正可抽取的共性是 resume 失败的分类和 late-event / fresh-session fence，不是历史读回。这是 synthesis-review 第 37 行「先补让 host 不猜 vendor 状态的事实」的又一例证。
 

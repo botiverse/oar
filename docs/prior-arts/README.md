@@ -23,6 +23,8 @@
 
 综合判断：
 
+- [调研项目功能对照](feature-comparison.md)
+
 - [OAR 价值校准](oar-value-review.md)
 - [综合反方审查](synthesis-review.md)
 - [One Works 测试审计](oneworks-tests.md)

@@ -22,6 +22,8 @@ Claude Code, Codex, Grok Build, Kimi Code, Pi
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
 | [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |
 | [docs/design/system.md](docs/design/system.md) | How the library, evidence layer, projections, and continuation form one agent-facing system |
+| [docs/prior-arts/feature-comparison.md](docs/prior-arts/feature-comparison.md) | Surveyed projects compared by concrete features and evidence |
+| [docs/design/decisions.md](docs/design/decisions.md) | Design decisions, their evidence, and conditions for reconsideration |
 | [docs/design/roadmap.md](docs/design/roadmap.md) | Which system improvements are next, and what evidence gates them |
 
 

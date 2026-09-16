@@ -32,7 +32,7 @@ subject of [foundations.md](foundations.md).
    (transcript branches, not sub-agents), grok's session/load replay. Resume
    is not a universal primitive. Reading stored history back through oar
    was considered and refused; see
-   [roadmap: decided against](roadmap.md#session-history-readback-2026-09-15).
+   [design decision: session history readback](decisions.md#session-history-readback-2026-09-15).
 6. **Event vocabulary with no shared semantics.** Each harness has its own
    event types; turn/run boundaries are genuinely absent or partial in some
    (pi, claude). The tempting fix, synthesizing boundaries yourself, is a

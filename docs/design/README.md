@@ -10,6 +10,7 @@ small and links deeper instead of inlining.
 | [foundations.md](foundations.md) | Which of those problems are merely work, and which are foundations where an early mistake breaks consumers forever? |
 | [liveness.md](liveness.md) | "Is this agent alive or dead, and why?": the stability question every multi-agent application hits |
 | [system.md](system.md) | How discovery, control, evidence, projection, and continuation form one agent-facing system? |
+| [decisions.md](decisions.md) | Which proposals were refused, why, and what evidence would reopen them? |
 | [roadmap.md](roadmap.md) | Which system improvements are next, and what evidence gates them? |
 
 Suggested order: motivation → hard-problems → foundations → liveness → system
@@ -25,7 +26,7 @@ Related material elsewhere in the repo:
 
 ## How to maintain these docs
 
-- These pages record settled design positions, not status. When a
+- Except for the roadmap, these pages record settled design positions, not status. When a
   position changes, change the page in the same commit as the code that
   changes it; a stale design doc is worse than none.
 - Routing: *why* a position holds (principles, evidence, what must not go
