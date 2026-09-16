@@ -1,3 +1,4 @@
+import { runtimeBrands } from "../../brands.js";
 import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAccountUsage } from "./account-usage.js";
@@ -7,6 +8,7 @@ import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
+  brand: runtimeBrands.codex,
   skills: codexSkills,
   mcpServers: codexMcpServers,
   tools: codexTools,

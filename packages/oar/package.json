@@ -1,6 +1,6 @@
 {
   "name": "@botiverse/oar",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A programming interface for all agent harnesses: provider-independent contracts for controlling and observing agent runtimes",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,11 +13,17 @@
     "./observe": {
       "types": "./dist/observe/index.d.ts",
       "import": "./dist/observe/index.js"
-    }
+    },
+    "./brands": {
+      "types": "./dist/brands.d.ts",
+      "import": "./dist/brands.js"
+    },
+    "./assets/brands/*": "./assets/brands/*"
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "assets"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

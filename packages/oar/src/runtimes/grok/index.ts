@@ -1,3 +1,4 @@
+import { runtimeBrands } from "../../brands.js";
 import { grokSkills, grokMcpServers } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { grokAccountUsage } from "./account-usage.js";
@@ -7,6 +8,7 @@ import { grokSession } from "./session.js";
 
 export const grokRuntime = defineRuntime({
   id: "grok",
+  brand: runtimeBrands.grok,
   skills: grokSkills,
   mcpServers: grokMcpServers,
 

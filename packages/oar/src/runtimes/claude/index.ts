@@ -1,3 +1,4 @@
+import { runtimeBrands } from "../../brands.js";
 import { claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { claudeAccountUsage } from "./account-usage.js";
@@ -7,6 +8,7 @@ import { claudeSession } from "./session.js";
 
 export const claudeRuntime = defineRuntime({
   id: "claude",
+  brand: runtimeBrands.claude,
   skills: claudeSkills,
   mcpServers: claudeMcpServers,
   tools: claudeTools,

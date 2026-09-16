@@ -26,6 +26,7 @@ test("readModels reports unsupported when the runtime has no listModels", async 
   const runtime: Runtime = {
     ...inventories,
     id: "bare",
+    brand: { name: "bare", icon: null },
     session: neverSession,
     installation: async () => {
       await Promise.resolve();
@@ -43,6 +44,7 @@ test("readModels echoes the installation and null models when not available", as
   const runtime: Runtime = {
     ...inventories,
     id: "gone",
+    brand: { name: "gone", icon: null },
     session: neverSession,
     installation: async () => {
       await Promise.resolve();
@@ -67,6 +69,7 @@ test("readModels forwards the installation and timeout to listModels", async () 
   const runtime: Runtime = {
     ...inventories,
     id: "ok",
+    brand: { name: "ok", icon: null },
     session: neverSession,
     installation: async () => {
       await Promise.resolve();

@@ -103,3 +103,22 @@ MCP servers.
 Custom runtimes should use `defineRuntime`, which fills unavailable inventory
 methods with explicit unsupported results. A manually constructed `Runtime`
 must implement the three methods.
+
+### Runtime branding
+
+`runtime.brand` contains `{ name, icon }`. Built-in icons are self-contained SVG
+data URIs, usable as an `<img src>` offline and serializable across IPC. No
+installation, login, or runtime process is needed to read branding.
+
+For browser-only consumers (without loading native SDKs):
+
+```ts
+import { runtimeBrands } from "@botiverse/oar/brands";
+const { name, icon } = runtimeBrands.claude;
+```
+
+SVG files are also exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`.
+Their attribution and licenses ship in `assets/brands/NOTICE.md`. Pi uses the official `pi.dev/logo-on-dark.svg` asset, intended for dark backgrounds.
+Custom runtimes created with `defineRuntime` may supply `brand`; otherwise it
+defaults to `{ name: runtime.id, icon: null }`. Runtime branding identifies the
+provider and is independent of an application's project avatars.
