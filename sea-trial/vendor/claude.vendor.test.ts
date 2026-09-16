@@ -61,6 +61,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
           {
             "resolved": {
               "kind": "unsupported",
+              "reason": "unsupported_auth_mode",
             },
           }
         `);

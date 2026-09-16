@@ -17,6 +17,22 @@ export interface AccountUsageWindow {
   readonly resetsAt?: UtcInstant;
 }
 
+/** Stable reason codes; no credentials or provider response bodies are included. */
+export type AccountUsageUnsupportedReason =
+  | "capability_unavailable"
+  | "unsupported_installation"
+  | "unsupported_auth_mode"
+  | "unsupported_auth_storage"
+  | "auth_configuration_unavailable"
+  | "endpoint_unavailable"
+  | "quota_unavailable";
+
+export type AccountUsageReauthReason =
+  | "not_authenticated"
+  | "credentials_missing"
+  | "scope_missing"
+  | "credentials_rejected";
+
 export type AccountUsageSnapshot =
   | {
       readonly kind: "available";
@@ -27,8 +43,16 @@ export type AccountUsageSnapshot =
       readonly rateLimited: boolean;
       readonly windows: readonly AccountUsageWindow[];
     }
-  | { readonly kind: "reauth_required" }
-  | { readonly kind: "unsupported" };
+  | {
+      readonly kind: "reauth_required";
+      /** Built-in readers always report a reason; optional for older adapters. */
+      readonly reason?: AccountUsageReauthReason;
+    }
+  | {
+      readonly kind: "unsupported";
+      /** Unsupported for this installation/account does not imply missing capability. */
+      readonly reason?: AccountUsageUnsupportedReason;
+    };
 
 export interface AccountUsageReadOptions {
   readonly timeoutMs?: number;

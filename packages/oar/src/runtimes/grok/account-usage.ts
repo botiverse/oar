@@ -48,7 +48,7 @@ export function projectGrokUsage(result: unknown, email?: string): AccountUsageS
   const root = asRecord(result);
   const config = asRecord(root?.config);
   if (config === null) {
-    return { kind: "unsupported" };
+    return { kind: "unsupported", reason: "quota_unavailable" };
   }
   const explicitPercent = asNumber(config.creditUsagePercent);
   const used = centValue(config.used);
@@ -178,7 +178,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
 
 export const grokAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
-    return { kind: "unsupported" };
+    return { kind: "unsupported", reason: "unsupported_installation" };
   }
   try {
     const payload = await readBilling(installation.command, options.timeoutMs ?? 10_000);
@@ -186,10 +186,10 @@ export const grokAccountUsage: AccountUsageReader = async (installation, options
   } catch (error) {
     if (error instanceof RequestError) {
       if (error.code === -32_601) {
-        return { kind: "unsupported" };
+        return { kind: "unsupported", reason: "endpoint_unavailable" };
       }
       if (error.code === -32_000 || /auth(?:entication)?|log(?:ged)? ?in/iu.test(error.message)) {
-        return { kind: "reauth_required" };
+        return { kind: "reauth_required", reason: "not_authenticated" };
       }
     }
     throw new Error("Failed to read Grok account usage", { cause: error });

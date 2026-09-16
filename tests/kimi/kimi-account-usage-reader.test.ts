@@ -162,7 +162,7 @@ test("kimi reader sends the stored token as-is and maps a stale 401 to reauth", 
     via: "executable",
     command: "kimi",
     version: "0.38.0",
-  })).resolves.toEqual({ kind: "reauth_required" });
+  })).resolves.toEqual({ kind: "reauth_required", reason: "credentials_rejected" });
 });
 
 test("kimi reader reports reauth without any request when no token is stored", async () => {
@@ -177,6 +177,6 @@ test("kimi reader reports reauth without any request when no token is stored", a
     via: "executable",
     command: "kimi",
     version: "0.38.0",
-  })).resolves.toEqual({ kind: "reauth_required" });
+  })).resolves.toEqual({ kind: "reauth_required", reason: "credentials_missing" });
   expect(fetchMock).not.toHaveBeenCalled();
 });

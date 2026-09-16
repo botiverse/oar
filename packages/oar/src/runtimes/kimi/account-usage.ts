@@ -264,14 +264,16 @@ async function fetchAccountIdentity(
 
 export const kimiAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
-    return { kind: "unsupported" };
+    return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  // Kimi's Node launcher is measurably slow under the behavior suite's
-  // concurrent process load; match the runtime probe/session budget.
+  // Match the probe/session budget: the Node launcher is slow under concurrent load.
   const deadline = Date.now() + (options.timeoutMs ?? 30_000);
   const auth = await resolveKimiAuth(installation.command, deadline);
-  if (auth === null || auth.storage !== "file") {
-    return { kind: "unsupported" };
+  if (auth === null) {
+    return { kind: "unsupported", reason: "auth_configuration_unavailable" };
+  }
+  if (auth.storage !== "file") {
+    return { kind: "unsupported", reason: "unsupported_auth_storage" };
   }
   try {
     const accessToken = await storedKimiAccessToken(auth);
@@ -280,10 +282,10 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
       fetchAccountIdentity(auth, accessToken, deadline),
     ]);
     if (response.status === 401 || response.status === 403) {
-      return { kind: "reauth_required" };
+      return { kind: "reauth_required", reason: "credentials_rejected" };
     }
     if (response.status === 404) {
-      return { kind: "unsupported" };
+      return { kind: "unsupported", reason: "endpoint_unavailable" };
     }
     if (!response.ok) {
       throw new Error(`Kimi usage endpoint returned HTTP ${response.status}`);
@@ -291,7 +293,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     return projectKimiUsage(parseJson(await response.text()), identity.email, identity.plan);
   } catch (error) {
     if (error instanceof KimiReauthError) {
-      return { kind: "reauth_required" };
+      return { kind: "reauth_required", reason: "credentials_missing" };
     }
     throw new Error("Failed to read Kimi account usage", { cause: error });
   }

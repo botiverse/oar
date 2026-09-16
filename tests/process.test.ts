@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { setTimeout as delay } from "node:timers/promises";
 import { requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 
 test("requiresShell matches windows cmd and bat shims only", () => {
@@ -26,7 +25,7 @@ test("line buffering joins partial chunks and splits complete lines", async () =
   child.onExit((code) => {
     codes.push(code);
   });
-  await delay(300);
+  await child.exited;
   assert.deepEqual(lines, ["a", "bc", "d"]);
   assert.deepEqual(codes, [0]);
 });
@@ -72,7 +71,7 @@ test("exit fires exactly once with the exit code", async () => {
   child.onExit((code) => {
     codes.push(code);
   });
-  await delay(300);
+  await child.exited;
   assert.deepEqual(codes, [3]);
 });
 
@@ -87,16 +86,24 @@ test("a missing executable fails loudly and exits exactly once", async () => {
   // surface the failure as a non-zero exit instead. Either way it must fail
   // loudly, never look like a healthy process, and exit exactly once.
   const spawnFailed = await child.spawned.then(() => false, () => true);
-  await delay(200);
+  await child.exited;
   assert.equal(codes.length, 1, "exit fires exactly once");
   assert.ok(spawnFailed || codes[0] !== 0, "a missing executable must not look successful");
 });
 
-async function writeThenKill(child: ReturnType<typeof spawnLineProcess>): Promise<void> {
-  child.write("hello\n");
-  await delay(200);
-  child.kill();
-  await delay(200);
+async function writeThenKill(
+  child: ReturnType<typeof spawnLineProcess>,
+  received: Promise<void>,
+): Promise<void> {
+  const timeout = setTimeout(() => { child.kill(); }, 3000);
+  try {
+    child.write("hello\n");
+    await Promise.race([received, child.exited]);
+  } finally {
+    clearTimeout(timeout);
+    child.kill();
+    await child.exited;
+  }
 }
 
 async function echoRoundTrip(): Promise<{ lines: string[]; exits: number }> {
@@ -106,14 +113,16 @@ async function echoRoundTrip(): Promise<{ lines: string[]; exits: number }> {
   ]);
   await child.spawned;
   const lines: string[] = [];
+  const received = Promise.withResolvers<void>();
   let exits = 0;
   child.onLine((line) => {
     lines.push(line);
+    received.resolve();
   });
   child.onExit(() => {
     exits += 1;
   });
-  await writeThenKill(child);
+  await writeThenKill(child, received.promise);
   return { lines, exits };
 }
 

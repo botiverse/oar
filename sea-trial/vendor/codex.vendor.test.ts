@@ -46,6 +46,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
           {
             "resolved": {
               "kind": "unsupported",
+              "reason": "unsupported_auth_mode",
             },
           }
         `);

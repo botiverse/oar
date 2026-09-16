@@ -66,7 +66,7 @@ program
   .action(async (id: string | undefined) => {
     const result = await Promise.all(selected(id).map(async (runtime) => {
       if (runtime.accountUsage === undefined || runtime.installation === undefined) {
-        return { runtimeId: runtime.id, accountUsage: { kind: "unsupported" as const } };
+        return { runtimeId: runtime.id, accountUsage: { kind: "unsupported" as const, reason: "capability_unavailable" as const } };
       }
       const installation = await runtime.installation();
       if (installation.kind !== "available") {

@@ -257,7 +257,7 @@ test("grok projection falls back to legacy used/limit cents", () => {
       ],
     }
   `);
-  expect(projectGrokUsage({ config: null })).toEqual({ kind: "unsupported" });
+  expect(projectGrokUsage({ config: null })).toEqual({ kind: "unsupported", reason: "quota_unavailable" });
 });
 
 test("grok projection keeps paid headroom distinct from included usage", () => {

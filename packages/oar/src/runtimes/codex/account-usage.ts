@@ -1,4 +1,6 @@
 import type {
+  AccountUsageUnsupportedReason,
+  AccountUsageReauthReason,
   AccountUsageReader,
   AccountUsageSnapshot,
   AccountUsageWindow,
@@ -8,8 +10,8 @@ import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 
 type ReadOutcome =
   | { readonly kind: "ok"; readonly result: unknown; readonly email: string | undefined }
-  | { readonly kind: "reauth_required" }
-  | { readonly kind: "unsupported" }
+  | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
+  | { readonly kind: "unsupported"; readonly reason: AccountUsageUnsupportedReason }
   | { readonly kind: "error" };
 
 type StartAppServerClient = (command: string) => AppServerClient;
@@ -222,7 +224,7 @@ export async function readFromAppServer(
       // rate-limit read in that case instead of making identity mandatory.
     }
     if (isNonSubscriptionAccount(account)) {
-      return { kind: "unsupported" };
+      return { kind: "unsupported", reason: "unsupported_auth_mode" };
     }
 
     const result = await client.request("account/rateLimits/read", {});
@@ -230,10 +232,10 @@ export async function readFromAppServer(
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (/authentication required/iu.test(message)) {
-      return { kind: "reauth_required" };
+      return { kind: "reauth_required", reason: "not_authenticated" };
     }
     if (/method not found|not supported/iu.test(message)) {
-      return { kind: "unsupported" };
+      return { kind: "unsupported", reason: "endpoint_unavailable" };
     }
     return { kind: "error" };
   } finally {
@@ -244,16 +246,16 @@ export async function readFromAppServer(
 
 export const codexAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
-    return { kind: "unsupported" };
+    return { kind: "unsupported", reason: "unsupported_installation" };
   }
   const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000);
   switch (outcome.kind) {
     case "ok":
       return projectCodexUsage(outcome.result, outcome.email);
     case "reauth_required":
-      return { kind: "reauth_required" };
+      return outcome;
     case "unsupported":
-      return { kind: "unsupported" };
+      return outcome;
     case "error":
       break;
   }

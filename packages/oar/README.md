@@ -47,3 +47,30 @@ Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and 
 Grok and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime.
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
+
+## Account usage reasons
+
+Unsuccessful account-usage snapshots retain `kind: "unsupported"` or
+`kind: "reauth_required"` and now include a stable `reason` from built-in readers.
+Consumers should use `reason` rather than infer a cause from the runtime name.
+The field is optional for compatibility with older/custom adapters; absent
+reasons must be presented as unknown rather than guessed.
+
+| Kind | Reason | Meaning |
+| --- | --- | --- |
+| unsupported | capability_unavailable | The runtime has no account-usage reader (reported by the CLI/embedding app). |
+| unsupported | unsupported_installation | This reader cannot query this installation type. |
+| unsupported | unsupported_auth_mode | The selected authentication mode is not supported by the usage reader. This is the adapter's decision, not proof that a token was rejected. |
+| unsupported | unsupported_auth_storage | The configured credential storage is not supported. |
+| unsupported | auth_configuration_unavailable | The reader could not resolve the provider/auth configuration; no more specific cause is known. |
+| unsupported | endpoint_unavailable | The provider/runtime does not expose the queried usage endpoint. |
+| unsupported | quota_unavailable | The response does not expose a quota configuration. |
+| reauth_required | not_authenticated | The runtime requires a login. |
+| reauth_required | credentials_missing | No usable persisted credential was found. |
+| reauth_required | scope_missing | The credential lacks the scope needed for usage queries. |
+| reauth_required | credentials_rejected | The usage endpoint rejected the credential (401/403). |
+
+Operational failures (network errors, timeouts, malformed responses) still reject
+the promise. Reasons do not include tokens, credential values, or raw provider
+responses. This change does not alter authentication precedence, refresh tokens,
+or probe endpoints that were previously skipped.

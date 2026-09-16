@@ -191,7 +191,7 @@ function isConfirmedNonSubscriptionLogin(authStatus: Record<string, unknown>): b
  */
 export const claudeAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
-    return { kind: "unsupported" };
+    return { kind: "unsupported", reason: "unsupported_installation" };
   }
   const command = installation.command;
   const timeoutMs = options.timeoutMs ?? 15_000;
@@ -202,7 +202,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   }
   const authStatus = asRecord(parseJson(auth.stdout));
   if (!auth.ok || authStatus?.loggedIn === false) {
-    return { kind: "reauth_required" };
+    return { kind: "reauth_required", reason: "not_authenticated" };
   }
   // Only a confirmed login exposes an account email (pinned by the owner's
   // `loggedIn === true` requirement); an absent or non-string email is dropped.
@@ -213,19 +213,23 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (authStatus?.loggedIn === true && isConfirmedNonSubscriptionLogin(authStatus)) {
     // Inference credentials take precedence over any claude.ai login, and
     // non-subscription billing has no profile usage windows.
-    return { kind: "unsupported" };
+    return { kind: "unsupported", reason: "unsupported_auth_mode" };
   }
 
   const stored = await readStoredOAuth(timeoutMs);
-  if (stored === null || !stored.hasProfileScope) {
+  if (stored === null) {
     // No persisted profile-scoped login token means the usage endpoint would
     // reject the request; treat it as needing a fresh `/login`.
-    return { kind: "reauth_required" };
+    return { kind: "reauth_required", reason: "credentials_missing" };
+  }
+
+  if (!stored.hasProfileScope) {
+    return { kind: "reauth_required", reason: "scope_missing" };
   }
 
   const response = await fetchUsage(stored.accessToken, installation.version ?? "0.0.0", timeoutMs);
   if (response.status === 401 || response.status === 403) {
-    return { kind: "reauth_required" };
+    return { kind: "reauth_required", reason: "credentials_rejected" };
   }
   if (!response.ok) {
     throw new Error(`Claude usage endpoint returned HTTP ${response.status}`);

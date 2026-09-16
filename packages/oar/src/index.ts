@@ -6,6 +6,8 @@ import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
 
 export type {
+  AccountUsageUnsupportedReason,
+  AccountUsageReauthReason,
   AccountUsageReader,
   AccountUsageReadOptions,
   AccountUsageSnapshot,

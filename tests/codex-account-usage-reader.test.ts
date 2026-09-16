@@ -65,6 +65,7 @@ test("codex API-key mode is unsupported usage rather than expired auth", async (
     .toMatchInlineSnapshot(`
       {
         "kind": "unsupported",
+        "reason": "unsupported_auth_mode",
       }
     `);
   expect(server.calls).toEqual(["initialize", "initialized", "account/read"]);
@@ -85,6 +86,7 @@ test("codex provider-managed API mode has no subscription usage", async () => {
     .toMatchInlineSnapshot(`
       {
         "kind": "unsupported",
+        "reason": "unsupported_auth_mode",
       }
     `);
   expect(server.calls).toEqual(["initialize", "initialized", "account/read"]);
@@ -105,6 +107,7 @@ test("codex missing ChatGPT auth remains reauth required", async () => {
     .toMatchInlineSnapshot(`
       {
         "kind": "reauth_required",
+        "reason": "not_authenticated",
       }
     `);
   expect(server.calls).toEqual([
@@ -174,4 +177,18 @@ test("codex older app-server can still return subscription windows", async () =>
     "account/read",
     "account/rateLimits/read",
   ]);
+});
+
+
+test("codex distinguishes missing usage endpoint from unsupported auth mode", async () => {
+  const server = fakeAppServer(async (method) => {
+    if (method === "initialize") {
+      return {};
+    }
+    if (method === "account/read") {
+      return { account: { type: "chatgpt" } };
+    }
+    throw new Error("method not found");
+  });
+  await expect(readFromAppServer("codex", 1000, () => server.client)).resolves.toEqual({ kind: "unsupported", reason: "endpoint_unavailable" });
 });
