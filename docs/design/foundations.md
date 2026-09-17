@@ -52,6 +52,47 @@ For a new surface, ask whether it makes the loop more legible: can an agent
 orient, act, observe, verify, checkpoint, and hand off with less guessing and
 less duplicated work? If not, keep it in a host experiment.
 
+## Replay boundary
+
+**Resume** asks a runtime to restore model context from its own persisted
+material. **Replay** redelivers OAR records to an observer. OAR's replay source
+is its own ordered record stream: requests, responses, and native frames.
+Native session history may help resume or diagnose a session, but it does not
+substitute for the OAR stream, which also contains host control attempts and
+rejections that the runtime never saw.
+
+This is an OAR contract boundary, not a claim that native live replay is
+impossible. The investigated runtimes persist some content at a coarser grain
+than they emit it, so their history cannot reconstruct every live delta.
+Another runtime could persist every notification and provide a replay cursor;
+that capability would need its own evidence and mapping. A history pagination
+cursor alone does not establish this guarantee.
+
+The library currently retains records in memory for a Session instance. A host
+that needs replay after restart must persist records before delivering them,
+retain stream-instance identity when sequence numbers restart, and define its
+own durability policy. Native resume does not recover the host's lost log.
+See [the record stream](../spec/record-stream.md) and
+[conversation projection](../spec/conversation.md) for the concrete APIs.
+
+**Session, turn, and connection have distinct lifecycles.** A turn on a shared
+server may outlive its initiating connection; a locally spawned harness may
+stop when its owning process exits. Connection identity may be absent,
+implicit, or explicitly addressable. Those are runtime facts to probe, not
+universal ownership rules. OAR keeps reported native identifiers as evidence;
+a self-reported originator or client-supplied ID is not proof of authority.
+
+Two comparisons remain useful across runtimes:
+
+- **Connection identity and cursor are independent.** A connection ID does
+  not imply replay, and a replay cursor does not imply an addressable
+  connection. Record both facts separately.
+- **Identity authority and uniqueness scope are independent.** Record who
+  supplies an ID, who validates it, and where it is unique. A server-minted
+  date counter can be host-local; a client-supplied UUID can be globally
+  collision-resistant without proving ownership. Authorization must come from
+  the runtime or host's access-control contract, not from the ID's shape.
+
 ## Adapter vs foundation
 
 An adapter is judged by how much it covers today; a foundation is judged by
