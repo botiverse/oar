@@ -44,6 +44,10 @@ The package has exactly two public entry points:
 
 Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 
+`observeAgent` and `observeStalls` include retained session records when attached
+mid-turn. Stall timing uses the last recorded activity, not the attachment time.
+Subscribing directly to `rawEvents()` without a cursor remains future-only.
+
 Grok and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime.
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.

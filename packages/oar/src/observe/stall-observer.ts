@@ -30,14 +30,14 @@ export function observeStalls(
       timer = null;
     }
   };
-  const arm = (): void => {
+  const arm = (lastEventAt: number): void => {
     disarm();
     timer = setTimeout(() => {
       const stall = stallOf(status, Date.now(), options.stallAfterMs);
       if (stall !== null) {
         options.onStall({ ...stall, lastRecordKind });
       }
-    }, options.stallAfterMs);
+    }, Math.max(0, options.stallAfterMs - (Date.now() - lastEventAt)));
   };
 
   const unsubscribe = session.rawEvents((record) => {
@@ -45,11 +45,11 @@ export function observeStalls(
     const lastEvent = record.kind === "frame" ? record.body.events.at(-1) : undefined;
     lastRecordKind = lastEvent === undefined ? record.kind : `frame:${lastEvent.kind}`;
     if (status.kind === "running") {
-      arm();
+      arm(status.lastEventAt);
     } else {
       disarm();
     }
-  });
+  }, { sessionId: session.id, afterSeq: -1 });
 
   return () => {
     disarm();

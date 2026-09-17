@@ -51,7 +51,7 @@ export function observeAgent(session: Session, options: ObserveAgentOptions): Ag
   const unsubscribe = session.rawEvents((record) => {
     status = reduceStatus(status, record, session.id);
     push();
-  });
+  }, { sessionId: session.id, afterSeq: -1 });
   const ticker = setInterval(() => {
     // push only on the silence EDGES, not every tick
     const stalledNow = stallOf(status, now(), options.stallAfterMs) !== null;
