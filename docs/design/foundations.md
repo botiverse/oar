@@ -54,6 +54,28 @@ less duplicated work? If not, keep it in a host experiment.
 
 ## Replay boundary
 
+**Applications own their data layer.** Search, cross-project queries, message
+ordering, annotations, and analytics need application-controlled persistence
+and indexes. Rebuilding a conversation view from that stored data is a natural
+consequence. This need exists even if a runtime offers complete history or
+replay: its API does not replace the application's data model, retention
+policy, or indexes. Native history can be an additional source for import or
+reconciliation, with its provenance and gaps kept explicit.
+
+The responsibilities are:
+
+- **Runtime:** execute work, maintain model context, and restore native sessions.
+- **OAR:** expose control attempts, responses, and native frames with identities
+  and correlation where supported, plus reusable projections. Preserve missing
+  evidence as unknown so applications do not have to reinterpret each native
+  protocol or invent delivery outcomes.
+- **Application:** persist the records and its own product data, build indexes,
+  serve search, and reconstruct views using those records and projections.
+
+OAR supplies the record contract and projection logic, not an application
+storage or search service. Hosts can reuse its reducer for live updates and
+history replay; owning persistence does not mean reimplementing the reducer.
+
 **Resume** asks a runtime to restore model context from its own persisted
 material. **Replay** redelivers OAR records to an observer. OAR's replay source
 is its own ordered record stream: requests, responses, and native frames.

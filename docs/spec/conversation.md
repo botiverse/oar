@@ -73,6 +73,9 @@ Inputs do not cross native sessions or agent paths even when IDs are equal.
 listener, cursor?)` folds the retained prefix and continues live using the same
 reducer; a cursor suppresses prefix callbacks without losing their state. Save
 raw records, not maps or Promise results, to reproduce the view after restart.
+Application-owned persistence also supports search, indexes, and product data;
+it is not merely a workaround for missing native replay. See the
+[application data ownership boundary](../design/foundations.md#replay-boundary).
 
 Rao uses this reducer over its persisted records. It shows input requests
 immediately and hides routine success badges. It must not infer completion of
