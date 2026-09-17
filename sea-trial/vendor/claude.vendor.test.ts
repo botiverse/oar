@@ -200,10 +200,18 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
       expect(session.model().value).not.toBeNull();
       // The dispose request is answered by the exit oar observed.
       await session.dispose();
-      const tail = session.records().slice(-2);
-      expect(tail.map((record) => (record.kind === "frame" ? record.body.type : record.body.kind))).toEqual(["dispose", "exited"]);
+      assertDisposeExit(session.records());
     } finally {
       await env.stop();
     }
   }, 60_000);
 });
+
+// Native shutdown frames may arrive between the control request and response.
+function assertDisposeExit(records: readonly RawEvent[]): void {
+  const request = records.findLast((record): record is Extract<RawEvent, { kind: "request" }> => record.kind === "request" && record.body.kind === "dispose");
+  const response = records.at(-1);
+  expect(request).toBeDefined();
+  expect(response).toMatchObject({ kind: "response", requestId: request?.id, body: { kind: "exited" } });
+  expect(response?.seq).toBeGreaterThan(request?.seq ?? Infinity);
+}
