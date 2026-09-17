@@ -378,6 +378,40 @@ Current input identity is documented in [Inputs and conversation projection](../
 OAR sends UUIDs and requests `--replay-user-messages`; acknowledgements remain
 separate from evidence of model consumption.
 
+### Native identity, the peer registry, and declared capability, probed live
+
+Observations in this subsection come from **2.1.237** and **2.1.261** on linux
+x64, probed 2026-09-12 outside OAR. They describe the runtime's own local
+surfaces, not adapter behaviour.
+
+**Identity is the live process, not the connection.** Session identity is a UUID
+that names the session JSONL file, and it is minted by the runtime process
+itself and registered locally; no central authority issues it. Runtime identity
+is separate and is a triple, `(pidDomain, pid, procStart)`, plus one socket per
+process at `cc-socks/<pid>.sock`. The socket path is the address, so what is
+addressable is a process, not a connection. `pidDomain` carries a PID-namespace
+inode, which keeps two containers from colliding, and `procStart` guards against
+PID reuse, so the triple is host local while the session UUID is globally
+unique. The two layers have different lifetimes.
+
+**Discovery is peer to peer; stale registry entries were observed.** There is no
+broker: an observer reads `~/.claude/sessions/` and then connects to the peer's
+socket. `sessions/<pid>.json` was not removed after the observed process deaths, and 52 empty
+`session-env/<uuid>/` directories were still present from processes long gone.
+A reader therefore has to verify liveness itself, against the socket or against
+`procStart`; a registry entry alone does not establish liveness. Locally, PID
+1360120's entry was still there with no such process.
+
+**`peerFeatures` reports declared capabilities.** A peer does not assume what
+the other side can do, it reads the feature list the other side reports. The
+list also grows with the version: one entry on 2.1.237, three on 2.1.261, and
+running both versions on one machine makes the version drift directly visible.
+The declarations were inspected, but every advertised feature was not exercised.
+
+Not observed on these builds: log completeness at process death, whether a
+rebuilt session is isomorphic to the original, and any environment-lifecycle
+concept, which the runtime does not appear to have.
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts claude`](../../experiments/live-contract.ts)
@@ -395,6 +429,11 @@ Open gaps: missing-ID resume behavior, accepted-input receipt under load,
 late interrupts across turns, context fullness after multi-step work, child
 usage attribution and concurrent-child interleaving, and native identity
 changes after conversation reset.
+
+Also open on the linux 2.1.237/2.1.261 probes: the resumability floor of a
+session JSONL, log completeness at process death, whether a rebuilt session is
+isomorphic to the original, and whether anything ever collects
+`sessions/<pid>.json` or `session-env/<uuid>/`.
 
 [native-cli]: https://code.claude.com/docs/en/cli-reference
 [native-sessions]: https://code.claude.com/docs/en/agent-sdk/sessions
