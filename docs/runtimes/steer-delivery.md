@@ -2,7 +2,9 @@
 
 Local source and scripted-provider investigation, 2026-09-16. Versions and
 reproduction: [experiments/steer-delivery](../../experiments/steer-delivery/README.md).
-This report proposes API changes; it does not implement them or cancellation.
+This report records the pre-0.6 baseline and the proposal it motivated. The
+implemented API and current mapping are specified in [conversation.md](../spec/conversation.md).
+Cancellation remains deferred.
 
 ## What was observed
 
@@ -105,9 +107,10 @@ ordered within one retained stream, not a global identifier across fresh Session
 instances after resume. Native message IDs can help deduplicate actual replay;
 input content cannot. A turn end must not mark every pending steer consumed.
 
-## What OAR should provide to simplify Rao
+## Design that informed the conversation API
 
-These are proposals, not current exported names or promises:
+The following proposal was captured during the investigation; consult the
+[shipped contract](../spec/conversation.md) for exported names and semantics:
 
 - **One input identity across attempts.** Allow the host to supply an `inputId`
   for prompt/steer/queue; `steerOrQueue` preserves it across fallback. Operation

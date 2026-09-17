@@ -203,8 +203,15 @@ export function foldClaudeStdout(
   switch (String(message.type)) {
     case "assistant":
       return event({ events: assistantViews(message) }, rememberToolUses(state, message, agentPath));
-    case "user":
-      return event({ events: toolResultViews(message) });
+    case "user": {
+      const views = [...toolResultViews(message)];
+      const body = asRecord(message.message);
+      if (message.isReplay === true && typeof message.uuid === "string" && Array.isArray(body?.content)) {
+        const input = body.content.map((part: unknown) => asRecord(part)).filter((part) => part?.type === "text").map((part) => typeof part?.text === "string" ? part.text : "").join("");
+        views.push({ kind: "user_message", input, inputId: message.uuid, nativeMessageId: message.uuid, evidence: "acknowledged" });
+      }
+      return event({ events: views });
+    }
     case "result": {
       const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: resultOutcome(state, message) }];
       const accumulated = accumulate(state, agentPath, message);

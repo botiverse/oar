@@ -404,3 +404,10 @@ cursor, which is not implemented.
 [native-agent-loop]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/agent/src/agent-loop.ts
 [native-services-source]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/src/core/agent-session-services.ts
 [native-sdk-source]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/src/core/sdk.ts
+
+### User input identity and observation
+
+Input requests now retain a logical `inputId`, including steer → queue fallback.
+The [conversation contract](../spec/conversation.md) specifies native echo mapping
+and the limits of acknowledgement evidence. See the
+[steer delivery probes](steer-delivery.md) for the underlying native observations.

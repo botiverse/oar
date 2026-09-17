@@ -1,6 +1,6 @@
 agent_start                    │ event
 turn_start                     │ event
-message_start                  │ event
+message_start                  │ event → user_message
 message_end                    │ event
 message_start                  │ event
 message_update:toolcall_start  │ event

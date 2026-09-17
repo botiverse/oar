@@ -1,6 +1,7 @@
 import type {
   ControlResult,
   PromptOptions,
+  InputOptions,
   RequestRecord,
   Session,
   StartSession,
@@ -33,9 +34,10 @@ import {
  *   shows up only in the stream. Live probe: claude-session-adapter.ts.
  */
 
-function userMessage(text: string): string {
+function userMessage(text: string, inputId?: string): string {
   return `${JSON.stringify({
     type: "user",
+    ...(inputId === undefined ? {} : { uuid: inputId }),
     message: { role: "user", content: [{ type: "text", text }] },
   })}\n`;
 }
@@ -62,7 +64,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     "-p",
     "--input-format", "stream-json",
     "--output-format", "stream-json",
-    "--verbose",
+    "--verbose", "--replay-user-messages",
     // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
     // no human at an approval prompt: a permission gate is a hang, not
     // safety. Isolation is the sandbox's job, not the approval flow's.
@@ -87,7 +89,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   };
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end.
-  const heldQueue: string[] = [];
+  const heldQueue: { input: string; inputId?: string }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;
 
@@ -132,7 +134,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       if (!state.disposed) {
         const next = heldQueue.shift();
         if (next !== undefined) {
-          child.write(userMessage(next));
+          child.write(userMessage(next.input, next.inputId));
         }
       }
     }
@@ -150,34 +152,34 @@ export const claudeSession: StartSession = async (installation, options) => {
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "attributed" },
     prompt: async (input, promptOptions?: PromptOptions): Promise<ControlResult> => {
-      const body = { kind: "prompt" as const, input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
+      const body = { kind: "prompt" as const, input, ...promptOptions, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
       const result = await kernel.control(body, (request) => {
       if (busy()) {
         return { kind: "rejected", reason: "busy" };
       }
       state.active = request;
       state.projection = claudePrompted(state.projection);
-      child.write(userMessage(input));
+      child.write(userMessage(input, promptOptions?.inputId));
       return { kind: "accepted" };
       });
       return result;
     },
-    steer: async (input): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "steer", input }, () => {
+    steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
       if (!busy()) {
         return { kind: "rejected", reason: "not_steerable: no active turn" };
       }
-      child.write(userMessage(input));
+      child.write(userMessage(input, inputOptions?.inputId));
       return { kind: "accepted" };
       });
       return result;
     },
-    queue: async (input): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "queue", input }, () => {
+    queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
       if (busy()) {
-        heldQueue.push(input);
+        heldQueue.push({ input, ...inputOptions });
       } else {
-        child.write(userMessage(input));
+        child.write(userMessage(input, inputOptions?.inputId));
       }
       return { kind: "accepted" };
       });

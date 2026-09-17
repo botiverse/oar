@@ -62,6 +62,7 @@ export type {
   FrameBody,
   PromptLineage,
   PromptOptions,
+  InputOptions,
   QueryResult,
   ReasoningContent,
   RecordEnvelope,
@@ -72,6 +73,7 @@ export type {
   ResponseBody,
   ResponseRecord,
   RuntimeEventBody,
+  UserMessage,
   Session,
   SessionCapabilities,
   SessionEdge,
@@ -150,3 +152,6 @@ export const runtimes = new RuntimeRegistry([
 
 export { runtimeBrands, runtimeBrandIcon } from "./brands.js";
 export type { RuntimeBrand } from "./brands.js";
+
+export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./observe/conversation.js";
+export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt } from "./observe/conversation.js";

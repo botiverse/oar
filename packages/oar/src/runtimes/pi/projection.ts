@@ -192,10 +192,11 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     // Recorded with no event (an exhaustive switch makes a NEW pi event type a
     // compile error, forcing a conscious event-or-plain decision on each
     // future addition).
+    case "message_start":
+      return { state, events: event.message.role === "user" ? [{ kind: "user_message", evidence: "conversation", input: typeof event.message.content === "string" ? event.message.content : event.message.content.filter((part) => part.type === "text").map((part) => part.text).join("") }] : [] };
     case "agent_start":
     case "agent_end":
     case "turn_start":
-    case "message_start":
     case "bash_execution_update":
     case "queue_update":
     case "entry_appended":

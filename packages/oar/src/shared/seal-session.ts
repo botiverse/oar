@@ -1,10 +1,20 @@
+import { randomUUID } from "node:crypto";
 import type {
+  InputOptions,
   AdapterSession,
   Session,
   SteerOrQueueResult,
 } from "../contracts/session.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, modelOf, usageOf } from "../observe/usage.js";
+
+const identify = (options: InputOptions = {}): InputOptions => {
+  const inputId = options.inputId ?? randomUUID();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(inputId)) {
+    throw new Error("inputId must be a UUID");
+  }
+  return { ...options, inputId };
+};
 
 /**
  * Derive the API face of a Session from what the adapter built: the flat
@@ -14,9 +24,11 @@ import { contextUsageOf, modelOf, usageOf } from "../observe/usage.js";
  * consumers discover the surfaces in autocomplete; one implementation instead
  * of one per adapter.
  */
+
 export function sealSession(adapterSession: AdapterSession): Session {
-  const steerOrQueue = async (input: string): Promise<SteerOrQueueResult> => {
-    const steered = await adapterSession.steer(input);
+  const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
+    const identified = identify(options);
+    const steered = await adapterSession.steer(input, identified);
     if (steered.response.body.kind === "accepted") {
       return { landed: "steered", result: steered };
     }
@@ -24,13 +36,16 @@ export function sealSession(adapterSession: AdapterSession): Session {
     if (adapterSession.capabilities.queue === null) {
       return { landed: "rejected", reason, result: steered };
     }
-    const queued = await adapterSession.queue(input);
+    const queued = await adapterSession.queue(input, identified);
     return queued.response.body.kind === "accepted"
       ? { landed: "queued", result: queued }
       : { landed: "rejected", reason: queued.response.body.kind === "rejected" ? queued.response.body.reason : reason, result: queued };
   };
   return {
     ...adapterSession,
+    prompt: async (input, options) => { const result = await adapterSession.prompt(input, { ...options, ...identify(options) }); return result; },
+    steer: async (input, options) => { const result = await adapterSession.steer(input, identify(options)); return result; },
+    queue: async (input, options) => { const result = await adapterSession.queue(input, identify(options)); return result; },
     events: (observer, options = {}) => {
       const coalesce = options.coalesceText ?? false;
       const target = coalesce === false

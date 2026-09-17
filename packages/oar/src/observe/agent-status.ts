@@ -118,7 +118,8 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
       return { kind: "idle", lastTurnOutcome: event.outcome };
-    case "usage":
+    case "user_message":
+      case "usage":
     case "model":
       return previous;
   }

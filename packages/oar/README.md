@@ -35,11 +35,17 @@ and `session.records()` expose that stream (`RawEvent`: `Frame` with the
 native payload verbatim, `RequestRecord`, `ResponseRecord`) for consumers
 who need the runtime's own frames.
 
+For conversation UIs, use the browser-safe `reduceConversation` projection over
+`session.rawEvents()`. It joins input requests, responses and native echoes by
+identity, including steer → queue fallback. See the
+[conversation contract](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md).
+
 ## Public exports
 
-The package has exactly two public entry points:
+The package has three public entry points:
 
 - `@botiverse/oar`: the full surface (runtime registry, adapters, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
 
 Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.

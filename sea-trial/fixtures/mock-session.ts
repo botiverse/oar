@@ -45,7 +45,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
     prompt: async (input, promptOptions?: PromptOptions) => {
-      const body = { kind: "prompt" as const, input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
+      const body = { kind: "prompt" as const, input, ...promptOptions, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
       const result = await kernel.control(body, () => {
       if (disposed) {
         return { kind: "rejected", reason: "session disposed" };
@@ -58,8 +58,8 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       });
       return result;
     },
-    steer: async (input) => {
-      const result = await kernel.control({ kind: "steer", input }, () => {
+    steer: async (input, inputOptions) => {
+      const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
       if (active === null) {
         return { kind: "rejected", reason: "not_steerable: no active turn" };
       }
@@ -68,8 +68,8 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       });
       return result;
     },
-    queue: async (input) => {
-      const result = await kernel.control({ kind: "queue", input }, () => {
+    queue: async (input, inputOptions) => {
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
       if (active === null) {
         run(input);
       } else {

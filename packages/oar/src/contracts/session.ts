@@ -31,6 +31,7 @@ export type {
   ResponseBody,
   ResponseRecord,
   RuntimeEventBody,
+  UserMessage,
   SessionEdge,
   SessionGraph,
   SessionNode,
@@ -47,7 +48,12 @@ export interface QueryResult<T> {
   readonly seq: number;
 }
 
-export interface PromptOptions {
+export interface InputOptions {
+  /** UUID identifying one logical input across delivery attempts; generated when omitted. */
+  readonly inputId?: string;
+}
+
+export interface PromptOptions extends InputOptions {
   /** Host continuity pointer recorded verbatim on the prompt request. */
   readonly lineage?: PromptLineage;
 }
@@ -160,8 +166,8 @@ export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
   prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
-  steer(input: string): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
-  queue(input: string): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
+  steer(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
+  queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
@@ -190,7 +196,7 @@ export interface Session extends AdapterSession {
    * where the input landed. `rejected` means the input was NOT taken over and
    * the caller still owns it.
    */
-  steerOrQueue(input: string): Promise<SteerOrQueueResult>;
+  steerOrQueue(input: string, options?: InputOptions): Promise<SteerOrQueueResult>;
 }
 
 export interface SessionUsage {

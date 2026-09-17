@@ -489,3 +489,10 @@ yet verified live.
 [oar-transport]: ../../packages/oar/src/runtimes/codex/app-server-client.ts
 [oar-context]: ../../packages/oar/src/runtimes/codex/projection.ts
 [oar-models]: ../../packages/oar/src/runtimes/codex/list-models.ts
+
+### User input identity and observation
+
+Input requests now retain a logical `inputId`, including steer → queue fallback.
+The [conversation contract](../spec/conversation.md) specifies native echo mapping
+and the limits of acknowledgement evidence. See the
+[steer delivery probes](steer-delivery.md) for the underlying native observations.

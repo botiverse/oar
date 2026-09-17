@@ -2,19 +2,16 @@ import assert from "node:assert/strict";
 import type { ControlResult, RequestRecord, ResponseRecord, Session, RawEvent, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
 import type { TrialCase } from "../harness/runner.js";
-
 /** Prompt and insist the runtime accepted it. */
 async function accepted(session: Session, input: string, options?: Parameters<Session["prompt"]>[1]): Promise<ControlResult> {
   const result = await session.prompt(input, options);
   assert.ok(result.response.body.kind === "accepted", `prompt ${JSON.stringify(input)} was not accepted: ${JSON.stringify(result.response.body)}`);
   return result;
 }
-
 async function runTurn(session: Session, input: string): Promise<TurnOutcome> {
   const result = await accepted(session, input);
   return awaitTurnEnd(session, result.request.seq);
 }
-
 /** Root-agent records of one turn: from the prompt request through the runtime's turn end. */
 function turnRecords(records: readonly RawEvent[], result: ControlResult): readonly RawEvent[] {
   const start = records.findIndex((record) => record.seq === result.request.seq);
@@ -28,7 +25,6 @@ function turnRecords(records: readonly RawEvent[], result: ControlResult): reado
   }
   return slice;
 }
-
 function rootTurnEnds(records: readonly RawEvent[]): readonly RawEvent[] {
   return records.filter((record) =>
     record.agentPath.length === 0 && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"));
@@ -41,11 +37,15 @@ export const sessionCases: readonly TrialCase[] = [
     async run(subject) {
       const session = await subject.startSession();
       const lineage = { runtime: "prior-runtime", sessionId: "prior-session" };
-      const started = await accepted(session, "hello", { lineage });
-      assert.deepEqual(started.request.body, { kind: "prompt", input: "hello", lineage }, "prompt lineage is recorded verbatim");
+      const inputId = "11111111-2222-4333-8444-555555555555";
+      const started = await accepted(session, "hello", { lineage, inputId });
+      assert.deepEqual(started.request.body, { kind: "prompt", input: "hello", lineage, inputId }, "prompt lineage is recorded verbatim");
       await awaitTurnEnd(session, started.request.seq);
       const ordinary = await accepted(session, "without lineage");
-      assert.deepEqual(ordinary.request.body, { kind: "prompt", input: "without lineage" }, "prompt without lineage has no lineage key");
+      assert.ok(ordinary.request.body.kind === "prompt");
+      assert.match(ordinary.request.body.inputId ?? "", /^[0-9a-f-]{36}$/u);
+      assert.notEqual(ordinary.request.body.inputId, inputId);
+      assert.deepEqual(ordinary.request.body, { kind: "prompt", input: "without lineage", inputId: ordinary.request.body.inputId }, "prompt without lineage has no lineage key");
       await awaitTurnEnd(session, ordinary.request.seq);
       const lastSeq = session.records().at(-1)?.seq ?? -1;
       const model = session.model();

@@ -182,8 +182,18 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
       const content = codexReasoningContent(asRecord(params.item));
       return content === null ? [] : [{ kind: "reasoning", content }];
     }
-    case "item/started":
+    case "item/started": {
+      const item = asRecord(params.item);
+      if (item?.type === "userMessage" && Array.isArray(item.content)) {
+        const input = item.content.map((part: unknown) => asRecord(part)).filter((part) => part?.type === "text").map((part) => typeof part?.text === "string" ? part.text : "").join("");
+        return [{ kind: "user_message", input, evidence: "turn_item",
+          ...(typeof item.clientId === "string" ? { inputId: item.clientId } : {}),
+          ...(typeof item.id === "string" ? { nativeMessageId: item.id } : {}),
+          ...(typeof params.turnId === "string" ? { turnId: params.turnId } : {}),
+        }];
+      }
       return isCompactionItem(params) ? [{ kind: "compaction_started" }] : toolViews(method, asRecord(params.item));
+    }
     case "item/completed":
       return isCompactionItem(params) ? [{ kind: "compaction_ended", outcome: "completed" }] : toolViews(method, asRecord(params.item));
     case "turn/completed":

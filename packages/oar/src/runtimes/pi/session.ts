@@ -1,5 +1,5 @@
 import type {
-  RequestRecord, ContextUsage, ControlResult, PromptOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+  RequestRecord, ContextUsage, ControlResult, InputOptions, PromptOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -170,7 +170,7 @@ export const piSession: StartSession = async (installation, options) => {
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
     prompt: async (input, promptOptions?: PromptOptions): Promise<ControlResult> => {
-      const body = { kind: "prompt" as const, input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
+      const body = { kind: "prompt" as const, input, ...promptOptions, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) };
       const result = await kernel.control(body, async () => {
         if (gate.running) {
           return { kind: "rejected", reason: "busy" };
@@ -180,8 +180,8 @@ export const piSession: StartSession = async (installation, options) => {
       });
       return result;
     },
-    steer: async (input): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "steer", input }, async () => {
+    steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
         if (!gate.running) {
           return { kind: "rejected", reason: "not_steerable: no active turn" };
         }
@@ -190,8 +190,8 @@ export const piSession: StartSession = async (installation, options) => {
       });
       return result;
     },
-    queue: async (input): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "queue", input }, () => {
+    queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
         held.push(input);
         drainHeld();
         return { kind: "accepted" };

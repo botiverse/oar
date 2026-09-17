@@ -262,3 +262,10 @@ changes after conversation reset.
 [native-subagents]: https://code.claude.com/docs/en/agent-sdk/subagents
 [native-permissions]: https://code.claude.com/docs/en/agent-sdk/permissions
 [native-mcp]: https://code.claude.com/docs/en/agent-sdk/mcp
+
+### User input identity and observation
+
+Input requests now retain a logical `inputId`, including steer → queue fallback.
+The [conversation contract](../spec/conversation.md) specifies native echo mapping
+and the limits of acknowledgement evidence. See the
+[steer delivery probes](steer-delivery.md) for the underlying native observations.

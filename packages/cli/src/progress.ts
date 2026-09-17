@@ -77,6 +77,7 @@ export function createProgressRenderer(
       case "turn_started":
       case "tool_call_progress":
       case "app_answered":
+      case "user_message":
       case "usage":
       case "model":
         return [];

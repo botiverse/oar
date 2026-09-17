@@ -59,7 +59,8 @@ export function describe(record: RawEvent): string {
             return `model:${view.model}`;
           case "reasoning":
           case "tool_call_ended":
-          case "usage":
+          case "user_message":
+      case "usage":
           case "tool_call_progress":
           case "compaction_started":
           case "compaction_ended":

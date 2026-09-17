@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type {
   ControlResult,
-  PromptOptions,
+  PromptOptions, InputOptions,
   RequestRecord,
   Session,
   StartSession,
@@ -215,7 +215,7 @@ export const codexSession: StartSession = async (installation, options) => {
       return result;
     };
   const promptPlan = (input: string, promptOptions?: PromptOptions): RpcControlPlan => ({
-    body: { kind: "prompt", input, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) },
+    body: { kind: "prompt", input, ...promptOptions, ...(promptOptions?.lineage === undefined ? {} : { lineage: promptOptions.lineage }) },
     gate: (request) => {
       if (busy()) {
         return { kind: "rejected", reason: "busy" };
@@ -225,7 +225,7 @@ export const codexSession: StartSession = async (installation, options) => {
       return null;
     },
     method: "turn/start",
-    params: () => ({ threadId, input: text(input) }),
+    params: () => ({ threadId, input: text(input), clientUserMessageId: promptOptions?.inputId }),
     onReply: (reply) => {
       const turnId = asRecord(reply.turn)?.id;
       if (typeof turnId !== "string") {
@@ -240,20 +240,20 @@ export const codexSession: StartSession = async (installation, options) => {
       return { kind: "rejected", reason: message };
     },
   });
-  const steerPlan = (input: string): RpcControlPlan => ({
-    body: { kind: "steer", input },
+  const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
+    body: { kind: "steer", input, ...inputOptions },
     gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "not_steerable: no active turn" } : null),
     method: "turn/steer",
-    params: () => ({ threadId, input: text(input), expectedTurnId: state.codexTurnId }),
+    params: () => ({ threadId, input: text(input), expectedTurnId: state.codexTurnId, clientUserMessageId: inputOptions?.inputId }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
     onError: (message) => ({ kind: "rejected", reason: `not_steerable: ${message}` }),
   });
   // The reply carries the runtime's submission id; it is retained on the response.
-  const queuePlan = (input: string): RpcControlPlan => ({
-    body: { kind: "queue", input },
+  const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
+    body: { kind: "queue", input, ...inputOptions },
     gate: () => null,
     method: "thread/queue/add",
-    params: () => ({ threadId, input: text(input), clientUserMessageId: randomUUID() }),
+    params: () => ({ threadId, input: text(input), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
     onError: (message) => ({ kind: "rejected", reason: message }),
   });

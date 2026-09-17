@@ -103,13 +103,23 @@ export interface UsageReport {
   readonly tokens?: TokenTotals;
 }
 
+/** A native user-message observation, not proof of model consumption. */
+export interface UserMessage {
+  readonly kind: "user_message";
+  readonly input: string;
+  readonly inputId?: string;
+  readonly nativeMessageId?: string;
+  readonly turnId?: string;
+  readonly evidence: "acknowledged" | "turn_item" | "conversation";
+}
+
 /**
  * The runtime-said event kinds: what a Frame can carry. `text_delta` is at
  * the granularity the runtime emits (claude: a whole text block per frame;
  * pi and codex: token-sized pieces); `Session.events({ coalesceText })`
  * merges consecutive pieces for consumers who want blocks.
  */
-export type RuntimeEventBody =
+export type RuntimeEventBody = UserMessage
   | { readonly kind: "text_delta"; readonly text: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. */
   | { readonly kind: "reasoning"; readonly content: ReasoningContent }
@@ -187,9 +197,9 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
 export type Event = EventBody & RecordEnvelope;
 
 export type RequestBody =
-  | { readonly kind: "prompt"; readonly input: string; readonly lineage?: PromptLineage }
-  | { readonly kind: "steer"; readonly input: string }
-  | { readonly kind: "queue"; readonly input: string }
+  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string; readonly lineage?: PromptLineage }
+  | { readonly kind: "steer"; readonly inputId?: string; readonly input: string }
+  | { readonly kind: "queue"; readonly inputId?: string; readonly input: string }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */
