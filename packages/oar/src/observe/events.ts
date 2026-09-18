@@ -34,7 +34,6 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, ControlA
             kind: "turn_started",
             requestId: record.id,
             input: record.body.input,
-            ...(record.body.lineage === undefined ? {} : { lineage: record.body.lineage }),
             ...envelope,
           }]
         : [];

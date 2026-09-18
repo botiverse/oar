@@ -155,12 +155,6 @@ interface RequestRecord extends RecordEnvelope {
   body: RequestBody;            // prompt | steer | queue | abort | dispose | native {type, native} (toApp, verbatim)
 }
 
-interface PromptLineage { runtime: string; sessionId: string; }
-// RequestBody's prompt variant is { kind: "prompt"; input: string;
-// lineage?: PromptLineage }. The host pointer is copied verbatim and never
-// interpreted by oar; it identifies the prior session continued by a new
-// session's first prompt (external compaction).
-
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
@@ -205,7 +199,7 @@ type Event = EventBody & RecordEnvelope;      // one attributed fact
 type EventBody = RuntimeEventBody | ControlEventBody;
 // ControlEventBody, read off request/response records so the consumer
 // never handles record kinds:
-//   turn_started {requestId, input, lineage?}   ← a prompt request
+//   turn_started {requestId, input}              ← a prompt request
 //   control_rejected {requestId, action, reason} ← a rejected response
 //   app_request {requestId, type}                ← a toApp request
 //   app_answered {requestId}                     ← an answered response

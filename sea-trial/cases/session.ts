@@ -32,20 +32,19 @@ function rootTurnEnds(records: readonly RawEvent[]): readonly RawEvent[] {
 
 export const sessionCases: readonly TrialCase[] = [
   {
-    id: "session.query-readbacks-carry-stream-seq-and-lineage",
+    id: "session.query-readbacks-carry-stream-seq",
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
-      const lineage = { runtime: "prior-runtime", sessionId: "prior-session" };
       const inputId = "11111111-2222-4333-8444-555555555555";
-      const started = await accepted(session, "hello", { lineage, inputId });
-      assert.deepEqual(started.request.body, { kind: "prompt", input: "hello", lineage, inputId }, "prompt lineage is recorded verbatim");
+      const started = await accepted(session, "hello", { inputId });
+      assert.deepEqual(started.request.body, { kind: "prompt", input: "hello", inputId }, "prompt inputId is recorded verbatim");
       await awaitTurnEnd(session, started.request.seq);
-      const ordinary = await accepted(session, "without lineage");
+      const ordinary = await accepted(session, "without inputId");
       assert.ok(ordinary.request.body.kind === "prompt");
       assert.match(ordinary.request.body.inputId ?? "", /^[0-9a-f-]{36}$/u);
       assert.notEqual(ordinary.request.body.inputId, inputId);
-      assert.deepEqual(ordinary.request.body, { kind: "prompt", input: "without lineage", inputId: ordinary.request.body.inputId }, "prompt without lineage has no lineage key");
+      assert.deepEqual(ordinary.request.body, { kind: "prompt", input: "without inputId", inputId: ordinary.request.body.inputId }, "an omitted inputId is generated");
       await awaitTurnEnd(session, ordinary.request.seq);
       const lastSeq = session.records().at(-1)?.seq ?? -1;
       const model = session.model();

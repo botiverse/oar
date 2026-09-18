@@ -2,7 +2,6 @@ import type {
   ContextUsage,
   Cursor,
   Event,
-  PromptLineage,
   RawEvent,
   RequestRecord,
   ResponseRecord,
@@ -21,7 +20,6 @@ export type {
   FailureClass,
   Frame,
   FrameBody,
-  PromptLineage,
   ReasoningContent,
   RecordEnvelope,
   RecordKind,
@@ -51,11 +49,6 @@ export interface QueryResult<T> {
 export interface InputOptions {
   /** UUID identifying one logical input across delivery attempts; generated when omitted. */
   readonly inputId?: string;
-}
-
-export interface PromptOptions extends InputOptions {
-  /** Host continuity pointer recorded verbatim on the prompt request. */
-  readonly lineage?: PromptLineage;
 }
 
 /**
@@ -165,7 +158,7 @@ export interface EventsOptions {
 export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
-  prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
+  prompt(input: string, options?: InputOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
   steer(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.

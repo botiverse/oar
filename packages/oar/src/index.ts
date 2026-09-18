@@ -60,8 +60,6 @@ export type {
   FailureClass,
   Frame,
   FrameBody,
-  PromptLineage,
-  PromptOptions,
   InputOptions,
   QueryResult,
   ReasoningContent,

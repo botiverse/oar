@@ -85,8 +85,7 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 - `SessionOptions.resume` reopening the runtime-native conversation with a
   fresh stream starting at `seq` 0.
 - external compaction as a new session whose first prompt carries the summary
-  input and optional host `lineage: { runtime, sessionId }`, recorded verbatim and
-  never interpreted or turned into a graph edge.
+  input; nothing links the new session to the prior one.
 
 ## Open decisions
 
@@ -102,9 +101,8 @@ they appear:
    candidate for the next revision.
 
 External compaction is covered: a new session's first prompt carries the
-summary as its input and an optional `lineage: { runtime, sessionId }` host pointer.
-The pointer is recorded verbatim, never interpreted by oar, and does not
-create a session-graph edge.
+summary as its input. oar records nothing linking the two sessions, and no
+session-graph edge is created.
 
 ## Legend
 

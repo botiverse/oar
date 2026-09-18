@@ -43,8 +43,9 @@ claude: root ──tool_call(call_3)──▶ subagent "a1"    (agent parent/chi
 
 Edges are emitted only when a runtime reports a tool call spawning a child
 session. `SessionOptions.resume` reopens the same node with a fresh stream at
-seq 0, so it is not an edge. Host continuity between distinct sessions is
-carried by the new session's first prompt `lineage` pointer, never by the
+seq 0, so it is not an edge. Host continuity between distinct sessions
+(external compaction) is never an edge either: the new session's first prompt
+carries the summary as its input, and nothing links the two sessions in the
 graph.
 
 A node's records are read by its own `sessionId`: the Session folds

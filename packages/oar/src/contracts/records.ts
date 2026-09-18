@@ -173,7 +173,7 @@ export type ControlAction = "prompt" | "steer" | "queue" | "abort" | "dispose";
  */
 export type ControlEventBody =
   /** A prompt request was recorded: the turn's start. `requestId` pairs it with a later `control_rejected` when the prompt did not begin a turn. */
-  | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string; readonly lineage?: PromptLineage }
+  | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string }
   /** A `toRuntime` control action was rejected; the caller still owns the input. */
   | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly reason: string }
   /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; the body is on the request record. */
@@ -197,20 +197,13 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
 export type Event = EventBody & RecordEnvelope;
 
 export type RequestBody =
-  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string; readonly lineage?: PromptLineage }
+  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string }
   | { readonly kind: "steer"; readonly inputId?: string; readonly input: string }
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */
   | { readonly kind: "native"; readonly type: string; readonly native: unknown };
-
-/** Host supplied continuity pointer for a new session's first prompt. */
-export interface PromptLineage {
-  /** Runtime.id of the session being continued. */
-  readonly runtime: string;
-  readonly sessionId: string;
-}
 
 /**
  * Control responses answer only "accepted or not"; final states and landing
