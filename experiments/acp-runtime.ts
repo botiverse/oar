@@ -8,6 +8,8 @@
  * input/output, paths, or tokens.
  *
  * Observed 2026-08-27: grok 1.0.5, kimi 0.38.0.
+ * kimi re-observed 2026-09-18 at 2.0.0: same skeleton and capabilities
+ * (steer false, queue non-durable, attribution opaque).
  *
  * Run:
  *   OAR_GROK_BIN=/path/to/grok GROK_HOME=/isolated/home pnpm tsx experiments/acp-runtime.ts grok

@@ -16,6 +16,8 @@
  * ── OBSERVED 2026-09-11, kimi 0.42.0, darwin arm64 ──
  * See docs/runtimes/kimi.md ("Prompting, steering, queuing, and cancellation"
  * evidence) for the record seqs of the run this script produced.
+ * Re-observed 2026-09-18, kimi 2.0.0: same — `landed: "queued"`, no prompt
+ * request of its own between the two turn ends, second turn text QUEUED-OK.
  */
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";

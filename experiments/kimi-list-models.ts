@@ -43,6 +43,15 @@
  *
  * Consequences for oar: one session/new per listing (closed afterwards via
  * session/close); effort levels are only knowable for the current model.
+ *
+ * ── OBSERVED 2026-09-18 LIVE, kimi 2.0.0, darwin arm64 ──
+ *
+ * Handshake and configOptions shape match the source pin. Five models on
+ * this account: kimi-k2.5, kimi-code/kimi-for-coding,
+ * kimi-code/kimi-for-coding-highspeed, kimi-code/k3 (current),
+ * kimi-code/k3-256k. The thinking option's values are ["low", "high", "max"]
+ * with currentValue "high": no "off" entry (the adapter drops "off" anyway,
+ * so the listing is unaffected).
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";

@@ -13,7 +13,10 @@ version). Live observations below come from **kimi 0.42.0** (`agentInfo.name`
 2026-09-11 through [`experiments/live-contract.ts kimi`](../../experiments/live-contract.ts)
 (scenario names in parentheses below) and the kimi probes listed in the
 [experiments index](../../experiments/README.md): `kimi-wire-tap.ts`,
-`kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. Versions are
+`kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of these
+were re-run against **kimi 2.0.0** on 2026-09-18 (live-contract 13/13, every
+probe unchanged) with one observed difference: the `thinking` config option's
+values are now `["low", "high", "max"]` with no `"off"` entry. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
 the [runtime index](README.md) for status conventions.

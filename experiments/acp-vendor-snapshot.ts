@@ -8,6 +8,9 @@
  *
  *   OAR_GROK_BIN=/path/to/grok GROK_HOME=/isolated/home pnpm tsx experiments/acp-vendor-snapshot.ts grok
  *   OAR_KIMI_BIN=/path/to/kimi KIMI_CODE_HOME=/isolated/home pnpm tsx experiments/acp-vendor-snapshot.ts kimi
+ *
+ * kimi re-checked live 2026-09-18 at 2.0.0: identical in structure to the
+ * checked-in 0.38.0 fixture; the fixture was not refreshed.
  */
 import assert from "node:assert/strict";
 import { grokInstallation } from "../packages/oar/src/runtimes/grok/installation.js";

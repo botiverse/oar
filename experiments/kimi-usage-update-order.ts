@@ -56,6 +56,9 @@
  * `stopReason: cancelled` answer seq 105, usage_update seq 109, 1 ms later).
  * The gate deliberately does not wait while aborting, so on an aborted turn
  * the usage record lands after the turn end.
+ * Re-observed 2026-09-18, live, kimi 2.0.0 (darwin arm64), kimi-code/k3:
+ * `{ tokensAtTurnEnded: [20742, 20795], reportedAtFirstTurnEnd: true,
+ * grewBetweenTurns: true }` — unchanged.
  */
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";

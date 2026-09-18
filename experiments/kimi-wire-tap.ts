@@ -38,6 +38,13 @@
  * request is a `toApp` request record with its answer. `missingFromStream: []`.
  * The `session/set_mode` and `session/close` answers are the only inbound
  * frames with no record of their own (the profile's own bookkeeping calls).
+ *
+ * Re-observed 2026-09-18, kimi 2.0.0: identical shape — the same six
+ * outbound requests all answered, 47 inbound `session/update` of the same
+ * nine kinds (`agent_thought_chunk` 20, `tool_call_update` 14,
+ * `agent_message_chunk` 7, one each of the rest), the same four `terminal/*`
+ * requests, no vendor extension notification, no `request_permission` under
+ * yolo, `missingFromStream: []`.
  */
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
