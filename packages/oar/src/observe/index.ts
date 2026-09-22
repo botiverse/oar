@@ -20,3 +20,21 @@ export { contextUsageOf, modelOf, usageOf } from "./usage.js";
 
 export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./conversation.js";
 export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt } from "./conversation.js";
+
+export {
+  initialSessionView,
+  reduceSessionView,
+  reduceSessionViewEvent,
+  reduceSessionViewInput,
+  viewOf,
+  observeSessionView,
+} from "./session-view.js";
+export type {
+  SessionView,
+  ViewMessage,
+  ViewTurn,
+  ViewSection,
+  ViewPart,
+  ViewNotice,
+  PendingRequest,
+} from "./session-view.js";
