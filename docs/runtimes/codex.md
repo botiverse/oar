@@ -73,6 +73,10 @@ Codex `item/completed` tool items report a native `status` ([src] app-server
 item schema). OAR maps explicit `completed` to `tool_call_ended.result: "ok"`
 and explicit `failed` to `"failed"`; items without either status leave
 `result` absent. OAR does not infer a result from an exit code or output.
+A `commandExecution` item's `exitCode` is carried as
+`tool_call_ended.exitCode` (`null` when codex reports a signal exit, absent
+when the item has none), and its `aggregatedOutput` is the event's `output`
+as-is; the exit status is not folded into the output text.
 
 ## Capability details
 
@@ -236,7 +240,8 @@ contiguous with the log, and a full replay equals `records()` (live-contract
 `cursor`). There is no cross-process cursor, catch-up from codex's rollout, or
 backpressure. Tool detail: a `commandExecution` item yields `tool_call_started`
 with the command as input (`/bin/zsh -lc 'echo …'`) and `tool_call_ended` with
-`exit <code>\n<aggregated output>`, same `callId` (the item id, `call_…`); the
+the aggregated output as `output` and the item's `exitCode`, same `callId`
+(the item id, `call_…`); the
 raw `function_call` names `exec_command`; `item/commandExecution/outputDelta`
 frames carry stdout with no event (live-contract `tool-detail`;
 [item-detail tests](../../tests/codex/codex-item-detail.test.ts)). The guide

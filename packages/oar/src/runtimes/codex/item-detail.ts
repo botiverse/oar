@@ -17,15 +17,23 @@ export function codexItemInput(item: JsonRecord): string | undefined {
   }
 }
 
+/** The exit status of a `commandExecution` item; `null` is codex's own "no code" (a signal), absent means the item carries none (still running, declined). */
+export function codexItemExitCode(item: JsonRecord): number | null | undefined {
+  if (item.type !== "commandExecution" || !("exitCode" in item)) {
+    return undefined;
+  }
+  return typeof item.exitCode === "number" ? item.exitCode : null;
+}
+
 export function codexItemOutput(item: JsonRecord): string | undefined {
   switch (item.type) {
     case "commandExecution": {
-      const status = typeof item.exitCode === "number"
-        ? `exit ${String(item.exitCode)}`
-        : (typeof item.status === "string" ? item.status : undefined);
+      // The exit status travels as `tool_call_ended.exitCode`; the output is the command's own.
       const output = typeof item.aggregatedOutput === "string" ? item.aggregatedOutput : undefined;
-      return [status, output].filter((part) => part !== undefined && part.length > 0).join("\n")
-        || undefined;
+      if (output !== undefined && output.length > 0) {
+        return output;
+      }
+      return typeof item.status === "string" ? item.status : undefined;
     }
     case "fileChange":
       return typeof item.status === "string" ? item.status : undefined;

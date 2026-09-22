@@ -83,6 +83,23 @@ function jsonDetail(value: unknown): string | undefined {
   }
 }
 
+/**
+ * The text parts of a pi `AgentToolResult` (`{content: [{type: "text",
+ * text}], details}`), joined; null when the result carries none (an image
+ * result, an unexpected shape), so the caller falls back to its JSON.
+ */
+function resultText(result: unknown): string | undefined {
+  const content = asRecord(result)?.content;
+  if (!Array.isArray(content)) {
+    return undefined;
+  }
+  const texts = content.flatMap((part) => {
+    const record = asRecord(part);
+    return record?.type === "text" && typeof record.text === "string" ? [record.text] : [];
+  });
+  return texts.length === 0 ? undefined : texts.join("\n");
+}
+
 function foldMessageUpdate(
   state: PiProjectionState,
   inner: Extract<AgentSessionEvent, { type: "message_update" }>["assistantMessageEvent"],
@@ -177,7 +194,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "summarization_retry_scheduled":
       return { state, events: [{ kind: "retry", attempt: event.attempt, maxAttempts: event.maxAttempts, delayMs: event.delayMs, reason: event.errorMessage }] };
     case "tool_execution_end": {
-      const output = jsonDetail(event.result);
+      const output = resultText(event.result) ?? jsonDetail(event.result);
       const result = typeof event.isError === "boolean" ? (event.isError ? "failed" as const : "ok" as const) : undefined;
       return { state, events: [output === undefined
         ? { kind: "tool_call_ended", callId: event.toolCallId, ...(result === undefined ? {} : { result }) }

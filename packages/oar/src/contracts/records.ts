@@ -133,10 +133,12 @@ export type RuntimeEventBody = UserMessage
   | {
       readonly kind: "tool_call_ended";
       readonly callId: string;
-      /** Best-effort human-readable result detail when the runtime exposes it. */
+      /** Best-effort human-readable result detail when the runtime exposes it: the result's text when the frame carries text parts, otherwise its JSON. */
       readonly output?: string;
       /** The runtime's explicit tool outcome; absent when it reported none. */
       readonly result?: "ok" | "failed";
+      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok `rawOutput.exit_code`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, pi), never derived from `result` or output. */
+      readonly exitCode?: number | null;
     }
   /** Partial output of a running tool call, when the runtime streams it (pi `tool_execution_update`, codex `item/commandExecution/outputDelta`, an ACP `tool_call_update` carrying `rawOutput`). claude streams none. */
   | { readonly kind: "tool_call_progress"; readonly callId: string; readonly output?: string }

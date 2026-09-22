@@ -379,8 +379,12 @@ turn opens with `tool_call` `title: "run_terminal_command"` and `rawInput`
 reverse requests (four `toApp` records with `answered` responses, terminal
 output payloads verbatim), and closes with a `tool_call_update` whose
 `rawOutput` is `{type: "Bash", output: [<bytes>], output_for_prompt:
-"exit: 0\n…"}`, a byte array that the `tool_call_ended` event carries
-JSON-encoded (`live-contract/tool-detail`). Under `--always-approve` no
+"exit: 0\n…", exit_code: 0, signal: null}` and whose `content` is an ACP
+content block holding the same output as text. The `tool_call_ended` event
+carries the content block's text as `output` (the byte array stays in
+`native`) and `exit_code` as `exitCode` (`null` for a signal exit); a
+closing update without text content (`read_file`, `search_replace`) falls
+back to `rawOutput` JSON-encoded. Under `--always-approve` no
 `session/request_permission` arrives, though Grok still pushes
 `pending_interaction`/`interaction_resolved` pairs; if one did, the
 [client app](../../packages/oar/src/shared/acp/client-app.ts) selects

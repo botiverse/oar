@@ -7,6 +7,7 @@ import {
   grokContextUsage,
   grokPromptTokens,
 } from "../../packages/oar/src/runtimes/grok/session.js";
+import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
 import { acpLineageOf } from "../../packages/oar/src/shared/acp/records.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { describe, start } from "../fixtures/acp-session-support.js";
@@ -80,6 +81,30 @@ test("grok prompt answer: `_meta.usage` is the prompt's ledger, `_meta.totalToke
   // A half ledger is no ledger: the missing side is never invented as 0.
   assert.equal(grokPromptTokens({ stopReason: "end_turn", _meta: { usage: { inputTokens: 12 } } }), null);
   assert.equal(grokPromptTokens({ stopReason: "end_turn", _meta: { usage: { outputTokens: 3, modelCalls: 1 } } }), null);
+});
+
+// The closing `tool_call_update` of a run_terminal_command as grok 1.0.25
+// sent it on 2026-09-22 (scratch run, seq 191): the readable output is the
+// ACP `content` block, `rawOutput.output` is a byte array, and the exit
+// status lives only on `rawOutput`.
+test("grok bash end: output is the content block's text, not the rawOutput byte array; exit_code becomes exitCode", () => {
+  const state = createAcpProjectionState();
+  projectAcpUpdate(state, { toolCallId: "call-bash", title: "run_terminal_command", rawInput: { command: "node --test" }, sessionUpdate: "tool_call" });
+  const ended = projectAcpUpdate(state, {
+    toolCallId: "call-bash",
+    status: "completed",
+    content: [{ type: "content", content: { type: "text", text: "✔ add (0.27ms)\n✔ mul (0.06ms)\n" } }],
+    rawOutput: { type: "Bash", output: [226, 156, 148, 32, 97, 100, 100], output_for_prompt: "exit: 0\n✔ add (0.27ms)\n", exit_code: 0, signal: null, timed_out: false, command: "node --test" },
+    sessionUpdate: "tool_call_update",
+  });
+  assert.deepEqual(ended, [{ kind: "tool_call_ended", callId: "call-bash", output: "✔ add (0.27ms)\n✔ mul (0.06ms)\n", result: "ok", exitCode: 0 }]);
+  // A signal exit is grok's `exit_code: null`; a rawOutput without the key says nothing.
+  projectAcpUpdate(state, { toolCallId: "call-killed", title: "run_terminal_command", sessionUpdate: "tool_call" });
+  const killed = projectAcpUpdate(state, { toolCallId: "call-killed", status: "failed", rawOutput: { type: "Bash", exit_code: null, signal: "SIGKILL" }, sessionUpdate: "tool_call_update" });
+  assert.deepEqual(killed, [{ kind: "tool_call_ended", callId: "call-killed", output: "{\"type\":\"Bash\",\"exit_code\":null,\"signal\":\"SIGKILL\"}", result: "failed", exitCode: null }]);
+  projectAcpUpdate(state, { toolCallId: "call-read", title: "read_file", sessionUpdate: "tool_call" });
+  const read = projectAcpUpdate(state, { toolCallId: "call-read", status: "completed", rawOutput: { type: "ReadFile", FileContent: { content: "x" } }, sessionUpdate: "tool_call_update" });
+  assert.deepEqual(read, [{ kind: "tool_call_ended", callId: "call-read", output: "{\"type\":\"ReadFile\",\"FileContent\":{\"content\":\"x\"}}", result: "ok" }]);
 });
 
 const grokProfile = {

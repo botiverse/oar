@@ -6,7 +6,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { codexItemInput, codexItemOutput } from "./item-detail.js";
+import { codexItemExitCode, codexItemInput, codexItemOutput } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
 
 /**
@@ -89,6 +89,7 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
       : { kind: "tool_call_started", callId: itemId, tool: itemType, input }];
   }
   const output = item === null ? undefined : codexItemOutput(item);
+  const exitCode = item === null ? undefined : codexItemExitCode(item);
   const status = typeof item?.status === "string" ? item.status : undefined;
   let result: "ok" | "failed" | undefined = undefined;
   if (status === "completed") {
@@ -96,9 +97,13 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
   } else if (status === "failed") {
     result = "failed";
   }
-  return [output === undefined
-    ? { kind: "tool_call_ended", callId: itemId, ...(result === undefined ? {} : { result }) }
-    : { kind: "tool_call_ended", callId: itemId, output, ...(result === undefined ? {} : { result }) }];
+  return [{
+    kind: "tool_call_ended",
+    callId: itemId,
+    ...(output === undefined ? {} : { output }),
+    ...(result === undefined ? {} : { result }),
+    ...(exitCode === undefined ? {} : { exitCode }),
+  }];
 }
 
 function settleOutcome(state: CodexProjectionState, status: unknown): TurnOutcome {

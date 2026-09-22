@@ -142,7 +142,7 @@ interface FrameBody {
 }
 // RuntimeEventBody: text_delta | reasoning | tool_call_started |
 // tool_call_progress {callId, output?} |
-// tool_call_ended {callId, output?, result?: "ok" | "failed"} |
+// tool_call_ended {callId, output?, result?: "ok" | "failed", exitCode?: number | null} |
 // turn_ended {outcome} | usage {context?, tokens?} | model {model} |
 // compaction_started {trigger?} |
 // compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
@@ -192,7 +192,11 @@ Each query returns `{ value, seq }`, with `seq` identifying the last record
 consumed by its fold (or `-1` before any record). A `tool_call_ended` event may
 carry `result: "ok" | "failed"` only when the runtime explicitly reports the
 outcome; oar never infers it from output, exit codes, or timing. When no
-runtime outcome is present, the key is absent.
+runtime outcome is present, the key is absent. `exitCode` follows the same
+rule for the process status of a command the runtime ran: present only when
+the runtime reported one (codex, grok), `null` when it reported a signal
+exit, absent otherwise (claude and pi report none). `output` is the
+result's text when the frame carries text parts, otherwise its JSON.
 The folds, and `awaitTurnEnd`, scope to the ROOT session: a derived child
 session's records (own `sessionId`, a node in `graph()`) never satisfy
 them. On codex the child's `turn/completed` was observed arriving before

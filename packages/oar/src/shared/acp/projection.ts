@@ -34,6 +34,12 @@ function textContent(value: unknown): string | null {
   if (content !== null && typeof content.text === "string") {
     return content.text;
   }
+  // An ACP ToolCallContent of type "content" wraps a ContentBlock (grok's
+  // completed `run_terminal_command`: `[{type: "content", content: {type:
+  // "text", text}}]`); its text is the call's readable output.
+  if (content !== null && content.type === "content") {
+    return textContent(content.content);
+  }
   if (Array.isArray(value)) {
     const parts = value
       .map((item) => textContent(item))
@@ -114,21 +120,45 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
   }
   if (!tool.ended && terminal) {
     tool.ended = true;
-    const output = detail(update.rawOutput) ?? detail(update.content);
+    // Text the runtime put in `content` is what it wants shown (grok's bash
+    // `rawOutput.output` is a byte array); rawOutput is the fallback, then
+    // any non-text content (kimi's terminal reference) as JSON.
+    const text = textContent(update.content);
+    const output = (text === null ? undefined : truncate(text)) ?? detail(update.rawOutput) ?? detail(update.content);
     let result: "ok" | "failed" | undefined = undefined;
     if (update.status === "completed") {
       result = "ok";
     } else if (update.status === "failed") {
       result = "failed";
     }
+    const exitCode = rawOutputExitCode(update.rawOutput);
     events.push({
       kind: "tool_call_ended",
       callId,
       ...(output === undefined ? {} : { output }),
       ...(result === undefined ? {} : { result }),
+      ...(exitCode === undefined ? {} : { exitCode }),
     });
   }
   return events;
+}
+
+/**
+ * The exit status a vendor puts on a completed command's `rawOutput` (grok
+ * 1.0.25: `{type: "Bash", exit_code: 0, signal: null, …}`). ACP itself
+ * defines none, so the key is read only when present; `null` is the
+ * runtime's own "no code".
+ */
+function rawOutputExitCode(rawOutput: unknown): number | null | undefined {
+  const record = asRecord(rawOutput);
+  if (record === null) {
+    return undefined;
+  }
+  const value = "exit_code" in record ? record.exit_code : record.exitCode;
+  if (value === undefined) {
+    return undefined;
+  }
+  return typeof value === "number" ? value : null;
 }
 
 /** Context fullness from a `usage_update` (`used` / `size`), when it carries any. */

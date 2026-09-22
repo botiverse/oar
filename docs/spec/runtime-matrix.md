@@ -41,6 +41,12 @@ Grok and Kimi ACP `tool_call_update.status` ([src]) maps
 `result` absent. OAR never derives a result from output, exit codes, or
 timing, and the native frame remains verbatim beside the event.
 
+`tool_call_ended.exitCode` is the process status of a command the runtime
+ran, carried only where the runtime reports one: Codex `commandExecution`
+items ([src] `exitCode`) and Grok's `rawOutput.exit_code` on the closing
+`tool_call_update` ([src] grok 1.0.25). Claude's `tool_use_result` and Pi's
+`tool_execution_end` carry no exit status, so the key is absent there.
+
 The #1/#2/#3 tiers are the attribution spectrum defined in
 [attribution.md](attribution.md).
 

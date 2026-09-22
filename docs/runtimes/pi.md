@@ -215,7 +215,9 @@ model: a one-shot turn is 17 records, seq dense, events `model`, `reasoning`,
 `gpt-5.3-codex-spark` streams `thinking_start`/`thinking_end` with no deltas,
 so its reasoning event is `reasoning` `empty`, never text; `tool_call_started`
 input is pi's `args` as JSON (`{"command":"echo …"}`), `tool_call_ended`
-output is pi's `result` (`{"content":[{"type":"text","text":"…"}]}`), the
+output is the text parts of pi's `result` joined (its JSON when it has none;
+`details` such as an edit's `patch` stay in `native`; pi reports no exit
+status, so `exitCode` is absent), the
 callIds match, and pi's callId for this provider is the codex Responses pair
 `call_…|fc_…` (`tool-detail` scenario). The fold over a recorded tool round
 is pinned by the [replay test](../../tests/replay/pi-projection.test.ts);
