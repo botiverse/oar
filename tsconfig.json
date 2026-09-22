@@ -5,6 +5,7 @@
   },
   "include": [
     "packages/oar/src",
+    "apps/arena",
     "sea-trial",
     "experiments",
     "tests",

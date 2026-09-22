@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAR Arena</title>
+<style>
+  :root {
+    --bg: #0a0b12; --panel: #12141f; --line: #262a3d; --text: #e8eaf6; --dim: #7a809c;
+    --left: #e8845f; --right: #5fd0e8; --hp: #5fe88a; --hurt: #ff4d6d; --gold: #ffd166;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: var(--mono); overflow-x: hidden; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  button, input { font: inherit; color: inherit; }
+
+  /* HUD */
+  .hud { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: start; padding: 16px 24px 0; }
+  .hud .who { display: flex; align-items: baseline; gap: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .hud .right .who { flex-direction: row-reverse; }
+  .hud .left .who { color: var(--left); } .hud .right .who { color: var(--right); }
+  .hud .hpnum { color: var(--text); font-size: 13px; letter-spacing: 0; }
+  .bar { height: 22px; background: #1b1e2e; border: 2px solid var(--line); transform: skewX(-18deg); overflow: hidden; position: relative; }
+  .right .bar { transform: skewX(18deg); }
+  .bar i { position: absolute; inset: 0; transform-origin: right; background: linear-gradient(180deg, #8dffb0, var(--hp) 45%, #2a9d55); transition: transform .5s cubic-bezier(.2,.9,.3,1), background .3s; }
+  .right .bar i { transform-origin: left; }
+  .bar i.ghost { background: var(--hurt); transition: transform 1.1s .35s ease-out; }
+  .bar.low i:not(.ghost) { background: linear-gradient(180deg, #ffb27a, #ff7a3d 45%, #b3401b); }
+  .meta { display: flex; gap: 10px; align-items: center; margin-top: 8px; min-height: 20px; }
+  .right .meta { flex-direction: row-reverse; }
+  .pips { display: flex; gap: 5px; }
+  .pip { width: 11px; height: 11px; transform: rotate(45deg); border: 1.5px solid var(--gold); opacity: .35; transition: all .3s; }
+  .pip.on { background: var(--gold); opacity: 1; box-shadow: 0 0 8px var(--gold); }
+  .badge { font-size: 10px; letter-spacing: .1em; padding: 2px 6px; border: 1px solid; text-transform: uppercase; }
+  .badge.injected { color: #d08cff; animation: blink .7s steps(2) infinite; }
+  .badge.stale { color: var(--dim); }
+  .round { text-align: center; min-width: 120px; }
+  .round b { display: block; font-size: 30px; line-height: 1; color: var(--gold); text-shadow: 0 0 14px #ffd16688; }
+  .round span { font-size: 10px; letter-spacing: .25em; color: var(--dim); }
+
+  /* Stage */
+  .stage { position: relative; flex: 0 0 auto; height: 300px; margin-top: 4px; overflow: hidden; }
+  .floor { position: absolute; left: -50%; right: -50%; bottom: -40px; height: 170px; transform: perspective(300px) rotateX(62deg);
+    background: linear-gradient(transparent, #0a0b12 95%), repeating-linear-gradient(90deg, #2b3050 0 1px, transparent 1px 60px), repeating-linear-gradient(0deg, #2b3050 0 1px, transparent 1px 40px); }
+  .fighter { position: absolute; bottom: 58px; width: 150px; text-align: center; }
+  .fighter.left { left: calc(50% - 300px); --c: var(--left); --dir: 1; }
+  .fighter.right { right: calc(50% - 300px); --c: var(--right); --dir: -1; }
+  .body { width: 130px; height: 130px; margin: 0 auto; display: grid; place-items: center; font-size: 84px; animation: bob 1.6s ease-in-out infinite; filter: drop-shadow(0 0 22px color-mix(in srgb, var(--c) 55%, transparent)); }
+  .body img { width: 116px; height: 116px; }
+  .fighter.right .body { animation-delay: -.8s; }
+  .shadow { width: 110px; height: 14px; margin: 6px auto 0; border-radius: 50%; background: radial-gradient(color-mix(in srgb, var(--c) 45%, transparent), transparent 70%); }
+  .fighter.lunge .body { animation: lunge .55s cubic-bezier(.3,0,.2,1); }
+  .fighter.hit .body { animation: hit .5s; }
+  .fighter.heal .body { animation: heal .8s; }
+  .fighter.dizzy .body { animation: dizzy .9s; }
+  .fighter.down .body { animation: none; transform: rotate(calc(var(--dir) * -90deg)) translateX(calc(var(--dir) * -30px)); filter: grayscale(1) brightness(.5); transition: all .6s cubic-bezier(.5,0,.8,.4); }
+  .fighter.shield::after { content: ""; position: absolute; inset: -14px 0 12px; border: 3px solid var(--c); border-radius: 50%; box-shadow: 0 0 26px var(--c), inset 0 0 26px color-mix(in srgb, var(--c) 40%, transparent); animation: pulse .8s ease-in-out infinite; }
+  .status { position: absolute; left: 50%; bottom: -28px; transform: translateX(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .12em; color: var(--dim); }
+  .status.thinking::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+  .status.locked { color: var(--c); }
+  .status.first { color: var(--gold); }
+  .bubble { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%) scale(0); transform-origin: bottom center; min-width: 140px; max-width: 260px; padding: 8px 12px; background: var(--text); color: #12141f; font: 600 13px/1.35 system-ui, sans-serif; border-radius: 12px; transition: transform .25s cubic-bezier(.3,1.6,.5,1); z-index: 3; }
+  .bubble.show { transform: translateX(-50%) scale(1); }
+  .bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -7px; border: 7px solid transparent; border-top-color: var(--text); border-bottom: 0; }
+  .float { position: absolute; left: 50%; top: 64px; font-weight: 900; font-size: 30px; pointer-events: none; animation: float 1.1s ease-out forwards; text-shadow: 0 2px 0 #000; z-index: 4; }
+  .float.dmg { color: var(--hurt); } .float.heal { color: var(--hp); } .float.note { color: var(--gold); font-size: 15px; letter-spacing: .1em; white-space: nowrap; transform: translateX(-50%); }
+
+  .cards { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); display: flex; gap: 18px; align-items: center; z-index: 2; }
+  .vs { font-size: 26px; font-weight: 900; font-style: italic; color: var(--dim); }
+  .card { width: 118px; height: 150px; perspective: 600px; }
+  .card > div { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.4,1.4,.5,1); }
+  .card.open > div { transform: rotateY(180deg); }
+  .face { position: absolute; inset: 0; backface-visibility: hidden; border: 2px solid var(--c); border-radius: 10px; display: grid; place-items: center; background: var(--panel); }
+  .card.left { --c: var(--left); } .card.right { --c: var(--right); }
+  .face.back { font-size: 42px; color: var(--c); background: repeating-linear-gradient(45deg, #151827 0 8px, #1a1e31 8px 16px); }
+  .face.front { transform: rotateY(180deg); align-content: center; gap: 6px; box-shadow: 0 0 24px color-mix(in srgb, var(--c) 35%, transparent); }
+  .face.front .glyph { font-size: 46px; line-height: 1; }
+  .face.front .name { font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+  .face.front .cost { font-size: 10px; color: var(--gold); }
+  .card.acting .face.front { animation: glow .5s; }
+  .card.empty > div { opacity: .25; }
+
+  /* Minds */
+  .minds { flex: 1 1 0; min-height: 190px; display: grid; grid-template-columns: 1fr 300px 1fr; gap: 14px; padding: 0 24px 20px; }
+  .mind, .log { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; min-height: 0; overflow: hidden; }
+  .mind.left { border-top: 2px solid var(--left); } .mind.right { border-top: 2px solid var(--right); }
+  .mind header, .log header { display: flex; justify-content: space-between; gap: 8px; padding: 7px 10px; font-size: 10px; letter-spacing: .14em; color: var(--dim); text-transform: uppercase; border-bottom: 1px solid var(--line); }
+  .mind pre, .log ol { flex: 1 1 0; margin: 0; padding: 10px; overflow-y: auto; font: 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; color: #b9bfdc; }
+  .mind header span:first-child { flex: 0 0 auto; }
+  .mind header span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mind pre .sep { color: var(--dim); }
+  .mind form { display: flex; border-top: 1px solid var(--line); }
+  .mind input { flex: 1; min-width: 0; padding: 8px 10px; background: transparent; border: 0; outline: 0; font-size: 12px; }
+  .mind form button { padding: 0 12px; background: transparent; border: 0; border-left: 1px solid var(--line); cursor: pointer; color: var(--dim); }
+  .mind form button:hover { color: var(--text); }
+  .log ol { list-style: none; font-size: 11.5px; }
+  .log li { padding: 2px 0; }
+  .log li.r { color: var(--gold); margin-top: 6px; }
+  .log li .l { color: var(--left); } .log li .rr { color: var(--right); }
+
+  /* Overlay */
+  .overlay { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; align-content: center; gap: 22px; text-align: center; background: radial-gradient(#0a0b12dd, #0a0b12f5); transition: opacity .4s; }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay h1 { margin: 0; font-size: clamp(30px, 6vw, 68px); font-style: italic; letter-spacing: .04em; text-transform: uppercase; line-height: 1.05; }
+  .overlay h1 .l { color: var(--left); } .overlay h1 .rr { color: var(--right); } .overlay h1 small { display: block; font-size: .4em; color: var(--dim); margin: .25em 0; }
+  .overlay h1.ko { font-size: clamp(60px, 14vw, 170px); color: var(--hurt); text-shadow: 0 0 40px #ff4d6d88; animation: slam .5s cubic-bezier(.2,1.8,.4,1); }
+  .overlay p { margin: 0; color: var(--dim); font-size: 13px; max-width: 560px; line-height: 1.6; }
+  .overlay p.err { color: var(--hurt); }
+  .go { padding: 14px 44px; font-weight: 900; font-size: 20px; letter-spacing: .2em; background: var(--gold); color: #12141f; border: 0; cursor: pointer; transform: skewX(-12deg); box-shadow: 6px 6px 0 #a3791f; }
+  .go:hover { transform: skewX(-12deg) translate(-2px, -2px); box-shadow: 8px 8px 0 #a3791f; }
+  .go:disabled { opacity: .5; cursor: wait; }
+  .moves { display: grid; grid-template-columns: auto auto 1fr; gap: 3px 12px; text-align: left; font-size: 11.5px; color: var(--dim); max-width: 640px; }
+  .moves b { color: var(--text); } .moves em { color: var(--gold); font-style: normal; }
+
+  .shake { animation: screenshake .35s; }
+  @keyframes bob { 50% { transform: translateY(-9px); } }
+  @keyframes lunge { 40% { transform: translateX(calc(var(--dir) * 170px)) scale(1.12) rotate(calc(var(--dir) * 8deg)); } }
+  @keyframes hit { 0%, 100% { transform: none; filter: none; } 15% { transform: translateX(calc(var(--dir) * -26px)) rotate(calc(var(--dir) * -10deg)); filter: brightness(3) saturate(0); } 45% { transform: translateX(calc(var(--dir) * 10px)); } 70% { transform: translateX(calc(var(--dir) * -6px)); } }
+  @keyframes heal { 50% { transform: scale(1.14); filter: drop-shadow(0 0 30px var(--hp)) brightness(1.3); } }
+  @keyframes dizzy { 25% { transform: rotate(-14deg); } 50% { transform: rotate(12deg) translateY(4px); } 75% { transform: rotate(-8deg); } }
+  @keyframes pulse { 50% { opacity: .55; transform: scale(1.04); } }
+  @keyframes float { from { opacity: 1; transform: translate(-50%, 0) scale(.6); } 20% { transform: translate(-50%, -18px) scale(1.25); } to { opacity: 0; transform: translate(-50%, -80px) scale(1); } }
+  @keyframes glow { 50% { transform: rotateY(180deg) scale(1.1); } }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  @keyframes blink { 50% { opacity: .3; } }
+  @keyframes slam { from { transform: scale(4); opacity: 0; } }
+  @keyframes screenshake { 20% { transform: translate(-7px, 4px); } 40% { transform: translate(6px, -5px); } 60% { transform: translate(-4px, -3px); } 80% { transform: translate(3px, 3px); } }
+  @media (max-width: 900px) {
+    .fighter.left { left: 16px; } .fighter.right { right: 16px; }
+    .cards { transform: translateX(-50%) scale(.7); top: 10px; }
+    .minds { grid-template-columns: 1fr 1fr; } .log { grid-column: 1 / -1; order: 3; max-height: 160px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::after { animation-duration: .01s !important; transition-duration: .01s !important; } }
+</style>
+</head>
+<body>
+<div class="hud">
+  <div class="left"><div class="who"><span data-name="left">—</span><span class="hpnum" data-hpnum="left"></span></div><div class="bar" data-bar="left"><i class="ghost"></i><i></i></div><div class="meta" data-meta="left"></div></div>
+  <div class="round"><b data-round>—</b><span>ROUND</span></div>
+  <div class="right"><div class="who"><span data-name="right">—</span><span class="hpnum" data-hpnum="right"></span></div><div class="bar" data-bar="right"><i class="ghost"></i><i></i></div><div class="meta" data-meta="right"></div></div>
+</div>
+
+<div class="stage" data-stage>
+  <div class="floor"></div>
+  <div class="cards">
+    <div class="card left" data-card="left"><div><div class="face back">?</div><div class="face front"></div></div></div>
+    <div class="vs">VS</div>
+    <div class="card right" data-card="right"><div><div class="face back">?</div><div class="face front"></div></div></div>
+  </div>
+  <div class="fighter left" data-fighter="left"><div class="bubble"></div><div class="body"></div><div class="shadow"></div><div class="status"></div></div>
+  <div class="fighter right" data-fighter="right"><div class="bubble"></div><div class="body"></div><div class="shadow"></div><div class="status"></div></div>
+</div>
+
+<div class="minds">
+  <section class="mind left"><header><span data-mindname="left">left</span><span data-vitals="left"></span></header><pre data-mind="left"></pre>
+    <form data-heckle="left"><input placeholder="shout at this fighter while it thinks…" maxlength="280"><button>📣</button></form></section>
+  <section class="log"><header><span>Battle log</span></header><ol data-log></ol></section>
+  <section class="mind right"><header><span data-mindname="right">right</span><span data-vitals="right"></span></header><pre data-mind="right"></pre>
+    <form data-heckle="right"><input placeholder="shout at this fighter while it thinks…" maxlength="280"><button>📣</button></form></section>
+</div>
+
+<div class="overlay" data-overlay>
+  <h1 data-title></h1>
+  <p data-sub></p>
+  <div class="moves" data-moves></div>
+  <button class="go" data-go>FIGHT</button>
+</div>
+
+<script>
+const SIDES = ["left", "right"];
+const GLYPH = { patch: "🩹", refactor: "🔨", rm_rf: "💥", sandbox: "🛡️", compact: "🗜️", think: "💭", inject: "💉", hallucinate: "😵‍💫" };
+const $ = (selector) => document.querySelector(selector);
+const el = (kind, side) => $(`[data-${kind}="${side}"]`);
+const other = (side) => (side === "left" ? "right" : "left");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+let replaying = true;
+let rules = { maxHp: 100, maxTokens: 6, maxRounds: 20 };
+let moves = {};
+let names = { left: "left", right: "right" };
+let hp = { left: 100, right: 100 };
+const pause = (ms) => (replaying ? Promise.resolve() : sleep(ms));
+
+function span(className, text) {
+  const node = document.createElement("span");
+  node.className = className;
+  node.textContent = text;
+  return node;
+}
+
+function log(parts, className = "") {
+  const item = document.createElement("li");
+  item.className = className;
+  for (const part of parts) {
+    item.append(typeof part === "string" ? part : span(part.side === "left" ? "l" : "rr", names[part.side]));
+  }
+  $("[data-log]").append(item);
+  item.scrollIntoView({ block: "end" });
+}
+
+function setHp(side, value) {
+  hp[side] = value;
+  const bar = el("bar", side);
+  for (const fill of bar.children) {
+    fill.style.transform = `scaleX(${value / rules.maxHp})`;
+  }
+  bar.classList.toggle("low", value <= rules.maxHp * 0.3);
+  el("hpnum", side).textContent = `${value} HP`;
+}
+
+function setMeta(side, fighter) {
+  const meta = el("meta", side);
+  meta.replaceChildren();
+  const pips = document.createElement("div");
+  pips.className = "pips";
+  pips.title = `${fighter.tokens} tokens`;
+  for (let index = 0; index < rules.maxTokens; index++) {
+    pips.append(span(index < fighter.tokens ? "pip on" : "pip", ""));
+  }
+  meta.append(pips);
+  if (fighter.injected) meta.append(span("badge injected", "injected"));
+  if (fighter.lastAction === "sandbox") meta.append(span("badge stale", "stale sandbox"));
+}
+
+function applyState(state) {
+  for (const side of SIDES) {
+    setHp(side, state[side].hp);
+    setMeta(side, state[side]);
+    el("fighter", side).classList.toggle("down", state[side].hp <= 0);
+  }
+}
+
+function floatText(side, text, kind) {
+  if (replaying) return;
+  const node = span(`float ${kind}`, text);
+  el("fighter", side).append(node);
+  setTimeout(() => node.remove(), 1200);
+}
+
+async function flash(node, className, ms) {
+  if (replaying) return;
+  node.classList.remove(className);
+  void node.offsetWidth;
+  node.classList.add(className);
+  await sleep(ms);
+  node.classList.remove(className);
+}
+
+function setCard(side, action) {
+  const card = el("card", side);
+  const front = card.querySelector(".front");
+  front.replaceChildren();
+  if (action === null) {
+    card.classList.remove("open");
+    return;
+  }
+  front.append(span("glyph", GLYPH[action] ?? "?"), span("name", action.replace("_", " -")), span("cost", moves[action] ? `${moves[action].cost} tok` : "—"));
+  card.classList.add("open");
+}
+
+function stepLine(step) {
+  const who = { side: step.side };
+  if (step.fizzle === "knocked_out") return [who, " was knocked out before acting"];
+  if (step.action === "hallucinate") {
+    const why = { injected: "was injected", no_tokens: "couldn't afford its move", invalid: "gave no legal move" }[step.fizzle] ?? "glitched";
+    return [who, ` ${why} → hallucinated, -${step.selfDamage}`];
+  }
+  const effects = [];
+  if (step.damage > 0) effects.push(`${step.damage} dmg${step.blocked ? " (blocked)" : ""}`);
+  if (step.damage === 0 && step.blocked) effects.push("blocked!");
+  if (step.selfDamage > 0) effects.push(`${step.selfDamage} recoil`);
+  if (step.heal > 0) effects.push(`+${step.heal} HP`);
+  if (step.injects) effects.push("injection landed");
+  return [who, ` ${GLYPH[step.action]} ${step.action}${effects.length ? ": " + effects.join(", ") : ""}`];
+}
+
+async function playStep(step) {
+  const me = el("fighter", step.side);
+  const foe = el("fighter", other(step.side));
+  log(stepLine(step));
+  if (step.fizzle === "knocked_out") return;
+  const card = el("card", step.side);
+  card.classList.add("acting");
+  if (step.action === "hallucinate") {
+    floatText(step.side, `-${step.selfDamage}`, "dmg");
+    setHp(step.side, Math.max(0, hp[step.side] - step.selfDamage));
+    await flash(me, "dizzy", 900);
+  } else if (step.action === "compact") {
+    floatText(step.side, `+${step.heal}`, "heal");
+    setHp(step.side, hp[step.side] + step.heal);
+    await flash(me, "heal", 800);
+  } else if (step.action === "think") {
+    floatText(step.side, "+2 TOKENS", "note");
+    await flash(me, "heal", 600);
+  } else if (step.action === "sandbox") {
+    await pause(350);
+  } else {
+    const lunge = flash(me, "lunge", 550);
+    await pause(220);
+    if (step.damage > 0) {
+      floatText(other(step.side), `-${step.damage}`, "dmg");
+      setHp(other(step.side), Math.max(0, hp[other(step.side)] - step.damage));
+      void flash(foe, "hit", 500);
+      if (step.damage >= 20) void flash($("[data-stage]"), "shake", 350);
+    }
+    if (step.blocked) floatText(other(step.side), step.damage === 0 ? "BLOCKED" : "PARTLY BLOCKED", "note");
+    if (step.injects) floatText(other(step.side), "INJECTED", "note");
+    if (step.selfDamage > 0) {
+      floatText(step.side, `-${step.selfDamage}`, "dmg");
+      setHp(step.side, Math.max(0, hp[step.side] - step.selfDamage));
+    }
+    await lunge;
+    await pause(250);
+  }
+  card.classList.remove("acting");
+  for (const side of SIDES) el("fighter", side).classList.toggle("down", hp[side] <= 0);
+}
+
+function showLobby(title, sub, error = false) {
+  $("[data-title]").replaceChildren(...title);
+  const paragraph = $("[data-sub]");
+  paragraph.textContent = sub;
+  paragraph.classList.toggle("err", error);
+  $("[data-go]").disabled = false;
+  $("[data-overlay]").classList.remove("hidden");
+}
+
+const handlers = {
+  lobby(event) {
+    // Also the first event after a reconnect: what follows is the match so far, not live.
+    replaying = true;
+    names = event.names;
+    rules = event.rules;
+    moves = event.moves;
+    $("[data-title]").className = "";
+    const table = $("[data-moves]");
+    table.replaceChildren();
+    for (const [name, info] of Object.entries(moves)) {
+      const label = document.createElement("b");
+      label.textContent = `${GLYPH[name]} ${name}`;
+      const cost = document.createElement("em");
+      cost.textContent = `${info.cost} tok`;
+      table.append(label, cost, span("", info.summary));
+    }
+    const small = document.createElement("small");
+    small.textContent = "vs";
+    showLobby([span("l", names.left), small, span("rr", names.right)], "Two coding agents, one oar session each. Both pick a move in secret every round; whoever answers faster strikes first.");
+    $("[data-go]").textContent = "FIGHT";
+  },
+  opening() {
+    $("[data-go]").disabled = true;
+    $("[data-sub]").textContent = "Opening sessions…";
+    $("[data-log]").replaceChildren();
+    for (const side of SIDES) el("mind", side).replaceChildren();
+  },
+  match_start(event) {
+    for (const side of SIDES) {
+      names[side] = event.fighters[side].name;
+      el("name", side).textContent = names[side];
+      el("mindname", side).textContent = names[side];
+      const body = el("fighter", side).querySelector(".body");
+      body.replaceChildren();
+      if (event.fighters[side].icon) {
+        const image = new Image();
+        image.src = event.fighters[side].icon;
+        image.alt = names[side];
+        body.append(image);
+      } else {
+        body.textContent = "🤖";
+      }
+      setCard(side, null);
+    }
+    applyState(event.state);
+    $("[data-overlay]").classList.add("hidden");
+  },
+  round_start(event) {
+    $("[data-round]").textContent = `${event.state.round + 1}/${rules.maxRounds}`;
+    log([`— round ${event.state.round + 1} —`], "r");
+    for (const side of SIDES) {
+      setCard(side, null);
+      const fighter = el("fighter", side);
+      fighter.classList.remove("shield");
+      fighter.querySelector(".bubble").classList.remove("show");
+      const status = fighter.querySelector(".status");
+      status.className = "status thinking";
+      status.textContent = "THINKING";
+      el("mind", side).append(span("sep", `\n── round ${event.state.round + 1} ──\n`));
+    }
+  },
+  thought(event) {
+    const mind = el("mind", event.side);
+    mind.append(event.text);
+    mind.scrollTop = mind.scrollHeight;
+  },
+  locked(event) {
+    const status = el("fighter", event.side).querySelector(".status");
+    const first = !el("fighter", other(event.side)).querySelector(".status").classList.contains("locked");
+    status.className = `status locked${first ? " first" : ""}`;
+    status.textContent = `${first ? "⚡ " : ""}LOCKED ${(event.ms / 1000).toFixed(1)}s`;
+  },
+  async round_result(event) {
+    for (const side of SIDES) {
+      const vitals = event.vitals[side];
+      const tokens = vitals.tokens ? `${((vitals.tokens.input + vitals.tokens.output) / 1000).toFixed(1)}k real tokens` : "";
+      el("vitals", side).textContent = [vitals.model, tokens, vitals.contextPercent === null ? "" : `ctx ${Math.round(vitals.contextPercent)}%`].filter(Boolean).join(" · ");
+      const reply = event.replies[side];
+      if (reply.trouble) log([{ side }, ` ⚠ ${reply.trouble}`]);
+    }
+    await pause(400);
+    for (const step of event.steps) {
+      setCard(step.side, step.action);
+      if (step.action === "sandbox") el("fighter", step.side).classList.add("shield");
+    }
+    for (const side of SIDES) {
+      const taunt = event.replies[side].taunt;
+      if (taunt) {
+        const bubble = el("fighter", side).querySelector(".bubble");
+        bubble.textContent = taunt;
+        bubble.classList.add("show");
+        log([{ side }, `: “${taunt}”`]);
+      }
+    }
+    await pause(1100);
+    for (const step of event.steps) {
+      await playStep(step);
+    }
+    applyState(event.state);
+  },
+  heckle(event) {
+    log(["📣 crowd → ", { side: event.side }, `: “${event.text}” (${event.landed})`]);
+  },
+  async match_end(event) {
+    await pause(900);
+    const verdict = event.verdict;
+    const title = document.createElement("span");
+    title.textContent = verdict.kind === "won" && verdict.by === "ko" ? "K.O." : verdict.kind === "draw" ? "DRAW" : "TIME";
+    $("[data-title]").className = "ko";
+    const sub = verdict.kind === "won" ? `${names[verdict.winner]} wins by ${verdict.by === "ko" ? "knockout" : "decision"} · ${hp.left}–${hp.right}` : "Nobody wins.";
+    log([`— ${sub} —`], "r");
+    showLobby([title], sub);
+    $("[data-go]").textContent = "REMATCH";
+  },
+  error(event) {
+    showLobby([span("", "ERROR")], event.message, true);
+  },
+  replay_done() {
+    replaying = false;
+  },
+};
+
+// One event at a time: a round's animation finishes before the next round's thoughts start streaming.
+let queue = Promise.resolve();
+new EventSource("/events").onmessage = (message) => {
+  const event = JSON.parse(message.data);
+  queue = queue.then(() => handlers[event.type]?.(event)).catch((error) => console.error(error));
+};
+
+$("[data-go]").addEventListener("click", () => {
+  $("[data-go]").disabled = true;
+  $("[data-title]").className = "";
+  void fetch("/start", { method: "POST" });
+});
+
+for (const side of SIDES) {
+  el("heckle", side).addEventListener("submit", (submit) => {
+    submit.preventDefault();
+    const input = submit.target.querySelector("input");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    void fetch("/heckle", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ side, text }) });
+  });
+}
+</script>
+</body>
+</html>
