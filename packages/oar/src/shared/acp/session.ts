@@ -112,21 +112,21 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       id: kernel.sessionId,
       capabilities: profile.capabilities,
       prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
-        (turns.active() === null ? turns.begin(request, input) : { kind: "rejected", reason: "busy" })),
+        (turns.active() === null ? turns.begin(request, input) : { kind: "rejected", code: "busy", reason: "busy" })),
       steer: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
         const steerParams = profile.steerParams;
         if (steerParams === undefined) {
-          return { kind: "rejected", reason: "not_steerable: runtime cannot inject into an active turn" };
+          return { kind: "rejected", code: "unsupported", reason: "not_steerable: runtime cannot inject into an active turn" };
         }
         const state = turns.active();
         return state === null
-          ? { kind: "rejected", reason: "not_steerable: no active turn" }
+          ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
           : turns.steer(state, input, steerParams(input));
       }),
       queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input)),
       abort: (): Promise<ControlResult> => control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
         const state = turns.active();
-        return state === null ? { kind: "rejected", reason: "no active turn" } : turns.abort(state);
+        return state === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : turns.abort(state);
       }),
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),

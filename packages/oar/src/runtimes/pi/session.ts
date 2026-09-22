@@ -78,7 +78,7 @@ export const piSession: StartSession = async (installation, options) => {
       started.then(() => ({ kind: "accepted" })),
       run.then(
         () => ({ kind: "accepted" }),
-        (error: unknown) => ({ kind: "rejected", reason: error instanceof Error ? error.message : "pi prompt failed" }),
+        (error: unknown) => ({ kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : "pi prompt failed" }),
       ),
     ]);
     startWaiters.delete(onStarted);
@@ -173,7 +173,7 @@ export const piSession: StartSession = async (installation, options) => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, async () => {
         if (gate.running) {
-          return { kind: "rejected", reason: "busy" };
+          return { kind: "rejected", code: "busy", reason: "busy" };
         }
         const decided = await start(input);
         return decided;
@@ -183,7 +183,7 @@ export const piSession: StartSession = async (installation, options) => {
     steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
         if (!gate.running) {
-          return { kind: "rejected", reason: "not_steerable: no active turn" };
+          return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
         }
         await piAgentSession.steer(input);
         return { kind: "accepted" };
@@ -201,7 +201,7 @@ export const piSession: StartSession = async (installation, options) => {
     abort: async (): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "abort" }, () => {
         if (!gate.running) {
-          return { kind: "rejected", reason: "no active turn" };
+          return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
         }
         projection = piAbortRequested(projection);
         // Delivery is pi's own AgentSession.abort() minus its idle wait (SDK

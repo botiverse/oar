@@ -96,8 +96,8 @@ if (installation?.kind === "available") {
       case "turn_ended": console.log(event.outcome.kind); break;
     }
   });
-  const run = await promptAndWait(session, "Inspect this repository");
-  console.log(run.kind === "ended" ? run.outcome : run.reason);
+  const run = await promptAndWait(session, "Inspect this repository", { timeoutMs: 120_000 });
+  console.log(run.kind === "rejected" ? run.code : run.outcome);
   await session.dispose();
 }
 ```

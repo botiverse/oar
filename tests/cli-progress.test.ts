@@ -70,7 +70,7 @@ test("renderOutcome covers completed, aborted, and failed", () => {
 test("turn_ended renders through renderOutcome; control rejections and exits print bracketed", () => {
   const render = renderAll(createProgressRenderer("claude"));
   assert.deepEqual(render(at(0, [{ kind: "turn_ended", outcome: { kind: "completed" } }])), ["[turn completed]"]);
-  assert.deepEqual(render(at(0, [{ kind: "control_rejected", requestId: "r", action: "steer", reason: "not_steerable" }])), ["[steer rejected] not_steerable"]);
+  assert.deepEqual(render(at(0, [{ kind: "control_rejected", requestId: "r", action: "steer", code: "no_active_turn", reason: "not_steerable" }])), ["[steer rejected] not_steerable"]);
   assert.deepEqual(render(at(0, [{ kind: "exited", code: 143 }])), ["[runtime exited: 143]"]);
 });
 

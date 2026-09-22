@@ -154,7 +154,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, (request) => {
       if (busy()) {
-        return { kind: "rejected", reason: "busy" };
+        return { kind: "rejected", code: "busy", reason: "busy" };
       }
       state.active = request;
       state.projection = claudePrompted(state.projection);
@@ -166,7 +166,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
       if (!busy()) {
-        return { kind: "rejected", reason: "not_steerable: no active turn" };
+        return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
       }
       child.write(userMessage(input, inputOptions?.inputId));
       return { kind: "accepted" };
@@ -195,7 +195,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       const blocked = kernel.unreachable();
       const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });
       if (blocked !== null || !busy()) {
-        return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", reason: "no active turn" }) };
+        return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", code: "no_active_turn", reason: "no active turn" }) };
       }
       state.projection = claudeAbortRequested(state.projection);
       const { promise, resolve } = Promise.withResolvers<ControlResult>();

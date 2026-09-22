@@ -175,7 +175,7 @@ export type ControlEventBody =
   /** A prompt request was recorded: the turn's start. `requestId` pairs it with a later `control_rejected` when the prompt did not begin a turn. */
   | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string }
   /** A `toRuntime` control action was rejected; the caller still owns the input. */
-  | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly reason: string }
+  | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly code: RejectionCode; readonly reason: string }
   /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; the body is on the request record. */
   | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
   /** oar answered a `toApp` request automatically (an `answered` response). */
@@ -206,6 +206,29 @@ export type RequestBody =
   | { readonly kind: "native"; readonly type: string; readonly native: unknown };
 
 /**
+ * Why a control action was not taken over, as one word an application can
+ * branch on without parsing prose. `reason` on the same body keeps the prose
+ * (the runtime's own message when it gave one). Every adapter answers the
+ * same situation with the same code: `busy` iff `Session.status()` was
+ * running when the prompt was recorded.
+ */
+export type RejectionCode =
+  /** prompt: another turn is active (≤1 active turn; nothing is queued implicitly). */
+  | "busy"
+  /** steer / abort: nothing is running; a late abort is a normal race, not an error. */
+  | "no_active_turn"
+  /** The runtime cannot do this at all: queue on a runtime that holds no input, steer on one that cannot inject. */
+  | "unsupported"
+  /** The stream already holds the process exit. */
+  | "runtime_exited"
+  /** The stream already holds this session's dispose request. */
+  | "disposed"
+  /** The runtime answered no (its typed refusal, an RPC error); `reason` is its message. */
+  | "runtime_refused"
+  /** The adapter could not deliver (a thrown transport error); `reason` is the exception message. */
+  | "error";
+
+/**
  * Control responses answer only "accepted or not"; final states and landing
  * points are always events. The remaining bodies are outcomes only oar
  * observes: its own answer to a runtime→app request, and the process exit.
@@ -213,8 +236,8 @@ export type RequestBody =
 export type ResponseBody =
   /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. `native` is the runtime's own acknowledgement when it gave one. */
   | { readonly kind: "accepted"; readonly native?: unknown }
-  /** Not taken over; the caller still owns the input. `busy` (another turn is active), `not_steerable`, a dead process, or the runtime's typed refusal. */
-  | { readonly kind: "rejected"; readonly reason: string; readonly native?: unknown }
+  /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
+  | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
   | { readonly kind: "answered"; readonly native: unknown }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */

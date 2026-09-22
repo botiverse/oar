@@ -8,7 +8,8 @@ import type { RawEvent } from "./contracts/session.js";
 // request records); `end` is the last line; a log without it is a truncated
 // capture. All timestamps are Unix epoch milliseconds on the same clock as
 // `receivedAt`. The format is defined and owned by oar; other tools may
-// consume it.
+// consume it. Rejected response bodies carry a typed `code` since 2026-09-23;
+// a log written before then has the prose `reason` only.
 
 export const VOYAGE_FORMAT = "oar-voyage/3";
 

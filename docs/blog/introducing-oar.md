@@ -134,8 +134,8 @@ if (installation?.kind === "available") {
     // session.rawEvents() exposes the record stream underneath: "frame" (the
     // runtime's frame, verbatim, plus oar's events), "request", "response".
   });
-  const run = await promptAndWait(session, "Inspect this repository");
-  console.log(run.kind === "ended" ? run.outcome : run.reason);
+  const run = await promptAndWait(session, "Inspect this repository", { timeoutMs: 120_000 });
+  console.log(run.kind === "rejected" ? run.code : run.outcome);
   console.log(session.usage(), await grok.accountUsage?.(installation));
   await session.dispose();
 }

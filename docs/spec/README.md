@@ -71,11 +71,14 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   records; a pure projection (`eventsOf`) over the stream, never a second
   source of truth;
 - control as records: prompt / steer / queue / abort / dispose requests
-  answered `accepted` / `rejected`; runtime→app requests recorded `toApp`
-  and oar's automatic answer as `answered`; the process exit as `exited`;
-- queries as folds: `model()`, `usage()`, and `contextUsage()` project over
-  `records()` and return `{ value, seq }`, where `seq` is the last record the
-  fold consumed (or `-1` before any record);
+  answered `accepted` / `rejected` (a rejection carries a typed `code` beside
+  its prose `reason`); the `Session` returns those records read, as a
+  `ControlOutcome`; runtime→app requests recorded `toApp` and oar's
+  automatic answer as `answered`; the process exit as `exited`;
+- queries as folds: `model()`, `usage()`, `contextUsage()` and `status()`
+  project over `records()` and return `{ value, seq }`, where `seq` is the
+  last record the fold consumed (or `-1` before any record); `busy` is
+  rejected exactly while `status()` says `running`;
 - the cursor for the lifetime of the adapter process: `rawEvents(observer,
   {sessionId, afterSeq})` (and `events(observer, { cursor })`) replays the
   retained records after that position and continues live, without loss or

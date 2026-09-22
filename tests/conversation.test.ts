@@ -9,7 +9,7 @@ function request(seq: number, id: string, options: { action?: "prompt" | "steer"
   return { ...envelope, seq, kind: "request", id, direction: "toRuntime", body: { kind: options.action ?? "steer", input: "same text", inputId: options.inputId ?? inputId } };
 }
 function response(seq: number, requestId: string, accepted = true): ResponseRecord {
-  return { ...envelope, seq, kind: "response", requestId, body: accepted ? { kind: "accepted" } : { kind: "rejected", reason: "not_steerable" } };
+  return { ...envelope, seq, kind: "response", requestId, body: accepted ? { kind: "accepted" } : { kind: "rejected", code: "no_active_turn", reason: "not_steerable" } };
 }
 function echo(seq: number): Frame {
   return { ...envelope, seq, kind: "frame", body: { type: "native-user", native: {}, events: [{ kind: "user_message", inputId, input: "same text", nativeMessageId: "native-message", evidence: "turn_item", turnId: "turn-1" }] } };

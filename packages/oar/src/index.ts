@@ -51,6 +51,7 @@ export type {
   ContextUsage,
   ControlAction,
   ControlEventBody,
+  ControlOutcome,
   ControlResult,
   Cursor,
   Event,
@@ -65,6 +66,7 @@ export type {
   ReasoningContent,
   RecordEnvelope,
   RecordKind,
+  RejectionCode,
   RequestBody,
   RequestDirection,
   RequestRecord,
@@ -104,6 +106,7 @@ export {
   initialStatus,
   reduceStatus,
   stallOf,
+  statusOf,
 } from "./observe/agent-status.js";
 export type { AgentStatus, RunningPhase } from "./observe/agent-status.js";
 export { observeStalls } from "./observe/stall-observer.js";
@@ -112,8 +115,8 @@ export { observeAgent, simpleStateOf } from "./observe/observe-agent.js";
 export { classifyTool, toolActionLabel } from "./observe/tool-activity.js";
 export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
-export { awaitTurnEnd, promptAndWait, turnEndAfter } from "./observe/turns.js";
-export type { PromptRun } from "./observe/turns.js";
+export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./observe/turns.js";
+export type { PromptRun, PromptRunOptions } from "./observe/turns.js";
 export { contextUsageOf, modelOf, usageOf } from "./observe/usage.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { claudeListModels, projectClaudeModels } from "./runtimes/claude/list-models.js";

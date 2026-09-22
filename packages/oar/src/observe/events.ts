@@ -48,7 +48,7 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, ControlA
         const action = actions.get(record.requestId);
         return action === undefined
           ? []
-          : [{ kind: "control_rejected", requestId: record.requestId, action, reason: record.body.reason, ...envelope }];
+          : [{ kind: "control_rejected", requestId: record.requestId, action, code: record.body.code, reason: record.body.reason, ...envelope }];
       }
       return [];
   }

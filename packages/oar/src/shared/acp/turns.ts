@@ -140,7 +140,7 @@ export function createAcpTurns(deps: {
       }
     })();
   };
-  const gone = (): ResponseBody => ({ kind: "rejected", reason: acpProcessExitedError(runtime.exitCode).message });
+  const gone = (): ResponseBody => ({ kind: "rejected", code: "runtime_exited", reason: acpProcessExitedError(runtime.exitCode).message });
   const begin = (request: RequestRecord | null, input: string): ResponseBody => {
     if (runtime.closed) {
       return gone();
@@ -186,7 +186,7 @@ export function createAcpTurns(deps: {
         try {
           await runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: rootId });
         } catch (error) {
-          return { kind: "rejected", reason: error instanceof Error ? error.message : String(error) };
+          return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
         }
         // A runtime that never answers the cancelled prompt is killed; the
         // exit then shows up as the `exited` response, the turn's end.

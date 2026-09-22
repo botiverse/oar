@@ -1,4 +1,6 @@
-import type { RawEvent, RuntimeEventBody, TurnOutcome } from "../contracts/session.js";
+import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
+
+export type { AgentStatus, RunningPhase } from "../contracts/session.js";
 
 /**
  * status = fold(records). The reducer is pure (no clock, no IO), so status
@@ -31,27 +33,18 @@ import type { RawEvent, RuntimeEventBody, TurnOutcome } from "../contracts/sessi
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
 
-export type RunningPhase =
-  | "waiting_model"
-  | "thinking"
-  | "responding"
-  | "compacting"
-  | { readonly tool: string; readonly callId: string };
-
-export type AgentStatus =
-  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome }
-  | {
-      readonly kind: "running";
-      /** seq of the record that opened this running span: the prompt request, or the first event of an adopted turn. */
-      readonly sinceSeq: number;
-      /** The prompt request id when the turn was opened through this Session; absent for adopted turns. */
-      readonly requestId?: string;
-      readonly phase: RunningPhase;
-      /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
-      readonly lastEventAt: number;
-    };
-
 export const initialStatus: AgentStatus = { kind: "idle" };
+
+/** The status fold over a retained log, as a query (`Session.status()`): `seq` is the last record consumed, -1 before any. */
+export function statusOf(records: readonly RawEvent[], sessionId?: string): QueryResult<AgentStatus> {
+  let value = initialStatus;
+  let seq = -1;
+  for (const record of records) {
+    value = reduceStatus(value, record, sessionId);
+    seq = record.seq;
+  }
+  return { value, seq };
+}
 
 function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): AgentStatus {
   const sinceSeq = previous.kind === "running" ? previous.sinceSeq : record.seq;

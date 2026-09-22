@@ -1,10 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type {
+  ControlOutcome,
+  ControlResult,
   InputOptions,
   AdapterSession,
   Session,
   SteerOrQueueResult,
 } from "../contracts/session.js";
+import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, modelOf, usageOf } from "../observe/usage.js";
 
@@ -17,35 +20,61 @@ const identify = (options: InputOptions = {}): InputOptions => {
 };
 
 /**
- * Derive the API face of a Session from what the adapter built: the flat
+ * Read a control's answer off its two records. A toRuntime control is only
+ * ever answered `accepted` or `rejected`; the other two bodies answer other
+ * things (`answered`: a toApp request; `exited`: a dispose), so they are
+ * mapped totally rather than thrown on, should an adapter ever route one here.
+ */
+export function controlOutcomeOf(result: ControlResult): ControlOutcome {
+  const { request, response } = result;
+  const at = { request, response, seq: request.seq, requestId: request.id };
+  if (response.body.kind === "rejected") {
+    return { kind: "rejected", code: response.body.code, reason: response.body.reason, ...at };
+  }
+  if (response.body.kind === "exited") {
+    return { kind: "rejected", code: "runtime_exited", reason: "runtime exited", ...at };
+  }
+  return { kind: "accepted", ...at };
+}
+
+/**
+ * Derive the API face of a Session from what the adapter built: the read
+ * control answers (`ControlOutcome` over the adapter's records), the flat
  * `events()` reading of the stream, the stream folds (model / usage /
- * contextUsage are projections over `records()`, never adapter-held
- * snapshots) and the steer-or-queue policy. Method-style so
- * consumers discover the surfaces in autocomplete; one implementation instead
- * of one per adapter.
+ * contextUsage / status are projections over `records()`, never adapter-held
+ * snapshots) and the steer-or-queue policy. Method-style so consumers
+ * discover the surfaces in autocomplete; one implementation instead of one
+ * per adapter.
  */
 
 export function sealSession(adapterSession: AdapterSession): Session {
+  const prompt = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
+    controlOutcomeOf(await adapterSession.prompt(input, { ...options, ...identify(options) }));
+  const steer = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
+    controlOutcomeOf(await adapterSession.steer(input, identify(options)));
+  const queue = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
+    controlOutcomeOf(await adapterSession.queue(input, identify(options)));
+  const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
-    const steered = await adapterSession.steer(input, identified);
-    if (steered.response.body.kind === "accepted") {
+    const steered = await steer(input, identified);
+    if (steered.kind === "accepted") {
       return { landed: "steered", result: steered };
     }
-    const reason = steered.response.body.kind === "rejected" ? steered.response.body.reason : "runtime cannot steer";
     if (adapterSession.capabilities.queue === null) {
-      return { landed: "rejected", reason, result: steered };
+      return { landed: "rejected", code: steered.code, reason: steered.reason, result: steered };
     }
-    const queued = await adapterSession.queue(input, identified);
-    return queued.response.body.kind === "accepted"
+    const queued = await queue(input, identified);
+    return queued.kind === "accepted"
       ? { landed: "queued", result: queued }
-      : { landed: "rejected", reason: queued.response.body.kind === "rejected" ? queued.response.body.reason : reason, result: queued };
+      : { landed: "rejected", code: queued.code, reason: queued.reason, result: queued };
   };
   return {
     ...adapterSession,
-    prompt: async (input, options) => { const result = await adapterSession.prompt(input, { ...options, ...identify(options) }); return result; },
-    steer: async (input, options) => { const result = await adapterSession.steer(input, identify(options)); return result; },
-    queue: async (input, options) => { const result = await adapterSession.queue(input, identify(options)); return result; },
+    prompt,
+    steer,
+    queue,
+    abort,
     events: (observer, options = {}) => {
       const coalesce = options.coalesceText ?? false;
       const target = coalesce === false
@@ -56,6 +85,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     model: () => modelOf(adapterSession.records(), adapterSession.id),
     usage: () => usageOf(adapterSession.records(), adapterSession.id),
     contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),
+    status: () => statusOf(adapterSession.records(), adapterSession.id),
     steerOrQueue,
   };
 }

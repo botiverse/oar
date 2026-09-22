@@ -101,9 +101,11 @@ export const sessionCases: readonly TrialCase[] = [
     async run(subject) {
       const session = await subject.startSession();
       const first = await accepted(session, "one");
+      assert.equal(session.status().value.kind, "running", "status() must say running while the prompted turn is active");
       const second = await session.prompt("two");
-      assert.deepEqual(second.response.body, { kind: "rejected", reason: "busy" }, "second prompt during an active turn was not rejected busy");
+      assert.deepEqual(second.response.body, { kind: "rejected", code: "busy", reason: "busy" }, "second prompt during an active turn was not rejected busy");
       await awaitTurnEnd(session, first.request.seq);
+      assert.equal(session.status().value.kind, "idle", "status() must say idle once the runtime ended the turn");
       await runTurn(session, "three");
       await session.dispose();
     },

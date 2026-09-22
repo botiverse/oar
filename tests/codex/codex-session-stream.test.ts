@@ -128,20 +128,20 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
   const held = await session.prompt("hold");
   expect(held.response.body.kind).toBe("accepted");
   expect(await bodiesOf([session.prompt("again"), session.steer("more"), session.queue("later"), session.abort()])).toEqual([
-    { kind: "rejected", reason: "busy" },
+    { kind: "rejected", code: "busy", reason: "busy" },
     { kind: "accepted", native: { turnId: "turn-1" } },
     { kind: "accepted", native: { submissionId: "sub-9" } },
     { kind: "accepted", native: {} },
   ]);
   expect(await awaitTurnEnd(session, held.request.seq)).toEqual({ kind: "aborted" });
   expect(await bodiesOf([session.abort(), session.steer("late")])).toEqual([
-    { kind: "rejected", reason: "no active turn" },
-    { kind: "rejected", reason: "not_steerable: no active turn" },
+    { kind: "rejected", code: "no_active_turn", reason: "no active turn" },
+    { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" },
   ]);
   await session.dispose();
   // dispose awaited the exit, so the stream holds an exited response and the
   // kernel's reachability answer reads that first.
-  expect(await bodiesOf([session.prompt("dead")])).toEqual([{ kind: "rejected", reason: "runtime exited" }]);
+  expect(await bodiesOf([session.prompt("dead")])).toEqual([{ kind: "rejected", code: "runtime_exited", reason: "runtime exited" }]);
 });
 
 test("an interrupt the runtime refuses is a rejected abort, not an error", async () => {
@@ -149,7 +149,7 @@ test("an interrupt the runtime refuses is a rejected abort, not an error", async
   const session = await codexSession(installation, { cwd: "/work" });
   await session.prompt("hold");
   const aborted = await session.abort();
-  expect(aborted.response.body).toEqual({ kind: "rejected", reason: "turn already finished" });
+  expect(aborted.response.body).toEqual({ kind: "rejected", code: "runtime_refused", reason: "turn already finished" });
   await session.dispose();
 });
 
@@ -178,5 +178,5 @@ test("an unrequested app-server exit is recorded as an exit pointing at no reque
   const exit = session.records().at(-1);
   expect(exit).toMatchObject({ kind: "response", requestId: "", body: { kind: "exited", code: 2 } });
   const after = await session.prompt("after");
-  expect(after.response.body).toEqual({ kind: "rejected", reason: "runtime exited" });
+  expect(after.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
 });

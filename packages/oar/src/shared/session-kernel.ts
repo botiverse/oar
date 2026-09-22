@@ -75,7 +75,7 @@ export interface SessionKernel {
    * runtime is reachable. Adapters that record control outside `control()`
    * apply it themselves; adapter-held liveness flags are not needed.
    */
-  unreachable(): { readonly kind: "rejected"; readonly reason: string } | null;
+  unreachable(): { readonly kind: "rejected"; readonly code: "runtime_exited" | "disposed"; readonly reason: string } | null;
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe;
   records(): readonly RawEvent[];
   graph(): SessionGraph;
@@ -92,7 +92,7 @@ async function settle(
   try {
     return await decide(issued);
   } catch (error) {
-    return { kind: "rejected", reason: error instanceof Error ? error.message : String(error) };
+    return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -142,11 +142,11 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
     return record;
   };
 
-  const unreachable = (): { readonly kind: "rejected"; readonly reason: string } | null => {
+  const unreachable = (): ReturnType<SessionKernel["unreachable"]> => {
     if (exited) {
-      return { kind: "rejected", reason: "runtime exited" };
+      return { kind: "rejected", code: "runtime_exited", reason: "runtime exited" };
     }
-    return disposing ? { kind: "rejected", reason: "session disposed" } : null;
+    return disposing ? { kind: "rejected", code: "disposed", reason: "session disposed" } : null;
   };
   const request: SessionKernel["request"] = (direction, body, at) =>
     append((envelope) => ({ ...envelope, kind: "request", id: at?.id ?? randomUUID(), direction, body }), at);

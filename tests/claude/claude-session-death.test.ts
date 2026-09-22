@@ -53,7 +53,7 @@ test("an unrequested exit is recorded as an exit pointing at no request and ends
 test("after an unrequested exit every control is rejected and a later dispose is answered", async () => {
   const { session } = await killedMidTurn();
   const bodies = await Promise.all([session.prompt("again"), session.steer("x"), session.queue("y"), session.abort()]);
-  expect(bodies.map((result) => result.response.body)).toEqual(Array.from({ length: 4 }, () => ({ kind: "rejected", reason: "runtime exited" })));
+  expect(bodies.map((result) => result.response.body)).toEqual(Array.from({ length: 4 }, () => ({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" })));
   await session.dispose();
   expect(session.records().slice(-2).map((record) => describe(record))).toEqual(["request dispose", "response accepted"]);
 });

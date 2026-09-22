@@ -218,7 +218,7 @@ export const codexSession: StartSession = async (installation, options) => {
     body: { kind: "prompt", input, ...inputOptions },
     gate: (request) => {
       if (busy()) {
-        return { kind: "rejected", reason: "busy" };
+        return { kind: "rejected", code: "busy", reason: "busy" };
       }
       // Hold the slot while the RPC is in flight so a concurrent prompt is busy.
       state.active = request;
@@ -230,23 +230,23 @@ export const codexSession: StartSession = async (installation, options) => {
       const turnId = asRecord(reply.turn)?.id;
       if (typeof turnId !== "string") {
         state.active = null;
-        return { kind: "rejected", reason: "codex turn/start returned no turn id", native: reply };
+        return { kind: "rejected", code: "runtime_refused", reason: "codex turn/start returned no turn id", native: reply };
       }
       state.codexTurnId = turnId;
       return { kind: "accepted", native: reply };
     },
     onError: (message) => {
       state.active = null;
-      return { kind: "rejected", reason: message };
+      return { kind: "rejected", code: "runtime_refused", reason: message };
     },
   });
   const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "steer", input, ...inputOptions },
-    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "not_steerable: no active turn" } : null),
+    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : null),
     method: "turn/steer",
     params: () => ({ threadId, input: text(input), expectedTurnId: state.codexTurnId, clientUserMessageId: inputOptions?.inputId }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
-    onError: (message) => ({ kind: "rejected", reason: `not_steerable: ${message}` }),
+    onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: `not_steerable: ${message}` }),
   });
   // The reply carries the runtime's submission id; it is retained on the response.
   const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
@@ -255,17 +255,17 @@ export const codexSession: StartSession = async (installation, options) => {
     method: "thread/queue/add",
     params: () => ({ threadId, input: text(input), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
-    onError: (message) => ({ kind: "rejected", reason: message }),
+    onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
   });
   // A refused interrupt is the contractual late abort: the turn ended before
   // it landed, and turn/completed carries the real outcome.
   const abortPlan = (): RpcControlPlan => ({
     body: { kind: "abort" },
-    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", reason: "no active turn" } : null),
+    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : null),
     method: "turn/interrupt",
     params: () => ({ threadId, turnId: state.codexTurnId }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
-    onError: (message) => ({ kind: "rejected", reason: message }),
+    onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
   });
 
   const session: Session = sealSession({

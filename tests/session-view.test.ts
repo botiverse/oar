@@ -19,7 +19,7 @@ function accepted(seq: number, requestId: string): ResponseRecord {
   return { ...env, seq, kind: "response", requestId, body: { kind: "accepted" } };
 }
 function rejected(seq: number, requestId: string): ResponseRecord {
-  return { ...env, seq, kind: "response", requestId, body: { kind: "rejected", reason: "busy" } };
+  return { ...env, seq, kind: "response", requestId, body: { kind: "rejected", code: "busy", reason: "busy" } };
 }
 function frame(seq: number, events: RuntimeEventBody[], at: { sessionId?: string; agentPath?: readonly string[] } = {}): Frame {
   return {

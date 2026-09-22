@@ -136,7 +136,7 @@ test("control after the app-server died on its own is rejected, and a later disp
   fake.end(137);
   expect(session.records().slice(-1).map((record) => describe(record))).toEqual(["response exited code=137 for=\"\""]);
   const after = await session.prompt("hello?");
-  expect(after.response.body).toEqual({ kind: "rejected", reason: "runtime exited" });
+  expect(after.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
   await session.dispose();
   expect(session.records().slice(-2).map((record) => describe(record))).toEqual(["toRuntime dispose", "response accepted"]);
 });

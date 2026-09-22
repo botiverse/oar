@@ -6,7 +6,7 @@
  * root `@botiverse/oar` re-exports these too, for Node consumers.
  */
 export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./events.js";
-export { initialStatus, reduceStatus, stallOf } from "./agent-status.js";
+export { initialStatus, reduceStatus, stallOf, statusOf } from "./agent-status.js";
 export type { AgentStatus, RunningPhase } from "./agent-status.js";
 export { observeStalls } from "./stall-observer.js";
 export type { StallInfo } from "./stall-observer.js";
@@ -14,8 +14,8 @@ export { observeAgent, simpleStateOf } from "./observe-agent.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe-agent.js";
 export { classifyTool, toolActionLabel } from "./tool-activity.js";
 export type { ToolAction, ToolActionKind } from "./tool-activity.js";
-export { awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
-export type { PromptRun } from "./turns.js";
+export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
+export type { PromptRun, PromptRunOptions } from "./turns.js";
 export { contextUsageOf, modelOf, usageOf } from "./usage.js";
 
 export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./conversation.js";

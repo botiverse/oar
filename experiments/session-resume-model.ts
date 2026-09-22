@@ -119,7 +119,7 @@ async function runTurn(
   });
   const run = await promptAndWait(session, prompt);
   if (run.kind !== "ended") {
-    throw new Error(`prompt rejected: ${run.reason}`);
+    throw new Error(`prompt ${run.kind}: ${run.kind === "rejected" ? run.reason : run.by}`);
   }
   if (run.outcome.kind !== "completed") {
     throw new Error(`turn ${run.outcome.kind}`);

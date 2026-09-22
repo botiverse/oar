@@ -94,7 +94,10 @@ Further rules:
   left to release), so a session whose runtime died on its own still ends
   with an answered dispose rather than a dangling one.
 - **Control responses answer only "accepted or not".** Final states and
-  landing points are always events. Counterexample: kimi-cli leaks the
+  landing points are always events. A rejection carries one typed `code`
+  (`busy`, `no_active_turn`, `unsupported`, `runtime_exited`, `disposed`,
+  `runtime_refused`, `error`) next to the prose `reason`, so an application
+  branches on a word, not on vendor text. Counterexample: kimi-cli leaks the
   turn outcome into `_handle_prompt`'s return value, while the `TurnEnd`
   docstring admits it "may be omitted" when interrupted.
   [src: wire/server.py:644-755; wire/types.py]
@@ -102,10 +105,12 @@ Further rules:
   carries an optional `spanId` holding only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn id,
   such as pi's session-scoped frames, simply have none.
-- **Query is a projection over the stream.** `model()`, `usage()`, and
-  `contextUsage()` are folds over the retained records and return
-  `{ value, seq }`; `seq` is the last record consumed, or `-1` before any
-  record.
+- **Query is a projection over the stream.** `model()`, `usage()`,
+  `contextUsage()` and `status()` are folds over the retained records and
+  return `{ value, seq }`; `seq` is the last record consumed, or `-1` before
+  any record. `status()` is the one the control decisions must agree with: a
+  prompt recorded while it says `running` is rejected `busy`, and one
+  recorded while it says `idle` never is.
 
 ## Record contracts
 
@@ -158,7 +163,7 @@ interface RequestRecord extends RecordEnvelope {
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // accepted {native?} | rejected {reason, native?} | answered {native} | exited {code}
+  body: ResponseBody;           // accepted {native?} | rejected {code, reason, native?} | answered {native} | exited {code}
 }
 // accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
@@ -170,11 +175,19 @@ interface ResponseRecord extends RecordEnvelope {
 
 The control surface that produces these records (`Session.prompt / steer /
 queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
-`graph()`, and the folds `model() / usage() / contextUsage()`) is
-documented on the contract itself; `prompt / steer / queue / abort` return
-both records they appended (`ControlResult`), so the request's `seq` is
-where the action sits in the stream. `dispose()` returns void: its request
-and the `exited` response are read from the stream like everything else.
+`graph()`, and the folds `model() / usage() / contextUsage() / status()`) is
+documented on the contract itself. An adapter's `prompt / steer / queue /
+abort` return both records they appended (`ControlResult`); the `Session` a
+consumer holds returns them read (`ControlOutcome`): `kind` is `accepted` or
+`rejected` (the two answers a toRuntime control can get), a rejection has
+its `code` and `reason` at hand, `seq` is the request's position in the
+stream (what `awaitTurnEnd` takes), and `request` / `response` are still the
+records themselves. `dispose()` returns void: its request and the `exited`
+response are read from the stream like everything else. The turn helpers
+build on this: `promptAndWait(session, input, { timeoutMs?, signal? })`
+prompts and waits for the runtime's own turn end (aborting when a limit
+fires, and reporting that as `interrupted` with the runtime's outcome), and
+`awaitIdle(session)` waits for the running turn, if any, to end.
 Each query returns `{ value, seq }`, with `seq` identifying the last record
 consumed by its fold (or `-1` before any record). A `tool_call_ended` event may
 carry `result: "ok" | "failed"` only when the runtime explicitly reports the

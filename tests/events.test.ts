@@ -11,7 +11,7 @@ function event(events: RuntimeEventBody[]): RawEvent {
 test("eventsOf yields nothing for an accepted response or a frame oar read nothing from, and a turn_started for a prompt", () => {
   const prompt: RawEvent = { sessionId: "s", agentPath: [], seq: 0, receivedAt: 0, kind: "request", id: "rq", direction: "toRuntime", body: { kind: "prompt", input: "hi" } };
   const accepted: RawEvent = { sessionId: "s", agentPath: [], seq: 1, receivedAt: 0, kind: "response", requestId: "rq", body: { kind: "accepted" } };
-  const rejected: RawEvent = { sessionId: "s", agentPath: [], seq: 2, receivedAt: 0, kind: "response", requestId: "rq", body: { kind: "rejected", reason: "busy" } };
+  const rejected: RawEvent = { sessionId: "s", agentPath: [], seq: 2, receivedAt: 0, kind: "response", requestId: "rq", body: { kind: "rejected", code: "busy", reason: "busy" } };
   const exited: RawEvent = { sessionId: "s", agentPath: [], seq: 3, receivedAt: 0, kind: "response", requestId: "", body: { kind: "exited", code: 0 } };
   expect(eventsOf(prompt)).toMatchInlineSnapshot(`
     [
@@ -34,6 +34,7 @@ test("eventsOf yields nothing for an accepted response or a frame oar read nothi
       {
         "action": "steer",
         "agentPath": [],
+        "code": "busy",
         "kind": "control_rejected",
         "reason": "busy",
         "receivedAt": 0,

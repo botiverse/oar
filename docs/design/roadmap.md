@@ -36,6 +36,24 @@ caller decision requires them.
 **Acceptance:** a caller can choose retry, queue, hand off, or stop without
 parsing prose; rejected input is provably caller-owned.
 
+**Landed for controls (2026-09-23):** a rejected control response carries one
+typed `code` beside the prose `reason` (`busy`, `no_active_turn`,
+`unsupported`, `runtime_exited`, `disposed`, `runtime_refused`, `error`),
+and the `Session` a consumer holds answers `prompt / steer / queue / abort`
+with the records read (`ControlOutcome`: `accepted | rejected`, `code`,
+`seq`, the records underneath). The caller decision that forced it: the
+arena app (`apps/arena/fighters.ts`) matched `reason === "busy"` by string
+and polled `prompt()` every 500 ms to wait a spontaneous turn out. The
+proactive half is `Session.status()` (the `reduceStatus` fold, promoted to a
+query with the invariant that `busy` is rejected exactly while it says
+`running`) with `awaitIdle`, and `promptAndWait` takes `timeoutMs` /
+`signal` so the timeout-then-abort-then-await-the-runtime's-own-outcome
+sequence is written once. Spec: [record-stream.md](../spec/record-stream.md)
+"Further rules"; regression: `tests/turns.test.ts`; sea-trial:
+`session.single-active-turn`. Unsupported *inventory* outcomes already carry
+codes; the remaining open part is the runtime's own failure prose in
+`TurnOutcome.failed` (`FailureClass` is the category today).
+
 ### 3. Make continuation first-class
 
 If a consumer needs a handoff, define only a provider-independent shape for

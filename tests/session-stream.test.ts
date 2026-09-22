@@ -72,7 +72,7 @@ test("prompt while a turn is active is rejected busy; abort when idle is rejecte
   const first = await session.prompt("one");
   assert.equal(first.response.body.kind, "accepted");
   const second = await session.prompt("two");
-  assert.deepEqual(second.response.body, { kind: "rejected", reason: "busy" });
+  assert.deepEqual(second.response.body, { kind: "rejected", code: "busy", reason: "busy" });
   const outcome = await awaitTurnEnd(session, first.request.seq);
   assert.deepEqual(outcome, { kind: "completed" });
   const late = await session.abort();
@@ -121,9 +121,9 @@ test("the kernel rejects control once the stream holds an exited response, witho
   const before = await kernel.control({ kind: "prompt", input: "a" }, () => acceptAll.decide());
   assert.equal(before.response.body.kind, "accepted");
   kernel.respond("", { kind: "exited", code: 9 });
-  assert.deepEqual(kernel.unreachable(), { kind: "rejected", reason: "runtime exited" });
+  assert.deepEqual(kernel.unreachable(), { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
   const after = await kernel.control({ kind: "prompt", input: "b" }, () => acceptAll.decide());
-  assert.deepEqual(after.response.body, { kind: "rejected", reason: "runtime exited" });
+  assert.deepEqual(after.response.body, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
   assert.equal(acceptAll.consulted, 1, "the adapter is not consulted once the runtime is gone");
 });
 
@@ -132,5 +132,5 @@ test("the kernel rejects control once a dispose request is in the stream", async
   const kernel = createSessionKernel("k2");
   kernel.request("toRuntime", { kind: "dispose" });
   const steer = await kernel.control({ kind: "steer", input: "x" }, () => acceptAll.decide());
-  assert.deepEqual(steer.response.body, { kind: "rejected", reason: "session disposed" });
+  assert.deepEqual(steer.response.body, { kind: "rejected", code: "disposed", reason: "session disposed" });
 });

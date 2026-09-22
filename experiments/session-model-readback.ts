@@ -79,7 +79,7 @@ async function oneTurn(session: Session, prompt: string): Promise<string> {
   });
   const run = await promptAndWait(session, prompt);
   if (run.kind !== "ended") {
-    throw new Error(`prompt rejected: ${run.reason}`);
+    throw new Error(`prompt ${run.kind}: ${run.kind === "rejected" ? run.reason : run.by}`);
   }
   assert.equal(run.outcome.kind, "completed", `turn ${run.outcome.kind}`);
   return texts.join("");

@@ -52,7 +52,7 @@ test("ACP session rejects a second prompt busy and drains its host-held queue as
   const first = await session.prompt("hold");
   assert.equal(first.response.body.kind, "accepted");
   const second = await session.prompt("must-be-busy");
-  assert.deepEqual(second.response.body, { kind: "rejected", reason: "busy" });
+  assert.deepEqual(second.response.body, { kind: "rejected", code: "busy", reason: "busy" });
   assert.deepEqual(session.capabilities.queue, { durable: false });
   const queued = await session.queue("queued");
   assert.equal(queued.response.body.kind, "accepted");
@@ -68,7 +68,7 @@ test("ACP session rejects a second prompt busy and drains its host-held queue as
   assert.equal(requests.length, 2, "only the two explicit prompts are prompt requests");
   assert.ok(session.records().some((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "text_delta" && view.text === "echo:queued")));
   const late = await session.abort();
-  assert.deepEqual(late.response.body, { kind: "rejected", reason: "no active turn" });
+  assert.deepEqual(late.response.body, { kind: "rejected", code: "no_active_turn", reason: "no active turn" });
   await session.dispose();
 });
 
@@ -147,7 +147,7 @@ test("ACP prompt errors are the runtime's word; a process exit is oar's observat
   assert.equal(exit.body.code, 9);
   assert.equal(exit.requestId, "", "an unrequested exit points at no request");
   const afterDeath = await exitSession.prompt("after death");
-  assert.deepEqual(afterDeath.response.body, { kind: "rejected", reason: "runtime exited" }, "the kernel decides from the exited response, not an adapter flag");
+  assert.deepEqual(afterDeath.response.body, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" }, "the kernel decides from the exited response, not an adapter flag");
   await exitSession.dispose();
 });
 

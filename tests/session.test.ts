@@ -184,7 +184,7 @@ test("reduceStatus: stall, rejected prompt, and exit leave running", async () =>
   assert.deepEqual(stallOf(runningAt, 1400, 500), null);
   assert.deepEqual(stallOf(runningAt, 1600, 500), { sinceSeq: 0, silentForMs: 600 });
   assert.equal(stallOf(initialStatus, 99_999, 1), null);
-  const rejected: RawEvent = { sessionId: "s", agentPath: [], seq: 1, receivedAt: 1001, kind: "response", requestId: "rq", body: { kind: "rejected", reason: "busy" } };
+  const rejected: RawEvent = { sessionId: "s", agentPath: [], seq: 1, receivedAt: 1001, kind: "response", requestId: "rq", body: { kind: "rejected", code: "busy", reason: "busy" } };
   assert.deepEqual(reduceStatus(runningAt, rejected), { kind: "idle" }, "a rejected prompt never became a turn");
   const exited: RawEvent = { sessionId: "s", agentPath: [], seq: 2, receivedAt: 1002, kind: "response", requestId: "", body: { kind: "exited", code: 1 } };
   assert.equal(reduceStatus(runningAt, exited).kind, "idle");

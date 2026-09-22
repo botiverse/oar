@@ -2,8 +2,8 @@
 import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import {
-  awaitTurnEnd,
   openVoyage,
+  promptAndWait,
   runtimes,
   type EventObserver,
   type RawEventObserver,
@@ -193,15 +193,15 @@ program
     if (flags.json !== true) {
       session.events(progressObserver(id), { cursor, coalesceText: { maxHoldMs: 250 } });
     }
-    const result = await session.prompt(prompt);
-    if (result.response.body.kind !== "accepted") {
-      process.stderr.write(`prompt not accepted: ${JSON.stringify(result.response.body)}\n`);
+    const run = await promptAndWait(session, prompt);
+    if (run.kind === "rejected") {
+      process.stderr.write(`prompt not accepted (${run.code}): ${run.reason}\n`);
       await session.dispose();
       recorder?.end("disposed");
       process.exitCode = 1;
       return;
     }
-    const outcome = await awaitTurnEnd(session, result.request.seq);
+    const { outcome } = run;
     await session.dispose();
     recorder?.end("disposed");
     if (flags.json === true) {

@@ -250,7 +250,7 @@ export function foldClaudeStdout(
         kind: "respond",
         requestId,
         body: response?.subtype === "error" || error !== null
-          ? { kind: "rejected", reason: error ?? "control request failed", native: message }
+          ? { kind: "rejected", code: "runtime_refused", reason: error ?? "control request failed", native: message }
           : { kind: "accepted", native: message },
       }] };
     }

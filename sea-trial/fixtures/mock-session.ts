@@ -48,10 +48,10 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, () => {
       if (disposed) {
-        return { kind: "rejected", reason: "session disposed" };
+        return { kind: "rejected", code: "disposed", reason: "session disposed" };
       }
       if (active !== null) {
-        return { kind: "rejected", reason: "busy" };
+        return { kind: "rejected", code: "busy", reason: "busy" };
       }
       run(input);
       return { kind: "accepted" };
@@ -61,7 +61,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     steer: async (input, inputOptions) => {
       const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
       if (active === null) {
-        return { kind: "rejected", reason: "not_steerable: no active turn" };
+        return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
       }
       steered.push(input);
       return { kind: "accepted" };
@@ -82,7 +82,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     abort: async () => {
       const result = await kernel.control({ kind: "abort" }, () => {
       if (active === null) {
-        return { kind: "rejected", reason: "no active turn" };
+        return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
       }
       if (active.timer !== null) {
         clearTimeout(active.timer);

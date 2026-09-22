@@ -3,11 +3,13 @@ import type {
   Cursor,
   Event,
   RawEvent,
+  RejectionCode,
   RequestRecord,
   ResponseRecord,
   SessionGraph,
   TokenTotals,
 } from "./records.js";
+import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
 
 export type {
@@ -23,6 +25,7 @@ export type {
   ReasoningContent,
   RecordEnvelope,
   RecordKind,
+  RejectionCode,
   RequestBody,
   RequestDirection,
   RequestRecord,
@@ -38,6 +41,7 @@ export type {
   TurnOutcome,
   UsageReport,
 } from "./records.js";
+export type { AgentStatus, RunningPhase } from "./status.js";
 
 export interface QueryResult<T> {
   /** The fold's current value. */
@@ -109,11 +113,23 @@ export type StartSession = (
 
 // ─── Control surface ──────────────────────────────────────────────────────
 
-/** Both records a control call produced: the request (its `seq` is where the action sits in the stream) and the accept/reject response. */
+/** Both records a control call produced: the request (its `seq` is where the action sits in the stream) and the accept/reject response. What an adapter returns (the SPI face). */
 export interface ControlResult {
   readonly request: RequestRecord;
   readonly response: ResponseRecord;
 }
+
+/**
+ * What `Session.prompt / steer / queue / abort` return (the API face): the
+ * answer read off the two records, with the records still underneath. A
+ * consumer branches on `kind` (two cases, not the four a response body can
+ * carry) and on the typed `code`; `seq` is the request's position in the
+ * stream, what `awaitTurnEnd` takes. `request` / `response` remain for
+ * consumers who want the stream's own word (`native`, the exact records).
+ */
+export type ControlOutcome =
+  | (ControlResult & { readonly kind: "accepted"; readonly seq: number; readonly requestId: string })
+  | (ControlResult & { readonly kind: "rejected"; readonly seq: number; readonly requestId: string; readonly code: RejectionCode; readonly reason: string });
 
 /**
  * Which tier of the attribution spectrum the adapter carries, declared
@@ -168,8 +184,12 @@ export interface AdapterSession {
   dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent. After an exit the stream already holds (the runtime died on its own), the request is answered `accepted` immediately; nothing is left to release.
 }
 
-/** The API face: the SPI plus surfaces sealSession derives from the stream. */
+/** The API face: the SPI plus surfaces sealSession derives from the stream. Control members answer with `ControlOutcome`: the same records, read. */
 export interface Session extends AdapterSession {
+  prompt(input: string, options?: InputOptions): Promise<ControlOutcome>;
+  steer(input: string, options?: InputOptions): Promise<ControlOutcome>;
+  queue(input: string, options?: InputOptions): Promise<ControlOutcome>;
+  abort(): Promise<ControlOutcome>;
   /**
    * The consumer face of the stream: every fact oar read, flat and attributed
    * (`eventsOf` applied to each record). One frame with three readings is
@@ -184,6 +204,14 @@ export interface Session extends AdapterSession {
   usage(): QueryResult<SessionUsage>;
   /** Latest context fullness the runtime reported for this session's root agent; null before any. */
   contextUsage(): QueryResult<ContextUsage | null>;
+  /**
+   * The root agent's status, folded from the stream (`reduceStatus`): idle,
+   * or running since the prompt request (or the first event of an adopted
+   * turn). Invariant every adapter must keep: a prompt recorded while this
+   * says `running` is rejected `busy`, and one recorded while it says `idle`
+   * is never rejected `busy`. `awaitIdle` waits on it.
+   */
+  status(): QueryResult<AgentStatus>;
   /**
    * DERIVED: steer when the runtime can, fall back to queueing, always report
    * where the input landed. `rejected` means the input was NOT taken over and
@@ -200,6 +228,7 @@ export interface SessionUsage {
 }
 
 export type SteerOrQueueResult =
-  | { readonly landed: "steered"; readonly result: ControlResult }
-  | { readonly landed: "queued"; readonly result: ControlResult }
-  | { readonly landed: "rejected"; readonly reason: string; readonly result: ControlResult };
+  | { readonly landed: "steered"; readonly result: ControlOutcome }
+  | { readonly landed: "queued"; readonly result: ControlOutcome }
+  /** `result` is the last attempt (the queue when one was made, else the steer); `code` / `reason` are its. */
+  | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly result: ControlOutcome };
