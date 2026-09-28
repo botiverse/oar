@@ -13,6 +13,7 @@
 import { accountUsageCases } from "./cases/account-usage.js";
 import { installationCases } from "./cases/installation.js";
 import { sessionCases } from "./cases/session.js";
+import { sessionDisposeCases } from "./cases/session-dispose.js";
 import { selectBackend } from "./harness/backends.js";
 import { runSuite } from "./harness/runner.js";
 import { openTrace } from "./harness/trace.js";
@@ -30,7 +31,7 @@ if (installation === undefined || installation.kind !== "available") {
 
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
 // OAR_TEST-gated). The behavior CI job runs them right after this suite.
-const cases = [...installationCases, ...accountUsageCases, ...sessionCases];
+const cases = [...installationCases, ...accountUsageCases, ...sessionCases, ...sessionDisposeCases];
 const tracePath = openTrace(target);
 const outcomes = await runSuite(cases, runtimeUnderTest(runtime, aimockEnv?.env));
 let failures = 0;

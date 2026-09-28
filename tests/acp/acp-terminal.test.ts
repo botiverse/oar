@@ -5,6 +5,7 @@ import {
   type AcpTerminalHost,
   type AcpTerminalHostOptions,
 } from "../../packages/oar/src/shared/acp/terminal.js";
+import { eventually, gone, timed } from "../fixtures/process-tree.js";
 
 const hosts: AcpTerminalHost[] = [];
 
@@ -68,4 +69,21 @@ test("ACP terminal supports Grok's full shell line compatibility mode", async ()
     truncated: false,
     exitStatus: { exitCode: 0, signal: null },
   });
+});
+
+// POSIX process groups: the shell's background job holds the output pipes, so
+// a kill that reached only the shell left the release waiting on it.
+test.skipIf(process.platform === "win32")("releasing a terminal takes down what its command started, so the release settles", async () => {
+  const terminal = host({ shellCommand: true });
+  const created = await terminal.create({ sessionId: "session-tree", command: "sleep 60 & echo $!; wait" });
+  const identity = { sessionId: "session-tree", terminalId: created.terminalId };
+  const job = (): number | null => {
+    const pid = /^\d+/u.exec(terminal.output(identity).output)?.[0];
+    return pid === undefined ? null : Number(pid);
+  };
+  assert.ok(await eventually(() => job() !== null, 5000), `the shell reported its background job: ${JSON.stringify(terminal.output(identity))}`);
+  const tool = job() ?? Number.NaN;
+  const elapsed = await timed(async () => terminal.release(identity));
+  assert.ok(elapsed < 2000, `release settled ${elapsed.toFixed(0)} ms after it was called`);
+  assert.equal(await gone(tool), true, "the background job is gone");
 });

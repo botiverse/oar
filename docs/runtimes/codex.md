@@ -417,7 +417,11 @@ come from native configuration. [Native interaction flows][approvals],
 
 **Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
 the exit because the process may hold state (codex's sqlite runtime in
-`CODEX_HOME`) that the next session needs released. This supplies resource
+`CODEX_HOME`) that the next session needs released. On POSIX the app-server
+leads its own process group, so the kill (SIGTERM, then SIGKILL after a grace
+period: 10 s, or `OAR_KILL_GRACE_MS`) also reaches the commands and MCP servers
+it started, and disposal settles even when it ignores SIGTERM
+([test](../../tests/session-dispose.test.ts)). This supplies resource
 release, not detached execution or a lease against other controllers of the
 persisted thread. The environment overlay applies to the child process.
 

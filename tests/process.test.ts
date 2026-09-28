@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
-import { requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
+import { afterEach, describe, test, vi } from "vitest";
+import { KILL_GRACE_MS, killGraceMs, requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
+import { fakeAgent, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
 
 test("requiresShell matches windows cmd and bat shims only", () => {
   assert.equal(requiresShell("claude.cmd", "win32"), true);
@@ -130,4 +131,67 @@ test("write reaches stdin and kill tears the process down", async () => {
   const { lines, exits } = await echoRoundTrip();
   assert.deepEqual(lines, ["hello"]);
   assert.equal(exits, 1);
+});
+
+test("the grace period is OAR_KILL_GRACE_MS when that holds a nonnegative number, else the default", () => {
+  const values = [undefined, "", " ", "250", "0", "-1", "soon", "Infinity"];
+  assert.deepEqual(
+    values.map((value) => killGraceMs(value === undefined ? {} : { OAR_KILL_GRACE_MS: value })),
+    [KILL_GRACE_MS, KILL_GRACE_MS, KILL_GRACE_MS, 250, 0, KILL_GRACE_MS, KILL_GRACE_MS, KILL_GRACE_MS],
+  );
+});
+
+/** Spawn the fake agent with a grandchild, kill it (twice: kill is idempotent), and report what happened. */
+async function killTree(ignoreSigterm: boolean): Promise<{ code: number | null; elapsed: number; gone: boolean[] }> {
+  return withTreeProbe({ ignoreSigterm }, async (probe) => {
+    const child = spawnLineProcess(process.execPath, [fakeAgent], { env: { ...process.env, ...probe.env } });
+    const tree = await probe.tree();
+    let code: number | null = null;
+    const elapsed = await timed(async () => {
+      child.kill();
+      child.kill();
+      code = await child.exited;
+    });
+    return { code, elapsed, gone: [await gone(tree.agent), await gone(tree.grandchild)] };
+  });
+}
+
+// Process groups are POSIX; on Windows kill() signals the child alone.
+describe.skipIf(process.platform === "win32")("kill takes down the child's process group", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test("a child that stops on SIGTERM takes the process it started with it", async () => {
+    const killed = await killTree(false);
+    assert.deepEqual(killed.gone, [true, true], "the child and its grandchild are gone");
+  });
+
+  test("a child that ignores SIGTERM is SIGKILLed with its group once the grace period is over", async () => {
+    const graceMs = 300;
+    vi.stubEnv("OAR_KILL_GRACE_MS", String(graceMs));
+    const killed = await killTree(true);
+    assert.equal(killed.code, null, "a signal ended it");
+    assert.ok(killed.elapsed >= graceMs * 0.8 && killed.elapsed < graceMs + 2000, `the SIGTERM was ignored and the SIGKILL at the deadline ended it: ${killed.elapsed.toFixed(0)} ms`);
+    assert.deepEqual(killed.gone, [true, true], "the child and its grandchild are gone");
+  });
+
+  test("a kill after the child exited on its own signals nothing: its pid may already be reused", async () => {
+    // The child leaves a grandchild behind in its group and exits; a late
+    // kill must not reach the group through the reaped pid.
+    const child = spawnLineProcess(process.execPath, [
+      "-e",
+      String.raw`const tool = require("node:child_process").spawn("sleep", ["60"], { stdio: "ignore" }); tool.unref(); process.stdout.write(tool.pid + "\n");`,
+    ]);
+    const { promise: reported, resolve } = Promise.withResolvers<string>();
+    child.onLine(resolve);
+    const leftover = Number(await reported);
+    try {
+      assert.equal(await child.exited, 0);
+      child.kill();
+      assert.equal(await gone(leftover, 300), false, "the leftover was not signalled");
+    } finally {
+      process.kill(leftover, "SIGKILL");
+    }
+  });
 });

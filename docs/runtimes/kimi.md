@@ -355,7 +355,12 @@ shows what was asked and what OAR answered.
 session; delete is a separate operation. Disposal cancels active work,
 attempts the advertised `session/close`, kills the process, and disposes
 hosted terminals; a dispose after an observed exit is answered `accepted`
-without further work. It does not delete persisted native sessions.
+without further work. On POSIX the process and each hosted terminal command
+lead their own process groups, so `terminal/kill`, release, and disposal reach
+what they started, and a runtime still running a grace period after SIGTERM
+(10 s, or `OAR_KILL_GRACE_MS`) is SIGKILLed with its group
+([test](../../tests/session-dispose.test.ts)). It does not delete persisted
+native sessions.
 
 [Installation detection](../../packages/oar/src/runtimes/kimi/installation.ts)
 checks `OAR_KIMI_BIN`, PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,

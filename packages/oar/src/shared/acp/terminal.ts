@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
+import { OWN_PROCESS_GROUP, signalProcessGroup } from "../executable/index.js";
 
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024;
 const MAX_OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -106,8 +107,11 @@ function terminalFor(
 }
 
 async function stopTerminal(state: TerminalState): Promise<void> {
+  // Until `close`, something may still hold the output pipes: the command or
+  // a process it started (a shell's children). Killing the group reaches
+  // them all, so the pipes close and the wait below ends.
   if (state.exitStatus === null) {
-    state.child.kill("SIGKILL");
+    signalProcessGroup(state.child, "SIGKILL");
   }
   await state.exited;
 }
@@ -136,6 +140,9 @@ export function createAcpTerminalHost(
       },
       shell: options.shellCommand === true && params.args === undefined,
       stdio: ["ignore", "pipe", "pipe"],
+      // Its own process group (POSIX): kill and release reach the command and
+      // everything it started, not only the shell that launched it.
+      detached: OWN_PROCESS_GROUP,
     });
     const { stdout, stderr } = child;
     if (stdout === null || stderr === null) {
@@ -211,7 +218,7 @@ export function createAcpTerminalHost(
   const kill = (params: KillTerminalRequest): KillTerminalResponse => {
     const state = terminalFor(terminals, params);
     if (state.exitStatus === null) {
-      state.child.kill("SIGTERM");
+      signalProcessGroup(state.child, "SIGTERM");
     }
     return {};
   };

@@ -15,7 +15,7 @@ describe("@botiverse/oar/kernel", () => {
         return sealSession({
           id: kernel.sessionId,
           capabilities: { steer: false, queue: null, attribution: "none" },
-          prompt: (input, inputOptions) =>
+          prompt: async (input, inputOptions) =>
             kernel.control({ kind: "prompt", input, ...inputOptions }, () => {
               setTimeout(() => {
                 kernel.frame({ type: "echo", native: { input }, events: [
@@ -25,9 +25,9 @@ describe("@botiverse/oar/kernel", () => {
               }, 1);
               return { kind: "accepted" };
             }),
-          steer: (input) => kernel.control({ kind: "steer", input }, () => ({ kind: "rejected", code: "unsupported", reason: "no steer" })),
-          queue: (input) => kernel.control({ kind: "queue", input }, () => ({ kind: "rejected", code: "unsupported", reason: "no queue" })),
-          abort: () => kernel.control({ kind: "abort" }, () => ({ kind: "rejected", code: "no_active_turn", reason: "idle" })),
+          steer: async (input) => kernel.control({ kind: "steer", input }, () => ({ kind: "rejected", code: "unsupported", reason: "no steer" })),
+          queue: async (input) => kernel.control({ kind: "queue", input }, () => ({ kind: "rejected", code: "unsupported", reason: "no queue" })),
+          abort: async () => kernel.control({ kind: "abort" }, () => ({ kind: "rejected", code: "no_active_turn", reason: "idle" })),
           rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
           records: () => kernel.records(),
           graph: () => kernel.graph(),

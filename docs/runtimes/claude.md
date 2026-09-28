@@ -216,10 +216,23 @@ there is no OAR approval request/reply channel.
 
 ### Process ownership, environment, installation, and account usage
 
-**Mapped:** OAR owns the spawned process; disposal settles active work, kills the
-process, and waits for exit. This supplies resource release, not detached
-execution or a lease against other controllers. The environment overlay applies
-to the child process; `CLAUDECODE` is cleared before applying that overlay.
+**Mapped:** OAR owns the spawned process; disposal settles active work, kills
+the process, and waits for exit. On POSIX the process leads its own process
+group, so the kill reaches the shells, tools, and MCP servers it started too:
+SIGTERM, then SIGKILL if claude is still running after a grace period (10 s, or
+`OAR_KILL_GRACE_MS`), so disposal settles even when claude ignores SIGTERM
+([process mechanics](../../packages/oar/src/shared/executable/process.ts),
+[test](../../tests/session-dispose.test.ts)). The default is sized to claude's
+own SIGTERM handling [sym 2.1.283]: it runs its SessionEnd hooks (a 1.5 s budget
+unless a hook declares a longer `timeout`, capped at 60 s) and force-exits after
+max(5 s, hook budget + 5 s), at least 15 s while writes are still pending; the
+claude-aimock runs exited 0.6 to 2.3 s after the SIGTERM. A longer hook budget
+needs a longer `OAR_KILL_GRACE_MS`, or the SIGKILL cuts the hooks short. Its own
+group also takes claude out of the terminal's job control: a host's Ctrl-C no
+longer reaches it, so a host that wants it stopped disposes the session. This
+supplies resource release, not detached execution or a lease against other
+controllers. The environment overlay applies to the child process; `CLAUDECODE`
+is cleared before applying that overlay.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts).
 
 Installation checks `OAR_CLAUDE_BIN`/PATH. Account usage is separate from session

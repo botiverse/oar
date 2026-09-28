@@ -3,4 +3,11 @@ export type { ExecutableResult, ExecutableRunner, ExecutableRunOptions } from ".
 export { runExecutable } from "./run.js";
 export { readExecutableVersion } from "./version.js";
 export type { LineProcess } from "./process.js";
-export { requiresShell, spawnLineProcess } from "./process.js";
+export {
+  KILL_GRACE_MS,
+  killGraceMs,
+  OWN_PROCESS_GROUP,
+  requiresShell,
+  signalProcessGroup,
+  spawnLineProcess,
+} from "./process.js";

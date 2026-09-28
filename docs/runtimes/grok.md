@@ -404,7 +404,13 @@ tool.
 Native ACP advertises session close. **Mapped:** OAR owns the spawned
 process; disposal cancels active work, attempts `session/close` when
 advertised (2-second deadline), kills its process, and disposes hosted
-terminals. A terminal still pending `terminal/wait_for_exit` at disposal is
+terminals. On POSIX the process and each hosted terminal command lead their own
+process groups, so OAR's signals reach what they started (a shell line's
+children too). The runtime gets SIGTERM, then SIGKILL if it is still running
+after a grace period (10 s, or `OAR_KILL_GRACE_MS`), so disposal settles even
+when Grok ignores SIGTERM ([test](../../tests/session-dispose.test.ts));
+hosted terminals are SIGKILLed at release and disposal. A terminal still
+pending `terminal/wait_for_exit` at disposal is
 answered `{exitCode: null, signal: "SIGKILL"}` *after* the `exited` response
 (the spec keeps late facts). Disposal does not delete the persistent native
 session and supplies resource release, not detached execution or a lease

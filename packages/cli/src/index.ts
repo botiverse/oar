@@ -193,19 +193,42 @@ program
     if (flags.json !== true) {
       session.events(progressObserver(id), { cursor, coalesceText: { maxHoldMs: 250 } });
     }
-    const run = await promptAndWait(session, prompt);
+    // The runtime leads its own process group, so the terminal's Ctrl-C
+    // reaches this process only. The first one interrupts the turn (the
+    // session is then disposed as usual), a later one disposes at once; the
+    // handler stays until the dispose settles, so the runtime and everything
+    // it started are always taken down with the run.
+    const interrupt = new AbortController();
+    // A repeated dispose() returns at once; the run waits for the first one.
+    let disposal: Promise<void> | null = null;
+    const dispose = async (): Promise<void> => {
+      disposal ??= session.dispose();
+      await disposal;
+    };
+    const onInterrupt = (): void => {
+      if (interrupt.signal.aborted) {
+        void dispose();
+      } else {
+        interrupt.abort();
+      }
+    };
+    process.on("SIGINT", onInterrupt);
+    const run = await promptAndWait(session, prompt, { signal: interrupt.signal });
+    await dispose();
+    process.off("SIGINT", onInterrupt);
+    recorder?.end("disposed");
     if (run.kind === "rejected") {
       process.stderr.write(`prompt not accepted (${run.code}): ${run.reason}\n`);
-      await session.dispose();
-      recorder?.end("disposed");
       process.exitCode = 1;
       return;
     }
     const { outcome } = run;
-    await session.dispose();
-    recorder?.end("disposed");
     if (flags.json === true) {
       process.stdout.write(`${JSON.stringify({ outcome })}\n`);
+    }
+    if (run.kind === "interrupted" && run.by === "signal") {
+      process.exitCode = 130;
+      return;
     }
     process.exitCode = outcome.kind === "completed" ? 0 : 1;
   });
