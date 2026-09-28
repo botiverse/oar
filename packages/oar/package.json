@@ -14,6 +14,10 @@
       "types": "./dist/observe/index.d.ts",
       "import": "./dist/observe/index.js"
     },
+    "./kernel": {
+      "types": "./dist/kernel.d.ts",
+      "import": "./dist/kernel.js"
+    },
     "./brands": {
       "types": "./dist/brands.d.ts",
       "import": "./dist/brands.js"
