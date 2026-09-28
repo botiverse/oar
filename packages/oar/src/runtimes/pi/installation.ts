@@ -4,7 +4,9 @@ const SDK_PACKAGE = "@earendil-works/pi-coding-agent";
 
 async function sdkLoads(): Promise<boolean> {
   try {
-    await import(SDK_PACKAGE);
+    // A string LITERAL, not SDK_PACKAGE: bundlers only compile in (and
+    // resolve) literal specifiers, and this fallback exists for bundles.
+    await import("@earendil-works/pi-coding-agent");
     return true;
   } catch {
     return false;
