@@ -113,9 +113,13 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           }
         },
       };
-      void (async (): Promise<void> => {
-        end(turnState, await settle(turn, controller.signal));
-      })();
+      // The turn starts once the control that began it is answered, as with a vendor runtime:
+      // the accepted response precedes the turn's first event.
+      setImmediate(() => {
+        void (async (): Promise<void> => {
+          end(turnState, await settle(turn, controller.signal));
+        })();
+      });
     }
 
     async function settle(turn: ScriptedTurn, signal: AbortSignal): Promise<TurnOutcome> {
