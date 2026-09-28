@@ -3,8 +3,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
 import { resolveExecutable, spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
+import { startRawCapture, type RawCapture, type RawProviderRequest } from "./raw-capture.js";
 
 export type { LLMock } from "@copilotkit/aimock";
+export type { RawProviderRequest } from "./raw-capture.js";
 
 /**
  * Backend setup for the aimock-backed instances: the REAL claude/codex
@@ -28,7 +30,24 @@ export interface AimockEnv {
   readonly env?: Readonly<Record<string, string>>;
   /** The scripted server itself. Vendor tests read its journal when a run goes sideways. */
   readonly mock: LLMock;
+  /** Provider requests as the runtime sent them, in arrival order; empty unless started with `captureRaw` (see raw-capture.ts). */
+  readonly raw: readonly RawProviderRequest[];
   stop(): Promise<void>;
+}
+
+/** Options every aimock environment takes. */
+export interface AimockOptions {
+  /** Put a raw-capture proxy between the runtime and aimock, so `raw` holds the request bodies aimock's journal normalizes away. */
+  readonly captureRaw?: boolean;
+}
+
+/** The provider URL the runtime is pointed at: aimock itself, or the capture proxy in front of it. */
+async function providerUrl(mock: LLMock, options: AimockOptions): Promise<{ readonly url: string; readonly capture: RawCapture | null }> {
+  if (options.captureRaw !== true) {
+    return { url: mock.url, capture: null };
+  }
+  const capture = await startRawCapture(mock.url);
+  return { url: capture.url, capture };
 }
 
 function baseFixtures(mock: LLMock): void {
@@ -45,14 +64,18 @@ function baseFixtures(mock: LLMock): void {
 
 export async function startClaudeAimock(
   configure: (mock: LLMock) => void = baseFixtures,
+  options: AimockOptions = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
   configure(mock);
   await mock.start();
+  const { url, capture } = await providerUrl(mock, options);
   return {
-    env: { ANTHROPIC_BASE_URL: mock.url, ANTHROPIC_API_KEY: "aimock" },
+    env: { ANTHROPIC_BASE_URL: url, ANTHROPIC_API_KEY: "aimock" },
     mock,
+    raw: capture?.requests ?? [],
     stop: async () => {
+      await capture?.stop();
       await mock.stop();
     },
   };
@@ -60,10 +83,12 @@ export async function startClaudeAimock(
 
 export async function startCodexAimock(
   configure: (mock: LLMock) => void = baseFixtures,
+  options: AimockOptions = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
   configure(mock);
   await mock.start();
+  const { url, capture } = await providerUrl(mock, options);
   const codexHome = await mkdtemp(path.join(tmpdir(), "oar-codex-aimock-"));
   await writeFile(path.join(codexHome, "config.toml"), [
     'model = "gpt-5.1"',
@@ -78,7 +103,7 @@ export async function startCodexAimock(
     "",
     "[model_providers.aimock]",
     'name = "aimock"',
-    `base_url = "${mock.url}/v1"`,
+    `base_url = "${url}/v1"`,
     'env_key = "OPENAI_API_KEY"',
     'wire_api = "responses"',
     "",
@@ -93,7 +118,9 @@ export async function startCodexAimock(
   return {
     env,
     mock,
+    raw: capture?.requests ?? [],
     stop: async () => {
+      await capture?.stop();
       await mock.stop();
       try {
         // codex leaves background writers (plugins clone) briefly alive after
@@ -145,11 +172,23 @@ export async function startPiAimock(
     readonly contextWindow?: number;
     /** Written as <agentDir>/settings.json when provided (e.g. compaction settings). */
     readonly settings?: Readonly<Record<string, unknown>>;
-  } = {},
+    /** Also list `aimock/aimock-thinking`, a `reasoning: true` model, so pi has thinking levels to apply (`aimock-model` has none). */
+    readonly reasoningModel?: boolean;
+  } & AimockOptions = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
   configure(mock);
   await mock.start();
+  const { url, capture } = await providerUrl(mock, piOptions);
+  const model = (id: string, reasoning: boolean): Record<string, unknown> => ({
+    id,
+    name: id,
+    reasoning,
+    input: ["text"],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: piOptions.contextWindow ?? 200_000,
+    maxTokens: 16_384,
+  });
   // pi is in-process: its model plane reads agentDir/models.json, not child
   // env, so the re-point is a temp agentDir pinned via OAR_PI_AGENT_DIR
   // (process-wide, set once at suite startup; recipe live-verified in
@@ -159,18 +198,13 @@ export async function startPiAimock(
     providers: {
       aimock: {
         name: "aimock",
-        baseUrl: mock.url,
+        baseUrl: url,
         apiKey: "aimock",
         api: "anthropic-messages",
-        models: [{
-          id: "aimock-model",
-          name: "aimock",
-          reasoning: false,
-          input: ["text"],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          contextWindow: piOptions.contextWindow ?? 200_000,
-          maxTokens: 16_384,
-        }],
+        models: [
+          { ...model("aimock-model", false), name: "aimock" },
+          ...(piOptions.reasoningModel === true ? [model("aimock-thinking", true)] : []),
+        ],
       },
     },
   }));
@@ -183,7 +217,9 @@ export async function startPiAimock(
   delete process.env.PI_PACKAGE_DIR;
   return {
     mock,
+    raw: capture?.requests ?? [],
     stop: async () => {
+      await capture?.stop();
       await mock.stop();
       await rm(agentDir, { recursive: true, force: true });
     },

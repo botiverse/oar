@@ -7,6 +7,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
+import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { closeAcpSession } from "../../shared/acp/profile.js";
 import { effortLevelOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
@@ -27,10 +28,13 @@ function configOption(response: JsonRecord, id: string): JsonRecord | undefined 
 /**
  * Project a `session/new` response. Kimi has no model-list method; the usable
  * list for the logged-in account rides on every new session as the
- * `configOptions` entry with id `model` (acp-server config-options.ts). A
- * `thinking` option is only emitted for the currently selected model, so
- * effort levels can only be attached to that entry; its `off` value is a
- * toggle, not an effort level, and is dropped.
+ * `configOptions` entry with id `model` (acp-server config-options.ts). The
+ * effort menu is the option in ACP's `thought_level` category (kimi 2.0.0:
+ * id `thinking`, low/high/max on k3), the same lookup the session uses to
+ * apply `SessionOptions.effort` (shared/acp/model.ts), so what is listed is
+ * what a session accepts. It is only emitted for the currently selected
+ * model, so effort levels can only be attached to that entry; an `off` value
+ * is a toggle, not an effort level, and is dropped.
  */
 export function projectKimiModels(response: unknown): ModelEntry[] | undefined {
   const root = asRecord(response) ?? {};
@@ -39,7 +43,7 @@ export function projectKimiModels(response: unknown): ModelEntry[] | undefined {
     return undefined;
   }
   const current = text(modelOption.currentValue);
-  const thinking = configOption(root, "thinking");
+  const thinking = acpThoughtLevelOption(root) ?? undefined;
   const effortLevels = thinking === undefined
     ? undefined
     : asRecordList(thinking.options)

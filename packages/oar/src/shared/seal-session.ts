@@ -9,7 +9,7 @@ import type {
 } from "../contracts/session.js";
 import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
-import { contextUsageOf, modelOf, usageOf } from "../observe/usage.js";
+import { contextUsageOf, effortOf, modelOf, usageOf } from "../observe/usage.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
   const inputId = options.inputId ?? randomUUID();
@@ -40,7 +40,7 @@ export function controlOutcomeOf(result: ControlResult): ControlOutcome {
 /**
  * Derive the API face of a Session from what the adapter built: the read
  * control answers (`ControlOutcome` over the adapter's records), the flat
- * `events()` reading of the stream, the stream folds (model / usage /
+ * `events()` reading of the stream, the stream folds (model / effort / usage /
  * contextUsage / status are projections over `records()`, never adapter-held
  * snapshots) and the steer-or-queue policy. Method-style so consumers
  * discover the surfaces in autocomplete; one implementation instead of one
@@ -83,6 +83,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
       return adapterSession.rawEvents(eventsReader(target), options.cursor);
     },
     model: () => modelOf(adapterSession.records(), adapterSession.id),
+    effort: () => effortOf(adapterSession.records(), adapterSession.id),
     usage: () => usageOf(adapterSession.records(), adapterSession.id),
     contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),
     status: () => statusOf(adapterSession.records(), adapterSession.id),

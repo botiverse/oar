@@ -91,6 +91,25 @@ export interface SessionOptions {
   readonly cwd: string;
   /** Runtime-native model identifier; the runtime's default when omitted. */
   readonly model?: string;
+  /**
+   * Runtime-native reasoning-effort level for every turn of this Session, one
+   * of the chosen model's `ModelEntry.effortLevels`. Applied at open, with or
+   * without `resume`: a resumed session runs at the level given here. When
+   * omitted the runtime chooses (its default, or on resume what it restores;
+   * the runtime pages say which).
+   *
+   * Invariant: a runtime whose `listModels` reports `effortLevels` accepts
+   * `effort`, and a runtime that accepts it lists the levels. A requested
+   * effort is never ignored: the adapter applies it through the runtime's
+   * native channel and reads the runtime's own report back. When the runtime
+   * refuses the level, or would run another one (drop it for the model, clamp
+   * it, fall back to its default), or has no effort channel at all, starting
+   * the session rejects with an Error naming the requested level and what the
+   * runtime did instead. A runtime that forwards the level unchecked (codex)
+   * reads it back as given, and its provider's refusal fails the first turn.
+   * `Session.effort()` is the runtime's report, where it gives one.
+   */
+  readonly effort?: string;
   /** Resume the runtime-native session identified by a previous Session.id. */
   readonly resume?: string;
   /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. */
@@ -200,6 +219,8 @@ export interface Session extends AdapterSession {
   events(observer: EventObserver, options?: EventsOptions): Unsubscribe;
   /** Latest `model` event; null until the runtime has said one. A fold, not an echo of the request. */
   model(): QueryResult<string | null>;
+  /** Latest `effort` event: the reasoning-effort level the runtime reports in effect; null until it has said one (claude never does). A fold, not an echo of `SessionOptions.effort`. */
+  effort(): QueryResult<string | null>;
   /** THIS session's token total plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). A derived child session (own `sessionId`, in `graph()`) is not aggregated here; its usage is in its own records. */
   usage(): QueryResult<SessionUsage>;
   /** Latest context fullness the runtime reported for this session's root agent; null before any. */

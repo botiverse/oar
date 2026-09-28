@@ -19,7 +19,8 @@ export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
  * stream 2026-09-11): every SDK event is one frame; pi's own
  * `agent_settled` is the turn end; steer acceptance means entry into pi's queue;
  * abort is cooperative. Resume opens the cwd's session file by id and
- * options.model resolves through the ModelRuntime (see resolve.ts).
+ * options.model resolves through the ModelRuntime (see resolve.ts);
+ * options.effort is pi's creation-time thinking level (open.ts).
  * Process-global lazy env reads mean another embedded pi cannot safely share
  * this process.
  */
@@ -156,13 +157,14 @@ export const piSession: StartSession = async (installation, options) => {
 
   const openedModel = piEffectiveModel(piAgentSession);
   if (openedModel !== null) {
-    // The SDK's own report of the model in effect at open, captured as the
-    // runtime's word (never the request echoed: the mismatch check above
-    // already rejected a request pi did not apply).
+    // The SDK's own report of the model and thinking level in effect at open,
+    // captured as the runtime's word (never the request echoed: the mismatch
+    // checks in open.ts already rejected a request pi did not apply).
+    const { thinkingLevel } = piAgentSession;
     kernel.frame({
       type: "pi/session_opened",
-      native: { sessionId: piAgentSession.sessionId, model: openedModel },
-      events: [{ kind: "model", model: openedModel }],
+      native: { sessionId: piAgentSession.sessionId, model: openedModel, thinkingLevel },
+      events: [{ kind: "model", model: openedModel }, { kind: "effort", effort: thinkingLevel }],
     });
   }
 

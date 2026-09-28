@@ -90,6 +90,19 @@ test("kimi projection treats thinking off as no default and omits levels without
   expect(projectKimiModels(null)).toBeUndefined();
 });
 
+// The menu is the option the session applies SessionOptions.effort through:
+// found by ACP's `thought_level` category (shared/acp/model.ts), not by the
+// `thinking` id, so a listed level is always one a session accepts.
+test("kimi projection reads the effort menu off the thought_level category, whatever the option's id", () => {
+  const [model, thinking, mode] = newSessionResponse.configOptions;
+  expect(projectKimiModels({ configOptions: [model, { ...thinking, id: "reasoning" }, mode] })?.[0]).toEqual(
+    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high" },
+  );
+  expect(projectKimiModels({ configOptions: [model, { ...thinking, category: undefined }, mode] })?.[0]).toEqual(
+    { id: "kimi-for-coding", displayName: "Kimi For Coding" },
+  );
+});
+
 test("kimi lister initializes, authenticates with login, opens and closes a session", async () => {
   acp.request.mockImplementation(async (method) => {
     switch (method) {

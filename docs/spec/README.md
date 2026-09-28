@@ -65,8 +65,8 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   runtime's own completion event;
 - the consumer face: `events()` delivers every reading as a flat `Event`
   (an event body plus the record's envelope): text, reasoning, tool call
-  start / progress / end, turn end, usage, model, compaction start / end and
-  retry as the runtime says them, plus `turn_started`, `control_rejected`,
+  start / progress / end, turn end, usage, model, effort, compaction start /
+  end and retry as the runtime says them, plus `turn_started`, `control_rejected`,
   `app_request`, `app_answered` and `exited` read off request/response
   records; a pure projection (`eventsOf`) over the stream, never a second
   source of truth;
@@ -75,8 +75,8 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   its prose `reason`); the `Session` returns those records read, as a
   `ControlOutcome`; runtime→app requests recorded `toApp` and oar's
   automatic answer as `answered`; the process exit as `exited`;
-- queries as folds: `model()`, `usage()`, `contextUsage()` and `status()`
-  project over `records()` and return `{ value, seq }`, where `seq` is the
+- queries as folds: `model()`, `effort()`, `usage()`, `contextUsage()` and
+  `status()` project over `records()` and return `{ value, seq }`, where `seq` is the
   last record the fold consumed (or `-1` before any record); `busy` is
   rejected exactly while `status()` says `running`;
 - the cursor for the lifetime of the adapter process: `rawEvents(observer,
@@ -86,7 +86,11 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 - the session graph with true sessions only, and an explicit attribution
   tier per adapter (`capabilities.attribution`);
 - `SessionOptions.resume` reopening the runtime-native conversation with a
-  fresh stream starting at `seq` 0.
+  fresh stream starting at `seq` 0;
+- `SessionOptions.effort` applied through each runtime's native channel and
+  read back: a runtime that would run another level, or has no channel,
+  refuses the open (contract comment on `SessionOptions.effort`; per-runtime
+  channels in [`../runtimes/`](../runtimes/README.md)).
 - external compaction as a new session whose first prompt carries the summary
   input; nothing links the new session to the prior one.
 

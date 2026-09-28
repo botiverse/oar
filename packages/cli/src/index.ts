@@ -10,7 +10,7 @@ import {
   type Runtime,
 } from "@botiverse/oar";
 import { readModels, renderModels } from "./models.js";
-import { createProgressRenderer } from "./progress.js";
+import { createProgressRenderer, renderOpened } from "./progress.js";
 
 // Read the version from this package's own manifest so `--version` can never
 // drift from package.json. `../package.json` resolves to the package root in
@@ -145,14 +145,16 @@ function progressObserver(runtimeId: string): EventObserver {
 
 program
   .command("run <runtime> <prompt>")
-  .description("Run one turn in a fresh session and show its progress")
+  .description("Run one turn in a fresh (or --resume'd) session and show its progress")
   .option("--model <model>", "runtime-native model identifier")
+  .option("--effort <level>", "runtime-native reasoning-effort level (one of the model's effort levels in `oar models`)")
+  .option("--resume <sessionId>", "resume the runtime-native session a previous run printed")
   .option("--json", "print the session records as JSON lines instead of progress")
   .option("--record <file>", "write the run as an oar-voyage/3 JSONL log")
   .action(async (
     id: string,
     prompt: string,
-    flags: { model?: string; json?: boolean; record?: string },
+    flags: { model?: string; effort?: string; resume?: string; json?: boolean; record?: string },
   ) => {
     const runtime = runtimes.require(id);
     if (runtime.installation === undefined) {
@@ -166,15 +168,27 @@ program
       process.exitCode = 1;
       return;
     }
+    // A refused open (an effort the runtime would not run, a resume id it
+    // does not know) is the runtime's answer, not a crash.
     const session = await runtime.session(installation, {
       cwd: process.cwd(),
       ...(flags.model === undefined ? {} : { model: flags.model }),
+      ...(flags.effort === undefined ? {} : { effort: flags.effort }),
+      ...(flags.resume === undefined ? {} : { resume: flags.resume }),
+    }).catch((error: unknown) => {
+      process.stderr.write(`${id} session did not open: ${error instanceof Error ? error.message : String(error)}\n`);
+      return null;
     });
+    if (session === null) {
+      process.exitCode = 1;
+      return;
+    }
     const recorder = flags.record === undefined
       ? undefined
       : openVoyage(flags.record, {
           runtime: id,
           ...(flags.model === undefined ? {} : { model: flags.model }),
+          ...(flags.effort === undefined ? {} : { effort: flags.effort }),
           cwd: process.cwd(),
           sessionId: session.id,
           startedAt: Date.now(),
@@ -191,6 +205,12 @@ program
       }
     }, cursor);
     if (flags.json !== true) {
+      process.stdout.write(`${renderOpened({
+        sessionId: session.id,
+        resumed: flags.resume !== undefined,
+        model: session.model().value,
+        effort: session.effort().value,
+      })}\n`);
       session.events(progressObserver(id), { cursor, coalesceText: { maxHoldMs: 250 } });
     }
     // The runtime leads its own process group, so the terminal's Ctrl-C

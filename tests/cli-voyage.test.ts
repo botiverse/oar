@@ -46,6 +46,20 @@ test("headerLine pins the oar-voyage/3 header shape", () => {
   })).toMatchInlineSnapshot(`"{"kind":"header","format":"oar-voyage/3","runtime":"claude","model":"opus","cwd":"/work","sessionId":"s-1","startedAt":1000,"recorder":"oar-cli/0.0.5"}"`);
 });
 
+test("headerLine records the requested effort after the model, and omits it when none was requested", () => {
+  expect(headerLine({
+    runtime: "codex",
+    model: "gpt-5.5",
+    effort: "low",
+    cwd: "/work",
+    sessionId: "t-1",
+    startedAt: 1000,
+    recorder: "oar-cli/0.7.0",
+  })).toMatchInlineSnapshot(`"{"kind":"header","format":"oar-voyage/3","runtime":"codex","model":"gpt-5.5","effort":"low","cwd":"/work","sessionId":"t-1","startedAt":1000,"recorder":"oar-cli/0.7.0"}"`);
+  const line = headerLine({ runtime: "codex", cwd: "/work", sessionId: "t-2", startedAt: 1000, recorder: "oar-cli/0.7.0" });
+  assert.ok(!line.includes("effort"), `effort key must be absent: ${line}`);
+});
+
 test("headerLine omits model entirely when none was requested", () => {
   const line = headerLine({
     runtime: "codex",

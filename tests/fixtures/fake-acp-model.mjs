@@ -1,4 +1,4 @@
-/* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-return -- Standalone untyped fixture module for fake-acp-agent.mjs. */
+/* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-return, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call -- Standalone untyped fixture module for fake-acp-agent.mjs. */
 // The model the fixture "really" runs, regardless of what was requested: the
 // silent-fallback shape both real agents have (grok falls back to the default
 // when the requested model is not allowed; kimi keeps its own current id).
@@ -20,9 +20,27 @@ function modelOption(currentValue) {
   };
 }
 
-export function modelReport() {
+// The fixture's reasoning-effort selector, in ACP's `thought_level` category
+// under an id of its own (grok says `reasoning_effort`, kimi `thinking`): the
+// category is what oar looks for, never the id.
+const EFFORT_ID = "fixture_effort";
+const EFFORT_LEVELS = ["low", "medium", "high"];
+
+function effortOption(currentValue) {
   return {
-    configOptions: [modelOption(EFFECTIVE_MODEL)],
+    type: "select",
+    id: EFFORT_ID,
+    name: "Effort",
+    category: "thought_level",
+    currentValue,
+    options: EFFORT_LEVELS.map((value) => ({ value, name: value })),
+  };
+}
+
+/** `mode` "no-thought-level": an agent that offers no effort selector at all. */
+export function modelReport(mode) {
+  return {
+    configOptions: [modelOption(EFFECTIVE_MODEL), ...(mode === "no-thought-level" ? [] : [effortOption("medium")])],
     models: {
       currentModelId: EFFECTIVE_MODEL,
       availableModels: [
@@ -55,4 +73,45 @@ export function setModelResponse(modelId) {
     return { pushedUpdate: pushedModel("fixture-model-z"), response: {} };
   }
   return { response: {} };
+}
+
+/**
+ * What `session/set_config_option {configId, value}` does to the effort
+ * selector, the way grok 1.0.41 / kimi 2.0.0 answer: a known level is applied,
+ * pushed as a `config_option_update` (kimi pushes before answering) and
+ * answered with every option's current value; an unknown one is refused
+ * `-32602 Invalid params`. `sticky` is a level the fixture accepts but does
+ * not apply (answered at `medium`), the silent substitution oar must refuse.
+ */
+export function setConfigOption(params) {
+  if (params?.configId !== EFFORT_ID) {
+    return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
+  }
+  if (params.value === "sticky") {
+    return { response: { configOptions: [modelOption(EFFECTIVE_MODEL), effortOption("medium")] } };
+  }
+  if (!EFFORT_LEVELS.includes(params.value)) {
+    return { error: { code: -32_602, message: "Invalid params", data: `unknown ${EFFORT_ID} value` } };
+  }
+  const configOptions = [modelOption(EFFECTIVE_MODEL), effortOption(params.value)];
+  return { pushedUpdate: { sessionUpdate: "config_option_update", configOptions }, response: { configOptions } };
+}
+
+/**
+ * Answer `session/set_model` or `session/set_config_option` on the wire:
+ * any push first (kimi pushes before it answers), then the answer, or the
+ * refusal as a JSON-RPC error.
+ */
+export function answerConfigRequest(message, wire) {
+  const outcome = message.method === "session/set_model"
+    ? setModelResponse(message.params?.modelId)
+    : setConfigOption(message.params);
+  if (outcome.error !== undefined) {
+    wire.error(message.id, outcome.error.code, outcome.error.message, outcome.error.data);
+    return;
+  }
+  if (outcome.pushedUpdate !== undefined) {
+    wire.update(outcome.pushedUpdate);
+  }
+  wire.result(message.id, outcome.response);
 }

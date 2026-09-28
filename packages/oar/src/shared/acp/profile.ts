@@ -7,6 +7,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
+import { applyAcpEffort } from "./effort.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
 export { createUsageUpdateGate } from "./usage-wait.js";
@@ -250,6 +251,12 @@ export async function openAcpSession(
       ),
     )) ?? undefined;
     observe({ method: "session/set_model", response: setModelResponse ?? {} });
+  }
+  if (options.effort !== undefined) {
+    await applyAcpEffort(process, opened, options.effort, {
+      timeoutMs: profile.requestTimeoutMs ?? 15_000,
+      observe,
+    });
   }
   const configure = profile.configureSession;
   if (configure !== undefined) {

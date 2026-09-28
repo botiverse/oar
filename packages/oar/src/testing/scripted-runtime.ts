@@ -58,6 +58,10 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
   const model = options.model ?? "scripted-1";
   const start: StartSession = async (_installation, sessionOptions): Promise<Session> => {
     await Promise.resolve();
+    // SessionOptions.effort's contract: a runtime that lists no effort levels refuses one, never ignores it.
+    if (sessionOptions.effort !== undefined) {
+      throw new Error(`${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
+    }
     const kernel = createSessionKernel(sessionOptions.resume);
     const queued: string[] = [];
     const totals: { input: number; output: number } = { input: 0, output: 0 };

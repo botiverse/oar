@@ -190,6 +190,10 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       }
       return { state, events: [{ kind: "compaction_ended", outcome, trigger: event.reason, ...(event.errorMessage === undefined ? {} : { reason: event.errorMessage }) }] };
     }
+    case "thinking_level_changed":
+      // pi's own report after a level change (setThinkingLevel, a model
+      // switch that re-clamps): the level its next request runs.
+      return { state, events: [{ kind: "effort", effort: event.level }] };
     case "auto_retry_start":
     case "summarization_retry_scheduled":
       return { state, events: [{ kind: "retry", attempt: event.attempt, maxAttempts: event.maxAttempts, delayMs: event.delayMs, reason: event.errorMessage }] };
@@ -218,7 +222,6 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "queue_update":
     case "entry_appended":
     case "session_info_changed":
-    case "thinking_level_changed":
     case "auto_retry_end":
     case "summarization_retry_attempt_start":
     case "summarization_retry_finished":

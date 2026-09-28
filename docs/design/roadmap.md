@@ -72,7 +72,46 @@ versioned and forward-compatible.
 **Acceptance:** live reconnect and offline replay produce equivalent
 projections without duplicate controls.
 
-### 5. Extend control across placement
+### 5. Change model and effort without a restart
+
+`SessionOptions.model` and `effort` apply at open, read back against the
+runtime's own report. A host switching mid-conversation disposes the
+Session at a turn boundary and resumes the runtime-native id with new
+options, paying a process restart and a new handshake. Every shipped
+runtime also has a native live setter (claude `set_model` /
+`apply_flag_settings`, codex `thread/settings/update`, ACP
+`session/set_config_option`, pi `setModel` / `setThinkingLevel`); the
+[native survey](../runtimes/live-configure.md) records them, their
+read-backs, and how they meet each adapter's queue. A `Session.configure`
+control would record the request, answer with the runtime's
+acknowledgement, and let the `model` / `effort` events carry the effect.
+
+**Landed at open (2026-09-29):** `SessionOptions.effort`, the runtime-said
+`effort` event, the `Session.effort()` fold and `SessionView.effort`. The
+caller decision: Ferry switches model and effort between turns by resuming,
+and must know that the level it shows is the level the runtime runs. The
+evidence that it could not before: nothing could request a level at all,
+and the runtimes drop one without a word. claude ignores an unknown level
+with a stderr-only warning and sends none for haiku; pi clamps silently;
+a `config` override on codex's `thread/resume` rebuilt the thread onto
+`config.toml`'s model. So each adapter applies the level through its
+native channel and refuses the open on anything but the runtime's own
+confirmation. Owning layer: the contract (`SessionOptions.effort`, the
+`effort` event) and each adapter's open path. Regression: unit tests per
+adapter (argv, request params, read-back refusals), the sea-trial cases
+`session.effort-never-substituted` (every backend, token-free) and
+`session.effort-listed-levels-apply-across-resume` (backends with
+`listModels`), and the provider-side `effort.vendor.test.ts` on the three
+aimock backends.
+
+**Gate:** a host whose restart cost is measured (hook reruns, MCP startup,
+lost prompt cache), and a decision on pi, whose setters rewrite the user's
+global defaults.
+
+**Acceptance:** a change requested while input is queued lands before that
+input on every runtime, and no runtime reports a level it does not run.
+
+### 6. Extend control across placement
 
 Only when a real host needs remote or multi-client operation, follow the
 architecture decision recorded in Raft thread `#all:e1d09817`, message

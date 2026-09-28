@@ -6,7 +6,7 @@ import type {
 import { classifyFailure } from "../failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../json.js";
 import { AcpError } from "./errors.js";
-import { acpReportedModel } from "./model.js";
+import { acpReportedEffort, acpReportedModel } from "./model.js";
 
 /**
  * ACP `session/update` → events, as a pure projection. Every update becomes
@@ -215,10 +215,15 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord):
       break;
   }
   // Any frame that names the effective model (kimi's config_option_update,
-  // grok's `_meta.model`) is also a model report.
+  // grok's `_meta.model`) is also a model report; one whose `thought_level`
+  // option names a current value (a `config_option_update`) is an effort one.
   const model = acpReportedModel(update);
   if (model !== null) {
     events.push({ kind: "model", model });
+  }
+  const effort = acpReportedEffort(update);
+  if (effort !== null) {
+    events.push({ kind: "effort", effort });
   }
   return events;
 }

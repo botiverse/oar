@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { AdapterSession, ControlResult, FrameBody, RuntimeEventBody, RawEvent, TurnOutcome } from "../packages/oar/src/index.js";
 import { awaitTurnEnd, turnEndAfter } from "../packages/oar/src/observe/turns.js";
-import { contextUsageOf, modelOf, usageOf } from "../packages/oar/src/observe/usage.js";
+import { contextUsageOf, effortOf, modelOf, usageOf } from "../packages/oar/src/observe/usage.js";
 import { sealSession } from "../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel, type SessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 
@@ -94,6 +94,21 @@ function assertRootReadbackSeqs(session: ReturnType<typeof sealSession>): void {
   assert.equal(session.usage().seq, 1, "usage fold rests on the last root record consumed");
   assert.equal(session.contextUsage().seq, 1, "context fold rests on the last root record consumed");
 }
+
+// effort() is the runtime's own report, like model(): the latest root
+// `effort` event, scoped to the root session (a child thread or child session
+// runs its own level), null before any, and never the request echoed.
+test("effort folds the latest root effort report and ignores a child session's", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  assert.deepEqual(session.effort(), { value: null, seq: -1 }, "null before the runtime said anything");
+  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "model", model: "root-model" }, { kind: "effort", effort: "low" }] });
+  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "effort", effort: "xhigh" }] }, { sessionId: CHILD });
+  assert.deepEqual(session.effort(), { value: "low", seq: 0 });
+  kernel.frame({ type: "thread/settings/updated", native: {}, events: [{ kind: "effort", effort: "high" }] });
+  assert.deepEqual(session.effort(), { value: "high", seq: 2 });
+  assert.equal(effortOf(session.records(), CHILD).value, "xhigh", "the child's own report is in its own records");
+});
 
 test("model, usage and contextUsage fold only the root session's records", () => {
   const kernel = createSessionKernel(ROOT);

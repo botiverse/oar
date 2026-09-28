@@ -27,15 +27,18 @@ export function profile(overrides: Partial<AcpSessionProfile> = {}): AcpSessionP
   };
 }
 
+// oxlint-disable-next-line eslint/max-params -- the SessionOptions the ACP tests vary, positionally.
 export async function start(
   overrides: Partial<AcpSessionProfile> = {},
   resume?: string,
   model?: string,
+  effort?: string,
 ): Promise<Session> {
   return acpSession(profile(overrides))(installation, {
     cwd: process.cwd(),
     ...(resume === undefined ? {} : { resume }),
     ...(model === undefined ? {} : { model }),
+    ...(effort === undefined ? {} : { effort }),
   });
 }
 
@@ -57,6 +60,8 @@ export function describe(record: RawEvent): string {
             return `tool_call_started:${view.tool}`;
           case "model":
             return `model:${view.model}`;
+          case "effort":
+            return `effort:${view.effort}`;
           case "reasoning":
           case "tool_call_ended":
           case "user_message":

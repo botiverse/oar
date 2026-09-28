@@ -114,6 +114,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "user_message":
       case "usage":
     case "model":
+    case "effort":
       return previous;
   }
   return previous;

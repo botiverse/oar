@@ -54,3 +54,32 @@ where stored history and the wire share one shape. Then the choice is
 between the `HistoryEntry` vocabulary and the `Event` projection with a
 readback-aware `turn_started`, and it goes through the decision gates above.
 
+
+## Recording claude's effort read-back (2026-09-29)
+
+**Asked for:** `SessionOptions.effort` promises that a requested level is
+never dropped silently, and `Session.effort()` reads the runtime's own
+report. claude 2.1.284 reports the level it will send in one place only:
+the `get_settings` control request, whose `applied.effort` is "what will
+actually be sent to the API" after env overrides, settings clamps and model
+defaults ([claude runtime page](../runtimes/claude.md#models-instructions-and-context)).
+The claude adapter asks it at open when an effort is requested and refuses
+the open on anything else. Every other stdout line becomes a frame, so the
+question was whether this answer should too, giving `effort()` a value on
+claude.
+
+**Refused, because the answer is not only the effort.** `get_settings`
+takes no parameters, and it answers with the merged settings of every
+source (`effective`, `sources`: hooks, permissions, any `env` block)
+around `applied`. Recording it verbatim, and `native` is never trimmed,
+would copy a user's settings, secrets in an `env` block included, into
+every consumer's log: oar itself asked for them, and the runtime would not
+have volunteered them in the session. The answer is consumed like codex's
+`initialize` reply: adapter plumbing, not the session's words. A
+successful open is the confirmation that claude runs the requested level;
+`effort()` stays null on claude and the contract comment says so.
+
+**What would reopen it:** claude reporting the effective effort in its
+stream (`system/init` or the `assistant` frame; the transcript file already
+records `effort` per assistant message, but oar never reads transcripts),
+or a `get_settings` that can be narrowed to `applied`.

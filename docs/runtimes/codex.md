@@ -61,7 +61,7 @@ is the turn's end. The adapter declares `capabilities: { steer: true, queue:
 | Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` event (`turn_ended` event: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer/interrupt. |
 | Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; a `contextCompaction` item → `compaction_started` on `item/started` and `compaction_ended` (completed, no trigger) on `item/completed`; the deprecated `thread/compacted` notification ends an open compaction only when the item did not already (the projection's `compacting` flag dedupes; the schema marks it "Deprecated: Use ContextCompaction item type instead") [env 0.154.0]; `thread/tokenUsage/updated` → `usage`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The response is recorded as the reply line is read, so it sits before notifications codex wrote after it. |
-| Effective configuration | `model()` folds the `model` event of the open reply; most native configuration has no public mutator. |
+| Effective configuration | `model()` and `effort()` fold the `model` / `effort` events of the open reply (`model`, `reasoningEffort`) and of `thread/settings/updated`; `SessionOptions.effort` is the config override `model_reasoning_effort` on `thread/start` and `thread/settings/update` after a resume. Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays a dangling request. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. The app-server delivers child-thread notifications on the parent's connection ([env] 0.149.0, 0.154.0); without an item naming the thread no edge is fabricated. |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
@@ -337,8 +337,51 @@ an `error` notification and `turn/completed { status: "failed" }` give
 "error":{"type":"invalid_request_error","message":"The 'oar-no-such-model-xyz'
 model is not supported when using Codex with a ChatGPT account."}}`, class
 `invalid_request` (live-contract `bad-model`;
-[readback probe](../../experiments/session-model-readback.ts)). Live
-model/effort setters are **not exposed**.
+[readback probe](../../experiments/session-model-readback.ts)).
+
+**Effort (mapped).** `SessionOptions.effort` governs every turn of the
+thread, a turn codex starts from its own queue included ([env] 0.155.1). A
+new thread takes it as the config override `config: {model_reasoning_effort}`
+on `thread/start`, and each Responses request then carries
+`reasoning: {effort}`; the reply's `reasoningEffort` is codex's word, read
+as the open frame's `effort` event. A resume does not take a config
+override: any `config` on `thread/resume` rebuilds the thread's settings
+from `config.toml`, so a resume that did not repeat `model` came back on the
+configured default. Live, a `gpt-6-luna` thread resumed as `gpt-6-astra`,
+and the rebuild stays with the thread: a plain resume afterwards, with no
+turn in between, still answered the config's model
+([experiment](../../experiments/effort-channels.ts)). The
+[vendor test](../../sea-trial/vendor/effort.vendor.test.ts) pins it with a
+thread opened off the aimock default. A resume reads the
+level the thread runs off its reply, and when that is not the requested one
+sets it on the loaded thread with `thread/settings/update {threadId,
+effort}` (experimental API, which OAR enables). codex answers `{}` and
+pushes `thread/settings/updated {threadSettings: {model, effort, ...}}`, a
+frame read as `model` and `effort` events. Live 2026-09-29: `thread/resume`
+reported `gpt-6-luna` / `low`, `thread/settings/updated` then
+`gpt-6-luna` / `medium`, and the rollout's `turn_context` recorded
+`gpt-6-luna` / `low`, then `gpt-6-luna` / `medium`. On codex-aimock, the
+wire read `low, low` over two turns and `high` after a resume asking for it,
+on the thread's own model. Anything but the requested level refuses the
+open: a start reply that kept another level (`codex thread/start kept effort
+medium although effort low was requested`), a refused or unconfirmed
+update, or a pushed level other than the request. codex persists the level
+with the thread: a resume that asks for none runs and reports the level the
+thread last ran with (live: `medium`, although `config.toml` says
+`model_reasoning_effort = "low"`), and its model too. codex checks no level
+itself: an unknown one is echoed as `reasoningEffort` and forwarded, so the
+open succeeds and the provider refuses the first turn (`turn_ended` failed,
+`invalid_request`: "[ReasoningEffortParam] [reasoning.effort]
+[invalid_enum_value] Invalid value: 'oar-no-such-effort'. Supported values
+are: 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', and 'max'.").
+`thread/start` without an effort answers `reasoningEffort: null` (no
+explicit level; the model default applies) and yields no `effort` event.
+The per-turn `turn/start {effort}` ("for this turn and subsequent turns")
+is not used: a submission codex drains from its queue starts a turn
+without one. Live changes on a running thread are **not exposed**
+([native surfaces](live-configure.md)).
+[Open request and read-back](../../packages/oar/src/runtimes/codex/open.ts),
+[unit test](../../tests/codex/codex-session-effort.test.ts).
 
 Replacement instructions map to `baseInstructions` (replaces codex's base
 prompt); append maps to `developerInstructions` (appended as a developer
@@ -477,9 +520,11 @@ the former only.
    skips the override), then `initialize` with `clientInfo { name: "oar" }`
    and `capabilities { experimentalApi: true }`, `initialized`, and
    `thread/start { cwd, model?, approvalPolicy: "never",
-   experimentalRawEvents: true, baseInstructions?, developerInstructions? }`
-   or `thread/resume { threadId, excludeTurns: true, ... }`. A model readback
-   that differs from the request kills the process and throws. Not on OAR's
+   experimentalRawEvents: true, baseInstructions?, developerInstructions?,
+   config?: { model_reasoning_effort } }` or `thread/resume { threadId,
+   excludeTurns: true, ... }` (then `thread/settings/update { effort }` when
+   the resumed thread runs another level). A model or effort readback that
+   differs from the request kills the process and throws. Not on OAR's
    path although present upstream: `--listen ws://`, `--listen unix://`,
    `codex app-server daemon`, `codex app-server proxy`, `thread/fork`,
    `ephemeral`, `thread/resume { path }` and `{ history }`. Source:

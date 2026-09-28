@@ -26,7 +26,7 @@ if (installation?.kind === "available") {
 
 `session.events()` delivers flat, attributed `Event`s (text, reasoning,
 tool call start / progress / end, turn start and end, usage, model,
-compaction start / end, retry, runtime→app requests and oar's answers,
+effort, compaction start / end, retry, runtime→app requests and oar's answers,
 control rejections, the process exit), each carrying the `seq` and
 `agentPath` of the record it was read from. Kinds a runtime never says
 (claude has no compaction start, ACP runtimes no compaction or retry) simply

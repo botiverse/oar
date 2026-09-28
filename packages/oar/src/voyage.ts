@@ -9,13 +9,16 @@ import type { RawEvent } from "./contracts/session.js";
 // capture. All timestamps are Unix epoch milliseconds on the same clock as
 // `receivedAt`. The format is defined and owned by oar; other tools may
 // consume it. Rejected response bodies carry a typed `code` since 2026-09-23;
-// a log written before then has the prose `reason` only.
+// a log written before then has the prose `reason` only. The header carries
+// the requested `effort` since 2026-09-29 (absent before, and when none was).
 
 export const VOYAGE_FORMAT = "oar-voyage/3";
 
 export interface VoyageHeader {
   readonly runtime: string;
   readonly model?: string;
+  /** The reasoning-effort level the run requested (`SessionOptions.effort`); absent when none was. */
+  readonly effort?: string;
   readonly cwd: string;
   readonly sessionId: string;
   readonly startedAt: number;
@@ -28,6 +31,7 @@ export function headerLine(header: VoyageHeader): string {
     format: VOYAGE_FORMAT,
     runtime: header.runtime,
     ...(header.model === undefined ? {} : { model: header.model }),
+    ...(header.effort === undefined ? {} : { effort: header.effort }),
     cwd: header.cwd,
     sessionId: header.sessionId,
     startedAt: header.startedAt,

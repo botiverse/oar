@@ -25,6 +25,55 @@ export async function piEnvBashTool(
   }));
 }
 
+/** pi's thinking levels (`ThinkingLevel`, pi-agent-core 0.84.2): the spelling `SessionOptions.effort` takes on pi. */
+export type PiThinkingLevel = NonNullable<CreateAgentSessionOptions["thinkingLevel"]>;
+
+// Keyed by pi's own union, so a level pi adds or drops fails to compile here.
+const PI_THINKING_LEVELS: Readonly<Record<PiThinkingLevel, true>> = {
+  off: true,
+  minimal: true,
+  low: true,
+  medium: true,
+  high: true,
+  xhigh: true,
+  max: true,
+};
+
+/**
+ * `SessionOptions.effort` as a pi thinking level, or an Error naming pi's
+ * levels. Checked before pi sees it: pi's `clampThinkingLevel` turns a word
+ * it does not know into the model's lowest level without a word (pi-ai
+ * 0.84.2 models.js), which the read-back would catch only after the session
+ * was built.
+ */
+export function piThinkingLevel(effort: string): PiThinkingLevel {
+  const level = Object.keys(PI_THINKING_LEVELS).find((candidate): candidate is PiThinkingLevel => candidate === effort);
+  if (level === undefined) {
+    throw new Error(`pi has no thinking level ${effort} (pi's levels: ${Object.keys(PI_THINKING_LEVELS).join(", ")})`);
+  }
+  return level;
+}
+
+/** The slice of pi's AgentSession the effort read-back depends on; structural for tests. */
+export interface PiEffortSource extends PiModelSource {
+  readonly thinkingLevel: string;
+  getAvailableThinkingLevels(): readonly string[];
+}
+
+/**
+ * Why the opened pi session does not run the requested thinking level, read
+ * off pi's own state (`AgentSession.thinkingLevel`, what the next request
+ * sends), or null when it does. pi clamps a level the model does not offer to
+ * the nearest one it does (a non-reasoning model: `off`) without a word.
+ */
+export function piEffortRefusal(requested: string, session: PiEffortSource): string | null {
+  if (session.thinkingLevel === requested) {
+    return null;
+  }
+  const model = piEffectiveModel(session) ?? "no model";
+  return `pi runs thinking level ${session.thinkingLevel} for ${model} although ${requested} was requested (the model offers ${session.getAvailableThinkingLevels().join(", ")})`;
+}
+
 /** The slice of pi's AgentSession the model read-back depends on; structural for tests. */
 export interface PiModelSource {
   readonly model: { readonly provider: string; readonly id: string } | undefined;
@@ -49,6 +98,7 @@ export function piEffectiveModel(session: PiModelSource): string | null {
  * share one session directory.
  */
 export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
+  const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
   const sdk = await import("@earendil-works/pi-coding-agent");
   // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/
   // settings/sessions); same namespaced-env-pin pattern as OAR_CLAUDE_BIN.
@@ -105,10 +155,17 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   // travel this way for pi; that needs its native modelRuntime/agentDir
   // channel.
   const overlay = options.env;
+  // Effort is pi's creation-time `thinkingLevel` (explicit wins over a resumed
+  // session's recorded level and the settings default; pi clamps it to the
+  // model). Not `AgentSession.setThinkingLevel`: that also writes the level
+  // into pi's global settings as the user's new default (agent-session.js
+  // 0.84.2). pi records the level in the session file for a new session and
+  // for a resumed one that has none yet.
   const { session } = await sdk.createAgentSessionFromServices({
     services,
     sessionManager,
     ...(model === undefined ? {} : { model }),
+    ...(thinkingLevel === undefined ? {} : { thinkingLevel }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
   // Read back rather than trust the request: the model record is the
@@ -117,6 +174,11 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   if (options.model !== undefined && effective !== options.model) {
     session.dispose();
     throw new Error(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`);
+  }
+  const refusal = options.effort === undefined ? null : piEffortRefusal(options.effort, session);
+  if (refusal !== null) {
+    session.dispose();
+    throw new Error(refusal);
   }
   return session;
 }

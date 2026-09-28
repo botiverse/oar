@@ -55,7 +55,7 @@ OAR read out of it. Control calls are request/response record pairs.
 | --- | --- |
 | `kimi-code` executable | One `kimi acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
 | Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0; no history rebuild). |
-| Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are Frame records with a `model` event where they report one; pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` is a fold over the stream. |
+| Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are Frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one event with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier declared `opaque`. |
 | Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is a frame with the `turn_ended` event. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback. |
 | Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. A non-terminal `tool_call_update` carrying `rawOutput` is a `tool_call_progress` event; the argument-streaming updates (content only) are not. Kimi reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. No child session ever arrives on this transport, so the graph holds the root only. |
@@ -293,12 +293,33 @@ Native ACP config options cover model, thinking, and mode, with
 `session/set_model`) and early config-update readback: `Session.model()` is
 the latest `model` event, read from `configOptions` id `model` on the open
 answer and from every `config_option_update`, never from the request
-parameter. Public mid-session setters are absent. The
+parameter. The
 [model lister](../../packages/oar/src/runtimes/kimi/list-models.ts) creates a
 temporary authenticated session (`terminal: false`), reads the `model`
-config option, closes and kills it; a `thinking` option is emitted only for
-the current model, so effort levels attach to that entry only (`off` is a
-toggle and dropped). `-32601` reads as unsupported, `-32000` or an auth
+config option, closes and kills it; the `thinking` option (found by its
+`thought_level` category, as the session finds it) is emitted only for the
+current model, so effort levels attach to that entry only (`off` is a
+toggle and dropped).
+
+**Effort (mapped).** kimi's effort is the `thinking` config option in
+ACP's `thought_level` category ([env] 2.0.0: low/high/max on k3, while
+kimi-k2.5 offers off/on/low). `SessionOptions.effort` is
+`session/set_config_option {configId: "thinking", value}`, sent after
+`session/set_model`, which re-derives the option's menu for the new model
+and keeps a level the new menu still has. kimi pushes a
+`config_option_update`, then answers with every option's current value;
+both carry the `effort` event, and a `currentValue` other than the request
+refuses the open. An unknown value is refused `-32602 "Invalid params:
+Unknown thinking value: bogus"`, so the open rejects with that message.
+The level persists with the session: a resume answers the level last set
+(live 2026-09-29: `low`), and a resume that asks for none keeps it
+(`high` after a `high` run). The native record is the agent's wire log
+(`~/.kimi-code/sessions/…/agents/main/wire.jsonl`): `config.update
+{thinkingEffort}`, then each `llm.request` carries `thinkingEffort` (live:
+`low` on the first turn, `high` after the resume). Live changes on a
+running session are absent ([native surfaces](live-configure.md)).
+[ACP effort channel](../../packages/oar/src/shared/acp/effort.ts),
+[test](../../tests/acp/acp-session-effort.test.ts). `-32601` reads as unsupported, `-32000` or an auth
 message as unauthenticated. On this account the 0.42.0 catalog is
 `kimi-k2.5`, `kimi-code/kimi-for-coding`, `kimi-code/kimi-for-coding-highspeed`,
 `kimi-code/k3` (current, thinking `high`), `kimi-code/k3-256k`.

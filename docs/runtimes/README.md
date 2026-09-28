@@ -13,7 +13,9 @@ not an OAR backend or prospective consumer.
 ## Pages
 
 Cross-runtime investigation: [native skills, MCP and tools inventories](inventory.md)
-(local probes, 2026-09-16).
+(local probes, 2026-09-16); [live model and effort changes](live-configure.md)
+(local probes, 2026-09-29: what changes a running session's model or
+effort without a restart, and how it meets each adapter's queue).
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|

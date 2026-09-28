@@ -20,12 +20,16 @@ oar run claude "What does this repo do?"
   now (login state, plan, and configured providers included); `--json` prints
   the `ListModelsResult` per runtime, `--timeout <ms>` bounds each query.
   The first column after the runtime is the `id` to pass to `oar run --model`.
-- `oar run <runtime> <prompt>`: run one turn in a fresh session and show
-  its progress; the exit code is 0 only when the turn completed.
+- `oar run <runtime> <prompt>`: run one turn in a fresh (or `--resume`d)
+  session and show its progress; the exit code is 0 only when the turn
+  completed.
 
 ## `oar run`: the run-and-verify entrypoint
 
-By default `run` prints readable progress from the session's `events()`:
+By default `run` prints readable progress from the session's `events()`,
+after one opening line naming the session (the id `--resume` takes) and the
+model and effort the runtime reported while opening, when it did (the
+`model()` / `effort()` folds, never the flags echoed):
 assistant text verbatim (coalesced into blocks via `coalesceText`), and
 everything else as a bracketed meta line (`[compacting: threshold]`,
 `[compacted]` or `[compaction failed] reason`, `[retry 2/3] reason`,
@@ -33,6 +37,7 @@ everything else as a bracketed meta line (`[compacting: threshold]`,
 app requests print nothing):
 
 ```
+[session 01a0e982-… · model gpt-6-luna · effort low]
 [thinking] The user wants...
 [Running command] cat package.json
 [Ran command] (0.4s)
@@ -43,6 +48,14 @@ The repo is a pnpm workspace...
 Flags:
 
 - `--model <model>`: runtime-native model identifier.
+- `--effort <level>`: runtime-native reasoning-effort level, one of the
+  model's levels in `oar models` (`SessionOptions.effort`). A runtime that
+  would run another level, or has none, refuses the open, and `run` exits 1
+  with the runtime's word (`claude applies effort medium … although bogus
+  was requested`).
+- `--resume <sessionId>`: resume the runtime-native session a previous run
+  printed, with a fresh stream (`SessionOptions.resume`); pair it with a
+  different `--model` / `--effort` to switch between turns.
 - `--json`: print the session records (`RawEvent`s) as JSON lines instead
   of progress (frames with their verbatim `native` payload and oar's
   `events`, plus the request/response records of the run), and a final
@@ -74,9 +87,9 @@ builders and `openVoyage` recorder; other tools (such as the
 or read the same format as consumers.
 
 - Line 1 is always the header:
-  `{"kind":"header","format":"oar-voyage/3","runtime","model?","cwd","sessionId","startedAt","recorder"}`
-  (`model` is omitted when none was requested; `recorder` names the writer,
-  e.g. `oar-cli/0.2.0`).
+  `{"kind":"header","format":"oar-voyage/3","runtime","model?","effort?","cwd","sessionId","startedAt","recorder"}`
+  (`model` and `effort` are omitted when none was requested; `recorder`
+  names the writer, e.g. `oar-cli/0.2.0`).
 - `{"kind":"record","record":{...}}`: one `RawEvent` verbatim, no
   filtering or re-timestamping. Human inputs are in the stream already as
   `request` records, so the format has no separate submission line; the

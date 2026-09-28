@@ -51,7 +51,7 @@ OAR read out of it. Control calls are request/response record pairs.
 | --- | --- |
 | Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session, launched with noninteractive profile settings; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
 | Persistent native session | `Session.id` preserves its ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0; no history rebuild). |
-| Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model` answers are Frame records; the model they report is a `model` event, so `Session.model()` is a fold. |
+| Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are Frame records; the model and the `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
 | Prompt delivery and native execution | `prompt()` is a `toRuntime` request answered accepted/`busy`; each `session/prompt` RPC answer is a frame, and the one closing the turn carries the `turn_ended` event (newest request's outcome) plus a `usage` event. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
 | `session/update` notifications | One frame per notification, `native` verbatim, for EVERY session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. A non-terminal `tool_call_update` for a known call that carries `rawOutput` is a `tool_call_progress` event (its `content` is never read as progress). Grok reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. |
 | `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded verbatim with no events under the session id its envelope names; one naming a parent/child session pair links `Session.graph()` (`via: "tool_call"`). |
@@ -319,9 +319,34 @@ non-existent id is rejected `Invalid params`, so `session()` throws at open
 (`live-contract/bad-model`). The runtime default model is not stable across
 sessions: with no request from OAR, `session/new` has reported both
 `grok-4.6` and `grok-4.5`; a `model_changed` vendor push precedes the answer
-and names the same id. Public mid-session model and reasoning-effort setters
-are **unexposed**. [Model read-back](../../packages/oar/src/shared/acp/model.ts),
+and names the same id. [Model read-back](../../packages/oar/src/shared/acp/model.ts),
 [test](../../tests/acp/acp-session-model-usage.test.ts).
+
+**Effort (mapped).** The effort menu is per model. `_x.ai/models/list`
+entries carry it under `_meta` ([env] 1.0.41: `supportsReasoningEffort`,
+`reasoningEffort` (the default), `reasoningEfforts: [{id, value, label,
+description, default}]`; grok-4.7 offers xhigh/high/medium/low, grok-4.5
+high/medium/low), and the lister reads it there. Before that move it listed
+no levels at all. The session channel is the ACP config option
+`reasoning_effort` in the `thought_level` category, which `session/new` and
+`session/resume` advertise. `SessionOptions.effort` is
+`session/set_config_option {configId: "reasoning_effort", value}`, sent
+after any `set_model` (a model switch re-derives the option's menu for the
+new model). grok answers with every option's current value, then pushes
+`_x.ai/session_notification {update: {sessionUpdate: "model_changed",
+model_id, reasoning_effort}}` and a `config_option_update`; the answer and
+the update carry the `effort` event, and a `currentValue` other than the
+request refuses the open. An unknown level is refused `-32602 Invalid
+params` ("unknown reasoning_effort value"), so the open rejects with that
+message. The `--reasoning-effort` flag of `grok agent` does not reach ACP
+sessions: with it, `session/new` still reported `high`. grok persists the
+level with the session: a resume answers the level last set (live
+2026-09-29: `low`), and a resume that asks for none keeps it. The
+`_x.ai/sessions/changed` upserts carry `reasoningEffort` too (`low` while
+the turn is `working`), recorded verbatim with no event. Live effort
+changes are **unexposed** ([native surfaces](live-configure.md)).
+[ACP effort channel](../../packages/oar/src/shared/acp/effort.ts),
+[test](../../tests/acp/acp-session-effort.test.ts).
 
 Grok's initialization extensions accept system-instruction configuration.
 OAR maps `systemPrompt` to `_meta.systemPromptOverride` and
@@ -451,7 +476,10 @@ check recorded schema assumptions (1.0.5), not execution of the current
 harness. The [CI behavior matrix](../../.github/workflows/ci.yml) runs real
 Claude, Codex, and Pi backends, not Grok.
 
-Open gaps: concurrent children; cancellation with background children
+Open gaps: grok 1.0.41 pushes `_x.ai/session/setup {method: "session/new",
+phase: "model_switch", sessionId}` while opening (seen 2026-09-29 below the
+SDK), a vendor method not in `GROK_EXTENSION_NOTIFICATIONS`, so the SDK
+drops it before the stream; concurrent children; cancellation with background children
 (`will_wake`, `task_backgrounded`, `task_completed`); usage across
 compaction; concurrent same-ID controllers, cross-process live attachment
 and load-fallback code effects; the `skills-reload` response's payload; the

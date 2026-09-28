@@ -32,6 +32,7 @@ export interface Draft {
   turn: MutableTurn | null;
   pendingRequests: PendingRequest[];
   model: string | null;
+  effort: string | null;
   context: ContextUsage | null;
   exited: { readonly code: number | null } | null;
   usageByAgent: Map<string, AgentTokens>;
@@ -45,6 +46,7 @@ export function draftOf(state: SessionView): Draft {
     turn: null,
     pendingRequests: [...state.pendingRequests],
     model: state.model,
+    effort: state.effort,
     context: state.context,
     exited: state.exited,
     usageByAgent: new Map(state.usageByAgent),
@@ -76,6 +78,7 @@ export function assemble(
     openTurn: draft.openTurn,
     status,
     model: draft.model,
+    effort: draft.effort,
     context: draft.context,
     usage,
     pendingRequests: draft.pendingRequests,

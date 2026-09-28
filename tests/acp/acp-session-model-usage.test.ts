@@ -32,10 +32,10 @@ test("ACP model read-back sees kimi's config_option_update pushed before set_mod
   // LATER model report (the SDK may deliver the notification after the
   // set_model answer it was sent before; record order is delivery order).
   const opening = session.records().map((record) => describe(record));
-  assert.ok(opening.includes("event session/new → model:fixture-model-x"));
+  assert.ok(opening.includes("event session/new → model:fixture-model-x, effort:medium"));
   assert.ok(opening.includes("event config_option_update → model:kimi-pushed"));
   assert.ok(opening.includes("event session/set_model"));
-  assert.ok(opening.indexOf("event config_option_update → model:kimi-pushed") > opening.indexOf("event session/new → model:fixture-model-x"));
+  assert.ok(opening.indexOf("event config_option_update → model:kimi-pushed") > opening.indexOf("event session/new → model:fixture-model-x, effort:medium"));
   await session.dispose();
 });
 

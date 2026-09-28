@@ -16,6 +16,26 @@ interface StartedCall {
   readonly receivedAt: number;
 }
 
+/** What the session reported once it opened: its id (to pass back as `--resume`) and the model and effort folds, the runtime's word (null: not said yet). */
+export interface OpenedSession {
+  readonly sessionId: string;
+  readonly resumed: boolean;
+  readonly model: string | null;
+  readonly effort: string | null;
+}
+
+/** The first progress line: which session this run is, and what model and effort the runtime says it runs, when it said so at open. */
+export function renderOpened(opened: OpenedSession): string {
+  const parts = [`${opened.resumed ? "resumed" : "session"} ${opened.sessionId}`];
+  if (opened.model !== null) {
+    parts.push(`model ${opened.model}`);
+  }
+  if (opened.effort !== null) {
+    parts.push(`effort ${opened.effort}`);
+  }
+  return `[${parts.join(" · ")}]`;
+}
+
 export function renderOutcome(outcome: TurnOutcome): string {
   if (outcome.kind === "completed") {
     return "[turn completed]";
@@ -27,7 +47,8 @@ export function renderOutcome(outcome: TurnOutcome): string {
 }
 
 // Returns the printable line for one event, if any: turn starts, usage,
-// model reports, redacted/empty reasoning and empty text print nothing.
+// model and effort reports, redacted/empty reasoning and empty text print
+// nothing.
 export function createProgressRenderer(
   runtimeId: string,
 ): (event: Event) => readonly string[] {
@@ -80,6 +101,7 @@ export function createProgressRenderer(
       case "user_message":
       case "usage":
       case "model":
+      case "effort":
         return [];
     }
     return [];

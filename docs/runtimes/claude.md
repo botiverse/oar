@@ -47,7 +47,7 @@ Programs have two relevant entry points:
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]`: a frame attributes to the Task tool_use that spawned it, nested through that call's own agent. `capabilities.attribution` is `attributed`. Child usage is not attributed (unverified). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is recorded as a `toApp` request (unanswered; none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
-| SDK configuration and interaction APIs | Only a small subset is represented by OAR startup options and control methods. |
+| SDK configuration and interaction APIs | Only a small subset is represented by OAR startup options and control methods: `--model`, `--effort` (confirmed by `get_settings` at open), the system prompt flags. |
 
 Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [projection](../../packages/oar/src/runtimes/claude/projection.ts),
@@ -178,10 +178,45 @@ first turn's init frame (`haiku` reads back as `claude-haiku-4-5-20251001`).
 Opening with a model that does not exist succeeds; the first turn fails with
 claude's "issue with the selected model" message, classified
 `invalid_request`. The token-free `list_models` control request
-preserves selector versus resolved ID, disabled entries, and effort choices.
-Live model/effort setters are **not exposed**.
+preserves selector versus resolved ID, disabled entries, and effort choices
+(`supportedEffortLevels` per model; haiku lists none).
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
 [readback probe](../../experiments/session-model-readback.ts).
+
+**Effort (mapped, confirmed at open, not in the stream).** `SessionOptions.effort`
+is `--effort <level>` (2.1.284: low, medium, high, xhigh, max), on a new
+session and on `--resume` alike. The Messages API request then carries
+`output_config: {effort}` beside `thinking: {type: "adaptive"}`: `low` on
+the first turn, `high` after a resume asking for it
+([vendor test](../../sea-trial/vendor/effort.vendor.test.ts), claude-aimock).
+claude keeps no effort per session: a resume without `--effort` sends its
+default (`medium`) whatever the session ran before
+([experiment](../../experiments/effort-channels.ts)). The stream never names
+the level: `system/init` carries only `per_turn_effort_active`, the
+`assistant` and `result` frames nothing. The transcript file does record it,
+`effort` / `perTurnEffort` on each assistant message (live 2026-09-29:
+`low`, then `medium` after the resume), but OAR never reads transcripts.
+Three cases drop a level without a word on stdout: an unknown value only
+warns on stderr ("Unknown --effort value 'bogus' — ignoring it and using
+the default effort"); a model without effort (haiku) sends none; and a
+`maxEffortLevel` setting or `CLAUDE_CODE_EFFORT_LEVEL` can clamp or override
+the flag ([sym] 2.1.284 setting docs; not exercised). So the adapter asks
+claude before the session opens. The `get_settings` control request is
+token-free and answered once the SessionStart hooks ran (bounded at 30 s).
+Its `applied.effort` is "what will actually be sent to the API", `null`
+when the model takes none. Anything but the requested level refuses the
+open with claude's word: `claude applies effort medium for
+claude-opus-5-5[1m] although bogus was requested`, `claude sends no effort
+for claude-haiku-4-5-20251001 (the model takes none), so effort low would
+be dropped`. That one answer is consumed, not recorded: it also dumps the
+merged settings of every source (hooks, permissions, any `env` block)
+verbatim ([decision](../design/decisions.md#recording-claudes-effort-read-back-2026-09-29)).
+`Session.effort()` therefore stays null on claude; a successful open is the
+confirmation. Live model/effort changes on a running process are **not
+exposed** ([native surfaces](live-configure.md)).
+[Adapter](../../packages/oar/src/runtimes/claude/session.ts),
+[read-back](../../packages/oar/src/runtimes/claude/effort.ts),
+[unit test](../../tests/claude/claude-session-effort.test.ts).
 
 Replace/append instructions map to native system-prompt flags; native harness
 metadata may remain alongside replacement text. The existing vendor test checks
@@ -282,7 +317,8 @@ the former only.
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
    --verbose --dangerously-skip-permissions` plus `--session-id <uuid>` or
-   `--resume <id>`, and optional `--model`, `--system-prompt`,
+   `--resume <id>`, and optional `--model`, `--effort` (then a `get_settings`
+   control request before the first turn), `--system-prompt`,
    `--append-system-prompt`. `CLAUDECODE` is cleared from the child
    environment. Prompts are `user` message lines on stdin. Not on OAR's path
    although present in 2.1.261 help: `--include-partial-messages`,
@@ -438,7 +474,9 @@ approval bypass, prompt configuration through compaction and the dispose
 tail. Shared [session cases](../../sea-trial/cases/session.ts) intentionally
 make weaker steering/resume assertions.
 
-Open gaps: missing-ID resume behavior, accepted-input receipt under load,
+Open gaps: an effort clamp by `maxEffortLevel` or an override by
+`CLAUDE_CODE_EFFORT_LEVEL` (the read-back refuses either; neither was
+exercised), missing-ID resume behavior, accepted-input receipt under load,
 late interrupts across turns, context fullness after multi-step work, child
 usage attribution and concurrent-child interleaving, and native identity
 changes after conversation reset.

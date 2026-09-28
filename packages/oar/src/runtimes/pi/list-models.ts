@@ -6,6 +6,8 @@ export interface PiListedModel {
   readonly id: string;
   readonly provider: string;
   readonly name?: string;
+  /** Pi's reasoning flag: a model without it runs only the `off` thinking level. */
+  readonly reasoning?: boolean;
 }
 
 /**
@@ -14,22 +16,40 @@ export interface PiListedModel {
  * usable) and returns the usable-now list; it is what `pi --list-models`
  * itself awaits.
  */
-export interface PiAvailabilitySource {
+export interface PiAvailabilitySource<Model extends PiListedModel = PiListedModel> {
   getAvailable(
     providerId?: string,
     options?: { readonly signal?: AbortSignal },
-  ): Promise<readonly PiListedModel[]>;
+  ): Promise<readonly Model[]>;
 }
+
+/** Pi's own thinking-level menu for one model (pi-ai `getSupportedThinkingLevels`), injected so the projection stays pure. */
+export type PiThinkingLevelsOf<Model extends PiListedModel> = (model: Model) => readonly string[];
 
 /**
  * Pi model ids are only unique per provider, so the session-facing id is
  * `provider/model`, the same spelling Pi's own `--model` flag accepts.
+ *
+ * `effortLevels` is pi's thinking-level menu for a reasoning model, exactly
+ * as pi derives it (`thinkingLevelMap` drops levels mapped to null and adds
+ * `xhigh`/`max` only where mapped; `off` is one of pi's levels and stays
+ * where pi offers it), the levels `SessionOptions.effort` accepts on pi. A
+ * model without `reasoning` runs only `off` and lists no menu. No
+ * `defaultEffort`: pi's default is a settings value clamped per model at
+ * session creation, and the session's `effort()` reports it.
  */
-export function projectPiModels(models: readonly PiListedModel[]): ModelEntry[] {
-  return models.map((model) => ({
-    id: `${model.provider}/${model.id}`,
-    displayName: model.name === undefined || model.name.trim().length === 0 ? model.id : model.name.trim(),
-  }));
+export function projectPiModels<Model extends PiListedModel>(
+  models: readonly Model[],
+  thinkingLevelsOf?: PiThinkingLevelsOf<Model>,
+): ModelEntry[] {
+  return models.map((model) => {
+    const effortLevels = model.reasoning === true && thinkingLevelsOf !== undefined ? thinkingLevelsOf(model) : [];
+    return {
+      id: `${model.provider}/${model.id}`,
+      displayName: model.name === undefined || model.name.trim().length === 0 ? model.id : model.name.trim(),
+      ...(effortLevels.length === 0 ? {} : { effortLevels: [...effortLevels] }),
+    };
+  });
 }
 
 /**
@@ -54,8 +74,9 @@ export function projectPiModels(models: readonly PiListedModel[]): ModelEntry[] 
  * Pi keys on provider API keys rather than one login, so "nothing configured"
  * is an `ok` empty list, not `unauthenticated`.
  */
-export function createPiListModels(
-  createRuntime: (signal: AbortSignal) => Promise<PiAvailabilitySource>,
+export function createPiListModels<Model extends PiListedModel>(
+  createRuntime: (signal: AbortSignal) => Promise<PiAvailabilitySource<Model>>,
+  thinkingLevelsOf?: () => Promise<PiThinkingLevelsOf<Model>>,
 ): ModelLister {
   return async (installation, options = {}) => {
     if (installation.via !== "bundled") {
@@ -65,7 +86,7 @@ export function createPiListModels(
       const signal = AbortSignal.timeout(options.timeoutMs ?? 15_000);
       const runtime = await createRuntime(signal);
       const available = await runtime.getAvailable(undefined, { signal });
-      return { kind: "ok", models: projectPiModels(available) };
+      return { kind: "ok", models: projectPiModels(available, await thinkingLevelsOf?.()) };
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       return { kind: "unsupported", reason: `pi SDK could not list available models: ${detail}` };
@@ -94,4 +115,9 @@ export const piListModels: ModelLister = createPiListModels(async (signal) => {
     },
   });
   return services.modelRuntime;
+}, async () => {
+  // Pi's own function, the one AgentSession.getAvailableThinkingLevels() runs
+  // (agent-session.js 0.84.2), so the menu is pi's policy, not a copy of it.
+  const { getSupportedThinkingLevels } = await import("@earendil-works/pi-ai");
+  return getSupportedThinkingLevels;
 });

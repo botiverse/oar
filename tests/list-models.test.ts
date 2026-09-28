@@ -111,6 +111,24 @@ test("grok projection unwraps the handler envelope and filters unselectable mode
   expect(() => grokModelState({ error: { message: "boom" } })).toThrow(/boom/u);
 });
 
+// pi's own menu per model (pi-ai getSupportedThinkingLevels), injected; a
+// model without `reasoning` runs only `off` and lists none.
+function piLevels(model: { readonly id: string }): readonly string[] {
+  return model.id === "gpt-6-astra" ? ["minimal", "low", "medium", "high", "xhigh", "max"] : ["off", "minimal", "low", "medium", "high"];
+}
+
+test("pi projection lists pi's thinking levels for reasoning models only", () => {
+  expect(projectPiModels([
+    { id: "gpt-6-astra", provider: "openai-codex", name: "GPT-6 Astra", reasoning: true },
+    { id: "deepseek-v3.2", provider: "openrouter", name: "DeepSeek V3.2", reasoning: true },
+    { id: "deepseek-chat", provider: "openrouter", name: "DeepSeek Chat", reasoning: false },
+  ], piLevels)).toEqual([
+    { id: "openai-codex/gpt-6-astra", displayName: "GPT-6 Astra", effortLevels: ["minimal", "low", "medium", "high", "xhigh", "max"] },
+    { id: "openrouter/deepseek-v3.2", displayName: "DeepSeek V3.2", effortLevels: ["off", "minimal", "low", "medium", "high"] },
+    { id: "openrouter/deepseek-chat", displayName: "DeepSeek Chat" },
+  ]);
+});
+
 test("pi projection namespaces ids by provider", () => {
   expect(projectPiModels([
     { id: "claude-sonnet-5", provider: "anthropic", name: "Claude Sonnet 5" },

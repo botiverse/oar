@@ -163,17 +163,19 @@ test("an exit records the fact and never stamps a fabricated outcome", () => {
   expect(view.messages.at(-1)).toMatchObject({ kind: "notice", notice: { cause: "exited", code: 1 } });
 });
 
-test("model, context and token usage fold into view fields", () => {
+test("model, effort, context and token usage fold into view fields", () => {
   const view = fold([
     request(0, "r1"),
     accepted(1, "r1"),
     frame(2, [
       { kind: "model", model: "test-model" },
+      { kind: "effort", effort: "high" },
       { kind: "usage", usage: { context: { tokens: 1000, contextWindow: 2000, percent: 50 }, tokens: { input: 10, output: 5 } } },
     ]),
     frame(3, [{ kind: "usage", usage: { tokens: { input: 3, output: 1 } } }], { agentPath: ["child"] }),
   ]);
   expect(view.model).toBe("test-model");
+  expect(view.effort).toBe("high");
   expect(view.context).toEqual({ tokens: 1000, contextWindow: 2000, percent: 50 });
   expect(view.usage).toEqual({
     total: { input: 13, output: 6 },

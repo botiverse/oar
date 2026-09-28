@@ -41,6 +41,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "user_message":
       case "usage":
           case "model":
+          case "effort":
           case "tool_call_progress":
           case "compaction_started":
           case "compaction_ended":

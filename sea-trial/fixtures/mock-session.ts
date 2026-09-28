@@ -2,6 +2,10 @@ import type { InputOptions, Session, StartSession } from "../../packages/oar/src
 import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
+/** The mock's reasoning-effort menu (its `listModels` lists it for `mock-1`) and the level it runs when asked for none. */
+export const MOCK_EFFORT_LEVELS: readonly string[] = ["low", "high"];
+export const MOCK_DEFAULT_EFFORT = "high";
+
 /**
  * The mock session runtime: behavior-test fixture and (later) load source. Its
  * size is deliberate: the session contract is supposed to be implementable in
@@ -10,6 +14,10 @@ import { createSessionKernel } from "../../packages/oar/src/shared/session-kerne
  */
 export const startMockSession: StartSession = async (_installation, options): Promise<Session> => {
   await Promise.resolve();
+  const effort = options.effort ?? MOCK_DEFAULT_EFFORT;
+  if (!MOCK_EFFORT_LEVELS.includes(effort)) {
+    throw new Error(`mock runtime has no effort level ${effort} (levels: ${MOCK_EFFORT_LEVELS.join(", ")})`);
+  }
   const kernel = createSessionKernel(options.resume);
   const steered: string[] = [];
   const queued: string[] = [];
@@ -40,7 +48,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     }, 10);
     active = { timer, aborted: false };
   }
-  kernel.frame({ type: "mock/model", native: { model: "mock-1" }, events: [{ kind: "model", model: "mock-1" }] });
+  kernel.frame({ type: "mock/model", native: { model: "mock-1", effort }, events: [{ kind: "model", model: "mock-1" }, { kind: "effort", effort }] });
   return sealSession({
     id: kernel.sessionId,
     capabilities: { steer: true, queue: { durable: false }, attribution: "none" },

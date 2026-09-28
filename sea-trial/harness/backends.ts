@@ -10,7 +10,7 @@ import {
   type Runtime,
 } from "../../packages/oar/src/index.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
-import { startMockSession } from "../fixtures/mock-session.js";
+import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
 
 /**
@@ -33,6 +33,12 @@ export async function selectBackend(target: string): Promise<Backend> {
           installation: async () => {
             await Promise.resolve();
             return { kind: "available" as const, via: "bundled" as const };
+          },
+          // The effort menu the mock session enforces, so the effort cases
+          // exercise the invariant: listed levels are accepted, others refused.
+          listModels: async () => {
+            await Promise.resolve();
+            return { kind: "ok" as const, models: [{ id: "mock-1", effortLevels: MOCK_EFFORT_LEVELS, defaultEffort: MOCK_DEFAULT_EFFORT }] };
           },
         }),
         aimock: null,

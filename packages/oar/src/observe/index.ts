@@ -16,7 +16,7 @@ export { classifyTool, toolActionLabel } from "./tool-activity.js";
 export type { ToolAction, ToolActionKind } from "./tool-activity.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
 export type { PromptRun, PromptRunOptions } from "./turns.js";
-export { contextUsageOf, modelOf, usageOf } from "./usage.js";
+export { contextUsageOf, effortOf, modelOf, usageOf } from "./usage.js";
 
 export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./conversation.js";
 export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt } from "./conversation.js";

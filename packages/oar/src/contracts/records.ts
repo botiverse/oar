@@ -161,7 +161,9 @@ export type RuntimeEventBody = UserMessage
   | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
-  | { readonly kind: "model"; readonly model: string };
+  | { readonly kind: "model"; readonly model: string }
+  /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`): its own report, never the request echoed. claude's stream carries none. */
+  | { readonly kind: "effort"; readonly effort: string };
 
 /** The toRuntime control actions a Session issues. */
 export type ControlAction = "prompt" | "steer" | "queue" | "abort" | "dispose";

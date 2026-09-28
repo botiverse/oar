@@ -209,6 +209,11 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       if (event.sessionId === scope && event.agentPath.length === 0) {
         draft.model = event.model;
       }
+      return;
+    case "effort":
+      if (event.sessionId === scope && event.agentPath.length === 0) {
+        draft.effort = event.effort;
+      }
   }
 }
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Event, EventBody } from "../packages/oar/src/index.js";
-import { createProgressRenderer, renderOutcome } from "../packages/cli/src/progress.js";
+import { createProgressRenderer, renderOpened, renderOutcome } from "../packages/cli/src/progress.js";
 
 let seq = 0;
 function at(receivedAt: number, events: EventBody[], agentPath: readonly string[] = []): Event[] {
@@ -14,7 +14,7 @@ function renderAll(render: (event: Event) => readonly string[]): (events: Event[
   return (events) => events.flatMap((event) => [...render(event)]);
 }
 
-test("renderer prints nothing for turn starts, usage, model, empty text, and non-text reasoning", () => {
+test("renderer prints nothing for turn starts, usage, model, effort, empty text, and non-text reasoning", () => {
   const render = renderAll(createProgressRenderer("claude"));
   assert.deepEqual(render(at(0, [{ kind: "turn_started", requestId: "r", input: "hi" }])), []);
   assert.deepEqual(render(at(0, [])), []);
@@ -23,6 +23,15 @@ test("renderer prints nothing for turn starts, usage, model, empty text, and non
   assert.deepEqual(render(at(3, [{ kind: "reasoning", content: { kind: "empty" } }])), []);
   assert.deepEqual(render(at(4, [{ kind: "reasoning", content: { kind: "text", text: "" } }])), []);
   assert.deepEqual(render(at(5, [{ kind: "model", model: "m" }, { kind: "usage", usage: {} }])), []);
+  assert.deepEqual(render(at(6, [{ kind: "effort", effort: "high" }])), []);
+});
+
+// The first line of `oar run`: the id to pass back as --resume, and the model
+// and effort only when the runtime already said them (the folds, not the flags).
+test("renderOpened names the session and whatever model and effort the runtime reported at open", () => {
+  assert.equal(renderOpened({ sessionId: "t-1", resumed: false, model: "gpt-5.5", effort: "low" }), "[session t-1 · model gpt-5.5 · effort low]");
+  assert.equal(renderOpened({ sessionId: "t-1", resumed: true, model: "gpt-5.5", effort: "high" }), "[resumed t-1 · model gpt-5.5 · effort high]");
+  assert.equal(renderOpened({ sessionId: "c-1", resumed: false, model: null, effort: null }), "[session c-1]");
 });
 
 test("renderer prints assistant text verbatim and thinking bracketed, one line per view", () => {

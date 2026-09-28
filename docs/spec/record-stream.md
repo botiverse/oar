@@ -105,8 +105,8 @@ Further rules:
   carries an optional `spanId` holding only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn id,
   such as pi's session-scoped frames, simply have none.
-- **Query is a projection over the stream.** `model()`, `usage()`,
-  `contextUsage()` and `status()` are folds over the retained records and
+- **Query is a projection over the stream.** `model()`, `effort()`,
+  `usage()`, `contextUsage()` and `status()` are folds over the retained records and
   return `{ value, seq }`; `seq` is the last record consumed, or `-1` before
   any record. `status()` is the one the control decisions must agree with: a
   prompt recorded while it says `running` is rejected `busy`, and one
@@ -144,6 +144,7 @@ interface FrameBody {
 // tool_call_progress {callId, output?} |
 // tool_call_ended {callId, output?, result?: "ok" | "failed", exitCode?: number | null} |
 // turn_ended {outcome} | usage {context?, tokens?} | model {model} |
+// effort {effort} |
 // compaction_started {trigger?} |
 // compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
 // retry {attempt, maxAttempts?, delayMs?, reason?}.
@@ -175,7 +176,8 @@ interface ResponseRecord extends RecordEnvelope {
 
 The control surface that produces these records (`Session.prompt / steer /
 queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
-`graph()`, and the folds `model() / usage() / contextUsage() / status()`) is
+`graph()`, and the folds `model() / effort() / usage() / contextUsage() /
+status()`) is
 documented on the contract itself. An adapter's `prompt / steer / queue /
 abort` return both records they appended (`ControlResult`); the `Session` a
 consumer holds returns them read (`ControlOutcome`): `kind` is `accepted` or
@@ -248,6 +250,16 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   a compaction twice) [env 0.154.0 schema]. ACP never.
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
   other shipped runtime exposes a retry (claude retries silently).
+- `effort`: the reasoning-effort level the runtime reports in effect, in its
+  own spelling. codex: the `thread/start` / `thread/resume` reply's
+  `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi): the
+  current value of the config option in ACP's `thought_level` category, in
+  a handshake answer or a `config_option_update`; pi: `thinkingLevel` on
+  `pi/session_opened` and pi's `thinking_level_changed`. claude never: its
+  stream names no level, and its one report (`get_settings`) is read at open
+  but not recorded, since it also dumps the user's merged settings. A
+  requested `SessionOptions.effort` is never an event of its own: what the
+  runtime says back is.
 - `app_request` / `app_answered`: any adapter that records `toApp` requests
   (claude `control_request`, codex server requests, ACP permission and
   terminal requests) and, for `app_answered`, one whose automatic reply is

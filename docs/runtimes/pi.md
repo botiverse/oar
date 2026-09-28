@@ -48,7 +48,7 @@ services and one `AgentSession`; it does not use the replacement-oriented
 | Session file header ID | `Session.id`; resume resolves this ID to a file in the cwd's session directory. The record stream starts at seq 0 on every open; history is not rebuilt. |
 | Agent run | A span on the stream: from the `prompt` request record (accepted once pi emits `agent_start`) to pi's own `agent_settled` event, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | Native history tree and replacement APIs | Resume is mapped; branch navigation, fork, import, and history access are not exposed. |
-| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model is a `model` event on a `pi/session_opened` frame. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
+| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The effective model and thinking level are `model` and `effort` events on a `pi/session_opened` frame. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with oar's events (text, reasoning, tool lifecycle including `tool_execution_update` → `tool_call_progress`, cumulative usage, turn end, `compaction_start`/`compaction_end` → `compaction_started`/`compaction_ended` with pi's reason as `trigger`, `auto_retry_start` and `summarization_retry_scheduled` → `retry`). The remaining session-scoped events (queue, entry, settings, bash execution, retry end) are in the stream with no event. No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected; `queue` is an adapter-held FIFO (`durable: false`). `abort` is answered at delivery, ahead of pi's own aborted `agent_settled`. |
 | Provider HTTP | Before the first provider request the adapter sets undici's global dispatcher to an `EnvHttpProxyAgent` (`HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`, pi's `httpProxy` setting as the fallback, pi's idle timeout): the proxy half of what every pi entry point installs, without pi's global fetch replacement; process-global. |
@@ -252,9 +252,41 @@ or `no-such-provider/gpt-5.3-codex-spark` throws "is not registered" from
 [`tests/pi/pi-session-model.test.ts`](../../tests/pi/pi-session-model.test.ts)).
 Catalog discovery (`oar models pi`) builds services the way `pi --list-models`
 does and awaits `getAvailable()` instead of reading an uninitialized snapshot;
-"nothing configured" is an `ok` empty list. Live model setters, thinking
-controls, and detailed model metadata are **not exposed** on the session
-(`createPiModelCatalog` reads metadata outside it).
+"nothing configured" is an `ok` empty list. Live model setters and detailed
+model metadata are **not exposed** on the session (`createPiModelCatalog`
+reads metadata outside it).
+
+**Effort (mapped).** `SessionOptions.effort` is pi's thinking level, the
+creation-time `thinkingLevel` of `createAgentSessionFromServices`, spelled
+in pi's levels (`off, minimal, low, medium, high, xhigh, max`). Another word
+is refused before pi sees it, because pi's `clampThinkingLevel` would turn
+it into the model's lowest level without a word (pi-ai 0.84.2 models.js).
+An explicit level wins over a resumed session's recorded level and the
+settings default. pi clamps it to the model's menu: `getSupportedThinkingLevels`
+gives a model without `reasoning` only `off`, drops levels `thinkingLevelMap`
+maps to null, and adds `xhigh` / `max` only where mapped. The adapter reads
+`AgentSession.thinkingLevel` back, and a clamp refuses the open (`pi runs
+thinking level off for openrouter/deepseek/deepseek-chat although low was
+requested (the model offers off)`). `AgentSession.setThinkingLevel` is not
+used: it also writes the level into pi's global settings as the user's new
+default. The `pi/session_opened` frame carries `thinkingLevel` with an
+`effort` event, and pi's own `thinking_level_changed` event is an `effort`
+event. The lister lists pi's per-model menu through pi-ai's
+`getSupportedThinkingLevels` (a direct dependency, the function
+`AgentSession.getAvailableThinkingLevels()` runs), `off` included where pi
+offers it, with no `defaultEffort`: pi's default is a settings value
+(`defaultThinkingLevel`, else `medium`) clamped per model, and `effort()`
+reports it at open. On the wire (pi-aimock, anthropic-messages):
+`thinking: {type: "enabled", budget_tokens: 2048}` for `low`, `15360` for
+`high` ([vendor test](../../sea-trial/vendor/effort.vendor.test.ts)). Resume
+has a pi quirk: pi records the level in the session file only for a new
+session, or a resumed one whose file has none yet. A resume with an explicit
+level runs it but leaves the recorded level, so a later resume that asks for
+none restores the recorded one (live 2026-09-29: opened at `low`, resumed at
+`medium`, then a plain resume reported `low`). Live thinking changes are
+**not exposed** ([native surfaces](live-configure.md)).
+[Opener](../../packages/oar/src/runtimes/pi/open.ts),
+[unit test](../../tests/pi/pi-session-effort.test.ts).
 [Resolver](../../packages/oar/src/runtimes/pi/resolve.ts),
 [catalog](../../packages/oar/src/runtimes/pi/list-models.ts),
 [readback probe](../../experiments/README.md).

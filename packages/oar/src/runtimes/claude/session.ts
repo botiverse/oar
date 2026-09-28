@@ -11,6 +11,12 @@ import { asRecord, parseJson } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import {
+  CLAUDE_EFFORT_READBACK_MS,
+  claudeControlResponseId,
+  claudeEffortRefusal,
+  claudeSettingsRequest,
+} from "./effort.js";
+import {
   claudeAbortRequested,
   claudePrompted,
   foldClaudeStdout,
@@ -31,6 +37,13 @@ import {
  * - steer/prompt `accepted` here means: the user message was written to
  *   stdin. Landing (same turn vs auto-queued next turn) is claude's timing and
  *   shows up only in the stream. Live probe: claude-session-adapter.ts.
+ * - `SessionOptions.effort` is `--effort`; claude's only report of the level
+ *   it runs is its `get_settings` answer, read at open (effort.ts). That one
+ *   stdout line is consumed, NOT recorded: besides `applied.effort` it dumps
+ *   the merged settings of every source (hooks, permissions, any `env` block)
+ *   verbatim, and a read-back oar asks for must not publish a user's settings
+ *   into every consumer's log. Like codex's `initialize` reply, it is the
+ *   adapter's plumbing, not the session's words; every other line is a frame.
  */
 
 function userMessage(text: string, inputId?: string): string {
@@ -70,6 +83,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     "--dangerously-skip-permissions",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
+    ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
   ], {
@@ -91,6 +105,9 @@ export const claudeSession: StartSession = async (installation, options) => {
   const heldQueue: { input: string; inputId?: string }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;
+  // The effort read-back in flight at open (see the header): its answer is
+  // taken off the line stream before the fold.
+  let readback: { readonly id: string; readonly settle: (answer: Record<string, unknown> | Error) => void } | null = null;
 
   // Drive the pure projection fold, applying its commands to the kernel. The
   // fold owns event translation and attribution; this owns only transport
@@ -98,6 +115,10 @@ export const claudeSession: StartSession = async (installation, options) => {
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message === null) {
+      return;
+    }
+    if (readback !== null && claudeControlResponseId(message) === readback.id) {
+      readback.settle(message);
       return;
     }
     // A system/init while nothing is active is claude starting a turn on its
@@ -144,7 +165,32 @@ export const claudeSession: StartSession = async (installation, options) => {
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
     state.active = null;
     state.spontaneous = false;
+    readback?.settle(new Error(`claude exited (code ${String(code)}) before answering get_settings`));
   });
+
+  if (options.effort !== undefined) {
+    // Never run a silently different effort: ask claude what it will send
+    // and refuse to open on anything but the requested level.
+    const requested = options.effort;
+    const { promise: answered, resolve } = Promise.withResolvers<Record<string, unknown> | Error>();
+    const id = `oar-effort-${randomUUID()}`;
+    readback = { id, settle: resolve };
+    const timer = setTimeout(() => {
+      resolve(new Error(`claude did not answer get_settings within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`));
+    }, CLAUDE_EFFORT_READBACK_MS);
+    child.write(claudeSettingsRequest(id));
+    const answer = await answered;
+    clearTimeout(timer);
+    readback = null;
+    const refusal = answer instanceof Error
+      ? `${answer.message}, so effort ${requested} cannot be confirmed`
+      : claudeEffortRefusal(requested, answer);
+    if (refusal !== null) {
+      child.kill();
+      await child.exited;
+      throw new Error(refusal);
+    }
+  }
 
   let interruptCounter = 0;
   const session: Session = sealSession({

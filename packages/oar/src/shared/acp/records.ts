@@ -1,7 +1,7 @@
 import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
-import { acpReportedModel } from "./model.js";
+import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
 import type { UsageUpdateGate } from "./usage-wait.js";
@@ -25,7 +25,7 @@ export interface AcpRecorder {
   update(notification: SessionNotification): void;
   /** A vendor extension notification, verbatim; a parent/child session pair in it links the graph. */
   extension(method: string, params: JsonRecord): void;
-  /** A handshake answer (initialize, session/new|resume|load, session/set_model): the runtime's word, with its model report as an event. */
+  /** A handshake answer (initialize, session/new|resume|load, session/set_model, session/set_config_option): the runtime's word, with its model and effort reports as events. */
   step(method: string, response: JsonRecord): void;
   /** A runtime→app request, verbatim, under the runtime's own request id. */
   requested(id: string, method: string, params: unknown): void;
@@ -140,7 +140,11 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
     step(method, response) {
       write((kernel) => {
         const model = acpReportedModel(response);
-        kernel.frame({ type: method, native: response, events: model === null ? [] : [{ kind: "model", model }] });
+        const effort = acpReportedEffort(response);
+        kernel.frame({ type: method, native: response, events: [
+          ...(model === null ? [] : [{ kind: "model" as const, model }]),
+          ...(effort === null ? [] : [{ kind: "effort" as const, effort }]),
+        ] });
       });
     },
     requested(id, method, params) {

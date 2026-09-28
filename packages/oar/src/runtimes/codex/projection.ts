@@ -152,6 +152,25 @@ function usageViews(params: JsonRecord): RuntimeEventBody[] {
   return [{ kind: "usage", usage: { context: { tokens: contextTokens, contextWindow, percent }, ...tokens } }];
 }
 
+/**
+ * `thread/settings/updated` is codex's own report of the thread's settings
+ * after a change ([env] 0.155.1: pushed when a turn/start carries an `effort`
+ * or `model` override, "for this turn and subsequent turns"):
+ * `threadSettings.model` and `threadSettings.effort` (null: no explicit
+ * level) are the model and effort now in effect.
+ */
+function settingsViews(params: JsonRecord): RuntimeEventBody[] {
+  const settings = asRecord(params.threadSettings);
+  const events: RuntimeEventBody[] = [];
+  if (typeof settings?.model === "string" && settings.model.length > 0) {
+    events.push({ kind: "model", model: settings.model });
+  }
+  if (typeof settings?.effort === "string" && settings.effort.length > 0) {
+    events.push({ kind: "effort", effort: settings.effort });
+  }
+  return events;
+}
+
 /** Edges a collaboration item establishes: the root (sender) thread spawned or addressed the named threads. */
 function collabEdges(state: CodexProjectionState, item: JsonRecord | null): SessionEdge[] {
   if (item === null || typeof item.type !== "string" || !COLLAB_ITEM_TYPES.has(item.type)) {
@@ -205,6 +224,8 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
       return [{ kind: "turn_ended", outcome: settleOutcome(state, asRecord(params.turn)?.status) }];
     case "thread/tokenUsage/updated":
       return usageViews(params);
+    case "thread/settings/updated":
+      return settingsViews(params);
     default:
       return [];
   }

@@ -46,6 +46,21 @@ export function modelOf(records: readonly RawEvent[], sessionId?: string): Query
   return { value, seq };
 }
 
+/** The latest reasoning-effort level the runtime reported for the root agent; null before any. */
+export function effortOf(records: readonly RawEvent[], sessionId?: string): QueryResult<string | null> {
+  let value: string | null = null;
+  let seq = -1;
+  for (const record of records) {
+    if (!inSession(record, sessionId)) { continue; }
+    seq = record.seq;
+    if (record.kind === "frame" && record.agentPath.length === 0) {
+      const event = record.body.events.findLast((candidate) => candidate.kind === "effort");
+      if (event?.kind === "effort") { value = event.effort; }
+    }
+  }
+  return { value, seq };
+}
+
 /** The latest context fullness the runtime reported for the root agent; null before any. */
 export function contextUsageOf(records: readonly RawEvent[], sessionId?: string): QueryResult<ContextUsage | null> {
   let value: ContextUsage | null = null;

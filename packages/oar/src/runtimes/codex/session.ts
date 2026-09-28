@@ -10,6 +10,7 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
+import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadOpen } from "./open.js";
 import {
   foldCodexNotification,
   initialCodexProjection,
@@ -20,6 +21,11 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 /*
  * codex app-server v2 mapping:
  * - initialize → initialized, thread/start {cwd, approvalPolicy:never}
+ * - SessionOptions.effort governs every turn of the thread, a drained queue
+ *   submission included: a config override on thread/start, and on a resume
+ *   thread/settings/update on the loaded thread (open.ts says why). codex's
+ *   word on it is the open reply's `reasoningEffort` or the pushed
+ *   thread/settings/updated: checked, and an `effort` event either way.
  * - turn/start {threadId, input} → {turn{id}}: the RPC reply is the prompt's
  *   accepted response; completion is codex's own turn/completed notification
  *   (turn.status completed | interrupted | failed): the turn_ended event.
@@ -66,16 +72,9 @@ export const codexSession: StartSession = async (installation, options) => {
   });
   client.notify("initialized", {});
   // Threads persist so a later SessionOptions.resume can reattach; the thread
-  // id is the runtime-native identity and becomes Session.id.
-  // System prompt seams (probed 2026-08-24 via the aimock journal):
-  // baseInstructions REPLACES codex's base prompt; developerInstructions
-  // APPENDS as a developer message. "instructions"/"userInstructions" are
-  // silently ignored by thread/start.
-  const instructionParams = {
-    ...(options.systemPrompt === undefined ? {} : { baseInstructions: options.systemPrompt }),
-    ...(options.appendSystemPrompt === undefined ? {} : { developerInstructions: options.appendSystemPrompt }),
-  };
-  const openMethod = options.resume === undefined ? "thread/start" : "thread/resume";
+  // id is the runtime-native identity and becomes Session.id (open.ts builds
+  // the request).
+  const { method: openMethod, params: openParams } = codexThreadOpen(options);
   // The open event is marked at the reply's wire position AS the reply line
   // is read (onSettled → client.mark), not after this await: a frame codex
   // wrote in the same chunk right after the reply (thread/started) would
@@ -88,30 +87,7 @@ export const codexSession: StartSession = async (installation, options) => {
     }
   };
   const started = await openThread(client, openMethod, async () => {
-    const reply = await (options.resume === undefined
-    ? client.request("thread/start", {
-        cwd: options.cwd,
-        ...(options.model === undefined ? {} : { model: options.model }),
-        approvalPolicy: "never",
-        // Required in addition to initialize.experimentalApi. This exposes
-        // the completed Responses API reasoning item, whose encrypted_content
-        // lets us distinguish redaction from genuinely empty reasoning.
-        experimentalRawEvents: true,
-        ...instructionParams,
-      }, markOpen)
-    : client.request("thread/resume", {
-        threadId: options.resume,
-        excludeTurns: true,
-        cwd: options.cwd,
-        // Same-runtime model switch = resume the same thread id with a new
-        // model. thread/resume accepts `model` (codex rust-v0.153.4,
-        // protocol/v2/thread.rs ThreadResumeParams) and applies it when the
-        // thread is loaded cold, which is the normal case here because every
-        // oar session owns its own app-server process.
-        ...(options.model === undefined ? {} : { model: options.model }),
-        approvalPolicy: "never",
-        ...instructionParams,
-      }, markOpen));
+    const reply = await client.request(openMethod, openParams, markOpen);
     return reply;
   });
   const threadId = asRecord(started.thread)?.id;
@@ -119,16 +95,13 @@ export const codexSession: StartSession = async (installation, options) => {
     client.kill();
     throw new TypeError("codex thread start/resume returned no thread id");
   }
-  // Both responses report the model actually active (Session.model() reads
-  // it back as a model event on the open frame). Still check it against the
-  // request: codex's resume_running_thread ignores overrides for a thread
-  // that is already loaded and busy (warn "thread/resume overrides ignored
-  // for loaded thread") and answers with the old model; a caller who asked
-  // for a model must not get one silently running another.
-  const effectiveModel = typeof started.model === "string" ? started.model : null;
-  if (options.model !== undefined && effectiveModel !== null && effectiveModel !== options.model) {
+  // The reply is codex's word on the model and effort the thread runs (the
+  // open frame's events); anything but what was requested refuses the open.
+  const readback = codexOpenReadback(openMethod, options, started);
+  if (readback.refusal !== null) {
     client.kill();
-    throw new Error(`codex ${openMethod} kept model ${effectiveModel} although ${options.model} was requested`);
+    await client.exited;
+    throw new Error(readback.refusal);
   }
 
   const kernel = createSessionKernel(threadId);
@@ -140,13 +113,11 @@ export const codexSession: StartSession = async (installation, options) => {
   };
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;
+  // A resume's effort update in flight: codex's thread/settings/updated answers it.
+  let settingsWaiter: ((params: JsonRecord) => void) | null = null;
 
   recordOpen = (): void => {
-    kernel.frame({
-      type: openMethod,
-      native: started,
-      events: effectiveModel === null ? [] : [{ kind: "model", model: effectiveModel }],
-    });
+    kernel.frame({ type: openMethod, native: started, events: readback.events });
   };
   // Drive the pure projection fold, applying its commands to the kernel; the
   // fold owns event translation, attribution and graph links; this owns the
@@ -188,6 +159,9 @@ export const codexSession: StartSession = async (installation, options) => {
       state.spontaneous = false;
       state.codexTurnId = null;
     }
+    if (isRoot && method === "thread/settings/updated") {
+      settingsWaiter?.(params);
+    }
   };
   // Approvals, user input, dynamic tools: recorded verbatim, never answered
   // (approvalPolicy never means none are expected; a dangling request is
@@ -207,6 +181,26 @@ export const codexSession: StartSession = async (installation, options) => {
     state.spontaneous = false;
     state.codexTurnId = null;
   });
+  if (readback.resumeEffort !== null) {
+    // The resumed thread runs another level: set it on the loaded thread and
+    // take codex's pushed settings (a recorded frame) as the word on it.
+    const requested = readback.resumeEffort;
+    const { promise: reported, resolve } = Promise.withResolvers<JsonRecord | null>();
+    settingsWaiter = resolve;
+    const timer = setTimeout(() => {
+      resolve(null);
+    }, CODEX_SETTINGS_REPORT_MS);
+    const update = await client.request("thread/settings/update", { threadId, effort: requested })
+      .then(() => null, (error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
+    const refusal = codexResumeEffortRefusal(requested, update, update === null ? await reported : null);
+    clearTimeout(timer);
+    settingsWaiter = null;
+    if (refusal !== null) {
+      client.kill();
+      await client.exited;
+      throw new Error(refusal);
+    }
+  }
 
   /** Turn a plan builder into a Session control member. */
   const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) =>

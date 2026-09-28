@@ -117,7 +117,7 @@ export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./observe/turns.js";
 export type { PromptRun, PromptRunOptions } from "./observe/turns.js";
-export { contextUsageOf, modelOf, usageOf } from "./observe/usage.js";
+export { contextUsageOf, effortOf, modelOf, usageOf } from "./observe/usage.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { claudeListModels, projectClaudeModels } from "./runtimes/claude/list-models.js";
 export { claudeSession } from "./runtimes/claude/session.js";

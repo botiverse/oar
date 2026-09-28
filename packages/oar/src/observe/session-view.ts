@@ -125,6 +125,8 @@ export interface SessionView {
   readonly openTurn: number;
   readonly status: AgentStatus;
   readonly model: string | null;
+  /** The latest reasoning-effort level the runtime reported (`effort` events); null before any. */
+  readonly effort: string | null;
   readonly context: ContextUsage | null;
   readonly usage: SessionUsage;
   readonly pendingRequests: readonly PendingRequest[];
@@ -143,6 +145,7 @@ export function initialSessionView(): SessionView {
     openTurn: -1,
     status: initialStatus,
     model: null,
+    effort: null,
     context: null,
     usage: { total: null },
     pendingRequests: [],
