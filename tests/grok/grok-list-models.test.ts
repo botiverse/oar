@@ -1,6 +1,6 @@
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import { afterEach, expect, test, vi } from "vitest";
-import { grokListModels } from "../../packages/oar/src/runtimes/grok/list-models.js";
+import { grokListModels, grokModelState, projectGrokModels } from "../../packages/oar/src/runtimes/grok/list-models.js";
 
 const acp = vi.hoisted(() => ({
   kill: vi.fn<() => void>(),
@@ -94,4 +94,29 @@ test("grok lister surfaces a handler-level error as a failure", async () => {
   });
   await expect(grokListModels(installation)).rejects.toThrow(/Failed to list Grok models/u);
   expect(acp.kill).toHaveBeenCalledOnce();
+});
+
+// grok 1.0.41 (live 2026-09-29) moved the effort menu under each entry's
+// `_meta`, as `{id, value, label, description, default}` objects; before the
+// lister read it there, every grok model listed without effort levels.
+function grokEfforts(ids: readonly string[]): Record<string, unknown>[] {
+  return ids.map((id) => ({ id, value: id, label: id, description: "", default: id === "high" }));
+}
+
+test("grok projection reads the effort menu grok 1.0.41 carries under _meta", () => {
+  const frontier = grokEfforts(["xhigh", "high", "medium", "low"]);
+  const older = grokEfforts(["high", "medium", "low"]);
+  const state = grokModelState({
+    currentModelId: "grok-4.7",
+    availableModels: [
+      { modelId: "grok-4.7", name: "Grok 4.7", _meta: { totalContextTokens: 500_000, supportsReasoningEffort: true, reasoningEffort: "high", reasoningEfforts: frontier } },
+      { modelId: "grok-4.5", name: "Grok 4.5", _meta: { supportsReasoningEffort: true, reasoningEffort: "high", reasoningEfforts: older } },
+      { modelId: "grok-plain", name: "Plain", _meta: { supportsReasoningEffort: false, reasoningEffort: "high", reasoningEfforts: older } },
+    ],
+  });
+  expect(projectGrokModels(state)).toEqual([
+    { id: "grok-4.7", displayName: "Grok 4.7", effortLevels: ["xhigh", "high", "medium", "low"], defaultEffort: "high" },
+    { id: "grok-4.5", displayName: "Grok 4.5", effortLevels: ["high", "medium", "low"], defaultEffort: "high" },
+    { id: "grok-plain", displayName: "Plain" },
+  ]);
 });

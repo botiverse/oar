@@ -38,6 +38,12 @@ export function grokModelState(result: unknown): JsonRecord {
  * auth can use; entries still flagged `hidden` or not `user_selectable` are
  * dropped here as well. Both camel- and snake-case field spellings are read
  * because the extension's Rust serialization has changed between releases.
+ *
+ * The effort menu moved under the entry's `_meta` ([env] grok 1.0.41,
+ * 2026-09-29: `_meta: {supportsReasoningEffort, reasoningEffort: "high",
+ * reasoningEfforts: [{id, value, label, description, default}]}`); the
+ * top-level spellings of older builds are still read. It is the same menu
+ * the session's `reasoning_effort` config option offers for that model.
  */
 export function projectGrokModels(state: unknown): ModelEntry[] {
   const root = asRecord(state) ?? {};
@@ -52,10 +58,19 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
       continue;
     }
     const displayName = text(model.displayName ?? model.display_name ?? model.name);
-    const effortLevels = effortLevelsOf(model.reasoningEfforts ?? model.reasoning_efforts);
-    const defaultEffort = effortLevelOf(
-      model.defaultReasoningEffort ?? model.default_reasoning_effort ?? model.reasoningEffort ?? model.reasoning_effort,
-    );
+    // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
+    const meta = asRecord(model._meta) ?? {};
+    // A model grok says takes no effort lists none, whatever else it carries.
+    const supportsEffort = meta.supportsReasoningEffort !== false;
+    const effortLevels = supportsEffort
+      ? effortLevelsOf(model.reasoningEfforts ?? model.reasoning_efforts ?? meta.reasoningEfforts ?? meta.reasoning_efforts)
+      : undefined;
+    const defaultEffort = supportsEffort
+      ? effortLevelOf(
+          model.defaultReasoningEffort ?? model.default_reasoning_effort ?? model.reasoningEffort ?? model.reasoning_effort
+            ?? meta.reasoningEffort ?? meta.reasoning_effort,
+        )
+      : undefined;
     entries.push({
       id,
       ...(displayName === undefined ? {} : { displayName }),
