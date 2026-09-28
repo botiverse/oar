@@ -1,8 +1,8 @@
 import type { RuntimeBrand } from "../contracts/brand.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputOptions, RuntimeEventBody, Session, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
-import { sealSession } from "../shared/seal-session.js";
-import { createSessionKernel } from "../shared/session-kernel.js";
+// Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
+import { createSessionKernel, sealSession } from "../kernel.js";
 
 /**
  * What a script sees and does during one turn. Everything it emits enters the
