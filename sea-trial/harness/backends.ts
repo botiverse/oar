@@ -9,6 +9,7 @@ import {
   runtimes,
   type Runtime,
 } from "../../packages/oar/src/index.js";
+import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 import { startMockSession } from "../fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
 
@@ -32,6 +33,23 @@ export async function selectBackend(target: string): Promise<Backend> {
           installation: async () => {
             await Promise.resolve();
             return { kind: "available" as const, via: "bundled" as const };
+          },
+        }),
+        aimock: null,
+      };
+    case "scripted":
+      // The public test runtime must honor the same contract as every vendor.
+      return {
+        runtime: scriptedRuntime({
+          turn: async ({ input, say, signal }) => {
+            await new Promise<void>((resolve) => {
+              const timer = setTimeout(resolve, input.includes("slow") ? 200 : 10);
+              signal.addEventListener("abort", () => {
+                clearTimeout(timer);
+                resolve();
+              });
+            });
+            say(`echo:${input}`);
           },
         }),
         aimock: null,

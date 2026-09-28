@@ -76,6 +76,7 @@
         "packages/oar/src/voyage.ts",
         "packages/oar/src/runtimes/**",
         "packages/oar/src/shared/**",
+        "packages/oar/src/testing/**",
         "packages/cli/src/**",
         "apps/**",
         "sea-trial/**",
