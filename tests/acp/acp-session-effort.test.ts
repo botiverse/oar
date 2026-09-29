@@ -55,3 +55,11 @@ test("acpThoughtLevelOption finds the effort selector by category, whatever its 
   expect(acpReportedEffort({ configOptions: [{ id: "thinking", currentValue: "high" }] })).toBeNull();
   expect(acpReportedEffort(null)).toBeNull();
 });
+
+test("acpThoughtLevelOption prefers a level menu over an on/off switch", () => {
+  const onOff = { id: "thinking", category: "thought_level", currentValue: "true", options: [{ value: "true" }, { value: "false" }] };
+  const levels = { id: "effort", category: "thought_level", currentValue: "high", options: [{ value: "low" }, { value: "high" }] };
+  expect(acpThoughtLevelOption({ configOptions: [onOff, levels] })?.id).toBe("effort");
+  expect(acpReportedEffort({ configOptions: [onOff, levels] })).toBe("high");
+  expect(acpThoughtLevelOption({ configOptions: [onOff] })?.id).toBe("thinking");
+});

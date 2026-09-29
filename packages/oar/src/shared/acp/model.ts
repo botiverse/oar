@@ -45,12 +45,22 @@ export function acpReportedModel(frame: JsonRecord | null): string | null {
  * `thinking` (low/high/max on k3). The category, not the id, is what this
  * shared layer relies on; it carries no runtime identity. Null when the frame
  * advertises none.
+ *
+ * cursor-agent 2026.09.28 lists two for most Claude models: `thinking`
+ * (false/true) and `effort` (low…max). The level menu wins over the on/off
+ * switch; a model whose only option is the switch (claude-haiku-4-5) keeps it.
  */
 export function acpThoughtLevelOption(frame: JsonRecord | null): JsonRecord | null {
   if (frame === null) {
     return null;
   }
-  return asRecordList(frame.configOptions).find((entry) => entry.category === "thought_level") ?? null;
+  const candidates = asRecordList(frame.configOptions).filter((entry) => entry.category === "thought_level");
+  return candidates.find((entry) => !isOnOffSwitch(entry)) ?? candidates[0] ?? null;
+}
+
+function isOnOffSwitch(option: JsonRecord): boolean {
+  const values = asRecordList(option.options).map((entry) => entry.value);
+  return values.length === 2 && values.includes("false") && values.includes("true");
 }
 
 /**

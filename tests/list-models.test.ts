@@ -134,6 +134,32 @@ test("cursor projection reads each model's thought_level parameter as its effort
   expect(projectCursorModels({})).toEqual([]);
 });
 
+// cursor-agent 2026.09.28 live: most Claude models carry both a `thinking`
+// switch and an `effort` menu under thought_level; a few carry the switch alone.
+test("cursor projection prefers the effort menu over the thinking switch", () => {
+  const thinking = {
+    id: "thinking",
+    category: "thought_level",
+    currentValue: "true",
+    options: [{ value: "false" }, { value: "true" }],
+  };
+  const effort = {
+    id: "effort",
+    category: "thought_level",
+    currentValue: "high",
+    options: [{ value: "low" }, { value: "high" }, { value: "max" }],
+  };
+  expect(projectCursorModels({
+    models: [
+      { value: "claude-opus-4-8", configOptions: [thinking, { id: "context", category: "model_config" }, effort] },
+      { value: "claude-haiku-4-5", configOptions: [thinking] },
+    ],
+  })).toEqual([
+    { id: "claude-opus-4-8", effortLevels: ["low", "high", "max"], defaultEffort: "high" },
+    { id: "claude-haiku-4-5", effortLevels: ["false", "true"], defaultEffort: "true" },
+  ]);
+});
+
 // pi's own menu per model (pi-ai getSupportedThinkingLevels), injected; a
 // model without `reasoning` runs only `off` and lists none.
 function piLevels(model: { readonly id: string }): readonly string[] {

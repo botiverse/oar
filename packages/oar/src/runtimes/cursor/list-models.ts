@@ -6,6 +6,7 @@ import {
   RequestError,
 } from "@agentclientprotocol/sdk";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
+import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { cursorAcpArgs, cursorClientCapabilitiesMeta, selectCursorAuthMethod } from "./session.js";
@@ -25,8 +26,9 @@ function text(value: unknown): string | undefined {
  * 2026.09.28): `{models: [{value, name, configOptions}]}`, where `value` is
  * the model name `session/set_config_option` accepts for `model`, `name` the
  * display name, and `configOptions` the model's parameters as select options
- * at their default values. The reasoning parameter is the one under category
- * `thought_level`, the same option a session offers for that model.
+ * at their default values. The reasoning parameter is the `thought_level`
+ * option a session would set for that model (`acpThoughtLevelOption`: the
+ * `effort` menu over the `thinking` switch when a Claude model has both).
  */
 export function projectCursorModels(result: unknown): ModelEntry[] {
   const entries: ModelEntry[] = [];
@@ -36,7 +38,7 @@ export function projectCursorModels(result: unknown): ModelEntry[] {
       continue;
     }
     const displayName = text(model.name);
-    const thoughtLevel = asRecordList(model.configOptions).find((option) => option.category === "thought_level");
+    const thoughtLevel = acpThoughtLevelOption({ configOptions: model.configOptions }) ?? undefined;
     const effortLevels = thoughtLevel === undefined
       ? undefined
       : asRecordList(thoughtLevel.options).flatMap((option) => text(option.value) ?? []);
