@@ -1,6 +1,7 @@
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
+import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import {
@@ -11,6 +12,10 @@ import {
   type PiProjectionState,
 } from "./projection.js";
 import { openPiAgentSession, piEffectiveModel } from "./open.js";
+
+/** pi's ImageContent: base64 data and its type. */
+const piImages = (images: readonly LoadedImage[]): { type: "image"; data: string; mimeType: string }[] =>
+  images.map((image) => ({ type: "image", data: image.data, mimeType: image.mediaType }));
 
 export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
 
@@ -50,7 +55,7 @@ export const piSession: StartSession = async (installation, options) => {
   // CONTINUES the active run (more internal turns, one agent_end), which
   // would land the queued input inside the same turn; the queue contract
   // promises a later turn of its own, so the adapter owns the handoff.
-  const held: string[] = [];
+  const held: { readonly input: string; readonly images: readonly LoadedImage[] }[] = [];
 
   // pi is authoritative on context fullness: getContextUsage() returns
   // tokens (null right after compaction, before the next response),
@@ -67,14 +72,14 @@ export const piSession: StartSession = async (installation, options) => {
   // agent_start waiters: a prompt is `accepted` once pi actually starts the
   // run, `rejected` with pi's own message if pi refuses it first.
   const startWaiters = new Set<() => void>();
-  const start = async (input: string): Promise<ResponseBody> => {
+  const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
     gate.running = true;
     projection = piPrompted(projection);
     const token = {};
     launch = token;
     const { promise: started, resolve: onStarted } = Promise.withResolvers<void>();
     startWaiters.add(onStarted);
-    const run = piAgentSession.prompt(input);
+    const run = piAgentSession.prompt(input, images.length === 0 ? undefined : { images: piImages(images) });
     const decided = await Promise.race<ResponseBody>([
       started.then(() => ({ kind: "accepted" })),
       run.then(
@@ -119,7 +124,7 @@ export const piSession: StartSession = async (installation, options) => {
       return;
     }
     void (async (): Promise<void> => {
-      const decided = await start(next);
+      const decided = await start(next.input, next.images);
       if (decided.kind === "rejected") {
         // The queue took the input over; pi refusing it is not silent: pi's
         // refusal enters the stream (no turn ever started, so no turn end).
@@ -168,16 +173,20 @@ export const piSession: StartSession = async (installation, options) => {
     });
   }
 
+  const capabilities = { steer: true, queue: { durable: false }, attribution: "none", images: true } as const;
   const session: Session = sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+    capabilities,
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, async () => {
         if (gate.running) {
           return { kind: "rejected", code: "busy", reason: "busy" };
         }
-        const decided = await start(input);
+        const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {
+          const started = await start(input, images);
+          return started;
+        });
         return decided;
       });
       return result;
@@ -187,17 +196,21 @@ export const piSession: StartSession = async (installation, options) => {
         if (!gate.running) {
           return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
         }
-        await piAgentSession.steer(input);
-        return { kind: "accepted" };
+        const decided = await withInputImages(capabilities, inputOptions?.images, async (images): Promise<ResponseBody> => {
+          await piAgentSession.steer(input, images.length === 0 ? undefined : piImages(images));
+          return { kind: "accepted" };
+        });
+        return decided;
       });
       return result;
     },
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
-        held.push(input);
-        drainHeld();
-        return { kind: "accepted" };
-      });
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
+        withInputImages(capabilities, inputOptions?.images, (images) => {
+          held.push({ input, images });
+          drainHeld();
+          return { kind: "accepted" };
+        }));
       return result;
     },
     abort: async (): Promise<ControlResult> => {

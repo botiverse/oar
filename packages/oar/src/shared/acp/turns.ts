@@ -1,11 +1,15 @@
 import type {
+  InputImage,
   RuntimeEventBody,
   RequestRecord,
   ResponseBody,
+  SessionCapabilities,
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
-import type { JsonRecord } from "../json.js";
+import { pathToFileURL } from "node:url";
+import { withInputImages, type LoadedImage } from "../input-images.js";
+import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { promptAcp, type AcpSessionProfile } from "./profile.js";
@@ -37,16 +41,29 @@ export interface ActiveTurn {
   fallback: NodeJS.Timeout | null;
 }
 
+/** The agent advertised image prompts in `initialize` (`agentCapabilities.promptCapabilities.image`). */
+export function acpTakesImages(initialized: JsonRecord): boolean {
+  return asRecord(asRecord(initialized.agentCapabilities)?.promptCapabilities)?.image === true;
+}
+
+/** One input as ACP ContentBlocks: the images (each naming its file as `uri`), then the text. */
+function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] {
+  return [
+    ...images.map((image) => ({ type: "image", mimeType: image.mediaType, data: image.data, uri: pathToFileURL(image.path).href })),
+    { type: "text", text: input },
+  ];
+}
+
 export interface AcpTurns {
   active(): ActiveTurn | null;
-  /** Open a turn with one prompt RPC; rejected when the process is gone. */
-  begin(request: RequestRecord | null, input: string): ResponseBody;
-  /** Another prompt RPC inside the active turn (the profile's steer params); rejected when the process is gone. */
-  steer(state: ActiveTurn, input: string, extraParams: JsonRecord): Promise<ResponseBody>;
+  /** Open a turn with one prompt RPC; rejected when the process is gone or its images can't go (`inputImagesRefusal`). */
+  begin(request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody;
+  /** Another prompt RPC inside the active turn (the profile's steer params); rejected like `begin`. */
+  steer(state: ActiveTurn, input: string, images: readonly InputImage[] | undefined, extraParams: JsonRecord): Promise<ResponseBody>;
   /** session/cancel, then a bounded wait after which the process is killed. */
   abort(state: ActiveTurn): Promise<ResponseBody>;
-  /** Hold input for the next turn, drained when the active one closes; rejected when the process is gone. */
-  hold(input: string): Promise<ResponseBody>;
+  /** Hold input for the next turn, drained when the active one closes; rejected like `begin`. */
+  hold(input: string, images?: readonly InputImage[]): Promise<ResponseBody>;
   /** The process is gone: close the active turn (its end is the exited response) and drop held input. */
   onExit(): void;
 }
@@ -56,10 +73,11 @@ export function createAcpTurns(deps: {
   readonly runtime: AcpProcess;
   readonly profile: AcpSessionProfile;
   readonly usageGate: UsageUpdateGate;
+  readonly capabilities: Pick<SessionCapabilities, "images">;
 }): AcpTurns {
-  const { kernel, runtime, profile, usageGate } = deps;
+  const { kernel, runtime, profile, usageGate, capabilities } = deps;
   const rootId = kernel.sessionId;
-  const held: string[] = [];
+  const held: JsonRecord[][] = [];
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
   // Running session total of the per-prompt ledgers (profile.promptTokenUsage).
@@ -96,7 +114,7 @@ export function createAcpTurns(deps: {
       closeTurn(state);
     }
   };
-  const startVendorPrompt = (state: ActiveTurn, input: string, extraParams: JsonRecord = {}): void => {
+  const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}): void => {
     nextRequest += 1;
     const requestNumber = nextRequest;
     state.latestRequest = requestNumber;
@@ -104,7 +122,7 @@ export function createAcpTurns(deps: {
     void (async (): Promise<void> => {
       try {
         usageGate.arm();
-        const result = await promptAcp(runtime, rootId, input, extraParams);
+        const result = await promptAcp(runtime, rootId, prompt, extraParams);
         // Deliberate ordering: the answer's event waits (bounded) for the
         // usage_update kimi pushes AFTER answering, so the usage record
         // precedes the turn end and contextUsage() at turn_ended is this
@@ -141,7 +159,7 @@ export function createAcpTurns(deps: {
     })();
   };
   const gone = (): ResponseBody => ({ kind: "rejected", code: "runtime_exited", reason: acpProcessExitedError(runtime.exitCode).message });
-  const begin = (request: RequestRecord | null, input: string): ResponseBody => {
+  const open = (request: RequestRecord | null, prompt: readonly JsonRecord[]): ResponseBody => {
     if (runtime.closed) {
       return gone();
     }
@@ -154,31 +172,35 @@ export function createAcpTurns(deps: {
       fallback: null,
     };
     active = state;
-    startVendorPrompt(state, input);
+    startVendorPrompt(state, prompt);
     return { kind: "accepted" };
   };
+  const begin = (request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody =>
+    withInputImages(capabilities, images, (loaded) => open(request, acpPrompt(input, loaded)));
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
     if (kernel.unreachable() !== null || active !== null || runtime.closed) {
       return;
     }
-    const input = held.shift();
-    if (input !== undefined) {
-      begin(null, input);
+    const prompt = held.shift();
+    if (prompt !== undefined) {
+      open(null, prompt);
     }
   }
 
   return {
     active: () => active,
     begin,
-    async steer(state, input, extraParams) {
+    async steer(state, input, images, extraParams) {
       await runtime.spawned;
       if (runtime.closed) {
         return gone();
       }
-      startVendorPrompt(state, input, extraParams);
-      return { kind: "accepted" };
+      return withInputImages(capabilities, images, (loaded) => {
+        startVendorPrompt(state, acpPrompt(input, loaded), extraParams);
+        return { kind: "accepted" };
+      });
     },
     async abort(state) {
       if (!state.abortRequested) {
@@ -199,14 +221,16 @@ export function createAcpTurns(deps: {
       }
       return { kind: "accepted" };
     },
-    async hold(input) {
+    async hold(input, images) {
       await runtime.spawned;
       if (runtime.closed) {
         return gone();
       }
-      held.push(input);
-      queueMicrotask(drainHeld);
-      return { kind: "accepted" };
+      return withInputImages(capabilities, images, (loaded) => {
+        held.push(acpPrompt(input, loaded));
+        queueMicrotask(drainHeld);
+        return { kind: "accepted" };
+      });
     },
     onExit() {
       if (active !== null) {

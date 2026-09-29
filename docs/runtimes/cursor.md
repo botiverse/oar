@@ -132,7 +132,10 @@ the transport error when the process is gone). The RPC answer is recorded as
 frame `session/prompt` with the `turn_ended` event; a second `prompt()`
 during a turn is `rejected busy` (`busy-and-late-control`). Cursor pushes a
 `session_info_update` (the chat title) shortly after the first prompt of a
-session. OAR sends one text block; the advertised image support is unused.
+session. `InputOptions.images` go as ACP `image` blocks before the text,
+since `initialize` advertises `promptCapabilities.image`; delivery to cursor's
+model probed live (cursor-agent 2026.05.09-0afadcc, 2026-09-29): asked for the
+color of a plain green PNG named `probe.png`, it answered `green`.
 
 **Steer (not available on this transport):** the ACP method set has no steer
 operation, so `steer()` is always `rejected not_steerable` and

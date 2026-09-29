@@ -15,7 +15,7 @@ export { createUsageUpdateGate } from "./usage-wait.js";
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
   /** What this runtime's ACP surface lets the adapter carry (docs/spec attribution tier included). */
-  readonly capabilities: SessionCapabilities;
+  readonly capabilities: Omit<SessionCapabilities, "images"> & { readonly images?: boolean }; // images: what `initialize` advertised, unless set on evidence that it is wrong
   readonly requestTimeoutMs?: number;
   readonly abortTimeoutMs?: number;
   /** Compatibility for agents that put a fully quoted shell line in `command`. */
@@ -114,7 +114,7 @@ function responseRecord(method: string, value: unknown): JsonRecord {
 export async function promptAcp(
   process: AcpProcess,
   sessionId: string,
-  input: string,
+  prompt: readonly JsonRecord[],
   extraParams: JsonRecord = {},
 ): Promise<JsonRecord> {
   const method = methods.agent.session.prompt;
@@ -124,7 +124,7 @@ export async function promptAcp(
     null,
     (requestOptions) => process.connection.agent.request(method, {
       sessionId,
-      prompt: [{ type: "text", text: input }],
+      prompt,
       ...extraParams,
     }, requestOptions),
   );

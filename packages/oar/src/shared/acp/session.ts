@@ -22,7 +22,7 @@ import {
 import { startAcpProcess } from "./process.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
-import { createAcpTurns } from "./turns.js";
+import { acpTakesImages, createAcpTurns } from "./turns.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 
@@ -86,7 +86,8 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     recorder.bind(kernel);
 
     let disposeRequest: RequestRecord | null = null;
-    const turns = createAcpTurns({ kernel, runtime, profile, usageGate });
+    const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
+    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities });
     // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
     void runtime.exited.then((code) => {
       void terminalHost.dispose();
@@ -115,9 +116,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
 
     return sealSession({
       id: kernel.sessionId,
-      capabilities: profile.capabilities,
+      capabilities,
       prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
-        (turns.active() === null ? turns.begin(request, input) : { kind: "rejected", code: "busy", reason: "busy" })),
+        (turns.active() === null ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
       steer: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
         const steerParams = profile.steerParams;
         if (steerParams === undefined) {
@@ -126,9 +127,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         const state = turns.active();
         return state === null
           ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
-          : turns.steer(state, input, steerParams(input));
+          : turns.steer(state, input, inputOptions?.images, steerParams(input));
       }),
-      queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input)),
+      queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images)),
       abort: (): Promise<ControlResult> => control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
         const state = turns.active();
         return state === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : turns.abort(state);

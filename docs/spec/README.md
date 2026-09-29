@@ -103,7 +103,7 @@ they appear:
    causal-link field between records (a `causedBy`-style pointer). Adding
    one stays open.
 2. **Capability declaration beyond attribution.** `SessionCapabilities`
-   declares steer, queue durability and the attribution tier. A fuller
+   declares steer, queue durability, the attribution tier and image input. A fuller
    typed surface (what each adapter supports, with typed `unsupported`) is a
    candidate for the next revision.
 

@@ -131,7 +131,9 @@ export const grokAcpProfile: AcpSessionProfile = {
   // Native children are independent ACP sessions on the same connection
   // (attribution tier #3, docs/spec/attribution.md): recorded under their own
   // session id, linked in the graph when a lifecycle notification says so.
-  capabilities: { steer: true, queue: { durable: false }, attribution: "nested" },
+  // Images despite `initialize` saying `promptCapabilities.image: false`: grok 1.0.44
+  // hands an ACP image block to the model (live, docs/runtimes/grok.md).
+  capabilities: { steer: true, queue: { durable: false }, attribution: "nested", images: true },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,

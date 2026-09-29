@@ -116,6 +116,14 @@ next model step: a steer issued after the first `tool_call_started` of a
 two-tool turn landed in the same turn's final text with one `turn_ended`.
 Input arriving after the last step becomes a subsequent turn.
 
+**Images (mapped):** `InputOptions.images` become base64 `image` content
+blocks ahead of the text block in the stdin user message (prompt, steer and
+queued input alike); claude forwards them to the Messages API unchanged
+([vendor test](../../sea-trial/vendor/images.vendor.test.ts)); probed live
+(claude 2.1.284, 2026-09-29): asked for the color of a plain green PNG named
+`probe.png`, it answered `green`. Its replay echo's `user_message.input` stays
+the text alone.
+
 **Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
 false`), drained one message per turn end; the queued input runs as a
 spontaneous turn with no prompt request of its own.

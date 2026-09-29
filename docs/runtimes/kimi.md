@@ -163,8 +163,12 @@ Native `session/prompt { sessionId, prompt: [{ type: "text", text }] }`
 streams updates and returns a `stopReason`. Attachment submits no prompt.
 The native ACP driver buffers events arriving before the launch returns a
 turn ID and can bind a `session/cancel` request to that eventual ID. Native
-ACP accepts image and resource blocks; OAR sends only one text block. Audio
-is explicitly unsupported in the capability declaration.
+ACP accepts image and resource blocks. OAR sends `InputOptions.images` as
+`image` blocks (`data`, `mimeType`, the file as `uri`) before the text block,
+because `initialize` advertises `promptCapabilities.image`
+(`capabilities.images` is read from it). Probed live (kimi 2.0.0, model
+`kimi-code/k3`, 2026-09-29): asked for the color of a plain green PNG named
+`probe.png`, it answered `green`, its reasoning describing "a solid green square". Audio is explicitly unsupported in the capability declaration.
 
 **Prompt (mapped):** `prompt(string)` records a prompt request answered
 `accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,

@@ -1,6 +1,6 @@
 import type { RuntimeBrand } from "../contracts/brand.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
-import type { InputOptions, RuntimeEventBody, Session, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
+import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
 import { createSessionKernel, sealSession } from "../kernel.js";
 
@@ -15,6 +15,8 @@ import { createSessionKernel, sealSession } from "../kernel.js";
 export interface ScriptedTurn {
   /** The input that began the turn: a prompt, or a queued input when its turn starts. */
   readonly input: string;
+  /** The images that came with `input` (`InputOptions.images`), as the host passed them. */
+  readonly images: readonly InputImage[];
   /** The options the host opened the session with (cwd, env, system prompts). */
   readonly options: SessionOptions;
   /** Aborts when the host aborts the turn or disposes the session. */
@@ -68,7 +70,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       throw new Error(`${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
     }
     const kernel = createSessionKernel(sessionOptions.resume);
-    const queued: string[] = [];
+    const queued: { readonly input: string; readonly images: readonly InputImage[] }[] = [];
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
     let disposed = false;
@@ -78,7 +80,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     };
     const usage = (): TokenTotals => ({ input: totals.input, output: totals.output });
 
-    function run(input: string): void {
+    function run(input: string, images: readonly InputImage[] = []): void {
       const controller = new AbortController();
       const steered: string[] = [];
       const turnState = { controller, steered };
@@ -88,6 +90,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       const live = (): boolean => active === turnState && !controller.signal.aborted;
       const turn: ScriptedTurn = {
         input,
+        images,
         options: sessionOptions,
         signal: controller.signal,
         steered: turnState.steered,
@@ -162,7 +165,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       ]);
       const next = queued.shift();
       if (next !== undefined && !disposed) {
-        run(next);
+        run(next.input, next.images);
       }
     }
 
@@ -178,13 +181,13 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     frame("scripted/model", { model }, [{ kind: "model", model }]);
     return sealSession({
       id: kernel.sessionId,
-      capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+      capabilities: { steer: true, queue: { durable: false }, attribution: "none", images: true },
       prompt: async (input, inputOptions?: InputOptions) => {
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, () => {
           if (active !== null) {
             return { kind: "rejected", code: "busy", reason: "busy" };
           }
-          run(input);
+          run(input, inputOptions?.images);
           return { kind: "accepted" };
         });
         return result;
@@ -202,9 +205,9 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       queue: async (input, inputOptions) => {
         const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
           if (active === null) {
-            run(input);
+            run(input, inputOptions?.images);
           } else {
-            queued.push(input);
+            queued.push({ input, images: inputOptions?.images ?? [] });
           }
           return { kind: "accepted" };
         });

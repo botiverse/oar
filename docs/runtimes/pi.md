@@ -147,7 +147,14 @@ outcome. A run pi fails after starting, without its own settlement, is
 recorded as a `pi/prompt_rejected` event carrying pi's message with a failed
 `turn_ended` event, pi's word, not a synthesized boundary. A second prompt
 during a run is `rejected` `busy` (`busy-and-late-control` scenario). Native
-prompt preflight callbacks and image inputs are **not exposed**.
+prompt preflight callbacks are **not exposed**. **Images (mapped):**
+`InputOptions.images` are read and passed as pi's `ImageContent`
+(`{ type: "image", data, mimeType }`) to `prompt(text, { images })`,
+`steer(text, images)` and held queue input; pi sends them to a model whose
+`input` lists `image` and drops them for a text-only one
+([vendor test](../../sea-trial/vendor/images.vendor.test.ts), with an
+image-capable aimock model; probed live with this machine's default model,
+2026-09-29: a plain green PNG named `probe.png` was answered `green`).
 [SDK][native-sdk], [projection](../../packages/oar/src/runtimes/pi/projection.ts).
 
 **Steer (partial, landing observed):** `steer()` delegates to

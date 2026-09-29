@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { Command } from "commander";
 import {
   openVoyage,
@@ -151,10 +152,11 @@ program
   .option("--resume <sessionId>", "resume the runtime-native session a previous run printed")
   .option("--json", "print the session records as JSON lines instead of progress")
   .option("--record <file>", "write the run as an oar-voyage/3 JSONL log")
+  .option("--image <file...>", "send image files with the prompt (png, jpeg, gif, webp), as the runtime's own image input")
   .action(async (
     id: string,
     prompt: string,
-    flags: { model?: string; effort?: string; resume?: string; json?: boolean; record?: string },
+    flags: { model?: string; effort?: string; resume?: string; json?: boolean; record?: string; image?: string[] },
   ) => {
     const runtime = runtimes.require(id);
     if (runtime.installation === undefined) {
@@ -233,7 +235,8 @@ program
       }
     };
     process.on("SIGINT", onInterrupt);
-    const run = await promptAndWait(session, prompt, { signal: interrupt.signal });
+    const images = flags.image?.map((file) => ({ path: path.resolve(file) }));
+    const run = await promptAndWait(session, prompt, { signal: interrupt.signal, ...(images === undefined ? {} : { images }) });
     await dispose();
     process.off("SIGINT", onInterrupt);
     recorder?.end("disposed");

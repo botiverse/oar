@@ -164,8 +164,16 @@ codex's `turn/completed` with a `turn_ended` event, exactly one per prompt
 (live-contract `multi-turn`). A basic one-word turn was 33 records with event
 kinds `model, reasoning, text_delta, usage, turn_ended`, one `spanId`, dense
 seqs, every frame carrying `native`, and `dispose` answered `exited { code:
-null }` (live-contract `basic`). No image/skill input, structured-output
-schema, or per-turn configuration is exposed. [Adapter][oar-session].
+null }` (live-contract `basic`). **Images (mapped):** `InputOptions.images`
+follow the text as `{ type: "localImage", path }` items on `turn/start`,
+`turn/steer` and `thread/queue/add`, the order codex's own composer sends;
+codex reads the file itself and sends it upstream as an `input_image` data URL
+([vendor test](../../sea-trial/vendor/images.vendor.test.ts); probed live with
+codex-cli 0.155.1, 2026-09-29: a plain green PNG named `probe.png` was
+answered `green`). OAR checks the
+file's type and readability first, so a bad image refuses the input before any
+RPC. No skill input, structured-output schema, or per-turn configuration is
+exposed. [Adapter][oar-session].
 
 **Steer (mapped, landing observed):** native `turn/steer { threadId,
 expectedTurnId, input }` binds input to the expected active turn; OAR supplies
