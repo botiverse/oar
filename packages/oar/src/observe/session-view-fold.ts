@@ -191,7 +191,13 @@ export function upsertInput(draft: Draft, input: ConversationInput): void {
   }
 }
 
-export function markRequestAnswered(draft: Draft, requestId: string): void {
+/**
+ * A request stopped awaiting an answer: out of `pendingRequests`, and its part
+ * in flow says how. Only a pending request settles: an answer that follows a
+ * withdrawal (a late `Session.answer` is rejected, but an automatic ACP
+ * `cancelled` can land after) never rewrites how it ended.
+ */
+export function settleRequest(draft: Draft, requestId: string, how: "answered" | "withdrawn" | "void"): void {
   const index = draft.pendingRequests.findIndex((request) => request.requestId === requestId);
   if (index !== -1) {
     draft.pendingRequests.splice(index, 1);
@@ -211,8 +217,11 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
       if (section === undefined || part?.kind !== "app_request") {
         continue;
       }
+      if (part.settled !== undefined) {
+        return;
+      }
       const parts = [...section.parts];
-      parts[partIndex] = { ...part, answered: true };
+      parts[partIndex] = { ...part, answered: how === "answered", settled: how };
       const sections = [...message.sections];
       sections[s] = { ...section, parts };
       draft.messages[m] = { ...message, sections };
@@ -221,6 +230,14 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
       }
       return;
     }
+  }
+}
+
+/** The runtime exited: no pending request can be answered any more. */
+export function voidPendingRequests(draft: Draft): void {
+  const pending = draft.pendingRequests.map((request) => request.requestId);
+  for (const requestId of pending) {
+    settleRequest(draft, requestId, "void");
   }
 }
 

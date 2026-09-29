@@ -13,7 +13,7 @@ const installation = {
 export function profile(overrides: Partial<AcpSessionProfile> = {}): AcpSessionProfile {
   return {
     args: [fixture, "session"],
-    capabilities: { steer: false, queue: { durable: false }, attribution: "nested" },
+    capabilities: { steer: false, queue: { durable: false }, attribution: "nested", approvals: { kind: "supported" } },
     selectAuthMethod: () => "cached",
     abortTimeoutMs: 500,
     configureSession: async ({ connection, sessionId, requestOptions }) => {
@@ -70,6 +70,7 @@ export function describe(record: RawEvent): string {
           case "compaction_started":
           case "compaction_ended":
           case "retry":
+          case "app_request_withdrawn":
             return view.kind;
           default:
             return "?";

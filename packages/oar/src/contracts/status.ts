@@ -15,7 +15,12 @@ export type RunningPhase =
   | { readonly tool: string; readonly callId: string };
 
 export type AgentStatus =
-  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome }
+  | {
+      readonly kind: "idle";
+      readonly lastTurnOutcome?: TurnOutcome;
+      /** See `running.awaiting`: work the runtime runs outside a turn (a background sub-agent) can ask too. */
+      readonly awaiting?: readonly string[];
+    }
   | {
       readonly kind: "running";
       /** seq of the record that opened this running span: the prompt request, or the first event of an adopted turn. */
@@ -25,4 +30,12 @@ export type AgentStatus =
       readonly phase: RunningPhase;
       /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;
+      /**
+       * Ids of the runtime→app requests a person owes an answer (`toApp`
+       * requests with an `ask`, in arrival order), while any are open: not yet
+       * answered, withdrawn, or voided by the process exit. The runtime is
+       * waiting on the host, so the silence is not a stall (`stallOf`).
+       * Absent when none is open.
+       */
+      readonly awaiting?: readonly string[];
     };

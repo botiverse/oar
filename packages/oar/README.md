@@ -35,6 +35,26 @@ and `session.records()` expose that stream (`RawEvent`: `Frame` with the
 native payload verbatim, `RequestRecord`, `ResponseRecord`) for consumers
 who need the runtime's own frames.
 
+Sessions run YOLO by default: the runtime's permission gate is off. A host
+with a person to ask opens a session with `approvals: "ask"` (claude, codex
+and kimi declare `capabilities.approvals` supported; grok and pi refuse the
+open, saying why). Each approval or question the runtime raises is then an
+`app_request` event whose `ask` says what is asked; it holds its turn
+(`status().value.awaiting`) until answered, however much later:
+
+```ts
+const session = await runtime.session(installation, { cwd, approvals: "ask" });
+session.events(async (event) => {
+  if (event.kind === "app_request" && event.ask?.kind === "tool_approval") {
+    const ok = await askThePerson(event.ask.tool, event.ask.command ?? event.ask.input);
+    const answer = await session.answer(event.requestId, ok ? { kind: "allow" } : { kind: "deny", message: "not now" });
+    if (answer.kind === "rejected") console.log(answer.code); // withdrawn, already_answered, runtime_exited, …
+  }
+});
+```
+
+See the [approvals contract](https://github.com/botiverse/oar/blob/main/docs/spec/approvals.md).
+
 For conversation UIs, use the browser-safe `reduceConversation` projection over
 `session.rawEvents()`. It joins input requests, responses and native echoes by
 identity, including steer → queue fallback. See the
@@ -47,8 +67,8 @@ The package has five public entry points:
 - `@botiverse/oar`: the full surface (runtime registry, adapters, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
-- `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract.
-- `@botiverse/oar/testing`: `scriptedRuntime({ turn })`, a ready-made runtime on the kernel SPI whose model is a script. It yields a real `Session` (same records, folds and control semantics) with no binary, login or provider, for hosts' tests and demos. Node-only.
+- `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule, the bookkeeping of `answer`) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract.
+- `@botiverse/oar/testing`: `scriptedRuntime({ turn })`, a ready-made runtime on the kernel SPI whose model is a script. It yields a real `Session` (same records, folds and control semantics) with no binary, login or provider, for hosts' tests and demos; a script's `approve(tool, input)` and `ask(questions)` exercise a host's approval handling (`approvals: "ask"`). Node-only.
 
 Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 

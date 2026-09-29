@@ -335,7 +335,10 @@ variables. Extensions make effective capabilities configuration-dependent.
 
 OAR pre-trusts cwd in native `trust.json`, an observable persistent write.
 Extensions can still implement permission gates and interactive flows; OAR has
-no general approval/user-input bridge for them. `SessionOptions.env` affects
+no general approval/user-input bridge for them. Pi itself has no permission
+gate, so `capabilities.approvals` is unsupported (`no_gate`) and a session
+asked to open with `approvals: "ask"` is refused with that reason
+([contract](../spec/approvals.md)). `SessionOptions.env` affects
 subprocesses spawned by the replacement bash tool, not provider keys/base URLs.
 Provider configuration uses native model/agent-dir channels;
 `OAR_PI_AGENT_DIR` is process-level.

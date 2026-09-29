@@ -13,6 +13,9 @@
  * Semantics live in docs/spec; the session control surface that produces
  * these records is in ./session.ts.
  */
+import type { AppAsk, AppDecision } from "./app-requests.js";
+
+export type { Cursor, SessionEdge, SessionGraph, SessionNode } from "./graph.js";
 
 // ─── The record stream ────────────────────────────────────────────────────
 
@@ -163,10 +166,12 @@ export type RuntimeEventBody = UserMessage
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string }
   /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`): its own report, never the request echoed. claude's stream carries none. */
-  | { readonly kind: "effort"; readonly effort: string };
+  | { readonly kind: "effort"; readonly effort: string }
+  /** The runtime withdrew its `toApp` request `requestId` and ignores an answer now (claude `control_cancel_request`, codex `serverRequest/resolved` for one oar had not answered: an interrupted turn's). */
+  | { readonly kind: "app_request_withdrawn"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
-export type ControlAction = "prompt" | "steer" | "queue" | "abort" | "dispose";
+export type ControlAction = "prompt" | "steer" | "queue" | "abort" | "dispose" | "answer";
 
 /**
  * Event kinds read off request and response records, so a consumer of
@@ -180,9 +185,9 @@ export type ControlEventBody =
   | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string }
   /** A `toRuntime` control action was rejected; the caller still owns the input. */
   | { readonly kind: "control_rejected"; readonly requestId: string; readonly action: ControlAction; readonly code: RejectionCode; readonly reason: string }
-  /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; the body is on the request record. */
-  | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
-  /** oar answered a `toApp` request automatically (an `answered` response). */
+  /** The runtime asked the application something (a `toApp` request: approval, question, terminal). `type` is the runtime's method or subtype; `ask` is what oar read out of it when it is a person's decision; the native body is on the request record. */
+  | { readonly kind: "app_request"; readonly requestId: string; readonly type: string; readonly ask?: AppAsk }
+  /** oar answered a `toApp` request (an `answered` response): automatically, or with a host's decision (`Session.answer`). */
   | { readonly kind: "app_answered"; readonly requestId: string }
   /** The runtime process exited (an `exited` response). */
   | { readonly kind: "exited"; readonly code: number | null };
@@ -206,8 +211,10 @@ export type RequestBody =
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
-  /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */
-  | { readonly kind: "native"; readonly type: string; readonly native: unknown };
+  /** A host's decision on the `toApp` request `requestId` (`Session.answer`); what oar sent is that request's `answered` response. */
+  | { readonly kind: "answer"; readonly requestId: string; readonly decision: AppDecision }
+  /** A runtime→app request, verbatim; `type` is the runtime's method/subtype, `ask` what oar read out of it (absent when it is no person's decision). */
+  | { readonly kind: "native"; readonly type: string; readonly native: unknown; readonly ask?: AppAsk };
 
 /**
  * Why a control action was not taken over, as one word an application can
@@ -229,6 +236,12 @@ export type RejectionCode =
   | "disposed"
   /** The runtime answered no (its typed refusal, an RPC error); `reason` is its message. */
   | "runtime_refused"
+  /** answer: the stream holds no runtime→app request with that id. */
+  | "unknown_request"
+  /** answer: the request already has its answer (oar's automatic one, or an earlier `answer`); the first answer stands. */
+  | "already_answered"
+  /** answer: the runtime withdrew the request (`app_request_withdrawn`); it no longer waits for an answer. */
+  | "withdrawn"
   /** The adapter could not deliver (a thrown transport error); `reason` is the exception message. */
   | "error";
 
@@ -242,7 +255,7 @@ export type ResponseBody =
   | { readonly kind: "accepted"; readonly native?: unknown }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
-  /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
+  /** oar's reply to a `toApp` request, verbatim as sent: its automatic answer (the YOLO permission grant, a hosted terminal's output) or a host's decision (`Session.answer`). */
   | { readonly kind: "answered"; readonly native: unknown }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
   | { readonly kind: "exited"; readonly code: number | null };
@@ -271,28 +284,4 @@ export interface ContextUsage {
   readonly tokens: number | null;
   readonly contextWindow: number | null;
   readonly percent: number | null;
-}
-
-// ─── Session graph and cursor ─────────────────────────────────────────────
-
-/** True sessions only (docs/spec/session-graph-and-cursor.md): derived child sessions and transcript branches. Agent parent/child is `agentPath`, not a node. */
-export interface SessionNode {
-  readonly id: string;
-}
-
-export interface SessionEdge {
-  readonly parent: string;
-  readonly child: string;
-  readonly via: "tool_call";
-}
-
-export interface SessionGraph {
-  readonly nodes: readonly SessionNode[];
-  readonly edges: readonly SessionEdge[];
-}
-
-/** Resume reading after `afterSeq`; `-1` (or omitting the cursor) reads from the start. */
-export interface Cursor {
-  readonly sessionId: string;
-  readonly afterSeq: number;
 }

@@ -37,6 +37,7 @@ concurrent prompt queueing (no shipped runtime needs it; see
 | Read | To answer |
 |---|---|
 | [account-usage.md](account-usage.md) | Account quota queries and failure reason semantics |
+| [approvals.md](approvals.md) | How does a person answer the runtime's permission gate and questions (`approvals: "ask"`, `Session.answer`)? What is asked, and when does a request stop being pending? |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
 | [inventory.md](inventory.md) | Independent skills, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
@@ -66,15 +67,17 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 - the consumer face: `events()` delivers every reading as a flat `Event`
   (an event body plus the record's envelope): text, reasoning, tool call
   start / progress / end, turn end, usage, model, effort, compaction start /
-  end and retry as the runtime says them, plus `turn_started`, `control_rejected`,
-  `app_request`, `app_answered` and `exited` read off request/response
+  end, retry and a withdrawn runtime request as the runtime says them, plus
+  `turn_started`, `control_rejected`, `app_request` (with what it asks),
+  `app_answered` and `exited` read off request/response
   records; a pure projection (`eventsOf`) over the stream, never a second
   source of truth;
-- control as records: prompt / steer / queue / abort / dispose requests
-  answered `accepted` / `rejected` (a rejection carries a typed `code` beside
-  its prose `reason`); the `Session` returns those records read, as a
-  `ControlOutcome`; runtime→app requests recorded `toApp` and oar's
-  automatic answer as `answered`; the process exit as `exited`;
+- control as records: prompt / steer / queue / abort / dispose / answer
+  requests answered `accepted` / `rejected` (a rejection carries a typed
+  `code` beside its prose `reason`); the `Session` returns those records
+  read, as a `ControlOutcome`; runtime→app requests recorded `toApp` and
+  their answer, oar's automatic one or a host's, as `answered`; the process
+  exit as `exited`;
 - queries as folds: `model()`, `effort()`, `usage()`, `contextUsage()` and
   `status()` project over `records()` and return `{ value, seq }`, where `seq` is the
   last record the fold consumed (or `-1` before any record); `busy` is
@@ -91,6 +94,12 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
   read back: a runtime that would run another level, or has no channel,
   refuses the open (contract comment on `SessionOptions.effort`; per-runtime
   channels in [`../runtimes/`](../runtimes/README.md)).
+- `SessionOptions.approvals: "ask"` turning the runtime's own permission gate
+  on and routing it to the host where `capabilities.approvals` is
+  `supported`: each approval or question a `toApp` request with what it asks
+  (`ask`), answered by `Session.answer` as a recorded control, withdrawn by
+  the runtime or voided by the exit, never pending forever
+  ([approvals.md](approvals.md)).
 - external compaction as a new session whose first prompt carries the summary
   input; nothing links the new session to the prior one.
 
@@ -103,9 +112,9 @@ they appear:
    causal-link field between records (a `causedBy`-style pointer). Adding
    one stays open.
 2. **Capability declaration beyond attribution.** `SessionCapabilities`
-   declares steer, queue durability and the attribution tier. A fuller
-   typed surface (what each adapter supports, with typed `unsupported`) is a
-   candidate for the next revision.
+   declares steer, queue durability, the attribution tier and approvals
+   (with a typed `unsupported` code). A fuller typed surface (what each
+   adapter supports) is a candidate for the next revision.
 
 External compaction is covered: a new session's first prompt carries the
 summary as its input. oar records nothing linking the two sessions, and no

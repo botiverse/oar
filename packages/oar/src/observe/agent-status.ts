@@ -31,6 +31,11 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *   response exited                   → idle{failed runtime_exited} if a turn was running
  * The fold is total: a mid-turn event while idle adopts that turn (a consumer
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
+ *
+ * `awaiting`, beside the phase: a `toApp` request with an `ask` (a person's
+ * decision) joins it; its `answered` response, an `app_request_withdrawn`
+ * event for it, or the process exit takes it out. Every agent and derived
+ * session counts: a sub-agent waiting on the host holds the root's turn.
  */
 
 export const initialStatus: AgentStatus = { kind: "idle" };
@@ -58,19 +63,63 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
   };
 }
 
+/** The ids a person owes an answer after `record`: see `awaiting` in the header. */
+function awaitingAfter(previous: readonly string[], record: RawEvent): readonly string[] {
+  switch (record.kind) {
+    case "request":
+      return record.direction === "toApp" && record.body.kind === "native" && record.body.ask !== undefined && !previous.includes(record.id)
+        ? [...previous, record.id]
+        : previous;
+    case "response":
+      if (record.body.kind === "exited") {
+        return [];
+      }
+      return record.body.kind === "answered" ? previous.filter((id) => id !== record.requestId) : previous;
+    case "frame": {
+      const withdrawn = new Set(record.body.events.flatMap((event) => (event.kind === "app_request_withdrawn" ? [event.requestId] : [])));
+      return withdrawn.size === 0 ? previous : previous.filter((id) => !withdrawn.has(id));
+    }
+  }
+  return previous;
+}
+
+function withAwaiting(status: AgentStatus, awaiting: readonly string[]): AgentStatus {
+  if (awaiting.length === 0) {
+    if (status.awaiting === undefined) {
+      return status;
+    }
+    const { awaiting: _settled, ...rest } = status;
+    return rest;
+  }
+  return status.awaiting === awaiting ? status : { ...status, awaiting };
+}
+
 export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?: string): AgentStatus {
-  const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
-  if (foreignSession && !belongsToSession(record, sessionId)) {
+  if (sessionId !== undefined && record.sessionId !== sessionId && !belongsToSession(record, sessionId)) {
     return previous;
   }
+  return withAwaiting(reducePhase(previous, record, sessionId), awaitingAfter(previous.awaiting ?? [], record));
+}
+
+/** The clock moves (the runtime said something), the phase does not. */
+function tick(previous: AgentStatus, record: RawEvent): AgentStatus {
+  return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
+}
+
+function reducePhase(previous: AgentStatus, record: RawEvent, sessionId?: string): AgentStatus {
+  const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
   if (foreignSession || record.agentPath.length > 0 || (record.kind === "frame" && record.body.events.length === 0)) {
     // A child agent, a child session, or a frame oar read nothing from: the session is
     // alive, so the clock moves, but the root agent's phase does not.
-    return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
+    return tick(previous, record);
   }
   switch (record.kind) {
     case "request":
-      return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle"
+      if (record.direction === "toApp") {
+        // The runtime asking the app: its word, so the clock moves; `awaiting` holds the rest.
+        return tick(previous, record);
+      }
+      return record.body.kind === "prompt" && previous.kind === "idle"
         ? { kind: "running", sinceSeq: record.seq, requestId: record.id, phase: "waiting_model", lastEventAt: record.receivedAt }
         : previous;
     case "response":
@@ -80,7 +129,8 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
       if (record.body.kind === "exited" && previous.kind === "running") {
         return { kind: "idle", lastTurnOutcome: { kind: "failed", reason: "runtime exited", failure: "runtime_exited" } };
       }
-      return previous;
+      // An answer handed the runtime its next step: its silence counts from here, not from the question.
+      return record.body.kind === "answered" ? tick(previous, record) : previous;
     case "frame": {
       let status = previous;
       for (const event of record.body.events) {
@@ -108,7 +158,8 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "compaction_started":
       return running(previous, record, "compacting");
     case "tool_call_progress":
-      return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
+    case "app_request_withdrawn":
+      return tick(previous, record);
     case "turn_ended":
       return { kind: "idle", lastTurnOutcome: event.outcome };
     case "user_message":
@@ -131,13 +182,17 @@ function belongsToSession(_record: RawEvent, _sessionId: string): boolean {
   return true;
 }
 
-/** fold(records) × clock: how long a running status has been silent, if beyond the threshold. */
+/**
+ * fold(records) × clock: how long a running status has been silent, if beyond
+ * the threshold. Never while `awaiting` is set: the runtime waits on the host
+ * (a person owes an answer), which explains the silence.
+ */
 export function stallOf(
   status: AgentStatus,
   nowMs: number,
   thresholdMs: number,
 ): { readonly sinceSeq: number; readonly silentForMs: number } | null {
-  if (status.kind !== "running") {
+  if (status.kind !== "running" || status.awaiting !== undefined) {
     return null;
   }
   const silentForMs = nowMs - status.lastEventAt;

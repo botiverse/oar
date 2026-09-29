@@ -3,6 +3,9 @@ import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputOptions, RuntimeEventBody, Session, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
 import { createSessionKernel, sealSession } from "../kernel.js";
+import { createScriptedAsks, type ScriptedAnswer, type ScriptedQuestion } from "./scripted-asks.js";
+
+export type { ScriptedAnswer, ScriptedQuestion } from "./scripted-asks.js";
 
 /**
  * What a script sees and does during one turn. Everything it emits enters the
@@ -29,6 +32,24 @@ export interface ScriptedTurn {
    * error's message (`failed`, and the error is rethrown to the script).
    */
   readonly tool: (name: string, input: string, run?: () => unknown) => Promise<void>;
+  /**
+   * Ask the host to approve a tool call, as a runtime's permission gate does.
+   * In a session opened with `approvals: "ask"` it records a `toApp` request
+   * (`scripted/approval`, a `tool_approval` ask taking allow, allow_session
+   * and deny with a message) and waits for `Session.answer`; a grant for the
+   * session lets the same tool and input through unasked later. Otherwise the
+   * gate is off: it resolves `allow` at once and records nothing. The turn
+   * ending while it waits (an abort, a dispose, the script returning)
+   * withdraws it (an `app_request_withdrawn` frame): it resolves `withdrawn`.
+   */
+  readonly approve: (tool: string, input: string) => Promise<ScriptedAnswer>;
+  /**
+   * Ask the host questions (`scripted/question`, a `question` ask taking an
+   * answer, or deny with a message), waiting like `approve`. Only in a
+   * session opened with `approvals: "ask"`; elsewhere it throws, since no one
+   * is there to ask.
+   */
+  readonly ask: (questions: readonly ScriptedQuestion[]) => Promise<ScriptedAnswer>;
 }
 
 export interface ScriptedRuntimeOptions {
@@ -51,7 +72,8 @@ const tokensOf = (text: string): number => Math.ceil(text.length / 4);
  * A runtime whose model is a script: for hosts' tests and demos that need a
  * real `Session` (the same records, folds and control semantics as a vendor
  * runtime) without a binary, a login or a provider. Capabilities: steer,
- * a non-durable queue, no sub-agents. Installation is always `bundled`.
+ * a non-durable queue, no sub-agents, approvals (the script asks through
+ * `approve` / `ask`). Installation is always `bundled`.
  */
 export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
   const id = options.id ?? "scripted";
@@ -67,6 +89,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
     let disposed = false;
+    const asks = createScriptedAsks(kernel, id, sessionOptions.approvals === "ask");
 
     const frame = (type: string, native: unknown, events: readonly RuntimeEventBody[]): void => {
       kernel.frame({ type, native, events });
@@ -116,6 +139,20 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
             throw error;
           }
         },
+        approve: async (name, toolInput) => {
+          if (!live()) {
+            return { kind: "withdrawn" };
+          }
+          const answer = await asks.approve(turnState, name, toolInput);
+          return answer;
+        },
+        ask: async (questions) => {
+          if (!live()) {
+            return { kind: "withdrawn" };
+          }
+          const answer = await asks.ask(turnState, questions);
+          return answer;
+        },
       };
       // The turn starts once the control that began it is answered, as with a vendor runtime:
       // the accepted response precedes the turn's first event.
@@ -141,6 +178,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       if (active !== turnState) {
         return; // already ended (an abort or dispose ended it first)
       }
+      asks.withdraw(turnState);
       active = null;
       frame("scripted/end", { outcome }, [
         { kind: "turn_ended", outcome },
@@ -164,7 +202,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     frame("scripted/model", { model }, [{ kind: "model", model }]);
     return sealSession({
       id: kernel.sessionId,
-      capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+      capabilities: { steer: true, queue: { durable: false }, attribution: "none", approvals: { kind: "supported" } },
       prompt: async (input, inputOptions?: InputOptions) => {
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, () => {
           if (active !== null) {
@@ -206,6 +244,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
         });
         return result;
       },
+      answer: asks.answer,
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),

@@ -50,20 +50,38 @@ async function providerUrl(mock: LLMock, options: AimockOptions): Promise<{ read
   return { url: capture.url, capture };
 }
 
-function baseFixtures(mock: LLMock): void {
+/** A runtime's shell tool call as its provider would send it, for a command. */
+export type ShellCall = (command: string) => { name: string; arguments: string };
+
+/** The approval probe of the behavior suite (sea-trial/cases/session-approvals.ts): a prompt naming it gets the shell tool asked to run this command, gated under approvals "ask". */
+export const APPROVAL_PROBE = "oar-approval-probe";
+export const APPROVAL_PROBE_COMMAND = "touch oar-approval-probe.txt";
+
+export const claudeShell: ShellCall = (command) => ({ name: "Bash", arguments: JSON.stringify({ command, description: "the approval probe" }) });
+export const codexShell: ShellCall = (command) => ({ name: "exec_command", arguments: JSON.stringify({ cmd: command }) });
+
+function baseFixtures(mock: LLMock, shell?: ShellCall): void {
   // Enough model behavior for every current behavior case: any prompt gets a
   // short completion. Cases assert framing/invariants, not content.
   // A little latency keeps the model pace realistic; instant replies are a
   // chaos-experiment configuration, not a behavior baseline.
   // Prompts mentioning "slow" get a LONG turn: the window the abort and
-  // mid-turn-steer cases need. The two patterns are disjoint because aimock
-  // picks among overlapping matches by turn position, not registration order.
+  // mid-turn-steer cases need. The approval probe asks for the shell tool
+  // first, then answers whatever the tool result says. The patterns are
+  // disjoint because aimock picks among overlapping matches by turn
+  // position, not registration order.
+  if (shell !== undefined) {
+    mock.on({ userMessage: new RegExp(APPROVAL_PROBE, "u"), hasToolResult: false }, { toolCalls: [shell(APPROVAL_PROBE_COMMAND)] });
+    mock.on({ userMessage: new RegExp(APPROVAL_PROBE, "u"), hasToolResult: true }, { content: "done" }, { latency: 80 });
+  }
   mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
-  mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
+  mock.onMessage(new RegExp(`^(?![\\s\\S]*(?:slow|${APPROVAL_PROBE}))[\\s\\S]*$`, "u"), { content: "ok" }, { latency: 80 });
 }
 
 export async function startClaudeAimock(
-  configure: (mock: LLMock) => void = baseFixtures,
+  configure: (mock: LLMock) => void = (mock) => {
+    baseFixtures(mock, claudeShell);
+  },
   options: AimockOptions = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
@@ -82,7 +100,9 @@ export async function startClaudeAimock(
 }
 
 export async function startCodexAimock(
-  configure: (mock: LLMock) => void = baseFixtures,
+  configure: (mock: LLMock) => void = (mock) => {
+    baseFixtures(mock, codexShell);
+  },
   options: AimockOptions = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });

@@ -11,9 +11,13 @@ export type RpcOutcome =
   | { readonly kind: "result"; readonly result: JsonRecord }
   | { readonly kind: "error"; readonly error: Error };
 
+/** A server request's JSON-RPC id as it came: a reply must carry it back with the same type. */
+export type RpcId = number | string;
+
 export interface AppServerHandlers {
   readonly onNotification: (method: string, params: JsonRecord) => void;
-  readonly onServerRequest: (id: string, method: string, params: JsonRecord) => void;
+  /** `id` is the server's request id as a string (the toApp record id); `rawId` is the id as sent, for `respond`. */
+  readonly onServerRequest: (id: string, method: string, params: JsonRecord, rawId: RpcId) => void;
 }
 
 export interface AppServerClient {
@@ -27,10 +31,12 @@ export interface AppServerClient {
    */
   request(method: string, params: JsonRecord, onSettled?: (outcome: RpcOutcome) => void): Promise<JsonRecord>;
   notify(method: string, params: JsonRecord): void;
+  /** Answer a server-initiated request: the JSON-RPC response `{id, result}`, written as given. Returns the message sent. */
+  respond(id: RpcId, result: unknown): JsonRecord;
   /**
    * Register the inbound handlers, once. Notifications and server-initiated
    * requests (frames with both `id` and `method`: approvals, user input,
-   * dynamic tools; the client does not answer them) that arrive before this
+   * dynamic tools; answered only through `respond`) that arrive before this
    * call (the app-server talks right after `initialize`, before the thread
    * exists) are held in ONE queue and delivered here synchronously, in wire
    * order across both kinds: nothing the server said is lost or reordered
@@ -95,9 +101,10 @@ export function startAppServerClient(
       const params = asRecord(message.params) ?? {};
       const { method } = message;
       if (hasId) {
+        const rawId = typeof message.id === "number" ? message.id : String(message.id);
         const id = String(message.id);
         deliver((target) => {
-          target.onServerRequest(id, method, params);
+          target.onServerRequest(id, method, params, rawId);
         });
       } else {
         deliver((target) => {
@@ -152,6 +159,11 @@ export function startAppServerClient(
     },
     notify(method, params) {
       child.write(`${JSON.stringify({ method, params })}\n`);
+    },
+    respond(id, result) {
+      const message = { id, result };
+      child.write(`${JSON.stringify(message)}\n`);
+      return message;
     },
     handle(registered) {
       if (handlers !== null) {

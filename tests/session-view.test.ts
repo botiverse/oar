@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { Frame, RawEvent, RequestRecord, ResponseRecord, RuntimeEventBody } from "../packages/oar/src/index.js";
+import type { AppAsk, Frame, RawEvent, RequestRecord, ResponseRecord, RuntimeEventBody } from "../packages/oar/src/index.js";
 import {
   initialSessionView,
   reduceSessionView,
@@ -150,8 +150,56 @@ test("a runtime request is pending until answered; its part settles in place", (
   expect(view.pendingRequests).toEqual([]);
   const [turn] = turns(view);
   expect(turn?.sections[0]?.parts).toEqual([
-    { kind: "app_request", requestId: "req9", type: "approval", answered: true },
+    { kind: "app_request", requestId: "req9", type: "approval", answered: true, settled: "answered" },
   ]);
+});
+
+const APPROVAL_ASK: AppAsk = { kind: "tool_approval", tool: "Bash", command: "rm -rf build", choices: ["allow", "deny"], denyMessage: true };
+const approval: RequestRecord["body"] = { kind: "native", type: "can_use_tool", native: { request: { tool_name: "Bash" } }, ask: APPROVAL_ASK };
+
+test("what a request asks rides the pending entry and the part in flow", () => {
+  const ask: RequestRecord = { ...env, seq: 2, kind: "request", id: "req1", direction: "toApp", body: approval };
+  const view = fold([request(0, "r1"), accepted(1, "r1"), ask]);
+  expect(view.pendingRequests.map((pending) => pending.ask)).toEqual([APPROVAL_ASK]);
+  expect(turns(view)[0]?.sections[0]?.parts).toMatchInlineSnapshot(`
+    [
+      {
+        "answered": false,
+        "ask": {
+          "choices": [
+            "allow",
+            "deny",
+          ],
+          "command": "rm -rf build",
+          "denyMessage": true,
+          "kind": "tool_approval",
+          "tool": "Bash",
+        },
+        "kind": "app_request",
+        "requestId": "req1",
+        "type": "can_use_tool",
+      },
+    ]
+  `);
+});
+
+test("a withdrawn request leaves the pending set and its part says so; a late answer does not rewrite it", () => {
+  const ask: RequestRecord = { ...env, seq: 2, kind: "request", id: "req1", direction: "toApp", body: approval };
+  const withdrawn = frame(3, [{ kind: "app_request_withdrawn", requestId: "req1" }]);
+  const late: ResponseRecord = { ...env, seq: 4, kind: "response", requestId: "req1", body: { kind: "answered", native: {} } };
+  const view = fold([request(0, "r1"), accepted(1, "r1"), ask, withdrawn, late]);
+  expect(view.pendingRequests).toEqual([]);
+  expect(turns(view)[0]?.sections[0]?.parts.map((part) => (part.kind === "app_request" ? [part.answered, part.settled] : part.kind))).toEqual([[false, "withdrawn"]]);
+});
+
+test("an exit voids every request still pending: none looks pending forever", () => {
+  const ask: RequestRecord = { ...env, seq: 2, kind: "request", id: "req1", direction: "toApp", body: approval };
+  const exit: ResponseRecord = { ...env, seq: 3, kind: "response", requestId: "", body: { kind: "exited", code: null } };
+  const view = fold([request(0, "r1"), accepted(1, "r1"), ask, exit]);
+  expect(view.pendingRequests).toEqual([]);
+  expect(view.status).toEqual({ kind: "idle", lastTurnOutcome: { kind: "failed", reason: "runtime exited", failure: "runtime_exited" } });
+  const part = turns(view)[0]?.sections[0]?.parts[0];
+  expect(part?.kind === "app_request" ? part.settled : part?.kind).toBe("void");
 });
 
 test("an exit records the fact and never stamps a fabricated outcome", () => {

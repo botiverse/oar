@@ -10,6 +10,7 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
+import { createCodexAsking } from "./approvals.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadOpen } from "./open.js";
 import {
   foldCodexNotification,
@@ -20,7 +21,7 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 
 /*
  * codex app-server v2 mapping:
- * - initialize → initialized, thread/start {cwd, approvalPolicy:never}
+ * - initialize → initialized, thread/start {cwd, approvalPolicy} (open.ts)
  * - SessionOptions.effort governs every turn of the thread, a drained queue
  *   submission included: a config override on thread/start, and on a resume
  *   thread/settings/update on the loaded thread (open.ts says why). codex's
@@ -35,7 +36,8 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
  *   accepted/rejected response, the outcome is turn/completed.
  * - every notification is one frame (verbatim params); notifications
  *   of other threads are child-session records; collab items link them.
- * - server-initiated requests are recorded as toApp requests, unanswered.
+ * - server-initiated requests are toApp requests with what they ask, left
+ *   for Session.answer (approvals.ts).
  * - reachability (exited / disposed) is the kernel's, read off the stream;
  *   the adapter holds no liveness flag (record-stream.md, "Reachability").
  * Live probe: codex-session-adapter.ts.
@@ -163,16 +165,13 @@ export const codexSession: StartSession = async (installation, options) => {
       settingsWaiter?.(params);
     }
   };
-  // Approvals, user input, dynamic tools: recorded verbatim, never answered
-  // (approvalPolicy never means none are expected; a dangling request is
-  // the honest record when one arrives anyway).
-  const onServerRequest = (id: string, method: string, params: JsonRecord): void => {
-    kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
-  };
+  // Approvals, user input, dynamic tools wait for Session.answer (under
+  // approvalPolicy never none is expected: one that arrives dangles).
+  const asking = createCodexAsking({ kernel, client, threadId, state });
   // Registering flushes everything held so far in wire order: the frames
   // from before the thread existed, then the open event (the mark placed at
   // the reply), then whatever codex wrote after the reply.
-  client.handle({ onNotification, onServerRequest });
+  client.handle({ onNotification, onServerRequest: asking.onServerRequest });
   client.onExit((code) => {
     // The exit is an outcome only oar observes: it answers our dispose when
     // we caused it, and stands alone when the app-server died on its own.
@@ -264,11 +263,13 @@ export const codexSession: StartSession = async (installation, options) => {
 
   const session: Session = sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: true }, attribution: "nested" },
+    capabilities: { steer: true, queue: { durable: true }, attribution: "nested", approvals: { kind: "supported" } },
     prompt: via(promptPlan),
     steer: via(steerPlan),
     queue: via(queuePlan),
     abort: via(abortPlan),
+    // codex acknowledges no answer: what it does next is the stream's.
+    answer: asking.answer,
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),

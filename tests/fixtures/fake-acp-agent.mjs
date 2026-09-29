@@ -266,7 +266,8 @@ function handleResponse(message) {
     sessionUpdate: "agent_message_chunk",
     content: { type: "text", text: `permission:${optionId}` },
   });
-  result(pending.outerId, { stopReason: "end_turn" });
+  // A permission the client cancelled (it cancelled the turn) ends the prompt cancelled.
+  result(pending.outerId, { stopReason: optionId === "cancelled" ? "cancelled" : "end_turn" });
 }
 
 function handleNotification(message) {

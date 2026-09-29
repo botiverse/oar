@@ -47,6 +47,11 @@ export type {
 export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
+  AppAsk,
+  AppDecision,
+  ApprovalsCapability,
+  AskChoice,
+  AskQuestion,
   AttributionTier,
   ContextUsage,
   ControlAction,

@@ -25,9 +25,23 @@ export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
  * this process.
  */
 
+/**
+ * pi has no permission gate: its tools run as the agent calls them, and the
+ * SDK exposes no approval channel (an extension may gate tools its own way;
+ * oar bridges none).
+ */
+export const PI_APPROVALS = {
+  kind: "unsupported",
+  code: "no_gate",
+  reason: "pi has no permission gate: its tools run as the agent calls them, and its SDK offers no approval channel",
+} as const;
+
 export const piSession: StartSession = async (installation, options) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
+  }
+  if (options.approvals === "ask") {
+    throw new Error(`approvals "ask" is unsupported: ${PI_APPROVALS.reason}`);
   }
   const piAgentSession = await openPiAgentSession(options);
 
@@ -170,7 +184,7 @@ export const piSession: StartSession = async (installation, options) => {
 
   const session: Session = sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+    capabilities: { steer: true, queue: { durable: false }, attribution: "none", approvals: PI_APPROVALS },
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, async () => {
@@ -221,6 +235,11 @@ export const piSession: StartSession = async (installation, options) => {
         return { kind: "accepted" };
       });
       return result;
+    },
+    // pi asks the app nothing, so every answer names an unknown request.
+    answer: async (requestId, decision) => {
+      await Promise.resolve();
+      return kernel.answer(requestId, decision, () => ({ kind: "rejected", code: "unsupported", reason: PI_APPROVALS.reason }));
     },
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),

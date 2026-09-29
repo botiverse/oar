@@ -31,13 +31,14 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   // {effort}` would miss a turn codex starts from its queue.
   const effortParams = options.effort === undefined ? {} : { config: { model_reasoning_effort: options.effort } };
   const modelParams = options.model === undefined ? {} : { model: options.model };
+  const approvalParams = codexApprovalParams(options);
   if (options.resume === undefined) {
     return {
       method: "thread/start",
       params: {
         cwd: options.cwd,
         ...modelParams,
-        approvalPolicy: "never",
+        ...approvalParams,
         // Required in addition to initialize.experimentalApi. This exposes
         // the completed Responses API reasoning item, whose encrypted_content
         // lets us distinguish redaction from genuinely empty reasoning.
@@ -59,10 +60,37 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       // thread is loaded cold, which is the normal case here because every
       // oar session owns its own app-server process.
       ...modelParams,
-      approvalPolicy: "never",
+      // A resumed thread takes the policy of the resume ([env] 0.155.1).
+      ...approvalParams,
       ...instructionParams,
     },
   };
+}
+
+/**
+ * The approval policy for `SessionOptions.approvals` (probed 2026-09-29,
+ * codex 0.155.1, approvals.ts): YOLO is `never`. `ask` is `untrusted`, the
+ * policy that gates every command outside codex's trusted set whatever the
+ * sandbox (`on-request` under oar's danger-full-access sandbox gates
+ * nothing), with requests routed to the client (`approvalsReviewer: "user"`,
+ * not a user config's `auto_review` subagent).
+ */
+function codexApprovalParams(options: SessionOptions): JsonRecord {
+  return options.approvals === "ask" ? { approvalPolicy: "untrusted", approvalsReviewer: "user" } : { approvalPolicy: "never" };
+}
+
+/** Why the open reply does not run the requested approval policy (ask mode only), or null. */
+function codexApprovalRefusal(method: CodexOpenMethod, options: SessionOptions, reply: JsonRecord): string | null {
+  if (options.approvals !== "ask") {
+    return null;
+  }
+  const requested = codexApprovalParams(options);
+  for (const key of ["approvalPolicy", "approvalsReviewer"]) {
+    if (key in reply && JSON.stringify(reply[key]) !== JSON.stringify(requested[key])) {
+      return `codex ${method} runs ${key} ${JSON.stringify(reply[key])} although ${JSON.stringify(requested[key])} was requested for approvals "ask"`;
+    }
+  }
+  return null;
 }
 
 /** A reply's `reasoningEffort` (or `threadSettings.effort`): null when codex runs no explicit level (the model's default). */
@@ -85,7 +113,9 @@ function effortIn(record: JsonRecord | null): string | null {
  * level, the model's default). A resume answers the level the thread last
  * ran with; when that is not the requested one, it is set next
  * (`resumeEffort`). codex echoes an unknown level as given and forwards it
- * to the provider, whose refusal then fails the first turn.
+ * to the provider, whose refusal then fails the first turn. And for
+ * approvals: an `ask` session must run the gate it asked for (the reply's
+ * `approvalPolicy` / `approvalsReviewer`), never silently another.
  */
 export function codexOpenReadback(
   method: CodexOpenMethod,
@@ -100,6 +130,10 @@ export function codexOpenReadback(
   ];
   if (options.model !== undefined && model !== null && model !== options.model) {
     return { events, refusal: `codex ${method} kept model ${model} although ${options.model} was requested`, resumeEffort: null };
+  }
+  const approvalRefusal = codexApprovalRefusal(method, options, reply);
+  if (approvalRefusal !== null) {
+    return { events, refusal: approvalRefusal, resumeEffort: null };
   }
   if (options.effort === undefined || effort === options.effort) {
     return { events, refusal: null, resumeEffort: null };

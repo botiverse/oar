@@ -13,6 +13,7 @@ export interface RuntimeUnderTest {
     readonly effort?: string;
     readonly systemPrompt?: string;
     readonly appendSystemPrompt?: string;
+    readonly approvals?: "never" | "ask";
   }): Promise<Session>;
 }
 
@@ -40,8 +41,9 @@ export function runtimeUnderTest(
         ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
         ...(overrides.systemPrompt === undefined ? {} : { systemPrompt: overrides.systemPrompt }),
         ...(overrides.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: overrides.appendSystemPrompt }),
+        ...(overrides.approvals === undefined ? {} : { approvals: overrides.approvals }),
       });
-      record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null, effort: overrides.effort ?? null });
+      record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null, effort: overrides.effort ?? null, approvals: overrides.approvals ?? null });
       session.rawEvents((entry) => {
         record({ kind: "session_record", record: entry });
       });

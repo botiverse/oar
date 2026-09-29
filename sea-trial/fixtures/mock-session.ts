@@ -5,6 +5,8 @@ import { createSessionKernel } from "../../packages/oar/src/shared/session-kerne
 /** The mock's reasoning-effort menu (its `listModels` lists it for `mock-1`) and the level it runs when asked for none. */
 export const MOCK_EFFORT_LEVELS: readonly string[] = ["low", "high"];
 export const MOCK_DEFAULT_EFFORT = "high";
+/** Under approvals "ask", an input naming this asks the host to approve a command before the turn goes on. */
+export const MOCK_APPROVAL_PROBE = "oar-approval-probe";
 
 /**
  * The mock session runtime: behavior-test fixture and (later) load source. Its
@@ -23,10 +25,17 @@ export const startMockSession: StartSession = async (_installation, options): Pr
   const queued: string[] = [];
   let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
   let disposed = false;
+  let asking: string | null = null; // the approval the running turn waits on
+  let asked = 0;
   const say = (text: string): void => {
     kernel.frame({ type: "mock/text", native: { text }, events: [{ kind: "text_delta", text }] });
   };
   const end = (outcome: "completed" | "aborted"): void => {
+    if (asking !== null) {
+      // A turn that ends while it waits withdraws the request, as runtimes do.
+      kernel.frame({ type: "mock/withdrawn", native: { requestId: asking }, events: [{ kind: "app_request_withdrawn", requestId: asking }] });
+      asking = null;
+    }
     active = null;
     kernel.frame({ type: "mock/end", native: { outcome, used: 1 }, events: [
       { kind: "turn_ended", outcome: { kind: outcome } },
@@ -38,6 +47,16 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     }
   };
   function run(input: string): void {
+    if (options.approvals === "ask" && input.includes(MOCK_APPROVAL_PROBE)) {
+      asked += 1;
+      asking = `mock-ask-${String(asked)}`;
+      const command = "touch oar-approval-probe.txt";
+      kernel.request("toApp", { kind: "native", type: "mock/approval", native: { command }, ask: {
+        kind: "tool_approval", tool: "mock-shell", command, choices: ["allow", "allow_session", "deny"], denyMessage: true,
+      } }, { id: asking });
+      active = { timer: null, aborted: false };
+      return;
+    }
     // "hang" never settles on its own; the stall-observation fixture.
     const timer = input === "hang" ? null : setTimeout(() => {
       say(`echo:${input}`);
@@ -51,7 +70,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
   kernel.frame({ type: "mock/model", native: { model: "mock-1", effort }, events: [{ kind: "model", model: "mock-1" }, { kind: "effort", effort }] });
   return sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+    capabilities: { steer: true, queue: { durable: false }, attribution: "none", approvals: { kind: "supported" } },
     prompt: async (input, inputOptions?: InputOptions) => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, () => {
@@ -99,6 +118,22 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       return { kind: "accepted" };
       });
       return result;
+    },
+    answer: async (requestId, decision) => {
+      await Promise.resolve();
+      return kernel.answer(requestId, decision, (_request, taken) => {
+        if (asking !== requestId) {
+          return { kind: "rejected", code: "unsupported", reason: "the mock asked nothing under this id" };
+        }
+        asking = null;
+        const text = taken.kind === "deny" ? `denied:${taken.message ?? ""}` : "ran:touch oar-approval-probe.txt";
+        const timer = setTimeout(() => {
+          say(text);
+          end("completed");
+        }, 10);
+        active = { timer, aborted: false };
+        return { kind: "sent", native: taken };
+      });
     },
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),

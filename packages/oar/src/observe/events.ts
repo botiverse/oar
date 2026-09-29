@@ -27,7 +27,8 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, ControlA
     case "request":
       if (record.direction === "toApp") {
         const type = record.body.kind === "native" ? record.body.type : record.body.kind;
-        return [{ kind: "app_request", requestId: record.id, type, ...envelope }];
+        const ask = record.body.kind === "native" ? record.body.ask : undefined;
+        return [{ kind: "app_request", requestId: record.id, type, ...(ask === undefined ? {} : { ask }), ...envelope }];
       }
       return record.body.kind === "prompt"
         ? [{

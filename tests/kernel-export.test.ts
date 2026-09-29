@@ -14,7 +14,7 @@ describe("@botiverse/oar/kernel", () => {
         const kernel = createSessionKernel(options.resume);
         return sealSession({
           id: kernel.sessionId,
-          capabilities: { steer: false, queue: null, attribution: "none" },
+          capabilities: { steer: false, queue: null, attribution: "none", approvals: { kind: "unsupported", code: "no_gate", reason: "echo asks nothing" } },
           prompt: async (input, inputOptions) =>
             kernel.control({ kind: "prompt", input, ...inputOptions }, () => {
               setTimeout(() => {
@@ -28,6 +28,7 @@ describe("@botiverse/oar/kernel", () => {
           steer: async (input) => kernel.control({ kind: "steer", input }, () => ({ kind: "rejected", code: "unsupported", reason: "no steer" })),
           queue: async (input) => kernel.control({ kind: "queue", input }, () => ({ kind: "rejected", code: "unsupported", reason: "no queue" })),
           abort: async () => kernel.control({ kind: "abort" }, () => ({ kind: "rejected", code: "no_active_turn", reason: "idle" })),
+          answer: async (requestId, decision) => kernel.answer(requestId, decision, () => ({ kind: "rejected", code: "unsupported", reason: "echo asks nothing" })),
           rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
           records: () => kernel.records(),
           graph: () => kernel.graph(),

@@ -119,3 +119,60 @@ test("the accepted response comes before the turn's first event", async () => {
   assert.deepEqual(kinds.slice(0, 4), ["scripted/model", "request", "response", "scripted/text"]);
   await session.dispose();
 });
+
+const openAsking = async (turn: (turn: ScriptedTurn) => void | Promise<void>): Promise<Session> =>
+  scriptedRuntime({ turn }).session({ kind: "available", via: "bundled" }, { cwd: process.cwd(), approvals: "ask" });
+
+const toAppIds = (session: Session): string[] =>
+  session.records().flatMap((record) => (record.kind === "request" && record.direction === "toApp" ? [record.id] : []));
+
+// oxlint-disable-next-line eslint/max-statements -- the ask, its answer, and the grant a second turn uses are one scenario.
+test("approve asks the host in an ask session, waits for its answer, and remembers a grant for the session", async () => {
+  const answers: unknown[] = [];
+  const session = await openAsking(async ({ approve, say }) => {
+    answers.push(await approve("shell", "rm -rf build"));
+    say("next");
+  });
+  const first = await session.prompt("one");
+  await waitFor(() => toAppIds(session).length === 1);
+  assert.deepEqual(session.status().value.awaiting, toAppIds(session));
+  const [requestId] = toAppIds(session);
+  const granted = await session.answer(requestId ?? "", { kind: "allow", scope: "session" });
+  assert.equal(granted.kind, "accepted");
+  await awaitTurnEnd(session, first.seq);
+  const second = await session.prompt("two");
+  await awaitTurnEnd(session, second.seq);
+  assert.deepEqual(answers, [{ kind: "allow", scope: "session" }, { kind: "allow", scope: "session" }]);
+  assert.equal(toAppIds(session).length, 1, "the grant let the second call through unasked");
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- the gated and the ungated session side by side.
+test("an aborted turn withdraws what it asks; without approvals \"ask\" approve allows at once and ask refuses", async () => {
+  const answers: unknown[] = [];
+  const session = await openAsking(async ({ ask }) => {
+    answers.push(await ask([{ question: "Which color?", options: [{ label: "Red" }] }]));
+  });
+  const started = await session.prompt("go");
+  await waitFor(() => toAppIds(session).length === 1);
+  const aborted = await session.abort();
+  assert.equal(aborted.kind, "accepted");
+  await awaitTurnEnd(session, started.seq);
+  await waitFor(() => answers.length === 1);
+  assert.deepEqual(answers, [{ kind: "withdrawn" }]);
+  const late = await session.answer(toAppIds(session)[0] ?? "", { kind: "answer", answers: { "Which color?": "Red" } });
+  assert.ok(late.kind === "rejected" && late.code === "withdrawn");
+  await session.dispose();
+
+  const yolo: unknown[] = [];
+  const plain = await open(async ({ approve, ask }) => {
+    yolo.push(await approve("shell", "ls"));
+    await ask([{ question: "q", options: [] }]);
+  });
+  const run = await plain.prompt("go");
+  const outcome = await awaitTurnEnd(plain, run.seq);
+  assert.deepEqual(yolo, [{ kind: "allow" }]);
+  assert.ok(outcome.kind === "failed" && outcome.reason.includes('questions need a session opened with approvals "ask"'));
+  assert.deepEqual(toAppIds(plain), []);
+  await plain.dispose();
+});

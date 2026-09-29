@@ -46,6 +46,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "compaction_started":
           case "compaction_ended":
           case "retry":
+          case "app_request_withdrawn":
             return view.kind;
           default:
             return "?";

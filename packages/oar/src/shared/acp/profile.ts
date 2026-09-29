@@ -16,6 +16,8 @@ export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
   /** What this runtime's ACP surface lets the adapter carry (docs/spec attribution tier included). */
   readonly capabilities: SessionCapabilities;
+  /** The runtime's `allow_always` permission option grants for this session only, so it answers `allow` with scope `session` (approvals.ts). */
+  readonly allowAlwaysIsSession?: boolean;
   readonly requestTimeoutMs?: number;
   readonly abortTimeoutMs?: number;
   /** Compatibility for agents that put a fully quoted shell line in `command`. */
