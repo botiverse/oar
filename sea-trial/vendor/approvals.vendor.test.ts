@@ -1,5 +1,4 @@
-import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -8,6 +7,10 @@ import { awaitTurnEnd, claudeInstallation, claudeSession, codexInstallation, cod
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { claudeShell, codexShell, startClaudeAimock, startCodexAimock, type AimockEnv, type LLMock, type ShellCall } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+import { openTrace } from "../harness/trace.js";
+
+// A red run ships its trajectory, as the other vendor tests do (support/tool-round.ts).
+openTrace(`vendor-${process.env.OAR_TEST ?? "unset"}`);
 
 /**
  * Session.answer through the real harnesses, the provider scripted: what
@@ -26,6 +29,15 @@ interface Round {
   readonly outcome: unknown;
 }
 
+/** A refused answer leaves the turn held; abort it so the test reports the refusal instead of timing out. */
+async function answerOrAbort(session: Session, requestId: string, decision: AppDecision): Promise<ControlOutcome> {
+  const outcome = await session.answer(requestId, decision);
+  if (outcome.kind === "rejected") {
+    await session.abort();
+  }
+  return outcome;
+}
+
 /** One turn, answering every ask it raises with `decide`. */
 async function round(session: Session, input: string, decide: (ask: AppAsk) => AppDecision): Promise<Round> {
   const asks: AppAsk[] = [];
@@ -35,13 +47,13 @@ async function round(session: Session, input: string, decide: (ask: AppAsk) => A
   const stop = session.events((event) => {
     if (event.kind === "app_request" && event.ask !== undefined) {
       asks.push(event.ask);
-      answers.push(session.answer(event.requestId, decide(event.ask)));
+      answers.push(answerOrAbort(session, event.requestId, decide(event.ask)));
     }
   }, { cursor: { sessionId: session.id, afterSeq: prompt.seq } });
   const outcome = await awaitTurnEnd(session, prompt.seq);
   stop();
   const outcomes = await Promise.all(answers);
-  expect(outcomes.map((answered) => answered.kind)).toEqual(asks.map(() => "accepted"));
+  expect(outcomes.map((answered) => (answered.kind === "rejected" ? answered.code : answered.kind))).toEqual(asks.map(() => "accepted"));
   return { asks, records: session.records().filter((record) => record.seq > prompt.seq), outcome };
 }
 
@@ -56,6 +68,10 @@ function commandStatuses(records: readonly RawEvent[]): unknown[] {
     const item = record.kind === "frame" && record.body.type === "item/completed" ? asRecord(asRecord(record.body.native)?.item) : null;
     return item?.type === "commandExecution" ? [item.status] : [];
   });
+}
+
+async function exists(file: string): Promise<boolean> {
+  return stat(file).then(() => true, () => false);
 }
 
 /** One command item that codex did not decline (completed, or failed where the shell has no `touch`). */
@@ -84,7 +100,8 @@ async function withScript(
     await body(async () => runtimeUnderTest(runtime, env.env).startSession({ approvals: "ask", cwd: dir }), dir);
   } finally {
     await env.stop();
-    await rm(dir, { recursive: true, force: true });
+    // Windows holds a directory a moment after the process that ran in it exits.
+    await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
   }
 }
 
@@ -102,7 +119,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude approvals thro
         asked: [allowed, granted, again, denied].map((turn) => turn.asks.map((ask) => (ask.kind === "tool_approval" ? `${ask.tool}: ${ask.command ?? ""}` : ask.kind))),
         results: [allowed, again, denied].map((turn) => toolEnds(turn.records).map((end) => end.result)),
         deniedOutput: toolEnds(denied.records).map((end) => end.output),
-        deniedRan: existsSync(path.join(dir, "denied")),
+        deniedRan: await exists(path.join(dir, "denied")),
         outcomes: [allowed, granted, again, denied].map((turn) => turn.outcome),
       }).toEqual({
         asked: [["Bash: touch allowed"], ["Bash: touch session"], [], ["Bash: touch denied"]],
@@ -141,7 +158,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex approvals throug
         asked: [allowed, granted, again, denied].map((turn) => turn.asks.map((ask) => (ask.kind === "tool_approval" ? ask.tool : ask.kind))),
         ran: [allowed, granted, again].map((turn) => ranOnce(commandStatuses(turn.records))),
         denied: commandStatuses(denied.records),
-        deniedRan: existsSync(path.join(dir, "denied")),
+        deniedRan: await exists(path.join(dir, "denied")),
         outcomes: [allowed, again, denied].map((turn) => turn.outcome),
       }).toEqual({
         asked: [["commandExecution"], ["commandExecution"], [], ["commandExecution"]],
