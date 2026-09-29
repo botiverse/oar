@@ -21,7 +21,8 @@ codex `localImage` paths, pi `ImageContent`. The request body records the
 paths verbatim (`images: [{ path }]`), never the bytes, and
 `ConversationInput.images` carries them from the latest attempt, so a UI can
 show what the user sent next to the text. `capabilities.images` says whether
-the runtime takes images at all (ACP: what `initialize` advertised). An input
+the runtime takes images at all (ACP: what `initialize` advertised, unless a
+profile knows better from a live probe, as grok's does). An input
 whose images cannot go (no image input, not a png/jpeg/gif/webp, unreadable)
 is rejected whole, `unsupported` or `error`, before it reaches the runtime.
 Native echoes (`user_message.input`) remain text only.

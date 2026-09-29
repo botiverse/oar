@@ -150,10 +150,18 @@ Native `session/prompt { sessionId, prompt: [{ type: "text", text }] }`
 streams updates and eventually answers the prompt request. Attachment itself
 submits no prompt. Native [prompt identity](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L1074-L1119)
 and [queue/send-now dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L1288-L1343)
-are vendor-specific semantics beyond standard ACP. Grok's `initialize`
-answers `promptCapabilities.image: false` (grok 1.0.x), so
-`capabilities.images` is false and an input with images is rejected
-`unsupported` before anything is sent (live, grok 1.0.44, 2026-09-29).
+are vendor-specific semantics beyond standard ACP.
+
+**Images (mapped, against the advertisement):** grok's `initialize` answers
+`promptCapabilities.image: false`, yet an ACP `image` block reaches its model:
+live on grok 1.0.44 (latest stable, 2026-09-29), with `initialize` rewritten to
+advertise images, a plain green PNG named `probe.png` with "don't run any tools,
+just look: what color fills it?" was answered "Green. The image is a solid
+bright green fill.", and the same prompt without the image "NO IMAGE". (Allowed
+tools, grok instead saved the image under `~/.grok/sessions/` and decoded its
+pixels in Python.) The grok profile therefore declares `capabilities.images:
+true`; if a later grok refuses image blocks, the prompt fails with grok's own
+error and this override goes.
 
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
 `accepted` once the `session/prompt` RPC is on the wire (no deadline; its

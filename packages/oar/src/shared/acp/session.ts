@@ -86,7 +86,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     recorder.bind(kernel);
 
     let disposeRequest: RequestRecord | null = null;
-    const capabilities = { ...profile.capabilities, images: acpTakesImages(opened.initialized) };
+    const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
     const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities });
     // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
     void runtime.exited.then((code) => {

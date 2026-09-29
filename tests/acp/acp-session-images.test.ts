@@ -37,3 +37,14 @@ test("an agent without image prompts refuses an input with images, unsupported, 
   expect(queued.response.body).toMatchObject({ kind: "rejected", code: "unsupported" });
   await session.dispose();
 });
+
+test("a profile can say, on evidence, that an agent takes images its initialize doesn't advertise", async () => {
+  const session = await start({
+    args: [fixture, "no-images"],
+    capabilities: { steer: false, queue: { durable: false }, attribution: "nested", images: true },
+  });
+  expect(session.capabilities.images).toBe(true);
+  const run = await promptAndWait(session, "look", { images: [{ path: image }] });
+  expect(run.kind === "ended" && run.text).toBe(`echo:[image image/png ${pathToFileURL(image).href}] look`);
+  await session.dispose();
+});
