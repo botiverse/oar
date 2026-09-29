@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { claudeAccountUsage, projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-process.js";
@@ -6,7 +6,13 @@ import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-proc
 const spawnLineProcess = vi.hoisted(() => vi.fn<(
   command: string, args: readonly string[], options: { env?: NodeJS.ProcessEnv },
 ) => FakeLineProcess>());
-vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
+const runExecutable = vi.hoisted(() => vi.fn<(
+  command: string, args: readonly string[], options?: { env?: NodeJS.ProcessEnv },
+) => Promise<{ ok: boolean; stdout: string; stderr: string; exitCode: number | null }>>());
+vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess, runExecutable }));
+
+const helpWithSafeMode = { ok: true, stdout: "  --safe-mode   Start with all customizations disabled\n", stderr: "", exitCode: 0 };
+beforeEach(() => { runExecutable.mockResolvedValue(helpWithSafeMode); });
 
 const installation = { kind: "available", via: "executable", command: "claude" } as const;
 const available = {
@@ -14,7 +20,7 @@ const available = {
   rate_limits: { five_hour: { utilization: 25, resets_at: "2026-09-16T12:00:00+08:00" } },
 };
 
-afterEach(() => { spawnLineProcess.mockReset(); vi.unstubAllEnvs(); });
+afterEach(() => { spawnLineProcess.mockReset(); runExecutable.mockReset(); vi.unstubAllEnvs(); });
 
 function control(text: string): { id: unknown; subtype: unknown } {
   const request = asRecord(parseJson(text));
@@ -51,9 +57,28 @@ test("native usage uses correlated control requests, never a prompt or credentia
   ]);
   expect(spawnLineProcess).toHaveBeenCalledExactlyOnceWith("claude", [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
+    "--safe-mode",
   ], expect.objectContaining({}));
   expect(spawnLineProcess.mock.calls[0]?.[2].env?.CLAUDECODE).toBeUndefined();
   expect(fake.killed()).toBe(true);
+});
+
+// A usage read must not run the user's SessionStart hooks or start their MCP
+// servers; --safe-mode is what isolates it (verified live against CLI 2.1.283).
+test("a CLI without --safe-mode is unsupported and never launched unisolated", async () => {
+  runExecutable.mockResolvedValue({ ok: true, stdout: "  --verbose  Verbose output\n", stderr: "", exitCode: 0 });
+  const old = { ...installation, command: "claude-old", version: "1.0.0" };
+  await expect(claudeAccountUsage(old)).resolves.toEqual({ kind: "unsupported", reason: "unsupported_installation" });
+  expect(spawnLineProcess).not.toHaveBeenCalled();
+});
+
+test("a failed help probe is not cached as unsupported", async () => {
+  const flaky = { ...installation, command: "claude-flaky", version: "2.1.283" };
+  runExecutable.mockResolvedValueOnce({ ok: false, stdout: "", stderr: "", exitCode: null });
+  await expect(claudeAccountUsage(flaky)).resolves.toEqual({ kind: "unsupported", reason: "unsupported_installation" });
+  spawnLineProcess.mockReturnValue(serving(available));
+  await expect(claudeAccountUsage(flaky)).resolves.toMatchObject({ kind: "available" });
+  expect(runExecutable).toHaveBeenCalledTimes(2);
 });
 
 test("native unavailable quota is not guessed to mean invalid credentials or auth mode", async () => {
