@@ -66,8 +66,10 @@ function pushedModel(currentValue) {
  */
 // Mode "cursor" replays cursor-agent 2026.09.28: the effort selector exists
 // only when the client opts into `clientCapabilities._meta.parameterizedModelPicker`.
+// Mode "antigravity" replays agy_acp_server 1.2.1, whose effort is part of the model id.
 export function sessionModelReport(mode, parameterizedModelPicker) {
-  return modelReport(mode === "cursor" && parameterizedModelPicker !== true ? "no-thought-level" : mode);
+  const noEffort = mode === "antigravity" || (mode === "cursor" && parameterizedModelPicker !== true);
+  return modelReport(noEffort ? "no-thought-level" : mode);
 }
 
 export function setModelResponse(modelId) {
@@ -89,12 +91,12 @@ export function setModelResponse(modelId) {
  * with the full option set, the new model's effort menu at its default; no
  * `config_option_update` is pushed. An unknown model is refused `-32602`.
  */
-function setModelOption(value) {
+function setModelOption(value, effort) {
   if (value !== EFFECTIVE_MODEL && value !== "requested-y") {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
   }
   currentModel = value;
-  return { response: { configOptions: [modelOption(value), effortOption("medium")] } };
+  return { response: { configOptions: [modelOption(value), ...(effort === true ? [effortOption("medium")] : [])] } };
 }
 
 /**
@@ -105,9 +107,9 @@ function setModelOption(value) {
  * `-32602 Invalid params`. `sticky` is a level the fixture accepts but does
  * not apply (answered at `medium`), the silent substitution oar must refuse.
  */
-export function setConfigOption(params) {
+export function setConfigOption(params, effort = true) {
   if (params?.configId === "model") {
-    return setModelOption(params.value);
+    return setModelOption(params.value, effort);
   }
   if (params?.configId !== EFFORT_ID) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
@@ -125,12 +127,13 @@ export function setConfigOption(params) {
 /**
  * Answer `session/set_model` or `session/set_config_option` on the wire:
  * any push first (kimi pushes before it answers), then the answer, or the
- * refusal as a JSON-RPC error.
+ * refusal as a JSON-RPC error. `effort` false: the agent has no effort
+ * selector (agy_acp_server 1.2.1), so a model switch answers the model alone.
  */
-export function answerConfigRequest(message, wire) {
+export function answerConfigRequest(message, wire, effort = true) {
   const outcome = message.method === "session/set_model"
     ? setModelResponse(message.params?.modelId)
-    : setConfigOption(message.params);
+    : setConfigOption(message.params, effort);
   if (outcome.error !== undefined) {
     wire.error(message.id, outcome.error.code, outcome.error.message, outcome.error.data);
     return;

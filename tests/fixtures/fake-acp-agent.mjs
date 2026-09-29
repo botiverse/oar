@@ -10,6 +10,10 @@ const reverseRequests = new Map();
 let reverseId = 0;
 // Mode "cursor": see sessionModelReport in fake-acp-model.mjs.
 let parameterizedModelPicker = false;
+// Mode "antigravity" replays agy_acp_server 1.2.1: no `close` (exits 3 if sent), no usage_update,
+// and every open starts at mode `default`, which a "mode" prompt reports.
+const antigravity = mode === "antigravity";
+let currentMode = "default";
 
 function send(message) {
   process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -48,8 +52,9 @@ let completedTurns = 0;
 
 function completePrompt(id, text) {
   completedTurns += 1;
-  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `echo:${text}` } });
-  if (mode === "usage-after-response" || mode === "usage-never") {
+  const reply = antigravity && text === "mode" ? `mode:${currentMode}` : `echo:${text}`;
+  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: reply } });
+  if (antigravity || mode === "usage-after-response" || mode === "usage-never") {
     result(id, { stopReason: "end_turn" });
     if (mode === "usage-after-response") {
       setTimeout(() => update({ sessionUpdate: "usage_update", used: completedTurns * 100, size: 1000 }), 40);
@@ -127,10 +132,7 @@ function handleSessionPrompt(message) {
       status: "completed",
       rawOutput: { content: "fixture-value" },
     });
-    update({
-      sessionUpdate: "agent_message_chunk",
-      content: { type: "text", text: "tool-done" },
-    });
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "tool-done" } });
     update({ sessionUpdate: "usage_update", used: 500, size: 2000 });
     result(message.id, { stopReason: "end_turn" });
     return;
@@ -159,12 +161,7 @@ function handleSessionPrompt(message) {
   if (text === "permission") {
     askClient("permission", message.id, "session/request_permission", {
       sessionId: "fake-session",
-      toolCall: {
-        toolCallId: "permission-tool",
-        title: "Permission fixture",
-        kind: "execute",
-        status: "pending",
-      },
+      toolCall: { toolCallId: "permission-tool", title: "Permission fixture", kind: "execute", status: "pending" },
       options: [
         { optionId: "once", kind: "allow_once", name: "Allow once" },
         { optionId: "always", kind: "allow_always", name: "Always allow" },
@@ -201,7 +198,7 @@ function handleSessionRequest(message) {
         protocolVersion: 1,
         agentCapabilities: {
           loadSession: true,
-          sessionCapabilities: { resume: {}, close: {} },
+          sessionCapabilities: antigravity ? { list: {}, resume: {} } : { resume: {}, close: {} },
         },
         authMethods: [{ id: "cached", name: "Cached login" }],
       });
@@ -234,15 +231,19 @@ function handleSessionRequest(message) {
       break;
     case "session/set_model":
     case "session/set_config_option":
-      answerConfigRequest(message, { update, result, error });
+      answerConfigRequest(message, { update, result, error }, !antigravity);
       break;
     case "session/set_mode":
+      currentMode = message.params?.modeId ?? currentMode;
       result(message.id);
       break;
     case "session/prompt":
       handleSessionPrompt(message);
       break;
     case "session/close":
+      if (antigravity) {
+        process.exit(3);
+      }
       send({ jsonrpc: "2.0", method: "fixture/closed", params: message.params });
       result(message.id);
       break;

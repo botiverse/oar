@@ -1,12 +1,14 @@
 import { existsSync } from "node:fs";
 import type { InstallationProbe, InstallationSnapshot } from "../contracts/installation.js";
-import { readExecutableVersion, resolveExecutable, runExecutable } from "./executable/index.js";
+import { readExecutableVersion, resolveExecutable, runExecutable, type VersionReader } from "./executable/index.js";
 
 // An entry with a path separator is a pinned path: it must exist as given and
 // never silently falls back to a different binary. A bare name resolves on PATH.
 export interface ExecutableInstallationOptions {
   readonly readinessTimeoutMs?: number;
   readonly versionTimeoutMs?: number;
+  /** For executables whose `--version` does not lead with the version. */
+  readonly readVersion?: VersionReader;
 }
 
 export type ExecutableFallbacks = readonly string[] | (() => readonly string[]);
@@ -20,9 +22,9 @@ function usable(entry: string): string | null {
 
 async function versionSnapshot(
   command: string,
-  timeoutMs?: number,
+  options: ExecutableInstallationOptions,
 ): Promise<InstallationSnapshot> {
-  const version = await readExecutableVersion(command, timeoutMs);
+  const version = await readExecutableVersion(command, options.versionTimeoutMs, options.readVersion);
   return version === undefined
     ? { kind: "available", via: "executable", command }
     : { kind: "available", via: "executable", command, version };
@@ -60,7 +62,7 @@ export function executableInstallation(
       return { kind: "not_found" };
     }
     if (readiness === undefined) {
-      return versionSnapshot(first, options.versionTimeoutMs);
+      return versionSnapshot(first, options);
     }
 
     for (const candidate of found) {
@@ -75,7 +77,7 @@ export function executableInstallation(
         throw new Error(`Failed to run ${candidate} ${readiness.join(" ")}`);
       }
       if (result.ok) {
-        return versionSnapshot(candidate, options.versionTimeoutMs);
+        return versionSnapshot(candidate, options);
       }
     }
     return { kind: "unsupported", reason: `${readiness.join(" ")} failed` };

@@ -19,6 +19,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | pi | `none` | pi has no native sub-agents; `agentPath` is always root |
 | cursor (ACP) | `nested` | with the `subagents` opt-in, vendor `subagent_spawned` on the parent's `session/update` names the child session and adds a `tool_call` edge; the child's own updates arrive under its session id ([env] cursor-agent 2026.09.28) |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications (names pinned from binary symbols, re-checked on grok 1.0.25; unverified live, no grok credentials on the probe machine) add edges when they name a parent |
+| antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
@@ -28,6 +29,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | pi | no native (host composes) | host-nested sessions | flat (host splits) | no runtime-reported edges | session id | [src] |
 | cursor (ACP) | nested sessions (#3), same connection, behind a client opt-in | `subagent_spawned.subagentSessionId`, `_meta.cursor.toolCallId`; `subagent_state_update` ends it | no usage reported for any session ([env]) | parent→child session edges (in graph, [env]) | ACP `sessionId` | [native/current mapping](../runtimes/cursor.md) |
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
+| antigravity (ACP) | opaque (#1): child activity flattened onto the parent session | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |

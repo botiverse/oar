@@ -39,7 +39,7 @@ test("theme assets are standalone SVGs for their destination background", () => 
       assert.ok(selected !== null);
       assert.ok(selected.startsWith("data:image/svg+xml,"));
       const variant = decodeURIComponent(selected.slice("data:image/svg+xml,".length));
-      const file = id === "claude" ? id : `${id}-on-${theme}`;
+      const file = id === "claude" || id === "antigravity" ? id : `${id}-on-${theme}`;
       assert.equal(variant, readFileSync(new URL(`../packages/oar/assets/brands/${file}.svg`, import.meta.url), "utf8"));
       assert.doesNotMatch(variant, /currentColor|<script|<foreignObject|\son\w+=|(?:href|src)=/iu);
     }

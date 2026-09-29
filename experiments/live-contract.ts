@@ -14,7 +14,7 @@
  * pass/fail, so a surprising runtime behavior is evidence, not a red test.
  *
  * Run: pnpm tsx experiments/live-contract.ts <backend> [--model <id>] [--only a,b,c] [--out <dir>]
- *   backend: a real runtime id (claude|codex|cursor|grok|kimi|pi, logged in, BURNS
+ *   backend: a real runtime id (antigravity|claude|codex|cursor|grok|kimi|pi, logged in, BURNS
  *   TOKENS) or a sea-trial backend (mock|claude-aimock|codex-aimock|pi-aimock,
  *   zero tokens, for shaking the battery itself, not for evidence).
  * Output: <out>/<scenario>.voyage.jsonl per scenario + <out>/report.json;
@@ -52,6 +52,7 @@ function flag(name: string): string | undefined {
 }
 const runtimeId = backendId.replace(/-aimock$/u, "");
 const DEFAULT_MODEL: Record<string, string> = {
+  antigravity: "gemini-3.8-flash-low",
   claude: "haiku",
   codex: "gpt-5.3-codex-spark",
   cursor: "gpt-5.4-nano",
@@ -530,6 +531,7 @@ const scenarios: Scenario[] = [
     async run(open, facts, notes) {
       const session = await open();
       const ask: Record<string, string> = {
+        antigravity: "Launch exactly one subagent whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
         claude: "Use the Task tool to launch exactly one subagent (subagent_type general-purpose) whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
         codex: "You have a sub-agent (spawn_agent / collaboration) tool. Spawn exactly one sub-agent whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Wait for it to finish, then reply with exactly the line it reported. Do not run the command yourself.",
         cursor: "Use the Task tool to launch exactly one subagent whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
