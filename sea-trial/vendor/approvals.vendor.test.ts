@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -79,26 +79,71 @@ function ranOnce(statuses: readonly unknown[]): boolean {
   return statuses.length === 1 && statuses[0] !== "declined";
 }
 
+/** The probe commands, relative so every shell reads them alike; the session one writes outside the cwd, where claude's grant needs its directory too. */
+const PROBES = { allowed: "touch allowed", session: "touch ../session", denied: "touch denied" } as const;
+
+function approvalFixtures(mock: LLMock, shell: ShellCall): void {
+  for (const [name, command] of Object.entries(PROBES)) {
+    mock.on({ userMessage: new RegExp(`oar-${name}-probe`, "u"), hasToolResult: false }, { toolCalls: [shell(command)] });
+  }
+  mock.on({ userMessage: /oar-question-probe/u, hasToolResult: false }, {
+    toolCalls: [{ name: "AskUserQuestion", arguments: JSON.stringify({ questions: [{ question: "Which color?", header: "Color", multiSelect: false, options: [{ label: "Red", description: "warm" }, { label: "Blue", description: "cool" }] }] }) }],
+  });
+  mock.on({ hasToolResult: true }, { content: "done" });
+  mock.onMessage(/[\s\S]*/u, { content: "ok" });
+}
+
+/**
+ * The sessions a test opens in `dir`, all disposed on close, and by a
+ * watchdog before the test's own timeout: a held turn ends, so a hang
+ * surfaces as the expectation it breaks rather than as a timeout.
+ */
+function sessionPool(runtime: Runtime, env: AimockEnv, dir: string): { readonly open: () => Promise<Session>; readonly close: () => Promise<void> } {
+  const sessions: Session[] = [];
+  const disposeAll = async (): Promise<void> => {
+    await Promise.all(sessions.map(async (session) => session.dispose()));
+  };
+  const watchdog = setTimeout(() => { void disposeAll(); }, 120_000);
+  return {
+    open: async () => {
+      const session = await runtimeUnderTest(runtime, env.env).startSession({ approvals: "ask", cwd: dir });
+      sessions.push(session);
+      return session;
+    },
+    close: async () => {
+      clearTimeout(watchdog);
+      await disposeAll();
+    },
+  };
+}
+
+/**
+ * A scratch root and the session cwd inside it, by the long name: a Windows
+ * temp dir is an 8.3 short path (RUNNER~1), which claude's safety check flags
+ * as suspicious, offering no session grant there (`suppress_always_allow_rule`).
+ */
+async function scratch(): Promise<{ readonly dir: string; readonly cwd: string }> {
+  const created = await mkdtemp(path.join(tmpdir(), "oar-approvals-vendor-"));
+  const dir = await realpath(created);
+  const cwd = path.join(dir, "work");
+  await mkdir(cwd);
+  return { dir, cwd };
+}
+
 async function withScript(
   start: (configure: (mock: LLMock) => void) => Promise<AimockEnv>,
   shell: ShellCall,
-  body: (open: () => Promise<Session>, dir: string) => Promise<void>,
+  body: (open: () => Promise<Session>, cwd: string) => Promise<void>,
   runtime: Runtime,
 ): Promise<void> {
-  const dir = await mkdtemp(path.join(tmpdir(), "oar-approvals-vendor-"));
-  const env = await start((mock) => {
-    for (const name of ["allowed", "session", "denied"]) {
-      mock.on({ userMessage: new RegExp(`oar-${name}-probe`, "u"), hasToolResult: false }, { toolCalls: [shell(`touch ${name}`)] });
-    }
-    mock.on({ userMessage: /oar-question-probe/u, hasToolResult: false }, {
-      toolCalls: [{ name: "AskUserQuestion", arguments: JSON.stringify({ questions: [{ question: "Which color?", header: "Color", multiSelect: false, options: [{ label: "Red", description: "warm" }, { label: "Blue", description: "cool" }] }] }) }],
-    });
-    mock.on({ hasToolResult: true }, { content: "done" });
-    mock.onMessage(/[\s\S]*/u, { content: "ok" });
-  });
+  const { dir, cwd } = await scratch();
+  const env = await start((mock) => { approvalFixtures(mock, shell); });
+  const pool = sessionPool(runtime, env, cwd);
   try {
-    await body(async () => runtimeUnderTest(runtime, env.env).startSession({ approvals: "ask", cwd: dir }), dir);
+    await body(pool.open, cwd);
   } finally {
+    // Before the mock stops: a live runtime's connection would hold the stop.
+    await pool.close();
     await env.stop();
     // Windows holds a directory a moment after the process that ran in it exits.
     await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
@@ -109,7 +154,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude approvals thro
   const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
 
   test("allow runs the tool; a session grant lets it run again unasked; a deny's message is what the model reads", async () => {
-    await withScript(startClaudeAimock, claudeShell, async (open, dir) => {
+    await withScript(startClaudeAimock, claudeShell, async (open, cwd) => {
       const session = await open();
       const allowed = await round(session, "oar-allowed-probe", () => ({ kind: "allow" }));
       const granted = await round(session, "oar-session-probe", () => ({ kind: "allow", scope: "session" }));
@@ -119,16 +164,15 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude approvals thro
         asked: [allowed, granted, again, denied].map((turn) => turn.asks.map((ask) => (ask.kind === "tool_approval" ? `${ask.tool}: ${ask.command ?? ""}` : ask.kind))),
         results: [allowed, again, denied].map((turn) => toolEnds(turn.records).map((end) => end.result)),
         deniedOutput: toolEnds(denied.records).map((end) => end.output),
-        deniedRan: await exists(path.join(dir, "denied")),
+        deniedRan: await exists(path.join(cwd, "denied")),
         outcomes: [allowed, granted, again, denied].map((turn) => turn.outcome),
       }).toEqual({
-        asked: [["Bash: touch allowed"], ["Bash: touch session"], [], ["Bash: touch denied"]],
+        asked: [[`Bash: ${PROBES.allowed}`], [`Bash: ${PROBES.session}`], [], [`Bash: ${PROBES.denied}`]],
         results: [["ok"], ["ok"], ["failed"]],
         deniedOutput: [JSON.stringify("not now, use the staging box")],
         deniedRan: false,
         outcomes: [{ kind: "completed" }, { kind: "completed" }, { kind: "completed" }, { kind: "completed" }],
       });
-      await session.dispose();
     }, runtime);
   }, 180_000);
 
@@ -139,7 +183,6 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude approvals thro
       expect(asked.asks.map((ask) => (ask.kind === "question" ? ask.questions.map((question) => [question.id, question.options.map((option) => option.label)]) : ask.kind))).toEqual([[["Which color?", ["Red", "Blue"]]]]);
       const [end] = toolEnds(asked.records);
       expect(end?.output).toContain(String.raw`\"Which color?\"=\"Blue\"`);
-      await session.dispose();
     }, runtime);
   }, 180_000);
 });
@@ -148,7 +191,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex approvals throug
   const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
 
   test("accept runs the command; acceptForSession lets it run again unasked; decline leaves it unrun and the turn goes on", async () => {
-    await withScript(startCodexAimock, codexShell, async (open, dir) => {
+    await withScript(startCodexAimock, codexShell, async (open, cwd) => {
       const session = await open();
       const allowed = await round(session, "oar-allowed-probe", () => ({ kind: "allow" }));
       const granted = await round(session, "oar-session-probe", () => ({ kind: "allow", scope: "session" }));
@@ -158,7 +201,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex approvals throug
         asked: [allowed, granted, again, denied].map((turn) => turn.asks.map((ask) => (ask.kind === "tool_approval" ? ask.tool : ask.kind))),
         ran: [allowed, granted, again].map((turn) => ranOnce(commandStatuses(turn.records))),
         denied: commandStatuses(denied.records),
-        deniedRan: await exists(path.join(dir, "denied")),
+        deniedRan: await exists(path.join(cwd, "denied")),
         outcomes: [allowed, again, denied].map((turn) => turn.outcome),
       }).toEqual({
         asked: [["commandExecution"], ["commandExecution"], [], ["commandExecution"]],
@@ -167,7 +210,6 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex approvals throug
         deniedRan: false,
         outcomes: [{ kind: "completed" }, { kind: "completed" }, { kind: "completed" }],
       });
-      await session.dispose();
     }, runtime);
   }, 180_000);
 });

@@ -278,6 +278,13 @@ against a scripted provider
   ran unasked, also for a path outside the working directory, which the
   rule alone did not cover (claude-aimock vendor test). Nothing is written
   to a settings file.
+- A write claude's safety check flags carries `decision_reason_type:
+  "safetyCheck"`, `classifier_approvable: false` and
+  `suppress_always_allow_rule: true`, though it still suggests an `addRules`
+  (CI on windows-latest: a path through the 8.3 short name `RUNNER~1`, "a
+  suspicious Windows path pattern"). OAR then offers no `allow_session`:
+  `ask.choices` is `allow`, `deny`, and a session grant is refused
+  `unsupported`.
 - `AskUserQuestion` is a `can_use_tool` with `requires_user_interaction:
   true` and `input.questions`; the answer is `updatedInput: {...input,
   answers: {<question text>: "<label>[, <label>]"}}`, which the model reads
