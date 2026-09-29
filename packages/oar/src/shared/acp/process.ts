@@ -7,6 +7,7 @@ import {
 import { Readable, Writable } from "node:stream";
 import { spawnLineProcess } from "../executable/index.js";
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
+import { vendorSessionUpdateCarrier } from "./vendor-updates.js";
 
 export { client as createAcpClient, methods } from "@agentclientprotocol/sdk";
 export type { ClientApp, SessionNotification } from "@agentclientprotocol/sdk";
@@ -33,6 +34,8 @@ function processClosed(process: AcpProcess): boolean {
 export interface AcpProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
+  /** Vendor `session/update` kinds to carry past the SDK's parse (see vendor-updates.ts). */
+  readonly vendorSessionUpdates?: readonly string[];
 }
 
 /** A child process connected directly to an official SDK client app. */
@@ -91,14 +94,18 @@ export function startAcpProcess(
   app: ClientApp,
   options: AcpProcessOptions = {},
 ): AcpProcess {
-  const child = spawnLineProcess(command, args, options);
+  const { vendorSessionUpdates = [], ...spawnOptions } = options;
+  const child = spawnLineProcess(command, args, spawnOptions);
   // Node and TypeScript model the same WHATWG byte streams with incompatible
   // generic constraints.
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
   const output = Writable.toWeb(child.stdin) as Parameters<typeof ndJsonStream>[0];
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
   const input = Readable.toWeb(child.stdout) as Parameters<typeof ndJsonStream>[1];
-  const connection = app.connect(ndJsonStream(output, input));
+  const stream = ndJsonStream(output, input);
+  const connection = app.connect(vendorSessionUpdates.length === 0
+    ? stream
+    : { readable: stream.readable.pipeThrough(vendorSessionUpdateCarrier(vendorSessionUpdates)), writable: stream.writable });
   let ended = false;
   let exitCode: number | null = null;
   child.onExit((code) => {

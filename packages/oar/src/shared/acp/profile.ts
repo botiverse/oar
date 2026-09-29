@@ -28,23 +28,24 @@ export interface AcpSessionProfile {
    */
   readonly extensionNotifications?: readonly string[];
   /**
-   * Vendor request methods (runtime→app) oar records, then answers with the
-   * SDK's own `-32601 Method not found`, so the agent takes its fallback for a
-   * client without the method (cursor-agent 2026.09.28 `cursor/ask_question`
-   * → `session/request_permission`) and the payload is not lost.
+   * Vendor request methods (runtime→app) oar records, then answers `-32601`, so the agent takes
+   * its fallback (cursor-agent 2026.09.28 `cursor/ask_question` → `session/request_permission`).
    */
   readonly extensionRequests?: readonly string[];
+  /**
+   * Vendor `session/update` kinds the SDK would drop (cursor-agent 2026.09.28 `subagent_spawned`);
+   * listed ones are recorded in wire order and their `subagentSessionId` links the child session.
+   */
+  readonly vendorSessionUpdates?: readonly string[];
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
   /**
-   * `clientCapabilities._meta` on initialize (cursor-agent 2026.09.28
-   * `parameterizedModelPicker`, without which it folds effort into the model
-   * id and advertises no `thought_level` option).
+   * `clientCapabilities._meta` on initialize (cursor-agent 2026.09.28 `parameterizedModelPicker`,
+   * without which it folds effort into the model id and advertises no `thought_level` option).
    */
   readonly clientCapabilitiesMeta?: (options: SessionOptions) => JsonRecord | undefined;
   /**
-   * Switch models with `session/set_config_option` on the `model` option, for
-   * agents whose `set_model` answers `{}` and pushes nothing (cursor-agent
-   * 2026.09.28): only that answer reports the model and its effort menu.
+   * Switch models with `session/set_config_option` on `model`, for agents whose `set_model` answers
+   * `{}` and pushes nothing (cursor-agent 2026.09.28): only that answer reports the effort menu.
    */
   readonly modelViaConfigOption?: boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
@@ -266,8 +267,7 @@ export async function openAcpSession(
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
     });
-  // A model switch re-derives the effort menu, so effort reads the switch's
-  // answer when it lists configOptions.
+  // A model switch re-derives the effort menu, so effort reads its answer when it lists one.
   const configAnswer = Array.isArray(setModelResponse?.configOptions) ? setModelResponse : opened.response;
   if (options.effort !== undefined) {
     await applyAcpEffort(process, { ...opened, response: configAnswer }, options.effort, {

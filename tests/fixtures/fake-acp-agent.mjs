@@ -1,6 +1,7 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
 import { createInterface } from "node:readline";
 import { grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
+import { spawnChildCursor } from "./fake-acp-cursor.mjs";
 import { answerConfigRequest, sessionModelReport, setModelResponse } from "./fake-acp-model.mjs";
 
 const mode = process.argv[2] ?? "session";
@@ -109,10 +110,7 @@ function handleSessionPrompt(message) {
     return;
   }
   if (text === "tool") {
-    update({
-      sessionUpdate: "agent_thought_chunk",
-      content: { type: "text", text: "inspect" },
-    });
+    update({ sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "inspect" } });
     update({
       sessionUpdate: "tool_call",
       toolCallId: "call-read",
@@ -122,11 +120,7 @@ function handleSessionPrompt(message) {
       status: "pending",
       rawInput: { path: "input.txt" },
     });
-    update({
-      sessionUpdate: "tool_call_update",
-      toolCallId: "call-read",
-      status: "in_progress",
-    });
+    update({ sessionUpdate: "tool_call_update", toolCallId: "call-read", status: "in_progress" });
     update({
       sessionUpdate: "tool_call_update",
       toolCallId: "call-read",
@@ -152,6 +146,10 @@ function handleSessionPrompt(message) {
     update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "child-says-hi" } }, "fake-child");
     update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "parent-continues" } });
     result(message.id, { stopReason: "end_turn" });
+    return;
+  }
+  if (text === "spawn-child-cursor") {
+    result(message.id, spawnChildCursor(update));
     return;
   }
   if (text === "spawn-child-grok" || text === "grok-usage") {

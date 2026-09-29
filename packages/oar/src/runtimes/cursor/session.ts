@@ -12,15 +12,24 @@ export function selectCursorAuthMethod(initialized: JsonRecord): string | undefi
 }
 
 /**
- * Without this opt-in cursor-agent 2026.09.28 answers in its "variants"
- * picker mode: every model and effort pair is one flat `model` value and no
- * `thought_level` option exists. With it, `model` lists plain model names and
- * each model parameter is its own select option, the reasoning one under
- * category `thought_level`.
+ * Without `parameterizedModelPicker` cursor-agent 2026.09.28 answers in its
+ * "variants" picker mode: every model and effort pair is one flat `model`
+ * value and no `thought_level` option exists. With it, `model` lists plain
+ * model names and each model parameter is its own select option, the
+ * reasoning one under category `thought_level`. Without `subagents` a child
+ * is visible only as the parent's `task` tool call.
  */
 export function cursorClientCapabilitiesMeta(): JsonRecord {
-  return { parameterizedModelPicker: true };
+  return { parameterizedModelPicker: true, subagents: true };
 }
+
+/**
+ * With the `subagents` opt-in cursor-agent 2026.09.28 announces each child on
+ * the parent's own `session/update` (`subagent_spawned`, then
+ * `subagent_state_update` with completed, failed, cancelled or disconnected),
+ * and the child's standard updates arrive under its own session id.
+ */
+export const CURSOR_VENDOR_SESSION_UPDATES: readonly string[] = ["subagent_spawned", "subagent_state_update"];
 
 function validateCursorOptions(options: SessionOptions): void {
   if (options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined) {
@@ -54,9 +63,11 @@ export const CURSOR_EXTENSION_REQUESTS: readonly string[] = [
 
 export const cursorAcpProfile: AcpSessionProfile = {
   args: cursorAcpArgs,
-  // Cursor's ACP method set has no steer, and its subagent activity reaches
-  // the transport only as the parent's tool calls: opaque.
-  capabilities: { steer: false, queue: { durable: false }, attribution: "opaque" },
+  // Cursor's ACP method set has no steer. Subagents, once opted into, speak
+  // under their own session ids (attribution tier #3,
+  // docs/spec/attribution.md): recorded under those ids and linked to the
+  // parent.
+  capabilities: { steer: false, queue: { durable: false }, attribution: "nested" },
   requestTimeoutMs: 30_000,
   selectAuthMethod: selectCursorAuthMethod,
   validateOptions: validateCursorOptions,
@@ -65,6 +76,7 @@ export const cursorAcpProfile: AcpSessionProfile = {
   // `config_option_update`, so only `set_config_option` reports the switch.
   modelViaConfigOption: true,
   extensionRequests: CURSOR_EXTENSION_REQUESTS,
+  vendorSessionUpdates: CURSOR_VENDOR_SESSION_UPDATES,
 };
 
 export const cursorSession = acpSession(cursorAcpProfile);
