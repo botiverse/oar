@@ -16,6 +16,13 @@ the [experiments index](../../experiments/README.md). Versions are evidence
 baselines, not a support range. See the [runtime index](README.md) for
 evidence and status conventions.
 
+The full applicable live battery was repeated on **0.87.1** on 2026-09-29
+(Linux x64, Node 24.19.0, `exe-dev-openai/gpt-6-luna@llm`): **11/11 passed**,
+with subagents and process killing inapplicable. Pi's simulated-provider
+behavior and vendor suites also passed. See the
+[version check report](../../experiments/runtime-version-checks/2026-09-29.md)
+for the exact scope, commands and evidence location.
+
 ## Native concepts and calling interfaces
 
 Pi is an extensible agent harness. Its public interfaces distinguish objects

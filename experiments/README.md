@@ -7,6 +7,7 @@ and deliberately avoid repo machinery where independence is the point.
 
 | Experiment | Fact it pins | Last observed |
 |---|---|---|
+| `runtime-versions.ts` | Read-only stable release inventory compared with detected CLIs and OAR's resolved Pi SDK; version matches are separate from live compatibility probes | [2026-09-29](runtime-version-checks/2026-09-29.md): Claude 2.1.284, Codex 0.158.0, Grok 1.0.44, Kimi 2.1.1 smoke 2/2 each; Pi SDK 0.87.1 live 11/11 applicable scenarios |
 | [`inventory/probe.py`](inventory/README.md) | Native skills, MCP and tools across five runtimes; query scopes, schemas and startup state. [Findings](../docs/runtimes/inventory.md) | 2026-09-16 |
 | [`native-read-survey.ts`](native-read-survey.ts) `[all\|codex\|claude] [cwd]` | Native config, MCP, skills/hooks/permissions, context, usage and inventory queries without model turns; field-only output. [Findings and limits](native-read-survey.md) | 2026-09-16, codex 0.154.0 + claude 2.1.273 |
 | `claude-stream-json-input.ts` | stdin writable at every phase; single-step turns queue mid-turn input | 2026-08-21, claude 2.1.237 |
