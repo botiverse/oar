@@ -56,7 +56,8 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude effort on the 
     try {
       const opened = runtimeUnderTest(runtime, env.env).startSession({ model: "haiku", effort: "low" });
       await expect(opened).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: claude sends no effort for claude-haiku-4-5-20251001 (the model takes none), so effort low would be dropped]`);
-      expect(env.raw).toEqual([]);
+      // No model call went out. Newer claude builds ping the endpoint at startup (/api/hello), which is not one.
+      expect(env.raw.filter((request) => request.path.includes("/v1/messages"))).toEqual([]);
     } finally {
       await env.stop();
     }
