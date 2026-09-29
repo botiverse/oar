@@ -13,6 +13,12 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 <table>
   <tr>
     <td align="center" width="112">
+      <a href="docs/runtimes/antigravity.md">
+        <img src="packages/oar/assets/brands/antigravity.svg" width="32" height="32" alt=""><br>
+        Antigravity
+      </a>
+    </td>
+    <td align="center" width="112">
       <a href="docs/runtimes/claude.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/claude.svg">

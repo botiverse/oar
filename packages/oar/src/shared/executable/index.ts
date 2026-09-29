@@ -1,7 +1,7 @@
 export { resolveExecutable } from "./resolve.js";
 export type { ExecutableResult, ExecutableRunner, ExecutableRunOptions } from "./run.js";
 export { runExecutable } from "./run.js";
-export { readExecutableVersion } from "./version.js";
+export { readExecutableVersion, type VersionReader } from "./version.js";
 export type { LineProcess } from "./process.js";
 export {
   KILL_GRACE_MS,

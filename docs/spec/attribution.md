@@ -99,6 +99,10 @@ independent codebases already demonstrate the inevitable degeneration
   usage. [src]
 - cursor (ACP): nested sessions behind the `subagents` opt-in; no usage
   for parent or child. [env]
+- antigravity (ACP): opaque; agy_acp_server 1.2.1 flattens the child's
+  tool calls and text onto the parent session (the child id survives
+  only as a `toolCallId` prefix) and reports no usage, so only the root
+  is marked. [env]
 - kimi (ACP): opaque; an internal graph exists, but the default ACP
   server subscribes only to the main agent. The protocol honestly marks
   root only; fabricating a child graph from display text is forbidden.

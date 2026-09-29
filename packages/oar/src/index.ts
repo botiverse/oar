@@ -1,4 +1,5 @@
 import { RuntimeRegistry } from "./registry.js";
+import { antigravityRuntime } from "./runtimes/antigravity/index.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
 import { cursorRuntime } from "./runtimes/cursor/index.js";
@@ -131,6 +132,10 @@ export { createPiProviderAuth } from "./runtimes/pi/auth.js";
 export type { PiProviderAuthOptions } from "./runtimes/pi/auth.js";
 export { createPiModelCatalog } from "./runtimes/pi/catalog.js";
 export type { PiModelCatalogOptions } from "./runtimes/pi/catalog.js";
+export { antigravityRuntime } from "./runtimes/antigravity/index.js";
+export { antigravitySession } from "./runtimes/antigravity/session.js";
+export { antigravityInstallation } from "./runtimes/antigravity/installation.js";
+export { antigravityListModels, projectAntigravityModels } from "./runtimes/antigravity/list-models.js";
 export { cursorRuntime } from "./runtimes/cursor/index.js";
 export { cursorListModels, projectCursorModels } from "./runtimes/cursor/list-models.js";
 export { cursorSession } from "./runtimes/cursor/session.js";
@@ -149,6 +154,7 @@ export { piSession } from "./runtimes/pi/session.js";
 export { piInstallation } from "./runtimes/pi/installation.js";
 
 export const runtimes = new RuntimeRegistry([
+  antigravityRuntime,
   claudeRuntime,
   codexRuntime,
   cursorRuntime,
