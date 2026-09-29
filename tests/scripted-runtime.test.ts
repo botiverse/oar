@@ -119,3 +119,49 @@ test("the accepted response comes before the turn's first event", async () => {
   assert.deepEqual(kinds.slice(0, 4), ["scripted/model", "request", "response", "scripted/text"]);
   await session.dispose();
 });
+
+// A late tool_call_ended would reopen the ended turn: the status fold adopts a mid-turn event seen while idle.
+test("a tool that fails after an abort ended its turn records nothing: the session stays idle", async () => {
+  const running = Promise.withResolvers<undefined>();
+  let continued = false;
+  const session = await open(async ({ tool, signal }) => {
+    await tool("Bash", "sleep 5", async () => {
+      running.resolve(undefined);
+      await delay(5000, undefined, { signal });
+    });
+    continued = true;
+  });
+  const events = collect(session);
+  const started = await session.prompt("run it");
+  await running.promise;
+  const [abort, outcome] = [await session.abort(), await awaitTurnEnd(session, started.seq)];
+  // The abort ended the turn at once; only then does the work reject (AbortError). A timer turn lets that settle.
+  await delay(0);
+  assert.deepEqual(
+    [abort.kind, outcome, events.map((event) => event.kind), session.status().value, continued],
+    ["accepted", { kind: "aborted" }, ["turn_started", "tool_call_started", "turn_ended", "usage"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }, false],
+  );
+  await session.dispose();
+});
+
+test("a tool that returns after dispose ended its turn records nothing", async () => {
+  const running = Promise.withResolvers<undefined>();
+  const release = Promise.withResolvers<string>();
+  const session = await open(async ({ tool }) => {
+    // The work ignores the signal: it returns whenever the test releases it.
+    await tool("read", "notes.md", async () => {
+      running.resolve(undefined);
+      return release.promise;
+    });
+  });
+  const events = collect(session);
+  await session.prompt("read it");
+  await running.promise;
+  await session.dispose();
+  release.resolve("contents");
+  await delay(0);
+  assert.deepEqual(
+    [events.map((event) => event.kind), session.status().value],
+    [["turn_started", "tool_call_started", "turn_ended", "usage", "exited"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }],
+  );
+});

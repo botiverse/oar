@@ -8,7 +8,9 @@ import { createSessionKernel, sealSession } from "../kernel.js";
  * What a script sees and does during one turn. Everything it emits enters the
  * record stream as frames of type `scripted/*`, read into the ordinary events
  * (`text_delta`, `reasoning`, `tool_call_*`), so a host exercises exactly the
- * paths a vendor runtime would drive.
+ * paths a vendor runtime would drive. An abort or dispose ends the turn at
+ * once, without waiting for the script; nothing the script emits after that
+ * is recorded.
  */
 export interface ScriptedTurn {
   /** The input that began the turn: a prompt, or a queued input when its turn starts. */
@@ -27,6 +29,9 @@ export interface ScriptedTurn {
    * Run a tool: `tool_call_started`, then `run` (awaited), then
    * `tool_call_ended` carrying its result as output (`ok`), or the thrown
    * error's message (`failed`, and the error is rethrown to the script).
+   * A tool that settles after the turn ended (an abort or dispose ended it
+   * while `run` was in flight) records nothing: the call gets no
+   * `tool_call_ended`, and a thrown error is still rethrown.
    */
   readonly tool: (name: string, input: string, run?: () => unknown) => Promise<void>;
 }
@@ -106,13 +111,22 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           callSeq += 1;
           const callId = `call-${String(callSeq)}`;
           frame("scripted/tool_start", { callId, name, input: toolInput }, [{ kind: "tool_call_started", callId, tool: name, input: toolInput }]);
+          // Work can settle after an abort or dispose ended the turn. Its end is then not recorded:
+          // the status fold adopts a mid-turn event seen while idle, so a late tool_call_ended would
+          // reopen a turn nothing ends (or end the next turn's call of the same id). A failure still
+          // reaches the script, so it stops.
           try {
             const result: unknown = await work?.();
+            if (!live()) {
+              return;
+            }
             const output = typeof result === "string" || result === undefined ? result : JSON.stringify(result);
             frame("scripted/tool_end", { callId, output, result: "ok" }, [{ kind: "tool_call_ended", callId, result: "ok", ...(output === undefined ? {} : { output }) }]);
           } catch (error) {
-            const output = error instanceof Error ? error.message : String(error);
-            frame("scripted/tool_end", { callId, output, result: "failed" }, [{ kind: "tool_call_ended", callId, result: "failed", output }]);
+            if (live()) {
+              const output = error instanceof Error ? error.message : String(error);
+              frame("scripted/tool_end", { callId, output, result: "failed" }, [{ kind: "tool_call_ended", callId, result: "failed", output }]);
+            }
             throw error;
           }
         },
