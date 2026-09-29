@@ -135,9 +135,10 @@ does not expose it.
 `accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
 the transport error when the process is gone). The RPC answer is recorded as
 frame `session/prompt` with the `turn_ended` event; a second `prompt()`
-during a turn is `rejected busy` (`busy-and-late-control`). OAR sends one
-text block; the advertised image, audio, and embedded context support is
-unused.
+during a turn is `rejected busy` (`busy-and-late-control`). `InputOptions.images`
+go as ACP `image` blocks before the text, since `initialize` advertises
+`promptCapabilities.image`; delivery to the model is not yet probed live. The
+advertised audio and embedded context support is unused.
 
 **Steer (not available on this transport):** the ACP method set has no steer
 operation, so `steer()` is always `rejected not_steerable` and
