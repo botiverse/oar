@@ -178,6 +178,19 @@ inside the same turn and shaped its final text (`ALPHA BRAVO MANGO`), with one
 `turn_ended` (live-contract `steer`;
 [adapter probe](../../experiments/codex-session-adapter.ts)).
 
+**Instant interrupt (opt-in, observed on 0.159.0):** the native
+`[features] instant_interrupt = true` configuration makes the existing
+`turn/steer` preempt an unfinished model response or yield a running code-mode
+cell early. OAR already inherits this configuration; its control mapping and
+default remain unchanged. The same native turn continues, the cell is not
+stopped, and direct tool calls still finish before new input is sampled.
+Queue remains a next-turn operation and abort still ends the active turn.
+The interrupted assistant item's partial deltas can remain visible without
+an `item/completed`, even though Codex excludes them from replacement model
+context. OAR preserves those observations; they are not committed transcript
+evidence. The flag remains under development and off by default upstream.
+See the [seven-case probe, opt-in instructions and limits](../../experiments/codex-instant-interrupt.md).
+
 **Queue (mapped, `durable: true`):** native queue operations have submission
 identities and inspection/editing methods. `queue()` calls `thread/queue/add
 { threadId, input, clientUserMessageId: <uuid> }` and keeps the reply
