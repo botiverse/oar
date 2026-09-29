@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import { effortLevelOf, effortLevelsOf } from "../packages/oar/src/shared/effort-levels.js";
 import { claudeListModels, projectClaudeModels } from "../packages/oar/src/runtimes/claude/list-models.js";
 import { codexListModels, projectCodexModels } from "../packages/oar/src/runtimes/codex/list-models.js";
+import { cursorListModels, projectCursorModels } from "../packages/oar/src/runtimes/cursor/list-models.js";
 import { grokListModels, grokModelState, projectGrokModels } from "../packages/oar/src/runtimes/grok/list-models.js";
 import { kimiListModels } from "../packages/oar/src/runtimes/kimi/list-models.js";
 import { createPiListModels, piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
@@ -111,6 +112,28 @@ test("grok projection unwraps the handler envelope and filters unselectable mode
   expect(() => grokModelState({ error: { message: "boom" } })).toThrow(/boom/u);
 });
 
+test("cursor projection reads each model's thought_level parameter as its effort menu", () => {
+  const thoughtLevel = {
+    id: "reasoning",
+    name: "Reasoning",
+    category: "thought_level",
+    type: "select",
+    currentValue: "medium",
+    options: [{ value: "low", name: "Low" }, { value: "medium", name: "Medium" }, { value: "high", name: "High" }],
+  };
+  expect(projectCursorModels({
+    models: [
+      { value: "gpt-6", name: "GPT 6", configOptions: [thoughtLevel, { id: "fast", category: "model_config", currentValue: "false" }] },
+      { value: "composer-2", name: "composer-2", configOptions: [] },
+      { name: "no value" },
+    ],
+  })).toEqual([
+    { id: "gpt-6", displayName: "GPT 6", effortLevels: ["low", "medium", "high"], defaultEffort: "medium" },
+    { id: "composer-2" },
+  ]);
+  expect(projectCursorModels({})).toEqual([]);
+});
+
 // pi's own menu per model (pi-ai getSupportedThinkingLevels), injected; a
 // model without `reasoning` runs only `off` and lists none.
 function piLevels(model: { readonly id: string }): readonly string[] {
@@ -201,6 +224,7 @@ test("executable listers refuse bundled installations and pi refuses executables
   const results = await Promise.all([
     codexListModels(bundled),
     claudeListModels(bundled),
+    cursorListModels(bundled),
     grokListModels(bundled),
     kimiListModels(bundled),
     piListModels(executable),

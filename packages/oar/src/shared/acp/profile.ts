@@ -7,7 +7,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
-import { applyAcpEffort } from "./effort.js";
+import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
 export { createUsageUpdateGate } from "./usage-wait.js";
@@ -28,6 +28,21 @@ export interface AcpSessionProfile {
    */
   readonly extensionNotifications?: readonly string[];
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
+  /**
+   * `clientCapabilities._meta` on initialize: vendor opt-ins the agent reads
+   * off the client's declared capabilities rather than the request envelope
+   * (cursor-agent 2026.09.28 `parameterizedModelPicker`, without which it
+   * folds effort into the model id and advertises no `thought_level` option).
+   */
+  readonly clientCapabilitiesMeta?: (options: SessionOptions) => JsonRecord | undefined;
+  /**
+   * Apply `SessionOptions.model` through `session/set_config_option` on the
+   * opened session's `model` option instead of `session/set_model`. For agents
+   * whose `set_model` answers `{}` and pushes no `config_option_update`
+   * (cursor-agent 2026.09.28), so only the config option answer reports the
+   * applied model and the new model's effort menu.
+   */
+  readonly modelViaConfigOption?: boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
   readonly validateOptions?: (options: SessionOptions) => void;
@@ -72,7 +87,7 @@ export interface OpenedAcpSession {
   readonly openMethod: "session/new" | "session/resume" | "session/load";
   /** The agent advertised `session/close`. */
   readonly supportsClose: boolean;
-  /** The `session/set_model` response, when a model was requested; grok reports the applied model in its `_meta`. */
+  /** The model switch response, when a model was requested; grok reports the applied model in its `_meta`, cursor in its `configOptions`. */
   readonly setModelResponse?: JsonRecord;
 }
 
@@ -136,6 +151,7 @@ async function initialize(
   observe: AcpOpenObserver,
 ): Promise<JsonRecord> {
   const meta = profile.initializeMeta?.(options);
+  const capabilitiesMeta = profile.clientCapabilitiesMeta?.(options);
   const method = methods.agent.initialize;
   const initialized = await withAcpDeadline(
     process,
@@ -146,6 +162,7 @@ async function initialize(
       clientCapabilities: {
         fs: { readTextFile: false, writeTextFile: false },
         terminal: true,
+        ...(capabilitiesMeta === undefined ? {} : { _meta: capabilitiesMeta }),
       },
       clientInfo: { name: "oar", version: "0.0.0" },
       ...(meta === undefined ? {} : { _meta: meta }),
@@ -238,22 +255,18 @@ export async function openAcpSession(
     profile.sessionMeta?.(options),
   );
   observe({ method: opened.openMethod, response: opened.response });
-  let setModelResponse: JsonRecord | undefined = undefined;
-  if (options.model !== undefined) {
-    setModelResponse = asRecord(await withAcpDeadline(
-      process,
-      "session/set_model",
-      profile.requestTimeoutMs ?? 15_000,
-      (requestOptions) => process.connection.agent.request(
-        "session/set_model",
-        { sessionId: opened.sessionId, modelId: options.model },
-        requestOptions,
-      ),
-    )) ?? undefined;
-    observe({ method: "session/set_model", response: setModelResponse ?? {} });
-  }
+  const setModelResponse = options.model === undefined
+    ? undefined
+    : await applyAcpModel(process, opened.sessionId, options.model, {
+      viaConfigOption: profile.modelViaConfigOption === true,
+      timeoutMs: profile.requestTimeoutMs ?? 15_000,
+      observe,
+    });
+  // A model switch re-derives the effort menu, so effort reads the switch's
+  // answer when it lists configOptions.
+  const configAnswer = Array.isArray(setModelResponse?.configOptions) ? setModelResponse : opened.response;
   if (options.effort !== undefined) {
-    await applyAcpEffort(process, opened, options.effort, {
+    await applyAcpEffort(process, { ...opened, response: configAnswer }, options.effort, {
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
     });

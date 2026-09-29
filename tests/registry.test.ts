@@ -15,6 +15,7 @@ test("built-in registry exposes concrete ACP runtimes, not a generic ACP identit
   assert.deepEqual(runtimes.list().map((runtime) => runtime.id), [
     "claude",
     "codex",
+    "cursor",
     "grok",
     "kimi",
     "pi",

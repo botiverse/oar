@@ -62,3 +62,33 @@ export async function applyAcpEffort(
     throw new Error(`${method} left ${configId} at ${applied ?? "an unreported value"} although effort ${effort} was requested`);
   }
 }
+
+/**
+ * Apply `SessionOptions.model`: `session/set_model {modelId}`, or with
+ * `viaConfigOption` `session/set_config_option` on the `model` option (for
+ * agents whose set_model answer reports nothing, cursor-agent 2026.09.28).
+ * The answer is observed like any handshake answer and returned.
+ */
+export async function applyAcpModel(
+  process: AcpProcess,
+  sessionId: string,
+  model: string,
+  context: {
+    readonly viaConfigOption: boolean;
+    readonly timeoutMs: number;
+    readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
+  },
+): Promise<JsonRecord | undefined> {
+  const method = context.viaConfigOption ? "session/set_config_option" : "session/set_model";
+  const params = context.viaConfigOption
+    ? { sessionId, configId: "model", value: model }
+    : { sessionId, modelId: model };
+  const response = asRecord(await withAcpDeadline(
+    process,
+    method,
+    context.timeoutMs,
+    (requestOptions) => process.connection.agent.request(method, params, requestOptions),
+  )) ?? undefined;
+  context.observe({ method, response: response ?? {} });
+  return response;
+}

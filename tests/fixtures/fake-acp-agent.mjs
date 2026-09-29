@@ -1,12 +1,14 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
 import { createInterface } from "node:readline";
 import { grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
-import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
+import { answerConfigRequest, sessionModelReport, setModelResponse } from "./fake-acp-model.mjs";
 
 const mode = process.argv[2] ?? "session";
 const pendingPrompts = new Map();
 const reverseRequests = new Map();
 let reverseId = 0;
+// Mode "cursor": see sessionModelReport in fake-acp-model.mjs.
+let parameterizedModelPicker = false;
 
 function send(message) {
   process.stdout.write(`${JSON.stringify(message)}\n`);
@@ -196,6 +198,7 @@ function handleSessionPrompt(message) {
 function handleSessionRequest(message) {
   switch (message.method) {
     case "initialize":
+      parameterizedModelPicker = message.params?.clientCapabilities?._meta?.parameterizedModelPicker === true;
       result(message.id, {
         protocolVersion: 1,
         agentCapabilities: {
@@ -218,7 +221,7 @@ function handleSessionRequest(message) {
             { id: "yolo", name: "YOLO" },
           ],
         },
-        ...modelReport(mode),
+        ...sessionModelReport(mode, parameterizedModelPicker),
       });
       break;
     case "session/resume":
@@ -228,7 +231,7 @@ function handleSessionRequest(message) {
           currentModeId: "default",
           availableModes: [{ id: "yolo", name: "YOLO" }],
         },
-        ...modelReport(mode),
+        ...sessionModelReport(mode, parameterizedModelPicker),
       });
       break;
     case "session/set_model":

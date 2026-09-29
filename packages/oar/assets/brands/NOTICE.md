@@ -1,8 +1,8 @@
 # Runtime icons
 
-Claude Code, Codex, Kimi and Grok SVGs are from LobeHub lobe-icons, commit a94750e3f5f8fc33757b839d85030e742284e43a, packages/static-svg/icons.
+Claude Code, Codex, Kimi, Grok and Cursor SVGs are from LobeHub lobe-icons, commit a94750e3f5f8fc33757b839d85030e742284e43a, packages/static-svg/icons.
 Source: https://github.com/lobehub/lobe-icons/tree/a94750e3f5f8fc33757b839d85030e742284e43a/packages/static-svg/icons
-Files: claudecode-color.svg, codex.svg, kimi-color.svg, grok.svg.
+Files: claudecode-color.svg, codex.svg, kimi-color.svg, grok.svg, cursor.svg.
 Brand names and marks belong to their respective owners.
 
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.
@@ -11,7 +11,7 @@ Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official 
 
 `light` and `dark` refer to the destination background. Claude Code retains its
 single color asset and uses the default fallback on both backgrounds.
-Codex and Grok variants replace the upstream `currentColor` with explicit black
+Codex, Grok and Cursor variants replace the upstream `currentColor` with explicit black
 or white so they work in external `<img>` elements. Kimi's light variant changes
 its white foreground to black; its dark variant is unchanged. These are local
 color adaptations of the MIT-licensed LobeHub paths, not separately sourced

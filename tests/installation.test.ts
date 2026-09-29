@@ -3,6 +3,10 @@ import { test } from "vitest";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
 import {
+  cursorInstallation,
+  cursorInstalledExecutableCandidates,
+} from "../packages/oar/src/runtimes/cursor/installation.js";
+import {
   grokInstallation,
   grokInstalledExecutableCandidates,
 } from "../packages/oar/src/runtimes/grok/installation.js";
@@ -118,6 +122,13 @@ test("a pinned env var does not evaluate fallback factories", async () => {
   });
 });
 
+test("cursor candidates match the official installer's link", () => {
+  assert.deepEqual(cursorInstalledExecutableCandidates("linux", "/home/oar"), [
+    "/home/oar/.local/bin/cursor-agent",
+  ]);
+  assert.deepEqual(cursorInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`), []);
+});
+
 test("grok candidates match the official script and npm layouts", () => {
   assert.deepEqual(
     grokInstalledExecutableCandidates("linux", "/home/oar", {
@@ -207,7 +218,13 @@ test("claude and codex probe through their pin env vars", async () => {
   assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
 });
 
-test("grok and kimi gate their ACP entrypoints", async () => {
+test("cursor, grok and kimi gate their ACP entrypoints", async () => {
+  const cursor = await withEnv(
+    { OAR_CURSOR_BIN: process.execPath },
+    async () => cursorInstallation(),
+  );
+  assert.deepEqual(cursor, { kind: "unsupported", reason: "acp --help failed" });
+
   const grok = await withEnv(
     { OAR_GROK_BIN: process.execPath },
     async () => grokInstallation(),
