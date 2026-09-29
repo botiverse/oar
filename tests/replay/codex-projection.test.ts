@@ -46,6 +46,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "compaction_started":
           case "compaction_ended":
           case "retry":
+          case "warning":
             return view.kind;
           default:
             return "?";
@@ -234,4 +235,23 @@ test("codex thread/compacted alone ends an open compaction once", () => {
       [],
     ]
   `);
+});
+
+test("codex warnings read as warning prose; model/rerouted names both models on its turn", () => {
+  const events = (method: string, params: Record<string, unknown>): unknown => frameEvents(foldCodexNotification(initialCodexProjection(ROOT), method, { threadId: ROOT, ...params }));
+  const rerouted = foldCodexNotification(initialCodexProjection(ROOT), "model/rerouted", {
+    threadId: ROOT, turnId: "t3", fromModel: "gpt-5.5", toModel: "gpt-5.2", reason: "highRiskCyberActivity",
+  });
+  expect(rerouted.commands[0]?.kind === "frame" ? rerouted.commands[0].spanId : null).toBe("t3");
+  expect([
+    frameEvents(rerouted),
+    events("warning", { message: "Model metadata for `x` not found" }),
+    events("deprecationNotice", { summary: "old flag", details: "use new flag" }),
+    events("configWarning", { summary: "bad key" }),
+  ]).toEqual([
+    [{ kind: "warning", message: "model rerouted: gpt-5.5 → gpt-5.2 (highRiskCyberActivity)" }],
+    [{ kind: "warning", message: "Model metadata for `x` not found" }],
+    [{ kind: "warning", message: "old flag: use new flag" }],
+    [{ kind: "warning", message: "bad key" }],
+  ]);
 });

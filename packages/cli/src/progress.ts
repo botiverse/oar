@@ -89,6 +89,8 @@ export function createProgressRenderer(
         return [`${agent}[compaction ${event.outcome}]${event.reason === undefined ? "" : ` ${event.reason}`}`];
       case "retry":
         return [`${agent}[retry ${String(event.attempt)}${event.maxAttempts === undefined ? "" : `/${String(event.maxAttempts)}`}]${event.reason === undefined ? "" : ` ${event.reason}`}`];
+      case "warning":
+        return [`${agent}[warning] ${event.message}`];
       case "app_request":
         return [`${agent}[waiting for app: ${event.type}]`];
       case "control_rejected":

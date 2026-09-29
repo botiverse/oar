@@ -3,7 +3,7 @@ import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
-import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
+import { createAcpProjectionState, projectAcpUpdate, projectAcpVendorUpdate, type AcpProjectionState } from "./projection.js";
 import type { UsageUpdateGate } from "./usage-wait.js";
 
 /**
@@ -133,7 +133,9 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
         if (foreign) {
           kernel.node(sessionId);
         }
-        kernel.frame({ type: method, native: params, events: [] }, foreign ? { sessionId } : undefined);
+        const update = asRecord(params.update);
+        const events = update === null ? [] : projectAcpVendorUpdate(update);
+        kernel.frame({ type: method, native: params, events }, foreign ? { sessionId } : undefined);
         linkFromExtension(kernel, params);
       });
     },

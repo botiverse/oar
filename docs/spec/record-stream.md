@@ -147,7 +147,8 @@ interface FrameBody {
 // effort {effort} |
 // compaction_started {trigger?} |
 // compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
-// retry {attempt, maxAttempts?, delayMs?, reason?}.
+// retry {attempt, maxAttempts?, delayMs?, reason?} |
+// warning {message}.
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
 // three events) and one frame must stay one record; splitting it would
@@ -248,8 +249,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   deprecated `thread/compacted` notification closes an open compaction only
   when the item did not already (the projection dedupes, so codex never ends
   a compaction twice) [env 0.154.0 schema]. ACP never.
-- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
-  other shipped runtime exposes a retry (claude retries silently).
+- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`;
+  claude `system/api_retry` (`max_retries` → maxAttempts, `retry_delay_ms`
+  → delayMs, `error` → reason) [sym 2.1.280]. codex, grok and kimi expose
+  no retry.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
   `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi): the
@@ -260,6 +263,30 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   but not recorded, since it also dumps the user's merged settings. A
   requested `SessionOptions.effort` is never an event of its own: what the
   runtime says back is.
+- `warning`: runtime prose meant for the user; the frame's `native` keeps
+  any structure. A model the runtime swapped in is ALSO a `model` event only
+  when the runtime says the swap holds for the session.
+  - codex: `warning` / `guardianWarning` (`message`), `configWarning` /
+    `deprecationNotice` (`summary: details`), and `model/rerouted` → "model
+    rerouted: FROM → TO (reason)". codex sends the reroute only when the
+    provider served another model than the requested one (`OpenAI-Model`
+    header ≠ requested slug; reason today always `highRiskCyberActivity`),
+    scoped to that turn, so it is not a `model` event: codex says nothing
+    when a later turn is served the requested model again. Live only: codex
+    marks the reroute transient, so its rollout jsonl never records it and
+    `TurnContextItem.model` stays the requested slug; the recorded stream is
+    the only durable trace [src codex rollout/src/policy.rs].
+  - claude: the `content` banner of `system/model_fallback` (overloaded /
+    unavailable / failed past retry → `fallback_model`),
+    `model_refusal_fallback` (plus a `model` event unless `scope: "local"`),
+    `model_refusal_no_fallback`, `model_consent_fallback`, and
+    `informational` at level `warning` [sym 2.1.280].
+  - grok: `_x.ai/session_notification` `model_auto_switched` (previous model
+    unavailable) → a warning plus a `model` event; `model_changed` → a
+    `model` event only [sym 1.0.40].
+  - pi: `modelFallbackMessage` from session construction (the saved model
+    could not be restored), on the `pi/session_opened` frame.
+  - kimi: none.
 - `app_request` / `app_answered`: any adapter that records `toApp` requests
   (claude `control_request`, codex server requests, ACP permission and
   terminal requests) and, for `app_answered`, one whose automatic reply is

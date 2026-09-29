@@ -159,6 +159,8 @@ export type RuntimeEventBody = UserMessage
   | { readonly kind: "compaction_ended"; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string }
   /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`). Other shipped runtimes retry silently or not at all. */
   | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
+  /** A runtime warning for the user, as prose: including a model the runtime or provider swapped in (codex `model/rerouted`, claude `system/model_fallback`, grok `model_auto_switched`, pi `modelFallbackMessage`); a swap that holds for the session is also a `model` event. The frame's `native` keeps the structure. */
+  | { readonly kind: "warning"; readonly message: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string }

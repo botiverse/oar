@@ -228,6 +228,34 @@ export function projectAcpUpdate(state: AcpProjectionState, update: JsonRecord):
   return events;
 }
 
+/**
+ * The events oar reads out of a vendor twin of `session/update` (grok's
+ * `_x.ai/session_notification {sessionId, update}`). grok 1.0.40 [sym]:
+ * `model_changed {model_id}` names the model in effect (it precedes the
+ * `session/new` answer, docs/runtimes/grok.md); `model_auto_switched
+ * {previous_model_id, new_model_id}` is grok moving the session off a model
+ * that is no longer available ("Model auto-switched: previous model no
+ * longer available"), so it is both a warning and the new model's report.
+ */
+export function projectAcpVendorUpdate(update: JsonRecord): RuntimeEventBody[] {
+  switch (update.sessionUpdate) {
+    case "model_changed":
+      return typeof update.model_id === "string" ? [{ kind: "model", model: update.model_id }] : [];
+    case "model_auto_switched": {
+      if (typeof update.new_model_id !== "string") {
+        return [];
+      }
+      const from = typeof update.previous_model_id === "string" ? `${update.previous_model_id} → ` : "";
+      return [
+        { kind: "warning", message: `model auto-switched: ${from}${update.new_model_id} (previous model unavailable)` },
+        { kind: "model", model: update.new_model_id },
+      ];
+    }
+    default:
+      return [];
+  }
+}
+
 /** The outcome an ACP prompt answer reports: `cancelled` is the runtime honoring session/cancel. */
 export function defaultAcpPromptOutcome(response: JsonRecord): TurnOutcome {
   return response.stopReason === "cancelled"

@@ -8,6 +8,7 @@ import type {
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
+import { claudeSystemEvents } from "./system-events.js";
 
 /**
  * The claude stdout → record projection as a PURE FOLD. A reducer over the
@@ -233,7 +234,7 @@ export function foldClaudeStdout(
         return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] });
       }
       const model = message.subtype === "init" && typeof message.model === "string" ? message.model : null;
-      return event({ events: model === null ? [] : [{ kind: "model", model }] });
+      return event({ events: model === null ? claudeSystemEvents(message) : [{ kind: "model", model }] });
     }
     case "control_response": {
       // claude answering one of OUR control_requests (interrupt): the frame IS

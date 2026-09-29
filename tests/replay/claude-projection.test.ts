@@ -49,6 +49,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "compaction_started":
           case "compaction_ended":
           case "retry":
+          case "warning":
             return view.kind;
           default:
             return "?";
@@ -182,4 +183,26 @@ test("claude compact_boundary is the runtime's after-the-fact compaction report"
       ],
     ]
   `);
+});
+
+const systemEvents = (frame: Record<string, unknown>): unknown => foldClaudeStdout(claudePrompted(initialClaudeProjection), { type: "system", session_id: "s", uuid: "u", ...frame })
+  .commands.flatMap((command) => (command.kind === "frame" ? command.body.events : []));
+
+test("claude model fallbacks and warning banners read as warnings; a session-scoped refusal fallback also reports the model", () => {
+  const eventsOf = systemEvents;
+  expect([
+    eventsOf({ subtype: "model_fallback", trigger: "overloaded", original_model: "claude-opus-5-5", fallback_model: "claude-sonnet-5", content: "Switched to Sonnet 5 due to high demand for Opus 5.5" }),
+    eventsOf({ subtype: "model_refusal_fallback", trigger: "refusal", direction: "retry", scope: "session", original_model: "claude-opus-5-5", fallback_model: "claude-sonnet-5", request_id: null, content: "Retried on Sonnet 5" }),
+    eventsOf({ subtype: "model_refusal_fallback", trigger: "refusal", direction: "retry", scope: "local", original_model: "claude-opus-5-5", fallback_model: "claude-sonnet-5", request_id: null, content: "Retried on Sonnet 5" }),
+    eventsOf({ subtype: "informational", level: "warning", content: "hook blocked" }),
+    eventsOf({ subtype: "informational", level: "info", content: "Session completed successfully" }),
+    eventsOf({ subtype: "api_retry", attempt: 2, max_retries: 10, retry_delay_ms: 1200, error_status: 529, error: "overloaded" }),
+  ]).toEqual([
+    [{ kind: "warning", message: "Switched to Sonnet 5 due to high demand for Opus 5.5" }],
+    [{ kind: "warning", message: "Retried on Sonnet 5" }, { kind: "model", model: "claude-sonnet-5" }],
+    [{ kind: "warning", message: "Retried on Sonnet 5" }],
+    [{ kind: "warning", message: "hook blocked" }],
+    [],
+    [{ kind: "retry", attempt: 2, maxAttempts: 10, delayMs: 1200, reason: "overloaded" }],
+  ]);
 });

@@ -89,6 +89,7 @@ test("renderer prints compaction, retry and app requests bracketed, and nothing 
   assert.deepEqual(render(at(0, [{ kind: "compaction_ended", outcome: "completed", trigger: "manual" }])), ["[compacted]"]);
   assert.deepEqual(render(at(0, [{ kind: "compaction_ended", outcome: "failed", reason: "boom" }])), ["[compaction failed] boom"]);
   assert.deepEqual(render(at(0, [{ kind: "retry", attempt: 2, maxAttempts: 3, reason: "overloaded" }])), ["[retry 2/3] overloaded"]);
+  assert.deepEqual(render(at(0, [{ kind: "warning", message: "model rerouted: gpt-5.5 → gpt-5.2" }])), ["[warning] model rerouted: gpt-5.5 → gpt-5.2"]);
   assert.deepEqual(render(at(0, [{ kind: "app_request", requestId: "p", type: "can_use_tool" }])), ["[waiting for app: can_use_tool]"]);
   assert.deepEqual(render(at(0, [{ kind: "tool_call_progress", callId: "c", output: "x" }, { kind: "app_answered", requestId: "p" }])), []);
 });

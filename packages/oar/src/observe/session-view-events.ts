@@ -145,6 +145,9 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         ...(event.reason === undefined ? {} : { reason: event.reason }),
       });
       return;
+    case "warning":
+      noticePart(draft, event, streamId, { cause: "warning", message: event.message });
+      return;
     case "app_request": {
       if (!draft.pendingRequests.some((request) => request.requestId === event.requestId)) {
         draft.pendingRequests.push({

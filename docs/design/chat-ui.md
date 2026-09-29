@@ -77,7 +77,7 @@ recorded log, and testable without a DOM — the same discipline
 | `reasoning` | reasoning part, same coalescing rule; `redacted`/`empty` render as lifecycle-only parts |
 | `tool_call_started` / `progress` / `ended` | one tool part per `(agentPath, callId)`; running → settled `{output, result}`; an end without a start is still a fact and renders as such |
 | `turn_ended` | closes the assistant message and stamps `outcome` on it |
-| `compaction_started`/`ended`, `retry` | notice parts inside the running turn (they carry `seq`/`agentPath`, they are not system chrome) |
+| `compaction_started`/`ended`, `retry`, `warning` | notice parts inside the running turn (they carry `seq`/`agentPath`, they are not system chrome) |
 | `app_request` | `pendingRequests` entry + an actionable part in flow |
 | `app_answered` | settles the pending entry |
 | `control_rejected` | the owning input's delivery state changes; no separate notice unless the input is unknown |

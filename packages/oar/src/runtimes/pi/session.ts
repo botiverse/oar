@@ -29,7 +29,7 @@ export const piSession: StartSession = async (installation, options) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }
-  const piAgentSession = await openPiAgentSession(options);
+  const { session: piAgentSession, modelFallbackMessage } = await openPiAgentSession(options);
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
   let projection: PiProjectionState = initialPiProjection;
@@ -159,12 +159,17 @@ export const piSession: StartSession = async (installation, options) => {
   if (openedModel !== null) {
     // The SDK's own report of the model and thinking level in effect at open,
     // captured as the runtime's word (never the request echoed: the mismatch
-    // checks in open.ts already rejected a request pi did not apply).
+    // checks in open.ts already rejected a request pi did not apply). A saved
+    // model pi could not restore is its own warning, `modelFallbackMessage`.
     const { thinkingLevel } = piAgentSession;
     kernel.frame({
       type: "pi/session_opened",
-      native: { sessionId: piAgentSession.sessionId, model: openedModel, thinkingLevel },
-      events: [{ kind: "model", model: openedModel }, { kind: "effort", effort: thinkingLevel }],
+      native: { sessionId: piAgentSession.sessionId, model: openedModel, thinkingLevel, ...(modelFallbackMessage === undefined ? {} : { modelFallbackMessage }) },
+      events: [
+        ...(modelFallbackMessage === undefined ? [] : [{ kind: "warning" as const, message: modelFallbackMessage }]),
+        { kind: "model", model: openedModel },
+        { kind: "effort", effort: thinkingLevel },
+      ],
     });
   }
 

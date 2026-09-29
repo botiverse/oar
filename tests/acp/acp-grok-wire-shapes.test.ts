@@ -7,7 +7,7 @@ import {
   grokContextUsage,
   grokPromptTokens,
 } from "../../packages/oar/src/runtimes/grok/session.js";
-import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
+import { createAcpProjectionState, projectAcpUpdate, projectAcpVendorUpdate } from "../../packages/oar/src/shared/acp/projection.js";
 import { acpLineageOf } from "../../packages/oar/src/shared/acp/records.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { describe, start } from "../fixtures/acp-session-support.js";
@@ -219,4 +219,13 @@ test("a send-now steer's two answers are two per-prompt ledgers: summed once, st
   ]);
   assert.deepEqual(session.usage().value, { total: { input: 51_196, output: 501 } });
   await session.dispose();
+});
+
+test("grok vendor model pushes: model_changed reports the model, model_auto_switched also warns", () => {
+  assert.deepEqual(projectAcpVendorUpdate({ sessionUpdate: "model_changed", model_id: "grok-4.6" }), [{ kind: "model", model: "grok-4.6" }]);
+  assert.deepEqual(projectAcpVendorUpdate({ sessionUpdate: "model_auto_switched", previous_model_id: "grok-4.5", new_model_id: "grok-4.6" }), [
+    { kind: "warning", message: "model auto-switched: grok-4.5 → grok-4.6 (previous model unavailable)" },
+    { kind: "model", model: "grok-4.6" },
+  ]);
+  assert.deepEqual(projectAcpVendorUpdate({ sessionUpdate: "turn_completed", prompt_id: "p" }), []);
 });

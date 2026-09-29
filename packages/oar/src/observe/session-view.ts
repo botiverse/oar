@@ -57,6 +57,7 @@ export type ViewNotice =
       readonly delayMs?: number;
       readonly reason?: string;
     }
+  | { readonly cause: "warning"; readonly message: string }
   | { readonly cause: "control_rejected"; readonly action: ControlAction; readonly reason: string }
   | { readonly cause: "child_turn_ended"; readonly outcome: TurnOutcome }
   | { readonly cause: "exited"; readonly code: number | null };

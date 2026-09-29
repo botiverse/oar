@@ -109,8 +109,9 @@ available, and thinking level subject to current model capabilities. An explicit
 OAR `model` overrides the saved one and is checked by readback; without one, the
 recorded model is restored (the resumed stream starts with only
 `pi/session_opened → model` carrying the model from the file). Native
-restoration can fall back when the saved model is unavailable; OAR discards the
-returned `modelFallbackMessage`. [SDK construction][native-sdk-source].
+restoration can fall back when the saved model is unavailable; the returned
+`modelFallbackMessage` is a `warning` event on `pi/session_opened` (and in its
+`native`). [SDK construction][native-sdk-source].
 
 Reopening creates a fresh record stream (seq 0), fresh observers, and an
 empty adapter queue. It resumes conversation, not interrupted execution or

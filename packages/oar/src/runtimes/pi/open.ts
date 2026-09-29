@@ -91,13 +91,22 @@ export function piEffectiveModel(session: PiModelSource): string | null {
 }
 
 /**
+ * The opened pi session plus pi's own notice when it could not restore the
+ * saved model and opened on another (`modelFallbackMessage`, sdk.d.ts).
+ */
+export interface OpenedPiSession {
+  readonly session: PiAgentSession;
+  readonly modelFallbackMessage?: string;
+}
+
+/**
  * Opens (or resumes) the pi AgentSession the adapter wraps. Services first
  * (createAgentSessionServices loads the agent dir's extensions and their
  * provider registrations into the ModelRuntime, exactly as `pi` itself does),
  * then the session against an explicit SessionManager so resume and creation
  * share one session directory.
  */
-export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
+export async function openPiAgentSession(options: SessionOptions): Promise<OpenedPiSession> {
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
   const sdk = await import("@earendil-works/pi-coding-agent");
   // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/
@@ -161,7 +170,7 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   // into pi's global settings as the user's new default (agent-session.js
   // 0.84.2). pi records the level in the session file for a new session and
   // for a resumed one that has none yet.
-  const { session } = await sdk.createAgentSessionFromServices({
+  const { session, modelFallbackMessage } = await sdk.createAgentSessionFromServices({
     services,
     sessionManager,
     ...(model === undefined ? {} : { model }),
@@ -180,5 +189,5 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
     session.dispose();
     throw new Error(refusal);
   }
-  return session;
+  return modelFallbackMessage === undefined ? { session } : { session, modelFallbackMessage };
 }

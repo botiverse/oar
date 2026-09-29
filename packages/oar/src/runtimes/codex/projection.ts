@@ -226,6 +226,23 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
       return usageViews(params);
     case "thread/settings/updated":
       return settingsViews(params);
+    case "warning":
+    case "guardianWarning":
+      return typeof params.message === "string" ? [{ kind: "warning", message: params.message }] : [];
+    case "configWarning":
+    case "deprecationNotice": {
+      const message = [params.summary, params.details].filter((part) => typeof part === "string" && part.length > 0).join(": ");
+      return message.length > 0 ? [{ kind: "warning", message }] : [];
+    }
+    case "model/rerouted":
+      // Sent only when the served model differs from the requested one. Live
+      // only: codex marks ModelReroute transient, so the rollout jsonl never
+      // holds it and its TurnContextItem.model stays the requested slug. Not a
+      // `model` event: nothing is said when a later turn is served the
+      // requested model again.
+      return typeof params.fromModel === "string" && typeof params.toModel === "string"
+        ? [{ kind: "warning", message: `model rerouted: ${params.fromModel} → ${params.toModel}${typeof params.reason === "string" ? ` (${params.reason})` : ""}` }]
+        : [];
     default:
       return [];
   }

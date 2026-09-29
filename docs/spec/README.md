@@ -66,7 +66,8 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 - the consumer face: `events()` delivers every reading as a flat `Event`
   (an event body plus the record's envelope): text, reasoning, tool call
   start / progress / end, turn end, usage, model, effort, compaction start /
-  end and retry as the runtime says them, plus `turn_started`, `control_rejected`,
+  end, retry and warnings as the runtime says them, plus `turn_started`,
+  `control_rejected`,
   `app_request`, `app_answered` and `exited` read off request/response
   records; a pure projection (`eventsOf`) over the stream, never a second
   source of truth;
