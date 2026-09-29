@@ -64,11 +64,13 @@ one, it is honestly absent. No oar-made facts exist in the stream, so
 there is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: prompt / steer / queue / abort / dispose. runtime→app: approvals,
-questions, external tools. `direction` is needed because toApp request
-bodies are runtime verbatim with an open vocabulary: the
+app→runtime: prompt / steer / queue / abort / dispose / answer. runtime→app:
+approvals, questions, external tools. `direction` is needed because toApp
+request bodies are runtime verbatim with an open vocabulary: the
 server must decide "does the app need to answer this" without
-understanding the body, and only `direction` makes that possible.
+understanding the body, and only `direction` makes that possible. What oar
+reads out of a toApp body, when it is a person's decision, rides beside it
+as `ask` ([approvals.md](approvals.md)), the way a frame carries `events`.
 
 **response**: must point at a request (`requestId`); the reverse is not
 guaranteed. A response exists *only* when oar observed an outcome the
@@ -96,8 +98,9 @@ Further rules:
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `unsupported`, `runtime_exited`, `disposed`,
-  `runtime_refused`, `error`) next to the prose `reason`, so an application
-  branches on a word, not on vendor text. Counterexample: kimi-cli leaks the
+  `runtime_refused`, `error`; for an answer also `unknown_request`,
+  `already_answered`, `withdrawn`) next to the prose `reason`, so an
+  application branches on a word, not on vendor text. Counterexample: kimi-cli leaks the
   turn outcome into `_handle_prompt`'s return value, while the `TurnEnd`
   docstring admits it "may be omitted" when interrupted.
   [src: wire/server.py:644-755; wire/types.py]
@@ -147,7 +150,8 @@ interface FrameBody {
 // effort {effort} |
 // compaction_started {trigger?} |
 // compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
-// retry {attempt, maxAttempts?, delayMs?, reason?}.
+// retry {attempt, maxAttempts?, delayMs?, reason?} |
+// app_request_withdrawn {requestId}.
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
 // three events) and one frame must stay one record; splitting it would
@@ -158,7 +162,8 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // prompt | steer | queue | abort | dispose | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // prompt | steer | queue | abort | dispose | answer {requestId, decision}
+                                // | native {type, native, ask?} (toApp, verbatim; ask: what oar read, approvals.md)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -167,19 +172,22 @@ interface ResponseRecord extends RecordEnvelope {
   body: ResponseBody;           // accepted {native?} | rejected {code, reason, native?} | answered {native} | exited {code}
 }
 // accepted/rejected: control answers only "taken over or not".
-// answered: oar's own reply to a toApp request (the automatic permission
-// grant): an outcome the runtime did not say.
+// answered: oar's reply to a toApp request, as sent (the automatic
+// permission grant, or a host's decision through Session.answer): an
+// outcome the runtime did not say.
 // exited: the process exit, the one outcome the runtime can never say
 // itself; answers the dispose request when oar caused it, stands alone
 // (requestId "") when the runtime died on its own.
 ```
 
 The control surface that produces these records (`Session.prompt / steer /
-queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
-`graph()`, and the folds `model() / effort() / usage() / contextUsage() /
-status()`) is
+queue / abort / answer / dispose`, `rawEvents(observer, cursor?)`,
+`records()`, `graph()`, and the folds `model() / effort() / usage() /
+contextUsage() / status()`) is
 documented on the contract itself. An adapter's `prompt / steer / queue /
-abort` return both records they appended (`ControlResult`); the `Session` a
+abort / answer` return both records they appended (`ControlResult`; an
+answer also records the toApp request's `answered` response between
+them, [approvals.md](approvals.md)); the `Session` a
 consumer holds returns them read (`ControlOutcome`): `kind` is `accepted` or
 `rejected` (the two answers a toRuntime control can get), a rejection has
 its `code` and `reason` at hand, `seq` is the request's position in the
@@ -220,7 +228,7 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 // never handles record kinds:
 //   turn_started {requestId, input}              ← a prompt request
 //   control_rejected {requestId, action, reason} ← a rejected response
-//   app_request {requestId, type}                ← a toApp request
+//   app_request {requestId, type, ask?}          ← a toApp request
 //   app_answered {requestId}                     ← an answered response
 //   exited {code}                                ← an exited response
 ```
@@ -262,8 +270,15 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   runtime says back is.
 - `app_request` / `app_answered`: any adapter that records `toApp` requests
   (claude `control_request`, codex server requests, ACP permission and
-  terminal requests) and, for `app_answered`, one whose automatic reply is
-  recorded (the ACP adapters); `type` is the runtime's method or subtype.
+  terminal requests) and, for `app_answered`, one whose reply is recorded
+  (the ACP adapters' automatic ones, and every `Session.answer`); `type` is
+  the runtime's method or subtype, `ask` what the request asks when it is a
+  person's decision ([approvals.md](approvals.md)).
+- `app_request_withdrawn`: claude `control_cancel_request` (a pending
+  `can_use_tool` of an interrupted turn); codex `serverRequest/resolved` for
+  a request oar had not answered (it follows `turn/completed` of an
+  interrupted turn) [env 0.155.1]. ACP never: an ACP client answers its
+  cancelled turn's requests itself.
 
 The rules that make this a projection and not a second source of truth:
 

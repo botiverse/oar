@@ -6,6 +6,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { rememberFileChanges } from "./approvals.js";
 import { codexItemExitCode, codexItemInput, codexItemOutput } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
 
@@ -49,10 +50,18 @@ export interface CodexProjectionState {
    * flag lets the second report close nothing instead of ending twice.
    */
   readonly compacting: boolean;
+  /**
+   * Server requests oar answered (`codexAnswered`). codex reports
+   * `serverRequest/resolved` for every resolution, oar's answers included;
+   * only one oar did not answer was withdrawn.
+   */
+  readonly answered: ReadonlySet<string>;
+  /** The changes of each fileChange item in flight (`item/started` until `item/completed`): what its approval request, which names only the item, is about. */
+  readonly fileChanges: ReadonlyMap<string, readonly JsonRecord[]>;
 }
 
 export function initialCodexProjection(rootThreadId: string): CodexProjectionState {
-  return { rootThreadId, lastErrorDetail: null, compacting: false };
+  return { rootThreadId, lastErrorDetail: null, compacting: false, answered: new Set(), fileChanges: new Map() };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -226,6 +235,12 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
       return usageViews(params);
     case "thread/settings/updated":
       return settingsViews(params);
+    case "serverRequest/resolved": {
+      // codex no longer waits on this request. After oar's own answer that is
+      // no news; otherwise codex cleared it (an interrupted turn): withdrawn.
+      const requestId = typeof params.requestId === "number" || typeof params.requestId === "string" ? String(params.requestId) : null;
+      return requestId === null || state.answered.has(requestId) ? [] : [{ kind: "app_request_withdrawn", requestId }];
+    }
     default:
       return [];
   }
@@ -264,6 +279,9 @@ export function foldCodexNotification(
     next = { ...state, compacting: method === "item/started" };
   } else if (method === "thread/compacted" && threadId === state.rootThreadId) {
     next = { ...state, compacting: false };
+  }
+  if (method === "item/started" || method === "item/completed") {
+    next = rememberFileChanges(next, method, params);
   }
   return { state: next, commands: [event, ...links] };
 }

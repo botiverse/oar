@@ -11,7 +11,7 @@ import {
 } from "../../packages/oar/src/index.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fixtures/mock-session.js";
-import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
+import { APPROVAL_PROBE, APPROVAL_PROBE_COMMAND, startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
 
 /**
  * OAR_TEST backend selection. Every entry answers: which runtime, and does
@@ -47,7 +47,13 @@ export async function selectBackend(target: string): Promise<Backend> {
       // The public test runtime must honor the same contract as every vendor.
       return {
         runtime: scriptedRuntime({
-          turn: async ({ input, say, signal }) => {
+          turn: async ({ input, say, signal, approve }) => {
+            if (input.includes(APPROVAL_PROBE)) {
+              // The behavior suite's approval probe: the gate asks, the turn waits.
+              const answer = await approve("shell", APPROVAL_PROBE_COMMAND);
+              say(answer.kind === "allow" ? "ran" : answer.kind);
+              return;
+            }
             await new Promise<void>((resolve) => {
               const timer = setTimeout(resolve, input.includes("slow") ? 200 : 10);
               signal.addEventListener("abort", () => {

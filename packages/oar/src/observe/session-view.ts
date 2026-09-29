@@ -1,4 +1,5 @@
 import type {
+  AppAsk,
   ContextUsage,
   ControlAction,
   Cursor,
@@ -77,8 +78,13 @@ export type ViewPart =
       readonly kind: "app_request";
       readonly requestId: string;
       readonly type: string;
+      /** True once answered (automatically, or by `Session.answer`). */
       readonly answered: boolean;
+      /** How the request stopped awaiting an answer, once it did: answered, withdrawn by the runtime, or void (the runtime exited first). Absent while pending. */
+      readonly settled?: "answered" | "withdrawn" | "void";
       readonly body?: unknown;
+      /** What is asked, when it is a person's decision (`AppAsk`). */
+      readonly ask?: AppAsk;
     };
 
 /** One contiguous lane run inside a turn. */
@@ -103,7 +109,10 @@ export type ViewMessage =
   | ViewTurn
   | { readonly kind: "notice"; readonly id: string; readonly notice: ViewNotice };
 
-/** A runtime→app request still awaiting an answer (or the record of one). */
+/**
+ * A runtime→app request still awaiting an answer: neither answered nor
+ * withdrawn, and the runtime has not exited (an exit voids every one).
+ */
 export interface PendingRequest {
   readonly requestId: string;
   readonly type: string;
@@ -112,6 +121,8 @@ export interface PendingRequest {
   readonly seq: number;
   /** The `toApp` request body verbatim; undefined when folded from flat events. */
   readonly body?: unknown;
+  /** What is asked, when it is a person's decision: render it, then `Session.answer(requestId, …)`. Absent for requests oar serves itself (ACP terminals) or cannot read. */
+  readonly ask?: AppAsk;
 }
 
 export interface AgentTokens {

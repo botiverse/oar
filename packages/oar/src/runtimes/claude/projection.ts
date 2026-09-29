@@ -1,4 +1,5 @@
 import type {
+  AppAsk,
   FrameBody,
   RuntimeEventBody,
   ResponseBody,
@@ -7,6 +8,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { claudeAsk } from "./approvals.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
 
 /**
@@ -18,19 +20,20 @@ import { claudeContextUsageFromResult } from "./context-usage.js";
  * list. No transport, no side effects, so it is trivially unit-testable and
  * shared verbatim between live and replay.
  *
- * Rules the fold enforces: EVERY frame becomes exactly one frame
- * (verbatim `native`, events in block order); nothing is gated on whether a
- * turn is "open"; the turn's end is claude's own `result` frame; attribution
- * comes from `parent_tool_use_id` (a child's path is its parent's path plus
- * the Task tool_use id that spawned it).
+ * Rules the fold enforces: EVERY stdout line becomes exactly one record
+ * (verbatim `native`, events in block order): a frame, or the response to our
+ * control request it answers, or the toApp request it is; nothing is gated on
+ * whether a turn is "open"; the turn's end is claude's own `result` frame;
+ * attribution comes from `parent_tool_use_id` (a child's path is its
+ * parent's path plus the Task tool_use id that spawned it).
  */
 
 export type ProjectionCommand =
   | { readonly kind: "frame"; readonly body: FrameBody; readonly agentPath: readonly string[] }
   /** claude answered one of our `control_request`s (interrupt): the response to that request record. */
   | { readonly kind: "respond"; readonly requestId: string; readonly body: ResponseBody }
-  /** claude asked US something (`control_request`): a toApp request record, verbatim. */
-  | { readonly kind: "toApp"; readonly id: string; readonly type: string; readonly native: unknown };
+  /** claude asked US something (`control_request`): a toApp request record, verbatim, with what it asks when oar reads a person's decision in it. */
+  | { readonly kind: "toApp"; readonly id: string; readonly type: string; readonly native: unknown; readonly ask?: AppAsk; readonly agentPath: readonly string[] };
 
 /**
  * Fold state. `abortRequested` is the one input that is NOT in the provider
@@ -255,17 +258,23 @@ export function foldClaudeStdout(
       }] };
     }
     case "control_request": {
-      // claude asks the app something (permission, question). Recorded verbatim; the adapter answers nothing.
+      // claude asks the app something (permission, question): the line IS the
+      // toApp request record (native verbatim, with oar's reading of what is
+      // asked); one line, one record. Answered only by Session.answer.
       const id = typeof message.request_id === "string" ? message.request_id : `claude-${String(Date.now())}`;
       const request = asRecord(message.request);
       const subtype = typeof request?.subtype === "string" ? request.subtype : "control_request";
+      const ask = claudeAsk(message);
       return {
         state,
-        commands: [
-          { kind: "frame", body: { type, native: message, events: [] }, agentPath },
-          { kind: "toApp", id, type: subtype, native: message },
-        ],
+        commands: [{ kind: "toApp", id, type: subtype, native: message, ...(ask === undefined ? {} : { ask }), agentPath }],
       };
+    }
+    case "control_cancel_request": {
+      // claude withdraws one of ITS requests (a can_use_tool after an
+      // interrupt): it no longer waits for the answer.
+      const requestId = typeof message.request_id === "string" ? message.request_id : null;
+      return event({ events: requestId === null ? [] : [{ kind: "app_request_withdrawn", requestId }] });
     }
     default:
       return event({ events: [] });

@@ -10,6 +10,7 @@ import { spawnLineProcess, type LineProcess } from "../../shared/executable/inde
 import { asRecord, parseJson } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
+import { claudeAnswerer, claudePermissionArgs } from "./approvals.js";
 import {
   CLAUDE_EFFORT_READBACK_MS,
   claudeControlResponseId,
@@ -44,6 +45,10 @@ import {
  *   verbatim, and a read-back oar asks for must not publish a user's settings
  *   into every consumer's log. Like codex's `initialize` reply, it is the
  *   adapter's plumbing, not the session's words; every other line is a frame.
+ * - `SessionOptions.approvals: "ask"` swaps --dangerously-skip-permissions
+ *   for claude's own gate routed to stdio (approvals.ts): each `can_use_tool`
+ *   control_request is a toApp request that waits, as long as it takes, for
+ *   Session.answer, whose control_response is written to stdin.
  */
 
 function userMessage(text: string, inputId?: string): string {
@@ -79,8 +84,9 @@ export const claudeSession: StartSession = async (installation, options) => {
     "--verbose", "--replay-user-messages",
     // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
     // no human at an approval prompt: a permission gate is a hang, not
-    // safety. Isolation is the sandbox's job, not the approval flow's.
-    "--dangerously-skip-permissions",
+    // safety. Isolation is the sandbox's job, not the approval flow's. A host
+    // with a person to ask gets claude's own gate instead (approvals.ts).
+    ...claudePermissionArgs(options),
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
@@ -142,7 +148,7 @@ export const claudeSession: StartSession = async (installation, options) => {
           kernel.respond(command.requestId, command.body);
           break;
         case "toApp":
-          kernel.request("toApp", { kind: "native", type: command.type, native: command.native }, { id: command.id });
+          kernel.request("toApp", { kind: "native", type: command.type, native: command.native, ...(command.ask === undefined ? {} : { ask: command.ask }) }, { id: command.id, agentPath: command.agentPath });
           break;
         default:
           break;
@@ -195,7 +201,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   let interruptCounter = 0;
   const session: Session = sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: false }, attribution: "attributed" },
+    capabilities: { steer: true, queue: { durable: false }, attribution: "attributed", approvals: { kind: "supported" } },
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, (request) => {
@@ -259,6 +265,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       unsubscribe();
       return result;
     },
+    answer: claudeAnswerer(kernel, (line) => { child.write(line); }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),

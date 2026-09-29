@@ -21,6 +21,9 @@ function fakeAppServer(
       notify(method) {
         calls.push(method);
       },
+      respond(id, result) {
+        return { id, result };
+      },
       handle() {},
       mark(placed) {
         placed();

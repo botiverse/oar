@@ -1,6 +1,8 @@
+import type { RequestPermissionRequest } from "@agentclientprotocol/sdk";
 import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
+import { acpAsk, type AcpPermissionOptions } from "./approvals.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
@@ -78,8 +80,10 @@ function linkFromExtension(kernel: SessionKernel, params: JsonRecord): void {
   }
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, permissions: AcpPermissionOptions = {}): AcpRecorder {
   const projections = new Map<string, AcpProjectionState>();
+  // Requests a child session made: their automatic answer sits with them.
+  const requestSessions = new Map<string, string>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
     let state = projections.get(sessionId);
     if (state === undefined) {
@@ -149,13 +153,30 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
     },
     requested(id, method, params) {
       write((kernel) => {
-        kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
+        // A child session's request sits in the child session, like its updates.
+        const sessionId = stringField(asRecord(params) ?? {}, ["sessionId"]);
+        const foreign = sessionId !== null && sessionId !== kernel.sessionId;
+        if (foreign) {
+          kernel.node(sessionId);
+          requestSessions.set(id, sessionId);
+        }
+        const ask = method === methods.client.session.requestPermission && isPermissionRequest(params) ? acpAsk(params, permissions) : undefined;
+        kernel.request("toApp", { kind: "native", type: method, native: params, ...(ask === undefined ? {} : { ask }) }, {
+          id,
+          ...(foreign ? { sessionId } : {}),
+        });
       });
     },
     answered(id, reply) {
       write((kernel) => {
-        kernel.respond(id, { kind: "answered", native: reply ?? null });
+        const sessionId = requestSessions.get(id);
+        kernel.respond(id, { kind: "answered", native: reply ?? null }, sessionId === undefined ? undefined : { sessionId });
       });
     },
   };
+}
+
+function isPermissionRequest(params: unknown): params is RequestPermissionRequest {
+  const record = asRecord(params);
+  return record !== null && Array.isArray(record.options) && asRecord(record.toolCall) !== null;
 }

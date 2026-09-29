@@ -1,3 +1,4 @@
+import type { AppDecision, ApprovalsCapability } from "./app-requests.js";
 import type {
   ContextUsage,
   Cursor,
@@ -12,6 +13,7 @@ import type {
 import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
 
+export type { AppAsk, AppDecision, ApprovalsCapability, AskChoice, AskQuestion } from "./app-requests.js";
 export type {
   ContextUsage,
   ControlAction,
@@ -72,14 +74,17 @@ export interface InputOptions {
  * Scope notes that fit no single member:
  * - Ownership is the object reference; no in-process lease. Multi-controller
  *   arbitration belongs to the application layer.
- * - Sessions run YOLO by default: adapters disable interactive permission
- *   gates (claude --dangerously-skip-permissions, codex approvalPolicy
- *   never, pi pre-trusted cwd, ACP allow_always) AND default sandboxes off
- *   (codex danger-full-access; claude/pi have none). In embedded use nobody
- *   sits at an approval prompt: a gate is a hang, not safety. A host wanting
- *   isolation opts in (OAR_CODEX_SANDBOX). Runtime→app requests that DO
- *   arrive are recorded verbatim (direction "toApp") and oar's automatic
- *   answer, when it gives one, is the matching response record.
+ * - Sessions run YOLO by default (`SessionOptions.approvals` "never"):
+ *   adapters disable interactive permission gates (claude
+ *   --dangerously-skip-permissions, codex approvalPolicy never, pi
+ *   pre-trusted cwd, ACP allow_always) AND default sandboxes off (codex
+ *   danger-full-access; claude/pi have none). In embedded use nobody sits at
+ *   an approval prompt: a gate is a hang, not safety. A host wanting
+ *   isolation opts in (OAR_CODEX_SANDBOX); a host with a person to ask opts
+ *   in to `approvals: "ask"` and answers with `answer()`. Runtime→app
+ *   requests are recorded verbatim (direction "toApp", with oar's reading of
+ *   what is asked), and an answer, automatic or the host's, is the matching
+ *   `answered` response record.
  * - The cursor is honored for the lifetime of the adapter process: a
  *   subscriber reconnecting with `afterSeq` misses nothing and repeats
  *   nothing. `SessionOptions.resume` reopens the runtime-native conversation
@@ -118,6 +123,25 @@ export interface SessionOptions {
   readonly systemPrompt?: string;
   /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction (pinned per vendor). */
   readonly appendSystemPrompt?: string;
+  /**
+   * Who answers the runtime's own permission gate and its questions to the
+   * user. `"never"` (default): the gate is off, nothing waits for a person
+   * (the YOLO note above). `"ask"`: the gate is on under the runtime's own
+   * policy (what it deems safe runs, the rest asks), and each approval or
+   * question is a `toApp` request that holds its turn until `Session.answer`
+   * settles it, however much later. oar answers none itself unless the
+   * protocol requires it (ACP: `abort` answers its turn's open permission
+   * requests `cancelled`).
+   *
+   * Invariant: `"ask"` opens only where `capabilities.approvals` is
+   * `supported`, else starting the session rejects naming why, and it never
+   * runs ungated: the adapter forces the runtime's gate on and routes it to
+   * the host (claude `--permission-mode default --permission-prompt-tool
+   * stdio`; codex `approvalPolicy: "untrusted"`, `approvalsReviewer:
+   * "user"`; kimi mode `default`), or declares it `not_enforceable` (grok).
+   * Rules the user configured still pre-answer; the runtime pages say what.
+   */
+  readonly approvals?: "never" | "ask";
 }
 
 /**
@@ -166,6 +190,8 @@ export interface SessionCapabilities {
   /** Input can be held for a LATER turn; `durable` says whether that survives a process restart (codex: runtime-persisted; claude/pi/ACP: this process only). Null when the runtime cannot even hold input. */
   readonly queue: { readonly durable: boolean } | null;
   readonly attribution: AttributionTier;
+  /** Whether a person can answer this runtime's approvals and questions (`SessionOptions.approvals: "ask"`, `Session.answer`). A property of the runtime, whichever mode this session runs in. */
+  readonly approvals: ApprovalsCapability;
 }
 
 export type RawEventObserver = (record: RawEvent) => void;
@@ -197,6 +223,7 @@ export interface AdapterSession {
   steer(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; rejected `not_steerable` when nothing is active or the runtime cannot inject. Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.
+  answer(requestId: string, decision: AppDecision): Promise<ControlResult>; // settle an open toApp request with a host's decision; see Session.answer. Built on SessionKernel.answer.
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
@@ -209,6 +236,23 @@ export interface Session extends AdapterSession {
   steer(input: string, options?: InputOptions): Promise<ControlOutcome>;
   queue(input: string, options?: InputOptions): Promise<ControlOutcome>;
   abort(): Promise<ControlOutcome>;
+  /**
+   * Answer the runtime→app request `requestId` (the `app_request` event)
+   * with a person's decision, however long after it was asked. Recorded
+   * like every control: an `answer` request, then, when taken, the `toApp`
+   * request's `answered` response (the reply as sent, verbatim), then
+   * `accepted`. The turn goes on; what happens next is the runtime's.
+   *
+   * Rejected, the request left as it was, when the stream holds no such
+   * request (`unknown_request`); it already has its answer, automatic or an
+   * earlier `answer` (`already_answered`: the first stands, so two devices
+   * racing get one accept and one rejection); the runtime withdrew it
+   * (`withdrawn`); the runtime exited or the session is disposed; or the
+   * request does not take the decision (`unsupported`: not in its
+   * `ask.choices`, a deny `message` without `ask.denyMessage`, a typed
+   * decision with no `ask`). A `native` decision goes to any open request.
+   */
+  answer(requestId: string, decision: AppDecision): Promise<ControlOutcome>;
   /**
    * The consumer face of the stream: every fact oar read, flat and attributed
    * (`eventsOf` applied to each record). One frame with three readings is

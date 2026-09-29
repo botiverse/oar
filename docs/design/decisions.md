@@ -83,3 +83,35 @@ successful open is the confirmation that claude runs the requested level;
 stream (`system/init` or the `assistant` frame; the transcript file already
 records `effort` per assistant message, but oar never reads transcripts),
 or a `get_settings` that can be narrowed to `applied`.
+
+
+## Answering runtime requests (2026-09-29)
+
+**Asked for:** a host with a person to ask (rowrow) wants the runtime's
+approvals and questions routed to them and answered later, from any device.
+Shipped as `SessionOptions.approvals: "ask"` and `Session.answer`
+([position and gates](approvals.md), [spec](../spec/approvals.md)). The
+alternatives considered and refused:
+
+- **oar deciding what is risky** (an allowlist or risk classes in oar): the
+  runtime's own gate already classifies, and a second classifier would
+  disagree with what the runtime then runs. The host owns who answers;
+  a host wanting a policy answers requests automatically.
+- **Recording only the `answered` response**, without an `answer` control
+  request: a refused answer (unknown, already answered, withdrawn) would
+  have nowhere honest to go, and the host's decision would be lost beside
+  the native reply.
+- **Voiding pending requests at the turn's end**: codex reports the
+  withdrawal of an interrupted turn's request after `turn/completed`
+  ([env] 0.155.1), and work outside a turn can ask; only the runtime's word
+  or the exit settles a request.
+- **Grok ask mode on its per-process and per-session switches**: under a
+  user's `permission_mode = "always-approve"`, `grok --permission-mode
+  default agent`, `_meta.yoloMode: false` and `GROK_DEFAULT_PERMISSION_MODE`
+  each left a gated command running unasked (grok 1.0.44, live), and grok
+  reports no mode in effect. Declared `not_enforceable`.
+
+**What would reopen it:** a grok switch that outranks its config or a
+report of the mode in effect (grok); a runtime whose gate cannot wait for a
+late answer (none observed: claude took one 300 s later, codex one 20 s
+later).

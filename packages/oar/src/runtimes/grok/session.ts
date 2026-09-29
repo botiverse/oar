@@ -126,12 +126,28 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
   "_x.ai/session/usage",
 ];
 
+/**
+ * Why grok declares no approvals (live 2026-09-29, grok 1.0.44,
+ * experiments/approval-channels.ts grok): its gate follows the user's
+ * `permission_mode` config. Under `permission_mode = "always-approve"` a
+ * `touch` ran unasked with `--always-approve` dropped, the top-level
+ * `grok --permission-mode default agent …`, `_meta.yoloMode: false`, and
+ * `GROK_DEFAULT_PERMISSION_MODE=default` alike, and grok reports no mode in
+ * effect (`_x.ai/settings/update` carries `permission_mode: null`). A session
+ * asked to wait for a person could run ungated, so it is not offered.
+ */
+export const GROK_APPROVALS = {
+  kind: "unsupported",
+  code: "not_enforceable",
+  reason: "grok's permission gate follows the user's permission_mode config (always-approve outranks every per-process and per-session switch oar has) and grok reports no mode in effect, so oar cannot guarantee a gated session",
+} as const;
+
 export const grokAcpProfile: AcpSessionProfile = {
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
   // Native children are independent ACP sessions on the same connection
   // (attribution tier #3, docs/spec/attribution.md): recorded under their own
   // session id, linked in the graph when a lifecycle notification says so.
-  capabilities: { steer: true, queue: { durable: false }, attribution: "nested" },
+  capabilities: { steer: true, queue: { durable: false }, attribution: "nested", approvals: GROK_APPROVALS },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,

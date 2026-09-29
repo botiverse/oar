@@ -69,6 +69,7 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 | [docs/spec/](docs/spec/README.md)            | Record-stream and query contracts |
 | [Conversation projection](docs/spec/conversation.md) | Build a conversation UI from requests, responses and native messages |
 | [docs/spec/inventory.md](docs/spec/inventory.md) | Independent native skills, MCP server and tool queries |
+| [docs/spec/approvals.md](docs/spec/approvals.md) | Let a person answer the runtime's permission gate and questions (`approvals: "ask"`, `Session.answer`) |
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
 | [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |
 | [docs/design/system.md](docs/design/system.md) | How the library, evidence layer, projections, and continuation form one agent-facing system |

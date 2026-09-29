@@ -62,7 +62,7 @@ is the turn's end. The adapter declares `capabilities: { steer: true, queue:
 | Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta`; `rawResponseItem/completed` reasoning → `reasoning`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` items → `tool_call_started` / `tool_call_ended` with the item id as `callId`; `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; a `contextCompaction` item → `compaction_started` on `item/started` and `compaction_ended` (completed, no trigger) on `item/completed`; the deprecated `thread/compacted` notification ends an open compaction only when the item did not already (the projection's `compacting` flag dedupes; the schema marks it "Deprecated: Use ContextCompaction item type instead") [env 0.154.0]; `thread/tokenUsage/updated` → `usage`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to the prompt / steer / abort / queue requests, with the reply as `native` (the queue submission id is thereby retained). The response is recorded as the reply line is read, so it sits before notifications codex wrote after it. |
 | Effective configuration | `model()` and `effort()` fold the `model` / `effort` events of the open reply (`model`, `reasoningEffort`) and of `thread/settings/updated`; `SessionOptions.effort` is the config override `model_reasoning_effort` on `thread/start` and `thread/settings/update` after a resume. Most native configuration has no public mutator. |
-| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays a dangling request. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id as the record id, a child thread's in the child session), with what they ask (`ask`) for command and file-change approvals and user-input questions; oar answers none itself. `approvalPolicy: never` means none are expected by default; under `approvals: "ask"` (`untrusted`) approvals arrive and wait for `Session.answer`, whose JSON-RPC response carries the server's own id back. `serverRequest/resolved` for one oar did not answer is read as `app_request_withdrawn`. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread. The app-server delivers child-thread notifications on the parent's connection ([env] 0.149.0, 0.154.0); without an item naming the thread no edge is fabricated. |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
@@ -87,7 +87,9 @@ override is described under tools and permissions), sends `initialize`
 (`clientInfo: { name: "oar" }`, `capabilities: { experimentalApi: true }`),
 then the `initialized` notification. Request ids correlate replies. New
 sessions call `thread/start { cwd, model?, approvalPolicy: "never",
-experimentalRawEvents: true, baseInstructions?, developerInstructions? }`;
+experimentalRawEvents: true, baseInstructions?, developerInstructions? }`
+(`approvalPolicy: "untrusted", approvalsReviewer: "user"` under
+`approvals: "ask"`);
 OAR requires a returned thread id before constructing its Session and kills
 the process otherwise.
 
@@ -439,16 +441,56 @@ reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
 
 App-server supports native policy plus server requests for command/file/permission
 decisions, user input, MCP elicitation, and experimental dynamic tools. OAR
-records each server request as a `toApp` request record and never answers it:
-it sets `approvalPolicy: never` and launches with `-c
+records each server request as a `toApp` request record and answers none
+itself. By default it sets `approvalPolicy: never` and launches with `-c
 sandbox_mode="danger-full-access"`; the launch override is the only seam that
 governs codex's exec tool (`thread/start.sandboxMode` does not; pinned on a
 real login). `OAR_CODEX_SANDBOX` pins a stricter mode, and
 `OAR_CODEX_SANDBOX=inherit` skips the override so the user's own configuration
-wins. Configurations requiring interactive settlement have no supported OAR
-interaction path: the dangling request is the honest record
+wins. A request that arrives anyway stays open, the honest record
 ([stream tests](../../tests/codex/codex-session-stream.test.ts)); none arrived
 in any live run.
+
+**Approvals (mapped, `capabilities.approvals` supported;
+[contract](../spec/approvals.md)).** `SessionOptions.approvals: "ask"` sends
+`approvalPolicy: "untrusted", approvalsReviewer: "user"` on `thread/start`
+and `thread/resume` (a resumed thread takes the policy of the resume) and
+refuses the open when the reply reports another policy or reviewer (a
+config's `approvals_reviewer = "auto_review"` would otherwise route requests
+to a subagent). `untrusted` is the policy that gates: under oar's
+danger-full-access sandbox `on-request` asked for nothing, the model having
+nothing to escalate from. Observed on 0.155.1 against a scripted provider
+([experiment](../../experiments/approval-channels.ts)):
+
+- A command outside codex's trusted set is `item/started` (the
+  commandExecution item, `tool_call_started`) then the server request
+  `item/commandExecution/requestApproval {kind: "command", threadId, turnId,
+  itemId, startedAtMs, environmentId, command, cwd, commandActions,
+  proposedExecpolicyAmendment, availableDecisions}`, JSON-RPC id 0, 1, 2 …
+  per connection. It waits: an accept 20 s later ran the command.
+- `{decision: "accept"}` runs it; `"acceptForSession"` runs it and the same
+  command later runs unasked; `"decline"` fails the item (`declined`), the
+  model reads "rejected by user" and the turn completes; `"cancel"` also
+  ends the turn `interrupted`. `availableDecisions` listed only `accept`,
+  `acceptWithExecpolicyAmendment` and `cancel`, yet `decline` and
+  `acceptForSession` were honored: it is the list codex suggests presenting,
+  so OAR offers allow, allow for the session and deny (no deny message: the
+  protocol has none). The rest stays reachable as a native `result`.
+- `serverRequest/resolved {threadId, requestId}` follows every resolution:
+  after the client's answer, and after `turn/interrupt` cleared a pending
+  request (then after `turn/completed`). A later answer is ignored.
+- `item/tool/requestUserInput` (questions, answered `{answers: {<id>:
+  {answers: [...]}}}`) is offered to the model but refused in the Default
+  collaboration mode, the only mode OAR runs ("request_user_input is
+  unavailable in Default mode"); its reading follows the protocol schema.
+  `item/fileChange/requestApproval` too: the scripted provider could not
+  drive codex's patch tool, so its reading (the item's change paths and
+  diffs) is pinned by the schema and a unit test only.
+  `item/permissions/requestApproval` (a permission profile grant) gets no
+  `ask`: native answers only.
+[Readings and replies](../../packages/oar/src/runtimes/codex/approvals.ts),
+[adapter test](../../tests/codex/codex-session-approvals.test.ts),
+[vendor test](../../sea-trial/vendor/approvals.vendor.test.ts).
 
 OAR projects command execution, file changes, MCP calls, and web search, but
 exposes no tool registration, dynamic-tool execution callback, MCP management,
@@ -523,8 +565,10 @@ the former only.
    experimentalRawEvents: true, baseInstructions?, developerInstructions?,
    config?: { model_reasoning_effort } }` or `thread/resume { threadId,
    excludeTurns: true, ... }` (then `thread/settings/update { effort }` when
-   the resumed thread runs another level). A model or effort readback that
-   differs from the request kills the process and throws. Not on OAR's
+   the resumed thread runs another level); under `approvals: "ask"` the
+   policy is `"untrusted"` with `approvalsReviewer: "user"`. A model,
+   effort or (ask) approval-policy readback that differs from the request
+   kills the process and throws. Not on OAR's
    path although present upstream: `--listen ws://`, `--listen unix://`,
    `codex app-server daemon`, `codex app-server proxy`, `thread/fork`,
    `ephemeral`, `thread/resume { path }` and `{ history }`. Source:
@@ -538,8 +582,8 @@ the former only.
 3. **Event model.** Every JSON-RPC notification is one event record whose
    `type` is the method, whose `native` is the params verbatim, and whose
    native payload retains the `turnId` when present. Server requests (frames with both
-   `id` and `method`) are recorded as events plus a `toApp` request nobody
-   answers. Frames read before the open reply are held in wire order and
+   `id` and `method`) are recorded as `toApp` requests with what they ask,
+   answered only by `Session.answer`. Frames read before the open reply are held in wire order and
    recorded ahead of the open event (`remoteControl/status/changed` at seq 0
    on 0.154.0). Deltas arrive because `experimentalRawEvents` is on. A turn
    is the span from `turn/started` to `turn/completed`, whose `turn.status`
@@ -574,8 +618,9 @@ the former only.
    are vendor only here. Source: [pre-open tests](../../tests/codex/codex-pre-open.test.ts)
   , stream tests, transport; vendor [daemon README][upstream-daemon].
 7. **Tools and permissions.** `approvalPolicy: "never"` and a full access
-   sandbox, so no approval request is expected; one that arrives is recorded
-   and left dangling. `item/started` on a tool item becomes
+   sandbox by default, so no approval request is expected; one that arrives
+   is recorded and left open. Under `approvals: "ask"`, `untrusted`: command
+   approvals arrive and `Session.answer` replies (see approvals above). `item/started` on a tool item becomes
    `tool_call_started` with `callId`, `tool`, `input`; `item/completed`
    becomes `tool_call_ended` with `callId` and an `output` string built by
    `item-detail.ts`. Source: projection,
@@ -906,8 +951,9 @@ Open gaps:
   enabled on `thread/resume`, so a resumed session has no `reasoning` events.
 - Queue durability across process death: only the drained subsequent turn is
   verified.
-- Server requests are recorded, never answered; no configuration requiring
-  approval, user input or elicitation has been exercised.
+- Approvals: command approvals are exercised on the scripted provider
+  (accept, acceptForSession, decline, cancel, interrupt); file-change
+  approvals, user-input questions (Plan mode only) and elicitation are not.
 - Child threads: delivery and identity are [env] on 0.149.0 / 0.154.0 with
   differing item vocabularies; control of child threads is not exposed; a
   child `turn/completed` that never arrives is observed but unexplained.

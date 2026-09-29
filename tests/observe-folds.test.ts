@@ -28,11 +28,12 @@ function sessionOver(kernel: SessionKernel): AdapterSession {
     kernel.control(body, () => ({ kind: "accepted" }));
   return {
     id: kernel.sessionId,
-    capabilities: { steer: false, queue: null, attribution: "nested" },
+    capabilities: { steer: false, queue: null, attribution: "nested", approvals: { kind: "supported" } },
     prompt: async (input) => control({ kind: "prompt", input }),
     steer: async (input) => control({ kind: "steer", input }),
     queue: async (input) => control({ kind: "queue", input }),
     abort: async () => control({ kind: "abort" }),
+    answer: async (requestId, decision) => kernel.answer(requestId, decision, (_request, taken) => ({ kind: "sent", native: taken })),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  AppDecision,
   ControlOutcome,
   ControlResult,
   InputOptions,
@@ -55,6 +56,8 @@ export function sealSession(adapterSession: AdapterSession): Session {
   const queue = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
     controlOutcomeOf(await adapterSession.queue(input, identify(options)));
   const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
+  const answer = async (requestId: string, decision: AppDecision): Promise<ControlOutcome> =>
+    controlOutcomeOf(await adapterSession.answer(requestId, decision));
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
     const steered = await steer(input, identified);
@@ -75,6 +78,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     steer,
     queue,
     abort,
+    answer,
     events: (observer, options = {}) => {
       const coalesce = options.coalesceText ?? false;
       const target = coalesce === false

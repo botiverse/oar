@@ -419,10 +419,26 @@ request under the runtime's JSON-RPC id and OAR's reply as the `answered`
 response. [Terminal tests](../../tests/acp/acp-terminal.test.ts) cover shell
 compatibility, truncation, and cleanup.
 
-There is no application approval callback, generic client-tool callback, or
-per-session MCP configuration (all **unexposed**). Passing no MCP servers and
-disabling client filesystem methods does not disable every vendor-configured
-tool.
+There is no generic client-tool callback or per-session MCP configuration
+(both **unexposed**). Passing no MCP servers and disabling client filesystem
+methods does not disable every vendor-configured tool.
+
+**Approvals: unsupported, `not_enforceable`
+([contract](../spec/approvals.md)).** Grok has a gate (modes default/ask,
+auto, always-approve; `session/request_permission` over ACP) but oar cannot
+turn it on for certain: it follows the user's `permission_mode` config.
+Live on 1.0.44 under `~/.grok/config.toml` `permission_mode =
+"always-approve"` ([experiment](../../experiments/approval-channels-acp.ts)),
+a `touch` ran unasked with `--always-approve` dropped, the top-level `grok
+--permission-mode default agent … stdio` (`grok agent` takes no such flag of
+its own; grok's docs say "CLI overrides config for that process"),
+`_meta.yoloMode: false` on `session/new`, and
+`GROK_DEFAULT_PERMISSION_MODE=default` in the environment alike; and grok
+reports no mode in effect (its `_x.ai/settings/update` push says
+`permission_mode: null`, `session/new` carries no modes). A session that
+promised to wait for a person could run ungated, so `approvals: "ask"` is
+refused at open with that reason. Reopened by a switch that outranks the
+config, or a report of the mode in effect.
 
 ### Process ownership, release, installation, and account usage
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+  AppDecision,
   ControlResult,
   Cursor,
   FrameBody,
@@ -15,6 +16,9 @@ import type {
   RawEvent,
   Unsubscribe,
 } from "../contracts/session.js";
+import { askOf, decisionRefusal, type AnswerDelivery, type DeliverAnswer } from "./app-requests.js";
+
+export type { AnswerDelivery, DeliverAnswer } from "./app-requests.js";
 
 /** Where a record sits: another session id for derived children, a sub-agent path, a runtime-native span id. */
 export interface RecordAt {
@@ -44,7 +48,11 @@ export interface RecordAt {
  *   adapter decide, and records the accept/reject response; and the
  *   reachability rule: once the stream holds an `exited` response or a
  *   `dispose` request, control is rejected here without consulting the
- *   adapter (record-stream.md, "Reachability is read off the stream").
+ *   adapter (record-stream.md, "Reachability is read off the stream");
+ * - the answer shape: `answer()` settles an open `toApp` request with a
+ *   host's decision, whether the request is open (not answered, not
+ *   withdrawn) and whether its recorded ask takes the decision both read
+ *   off the stream (approvals.md); the adapter only sends the reply.
  *
  * What is deliberately NOT here: any gate on facts. Nothing in the kernel
  * decides whether a runtime frame may enter the stream; control never
@@ -76,6 +84,18 @@ export interface SessionKernel {
    * apply it themselves; adapter-held liveness flags are not needed.
    */
   unreachable(): { readonly kind: "rejected"; readonly code: "runtime_exited" | "disposed"; readonly reason: string } | null;
+  /**
+   * `Session.answer`: record an `answer` request for the `toApp` request
+   * `requestId`; when the runtime is reachable, the request is open (neither
+   * answered nor withdrawn in the stream) and its ask takes `decision`, let
+   * `deliver` send the reply, record it as the request's `answered`
+   * response (at the request's own envelope), then `accepted`. Anything else
+   * is the answer's rejection, and the request stays as it was. Synchronous,
+   * so two answers racing for one request cannot both be delivered.
+   */
+  answer(requestId: string, decision: AppDecision, deliver: DeliverAnswer, at?: RecordAt): ControlResult;
+  /** The `toApp` requests still open: neither answered nor withdrawn, in arrival order. Empty once the runtime exited (none can be answered then). */
+  openRequests(): readonly RequestRecord[];
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe;
   records(): readonly RawEvent[];
   graph(): SessionGraph;
@@ -91,6 +111,15 @@ async function settle(
 ): Promise<ResponseBody> {
   try {
     return await decide(issued);
+  } catch (error) {
+    return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/** An adapter's delivery of an answer; a throw is the answer's `error` rejection. */
+function sendAnswer(send: DeliverAnswer, target: RequestRecord, decision: AppDecision): AnswerDelivery {
+  try {
+    return send(target, decision);
   } catch (error) {
     return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
   }
@@ -112,6 +141,26 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
   let seq = 0;
   let exited = false;
   let disposing = false;
+  // Every toApp request and where the stream says it stands: answered (an
+  // `answered` response) or withdrawn (an `app_request_withdrawn` event).
+  const toApp = new Map<string, { readonly request: RequestRecord; state: "open" | "answered" | "withdrawn" }>();
+  const settleToApp = (record: RawEvent): void => {
+    if (record.kind === "request" && record.direction === "toApp") {
+      toApp.set(record.id, { request: record, state: "open" });
+    } else if (record.kind === "response" && record.body.kind === "answered") {
+      const entry = toApp.get(record.requestId);
+      if (entry?.state === "open") {
+        entry.state = "answered";
+      }
+    } else if (record.kind === "frame") {
+      for (const event of record.body.events) {
+        const entry = event.kind === "app_request_withdrawn" ? toApp.get(event.requestId) : undefined;
+        if (entry?.state === "open") {
+          entry.state = "withdrawn";
+        }
+      }
+    }
+  };
 
   const append = <T extends RawEvent>(build: (envelope: {
     readonly sessionId: string;
@@ -136,6 +185,7 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
     if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "dispose") {
       disposing = true;
     }
+    settleToApp(record);
     for (const observer of observers) {
       deliver(observer, record);
     }
@@ -153,6 +203,22 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
   const respond: SessionKernel["respond"] = (requestId, body, at) =>
     append((envelope) => ({ ...envelope, kind: "response", requestId, body }), at);
 
+  /** Why the toApp request `requestId` cannot take `decision` now, read off the stream; null when it can. */
+  const answerRefusal = (requestId: string, decision: AppDecision): ResponseBody | null => {
+    const entry = toApp.get(requestId);
+    if (entry === undefined) {
+      return { kind: "rejected", code: "unknown_request", reason: `no runtime request ${requestId} in this session` };
+    }
+    if (entry.state === "answered") {
+      return { kind: "rejected", code: "already_answered", reason: `runtime request ${requestId} is already answered` };
+    }
+    if (entry.state === "withdrawn") {
+      return { kind: "rejected", code: "withdrawn", reason: `the runtime withdrew request ${requestId}` };
+    }
+    const refused = decisionRefusal(askOf(entry.request), decision);
+    return refused === null ? null : { kind: "rejected", ...refused };
+  };
+
   return {
     sessionId,
     frame: (body, at) => append((envelope) => ({ ...envelope, kind: "frame", body }), at),
@@ -164,6 +230,23 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
       const decided = blocked ?? await settle(decide, issued);
       return { request: issued, response: respond(issued.id, decided, at) };
     },
+    answer(requestId, decision, send, at) {
+      const blocked = unreachable();
+      const issued = request("toRuntime", { kind: "answer", requestId, decision }, at);
+      const refused = blocked ?? answerRefusal(requestId, decision);
+      const target = toApp.get(requestId)?.request;
+      if (refused !== null || target === undefined) {
+        return { request: issued, response: respond(issued.id, refused ?? { kind: "rejected", code: "unknown_request", reason: requestId }, at) };
+      }
+      const delivery = sendAnswer(send, target, decision);
+      if (delivery.kind === "rejected") {
+        return { request: issued, response: respond(issued.id, delivery, at) };
+      }
+      // The answer to a child agent's (or child session's) request sits where the request does.
+      respond(requestId, { kind: "answered", native: delivery.native }, { sessionId: target.sessionId, agentPath: target.agentPath });
+      return { request: issued, response: respond(issued.id, { kind: "accepted" }, at) };
+    },
+    openRequests: () => (exited ? [] : [...toApp.values()].filter((entry) => entry.state === "open").map((entry) => entry.request)),
     unreachable,
     rawEvents(observer, cursor) {
       if (cursor !== undefined) {

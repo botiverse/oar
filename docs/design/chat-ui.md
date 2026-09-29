@@ -80,6 +80,7 @@ recorded log, and testable without a DOM — the same discipline
 | `compaction_started`/`ended`, `retry` | notice parts inside the running turn (they carry `seq`/`agentPath`, they are not system chrome) |
 | `app_request` | `pendingRequests` entry + an actionable part in flow |
 | `app_answered` | settles the pending entry |
+| `app_request_withdrawn`, `exited` | settle it too (`withdrawn` / `void`): nothing stays pending forever |
 | `control_rejected` | the owning input's delivery state changes; no separate notice unless the input is unknown |
 | `exited` | `live: false` + a notice |
 | `user_message` | folds into `ConversationInput.observations`; never a second bubble |
@@ -112,7 +113,7 @@ paper over.
 | send while idle | `prompt` | one "send" semantic; the session reports where input landed |
 | send while running | `steerOrQueue` | landing (`steered`/`queued`/`rejected`) is read back from the stream, never assumed |
 | cancel | `abort` | outcome arrives as `turn_ended`, not as the call's return value |
-| answer a runtime request | **gap — see below** | `add-tool-result` or a custom `answer` command |
+| answer a runtime request | `answer(requestId, decision)` | the `ask` on the pending request says what to render and which decisions it takes; a session opened with `approvals: "ask"` ([approvals.md](approvals.md)) |
 | dispose | `dispose` | lifecycle, not a chat command |
 
 ## What this position refuses
@@ -140,11 +141,10 @@ paper over.
    `useAssistantTransportRuntime` (`resumeApi`) tolerates a persistent
    state channel, or the serve shape is a plain SSE view stream plus a
    command endpoint.
-2. **Answering runtime requests.** Today adapters auto-answer `toApp`
-   requests (YOLO default) and `Session` exposes no `answer(requestId)`.
-   A UI that wants human approval needs an opt-out of the automatic
-   answer plus an answer call — the first session-surface addition this
-   direction forces.
+2. **Answering runtime requests.** Settled by
+   [approvals.md](approvals.md): `approvals: "ask"` opts out of the
+   automatic answer, `Session.answer` answers, `pendingRequests` entries
+   carry the `ask`, and a withdrawn or voided request leaves them.
 3. **Grouping under weak attribution.** With `opaque`/`none` tiers the
    view shows one lane; correct by construction, but the doc-worthy point
    is that display richness degrades with the tier instead of being

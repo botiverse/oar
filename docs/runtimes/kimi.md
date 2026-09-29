@@ -59,7 +59,7 @@ OAR read out of it. Control calls are request/response record pairs.
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one event with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier declared `opaque`. |
 | Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is a frame with the `turn_ended` event. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback. |
 | Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. A non-terminal `tool_call_update` carrying `rawOutput` is a `tool_call_progress` event; the argument-streaming updates (content only) are not. Kimi reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. No child session ever arrives on this transport, so the graph holds the root only. |
-| Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record and OAR's fixed-policy answer the `answered` response; `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
+| Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record and OAR's fixed-policy answer the `answered` response; `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. Under `approvals: "ask"` a permission request (with what it asks) instead waits for `Session.answer`. |
 
 See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
@@ -359,16 +359,39 @@ default), disables client filesystem methods, and passes no MCP servers.
 Vendor-configured tools can still run, but OAR has no per-session MCP
 configuration or generic client-tool callback.
 
-OAR uses yolo when available and answers `session/request_permission` with
-`allow_always`, then `allow_once`, otherwise `cancelled`. With yolo selected
-no `request_permission` arrives; the only reverse requests are `terminal/*`,
-and while a command runs kimi polls `terminal/output` every ~250 ms, each poll
-a `toApp` request/answer pair (`busy-and-late-control`, `kimi-wire-tap.ts`).
-Each reverse request is recorded as a `toApp` request under the runtime's
-JSON-RPC id and OAR's reply as the `answered` response, verbatim (terminal
-output included). No caller decision channel exists, so approval and question
-semantics cannot be represented as application interactions. The stream
-shows what was asked and what OAR answered.
+By default OAR selects yolo mode and answers `session/request_permission`
+with `allow_always`, then `allow_once`, otherwise `cancelled`. With yolo
+selected no `request_permission` arrives; the only reverse requests are
+`terminal/*`, and while a command runs kimi polls `terminal/output` every
+~250 ms, each poll a `toApp` request/answer pair (`busy-and-late-control`,
+`kimi-wire-tap.ts`). Each reverse request is recorded as a `toApp` request
+under the runtime's JSON-RPC id and OAR's reply as the `answered` response,
+verbatim (terminal output included).
+
+**Approvals (mapped, `capabilities.approvals` supported;
+[contract](../spec/approvals.md)).** Kimi 2.0.0 offers the modes `default`
+("Manual approvals; tools execute normally", the one a session opens in),
+`plan`, `auto` ("Auto-approve safe operations") and `yolo`. Under
+`SessionOptions.approvals: "ask"` OAR sets no yolo, and sets `default` when
+the session opens in another mode (refusing the open when kimi offers none).
+Observed live on 2.0.0 with a Bash `touch`
+([experiment](../../experiments/approval-channels-acp.ts)): the call's
+arguments stream as `tool_call_update` content, then `session/request_permission
+{sessionId, toolCall: {toolCallId, title: "Bash", content: [{type: "content",
+content: {type: "text", text: "Requesting approval to Running: touch …"}}]},
+options: [{optionId: "approve_once", name: "Approve once", kind:
+"allow_once"}, {optionId: "approve_always", name: "Approve for this session",
+kind: "allow_always"}, {optionId: "reject", name: "Reject", kind:
+"reject_once"}]}` with no `rawInput`, so the ask carries the title as the
+tool and the content text as its reason (kimi truncates the command there);
+the full command is only in the streamed arguments. The reply waits;
+`reject` left the file absent and the turn completed, the model saying the
+request was rejected. OAR maps allow to `approve_once`, deny to `reject`,
+and, since kimi names it "Approve for this session", allow for the session to
+`approve_always` (not exercised live). An abort answers a waiting request
+`cancelled`, as ACP requires of a client that cancels a turn (fake-agent
+test). [Readings and replies](../../packages/oar/src/shared/acp/approvals.ts),
+[adapter test](../../tests/acp/acp-session-approvals.test.ts).
 
 ### Process ownership, installation, and account usage
 
@@ -430,8 +453,9 @@ completion, the Agent report) and the dispose-after-death answer.
 yolo selection to the recorded 0.38.0 schema. The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Kimi.
 
-Open gaps: questions and approvals (no `request_permission` arrives under
-yolo), post-turn compaction, whether every kimi tool opens with its name as
+Open gaps: approvals beyond one denied Bash call (allow for the session,
+an abort while a request waits, question fallbacks through the permission
+channel), post-turn compaction, whether every kimi tool opens with its name as
 `title`, abort effects on background children, concurrent same-ID
 controllers and in-flight work across OAR subprocesses, and any child usage
 (the transport carries none). Keep native API capabilities, transport

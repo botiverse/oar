@@ -2,12 +2,13 @@ import type { Event, RawEvent } from "../contracts/session.js";
 import {
   beginTurn,
   laneFor,
-  markRequestAnswered,
   noticePart,
   removeEmptyTurn,
   sameLane,
   sealTurn,
+  settleRequest,
   turnForWrite,
+  voidPendingRequests,
   type Draft,
 } from "./session-view-fold.js";
 import type { PendingRequest, ViewPart, ViewSection } from "./session-view.js";
@@ -153,6 +154,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
           sessionId: event.sessionId,
           agentPath: event.agentPath,
           seq: event.seq,
+          ...(event.ask === undefined ? {} : { ask: event.ask }),
         });
       }
       laneFor(draft, event, streamId)?.parts.push({
@@ -160,11 +162,15 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         requestId: event.requestId,
         type: event.type,
         answered: false,
+        ...(event.ask === undefined ? {} : { ask: event.ask }),
       });
       return;
     }
     case "app_answered":
-      markRequestAnswered(draft, event.requestId);
+      settleRequest(draft, event.requestId, "answered");
+      return;
+    case "app_request_withdrawn":
+      settleRequest(draft, event.requestId, "withdrawn");
       return;
     case "control_rejected":
       if (event.action === "prompt") {
@@ -184,6 +190,8 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       }
       return;
     case "exited":
+      // Nothing can answer a request of a runtime that is gone: void, never pending forever.
+      voidPendingRequests(draft);
       draft.exited = { code: event.code };
       draft.messages.push({
         kind: "notice",
@@ -221,6 +229,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
 
 export function recordFacts(draft: Draft, record: RawEvent, streamId: string): void {
   if (record.kind === "request" && record.direction === "toApp") {
+    const ask = record.body.kind === "native" ? record.body.ask : undefined;
     const entry: PendingRequest = {
       requestId: record.id,
       type: record.body.kind === "native" ? record.body.type : record.body.kind,
@@ -228,6 +237,7 @@ export function recordFacts(draft: Draft, record: RawEvent, streamId: string): v
       agentPath: record.agentPath,
       seq: record.seq,
       body: record.body.kind === "native" ? record.body.native : record.body,
+      ...(ask === undefined ? {} : { ask }),
     };
     const existing = draft.pendingRequests.findIndex((request) => request.requestId === record.id);
     if (existing === -1) {

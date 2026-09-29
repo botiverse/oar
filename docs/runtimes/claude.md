@@ -45,7 +45,7 @@ Programs have two relevant entry points:
 | stream-json frame | Exactly one `Frame` record per stdout line: `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, turn_ended, usage, model, compaction_ended). Frames OAR does not interpret (`rate_limit_event`, `system/thinking_tokens`, …) are recorded with no events. No `spanId`: claude frames carry no turn id. |
 | User turn and `result` | The turn's start is the `prompt` request record; the `result` frame is the turn's end, projected as a `turn_ended` event (aborted when OAR's own interrupt was outstanding, failed on `is_error`, else completed) plus a `usage` event. |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]`: a frame attributes to the Task tool_use that spawned it, nested through that call's own agent. `capabilities.attribution` is `attributed`. Child usage is not attributed (unverified). |
-| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is recorded as a `toApp` request (unanswered; none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
+| `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is the `toApp` request record (one line, one record), with what it asks (`ask`) when it is a `can_use_tool`; `events()` reads it as `app_request` with the request subtype as `type`. None arrive under `--dangerously-skip-permissions`; under `approvals: "ask"` each waits for `Session.answer`, whose `control_response` goes to stdin. claude's `control_cancel_request` for one of them is a frame read as `app_request_withdrawn`. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | Only a small subset is represented by OAR startup options and control methods: `--model`, `--effort` (confirmed by `get_settings` at open), the system prompt flags. |
 
@@ -241,13 +241,65 @@ no start frame and no compaction_started.
 ### Tools, permissions, and extensions
 
 Native Claude supports tool selection, MCP, agents, skills, plugins, permission
-modes, and SDK approval/hook callbacks. These are **not exposed** as corresponding
-OAR configuration or interaction APIs. Native configuration may still affect
+modes, and SDK approval/hook callbacks. Tool selection, MCP, agents and hooks are
+**not exposed** as OAR configuration. Native configuration may still affect
 execution, but OAR does not pass `--mcp-config`, `--tools`, `--agents`, or explicit
-setting-source controls. Startup always passes `--dangerously-skip-permissions`;
-there is no OAR approval request/reply channel.
-[Native MCP][native-mcp], [permissions][native-permissions],
+setting-source controls. [Native MCP][native-mcp], [permissions][native-permissions],
 [adapter](../../packages/oar/src/runtimes/claude/session.ts).
+
+**Approvals (mapped, `capabilities.approvals` supported;
+[contract](../spec/approvals.md)).** By default startup passes
+`--dangerously-skip-permissions`. `SessionOptions.approvals: "ask"` passes
+`--permission-mode default --permission-prompt-tool stdio` instead: the mode
+is forced (a settings `defaultMode: bypassPermissions` would otherwise run
+ungated; `system/init` then says `permissionMode: "default"`), and the gate is
+routed to stdin/stdout, no `initialize` handshake needed. Observed on 2.1.284
+against a scripted provider
+([experiment](../../experiments/approval-channels.ts)):
+
+- A tool call claude's rules do not settle (a Bash `touch`; read-only commands
+  and rules the user configured still run unasked) is the `assistant` frame
+  with the `tool_use`, then `control_request {request_id, request: {subtype:
+  "can_use_tool", tool_name, display_name, input, description,
+  permission_suggestions, blocked_path, tool_use_id}}`. It waits: an allow
+  written 300 s later ran the tool, with no frame in between.
+- The reply is `control_response {response: {subtype: "success", request_id,
+  response}}`. `{behavior: "allow", updatedInput}` runs it (`updatedInput`
+  optional). `{behavior: "deny", message}` leaves it unrun: the model reads
+  the message verbatim as an `is_error` tool_result, the turn completes, and
+  `result.permission_denials` lists the call. A deny without `message` still
+  denies, but the model reads claude's "invalid permission result" text, so
+  OAR sends "The user denied this tool use." when the host gives none.
+- `permission_suggestions` are claude's own "don't ask again" options:
+  `addRules` (destination `localSettings`), `addDirectories` and `setMode
+  acceptEdits` (destination `session`). An allow for the session sends the
+  `addRules` and `addDirectories` ones with destination `session` (never the
+  mode switch, which would ungate every later edit): the same command then
+  ran unasked, also for a path outside the working directory, which the
+  rule alone did not cover (claude-aimock vendor test). Nothing is written
+  to a settings file.
+- A write claude's safety check flags carries `decision_reason_type:
+  "safetyCheck"`, `classifier_approvable: false` and
+  `suppress_always_allow_rule: true`, though it still suggests an `addRules`
+  (CI on windows-latest: a path through the 8.3 short name `RUNNER~1`, "a
+  suspicious Windows path pattern"). OAR then offers no `allow_session`:
+  `ask.choices` is `allow`, `deny`, and a session grant is refused
+  `unsupported`.
+- `AskUserQuestion` is a `can_use_tool` with `requires_user_interaction:
+  true` and `input.questions`; the answer is `updatedInput: {...input,
+  answers: {<question text>: "<label>[, <label>]"}}`, which the model reads
+  back as `"<question>"="<answer>"`.
+- An interrupt while a request waits: `control_cancel_request {request_id}`
+  for it, before the interrupt's `control_response`; a later answer is
+  ignored (no frame). A dispose ends in the exit, which voids it.
+
+Not exercised: `can_use_tool` from inside a sub-agent (the request carries an
+`agent_id`, which OAR does not map to `agentPath`: such a request sits at the
+root), `request_user_dialog` and MCP elicitation requests (recorded, no
+`ask`; native answers only).
+[Readings and replies](../../packages/oar/src/runtimes/claude/approvals.ts),
+[adapter test](../../tests/claude/claude-session-approvals.test.ts),
+[vendor test](../../sea-trial/vendor/approvals.vendor.test.ts).
 
 ### Process ownership, environment, installation, and account usage
 
@@ -316,7 +368,9 @@ the former only.
 ### Eight dimensions
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
-   --verbose --dangerously-skip-permissions` plus `--session-id <uuid>` or
+   --verbose --dangerously-skip-permissions` (under `approvals: "ask"`:
+   `--permission-mode default --permission-prompt-tool stdio`) plus
+   `--session-id <uuid>` or
    `--resume <id>`, and optional `--model`, `--effort` (then a `get_settings`
    control request before the first turn), `--system-prompt`,
    `--append-system-prompt`. `CLAUDECODE` is cleared from the child
@@ -335,8 +389,10 @@ the former only.
    one recorded tool round: `system/init`, `system/thinking_tokens`,
    `rate_limit_event`, `assistant` with `thinking`, `tool_use`, `text` blocks,
    `user` with `tool_result` blocks, `result/success`. Plus
-   `control_response` answering OAR's interrupt and `control_request` from
-   claude. No deltas, because partial messages are not requested. A turn is
+   `control_response` answering OAR's interrupt (its response record),
+   `control_request` from claude (its `toApp` request record) and
+   `control_cancel_request` withdrawing one. No deltas, because partial
+   messages are not requested. A turn is
    the span from OAR's `prompt` request to the `result` frame; no frame names
    the turn. Source: [projection](../../packages/oar/src/runtimes/claude/projection.ts);
    observed: [tool round fixture](../../tests/replay/fixtures/claude-tool-round.raw.jsonl).
@@ -357,12 +413,13 @@ the former only.
    them and has no evidence about their lifecycle events. Source:
    [death test](../../tests/claude/claude-session-death.test.ts); vendor
    [CLI reference][native-cli].
-7. **Tools and permissions.** Always `--dangerously-skip-permissions`; no
-   approval channel. `tool_use` blocks become `tool_call_started` with
-   `callId`, `tool`, `input`; `tool_result` blocks in `user` frames become
-   `tool_call_ended` with `callId` and `output`. A `control_request` from
-   claude is recorded as an event and a `toApp` request that nobody answers;
-   none has been observed under skip permissions. Source: projection.
+7. **Tools and permissions.** `--dangerously-skip-permissions` by default;
+   under `approvals: "ask"` claude's gate asks the host through
+   `can_use_tool` and `Session.answer` replies (see approvals above).
+   `tool_use` blocks become `tool_call_started` with `callId`, `tool`,
+   `input`; `tool_result` blocks in `user` frames become `tool_call_ended`
+   with `callId` and `output`. Source: projection,
+   [approvals](../../packages/oar/src/runtimes/claude/approvals.ts).
 8. **Extension points.** MCP, agents, skills, plugins, hooks, and permission
    callbacks exist natively; OAR passes none of them. OAR also exposes global skills, MCP servers, and tools queries where the
    native interface supports them. Model discovery uses native initialization;

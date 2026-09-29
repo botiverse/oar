@@ -13,7 +13,10 @@ import {
   type TerminalOutputRequest,
   type WaitForTerminalExitRequest,
 } from "@agentclientprotocol/sdk";
+import type { AppDecision } from "../../contracts/session.js";
+import type { AnswerDelivery } from "../app-requests.js";
 import { asRecord, type JsonRecord } from "../json.js";
+import { ACP_CANCELLED, acpPermissionReply, type AcpPermissionOptions } from "./approvals.js";
 import type { AcpTerminalHost } from "./terminal.js";
 
 /**
@@ -30,6 +33,13 @@ export interface AcpClientHooks {
   readonly answered: (id: string, reply: unknown) => void;
   readonly extension: (method: string, params: JsonRecord) => void;
   readonly extensionNotifications: readonly string[];
+  /**
+   * Present under `SessionOptions.approvals: "ask"`: a permission request is
+   * handed here and its reply is whatever this settles to, however much
+   * later (the session answers it through `Session.answer`, which records the
+   * answer; `answered` is not called for it). Absent: oar's YOLO answer.
+   */
+  readonly askPermission?: (id: string, params: RequestPermissionRequest) => Promise<RequestPermissionResponse>;
 }
 
 /** OAR's YOLO answer to a permission request: the broadest allow on offer, else cancel. */
@@ -75,8 +85,19 @@ export function createAcpClientApp(
       throw error;
     }
   };
+  const { askPermission } = hooks;
+  // Asked of a person: recorded on arrival, answered (and recorded) by whoever settles it.
+  const asked = (ask: NonNullable<AcpClientHooks["askPermission"]>) =>
+    async (context: { readonly params: RequestPermissionRequest; readonly requestId: JsonRpcId }): Promise<RequestPermissionResponse> => {
+      const id = requestIdOf(context);
+      hooks.requested(id, methods.client.session.requestPermission, context.params);
+      const reply = await ask(id, context.params);
+      return reply;
+    };
   let app = createClient({ name: "oar" })
-    .onRequest(methods.client.session.requestPermission, observed(methods.client.session.requestPermission, allowPermission))
+    .onRequest(methods.client.session.requestPermission, askPermission === undefined
+      ? observed(methods.client.session.requestPermission, allowPermission)
+      : asked(askPermission))
     .onRequest(methods.client.terminal.create, observed(methods.client.terminal.create, (params: CreateTerminalRequest) => terminal.create(params)))
     .onRequest(methods.client.terminal.output, observed(methods.client.terminal.output, (params: TerminalOutputRequest) => terminal.output(params)))
     .onRequest(methods.client.terminal.waitForExit, observed(methods.client.terminal.waitForExit, (params: WaitForTerminalExitRequest) => terminal.waitForExit(params)))
@@ -91,4 +112,54 @@ export function createAcpClientApp(
     });
   }
   return app;
+}
+
+/**
+ * Permission requests waiting for `Session.answer` (SessionOptions.approvals
+ * "ask"): each holds the agent's JSON-RPC request open until answered.
+ */
+export interface AcpAsking {
+  /** The client hook: park the request, reply with whatever settles it. */
+  readonly askPermission: NonNullable<AcpClientHooks["askPermission"]>;
+  /** Send the reply for `decision` to the waiting request `requestId`, or say why none. */
+  deliver(requestId: string, decision: AppDecision): AnswerDelivery;
+  /** Answer every waiting request `cancelled`, as ACP requires after `session/cancel`; `record` is told each answer. */
+  cancelAll(record: (id: string, reply: RequestPermissionResponse) => void): void;
+  /** The agent is gone: nothing can take a reply. */
+  clear(): void;
+}
+
+export function createAcpAsking(options: AcpPermissionOptions = {}): AcpAsking {
+  const waiting = new Map<string, { readonly params: RequestPermissionRequest; readonly reply: (response: RequestPermissionResponse) => void }>();
+  return {
+    async askPermission(id, params) {
+      const { promise, resolve } = Promise.withResolvers<RequestPermissionResponse>();
+      waiting.set(id, { params, reply: resolve });
+      const response = await promise;
+      return response;
+    },
+    deliver(requestId, decision) {
+      const pending = waiting.get(requestId);
+      if (pending === undefined) {
+        return { kind: "rejected", code: "unsupported", reason: "oar answers this request itself (a terminal, or a permission outside approvals \"ask\")" };
+      }
+      const reply = acpPermissionReply(pending.params, decision, options);
+      if (reply.kind === "sent") {
+        waiting.delete(requestId);
+        // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- acpPermissionReply builds (or checks) a RequestPermissionResponse object.
+        pending.reply(reply.native as RequestPermissionResponse);
+      }
+      return reply;
+    },
+    cancelAll(record) {
+      for (const [id, pending] of waiting) {
+        waiting.delete(id);
+        pending.reply(ACP_CANCELLED);
+        record(id, ACP_CANCELLED);
+      }
+    },
+    clear() {
+      waiting.clear();
+    },
+  };
 }

@@ -4,4 +4,4 @@
  * semantics). Node-only, like the root entry.
  */
 export { scriptedRuntime } from "./scripted-runtime.js";
-export type { ScriptedRuntimeOptions, ScriptedTurn } from "./scripted-runtime.js";
+export type { ScriptedAnswer, ScriptedQuestion, ScriptedRuntimeOptions, ScriptedTurn } from "./scripted-runtime.js";
