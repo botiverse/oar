@@ -112,7 +112,7 @@ legitimately differ. Which backend to run, when:
 - `pnpm tsx sea-trial/all.ts`, mock plus all three aimock backends
   concurrently. Use before pushing a change to shared runtime machinery, to
   prove no backend regressed.
-- `OAR_TEST=<real id>` (`claude`, `codex`, `grok`, `kimi`, `pi`), your
+- `OAR_TEST=<real id>` (`claude`, `codex`, `cursor`, `grok`, `kimi`, `pi`), your
   actual local installation and login. The final word when vendor reality
   itself is in doubt, but it costs quota; run deliberately, never by
   default.

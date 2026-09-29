@@ -31,6 +31,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
+      <a href="docs/runtimes/cursor.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/cursor-on-dark.svg">
+          <img src="packages/oar/assets/brands/cursor-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Cursor
+      </a>
+    </td>
+    <td align="center" width="112">
       <a href="docs/runtimes/grok.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/grok-on-dark.svg">

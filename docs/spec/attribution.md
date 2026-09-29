@@ -25,6 +25,9 @@ carried.
   `subagent_tokens`. [sym]
 - grok (ACP): a child has its own ACP sessionId but travels the same ACP
   connection. [src]
+- cursor (ACP): the same shape once the client opts in with
+  `_meta.subagents`; without it the child is only the parent's `task` tool
+  call. [env]
 - kimi-cli (native wire): sub-agents open no new connection; the parent
   wire receives `SubagentEvent{parent_tool_call_id, agent_id,
   subagent_type, event}` wrapper records sharing the one `_write_queue`
@@ -94,6 +97,8 @@ independent codebases already demonstrate the inevitable degeneration
   (per-agent tokens) → direct mapping. [sym]
 - grok (ACP): nested sessions; child has its own sessionId + per-child
   usage. [src]
+- cursor (ACP): nested sessions behind the `subagents` opt-in; no usage
+  for parent or child. [env]
 - kimi (ACP): opaque; an internal graph exists, but the default ACP
   server subscribes only to the main agent. The protocol honestly marks
   root only; fabricating a child graph from display text is forbidden.
