@@ -12,6 +12,10 @@ not an OAR backend or prospective consumer.
 
 ## Pages
 
+Daily maintenance: [version inventory and latest probe results](../../experiments/runtime-version-checks/2026-09-29.md).
+Run `pnpm tsx experiments/runtime-versions.ts` to compare stable releases
+with the installed CLIs and bundled Pi SDK before selecting live probes.
+
 Cross-runtime investigation: [native skills, MCP and tools inventories](inventory.md)
 (local probes, 2026-09-16); [live model and effort changes](live-configure.md)
 (local probes, 2026-09-29: what changes a running session's model or
