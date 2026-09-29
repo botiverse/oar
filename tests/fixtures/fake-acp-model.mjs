@@ -5,6 +5,8 @@
 // Reported in both upstream spellings: kimi's configOptions row and grok's
 // models.currentModelId.
 const EFFECTIVE_MODEL = "fixture-model-x";
+// Only a `set_config_option` model switch (cursor) moves it; `set_model` never does.
+let currentModel = EFFECTIVE_MODEL;
 
 function modelOption(currentValue) {
   return {
@@ -62,6 +64,12 @@ function pushedModel(currentValue) {
  * answer itself is empty (kimi-code). Anything else: accepted with an empty
  * answer while the fixture keeps running EFFECTIVE_MODEL.
  */
+// Mode "cursor" replays cursor-agent 2026.09.28: the effort selector exists
+// only when the client opts into `clientCapabilities._meta.parameterizedModelPicker`.
+export function sessionModelReport(mode, parameterizedModelPicker) {
+  return modelReport(mode === "cursor" && parameterizedModelPicker !== true ? "no-thought-level" : mode);
+}
+
 export function setModelResponse(modelId) {
   if (modelId === "grok-meta") {
     return { response: { _meta: { model: "grok-applied" } } };
@@ -76,6 +84,20 @@ export function setModelResponse(modelId) {
 }
 
 /**
+ * What `session/set_config_option {configId: "model", value}` does, the way
+ * cursor-agent 2026.09.28 answers it: a known model is applied and answered
+ * with the full option set, the new model's effort menu at its default; no
+ * `config_option_update` is pushed. An unknown model is refused `-32602`.
+ */
+function setModelOption(value) {
+  if (value !== EFFECTIVE_MODEL && value !== "requested-y") {
+    return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
+  }
+  currentModel = value;
+  return { response: { configOptions: [modelOption(value), effortOption("medium")] } };
+}
+
+/**
  * What `session/set_config_option {configId, value}` does to the effort
  * selector, the way grok 1.0.41 / kimi 2.0.0 answer: a known level is applied,
  * pushed as a `config_option_update` (kimi pushes before answering) and
@@ -84,16 +106,19 @@ export function setModelResponse(modelId) {
  * not apply (answered at `medium`), the silent substitution oar must refuse.
  */
 export function setConfigOption(params) {
+  if (params?.configId === "model") {
+    return setModelOption(params.value);
+  }
   if (params?.configId !== EFFORT_ID) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
   }
   if (params.value === "sticky") {
-    return { response: { configOptions: [modelOption(EFFECTIVE_MODEL), effortOption("medium")] } };
+    return { response: { configOptions: [modelOption(currentModel), effortOption("medium")] } };
   }
   if (!EFFORT_LEVELS.includes(params.value)) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown ${EFFORT_ID} value` } };
   }
-  const configOptions = [modelOption(EFFECTIVE_MODEL), effortOption(params.value)];
+  const configOptions = [modelOption(currentModel), effortOption(params.value)];
   return { pushedUpdate: { sessionUpdate: "config_option_update", configOptions }, response: { configOptions } };
 }
 

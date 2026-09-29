@@ -1,6 +1,7 @@
 import { RuntimeRegistry } from "./registry.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
+import { cursorRuntime } from "./runtimes/cursor/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
@@ -130,6 +131,10 @@ export { createPiProviderAuth } from "./runtimes/pi/auth.js";
 export type { PiProviderAuthOptions } from "./runtimes/pi/auth.js";
 export { createPiModelCatalog } from "./runtimes/pi/catalog.js";
 export type { PiModelCatalogOptions } from "./runtimes/pi/catalog.js";
+export { cursorRuntime } from "./runtimes/cursor/index.js";
+export { cursorListModels, projectCursorModels } from "./runtimes/cursor/list-models.js";
+export { cursorSession } from "./runtimes/cursor/session.js";
+export { cursorInstallation } from "./runtimes/cursor/installation.js";
 export { grokRuntime } from "./runtimes/grok/index.js";
 export { grokListModels, projectGrokModels } from "./runtimes/grok/list-models.js";
 export { grokSession } from "./runtimes/grok/session.js";
@@ -146,6 +151,7 @@ export { piInstallation } from "./runtimes/pi/installation.js";
 export const runtimes = new RuntimeRegistry([
   claudeRuntime,
   codexRuntime,
+  cursorRuntime,
   grokRuntime,
   kimiRuntime,
   piRuntime,
