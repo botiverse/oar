@@ -26,6 +26,14 @@ function update(value, sessionId = "fake-session") {
   send({ jsonrpc: "2.0", method: "session/update", params: { sessionId, update: value } });
 }
 
+/** A runtime→client request; its answer lands in handleResponse under `kind`. */
+function askClient(kind, outerId, method, params) {
+  reverseId += 1;
+  const id = `${kind}-${reverseId}`;
+  reverseRequests.set(id, { kind, outerId });
+  send({ jsonrpc: "2.0", id, method, params });
+}
+
 function promptText(params) {
   const prompt = Array.isArray(params?.prompt) ? params.prompt : [];
   const first = prompt[0];
@@ -60,18 +68,9 @@ function handleRpcRequest(message) {
       send({ jsonrpc: "2.0", method: "fixture/notification", params: { value: 42 } });
       result(message.id);
       break;
-    case "test/reverse": {
-      reverseId += 1;
-      const id = `reverse-${reverseId}`;
-      reverseRequests.set(id, { kind: "rpc", outerId: message.id });
-      send({
-        jsonrpc: "2.0",
-        id,
-        method: "fixture/reverse",
-        params: { question: "answer me" },
-      });
+    case "test/reverse":
+      askClient("rpc", message.id, "fixture/reverse", { question: "answer me" });
       break;
-    }
     case "test/timeout":
       break;
     case "test/exit":
@@ -160,27 +159,28 @@ function handleSessionPrompt(message) {
     return;
   }
   if (text === "permission") {
-    reverseId += 1;
-    const id = `permission-${reverseId}`;
-    reverseRequests.set(id, { kind: "permission", outerId: message.id });
-    send({
-      jsonrpc: "2.0",
-      id,
-      method: "session/request_permission",
-      params: {
-        sessionId: "fake-session",
-        toolCall: {
-          toolCallId: "permission-tool",
-          title: "Permission fixture",
-          kind: "execute",
-          status: "pending",
-        },
-        options: [
-          { optionId: "once", kind: "allow_once", name: "Allow once" },
-          { optionId: "always", kind: "allow_always", name: "Always allow" },
-          { optionId: "reject", kind: "reject_once", name: "Reject" },
-        ],
+    askClient("permission", message.id, "session/request_permission", {
+      sessionId: "fake-session",
+      toolCall: {
+        toolCallId: "permission-tool",
+        title: "Permission fixture",
+        kind: "execute",
+        status: "pending",
       },
+      options: [
+        { optionId: "once", kind: "allow_once", name: "Allow once" },
+        { optionId: "always", kind: "allow_always", name: "Always allow" },
+        { optionId: "reject", kind: "reject_once", name: "Reject" },
+      ],
+    });
+    return;
+  }
+  if (text === "ask-question") {
+    // cursor-agent 2026.09.28 asks its client first and falls back on refusal.
+    askClient("ask", message.id, "cursor/ask_question", {
+      toolCallId: "ask-tool",
+      title: "Pick",
+      questions: [{ id: "q1", prompt: "Which?", options: [{ id: "a", label: "A" }] }],
     });
     return;
   }
@@ -264,11 +264,10 @@ function handleResponse(message) {
     result(pending.outerId, { reverse: message.result });
     return;
   }
-  const optionId = message.result?.outcome?.optionId ?? "cancelled";
-  update({
-    sessionUpdate: "agent_message_chunk",
-    content: { type: "text", text: `permission:${optionId}` },
-  });
+  const text = pending.kind === "ask"
+    ? `ask:${message.error?.code ?? "answered"}`
+    : `permission:${message.result?.outcome?.optionId ?? "cancelled"}`;
+  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text } });
   result(pending.outerId, { stopReason: "end_turn" });
 }
 

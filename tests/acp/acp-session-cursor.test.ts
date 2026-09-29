@@ -6,7 +6,8 @@ import {
   cursorClientCapabilitiesMeta,
   selectCursorAuthMethod,
 } from "../../packages/oar/src/runtimes/cursor/session.js";
-import { describe, fixture, start } from "../fixtures/acp-session-support.js";
+import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
+import { describe, fixture, start, tail } from "../fixtures/acp-session-support.js";
 
 // The fixture's "cursor" mode replays cursor-agent 2026.09.28: the effort
 // selector exists only for a client that declares
@@ -46,6 +47,32 @@ test("effort after a model switch is set against the switched model's menu", asy
 
 test("an unknown model is refused rather than silently kept", async () => {
   await expect(start(cursorHooks, undefined, "no-such-model")).rejects.toThrow("Invalid params");
+});
+
+test("a listed vendor request is recorded, then refused as the SDK refuses any unknown method", async () => {
+  const session = await start({ extensionRequests: cursorAcpProfile.extensionRequests ?? [] });
+  const run = await promptAndWait(session, "ask-question");
+  assert.equal(run.kind, "ended");
+  assert.deepEqual(tail(session, run.result.request.seq - 1), [
+    "request prompt",
+    "response accepted",
+    "toApp cursor/ask_question",
+    "response answered",
+    "event agent_message_chunk → text:ask:-32601",
+    "event session/prompt → turn_ended:completed",
+  ]);
+  const asked = session.records().find((record) => record.kind === "request" && record.direction === "toApp");
+  assert.ok(asked?.kind === "request" && asked.body.kind === "native");
+  expect(asked.body.native).toMatchObject({ questions: [{ id: "q1" }] });
+  await session.dispose();
+});
+
+test("an unlisted vendor request gets the same refusal with nothing recorded", async () => {
+  const unlisted = await start();
+  const quiet = await promptAndWait(unlisted, "ask-question");
+  assert.ok(quiet.kind === "ended");
+  assert.deepEqual(tail(unlisted, quiet.result.request.seq - 1).slice(2, 3), ["event agent_message_chunk → text:ask:-32601"]);
+  await unlisted.dispose();
 });
 
 test("the cursor profile runs ACP with auto approval and opts into the parameterized picker", () => {

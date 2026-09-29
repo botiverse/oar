@@ -27,20 +27,24 @@ export interface AcpSessionProfile {
    * frame oar never sees, so list everything the runtime is known to emit.
    */
   readonly extensionNotifications?: readonly string[];
+  /**
+   * Vendor request methods (runtime→app) oar records, then answers with the
+   * SDK's own `-32601 Method not found`, so the agent takes its fallback for a
+   * client without the method (cursor-agent 2026.09.28 `cursor/ask_question`
+   * → `session/request_permission`) and the payload is not lost.
+   */
+  readonly extensionRequests?: readonly string[];
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
   /**
-   * `clientCapabilities._meta` on initialize: vendor opt-ins the agent reads
-   * off the client's declared capabilities rather than the request envelope
-   * (cursor-agent 2026.09.28 `parameterizedModelPicker`, without which it
-   * folds effort into the model id and advertises no `thought_level` option).
+   * `clientCapabilities._meta` on initialize (cursor-agent 2026.09.28
+   * `parameterizedModelPicker`, without which it folds effort into the model
+   * id and advertises no `thought_level` option).
    */
   readonly clientCapabilitiesMeta?: (options: SessionOptions) => JsonRecord | undefined;
   /**
-   * Apply `SessionOptions.model` through `session/set_config_option` on the
-   * opened session's `model` option instead of `session/set_model`. For agents
-   * whose `set_model` answers `{}` and pushes no `config_option_update`
-   * (cursor-agent 2026.09.28), so only the config option answer reports the
-   * applied model and the new model's effort menu.
+   * Switch models with `session/set_config_option` on the `model` option, for
+   * agents whose `set_model` answers `{}` and pushes nothing (cursor-agent
+   * 2026.09.28): only that answer reports the model and its effort menu.
    */
   readonly modelViaConfigOption?: boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
