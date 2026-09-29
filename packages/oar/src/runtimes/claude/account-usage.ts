@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
-import { spawnLineProcess } from "../../shared/executable/index.js";
+import { runExecutable, spawnLineProcess } from "../../shared/executable/index.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 
@@ -84,6 +84,28 @@ function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
 }
 
 /**
+ * A usage read must not run the user's hooks or start their MCP servers, so the
+ * query process runs with --safe-mode. A CLI that lacks the flag is reported as
+ * unsupported rather than launched without isolation. Only a successful help
+ * probe is cached, so a transient probe failure is retried on the next read.
+ */
+const safeModeSupport = new Map<string, boolean>();
+async function supportsSafeMode(command: string, version: string | undefined): Promise<boolean> {
+  const key = `${command}\0${version ?? ""}`;
+  const known = safeModeSupport.get(key);
+  if (known !== undefined) {
+    return known;
+  }
+  const help = await runExecutable(command, ["--help"], { env: { ...process.env, CLAUDECODE: undefined } });
+  if (!help.ok) {
+    return false;
+  }
+  const supported = /(?:^|\s)--safe-mode\b/u.test(help.stdout);
+  safeModeSupport.set(key, supported);
+  return supported;
+}
+
+/**
  * Only native control queries; no prompt, credential reads or direct HTTP.
  * Fresh-process session totals are deliberately not exposed as account usage.
  * initialize provides optional account identity; get_usage owns quota access.
@@ -92,9 +114,12 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
+  if (!await supportsSafeMode(installation.command, installation.version)) {
+    return { kind: "unsupported", reason: "unsupported_installation" };
+  }
   const child = spawnLineProcess(installation.command, [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json",
-    "--verbose", "--no-session-persistence",
+    "--verbose", "--no-session-persistence", "--safe-mode",
   ], { env: { ...process.env, CLAUDECODE: undefined } });
   let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
   let ended = false;
