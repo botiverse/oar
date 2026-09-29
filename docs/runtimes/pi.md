@@ -5,9 +5,10 @@ See the [query contract](../spec/inventory.md) and [native probe evidence](inven
 
 Evidence baseline: OAR source as of 2026-09-11. Native references are pinned
 to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
-redirect to `earendil-works/pi`), the version of the bundled
-`@earendil-works/pi-coding-agent` SDK **0.84.2**. Live observations come from
-that SDK in-process through [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
+redirect to `earendil-works/pi`). The bundled
+`@earendil-works/pi-coding-agent` SDK is now **0.87.1**; source references
+and live observations below retain their **0.84.2** evidence baseline.
+Those live observations ran in-process through [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 against `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every
 assistant frame carries `provider: "openai-codex"`, `api:
 "openai-codex-responses"`) on Node 26.7 / macOS, and from the probes in
@@ -358,7 +359,7 @@ failed"`, `agent_settled` → `failed`) while the `pi` CLI works.
 **Mapped, narrowly:** the adapter does not call pi's module (unexported, and
 its global-class replacement is no footprint for an embedding library). It
 sets undici's global dispatcher itself (`undici` is a direct dependency of
-`@botiverse/oar`, pinned to the version pi uses, 8.9.0 with one instance in
+`@botiverse/oar`, pinned to the version pi uses, 8.10.2 with one instance in
 the tree) to an `EnvHttpProxyAgent` built from the same settings manager the
 session, model listing, login and catalog entry points read
 (`OAR_PI_AGENT_DIR ?? getAgentDir()`): an env proxy wins, pi's `httpProxy`

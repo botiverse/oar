@@ -118,9 +118,16 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       expect(system).toMatchInlineSnapshot(`
         "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
 
+        <addendum>
         OAR-SYSTEM-APPEND-MARKER always be brief
-        Current working directory: <CWD>
-        "
+        </addendum>
+
+        <skills>
+        </skills>
+
+        <cwd>
+        <CWD>
+        </cwd>"
       `);
       // pi's session-scoped compaction events are not dropped: they enter the
       // stream verbatim, with no view.
