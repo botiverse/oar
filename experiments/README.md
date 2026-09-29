@@ -15,6 +15,7 @@ and deliberately avoid repo machinery where independence is the point.
 | `claude-session-adapter.ts` | adapter path: steer folds into the turn, abort exactly once, busy invariant | 2026-08-21, claude 2.1.237 |
 | `codex-handshake.ts` | app-server initialize handshake shape | 2026-08-06, codex 0.144.6 |
 | `codex-session-adapter.ts` | adapter path on codex: steer fold, abort, busy | 2026-08-21, codex 0.148.0 |
+| [`codex-instant-interrupt.ts`](codex-instant-interrupt.md) | Native opt-in preempts sampling/yields code-mode cells through existing OAR steer; queue, abort, direct tools and unfinished assistant items remain distinct | 2026-09-29, codex 0.159.0: seven controlled cases with a local provider |
 | `acp-runtime.ts <grok\|kimi>` | public adapter path: ACP handshake, shell-tool event lifecycle, text framing, and both account-usage readers | 2026-08-27, grok 1.0.5 + kimi 0.38.0; kimi re-observed 2026-09-18, 2.0.0 |
 | `acp-vendor-snapshot.ts <grok\|kimi>` | scrubbed real ACP wire schema used to refresh the checked-in vendor fixtures | 2026-08-26, grok 1.0.5 + kimi 0.38.0; kimi re-checked 2026-09-18, 2.0.0 (fixture unchanged) |
 | `pi-sdk-import.ts` | the bundled sdk loads in-process; createAgentSession callable | 2026-08-21, pi sdk 0.84.2 |
