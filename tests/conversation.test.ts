@@ -24,6 +24,13 @@ test("input appears before response; fallback and native echo update one input",
   expect(state.updates).toHaveLength(1);
 });
 
+test("an input shows the images its request carried", () => {
+  const withImages: RequestRecord = { ...request(0, "r", { action: "prompt" }), body: { kind: "prompt", input: "what is this?", inputId, images: [{ path: "/tmp/shot.png" }] } };
+  const [input] = conversationOf([withImages, response(1, "r")]).inputs.values();
+  expect(input).toMatchObject({ input: "what is this?", images: [{ path: "/tmp/shot.png" }], state: "accepted" });
+  expect([...conversationOf([request(0, "r")]).inputs.values()][0]).not.toHaveProperty("images");
+});
+
 test("echo before acknowledgement remains independent evidence, not acceptance", () => {
   const state = conversationOf([request(0, "r"), echo(1)]);
   expect([...state.inputs.values()][0]).toMatchObject({ state: "pending", observations: [{ nativeMessageId: "native-message" }] });

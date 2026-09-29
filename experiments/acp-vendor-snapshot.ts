@@ -147,7 +147,7 @@ try {
   const result = await promptAcp(
     runtime,
     opened.sessionId,
-    "Use the shell tool to run `printf OAR_ACP_SNAPSHOT_OK`, then reply done.",
+    [{ type: "text", text: "Use the shell tool to run `printf OAR_ACP_SNAPSHOT_OK`, then reply done." }],
   );
   const capabilities = asRecord(opened.initialized.agentCapabilities);
   const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);

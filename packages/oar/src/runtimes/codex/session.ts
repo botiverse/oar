@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type {
   ControlResult,
+  InputImage,
   InputOptions,
   RequestRecord,
   Session,
   StartSession,
 } from "../../contracts/session.js";
+import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -41,7 +43,9 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
  * Live probe: codex-session-adapter.ts.
  */
 
-const text = (input: string): { type: "text"; text: string }[] => [{ type: "text", text: input }];
+/** codex's UserInput: the text, then each image as a `localImage` path codex reads itself (its own composer's order). */
+const userInput = (input: string, images: readonly InputImage[] = []): JsonRecord[] =>
+  [{ type: "text", text: input }, ...images.map((image) => ({ type: "localImage", path: image.path }))];
 
 interface CodexSessionState {
   /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */
@@ -208,18 +212,20 @@ export const codexSession: StartSession = async (installation, options) => {
       const result = await rpcControl(kernel, client, plan(...args));
       return result;
     };
+  const capabilities = { steer: true, queue: { durable: true }, attribution: "nested", images: true } as const;
   const promptPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "prompt", input, ...inputOptions },
     gate: (request) => {
-      if (busy()) {
-        return { kind: "rejected", code: "busy", reason: "busy" };
+      const refused = busy() ? { kind: "rejected", code: "busy", reason: "busy" } as const : inputImagesRefusal(capabilities, inputOptions?.images);
+      if (refused !== null) {
+        return refused;
       }
       // Hold the slot while the RPC is in flight so a concurrent prompt is busy.
       state.active = request;
       return null;
     },
     method: "turn/start",
-    params: () => ({ threadId, input: text(input), clientUserMessageId: inputOptions?.inputId }),
+    params: () => ({ threadId, input: userInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId }),
     onReply: (reply) => {
       const turnId = asRecord(reply.turn)?.id;
       if (typeof turnId !== "string") {
@@ -236,18 +242,18 @@ export const codexSession: StartSession = async (installation, options) => {
   });
   const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "steer", input, ...inputOptions },
-    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : null),
+    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : inputImagesRefusal(capabilities, inputOptions?.images)),
     method: "turn/steer",
-    params: () => ({ threadId, input: text(input), expectedTurnId: state.codexTurnId, clientUserMessageId: inputOptions?.inputId }),
+    params: () => ({ threadId, input: userInput(input, inputOptions?.images), expectedTurnId: state.codexTurnId, clientUserMessageId: inputOptions?.inputId }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
     onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: `not_steerable: ${message}` }),
   });
   // The reply carries the runtime's submission id; it is retained on the response.
   const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "queue", input, ...inputOptions },
-    gate: () => null,
+    gate: () => inputImagesRefusal(capabilities, inputOptions?.images),
     method: "thread/queue/add",
-    params: () => ({ threadId, input: text(input), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
+    params: () => ({ threadId, input: userInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
     onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
   });
@@ -264,7 +270,7 @@ export const codexSession: StartSession = async (installation, options) => {
 
   const session: Session = sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: true }, attribution: "nested" },
+    capabilities,
     prompt: via(promptPlan),
     steer: via(steerPlan),
     queue: via(queuePlan),

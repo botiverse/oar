@@ -1,4 +1,4 @@
-import type { ControlOutcome, RejectionCode, Session, RawEvent, TurnOutcome } from "../contracts/session.js";
+import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, TurnOutcome } from "../contracts/session.js";
 
 /**
  * Turn helpers for consumers. A turn is a SPAN on the stream, not a control
@@ -88,6 +88,8 @@ export interface PromptRunOptions {
   readonly timeoutMs?: number;
   /** Abort the turn when this fires (a caller-side cancel), reported the same way. */
   readonly signal?: AbortSignal;
+  /** Images to send with the prompt (`InputOptions.images`). */
+  readonly images?: readonly InputImage[];
 }
 
 export type PromptRun =
@@ -109,7 +111,7 @@ export type PromptRun =
  * liveness problem `observeStalls` reports, not one this helper guesses at.
  */
 export async function promptAndWait(session: Session, input: string, options: PromptRunOptions = {}): Promise<PromptRun> {
-  const result = await session.prompt(input);
+  const result = await session.prompt(input, options.images === undefined ? undefined : { images: options.images });
   if (result.kind === "rejected") {
     return { kind: "rejected", result, code: result.code, reason: result.reason };
   }

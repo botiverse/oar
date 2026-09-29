@@ -39,10 +39,12 @@ function askClient(kind, outerId, method, params) {
   send({ jsonrpc: "2.0", id, method, params });
 }
 
+/** The prompt's text block; each image block before it is echoed as `[image <mimeType> <uri>]`. */
 function promptText(params) {
   const prompt = Array.isArray(params?.prompt) ? params.prompt : [];
-  const first = prompt[0];
-  return typeof first?.text === "string" ? first.text : "";
+  const text = prompt.find((block) => block?.type === "text");
+  const images = prompt.filter((block) => block?.type === "image").map((block) => `[image ${block.mimeType} ${block.uri}]`);
+  return [...images, typeof text?.text === "string" ? text.text : ""].join(" ");
 }
 
 // Modes "usage-after-response" / "usage-never" replay kimi-code f9ca33376
@@ -199,6 +201,7 @@ function handleSessionRequest(message) {
         agentCapabilities: {
           loadSession: true,
           sessionCapabilities: antigravity ? { list: {}, resume: {} } : { resume: {}, close: {} },
+          promptCapabilities: { image: mode !== "no-images" },
         },
         authMethods: [{ id: "cached", name: "Cached login" }],
       });

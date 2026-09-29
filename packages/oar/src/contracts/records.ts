@@ -1,3 +1,5 @@
+import type { InputImage } from "./input.js";
+
 /**
  * The record stream and the events read off it. Three words, three layers:
  *
@@ -201,9 +203,9 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
 export type Event = EventBody & RecordEnvelope;
 
 export type RequestBody =
-  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string }
-  | { readonly kind: "steer"; readonly inputId?: string; readonly input: string }
-  | { readonly kind: "queue"; readonly inputId?: string; readonly input: string }
+  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[] }
+  | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[] }
+  | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[] }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */

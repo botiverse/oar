@@ -11,6 +11,7 @@ import type {
 } from "./records.js";
 import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
+import type { InputImage } from "./input.js";
 
 export type {
   ContextUsage,
@@ -42,6 +43,7 @@ export type {
   UsageReport,
 } from "./records.js";
 export type { AgentStatus, RunningPhase } from "./status.js";
+export type { InputImage } from "./input.js";
 
 export interface QueryResult<T> {
   /** The fold's current value. */
@@ -53,7 +55,15 @@ export interface QueryResult<T> {
 export interface InputOptions {
   /** UUID identifying one logical input across delivery attempts; generated when omitted. */
   readonly inputId?: string;
+  /**
+   * Images that travel with the text, as the runtime's own image input (not a
+   * path in prose). Each is a file on this machine, read when the input is
+   * delivered; the request record keeps the paths, never the bytes. Rejected
+   * `unsupported` when `capabilities.images` is false.
+   */
+  readonly images?: readonly InputImage[];
 }
+
 
 /**
  * Session contract: one ordered, resumable record stream.
@@ -166,6 +176,8 @@ export interface SessionCapabilities {
   /** Input can be held for a LATER turn; `durable` says whether that survives a process restart (codex: runtime-persisted; claude/pi/ACP: this process only). Null when the runtime cannot even hold input. */
   readonly queue: { readonly durable: boolean } | null;
   readonly attribution: AttributionTier;
+  /** Input can carry images (`InputOptions.images`), delivered as the runtime's native image content. ACP runtimes: what `initialize` advertised (`promptCapabilities.image`). */
+  readonly images: boolean;
 }
 
 export type RawEventObserver = (record: RawEvent) => void;

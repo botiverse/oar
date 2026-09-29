@@ -63,6 +63,7 @@ export type {
   FailureClass,
   Frame,
   FrameBody,
+  InputImage,
   InputOptions,
   QueryResult,
   ReasoningContent,

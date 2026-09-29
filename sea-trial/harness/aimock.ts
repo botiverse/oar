@@ -174,6 +174,8 @@ export async function startPiAimock(
     readonly settings?: Readonly<Record<string, unknown>>;
     /** Also list `aimock/aimock-thinking`, a `reasoning: true` model, so pi has thinking levels to apply (`aimock-model` has none). */
     readonly reasoningModel?: boolean;
+    /** List `aimock-model` as taking images too (`input: ["text", "image"]`); pi drops images for a text-only model. */
+    readonly imageInput?: boolean;
   } & AimockOptions = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
@@ -184,7 +186,7 @@ export async function startPiAimock(
     id,
     name: id,
     reasoning,
-    input: ["text"],
+    input: piOptions.imageInput === true ? ["text", "image"] : ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: piOptions.contextWindow ?? 200_000,
     maxTokens: 16_384,

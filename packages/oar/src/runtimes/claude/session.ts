@@ -7,6 +7,7 @@ import type {
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
+import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -46,11 +47,18 @@ import {
  *   adapter's plumbing, not the session's words; every other line is a frame.
  */
 
-function userMessage(text: string, inputId?: string): string {
+/** One stream-json user message; images go before the text, as the Messages API recommends. */
+function userMessage(text: string, inputId?: string, images: readonly LoadedImage[] = []): string {
   return `${JSON.stringify({
     type: "user",
     ...(inputId === undefined ? {} : { uuid: inputId }),
-    message: { role: "user", content: [{ type: "text", text }] },
+    message: {
+      role: "user",
+      content: [
+        ...images.map((image) => ({ type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } })),
+        { type: "text", text },
+      ],
+    },
   })}\n`;
 }
 
@@ -102,7 +110,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   };
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end.
-  const heldQueue: { input: string; inputId?: string }[] = [];
+  const heldQueue: { input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;
   // The effort read-back in flight at open (see the header): its answer is
@@ -154,7 +162,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       if (!state.disposed) {
         const next = heldQueue.shift();
         if (next !== undefined) {
-          child.write(userMessage(next.input, next.inputId));
+          child.write(userMessage(next.input, next.inputId, next.images));
         }
       }
     }
@@ -193,19 +201,22 @@ export const claudeSession: StartSession = async (installation, options) => {
   }
 
   let interruptCounter = 0;
+  const capabilities = { steer: true, queue: { durable: false }, attribution: "attributed", images: true } as const;
   const session: Session = sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: false }, attribution: "attributed" },
+    capabilities,
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, (request) => {
       if (busy()) {
         return { kind: "rejected", code: "busy", reason: "busy" };
       }
-      state.active = request;
-      state.projection = claudePrompted(state.projection);
-      child.write(userMessage(input, inputOptions?.inputId));
-      return { kind: "accepted" };
+      return withInputImages(capabilities, inputOptions?.images, (images) => {
+        state.active = request;
+        state.projection = claudePrompted(state.projection);
+        child.write(userMessage(input, inputOptions?.inputId, images));
+        return { kind: "accepted" };
+      });
       });
       return result;
     },
@@ -214,20 +225,23 @@ export const claudeSession: StartSession = async (installation, options) => {
       if (!busy()) {
         return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
       }
-      child.write(userMessage(input, inputOptions?.inputId));
-      return { kind: "accepted" };
+      return withInputImages(capabilities, inputOptions?.images, (images) => {
+        child.write(userMessage(input, inputOptions?.inputId, images));
+        return { kind: "accepted" };
+      });
       });
       return result;
     },
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
-      if (busy()) {
-        heldQueue.push({ input, ...inputOptions });
-      } else {
-        child.write(userMessage(input, inputOptions?.inputId));
-      }
-      return { kind: "accepted" };
-      });
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
+        withInputImages(capabilities, inputOptions?.images, (images) => {
+          if (busy()) {
+            heldQueue.push({ input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
+          } else {
+            child.write(userMessage(input, inputOptions?.inputId, images));
+          }
+          return { kind: "accepted" };
+        }));
       return result;
     },
     abort: async (): Promise<ControlResult> => {

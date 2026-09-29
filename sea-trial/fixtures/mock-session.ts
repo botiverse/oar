@@ -1,4 +1,5 @@
 import type { InputOptions, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
+import { inputImagesRefusal } from "../../packages/oar/src/shared/input-images.js";
 import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
@@ -49,9 +50,10 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     active = { timer, aborted: false };
   }
   kernel.frame({ type: "mock/model", native: { model: "mock-1", effort }, events: [{ kind: "model", model: "mock-1" }, { kind: "effort", effort }] });
+  const capabilities = { steer: true, queue: { durable: false }, attribution: "none", images: true } as const;
   return sealSession({
     id: kernel.sessionId,
-    capabilities: { steer: true, queue: { durable: false }, attribution: "none" },
+    capabilities,
     prompt: async (input, inputOptions?: InputOptions) => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, () => {
@@ -60,6 +62,10 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       }
       if (active !== null) {
         return { kind: "rejected", code: "busy", reason: "busy" };
+      }
+      const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+      if (refused !== null) {
+        return refused;
       }
       run(input);
       return { kind: "accepted" };
@@ -71,6 +77,10 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       if (active === null) {
         return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
       }
+      const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+      if (refused !== null) {
+        return refused;
+      }
       steered.push(input);
       return { kind: "accepted" };
       });
@@ -78,6 +88,10 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     },
     queue: async (input, inputOptions) => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
+      const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+      if (refused !== null) {
+        return refused;
+      }
       if (active === null) {
         run(input);
       } else {

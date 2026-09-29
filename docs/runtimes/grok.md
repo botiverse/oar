@@ -150,7 +150,10 @@ Native `session/prompt { sessionId, prompt: [{ type: "text", text }] }`
 streams updates and eventually answers the prompt request. Attachment itself
 submits no prompt. Native [prompt identity](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L1074-L1119)
 and [queue/send-now dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L1288-L1343)
-are vendor-specific semantics beyond standard ACP.
+are vendor-specific semantics beyond standard ACP. Grok's `initialize`
+answers `promptCapabilities.image: false` (grok 1.0.x), so
+`capabilities.images` is false and an input with images is rejected
+`unsupported` before anything is sent (live, grok 1.0.44, 2026-09-29).
 
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
 `accepted` once the `session/prompt` RPC is on the wire (no deadline; its

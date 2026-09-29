@@ -13,6 +13,19 @@ ID must represent exactly one logical input, including retries of that input;
 reusing it for a different input merges those submissions by design. Do not
 resubmit an accepted input. OAR generates identity, not delivery evidence.
 
+## Images
+
+`InputOptions.images` hands image files (by absolute path) to the runtime with
+the input, as its own image content: claude and ACP get base64 `image` blocks,
+codex `localImage` paths, pi `ImageContent`. The request body records the
+paths verbatim (`images: [{ path }]`), never the bytes, and
+`ConversationInput.images` carries them from the latest attempt, so a UI can
+show what the user sent next to the text. `capabilities.images` says whether
+the runtime takes images at all (ACP: what `initialize` advertised). An input
+whose images cannot go (no image input, not a png/jpeg/gif/webp, unreadable)
+is rejected whole, `unsupported` or `error`, before it reaches the runtime.
+Native echoes (`user_message.input`) remain text only.
+
 ## Native observations
 
 `user_message` is a runtime event carried by a real frame, with `input`, optional
