@@ -9,7 +9,7 @@ import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapt
 
 /**
  * SessionOptions.systemPrompt replaces pi's base prompt TEXT, not the whole
- * system prompt: pi 0.84.2 (core/system-prompt.js) keeps its runtime-native
+ * system prompt: pi 0.87.1 (core/system-prompt.js) keeps its runtime-native
  * additions around the replaced prompt: the append seam, project context
  * files, the skills catalog, the cwd line. The skills catalog lists the
  * HOST's ~/.agents/skills (package-manager.js loadSkills), present or absent
@@ -18,7 +18,7 @@ import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapt
  * `noSkills` was not taken, since it drops every skill (project ones too).
  */
 function withoutHostSkills(system: string): string {
-  return system.replace(/\n+The following skills provide specialized instructions[\s\S]*?<\/available_skills>\n/u, "\n");
+  return system.replace(/\n+<skills>[\s\S]*?<\/skills>/u, "");
 }
 
 function toolStartedAfter(session: Session, seq: number): boolean {
@@ -118,9 +118,13 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       expect(system).toMatchInlineSnapshot(`
         "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
 
+        <addendum>
         OAR-SYSTEM-APPEND-MARKER always be brief
-        Current working directory: <CWD>
-        "
+        </addendum>
+
+        <cwd>
+        <CWD>
+        </cwd>"
       `);
       // pi's session-scoped compaction events are not dropped: they enter the
       // stream verbatim, with no view.
