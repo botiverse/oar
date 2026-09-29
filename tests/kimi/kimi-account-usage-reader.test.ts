@@ -106,6 +106,31 @@ test("kimi reader follows the CLI's resolved provider and stored token", async (
   ]);
 });
 
+test("kimi reader identifies a phone sign-in account by nickname when /me has no email", async () => {
+  const home = await temporaryKimiHome();
+  vi.stubEnv("KIMI_CODE_HOME", home);
+  await writeToken(home, Math.floor(Date.now() / 1000) + 3600);
+  mockDefaultProviderList();
+  // Shape of a real CN phone sign-in profile: no email field at all.
+  vi.stubGlobal("fetch", vi.fn(async (input: string | URL) => input.toString().endsWith("/me")
+    ? Response.json({
+        user_id: "user-1",
+        nickname: "登月者8387",
+        phone: { country_code: "86", number: "156****8387" },
+        user_level_name: "Max",
+      })
+    : Response.json({ usage: { used: "25", limit: "100" } })));
+
+  const snapshot = await kimiAccountUsage({
+    kind: "available",
+    via: "executable",
+    command: "kimi",
+    version: "0.38.0",
+  });
+  expect(snapshot).toMatchObject({ kind: "available", plan: "Max", displayName: "登月者8387" });
+  expect(snapshot).not.toHaveProperty("email");
+});
+
 test("kimi reader keeps usage when the optional identity endpoint fails", async () => {
   const home = await temporaryKimiHome();
   vi.stubEnv("KIMI_CODE_HOME", home);

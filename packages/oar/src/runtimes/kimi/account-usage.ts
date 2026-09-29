@@ -8,6 +8,7 @@ import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
 import { kimiRemainingMs, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
 import { KimiReauthError, storedKimiAccessToken } from "./oauth-token.js";
+import { fetchKimiAccountIdentity } from "./profile.js";
 
 interface UsageWindowSpec {
   readonly duration: number;
@@ -26,11 +27,6 @@ interface BoosterWallet {
   readonly balance: number;
   readonly monthlyLimit: number | null;
   readonly monthlyUsed: number;
-}
-
-interface KimiAccountIdentity {
-  readonly email?: string;
-  readonly plan?: string;
 }
 
 function text(value: unknown): string | undefined {
@@ -151,23 +147,12 @@ function boosterWallet(value: unknown): BoosterWallet | null {
   };
 }
 
-/** Extract identity only from Kimi's authenticated `/me` profile shape. */
-export function kimiAccountEmail(payload: unknown): string | undefined {
-  const profile = asRecord(payload);
-  return text(profile?.user_id) === undefined ? undefined : text(profile?.email);
-}
-
-/** Extract the human-readable membership level reported by Kimi's `/me` profile. */
-export function kimiAccountPlan(payload: unknown): string | undefined {
-  const profile = asRecord(payload);
-  return text(profile?.user_id) === undefined ? undefined : text(profile?.user_level_name);
-}
-
 /** Project the same managed quota rows that Kimi Code 0.38.0 renders in `/usage`. */
 export function projectKimiUsage(
   payload: unknown,
   email?: string,
   plan?: string,
+  displayName?: string,
 ): AccountUsageSnapshot {
   const root = asRecord(payload);
   const rows: UsageRow[] = [];
@@ -209,6 +194,7 @@ export function projectKimiUsage(
     kind: "available",
     ...(plan === undefined ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
+    ...(displayName === undefined ? {} : { displayName }),
     rateLimited: rows.some((row) => projectWindow(row)?.usedRatio === 1) && !extraUsageHeadroom,
     windows,
   };
@@ -232,36 +218,6 @@ async function fetchUsage(
   }
 }
 
-async function fetchAccountIdentity(
-  auth: KimiAuthContext,
-  accessToken: string,
-  deadline: number,
-): Promise<KimiAccountIdentity> {
-  try {
-    const response = await fetch(`${auth.baseUrl}/me`, {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Accept": "application/json",
-      },
-      signal: AbortSignal.timeout(kimiRemainingMs(deadline)),
-    });
-    if (!response.ok) {
-      return {};
-    }
-    const profile = parseJson(await response.text());
-    const email = kimiAccountEmail(profile);
-    const plan = kimiAccountPlan(profile);
-    return {
-      ...(email === undefined ? {} : { email }),
-      ...(plan === undefined ? {} : { plan }),
-    };
-  } catch {
-    // Identity is a best-effort add-on: a missing/older profile endpoint or a
-    // transient failure must not discard an otherwise valid quota snapshot.
-    return {};
-  }
-}
-
 export const kimiAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
@@ -279,7 +235,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     const accessToken = await storedKimiAccessToken(auth);
     const [response, identity] = await Promise.all([
       fetchUsage(auth, accessToken, deadline),
-      fetchAccountIdentity(auth, accessToken, deadline),
+      fetchKimiAccountIdentity(auth, accessToken, deadline),
     ]);
     if (response.status === 401 || response.status === 403) {
       return { kind: "reauth_required", reason: "credentials_rejected" };
@@ -290,7 +246,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     if (!response.ok) {
       throw new Error(`Kimi usage endpoint returned HTTP ${response.status}`);
     }
-    return projectKimiUsage(parseJson(await response.text()), identity.email, identity.plan);
+    return projectKimiUsage(parseJson(await response.text()), identity.email, identity.plan, identity.displayName);
   } catch (error) {
     if (error instanceof KimiReauthError) {
       return { kind: "reauth_required", reason: "credentials_missing" };
