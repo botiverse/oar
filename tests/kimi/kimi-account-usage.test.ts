@@ -1,9 +1,10 @@
 import { expect, test } from "vitest";
+import { projectKimiUsage } from "../../packages/oar/src/runtimes/kimi/account-usage.js";
 import {
+  kimiAccountDisplayName,
   kimiAccountEmail,
   kimiAccountPlan,
-  projectKimiUsage,
-} from "../../packages/oar/src/runtimes/kimi/account-usage.js";
+} from "../../packages/oar/src/runtimes/kimi/profile.js";
 
 const managedUsageFixture = {
   usage: {
@@ -74,6 +75,13 @@ test("kimi account email requires an authenticated profile shape", () => {
     .toBe("person@example.com");
   expect(kimiAccountEmail({ email: "person@example.com" })).toBeUndefined();
   expect(kimiAccountEmail({ user_id: "user-1", email: "" })).toBeUndefined();
+});
+
+test("kimi account display name reads the authenticated profile's nickname", () => {
+  expect(kimiAccountDisplayName({ user_id: "user-1", nickname: " 登月者8387 " }))
+    .toBe("登月者8387");
+  expect(kimiAccountDisplayName({ nickname: "登月者8387" })).toBeUndefined();
+  expect(kimiAccountDisplayName({ user_id: "user-1", nickname: "" })).toBeUndefined();
 });
 
 test("kimi account plan requires the authenticated profile's named membership level", () => {

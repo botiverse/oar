@@ -40,6 +40,11 @@ export type AccountUsageSnapshot =
       readonly plan?: string;
       /** Signed-in account email; omitted when the runtime does not expose one. */
       readonly email?: string;
+      /**
+       * Runtime-reported account display name (for example a profile nickname);
+       * omitted when not exposed. Lets callers identify accounts that have no email.
+       */
+      readonly displayName?: string;
       readonly rateLimited: boolean;
       readonly windows: readonly AccountUsageWindow[];
     }

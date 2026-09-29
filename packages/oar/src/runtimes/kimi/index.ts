@@ -14,6 +14,7 @@ export const kimiRuntime = defineRuntime({
   session: kimiSession,
 });
 
-export { kimiAccountEmail, kimiAccountUsage, projectKimiUsage } from "./account-usage.js";
+export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";
+export { kimiAccountDisplayName, kimiAccountEmail } from "./profile.js";
 export { kimiListModels, projectKimiModels } from "./list-models.js";
 export { kimiSession } from "./session.js";
