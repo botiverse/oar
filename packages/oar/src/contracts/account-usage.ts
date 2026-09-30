@@ -5,6 +5,8 @@ declare const utcInstantBrand: unique symbol;
 /**
  * An absolute UTC instant in the canonical ISO 8601 form produced by
  * `Date.prototype.toISOString()`, for example `2026-08-22T09:59:00.000Z`.
+ * Build one with `utcInstantFromDate` (from `@botiverse/oar`), which returns
+ * null for an invalid date; never cast a string to it.
  */
 export type UtcInstant = string & { readonly [utcInstantBrand]: true };
 
