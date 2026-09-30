@@ -1,42 +1,65 @@
 import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";
-import { test } from "vitest";
+import { expect, test } from "vitest";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { describe, fixture, start } from "../fixtures/acp-session-support.js";
 
-// The read-back must be the runtime's word, never the request parameter. The
-// fixture accepts any `session/set_model` with an empty answer but keeps
-// running fixture-model-x, the way grok falls back to its default for a model
-// the account cannot use.
-test("ACP model read-back reports the agent's effective model, not the requested one", async () => {
-  const requested = await start({}, undefined, "requested-y");
-  assert.equal(requested.model().value, "fixture-model-x");
-  await requested.dispose();
-
-  const resumed = await start({}, "fake-session", "requested-y");
-  assert.equal(resumed.model().value, "fixture-model-x");
-  await resumed.dispose();
+// A requested model must be confirmed by the agent's own report (issue #22):
+// the set_model answer, or a config_option_update pushed while it was asked.
+// The fixture accepts any other id with an empty answer and keeps running
+// fixture-model-x, the way grok 1.0.12 fell back to its default for a model
+// the account cannot use; nothing confirms the switch, so the open is refused.
+test.each([
+  { name: "a new session", resume: undefined },
+  { name: "a resume", resume: "fake-session" },
+])("ACP set_model that reports no model refuses the open: $name", async ({ resume }) => {
+  await expect(start({}, resume, "requested-y")).rejects.toThrow(
+    "session/set_model reported no model, so model requested-y cannot be confirmed",
+  );
 });
 
-test("ACP model read-back takes grok's set_model `_meta.model` over the session/new report", async () => {
-  const session = await start({}, undefined, "grok-meta");
-  assert.equal(session.model().value, "grok-applied");
+test.each([
+  { name: "grok 1.0.44's {Ok: id}", model: "grok-meta" },
+  { name: "grok 1.0.12's bare id", model: "grok-meta-legacy" },
+])("ACP model read-back takes grok's set_model `_meta.model`: $name", async ({ model }) => {
+  const session = await start({}, "fake-session", model);
+  assert.equal(session.model().value, model);
   await session.dispose();
 });
 
 test("ACP model read-back sees kimi's config_option_update pushed before set_model answers", async () => {
-  const session = await start({}, undefined, "kimi-push");
-  assert.equal(session.model().value, "kimi-pushed");
+  const session = await start({}, "fake-session", "kimi-push");
+  assert.equal(session.model().value, "kimi-push");
   // Both frames are in the stream; the pushed update wins because it is the
   // LATER model report (the SDK may deliver the notification after the
   // set_model answer it was sent before; record order is delivery order).
   const opening = session.records().map((record) => describe(record));
-  assert.ok(opening.includes("event session/new → model:fixture-model-x, effort:medium"));
-  assert.ok(opening.includes("event config_option_update → model:kimi-pushed"));
+  assert.ok(opening.includes("event session/resume → model:fixture-model-x, effort:medium"), JSON.stringify(opening));
+  assert.ok(opening.includes("event config_option_update → model:kimi-push"));
   assert.ok(opening.includes("event session/set_model"));
-  assert.ok(opening.indexOf("event config_option_update → model:kimi-pushed") > opening.indexOf("event session/new → model:fixture-model-x, effort:medium"));
+  assert.ok(opening.indexOf("event config_option_update → model:kimi-push") > opening.indexOf("event session/resume → model:fixture-model-x, effort:medium"));
   await session.dispose();
+});
+
+test.each([
+  {
+    name: "grok's answer names another model",
+    model: "grok-substitute",
+    message: "session/set_model left the model at grok-default although model grok-substitute was requested",
+  },
+  {
+    name: "kimi's push names another model",
+    model: "kimi-substitute",
+    message: "session/set_model left the model at kimi-default although model kimi-substitute was requested",
+  },
+  {
+    name: "the agent refuses the id",
+    model: "grok-unknown",
+    message: "session/set_model grok-unknown was refused: Invalid params (unknown model id)",
+  },
+])("ACP set_model refuses the resumed open when $name", async ({ model, message }) => {
+  await expect(start({}, "fake-session", model)).rejects.toThrow(message);
 });
 
 test("ACP model read-back follows config_option_update during a turn", async () => {

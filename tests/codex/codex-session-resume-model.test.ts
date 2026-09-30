@@ -130,3 +130,32 @@ test("a thread/resume the app-server refuses rejects naming thread/resume and ki
   );
   expect(fake.killed()).toBe(true);
 });
+
+// codex 0.158.0 applies baseInstructions on thread/resume but drops
+// developerInstructions without a word (experiments/resume-overrides.ts), so
+// systemPrompt is forwarded and appendSystemPrompt is refused before codex
+// is even started.
+test("thread/resume carries systemPrompt as baseInstructions and no developerInstructions", async () => {
+  const { requests } = fakeAppServer(() => "gpt-5.5");
+  const session = await codexSession(installation, { cwd: "/work", resume: threadId, systemPrompt: "BETA" });
+  const resume = requests.find((request) => request.method === "thread/resume");
+  expect(resume?.params.baseInstructions).toBe("BETA");
+  expect(resume?.params).not.toHaveProperty("developerInstructions");
+  await session.dispose();
+});
+
+test("thread/resume with appendSystemPrompt is refused and nothing is spawned", async () => {
+  fakeAppServer(() => "gpt-5.5");
+  await expect(codexSession(installation, { cwd: "/work", resume: threadId, systemPrompt: "BETA", appendSystemPrompt: "DELTA" })).rejects.toThrow(
+    "codex cannot apply appendSystemPrompt to a resumed thread (thread/resume drops developerInstructions); set systemPrompt instead or start a new thread",
+  );
+  expect(spawnLineProcess).not.toHaveBeenCalled();
+});
+
+test("thread/start still carries appendSystemPrompt as developerInstructions", async () => {
+  const { requests } = fakeAppServer(() => "gpt-5.5");
+  const session = await codexSession(installation, { cwd: "/work", systemPrompt: "ALPHA", appendSystemPrompt: "GAMMA" });
+  const start = requests.find((request) => request.method === "thread/start");
+  expect(start?.params).toMatchObject({ baseInstructions: "ALPHA", developerInstructions: "GAMMA" });
+  await session.dispose();
+});

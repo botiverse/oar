@@ -99,4 +99,7 @@ it), and a change racing a queued input.
   level the session last ran with; pi restores the level its session file
   recorded, and an explicit level on resume is not recorded; claude restores
   none. A configure would change the running session. What the next resume
-  restores remains each runtime's rule and belongs in its page.
+  restores remains each runtime's rule and belongs in its page. The restart
+  path is safe to rely on: every option given with `resume` now applies or
+  refuses the open (oar#22), so a switch by dispose and resume cannot keep
+  the old model or prompt silently.

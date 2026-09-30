@@ -19,7 +19,18 @@ export function selectGrokAuthMethod(initialized: JsonRecord): string | undefine
   return ids.includes("cached_token") ? "cached_token" : undefined;
 }
 
+/*
+ * grok's prompt options ride on initialize (xai-grok-shell 1.0.44, probed
+ * 2026-09-30, experiments/resume-overrides.ts grok-prompt):
+ * - `systemPromptOverride` replaces the system prompt on `session/new` and
+ *   on `session/load` alike, and when it is given `rules` are dropped.
+ * - `rules` alone are folded into grok's own prompt on `session/new`; a
+ *   loaded session keeps the rules it was created with and ignores new ones.
+ * So `appendSystemPrompt` is folded into the override when both are set, and
+ * on a resume it is refused unless an override carries it.
+ */
 export function grokInitializeMeta(options: SessionOptions): JsonRecord {
+  const { systemPrompt, appendSystemPrompt } = options;
   return {
     clientIdentifier: "oar",
     clientType: "generic",
@@ -28,9 +39,22 @@ export function grokInitializeMeta(options: SessionOptions): JsonRecord {
       skipGitStatus: true,
       skipProjectLayout: true,
     },
-    ...(options.systemPrompt === undefined ? {} : { systemPromptOverride: options.systemPrompt }),
-    ...(options.appendSystemPrompt === undefined ? {} : { rules: options.appendSystemPrompt }),
+    ...grokPromptMeta(systemPrompt, appendSystemPrompt),
   };
+}
+
+/** A system prompt replaces grok's own, with any appended prompt folded in; an appended prompt alone is a rule. */
+function grokPromptMeta(systemPrompt: string | undefined, appendSystemPrompt: string | undefined): JsonRecord {
+  if (systemPrompt === undefined) {
+    return appendSystemPrompt === undefined ? {} : { rules: appendSystemPrompt };
+  }
+  return { systemPromptOverride: appendSystemPrompt === undefined ? systemPrompt : `${systemPrompt}\n\n${appendSystemPrompt}` };
+}
+
+export function validateGrokOptions(options: SessionOptions): void {
+  if (options.resume !== undefined && options.appendSystemPrompt !== undefined && options.systemPrompt === undefined) {
+    throw new Error("grok keeps a loaded session's own rules, so appendSystemPrompt cannot apply on resume without systemPrompt");
+  }
 }
 
 function firstNumber(record: JsonRecord | null, names: readonly string[]): number | null {
@@ -136,6 +160,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   capabilities: { steer: true, queue: { durable: false }, attribution: "nested", images: true },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   terminalShellCommand: true,
+  validateOptions: validateGrokOptions,
   initializeMeta: grokInitializeMeta,
   sessionMeta: () => ({ yoloMode: true }),
   selectAuthMethod: selectGrokAuthMethod,

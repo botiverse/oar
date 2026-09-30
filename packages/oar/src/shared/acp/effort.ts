@@ -1,6 +1,6 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import { asRecord, type JsonRecord } from "../json.js";
-import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
+import { acpReportedEffort, acpReportedModel, acpThoughtLevelOption } from "./model.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 
 /** An RPC error's message plus its `data` (grok puts the reason there: "unknown reasoning_effort value"). */
@@ -68,6 +68,13 @@ export async function applyAcpEffort(
  * `viaConfigOption` `session/set_config_option` on the `model` option (for
  * agents whose set_model answer reports nothing, cursor-agent 2026.09.28).
  * The answer is observed like any handshake answer and returned.
+ *
+ * The switch must be confirmed by the agent's own report (model.ts): the
+ * answer (grok's `_meta.model`, a config option answer's `model` row) or,
+ * when the answer says nothing, the latest model a `config_option_update`
+ * pushed during the request (kimi, probed 2026-09-30, answers `{}` after pushing it). A
+ * refusal, a report naming another model, or no report at all refuses the
+ * open, so a model an agent substitutes or ignores is never kept silently.
  */
 export async function applyAcpModel(
   process: AcpProcess,
@@ -77,18 +84,38 @@ export async function applyAcpModel(
     readonly viaConfigOption: boolean;
     readonly timeoutMs: number;
     readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
+    /** Every model a `session/update` reported so far, in delivery order. */
+    readonly pushedModels: () => readonly string[];
   },
-): Promise<JsonRecord | undefined> {
+): Promise<JsonRecord> {
   const method = context.viaConfigOption ? "session/set_config_option" : "session/set_model";
   const params = context.viaConfigOption
     ? { sessionId, configId: "model", value: model }
     : { sessionId, modelId: model };
-  const response = asRecord(await withAcpDeadline(
-    process,
-    method,
-    context.timeoutMs,
-    (requestOptions) => process.connection.agent.request(method, params, requestOptions),
-  )) ?? undefined;
-  context.observe({ method, response: response ?? {} });
+  const before = context.pushedModels().length;
+  let answer: unknown = undefined;
+  try {
+    answer = await withAcpDeadline(
+      process,
+      method,
+      context.timeoutMs,
+      (requestOptions) => process.connection.agent.request(method, params, requestOptions),
+    );
+  } catch (error) {
+    throw new Error(`${method} ${model} was refused: ${rpcErrorText(error)}`, { cause: error });
+  }
+  // The SDK's session router yields once before a push sent ahead of the answer reaches the update hook.
+  await new Promise<void>((resolve) => {
+    setImmediate(resolve);
+  });
+  const response = asRecord(answer) ?? {};
+  context.observe({ method, response });
+  const reported = acpReportedModel(response) ?? context.pushedModels().slice(before).at(-1) ?? null;
+  if (reported === null) {
+    throw new Error(`${method} reported no model, so model ${model} cannot be confirmed`);
+  }
+  if (reported !== model) {
+    throw new Error(`${method} left the model at ${reported} although model ${model} was requested`);
+  }
   return response;
 }

@@ -120,7 +120,7 @@ experimental history/path inputs are not exposed. [Resume schema][resume-schema]
 
 **Mapped:** `codexRuntime.session(installation, { cwd, resume: savedSessionId,
 model? })` sends `thread/resume { threadId, excludeTurns: true, cwd, model?,
-approvalPolicy: "never", …instructions }`, waits for the reply, requires a
+approvalPolicy: "never", baseInstructions? }`, waits for the reply, requires a
 thread id, and checks an explicit `model` against the readback. The token is
 a native thread id resolved against the selected executable's runtime
 storage/configuration; it is not a portable transcript. The resumed session
@@ -407,7 +407,20 @@ without one. Live changes on a running thread are **not exposed**
 Replacement instructions map to `baseInstructions` (replaces codex's base
 prompt); append maps to `developerInstructions` (appended as a developer
 message); `instructions` / `userInstructions` are silently ignored by
-`thread/start`. Cwd and the process environment overlay are forwarded.
+`thread/start`. On `thread/resume` (0.158.0, aimock provider,
+[probe](../../experiments/resume-overrides.ts)) `baseInstructions` applies,
+to that process only: the next turn's `instructions` carry the new prompt,
+and a later resume asking for none runs the thread's stored prompt again.
+The model persists with the thread, and a model switch leaves a
+`<model_switch>` developer item quoting the instructions then in force,
+which later turns resend. `developerInstructions` is dropped on
+`thread/resume` without a word (only the thread's first developer message
+reaches the provider), and no other seam appends to a resumed thread, so a
+resume with `appendSystemPrompt` is refused before codex starts: `codex
+cannot apply appendSystemPrompt to a resumed thread (thread/resume drops
+developerInstructions); set systemPrompt instead or start a new thread`
+([vendor test](../../sea-trial/vendor/resume-overrides.vendor.test.ts)).
+Cwd and the process environment overlay are forwarded.
 Requested and effective configuration remain distinct. [Adapter][oar-session],
 [vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
 
@@ -543,9 +556,11 @@ the former only.
    `thread/start { cwd, model?, approvalPolicy: "never",
    experimentalRawEvents: true, baseInstructions?, developerInstructions?,
    config?: { model_reasoning_effort } }` or `thread/resume { threadId,
-   excludeTurns: true, ... }` (then `thread/settings/update { effort }` when
+   excludeTurns: true, cwd, model?, approvalPolicy: "never",
+   baseInstructions? }` (then `thread/settings/update { effort }` when
    the resumed thread runs another level). A model or effort readback that
-   differs from the request kills the process and throws. Not on OAR's
+   differs from the request kills the process and throws; a resume with
+   `appendSystemPrompt` throws before the process starts. Not on OAR's
    path although present upstream: `--listen ws://`, `--listen unix://`,
    `codex app-server daemon`, `codex app-server proxy`, `thread/fork`,
    `ephemeral`, `thread/resume { path }` and `{ history }`. Source:

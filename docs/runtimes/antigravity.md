@@ -220,7 +220,9 @@ life of the process (`cursor`); OAR enumerates no native history.
 
 **Mapped:** open time model selection (`SessionOptions.model` →
 `session/set_config_option {configId: "model"}`), read back from the answer's
-`configOptions`, never from the request parameter. The server has no model
+`configOptions`, never from the request parameter. A switch the answer does
+not confirm (another model, or none) refuses the open, on a new session and
+on a resume alike. The server has no model
 list method, so `listModels` (and `oar models antigravity`) opens a throwaway
 session and reads the options of its `model` config option; the process is
 then killed, since there is no `session/close`. No entry carries effort

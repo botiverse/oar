@@ -10,10 +10,12 @@ import { asRecord, asRecordList, type JsonRecord } from "../json.js";
  *   (`session/set_model`, `set_config_option`) pushes
  *   `session/update {sessionUpdate: "config_option_update", configOptions}`
  *   BEFORE the switch request is answered; the `set_model` response is `{}`.
- * - xai-grok-shell 1.0.12 (bc7f02e): `session/new|load` answer
- *   `models.currentModelId` (a requested model the account cannot use falls
- *   back to the default silently) and `session/set_model` answers
- *   `{_meta: {model}}` with the applied id.
+ * - xai-grok-shell: `session/new|load` answer `models.currentModelId` (1.0.44
+ *   also a `configOptions` model row), and `session/set_model` answers the
+ *   applied id in `_meta.model`: a bare string in 1.0.12 (bc7f02e), a Rust
+ *   style `{Ok: id}` in 1.0.44 (probed 2026-09-30,
+ *   experiments/resume-overrides.ts), pushing `config_option_update` only
+ *   AFTER the answer. An unknown id is refused `-32602` ("unknown model id").
  *
  * Null when the frame carries neither. Every such frame is an event
  * record with a `model` event, so `Session.model()` is the latest of them;
@@ -33,7 +35,25 @@ export function acpReportedModel(frame: JsonRecord | null): string | null {
   }
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
   const metaModel = asRecord(frame._meta)?.model;
-  return typeof metaModel === "string" ? metaModel : null;
+  if (typeof metaModel === "string") {
+    return metaModel;
+  }
+  const applied = asRecord(metaModel)?.Ok;
+  return typeof applied === "string" ? applied : null;
+}
+
+/** The models an agent pushes in `session/update` notifications, in order, for the open's model confirmation (effort.ts applyAcpModel). */
+export function createAcpPushedModels(): { readonly observe: (update: unknown) => void; readonly list: () => readonly string[] } {
+  const pushed: string[] = [];
+  return {
+    observe: (update) => {
+      const model = acpReportedModel(asRecord(update));
+      if (model !== null) {
+        pushed.push(model);
+      }
+    },
+    list: () => pushed,
+  };
 }
 
 /**
