@@ -18,19 +18,19 @@ if (installation?.kind === "available") {
     }
   }, { coalesceText: true });
   const run = await promptAndWait(session, "Inspect this repository");
-  console.log(run.kind === "ended" ? run.outcome : run.reason);
+  console.log(run.kind === "rejected" ? run.reason : run.outcome);
   console.log(session.usage(), await runtime.accountUsage?.(installation));
   await session.dispose();
 }
 ```
 
-`session.events()` delivers flat, attributed `Event`s (text, reasoning,
-tool call start / progress / end, turn start and end, usage, model,
-effort, compaction start / end, retry, runtime→app requests and oar's answers,
-control rejections, the process exit), each carrying the `seq` and
-`agentPath` of the record it was read from. Kinds a runtime never says
-(claude has no compaction start, ACP runtimes no compaction or retry) simply
-never appear; the runtime pages say which. It is a projection over the record stream: `session.rawEvents()`
+`session.events()` delivers flat, attributed `Event`s (native user message
+echoes, text, reasoning, tool call start / progress / end, turn start and end,
+usage, model, effort, compaction start / end, retry, runtime→app requests and
+oar's answers, control rejections, the process exit), each carrying the `seq`
+and `agentPath` of the record it was read from. Kinds a runtime never says
+(claude has no compaction start, ACP runtimes no compaction, only pi says
+retry) simply never appear; the runtime pages say which. It is a projection over the record stream: `session.rawEvents()`
 and `session.records()` expose that stream (`RawEvent`: `Frame` with the
 native payload verbatim, `RequestRecord`, `ResponseRecord`) for consumers
 who need the runtime's own frames.
@@ -56,8 +56,17 @@ Antigravity, Cursor, Grok, and Kimi share an internal ACP v1 transport and sessi
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
-Account quota queries and failure semantics are documented in the
+`runtime.listModels(installation, options?)` lists the models an installation
+can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
+has it. `runtime.accountUsage(installation)` reads account quota on claude,
+codex, grok and kimi; its failure semantics are documented in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
+
+Images go with an input through `InputOptions.images` (absolute paths to png,
+jpeg, gif or webp files) on prompt, steer and queue, as the runtime's own image
+content. `session.capabilities.images` says whether the runtime takes them; an
+input it cannot deliver is rejected whole. See
+[Images](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#images).
 
 ## Native inventories
 
@@ -74,8 +83,8 @@ absent, and an unsupported query never pretends to be an empty catalog.
 
 Codex and Claude expose skills and MCP discovery (tools are MCP-only); Grok
 exposes independent skills/MCP configuration discovery; Pi exposes skills and
-registered tools with active membership. Kimi inventory is unsupported on the
-selected transport. Native startup can load extensions and connect configured
+registered tools with active membership. Antigravity, Cursor and Kimi
+inventory queries are unsupported. Native startup can load extensions and connect configured
 MCP servers.
 
 Custom runtimes should use `defineRuntime`, which fills unavailable inventory
@@ -96,7 +105,7 @@ const { name, icon } = runtimeBrands.claude;
 ```
 
 SVG files are also exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`.
-Their attribution and licenses ship in `assets/brands/NOTICE.md`. Pi uses the official `pi.dev/logo-on-dark.svg` asset, intended for dark backgrounds.
+Their attribution and licenses ship in `assets/brands/NOTICE.md`. Pi uses the official `pi.dev` logo assets.
 Custom runtimes created with `defineRuntime` may supply `brand`; otherwise it
 defaults to `{ name: runtime.id, icon: null }`. Runtime branding identifies the
 provider and is independent of an application's project avatars.
