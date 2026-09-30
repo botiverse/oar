@@ -13,8 +13,8 @@ oar run claude "What does this repo do?"
 ## Commands
 
 - `oar list`: registered runtimes and their capabilities.
-- `oar installation [runtime]`: probe local installation and version, no
-  account or usage I/O.
+- `oar installation [runtime]` (alias `detect`): probe local installation
+  and version, no account or usage I/O.
 - `oar usage [runtime]`: account usage for each available installation.
 - `oar models [runtime]`: models each available installation can run right
   now (login state, plan, and configured providers included); `--json` prints
@@ -23,11 +23,14 @@ oar run claude "What does this repo do?"
 - `oar run <runtime> <prompt>`: run one turn in a fresh (or `--resume`d)
   session and show its progress; the exit code is 0 only when the turn
   completed.
+- `oar skills|mcps|tools [runtime]`: native inventories, see
+  [below](#native-inventories).
 
 ## `oar run`: the run-and-verify entrypoint
 
 By default `run` prints readable progress from the session's `events()`,
-after one opening line naming the session (the id `--resume` takes) and the
+after one opening line naming the session (the id `--resume` takes; it
+reads `[resumed <id> …]` on a resumed run) and the
 model and effort the runtime reported while opening, when it did (the
 `model()` / `effort()` folds, never the flags echoed):
 assistant text verbatim (coalesced into blocks via `coalesceText`), and
@@ -56,6 +59,9 @@ Flags:
 - `--resume <sessionId>`: resume the runtime-native session a previous run
   printed, with a fresh stream (`SessionOptions.resume`); pair it with a
   different `--model` / `--effort` to switch between turns.
+- `--image <file...>`: send image files with the prompt (png, jpeg, gif,
+  webp) as the runtime's own image input (`InputOptions.images`); a runtime
+  without image input rejects the prompt.
 - `--json`: print the session records (`RawEvent`s) as JSON lines instead
   of progress (frames with their verbatim `native` payload and oar's
   `events`, plus the request/response records of the run), and a final
@@ -89,7 +95,7 @@ or read the same format as consumers.
 - Line 1 is always the header:
   `{"kind":"header","format":"oar-voyage/3","runtime","model?","effort?","cwd","sessionId","startedAt","recorder"}`
   (`model` and `effort` are omitted when none was requested; `recorder`
-  names the writer, e.g. `oar-cli/0.2.0`).
+  names the writer, e.g. `oar-cli/<version>`).
 - `{"kind":"record","record":{...}}`: one `RawEvent` verbatim, no
   filtering or re-timestamping. Human inputs are in the stream already as
   `request` records, so the format has no separate submission line; the

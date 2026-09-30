@@ -28,7 +28,7 @@ function packageVersion(): string {
 
 const program = new Command()
   .name("oar")
-  .description("Observe installed agent runtimes and account usage")
+  .description("Observe and run installed agent runtimes")
   .version(packageVersion());
 
 function selected(id: string | undefined): readonly Runtime[] {
