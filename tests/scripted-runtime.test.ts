@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { test } from "vitest";
-import type { Event, Session } from "../packages/oar/src/index.js";
+import { afterAll, beforeAll, test } from "vitest";
+import type { Event, InputImage, Session } from "../packages/oar/src/index.js";
 import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
 import { scriptedRuntime, type ScriptedTurn } from "../packages/oar/src/testing/index.js";
 
@@ -164,4 +167,32 @@ test("a tool that returns after dispose ended its turn records nothing", async (
     [events.map((event) => event.kind), session.status().value],
     [["turn_started", "tool_call_started", "turn_ended", "usage", "exited"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }],
   );
+});
+
+// The scripted runtime keeps the image rules every runtime keeps (@botiverse/oar/kernel), so a host's test sees the refusals a vendor session gives (issue #38).
+let dir = "";
+beforeAll(async () => {
+  dir = await mkdtemp(path.join(tmpdir(), "oar-scripted-images-"));
+  await Promise.all([writeFile(path.join(dir, "shot.png"), "png bytes"), writeFile(path.join(dir, "notes.txt"), "text")]);
+});
+afterAll(async () => {
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("images reach the script; a non-image or unreadable file refuses the whole input, as a vendor runtime does", async () => {
+  const [shot, notes] = [path.join(dir, "shot.png"), path.join(dir, "notes.txt")];
+  const seen: (readonly InputImage[])[] = [];
+  const session = await open(({ images }) => {
+    seen.push(images);
+  });
+  const started = await session.prompt("what is this?", { images: [{ path: shot }] });
+  await awaitTurnEnd(session, started.seq);
+  const refusals = [
+    await session.prompt("and this?", { images: [{ path: notes }] }),
+    await session.prompt("and this?", { images: [{ path: path.join(dir, "gone.png") }] }),
+    await session.queue("later", { images: [{ path: notes }] }),
+  ];
+  await session.dispose();
+  assert.deepEqual([started.kind, seen], ["accepted", [[{ path: shot }]]]);
+  assert.deepEqual(refusals.map((response) => (response.kind === "rejected" ? response.code : response.kind)), ["unsupported", "error", "unsupported"]);
 });
