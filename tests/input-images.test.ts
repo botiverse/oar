@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import type { InputImage } from "../packages/oar/src/index.js";
-import { withInputImages, type LoadedImage } from "../packages/oar/src/shared/input-images.js";
+import { withInputImages, type LoadedImage } from "../packages/oar/src/kernel.js";
 
 /** What `withInputImages` hands the delivery, or its refusal. */
 const load = (capabilities: { images: boolean }, images: readonly InputImage[] | undefined): unknown =>

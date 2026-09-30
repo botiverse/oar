@@ -5,12 +5,12 @@ import {
   markRequestAnswered,
   noticePart,
   removeEmptyTurn,
-  sameLane,
   sealTurn,
   turnForWrite,
+  updateToolPart,
   type Draft,
 } from "./session-view-fold.js";
-import type { PendingRequest, ViewPart, ViewSection } from "./session-view.js";
+import type { PendingRequest } from "./session-view.js";
 
 /**
  * The event-level fold of the session view: one `Event` (or one record's
@@ -64,46 +64,17 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
     case "tool_call_progress":
     case "tool_call_ended": {
       const result = event.kind === "tool_call_progress" ? "running" : (event.result ?? "ended");
-      if (draft.openTurn === -1) {
-        beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`);
-      }
-      const turn = turnForWrite(draft);
-      const sectionIndex =
-        turn?.sections.findIndex(
-          (section: ViewSection) =>
-            sameLane(section, event.sessionId, event.agentPath) &&
-            section.parts.some((part) => part.kind === "tool" && part.callId === event.callId),
-        ) ?? -1;
-      if (turn === null || sectionIndex === -1) {
-        // An end without a start is still a fact (mid-turn subscriber).
-        laneFor(draft, event, streamId)?.parts.push({
-          kind: "tool",
-          callId: event.callId,
-          tool: "?",
-          ...(event.output === undefined ? {} : { output: event.output }),
-          result,
-        });
+      if (updateToolPart(draft, event, result)) {
         return;
       }
-      const section = turn.sections[sectionIndex];
-      if (section === undefined) {
-        return;
-      }
-      const partIndex = section.parts.findIndex(
-        (part) => part.kind === "tool" && part.callId === event.callId,
-      );
-      const part = section.parts[partIndex];
-      if (part?.kind !== "tool") {
-        return;
-      }
-      const updated: ViewPart = {
-        ...part,
+      // An end without a start is still a fact (mid-turn subscriber).
+      laneFor(draft, event, streamId)?.parts.push({
+        kind: "tool",
+        callId: event.callId,
+        tool: "?",
         ...(event.output === undefined ? {} : { output: event.output }),
         result,
-      };
-      const parts = [...section.parts];
-      parts[partIndex] = updated;
-      turn.sections[sectionIndex] = { ...section, parts };
+      });
       return;
     }
     case "turn_ended":

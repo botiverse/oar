@@ -39,6 +39,9 @@ import { foldEvent, recordFacts } from "./session-view-events.js";
  *   inside a turn. Sub-agent and child-session activity nests inside the
  *   parent turn as sections; a child session's own `turn_ended` degrades
  *   to a notice part, it never closes the root turn.
+ * - A TOOL part is one per lane and callId: a progress or end settles it in
+ *   the turn its start landed in, even after that turn ended; only a call
+ *   whose start was never seen becomes a `?` part.
  * - An exited stream never stamps a fabricated outcome on an open turn.
  */
 

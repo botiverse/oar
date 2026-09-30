@@ -1,8 +1,8 @@
 import type { RuntimeBrand } from "../contracts/brand.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
-import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
+import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
-import { createSessionKernel, sealSession } from "../kernel.js";
+import { createSessionKernel, inputImagesRefusal, sealSession } from "../kernel.js";
 
 /**
  * What a script sees and does during one turn. Everything it emits enters the
@@ -179,13 +179,18 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     }
 
     frame("scripted/model", { model }, [{ kind: "model", model }]);
+    const capabilities: SessionCapabilities = { steer: true, queue: { durable: false }, attribution: "none", images: true };
     return sealSession({
       id: kernel.sessionId,
-      capabilities: { steer: true, queue: { durable: false }, attribution: "none", images: true },
+      capabilities,
       prompt: async (input, inputOptions?: InputOptions) => {
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, () => {
           if (active !== null) {
             return { kind: "rejected", code: "busy", reason: "busy" };
+          }
+          const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+          if (refused !== null) {
+            return refused;
           }
           run(input, inputOptions?.images);
           return { kind: "accepted" };
@@ -197,6 +202,10 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           if (active === null) {
             return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
           }
+          const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+          if (refused !== null) {
+            return refused;
+          }
           active.steered.push(input);
           return { kind: "accepted" };
         });
@@ -204,6 +213,10 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       },
       queue: async (input, inputOptions) => {
         const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () => {
+          const refused = inputImagesRefusal(capabilities, inputOptions?.images);
+          if (refused !== null) {
+            return refused;
+          }
           if (active === null) {
             run(input, inputOptions?.images);
           } else {
