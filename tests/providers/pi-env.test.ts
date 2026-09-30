@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionToolContext } from "@earendil-works/pi-coding-agent";
 import { piEnvBashTool } from "../../packages/oar/src/runtimes/pi/session.js";
 
 // No model in the loop: the tool definition is executed directly, which is
@@ -15,7 +15,7 @@ test("pi env overlay reaches the processes the agent spawns", async () => {
     undefined,
     undefined,
     // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- bash execute only reads ctx behind a guard (session env exposure); there is no session in this unit test
-    undefined as unknown as ExtensionContext,
+    undefined as unknown as ExtensionToolContext,
   );
   const text = result.content
     .map((part) => (part.type === "text" ? part.text : ""))

@@ -6,7 +6,7 @@ See the [query contract](../spec/inventory.md) and [native probe evidence](inven
 Evidence baseline: OAR source as of 2026-09-11. Native references are pinned
 to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`). The bundled
-`@earendil-works/pi-coding-agent` SDK is now **0.87.1**; source references
+`@earendil-works/pi-coding-agent` SDK is now **0.99.1**; source references
 and live observations below retain their **0.84.2** evidence baseline.
 Those live observations ran in-process through [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 against `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every
@@ -16,11 +16,11 @@ the [experiments index](../../experiments/README.md). Versions are evidence
 baselines, not a support range. See the [runtime index](README.md) for
 evidence and status conventions.
 
-The full applicable live battery was repeated on **0.87.1** on 2026-09-29
+The full applicable live battery was repeated on **0.99.1** on 2026-09-30
 (Linux x64, Node 24.19.0, `exe-dev-openai/gpt-6-luna@llm`): **11/11 passed**,
 with subagents and process killing inapplicable. Pi's simulated-provider
 behavior and vendor suites also passed. See the
-[version check report](../../experiments/runtime-version-checks/2026-09-29.md)
+[version check report](../../experiments/runtime-version-checks/2026-09-30.md)
 for the exact scope, commands and evidence location.
 
 ## Native concepts and calling interfaces
