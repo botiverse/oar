@@ -61,6 +61,30 @@ test("a prompt turn groups text and tool parts under one lane section", () => {
   ]);
 });
 
+// codex can send a command's last `outputDelta` after `turn/completed` (issue #39).
+test("a call's progress after its turn ended settles its own part; no segment, no ? part", () => {
+  const view = fold([
+    request(0, "r1"),
+    accepted(1, "r1"),
+    frame(2, [{ kind: "tool_call_started", callId: "c1", tool: "Bash", input: "ls" }]),
+    frame(3, [{ kind: "turn_ended", outcome: { kind: "completed" } }]),
+    frame(4, [{ kind: "tool_call_progress", callId: "c1", output: "a.ts" }]),
+    request(5, "r2"),
+    accepted(6, "r2"),
+    frame(7, [{ kind: "tool_call_ended", callId: "c1", output: "a.ts b.ts", result: "ok" }]),
+    frame(8, [{ kind: "tool_call_progress", callId: "c9", output: "unseen" }]),
+  ]);
+  expect(view.messages.map((message) => message.kind)).toEqual(["input", "turn", "input", "turn"]);
+  const [first, second] = turns(view);
+  expect(first?.outcome).toEqual({ kind: "completed" });
+  expect(first?.sections.flatMap((section) => section.parts)).toEqual([
+    { kind: "tool", callId: "c1", tool: "Bash", input: "ls", output: "a.ts b.ts", result: "ok" },
+  ]);
+  expect(second?.sections.flatMap((section) => section.parts)).toEqual([
+    { kind: "tool", callId: "c9", tool: "?", output: "unseen", result: "running" },
+  ]);
+});
+
 test("a rejected prompt removes the empty turn; the input keeps the rejection", () => {
   const view = fold([request(0, "r1"), rejected(1, "r1")]);
   expect(view.messages.map((message) => message.kind)).toEqual(["input"]);

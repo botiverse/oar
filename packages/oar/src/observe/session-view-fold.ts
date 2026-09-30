@@ -224,6 +224,45 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
   }
 }
 
+type ToolUpdate = Extract<Event, { kind: "tool_call_progress" | "tool_call_ended" }>;
+type ToolResult = Extract<ViewPart, { kind: "tool" }>["result"];
+
+/**
+ * Settle a call's tool part in place, in whichever turn its start landed
+ * (one part per lane and callId): a runtime may report a call's last output
+ * after its turn ended (codex `commandExecution/outputDelta` after
+ * `turn/completed`). False when no part holds the callId.
+ */
+export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResult): boolean {
+  for (let m = draft.messages.length - 1; m >= 0; m -= 1) {
+    const message = draft.messages[m];
+    if (message?.kind !== "turn") {
+      continue;
+    }
+    for (let s = message.sections.length - 1; s >= 0; s -= 1) {
+      const section = message.sections[s];
+      const partIndex =
+        section === undefined || !sameLane(section, event.sessionId, event.agentPath)
+          ? -1
+          : section.parts.findIndex((part) => part.kind === "tool" && part.callId === event.callId);
+      const part = partIndex === -1 ? undefined : section?.parts[partIndex];
+      if (section === undefined || part?.kind !== "tool") {
+        continue;
+      }
+      const parts = [...section.parts];
+      parts[partIndex] = { ...part, ...(event.output === undefined ? {} : { output: event.output }), result };
+      const sections = [...message.sections];
+      sections[s] = { ...section, parts };
+      draft.messages[m] = { ...message, sections };
+      if (m === draft.openTurn) {
+        draft.turn = null;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Drop a turn the runtime says never began (rejected prompt), when still empty. */
 export function removeEmptyTurn(draft: Draft, requestId: string): void {
   if (draft.openTurn === -1) {
