@@ -14,17 +14,23 @@ import { runtimes } from "../packages/oar/src/index.js";
 
 const PI_PACKAGE = "@earendil-works/pi-coding-agent";
 const sources = [
+  { id: "antigravity", url: "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json" },
   { id: "claude", url: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" },
   { id: "codex", url: "https://registry.npmjs.org/@openai/codex/latest" },
+  // Read the bundled version from the official installer; never execute it.
+  { id: "cursor", url: "https://cursor.com/install" },
   // The stable pointer used by the official https://x.ai/cli/install.sh.
   { id: "grok", url: "https://x.ai/cli/stable" },
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },
   { id: "pi", url: `https://registry.npmjs.org/${PI_PACKAGE}/latest` },
 ] as const;
 
-function versionOf(value: string): string {
-  const version = /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u.exec(value)?.[0];
-  assert.ok(version !== undefined, "version response has no semantic version");
+function versionOf(value: string, runtime?: string): string {
+  const pattern = runtime === "cursor"
+    ? /\b\d{4}\.\d{2}\.\d{2}-[\da-f]+\b/u
+    : /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u;
+  const version = pattern.exec(value)?.[0];
+  assert.ok(version !== undefined, "version response has no recognized version");
   return version;
 }
 
@@ -46,6 +52,11 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
     let latest = "";
     if (id === "grok") {
       latest = versionOf(await response.text());
+    } else if (id === "cursor") {
+      const installer = await response.text();
+      const version = /https:\/\/downloads\.cursor\.com\/lab\/(?<version>\d{4}\.\d{2}\.\d{2}-[\da-f]+)\//u.exec(installer)?.groups?.version;
+      assert.ok(version !== undefined, "Cursor installer has no versioned official download URL");
+      latest = version;
     } else {
       const data: unknown = await response.json();
       assert.ok(typeof data === "object" && data !== null && "version" in data && typeof data.version === "string");
@@ -56,7 +67,7 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
     if (id === "pi") {
       installed = await piVersion();
     } else if (installation?.kind === "available" && installation.via === "executable" && installation.version !== undefined) {
-      installed = versionOf(installation.version);
+      installed = versionOf(installation.version, id);
     }
     let status = "unavailable";
     if (installed !== null) {
