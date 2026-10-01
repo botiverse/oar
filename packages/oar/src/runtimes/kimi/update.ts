@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import type { AvailableInstallation } from "../../contracts/installation.js";
-import type { UpdateCheck, UpdateCheckOptions, UpdateChecker, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
+import type { UpdateCheck, UpdateCheckOptions, UpdateChecker, Upgrader, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
 import {
   CHECK_TIMEOUT_MS,
   comparedCheck,
@@ -17,7 +17,8 @@ import {
  * Kimi has no check-only command; `kimi upgrade` (2.1.1) reads
  * `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` when the recorded
  * region is `global`, and ignores the staged rollout, so that pointer is the
- * version it installs. A Homebrew copy only prints `brew upgrade kimi-code`.
+ * version it installs, and only when it is newer. A Homebrew copy only prints
+ * `brew upgrade kimi-code`.
  */
 export interface KimiUpdateSources {
   readonly mainland: string;
@@ -53,22 +54,31 @@ export function kimiUpdateCheck(from: KimiUpdateSources = sources): UpdateChecke
     }
     const url = region(from.home()) === "global" ? from.global : from.mainland;
     const read = await readReleaseSource(url, options.timeoutMs ?? CHECK_TIMEOUT_MS);
-    return read.ok ? comparedCheck(update.installed, read.text.trim(), url) : read.check;
+    if (!read.ok) {
+      return read.check;
+    }
+    // kimi upgrade acts only on a newer release.
+    const check = comparedCheck(update.installed, read.text.trim(), url);
+    return check.kind === "ok" ? { ...check, updateAvailable: !versionAtLeast(check.installed, check.latest) } : check;
   };
 }
 
 export const kimiCheckUpdate = kimiUpdateCheck();
 
-export async function kimiUpgrade(installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
-  const update = executableUpdate(installation);
-  if (update.kind === "executable" && !versionAtLeast(update.installed, NON_INTERACTIVE_UPGRADE)) {
-    return {
-      kind: "unsupported",
-      reason: "requires_terminal",
-      detail: `kimi ${update.installed} has no non-interactive upgrade (added in ${NON_INTERACTIVE_UPGRADE}); run kimi upgrade in a terminal`,
-    };
-  }
-  // A native install stages the new binary; the version read-back starts kimi, which swaps it in.
-  const result = await upgradeExecutable(installation, { check: kimiCheckUpdate, args: ["upgrade", "-y"] }, options);
-  return result;
+export function kimiUpgrader(check: UpdateChecker = kimiCheckUpdate): Upgrader {
+  return async (installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> => {
+    const update = executableUpdate(installation);
+    if (update.kind === "executable" && !versionAtLeast(update.installed, NON_INTERACTIVE_UPGRADE)) {
+      return {
+        kind: "unsupported",
+        reason: "requires_terminal",
+        detail: `kimi ${update.installed} has no non-interactive upgrade (added in ${NON_INTERACTIVE_UPGRADE}); run kimi upgrade in a terminal`,
+      };
+    }
+    // A native install stages the new binary; the version read-back starts kimi, which swaps it in.
+    const result = await upgradeExecutable(installation, { check, args: ["upgrade", "-y"] }, options);
+    return result;
+  };
 }
+
+export const kimiUpgrade = kimiUpgrader();

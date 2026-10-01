@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, test } from "vitest";
-import type { ExecutableInstallation } from "../packages/oar/src/contracts/installation.js";
+import { afterAll, beforeAll, expect, test } from "vitest";
 import type { UpdateCheck, UpdateChecker } from "../packages/oar/src/contracts/update.js";
-import { kimiUpgrade } from "../packages/oar/src/runtimes/kimi/update.js";
+import { codexCheckUpdate } from "../packages/oar/src/runtimes/codex/update.js";
+import { kimiUpgrade, kimiUpgrader } from "../packages/oar/src/runtimes/kimi/update.js";
 import { upgradeExecutable } from "../packages/oar/src/shared/update.js";
+import { fakeRuntime as makeFakeRuntime, printingExecutable, type FakeRuntime, type FakeState } from "./fixtures/update-fixtures.js";
 
-const fakeUpdater = path.join(import.meta.dirname, "fixtures", "fake-updater.mjs");
 let dir = "";
 
 beforeAll(() => {
@@ -19,33 +19,14 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-function executable(command: string, version?: string): ExecutableInstallation {
-  return version === undefined
-    ? { kind: "available", via: "executable", command }
-    : { kind: "available", via: "executable", command, version };
+type Installation = Parameters<typeof upgradeExecutable>[0];
+
+function executable(command: string, version: string): Installation {
+  return { kind: "available", via: "executable", command, version };
 }
 
-interface FakeState {
-  readonly version: string;
-  readonly target: string;
-  readonly mode: "upgrade" | "noop" | "fail" | "prompt";
-}
-
-/** A fake runtime CLI and the state file that drives it. */
-function fakeRuntime(name: string, state: FakeState): { readonly command: string; readonly read: () => Record<string, unknown> } {
-  const stateFile = path.join(dir, `${name}.json`);
-  writeFileSync(stateFile, JSON.stringify(state));
-  const command = path.join(dir, process.platform === "win32" ? `${name}.cmd` : name);
-  writeFileSync(command, process.platform === "win32"
-    ? `@"${process.execPath}" "${fakeUpdater}" "${stateFile}" %*\r\n`
-    : `#!/bin/sh\nexec "${process.execPath}" "${fakeUpdater}" "${stateFile}" "$@"\n`);
-  chmodSync(command, 0o755);
-  const read = (): Record<string, unknown> => {
-    const parsed: unknown = JSON.parse(readFileSync(stateFile, "utf8"));
-    assert.ok(typeof parsed === "object" && parsed !== null);
-    return Object.fromEntries(Object.entries(parsed));
-  };
-  return { command, read };
+function fakeRuntime(name: string, state: FakeState): FakeRuntime {
+  return makeFakeRuntime(dir, name, state);
 }
 
 function fixedCheck(check: UpdateCheck): UpdateChecker {
@@ -129,3 +110,36 @@ test("kimi before 0.43.0 cannot upgrade without a terminal", async () => {
   assert.equal(result.kind === "unsupported" ? result.reason : result.kind, "requires_terminal");
 });
 
+
+test("kimi from 0.43.0 runs its updater with -y", async () => {
+  const fake = fakeRuntime("kimi-new", { version: "0.43.0", target: "2.1.1", mode: "upgrade" });
+  const result = await kimiUpgrader(fixedCheck({ ...available, installed: "0.43.0", latest: "2.1.1" }))(executable(fake.command, "0.43.0"));
+  assert.equal(result.kind === "upgraded" ? result.to : result.kind, "2.1.1");
+  assert.deepEqual(fake.read().updateArgs, ["-y"]);
+});
+
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test.skipIf(process.platform === "win32")("a timed out updater is stopped with everything it started", async () => {
+  const fake = fakeRuntime("hangs", { version: "1.0.0", target: "1.1.0", mode: "hang" });
+  const result = await upgradeExecutable(executable(fake.command, "fake 1.0.0"), { check: fixedCheck(available), args: ["update"] }, { timeoutMs: 1000 });
+  assert.ok(result.kind === "failed");
+  assert.match(result.output, /stopped the updater after 1000 ms/u);
+  const worker = fake.read().workerPid;
+  assert.equal(typeof worker, "number");
+  await expect.poll(() => alive(Number(worker)), { timeout: 5000 }).toBe(false);
+});
+
+test("codex's check reads doctor's JSON even when doctor exits 1", async () => {
+  const doctor = JSON.stringify({ overallStatus: "fail", checks: { "updates.status": { details: { "latest version": "0.159.3", "latest version status": "newer version is available", "update action": "standalone installer" } } } });
+  const command = printingExecutable({ dir, name: "codex-doctor", line: doctor, exitCode: 1 });
+  const check = await codexCheckUpdate(executable(command, "codex-cli 0.158.0"));
+  assert.equal(check.kind === "ok" && check.updateAvailable, true);
+});

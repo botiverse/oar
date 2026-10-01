@@ -4,7 +4,10 @@
 // prints the version; `update` behaves as `mode` says, the ways real updaters
 // do: "upgrade" installs target, "noop" claims success and changes nothing
 // (codex when its download failed), "fail" exits non-zero, "prompt" waits for
-// an answer on stdin before doing nothing (kimi without -y in a terminal).
+// an answer on stdin before doing nothing (kimi without -y in a terminal),
+// "hang" starts a worker that holds the output pipes (npm under `curl | sh`)
+// and never finishes.
+import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const [stateFile, command] = process.argv.slice(2);
@@ -16,7 +19,7 @@ function save(changes) {
 
 if (command === "--version") {
   process.stdout.write(`fake ${state.version} (fixture)\n`);
-} else if (command === "update") {
+} else if (command === "update" || command === "upgrade") {
   const seen = { updateArgs: process.argv.slice(4), sawUserAgent: process.env.npm_config_user_agent !== undefined };
   save(seen);
   if (state.mode === "upgrade") {
@@ -27,6 +30,10 @@ if (command === "--version") {
   } else if (state.mode === "fail") {
     process.stderr.write("error: failed to download update\n");
     process.exitCode = 3;
+  } else if (state.mode === "hang") {
+    const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: ["ignore", "inherit", "inherit"] });
+    save({ ...seen, workerPid: worker.pid });
+    setInterval(() => {}, 1000);
   } else {
     process.stdout.write("Install update now? [y/N] ");
     process.stdin.resume();

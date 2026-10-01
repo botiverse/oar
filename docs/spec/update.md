@@ -24,10 +24,12 @@ updater behaved when probed.
   settings (grok's `--alpha`/`--stable` would persist a channel switch, so the
   check never passes them).
 - **`upgrade` changes the machine.** oar never calls it on its own; the host
-  calls it on a user's request. It runs with stdin closed, no terminal and a
-  timeout (10 minutes by default), in the host environment minus package
-  script markers (`npm_config_user_agent`, `npm_lifecycle_*`), so a run
-  under `pnpm run` does not turn grok into an npm install.
+  calls it on a user's request. It runs with no stdin and no terminal (its
+  own session and process group on POSIX), under a timeout (10 minutes by
+  default) that stops the updater with everything it started (npm,
+  `curl | sh`), in the host environment minus package script markers
+  (`npm_config_user_agent`, `npm_lifecycle_*`), so a run under `pnpm run`
+  does not turn grok into an npm install.
 - **No guessing.** When the latest version cannot be read, the check is
   `unavailable` with a reason, never "current".
 
@@ -45,6 +47,7 @@ verdict where it gives one; otherwise `latest !== installed`.
 | --- | --- |
 | unsupported_installation | Not a machine installed executable; a bundled runtime (pi) moves with the oar version. |
 | package_manager | A package manager (Homebrew, WinGet, mise) owns the copy and its updates. |
+| unmanaged_installation | The runtime's updater does not recognize the copy (codex reports `manual or unknown` for a copied binary). |
 | updates_disabled | The runtime's configuration turns updates off (claude `DISABLE_UPDATES`, cursor's `static` channel). |
 | lookup_failed | The release source could not be read; `detail` carries the runtime's or the network's words. |
 | version_unreadable | The installed or released version could not be read. |
@@ -67,10 +70,10 @@ instruction to run `brew upgrade`.
 
 | Runtime | checkUpdate reads | upgrade runs |
 | --- | --- | --- |
-| claude | `downloads.claude.ai/claude-code-releases/<channel>` (native) or the npm dist tag (npm copy); channel from settings `autoUpdatesChannel` | `claude update` |
+| claude | `downloads.claude.ai/claude-code-releases/<channel>` (native) or the npm dist tag (npm copy, by layout or claude's recorded `installMethod`); channel from settings `autoUpdatesChannel`, held by `minimumVersion` | `claude update` |
 | codex | `codex doctor --json`, row `updates.status` (the JSON decides; doctor exits 1 when any row fails) | `codex update` |
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
-| kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region | `kimi upgrade -y` (from 0.43.0) |
+| kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
 | cursor | `cursor-agent about --format json`; builds without it ask the release service for the configured channel | `cursor-agent update` |
 | antigravity | The ACP registry entry, which trails Google's downloads; only a newer registry version counts | none: no updater exists |
 | pi | none: bundled with oar | none |
@@ -81,5 +84,7 @@ start; the version read back after the upgrade is that start.
 ## CLI
 
 `oar upgrade [runtime]` runs the updaters one runtime at a time and exits 1
-when an upgrade is `failed` or `unchanged`. `--check` only reports, `--json`
-prints the reports, `--timeout <ms>` bounds each runtime.
+when an upgrade is `failed` or `unchanged`, or a runtime could not be probed
+(its report carries the error; the others are still reported). `--check`
+only reports, `--json` prints the reports, `--timeout <ms>` bounds each
+runtime's check and its updater run.

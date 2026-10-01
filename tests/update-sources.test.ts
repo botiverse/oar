@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, test } from "vitest";
@@ -7,7 +7,7 @@ import { antigravityUpdateCheck } from "../packages/oar/src/runtimes/antigravity
 import { claudeUpdateCheck } from "../packages/oar/src/runtimes/claude/update.js";
 import { cursorUpdateCheck } from "../packages/oar/src/runtimes/cursor/update.js";
 import { kimiUpdateCheck } from "../packages/oar/src/runtimes/kimi/update.js";
-import { startReleaseServer, type ReleaseServer } from "./fixtures/release-server.js";
+import { printingExecutable, startReleaseServer, type ReleaseServer } from "./fixtures/update-fixtures.js";
 
 let server: ReleaseServer = { base: "", routes: new Map(), close: () => undefined };
 let dir = "";
@@ -41,7 +41,7 @@ test("claude checks the channel its settings choose, at the source its updater r
   mkdirSync(configDir, { recursive: true });
   writeFileSync(path.join(configDir, "settings.json"), JSON.stringify({ autoUpdatesChannel: "stable" }));
   routes.set("/claude/stable", [200, "2.1.285\n"]);
-  const check = claudeUpdateCheck({ releases: `${base}/claude`, npm: `${base}/npm`, configDir: () => configDir });
+  const check = claudeUpdateCheck({ releases: `${base}/claude`, npm: `${base}/npm`, configDir: () => configDir, globalConfig: () => path.join(configDir, ".claude.json") });
   const native = await check(executable(path.join(dir, "claude-native"), "2.1.286 (Claude Code)"));
   assert.deepEqual(native, {
     kind: "ok", installed: "2.1.286", latest: "2.1.285", updateAvailable: true, channel: "stable", source: `${base}/claude/stable`,
@@ -58,6 +58,30 @@ function kimiHome(region: string): string {
   return home;
 }
 
+function claudeConfig(name: string, settings: Record<string, unknown>): string {
+  const configDir = path.join(dir, name);
+  mkdirSync(configDir, { recursive: true });
+  writeFileSync(path.join(configDir, "settings.json"), JSON.stringify(settings));
+  return configDir;
+}
+
+test("a claude copy claude records as npm follows the npm dist tag, held by minimumVersion", async () => {
+  const configDir = claudeConfig("claude-npm-config", { autoUpdatesChannel: "stable", minimumVersion: "2.1.286" });
+  writeFileSync(path.join(configDir, ".claude.json"), JSON.stringify({ installMethod: "global" }));
+  routes.set("/npm/stable", [200, JSON.stringify({ name: "@anthropic-ai/claude-code", version: "2.1.285" })]);
+  const check = claudeUpdateCheck({
+    releases: `${base}/claude`,
+    npm: `${base}/npm`,
+    configDir: () => configDir,
+    globalConfig: () => path.join(configDir, ".claude.json"),
+  });
+  // A pnpm shim: the path says nothing, the recorded method says npm.
+  const result = await check(executable(path.join(dir, "pnpm-bin", "claude"), "2.1.286 (Claude Code)"));
+  assert.deepEqual(result, {
+    kind: "ok", installed: "2.1.286", latest: "2.1.285", updateAvailable: false, channel: "stable", source: `${base}/npm/stable`,
+  });
+});
+
 test("kimi follows its recorded region, and a failed lookup is reported as such", async () => {
   const home = kimiHome("global");
   routes.set("/kimi-global", [200, "2.1.1\n"]);
@@ -70,6 +94,14 @@ test("kimi follows its recorded region, and a failed lookup is reported as such"
   assert.deepEqual(mainland, { kind: "unavailable", reason: "lookup_failed", detail: "HTTP 503", source: `${base}/kimi-cn` });
 });
 
+test("kimi counts only a newer release as an update, as its upgrade does", async () => {
+  const home = kimiHome("global");
+  routes.set("/kimi-behind", [200, "2.0.9\n"]);
+  const check = kimiUpdateCheck({ mainland: `${base}/kimi-behind`, global: `${base}/kimi-behind`, home: () => home });
+  const ahead = await check(executable(path.join(dir, "kimi"), "2.1.0"));
+  assert.equal(ahead.kind === "ok" && ahead.updateAvailable, false);
+});
+
 test("antigravity counts only a newer registry version as an update", async () => {
   routes.set("/registry.json", [200, JSON.stringify({ id: "antigravity-acp", version: "1.2.1" })]);
   const check = antigravityUpdateCheck(`${base}/registry.json`);
@@ -80,12 +112,7 @@ test("antigravity counts only a newer registry version as an update", async () =
 });
 
 test("cursor builds without a latest report ask the release service for their channel", async () => {
-  const fake = path.join(dir, process.platform === "win32" ? "cursor-old.cmd" : "cursor-old");
-  const about = JSON.stringify({ cliVersion: "2026.08.11-e8db854" });
-  writeFileSync(fake, process.platform === "win32"
-    ? `@echo ${about}\r\n`
-    : `#!/bin/sh\necho '${about}'\n`);
-  chmodSync(fake, 0o755);
+  const fake = printingExecutable({ dir, name: "cursor-old", line: JSON.stringify({ cliVersion: "2026.08.11-e8db854" }) });
   const configPath = path.join(dir, "cli-config.json");
   writeFileSync(configPath, JSON.stringify({ channel: "lab" }));
   routes.set("/cursor-releases", [200, JSON.stringify({ version: "2026.09.28-3cdcc3f" })]);

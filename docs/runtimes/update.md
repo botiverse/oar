@@ -59,8 +59,9 @@ included. It reads `code.kimi.com/kimi-code/latest` (`code.kimi.ai` for the
 interactive TUI.
 
 **cursor.** Installs: official script (`~/.local/share/cursor-agent/versions`,
-links in `~/.local/bin`). `cursor-agent update` upgrades in place without a
-prompt and keeps running versions intact. `about --format json` gives
+links in `~/.local/bin`). `cursor-agent update` installs the new version
+beside the old one without a prompt and repoints the links, so running
+versions stay intact. `about --format json` gives
 `latestVersion` and `latestStatus` from 2026.09.28; older builds lack them,
 and the release service (`GetCliDownloadUrl`, by channel) answers instead.
 The `static` channel disables updates.
@@ -80,9 +81,10 @@ downloads (1.2.1 listed while 1.3.0 was downloadable). The `agy` CLI's own
 | --- | --- |
 | claude native 2.1.280 | upgraded to 2.1.286 (4 s) |
 | codex npm 0.155.0 | upgraded to 0.159.3 (7 s) |
+| codex standalone (official script) 0.155.0 | upgraded to 0.159.3 (4 s) |
 | grok script 1.0.44, under `npm_config_user_agent` | upgraded to 1.0.46, no npm copy created |
 | kimi native 2.1.0 | upgraded to 2.1.1 (23 s, staged then swapped) |
-| kimi npm 2.1.0 | unchanged: kimi did not recognize the npm layout and printed the manual command |
+| kimi npm 2.1.0 | unchanged: kimi did not recognize the npm layout and printed the manual command; `kimi upgrade -y` run directly in the same sandbox refused the same way |
 | kimi native 0.38.0 | unsupported: requires_terminal |
 | cursor 2026.08.11 | check via the release service, then upgraded to 2026.09.28 |
 | antigravity 1.3.0 | check: no update (registry lists 1.2.1); no updater |

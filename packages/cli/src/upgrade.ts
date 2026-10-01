@@ -15,6 +15,8 @@ export interface UpgradeReport {
   readonly upgrade?: UpgradeResult;
   /** Why the runtime offers no check or no upgrade at all. */
   readonly unsupported?: string;
+  /** The probe, check or updater threw; the other runtimes are still reported. */
+  readonly error?: string;
 }
 
 export interface UpgradeRequest {
@@ -24,6 +26,15 @@ export interface UpgradeRequest {
 }
 
 export async function readUpgrade(runtime: Runtime, request: UpgradeRequest): Promise<UpgradeReport> {
+  try {
+    const report = await reportUpgrade(runtime, request);
+    return report;
+  } catch (error) {
+    return { runtimeId: runtime.id, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function reportUpgrade(runtime: Runtime, request: UpgradeRequest): Promise<UpgradeReport> {
   const runtimeId = runtime.id;
   if (runtime.installation === undefined) {
     return { runtimeId, unsupported: `${runtimeId} exposes no installation probe` };
@@ -88,6 +99,9 @@ function renderUpgrade(runtimeId: string, upgrade: UpgradeResult): string[] {
 
 export function renderUpgradeReport(report: UpgradeReport): string[] {
   const { runtimeId } = report;
+  if (report.error !== undefined) {
+    return [`${runtimeId}\terror: ${report.error}`];
+  }
   if (report.installation !== undefined) {
     return [`${runtimeId}\tnot available (${report.installation.kind})`];
   }
@@ -98,7 +112,7 @@ export function renderUpgradeReport(report: UpgradeReport): string[] {
   return report.unsupported === undefined ? lines : [...lines, `${runtimeId}\t${report.unsupported}`];
 }
 
-/** An upgrade that ran and did not move the version is a failed command. */
+/** An upgrade that ran and did not move the version, or a runtime that could not be probed, fails the command. */
 export function upgradeFailed(report: UpgradeReport): boolean {
-  return report.upgrade?.kind === "failed" || report.upgrade?.kind === "unchanged";
+  return report.error !== undefined || report.upgrade?.kind === "failed" || report.upgrade?.kind === "unchanged";
 }

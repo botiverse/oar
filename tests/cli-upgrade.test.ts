@@ -92,3 +92,14 @@ test("runtimes without an updater still show their check; bundled ones say why t
   const bundled = await readUpgrade(runtime("pi", {}, { kind: "available", via: "bundled" }), { upgrade: true });
   assert.deepEqual(renderUpgradeReport(bundled), ["pi\tpi is bundled with oar and moves with the oar version"]);
 });
+
+test("a runtime whose probe throws is reported and fails the command without hiding the others", async () => {
+  const report = await readUpgrade(runtime("broken", {
+    installation: async () => {
+      await Promise.resolve();
+      throw new Error("Failed to run /bin/broken --version");
+    },
+  }), { upgrade: true });
+  assert.deepEqual(renderUpgradeReport(report), ["broken\terror: Failed to run /bin/broken --version"]);
+  assert.equal(upgradeFailed(report), true);
+});

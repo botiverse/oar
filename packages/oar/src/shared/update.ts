@@ -1,12 +1,13 @@
 import { realpathSync } from "node:fs";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { UpdateCheck, UpdateChecker, UpgradeOptions, UpgradeResult } from "../contracts/update.js";
-import { readExecutableVersion, runExecutable, type ExecutableResult, type VersionReader } from "./executable/index.js";
+import { readExecutableVersion, runIsolated, type IsolatedResult } from "./executable/index.js";
 import { parseJson } from "./json.js";
 
 export const CHECK_TIMEOUT_MS = 20_000;
 const UPGRADE_TIMEOUT_MS = 600_000;
-const UPGRADE_OUTPUT_BYTES = 16 * 1024 * 1024;
+/** The slowest installation probes (cursor, kimi) allow 30 s for `--version`; a kimi start after an upgrade also swaps the staged binary in. */
+const VERSION_TIMEOUT_MS = 30_000;
 
 /** The release version inside a `--version` line or release pointer: a cursor date build or a semver. */
 export function releaseVersion(text: string): string | undefined {
@@ -114,14 +115,14 @@ export async function runCheckCommand(
   command: string,
   args: readonly string[],
   timeoutMs: number,
-): Promise<{ readonly result: ExecutableResult; readonly json: unknown }> {
-  const result = await runExecutable(command, args, { env: updaterEnv(), timeoutMs, closeStdin: true });
+): Promise<{ readonly result: IsolatedResult; readonly json: unknown }> {
+  const result = await runIsolated(command, args, { env: updaterEnv(), timeoutMs });
   return { result, json: parseJson(result.stdout) };
 }
 
-async function versionNow(command: string, readVersion?: VersionReader): Promise<string | undefined> {
+async function versionNow(command: string): Promise<string | undefined> {
   try {
-    const raw = await readExecutableVersion(command, CHECK_TIMEOUT_MS, readVersion);
+    const raw = await readExecutableVersion(command, VERSION_TIMEOUT_MS);
     return raw === undefined ? undefined : releaseVersion(raw);
   } catch {
     return undefined;
@@ -132,7 +133,11 @@ export interface NativeUpdater {
   readonly check: UpdateChecker;
   /** The runtime's own non-interactive update command. */
   readonly args: readonly string[];
-  readonly readVersion?: VersionReader;
+}
+
+function runOutput(run: IsolatedResult, timeoutMs: number): string {
+  const output = `${run.stdout}${run.stderr}`;
+  return run.timedOut ? `${output}\n[oar: stopped the updater after ${String(timeoutMs)} ms]\n` : output;
 }
 
 /**
@@ -148,23 +153,19 @@ export async function upgradeExecutable(
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation", detail: "bundled with oar; it moves with the oar version" };
   }
-  const check = await updater.check(installation);
+  const check = await updater.check(installation, options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs });
   if (check.kind === "ok" && !check.updateAvailable) {
     return { kind: "current", version: check.installed, check };
   }
-  const before = check.kind === "ok" ? check.installed : await versionNow(installation.command, updater.readVersion);
-  const run = await runExecutable(installation.command, updater.args, {
-    env: updaterEnv(),
-    timeoutMs: options.timeoutMs ?? UPGRADE_TIMEOUT_MS,
-    closeStdin: true,
-    maxBuffer: UPGRADE_OUTPUT_BYTES,
-  });
-  const output = `${run.stdout}${run.stderr}`;
-  const after = await versionNow(installation.command, updater.readVersion);
+  const before = check.kind === "ok" ? check.installed : await versionNow(installation.command);
+  const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
+  const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(), timeoutMs });
+  const output = runOutput(run, timeoutMs);
+  const after = await versionNow(installation.command);
   if (before !== undefined && after !== undefined && after !== before) {
     return { kind: "upgraded", from: before, to: after, output };
   }
-  if (!run.ok || after === undefined) {
+  if (run.exitCode !== 0 || after === undefined) {
     return { kind: "failed", exitCode: run.exitCode, output };
   }
   return { kind: "unchanged", version: after, output };

@@ -38,6 +38,9 @@ test("codex reads the updates.status row of doctor --json", () => {
   const current = projectCodexUpdateStatus("0.159.3", doctor("current version is not older", "0.159.3"));
   assert.equal(current.kind === "ok" && current.updateAvailable, false);
   assert.equal(projectCodexUpdateStatus("0.158.0", doctor("unknown")).kind, "unavailable");
+  const copied = { checks: { "updates.status": { details: { "latest version": "0.159.3", "update action": "manual or unknown" } } } };
+  const unmanaged = projectCodexUpdateStatus("0.158.0", copied);
+  assert.equal(unmanaged.kind === "unavailable" ? unmanaged.reason : unmanaged.kind, "unmanaged_installation");
 });
 
 test("grok's check JSON decides, and a lookup error is never a current installation", () => {
@@ -63,4 +66,7 @@ test("claude's install method comes from the executable's real path", () => {
   assert.equal(claudeInstallMethod("/home/u/.local/share/claude/versions/2.1.286"), "native");
   assert.equal(claudeInstallMethod("/usr/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe"), "npm");
   assert.equal(claudeInstallMethod("/opt/homebrew/Caskroom/claude-code/2.1.285/claude"), "package_manager");
+  // A shim whose path is not a layout defers to claude's recorded method.
+  assert.equal(claudeInstallMethod("C:/Users/u/AppData/Roaming/npm/claude.cmd", "global"), "npm");
+  assert.equal(claudeInstallMethod("/home/u/.local/share/claude/versions/2.1.286", "global"), "native");
 });

@@ -11,10 +11,6 @@ export interface ExecutableResult {
 export interface ExecutableRunOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
-  /** End stdin at once, so a command that would prompt reads EOF instead of waiting. */
-  readonly closeStdin?: boolean;
-  /** Output cap in bytes (default 2 MiB); exceeding it kills the process. */
-  readonly maxBuffer?: number;
 }
 
 export type ExecutableRunner = (
@@ -25,13 +21,13 @@ export type ExecutableRunner = (
 
 export const runExecutable: ExecutableRunner = async (executable, args, options = {}) => {
   const result = await new Promise<ExecutableResult>((resolve) => {
-    const child = execFile(
+    execFile(
       executable,
       [...args],
       {
         env: options.env,
         timeout: options.timeoutMs ?? 5000,
-        maxBuffer: options.maxBuffer ?? 2 * 1024 * 1024,
+        maxBuffer: 2 * 1024 * 1024,
         // Same Windows .cmd-shim rule as spawnLineProcess: modern Node throws
         // EINVAL (synchronously) on shell-less exec of .cmd/.bat.
         shell: requiresShell(executable, process.platform),
@@ -48,9 +44,6 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         });
       },
     );
-    if (options.closeStdin === true) {
-      child.stdin?.end();
-    }
   });
   return result;
 };

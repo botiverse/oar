@@ -15,7 +15,8 @@ const SOURCE = "codex doctor --json";
  * Codex's own check is the `updates.status` row of `codex doctor --json`
  * (codex 0.158.0): `latest version` and a `latest version status` verdict.
  * doctor exits 1 whenever any other row fails (no login, for one), so the
- * JSON decides, not the exit code.
+ * JSON decides, not the exit code. Its `update action` is `manual or unknown`
+ * for a copy `codex update` cannot update (a copied binary, an app bundle).
  */
 export function projectCodexUpdateStatus(installed: string, doctor: unknown): UpdateCheck {
   const checks = asRecord(asRecord(doctor)?.checks);
@@ -23,6 +24,9 @@ export function projectCodexUpdateStatus(installed: string, doctor: unknown): Up
   const latest = details?.["latest version"];
   if (typeof latest !== "string") {
     return { kind: "unavailable", reason: "lookup_failed", detail: "codex doctor --json reports no latest version", source: SOURCE };
+  }
+  if (details?.["update action"] === "manual or unknown") {
+    return { kind: "unavailable", reason: "unmanaged_installation", detail: "codex update cannot update this copy", source: SOURCE };
   }
   const check = comparedCheck(installed, latest, SOURCE);
   const status = details?.["latest version status"];
