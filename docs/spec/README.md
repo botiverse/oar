@@ -37,6 +37,7 @@ concurrent prompt queueing (no shipped runtime needs it; see
 | Read | To answer |
 |---|---|
 | [account-usage.md](account-usage.md) | Account quota queries and failure reason semantics |
+| [update.md](update.md) | Runtime update checks and upgrades through each runtime's own updater, and how outcomes are judged |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
 | [inventory.md](inventory.md) | Independent skills, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |

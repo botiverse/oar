@@ -4,6 +4,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { grokAccountUsage } from "./account-usage.js";
 import { grokInstallation } from "./installation.js";
 import { grokListModels } from "./list-models.js";
+import { grokCheckUpdate, grokUpgrade } from "./update.js";
 import { grokSession } from "./session.js";
 
 export const grokRuntime = defineRuntime({
@@ -15,6 +16,8 @@ export const grokRuntime = defineRuntime({
   installation: grokInstallation,
   accountUsage: grokAccountUsage,
   listModels: grokListModels,
+  checkUpdate: grokCheckUpdate,
+  upgrade: grokUpgrade,
   session: grokSession,
 });
 

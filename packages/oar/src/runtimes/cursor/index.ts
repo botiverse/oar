@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { cursorInstallation } from "./installation.js";
 import { cursorListModels } from "./list-models.js";
+import { cursorCheckUpdate, cursorUpgrade } from "./update.js";
 import { cursorSession } from "./session.js";
 
 export const cursorRuntime = defineRuntime({
@@ -9,6 +10,8 @@ export const cursorRuntime = defineRuntime({
   brand: runtimeBrands.cursor,
   installation: cursorInstallation,
   listModels: cursorListModels,
+  checkUpdate: cursorCheckUpdate,
+  upgrade: cursorUpgrade,
   session: cursorSession,
 });
 

@@ -461,6 +461,16 @@ separately opens a connection and queries `_x.ai/billing` (plus
 occupancy are distinct APIs and measurements.
 [Installation](../../packages/oar/src/runtimes/grok/installation.ts).
 
+Grok updates itself by default. Launched from `~/.grok/bin`, as the script
+install puts it, `grok agent stdio` (OAR's own launch) checks for a release
+and silently repoints the link: a sandboxed 1.0.44 became 1.0.46 within 40
+seconds of an idle launch on 2026-10-01, and that is how this host moved to
+1.0.46. So a grok session can start on a different version than
+`installation()` reported. `GROK_DISABLE_AUTOUPDATER=1` or `[cli] auto_update
+= false` stop it; an explicit `grok update` ignores both. **Not mapped:** OAR
+passes neither, so the user's setting decides. `checkUpdate` and `upgrade`
+use `grok update` ([runtime updates](../spec/update.md)).
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts grok`](../../experiments/live-contract.ts)
