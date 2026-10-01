@@ -10,8 +10,8 @@ async function withBackgroundTask(): Promise<{ readonly session: Session; readon
     started.push(turn.task({ taskType: "shell", description: "sleep 8", background: true }));
     turn.say("started it");
   } }).session({ kind: "available", via: "bundled" }, { cwd: process.cwd() });
-  await session.prompt("start a background job");
-  await awaitTurnEnd(session);
+  const prompted = await session.prompt("start a background job");
+  await awaitTurnEnd(session, prompted.seq);
   const [task] = started;
   if (task === undefined) {
     throw new Error("the script started no task");
