@@ -46,6 +46,7 @@ Programs have two relevant entry points:
 | User turn and `result` | The turn's start is the `prompt` request record; the `result` frame is the turn's end, projected as a `turn_ended` event (aborted when OAR's own interrupt was outstanding, failed on `is_error`, else completed) plus a `usage` event. |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]`: a frame attributes to the Task tool_use that spawned it, nested through that call's own agent. `capabilities.attribution` is `attributed`. Child usage is not attributed (unverified). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` FROM claude is recorded as a `toApp` request (unanswered; none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
+| `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). `background_tasks_changed` (the live set) and `task_progress` are recorded without events. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | Only a small subset is represented by OAR startup options and control methods: `--model`, `--effort` (confirmed by `get_settings` at open), the system prompt flags. |
 
@@ -164,7 +165,13 @@ streaming. [Native streaming][native-output],
 that issued that Task call: nested sub-agents nest the path. A Task
 sub-agent's `user` and `assistant` frames arrive with that path; the root
 additionally emits `system/task_started`, `task_progress`, `task_updated`
-and `task_notification` frames (no events). Child records arriving after the
+and `task_notification` frames. The first, third and fourth are read as
+`task_started`, `task_updated` and `task_ended` events, for subagents and
+background commands alike ([record stream](../spec/record-stream.md));
+`task_progress` and `background_tasks_changed` carry no events. When a
+background task ends while the session is idle, claude starts a turn of its
+own to handle the result: a spontaneous turn, recorded like any other
+[env 2.1.284]. Child records arriving after the
 parent's `result` still enter the stream (nothing is gated on turn state).
 There is no child control handle. No child `result` frame has been
 observed, so child usage stays unattributed and `usage()` is root-only;

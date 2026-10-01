@@ -29,6 +29,14 @@ oar run claude "What does this repo do?"
   the updater would install, `--json` prints the reports. The exit code is 1
   when an upgrade failed or left the version unchanged. See
   [runtime updates](../../docs/spec/update.md).
+- `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,
+  any MCP client) can delegate tasks to other runtimes: `run` waits for a
+  subagent's turn, `spawn` / `send` / `wait` work in parallel. Flags
+  `--runtimes`, `--max-running`, `--max-depth`, `--cwd`, `--log-dir`.
+  Subagents run with full permissions. A codex agent starts MCP servers with
+  a reduced environment, so give its `oar` entry
+  `env_vars = ["OAR_SUBAGENT_DEPTH"]` for the nesting limit to hold. See
+  [subagents](../../docs/spec/subagents.md).
 - `oar skills|mcps|tools [runtime]`: native inventories, see
   [below](#native-inventories).
 

@@ -95,6 +95,10 @@ export function createProgressRenderer(
         return [`${agent}[${event.action} rejected] ${event.reason}`];
       case "exited":
         return [`${agent}[runtime exited${event.code === null ? "" : `: ${String(event.code)}`}]`];
+      case "task_started":
+        return event.ambient === true ? [] : [`${agent}[task ${event.taskType} started]${event.description === undefined ? "" : ` ${event.description}`}`];
+      case "task_ended":
+        return [`${agent}[task ${event.status}]${event.summary === undefined ? "" : ` ${event.summary}`}`];
       case "turn_started":
       case "tool_call_progress":
       case "app_answered":
@@ -102,6 +106,7 @@ export function createProgressRenderer(
       case "usage":
       case "model":
       case "effort":
+      case "task_updated":
         return [];
     }
     return [];

@@ -8,6 +8,7 @@ import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { codexItemExitCode, codexItemInput, codexItemOutput } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
+import { codexTaskViews } from "./tasks.js";
 
 /**
  * The codex notification → record projection as a PURE FOLD (see
@@ -218,8 +219,13 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
       }
       return isCompactionItem(params) ? [{ kind: "compaction_started" }] : toolViews(method, asRecord(params.item));
     }
-    case "item/completed":
-      return isCompactionItem(params) ? [{ kind: "compaction_ended", outcome: "completed" }] : toolViews(method, asRecord(params.item));
+    case "item/completed": {
+      if (isCompactionItem(params)) {
+        return [{ kind: "compaction_ended", outcome: "completed" }];
+      }
+      const item = asRecord(params.item);
+      return item?.type === "subAgentActivity" ? codexTaskViews(item) : toolViews(method, item);
+    }
     case "turn/completed":
       return [{ kind: "turn_ended", outcome: settleOutcome(state, asRecord(params.turn)?.status) }];
     case "thread/tokenUsage/updated":

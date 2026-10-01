@@ -1,3 +1,4 @@
+import type { Command } from "commander";
 import type {
   InstallationSnapshot,
   Runtime,
@@ -115,4 +116,45 @@ export function renderUpgradeReport(report: UpgradeReport): string[] {
 /** An upgrade that ran and did not move the version, or a runtime that could not be probed, fails the command. */
 export function upgradeFailed(report: UpgradeReport): boolean {
   return report.error !== undefined || report.upgrade?.kind === "failed" || report.upgrade?.kind === "unchanged";
+}
+
+/** `oar upgrade [runtime]`: check or run each runtime's own updater. */
+export function registerUpgradeCommand(program: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
+  program
+    .command("upgrade [runtime]")
+    .description("Upgrade installed runtimes with their own updaters; --check only reports")
+    .option("--check", "report the version each runtime's updater would install, change nothing")
+    .option("--json", "print the reports as JSON")
+    .option("--timeout <ms>", "per-runtime timeout in milliseconds")
+    .action(async (id: string | undefined, flags: { check?: boolean; json?: boolean; timeout?: string }) => {
+      const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
+      if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) {
+        process.stderr.write("--timeout must be a positive integer number of milliseconds\n");
+        process.exitCode = 1;
+        return;
+      }
+      const request = { upgrade: flags.check !== true, ...(timeoutMs === undefined ? {} : { timeoutMs }) };
+      const reports: UpgradeReport[] = [];
+      if (request.upgrade) {
+        // One updater at a time: each may download hundreds of megabytes.
+        for (const runtime of selected(id)) {
+          reports.push(await readUpgrade(runtime, request));
+        }
+      } else {
+        reports.push(...await Promise.all(selected(id).map(async (runtime) => {
+          const report = await readUpgrade(runtime, request);
+          return report;
+        })));
+      }
+      if (reports.some((report) => upgradeFailed(report))) {
+        process.exitCode = 1;
+      }
+      if (flags.json === true) {
+        process.stdout.write(`${JSON.stringify(reports, null, 2)}\n`);
+        return;
+      }
+      for (const line of reports.flatMap((report) => renderUpgradeReport(report))) {
+        process.stdout.write(`${line}\n`);
+      }
+    });
 }

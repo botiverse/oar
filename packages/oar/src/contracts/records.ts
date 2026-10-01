@@ -1,4 +1,5 @@
 import type { InputImage } from "./input.js";
+import type { TaskEventBody } from "./tasks.js";
 
 /**
  * The record stream and the events read off it. Three words, three layers:
@@ -146,11 +147,7 @@ export type RuntimeEventBody = UserMessage
   | { readonly kind: "tool_call_progress"; readonly callId: string; readonly output?: string }
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_end`, an ACP prompt answer). The turn's start is the prompt request record itself; if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
-  /**
-   * The runtime began compacting its context. `trigger` is the runtime's own
-   * word for why (pi: manual | threshold | overflow; codex: none). claude
-   * reports only the boundary after the fact, so it never says this.
-   */
+  /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex: none). claude reports only the boundary after the fact, so it never says this. */
   | { readonly kind: "compaction_started"; readonly trigger?: string }
   /**
    * The runtime finished (or gave up) compacting (pi `compaction_end`, claude
@@ -164,6 +161,7 @@ export type RuntimeEventBody = UserMessage
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string }
+  | TaskEventBody
   /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`): its own report, never the request echoed. claude's stream carries none. */
   | { readonly kind: "effort"; readonly effort: string };
 

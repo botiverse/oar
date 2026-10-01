@@ -185,6 +185,12 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       if (event.sessionId === scope && event.agentPath.length === 0) {
         draft.effort = event.effort;
       }
+      break;
+    case "task_started":
+    case "task_updated":
+    case "task_ended":
+      // Tasks are not transcript content; `tasksOf` folds them for a task panel.
+      break;
   }
 }
 

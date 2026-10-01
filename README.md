@@ -84,6 +84,7 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 | [docs/spec/](docs/spec/README.md)            | Record-stream and query contracts |
 | [Conversation projection](docs/spec/conversation.md) | Build a conversation UI from requests, responses and native messages |
 | [docs/spec/inventory.md](docs/spec/inventory.md) | Independent native skills, MCP server and tool queries |
+| [docs/spec/subagents.md](docs/spec/subagents.md) | Subagents on any runtime, from a host or over `oar mcp` |
 | [docs/spec/update.md](docs/spec/update.md)   | Update checks and upgrades through each runtime's own updater |
 | [docs/runtimes/](docs/runtimes/README.md)    | What each runtime says natively and how oar maps it |
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
@@ -120,7 +121,7 @@ if (installation?.kind === "available") {
 ```
 
 `events()` is the flat, attributed reading of the session: one `Event` per
-fact (native user message echoes, text, reasoning, tool call start / progress / end, turn start and
+fact (native user message echoes, text, reasoning, background tasks, tool call start / progress / end, turn start and
 end, usage, model, effort, compaction, retry, app requests, control
 rejections, the process exit), with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to
 get text in blocks instead of pieces. When the runtime's own frame matters,

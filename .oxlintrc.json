@@ -80,7 +80,8 @@
         "packages/cli/src/**",
         "apps/**",
         "sea-trial/**",
-        "packages/oar/src/observe/**"
+        "packages/oar/src/observe/**",
+        "packages/oar/src/agents/**"
       ],
       "rules": {
         "eslint/max-params": "off",
