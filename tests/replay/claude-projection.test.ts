@@ -21,7 +21,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  */
 
 const here = import.meta.dirname;
-const scenarios = ["tool-round", "multi-turn", "steer", "error"];
+const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks"];
 
 function describeCommand(command: ProjectionCommand): string {
   switch (command.kind) {
@@ -49,6 +49,9 @@ function describeCommand(command: ProjectionCommand): string {
           case "compaction_started":
           case "compaction_ended":
           case "retry":
+          case "task_started":
+          case "task_updated":
+          case "task_ended":
             return view.kind;
           default:
             return "?";

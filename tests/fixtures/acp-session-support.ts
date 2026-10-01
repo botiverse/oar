@@ -70,6 +70,9 @@ export function describe(record: RawEvent): string {
           case "compaction_started":
           case "compaction_ended":
           case "retry":
+          case "task_started":
+          case "task_updated":
+          case "task_ended":
             return view.kind;
           default:
             return "?";

@@ -115,6 +115,10 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       case "usage":
     case "model":
     case "effort":
+    case "task_started":
+    case "task_updated":
+    case "task_ended":
+      // Tasks run beside the turn; whether the agent is busy is the turn's fact.
       return previous;
   }
   return previous;

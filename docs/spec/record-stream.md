@@ -147,7 +147,10 @@ interface FrameBody {
 // effort {effort} |
 // compaction_started {trigger?} |
 // compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
-// retry {attempt, maxAttempts?, delayMs?, reason?}.
+// retry {attempt, maxAttempts?, delayMs?, reason?} |
+// task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
+// task_updated {taskId, status?, background?, description?, error?} |
+// task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}.
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
 // three events) and one frame must stay one record; splitting it would
@@ -250,6 +253,20 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   a compaction twice) [env 0.154.0 schema]. ACP never.
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
   other shipped runtime exposes a retry (claude retries silently).
+- `task_started` / `task_updated` / `task_ended`: work the runtime tracks
+  beside the turn that started it. claude `system/task_started`,
+  `task_updated` (its `patch`) and `task_notification` [env 2.1.284]:
+  commands (`local_bash` → shell), subagents (`local_agent`, `remote_agent`
+  → agent) and MCP calls moved to the background (`mcp_task` → tool), with
+  `tool_use_id` as `toolCallId`, `is_backgrounded` as `background` and
+  `killed` read as `stopped`; `background_tasks_changed` repeats the live set
+  and maps to nothing. codex `subAgentActivity` items on the parent thread
+  [env 0.158.0]: started → `task_started` (the child thread is `taskId` and
+  `childSessionId`, its `/root/name` path the description), interacted →
+  `task_updated` running, completed → `task_ended` completed, interrupted →
+  `task_ended` stopped. A codex command the model detached itself
+  (`nohup … &`) leaves no task. ACP and pi report none. `tasksOf` /
+  `reduceTasks` fold them into one row per task.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
   `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi): the

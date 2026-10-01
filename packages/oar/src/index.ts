@@ -97,6 +97,9 @@ export type {
   SessionUsage,
   StartSession,
   SteerOrQueueResult,
+  TaskEventBody,
+  TaskStatus,
+  TaskType,
   TokenTotals,
   TurnOutcome,
   Unsubscribe,
@@ -127,6 +130,8 @@ export { observeAgent, simpleStateOf } from "./observe/observe-agent.js";
 export { classifyTool, toolActionLabel } from "./observe/tool-activity.js";
 export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
+export { applyTaskEvent, initialTasks, reduceTasks, tasksOf } from "./observe/tasks.js";
+export type { TaskEventOrigin, TaskMap, TaskView } from "./observe/tasks.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./observe/turns.js";
 export type { PromptRun, PromptRunOptions } from "./observe/turns.js";
 export { contextUsageOf, effortOf, modelOf, usageOf } from "./observe/usage.js";

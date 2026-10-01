@@ -12,7 +12,8 @@ import {
 } from "@botiverse/oar";
 import { readModels, renderModels } from "./models.js";
 import { createProgressRenderer, renderOpened } from "./progress.js";
-import { readUpgrade, renderUpgradeReport, upgradeFailed, type UpgradeReport } from "./upgrade.js";
+import { registerUpgradeCommand } from "./upgrade.js";
+import { registerMcpCommand } from "./mcp-command.js";
 
 // Read the version from this package's own manifest so `--version` can never
 // drift from package.json. `../package.json` resolves to the package root in
@@ -134,43 +135,8 @@ program
     }
   });
 
-program
-  .command("upgrade [runtime]")
-  .description("Upgrade installed runtimes with their own updaters; --check only reports")
-  .option("--check", "report the version each runtime's updater would install, change nothing")
-  .option("--json", "print the reports as JSON")
-  .option("--timeout <ms>", "per-runtime timeout in milliseconds")
-  .action(async (id: string | undefined, flags: { check?: boolean; json?: boolean; timeout?: string }) => {
-    const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
-    if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) {
-      process.stderr.write("--timeout must be a positive integer number of milliseconds\n");
-      process.exitCode = 1;
-      return;
-    }
-    const request = { upgrade: flags.check !== true, ...(timeoutMs === undefined ? {} : { timeoutMs }) };
-    const reports: UpgradeReport[] = [];
-    if (request.upgrade) {
-      // One updater at a time: each may download hundreds of megabytes.
-      for (const runtime of selected(id)) {
-        reports.push(await readUpgrade(runtime, request));
-      }
-    } else {
-      reports.push(...await Promise.all(selected(id).map(async (runtime) => {
-        const report = await readUpgrade(runtime, request);
-        return report;
-      })));
-    }
-    if (reports.some((report) => upgradeFailed(report))) {
-      process.exitCode = 1;
-    }
-    if (flags.json === true) {
-      process.stdout.write(`${JSON.stringify(reports, null, 2)}\n`);
-      return;
-    }
-    for (const line of reports.flatMap((report) => renderUpgradeReport(report))) {
-      process.stdout.write(`${line}\n`);
-    }
-  });
+registerUpgradeCommand(program, selected);
+registerMcpCommand(program, packageVersion());
 
 const jsonObserver: RawEventObserver = (record) => {
   process.stdout.write(`${JSON.stringify(record)}\n`);

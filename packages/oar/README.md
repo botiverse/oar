@@ -26,8 +26,9 @@ if (installation?.kind === "available") {
 
 `session.events()` delivers flat, attributed `Event`s (native user message
 echoes, text, reasoning, tool call start / progress / end, turn start and end,
-usage, model, effort, compaction start / end, retry, runtime→app requests and
-oar's answers, control rejections, the process exit), each carrying the `seq`
+usage, model, effort, compaction start / end, retry, background tasks and
+subagents started, updated and ended, runtime→app requests and oar's answers,
+control rejections, the process exit), each carrying the `seq`
 and `agentPath` of the record it was read from. Kinds a runtime never says
 (claude has no compaction start, ACP runtimes no compaction, only pi says
 retry) simply never appear; the runtime pages say which. It is a projection over the record stream: `session.rawEvents()`
@@ -42,12 +43,13 @@ identity, including steer → queue fallback. See the
 
 ## Public exports
 
-The package has five public entry points:
+The package has six public entry points:
 
 - `@botiverse/oar`: the full surface (runtime registry, adapters, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
-- `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
+- `@botiverse/oar/observe`: browser-safe subset, the pure derivation utilities over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, …) with zero Node and zero adapter imports. A browser or Electron-renderer bundle can import this subpath directly without dragging Node-only modules in. The root export re-exports the same utilities for Node consumers.
 - `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse.
+- `@botiverse/oar/agents`: subagents. `createSubagents()` starts child sessions on any runtime, returns a report for every turn they end, takes follow-ups, enforces depth and concurrency limits, reports each child as a task, and can deliver reports into a parent session so it wakes. See [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md). Node-only.
 - `@botiverse/oar/testing`: `scriptedRuntime({ turn })`, a ready-made runtime on the kernel SPI whose model is a script. It yields a real `Session` (same records, folds and control semantics) with no binary, login or provider, for hosts' tests and demos. Node-only.
 
 Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
