@@ -5,3 +5,4 @@
  */
 export { scriptedRuntime } from "./scripted-runtime.js";
 export type { ScriptedRuntimeOptions, ScriptedTurn } from "./scripted-runtime.js";
+export type { ScriptedTask, ScriptedTaskSpec } from "./scripted-tasks.js";

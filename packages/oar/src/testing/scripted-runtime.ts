@@ -3,6 +3,7 @@ import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
 import { createSessionKernel, inputImagesRefusal, sealSession } from "../kernel.js";
+import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scripted-tasks.js";
 
 /**
  * What a script sees and does during one turn. Everything it emits enters the
@@ -36,6 +37,13 @@ export interface ScriptedTurn {
    * `tool_call_ended`, and a thrown error is still rethrown.
    */
   readonly tool: (name: string, input: string, run?: () => unknown) => Promise<void>;
+  /**
+   * Start a task the runtime tracks beside this turn (a background command,
+   * a subagent): `task_started` now, then `update` and `end` whenever the
+   * script reports them, also after the turn ended. Started outside a live
+   * turn, or reported after the session was disposed, nothing is recorded.
+   */
+  readonly task: (spec: ScriptedTaskSpec) => ScriptedTask;
 }
 
 export interface ScriptedRuntimeOptions {
@@ -74,6 +82,9 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
     let disposed = false;
+    const startTask = scriptedTasks((type, native, events) => {
+      kernel.frame({ type, native, events });
+    }, () => !disposed);
 
     const frame = (type: string, native: unknown, events: readonly RuntimeEventBody[]): void => {
       kernel.frame({ type, native, events });
@@ -107,6 +118,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           }
           frame("scripted/reasoning", { text }, [{ kind: "reasoning", content: { kind: "text", text } }]);
         },
+        task: (spec) => startTask(spec, live()),
         tool: async (name, toolInput, work) => {
           if (!live()) {
             return;
