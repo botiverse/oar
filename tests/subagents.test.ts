@@ -1,63 +1,10 @@
-import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { createSubagents, SUBAGENT_DEPTH_ENV, type Subagent, type Subagents } from "../packages/oar/src/agents/index.js";
-import type { Runtime } from "../packages/oar/src/contracts/runtime.js";
-import { scriptedRuntime, type ScriptedTurn } from "../packages/oar/src/testing/index.js";
-
-type Script = (turn: ScriptedTurn) => void | Promise<void>;
-
-function crewOf(script: Script, options: { readonly maxRunning?: number; readonly logDir?: string } = {}): Subagents {
-  const runtime: Runtime = scriptedRuntime({ id: "fake", turn: script });
-  return createSubagents({ runtimes: { get: (id) => (id === "fake" ? runtime : undefined) }, ...options });
-}
-
-const echo: Script = (turn) => {
-  turn.say(`did: ${turn.input}`);
-};
-
-/** A script whose turns stay open until the test releases them; a release before a turn waits counts for it. */
-class Gate {
-  readonly #waiting: (() => void)[] = [];
-  #permits = 0;
-  started = 0;
-
-  readonly script: Script = async (turn) => {
-    this.started += 1;
-    turn.say(`working on ${turn.input}`);
-    await this.#pass();
-    turn.say(` steered: ${turn.steered.join("|")}`);
-  };
-
-  release(): void {
-    const next = this.#waiting.shift();
-    if (next === undefined) {
-      this.#permits += 1;
-    } else {
-      next();
-    }
-  }
-
-  async #pass(): Promise<void> {
-    if (this.#permits > 0) {
-      this.#permits -= 1;
-      return;
-    }
-    const { promise, resolve } = Promise.withResolvers<undefined>();
-    this.#waiting.push(() => {
-      resolve(undefined);
-    });
-    await promise;
-  }
-}
-
-async function spawned(crew: Subagents, task: string, name?: string): Promise<Subagent> {
-  const result = await crew.spawn({ runtime: "fake", task, ...(name === undefined ? {} : { name }) });
-  assert.ok(result.kind === "spawned");
-  return result.agent;
-}
+import { SUBAGENT_DEPTH_ENV, type Subagents } from "../packages/oar/src/agents/index.js";
+import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
+import { crewOf, echo, Gate, spawned } from "./fixtures/subagent-fixtures.js";
 
 const previousDepth = process.env[SUBAGENT_DEPTH_ENV];
 afterEach(() => {
@@ -151,7 +98,8 @@ test("closing a running subagent ends its task stopped, and its log keeps its re
   try {
     const crew = await closeMidTurn(dir);
     expect(crew.tasks()).toMatchObject([{ taskId: "fake-1", status: "stopped" }]);
-    const lines = readFileSync(path.join(dir, "fake-1.jsonl"), "utf8").trim().split("\n");
+    const [file] = readdirSync(dir);
+    const lines = readFileSync(path.join(dir, file ?? ""), "utf8").trim().split("\n");
     expect(lines[0]).toContain('"kind":"header"');
     expect(lines.some((line) => line.includes("long job"))).toBe(true);
   } finally {

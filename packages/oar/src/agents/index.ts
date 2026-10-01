@@ -3,7 +3,8 @@
  * feeds back into a parent. Node-only, like the root entry. See
  * docs/spec/subagents.md.
  */
-export { createSubagents, formatReport, SUBAGENT_DEPTH_ENV } from "./crew.js";
+export { createSubagents } from "./crew.js";
+export { formatReport, SUBAGENT_DEPTH_ENV } from "./helpers.js";
 export type {
   DeliverOptions,
   SendMode,

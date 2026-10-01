@@ -46,6 +46,18 @@ export function registerMcpCommand(program: Command, version: string): void {
         ...(flags.cwd === undefined ? {} : { cwd: path.resolve(flags.cwd) }),
         ...(flags.logDir === undefined ? {} : { logDir: path.resolve(flags.logDir) }),
       });
+      const stop = async (): Promise<void> => {
+        await crew.close();
+        process.exit(0);
+      };
+      // Children run in their own process groups; a stopped server takes them down first.
+      process.once("SIGTERM", () => {
+        void stop();
+      });
+      process.once("SIGINT", () => {
+        void stop();
+      });
       await serveMcp({ input: process.stdin, output: process.stdout, tools: subagentTools(crew, offered), crew, version });
+      process.exit(0);
     });
 }

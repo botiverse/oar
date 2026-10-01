@@ -149,7 +149,7 @@ interface FrameBody {
 // compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
 // retry {attempt, maxAttempts?, delayMs?, reason?} |
 // task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
-// task_updated {taskId, status?, background?, description?, error?} |
+// task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
 // task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}.
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
@@ -260,7 +260,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   → agent) and MCP calls moved to the background (`mcp_task` → tool), with
   `tool_use_id` as `toolCallId`, `is_backgrounded` as `background` and
   `killed` read as `stopped`; `background_tasks_changed` repeats the live set
-  and maps to nothing. codex `subAgentActivity` items on the parent thread
+  and maps to nothing (a change of `ambient` alone shows only there). codex `subAgentActivity` items on the parent thread
   [env 0.158.0]: started → `task_started` (the child thread is `taskId` and
   `childSessionId`, its `/root/name` path the description), interacted →
   `task_updated` running, completed → `task_ended` completed, interrupted →

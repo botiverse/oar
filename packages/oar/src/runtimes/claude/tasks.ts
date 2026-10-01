@@ -7,7 +7,8 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
  * Agent SDK): background and foreground commands (`local_bash`), subagents
  * (`local_agent`, `remote_agent`), and MCP calls moved to the background
  * (`mcp_task`). `background_tasks_changed` repeats the live set and maps to
- * nothing; the per-task frames carry every change it reports.
+ * nothing: the per-task frames carry starts, status changes and ends, though
+ * a change of `ambient` alone shows only there.
  */
 
 const TASK_TYPES: Readonly<Record<string, TaskType>> = {
@@ -20,6 +21,7 @@ const TASK_TYPES: Readonly<Record<string, TaskType>> = {
 const STATUSES: Readonly<Record<string, TaskStatus>> = {
   pending: "pending",
   running: "running",
+  paused: "paused",
   completed: "completed",
   failed: "failed",
   killed: "stopped",

@@ -7,7 +7,7 @@
 export type TaskType = "shell" | "agent" | "tool" | "other";
 
 /** A task's state as the runtime reports it; claude's `killed` reads as `stopped`. */
-export type TaskStatus = "pending" | "running" | "completed" | "failed" | "stopped";
+export type TaskStatus = "pending" | "running" | "paused" | "completed" | "failed" | "stopped";
 
 export type TaskEventBody =
   /**

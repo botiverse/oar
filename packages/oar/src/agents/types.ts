@@ -42,7 +42,8 @@ export type SpawnRefusalCode =
   | "depth_limit"
   | "running_limit"
   | "open_failed"
-  | "rejected";
+  | "rejected"
+  | "closed";
 
 export type SpawnResult =
   | { readonly kind: "spawned"; readonly agent: Subagent }
@@ -96,8 +97,12 @@ export interface Subagent {
   /** The child's own session, for everything the subagent surface does not cover. */
   readonly session: Session;
   info(): SubagentInfo;
-  /** The report of the next turn to end: the open one while running, else the next one started. */
-  nextReport(): Promise<SubagentReport>;
+  /**
+   * The report of the next turn to end: the open one while running, else the
+   * next one started. Null when the subagent closes or its runtime exits first.
+   * It does not take the report from the crew's unread ones; `Subagents.next` does.
+   */
+  nextReport(): Promise<SubagentReport | null>;
   send(message: string, mode?: SendMode): Promise<SendResult>;
   /** Interrupt the open turn; its report follows with the runtime's outcome. */
   interrupt(): Promise<ControlOutcome>;
@@ -112,6 +117,8 @@ export interface WaitOptions {
   readonly ids?: readonly string[];
   /** How long to wait when no report is unread; 0 returns at once. Default 30 s. */
   readonly timeoutMs?: number;
+  /** Stop waiting (taking nothing) when it aborts. */
+  readonly signal?: AbortSignal;
 }
 
 export interface DeliverOptions {
@@ -124,6 +131,12 @@ export interface Subagents {
   list(): readonly SubagentInfo[];
   /** Take the unread reports, waiting up to `timeoutMs` for one when none are unread. */
   wait(options?: WaitOptions): Promise<readonly SubagentReport[]>;
+  /**
+   * Take one subagent's next report, waiting as long as it takes. While a
+   * `next` waits, wait calls that name no ids leave that subagent's reports
+   * alone. Null when it closes first or `signal` aborts.
+   */
+  next(id: string, options?: { readonly signal?: AbortSignal }): Promise<SubagentReport | null>;
   /** The unread reports, without taking them. */
   unread(): readonly SubagentReport[];
   /** Task events for every subagent, live; `tasks()` folds them. */
@@ -135,6 +148,6 @@ export interface Subagents {
    * steered into its turn or queued behind it.
    */
   deliverTo(parent: Session, options?: DeliverOptions): Unsubscribe;
-  /** Close every subagent. */
+  /** Close every subagent, including spawns in flight, and refuse new ones. Pending waits return. */
   close(): Promise<void>;
 }

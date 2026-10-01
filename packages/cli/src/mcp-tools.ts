@@ -6,7 +6,8 @@ export interface McpTool {
   readonly name: string;
   readonly description: string;
   readonly inputSchema: Readonly<Record<string, unknown>>;
-  readonly call: (args: Readonly<Record<string, unknown>>) => Promise<unknown>;
+  /** `signal` aborts when the client cancels the call or goes away. */
+  readonly call: (args: Readonly<Record<string, unknown>>, signal: AbortSignal) => Promise<unknown>;
 }
 
 export class ToolInputError extends Error {
@@ -84,16 +85,14 @@ export function subagentTools(crew: Subagents, runtimes: readonly Runtime[]): re
       name: "run",
       description: "Start a subagent on another agent runtime (or resume one) and wait until its turn ends; returns its final text, outcome and sessionId. Subagents run with full permissions in their working directory.",
       inputSchema: { type: "object", properties: SPAWN_PROPERTIES, required: ["runtime", "task"] },
-      call: async (args) => {
+      call: async (args, signal) => {
         const spawned = await crew.spawn(spawnOptions(args));
         if (spawned.kind === "refused") {
           return spawned;
         }
-        let reports = await crew.wait({ ids: [spawned.agent.id], timeoutMs: 60_000 });
-        while (reports.length === 0) {
-          reports = await crew.wait({ ids: [spawned.agent.id], timeoutMs: 60_000 });
-        }
-        return reports;
+        // A cancelled call leaves the report unread, for wait or the next run.
+        const report = await crew.next(spawned.agent.id, { signal });
+        return report ?? spawned.agent.info();
       },
     },
     {
@@ -130,10 +129,10 @@ export function subagentTools(crew: Subagents, runtimes: readonly Runtime[]): re
         type: "object",
         properties: { ids: { type: "array", items: { type: "string" } }, timeoutMs: { type: "number", description: "Default 30000, at most 600000." } },
       },
-      call: async (args) => {
+      call: async (args, signal) => {
         const ids = Array.isArray(args.ids) ? args.ids.filter((id): id is string => typeof id === "string") : undefined;
         const timeoutMs = typeof args.timeoutMs === "number" ? Math.min(Math.max(args.timeoutMs, 0), 600_000) : 30_000;
-        const reports = await crew.wait({ ...(ids === undefined ? {} : { ids }), timeoutMs });
+        const reports = await crew.wait({ ...(ids === undefined ? {} : { ids }), timeoutMs, signal });
         return reports;
       },
     },

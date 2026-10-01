@@ -1,23 +1,25 @@
 import { PassThrough } from "node:stream";
 import { createInterface } from "node:readline";
+import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
 import { serveMcp } from "../packages/cli/src/mcp.js";
 import { subagentTools } from "../packages/cli/src/mcp-tools.js";
 import { createSubagents } from "../packages/oar/src/agents/index.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
+import { echo, Gate, type Script } from "./fixtures/subagent-fixtures.js";
 
 type Crew = Parameters<typeof serveMcp>[0]["crew"];
 
 interface Client {
+  readonly request: (method: string, params?: Record<string, unknown>) => { readonly id: number; readonly answer: Promise<Record<string, unknown>> };
+  readonly notify: (method: string, params?: Record<string, unknown>) => void;
   readonly call: (method: string, params?: Record<string, unknown>) => Promise<Record<string, unknown>>;
   readonly tool: (name: string, args?: Record<string, unknown>) => Promise<{ readonly text: string; readonly isError: boolean }>;
   readonly end: () => Promise<void>;
 }
 
-function startServer(): { readonly input: PassThrough; readonly output: PassThrough; readonly served: Promise<void> } {
-  const runtime = scriptedRuntime({ id: "fake", turn: (turn) => {
-    turn.say(`did: ${turn.input}`);
-  } });
+function startServer(script: Script): { readonly input: PassThrough; readonly output: PassThrough; readonly served: Promise<void> } {
+  const runtime = scriptedRuntime({ id: "fake", turn: script });
   const crew: Crew = createSubagents({ runtimes: { get: (id) => (id === "fake" ? runtime : undefined) } });
   const input = new PassThrough();
   const output = new PassThrough();
@@ -34,8 +36,8 @@ function textOf(answer: Record<string, unknown>): { readonly text: string; reado
   return { text, isError: record.isError === true };
 }
 
-function connect(): Client {
-  const { input, output, served } = startServer();
+function connect(script: Script = echo): Client {
+  const { input, output, served } = startServer(script);
   const answers = new Map<number, (message: Record<string, unknown>) => void>();
   createInterface({ input: output }).on("line", (line) => {
     const message: unknown = JSON.parse(line);
@@ -44,19 +46,25 @@ function connect(): Client {
     }
   });
   let next = 0;
-  const call = async (method: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> => {
+  const request = (method: string, params: Record<string, unknown> = {}): { readonly id: number; readonly answer: Promise<Record<string, unknown>> } => {
     next += 1;
     const { promise, resolve } = Promise.withResolvers<Record<string, unknown>>();
     answers.set(next, resolve);
     input.write(`${JSON.stringify({ jsonrpc: "2.0", id: next, method, params })}\n`);
-    const answer = await promise;
+    return { id: next, answer: promise };
+  };
+  const notify = (method: string, params: Record<string, unknown> = {}): void => {
+    input.write(`${JSON.stringify({ jsonrpc: "2.0", method, params })}\n`);
+  };
+  const call = async (method: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> => {
+    const answer = await request(method, params).answer;
     return answer;
   };
   const tool = async (name: string, args: Record<string, unknown> = {}): Promise<{ readonly text: string; readonly isError: boolean }> => {
     const answer = await call("tools/call", { name, arguments: args });
     return textOf(answer);
   };
-  return { call, tool, end: async () => {
+  return { request, notify, call, tool, end: async () => {
     input.end();
     await served;
   } };
@@ -101,5 +109,34 @@ test("refusals and bad input come back as tool errors", async () => {
   expect(await client.tool("run", { runtime: "missing", task: "x" })).toMatchObject({ isError: true });
   expect(await client.tool("send", { id: "nobody", message: "hi" })).toMatchObject({ isError: true, text: "no subagent nobody; the list tool names them" });
   expect(await client.tool("spawn", { runtime: "fake" })).toMatchObject({ isError: true, text: "task is required" });
+  await client.end();
+});
+
+async function answeredWithin(answer: Promise<unknown>, ms: number): Promise<boolean> {
+  const answered = (async (): Promise<boolean> => {
+    await answer;
+    return true;
+  })();
+  const result = await Promise.race([answered, delay(ms, false)]);
+  return result;
+}
+
+test("a cancelled run gets no answer and leaves its report for wait", async () => {
+  const gate = new Gate();
+  const client = connect(gate.script);
+  const run = client.request("tools/call", { name: "run", arguments: { runtime: "fake", task: "slow", name: "slow" } });
+  await expect.poll(() => gate.started, { timeout: 5000 }).toBe(1);
+  client.notify("notifications/cancelled", { requestId: run.id });
+  gate.release();
+  expect(await toolText(client, "wait", { timeoutMs: 5000 })).toContain('"id": "slow"');
+  expect(await answeredWithin(run.answer, 100)).toBe(false);
+  await client.end();
+});
+
+test("the server finishes when its input ends with a run still pending", async () => {
+  const gate = new Gate();
+  const client = connect(gate.script);
+  void client.request("tools/call", { name: "run", arguments: { runtime: "fake", task: "never ends" } });
+  await expect.poll(() => gate.started, { timeout: 5000 }).toBe(1);
   await client.end();
 });

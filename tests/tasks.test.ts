@@ -46,11 +46,20 @@ test("a codex subagent given more work after it completed reads as running again
   ]);
   expect(value).toEqual([{
     taskId: "child", sessionId: "root", agentPath: [], taskType: "agent", childSessionId: "child", description: "/root/helper",
-    status: "running", startedAt: 0, endedAt: 10,
+    status: "running", startedAt: 0,
   }]);
 });
 
 test("a report about a task whose start the stream lacks still makes a row", () => {
   const { value } = tasksOf([frame(0, [{ kind: "task_ended", taskId: "late", status: "failed" }])]);
   expect(value).toMatchObject([{ taskId: "late", taskType: "other", status: "failed", endedAt: 0 }]);
+});
+
+test("a task started again is a fresh row, not its old end", () => {
+  const { value } = tasksOf([
+    frame(0, [{ kind: "task_started", taskId: "t", taskType: "agent" }]),
+    frame(1, [{ kind: "task_ended", taskId: "t", status: "completed", summary: "done" }]),
+    frame(2, [{ kind: "task_started", taskId: "t", taskType: "agent", background: true }]),
+  ]);
+  expect(value).toEqual([{ taskId: "t", sessionId: "root", agentPath: [], taskType: "agent", background: true, status: "running", startedAt: 20 }]);
 });

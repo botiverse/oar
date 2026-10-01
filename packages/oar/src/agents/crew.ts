@@ -1,10 +1,10 @@
 import path from "node:path";
 import type { AvailableInstallation } from "../contracts/installation.js";
 import type { Runtime } from "../contracts/runtime.js";
-import type { Session, SessionOptions, TaskEventBody, Unsubscribe } from "../contracts/session.js";
+import type { Session, TaskEventBody, Unsubscribe } from "../contracts/session.js";
 import { applyTaskEvent, initialTasks, type TaskMap, type TaskView } from "../observe/tasks.js";
 import { runtimes as builtInRuntimes } from "../index.js";
-import { openVoyage } from "../voyage.js";
+import { attachLog, DEFAULT_WAIT_MS, formatReport, hostDepth, installationOf, logName, readerOrTimeout, sessionOf, SUBAGENT_DEPTH_ENV } from "./helpers.js";
 import { createSubagent } from "./subagent.js";
 import type {
   DeliverOptions,
@@ -19,47 +19,6 @@ import type {
   WaitOptions,
 } from "./types.js";
 
-export const SUBAGENT_DEPTH_ENV = "OAR_SUBAGENT_DEPTH";
-const DEFAULT_WAIT_MS = 30_000;
-
-function hostDepth(): number {
-  const depth = Number(process.env[SUBAGENT_DEPTH_ENV] ?? "0");
-  return Number.isInteger(depth) && depth >= 0 ? depth : 0;
-}
-
-export function formatReport(report: SubagentReport): string {
-  const outcome = report.outcome.kind === "failed" ? `failed: ${report.outcome.reason}` : report.outcome.kind;
-  const who = report.name === undefined || report.name === report.id ? report.id : `${report.id} (${report.name})`;
-  return `[subagent ${who} on ${report.runtime}, turn ${String(report.turn)}: ${outcome}; session ${report.sessionId}]\n${report.text}`;
-}
-
-async function sessionOf(runtime: Runtime, installation: AvailableInstallation, options: SessionOptions): Promise<Session | string> {
-  try {
-    return await runtime.session(installation, options);
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
-  }
-}
-
-/** Resolves on the first reader call or after `ms`, whichever comes first. */
-async function readerOrTimeout(readers: (() => void)[], ms: number): Promise<void> {
-  await new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    readers.push(() => {
-      clearTimeout(timer);
-      resolve();
-    });
-  });
-}
-
-async function installationOf(runtime: Runtime): Promise<AvailableInstallation | string> {
-  if (runtime.installation === undefined) {
-    return `${runtime.id} exposes no installation probe`;
-  }
-  const installation = await runtime.installation();
-  return installation.kind === "available" ? installation : `${runtime.id} is ${installation.kind === "not_found" ? "not installed" : `unsupported: ${installation.reason}`}`;
-}
-
 /**
  * Subagents: child sessions a host starts on any runtime, follows by
  * reports (one per turn their root agent ends) and task events, and can feed
@@ -71,36 +30,44 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
   const maxRunning = options.maxRunning ?? 4;
   const maxDepth = options.maxDepth ?? 1;
   const agents = new Map<string, Subagent>();
+  const reserved = new Map<string, number>();
+  const readers = new Set<() => void>();
+  const taskObservers = new Set<(event: SubagentTaskEvent) => void>();
+  const inFlight = new Set<Promise<SpawnResult>>();
+  let reportObserver: ((report: SubagentReport) => void) | null = null;
   let unread: SubagentReport[] = [];
   let tasks: TaskMap = initialTasks;
-  const taskObservers = new Set<(event: SubagentTaskEvent) => void>();
-  const reportObservers = new Set<(report: SubagentReport) => void>();
-  let readers: (() => void)[] = [];
+  let parentSessionId = "";
   let starting = 0;
+  let closed = false;
 
   const running = (): number => starting + [...agents.values()].filter((agent) => agent.info().state === "running").length;
 
-  const emitTask = (body: TaskEventBody, sessionId: string): void => {
+  const wake = (): void => {
+    for (const reader of readers) {
+      reader();
+    }
+  };
+
+  const emitTask = (body: TaskEventBody): void => {
     const at = Date.now();
-    tasks = applyTaskEvent(tasks, body, { sessionId, agentPath: [], receivedAt: at });
+    tasks = applyTaskEvent(tasks, body, { sessionId: parentSessionId, agentPath: [], receivedAt: at });
     for (const observer of taskObservers) {
-      observer({ ...body, at });
+      try {
+        observer({ ...body, at });
+      } catch {
+        // An observer's failure is its own; the next one still hears.
+      }
     }
   };
 
   const received = (report: SubagentReport): void => {
-    if (reportObservers.size > 0) {
-      for (const observer of reportObservers) {
-        observer(report);
-      }
+    if (reportObserver !== null && !reserved.has(report.id)) {
+      reportObserver(report);
       return;
     }
     unread.push(report);
-    const pending = readers;
-    readers = [];
-    for (const reader of pending) {
-      reader();
-    }
+    wake();
   };
 
   const freeId = (spawn: SpawnOptions): string => {
@@ -115,9 +82,21 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
     return `${base}-${String(n)}`;
   };
 
-  const open = async (spawn: SpawnOptions, runtime: Runtime, installation: AvailableInstallation): Promise<SpawnResult> => {
+  const register = (spawn: SpawnOptions, runtime: Runtime, session: Session, log: string | undefined): Subagent => {
     const id = freeId(spawn);
-    const log = options.logDir === undefined ? undefined : path.join(options.logDir, `${id}.jsonl`);
+    const agent = createSubagent({ id, runtime: runtime.id, ...(spawn.name === undefined ? {} : { name: spawn.name }), ...(log === undefined ? {} : { log }) }, session, {
+      report: received,
+      task: emitTask,
+      mayRun: () => running() < maxRunning,
+      closed: wake,
+    });
+    agents.set(id, agent);
+    const description = spawn.name ?? spawn.task.split("\n")[0]?.slice(0, 120) ?? "";
+    emitTask({ kind: "task_started", taskId: id, taskType: "agent", nativeType: "oar-subagent", description, childSessionId: session.id, background: true });
+    return agent;
+  };
+
+  const open = async (spawn: SpawnOptions, runtime: Runtime, installation: AvailableInstallation, registered: () => void): Promise<SpawnResult> => {
     const cwd = spawn.cwd ?? options.cwd ?? process.cwd();
     const session = await sessionOf(runtime, installation, {
       cwd,
@@ -129,74 +108,125 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
     if (typeof session === "string") {
       return { kind: "refused", code: "open_failed", reason: session };
     }
-    if (log !== undefined) {
-      const recorder = openVoyage(log, { runtime: runtime.id, cwd, sessionId: session.id, startedAt: Date.now(), recorder: "oar-subagents",
-        ...(spawn.model === undefined ? {} : { model: spawn.model }), ...(spawn.effort === undefined ? {} : { effort: spawn.effort }) });
-      session.rawEvents((record) => {
-        recorder.record(record);
-        if (record.kind === "response" && record.body.kind === "exited") {
-          recorder.end("exited");
-        }
-      });
+    const log = options.logDir === undefined ? undefined : path.join(options.logDir, logName(spawn.name ?? spawn.runtime, session.id));
+    const logFailure = log === undefined ? null : attachLog(session, log, { runtime: runtime.id, cwd, sessionId: session.id, startedAt: Date.now(), recorder: "oar-subagents",
+      ...(spawn.model === undefined ? {} : { model: spawn.model }), ...(spawn.effort === undefined ? {} : { effort: spawn.effort }) });
+    if (closed || logFailure !== null) {
+      await session.dispose();
+      return logFailure === null
+        ? { kind: "refused", code: "closed", reason: "the subagents were closed while this one opened" }
+        : { kind: "refused", code: "open_failed", reason: `cannot write the log: ${logFailure}` };
     }
-    const agent = createSubagent({ id, runtime: runtime.id, ...(spawn.name === undefined ? {} : { name: spawn.name }), ...(log === undefined ? {} : { log }) }, session, {
-      report: received,
-      task: (body) => {
-        emitTask(body, session.id);
-      },
-      mayRun: () => running() < maxRunning,
-      closed: () => {},
-    });
-    agents.set(id, agent);
-    emitTask({ kind: "task_started", taskId: id, taskType: "agent", nativeType: "oar-subagent", description: spawn.name ?? spawn.task.split("\n")[0]?.slice(0, 120) ?? "", childSessionId: session.id, background: true }, session.id);
+    const agent = register(spawn, runtime, session, log);
+    registered();
     const outcome = await session.prompt(spawn.task);
     if (outcome.kind === "rejected") {
       await agent.close();
-      agents.delete(id);
+      agents.delete(agent.id);
       return { kind: "refused", code: "rejected", reason: outcome.reason };
     }
     return { kind: "spawned", agent };
   };
 
+  const refusal = (spawn: SpawnOptions): SpawnResult | null => {
+    if (closed) {
+      return { kind: "refused", code: "closed", reason: "the subagents are closed" };
+    }
+    if (registry.get(spawn.runtime) === undefined) {
+      return { kind: "refused", code: "unknown_runtime", reason: `unknown runtime: ${spawn.runtime}` };
+    }
+    if (hostDepth() + 1 > maxDepth) {
+      return { kind: "refused", code: "depth_limit", reason: `subagents nest at most ${String(maxDepth)} deep; do this task yourself` };
+    }
+    return running() >= maxRunning
+      ? { kind: "refused", code: "running_limit", reason: `${String(maxRunning)} subagents are already running; wait for one to finish rather than retrying` }
+      : null;
+  };
+
+  const spawnOne = async (spawn: SpawnOptions, runtime: Runtime): Promise<SpawnResult> => {
+    // Counted from the refusal check until the child is registered, where its own state takes over.
+    starting += 1;
+    let counted = true;
+    const release = (): void => {
+      if (counted) {
+        counted = false;
+        starting -= 1;
+      }
+    };
+    try {
+      const installation = await installationOf(runtime);
+      if (typeof installation === "string") {
+        return { kind: "refused", code: "not_installed", reason: installation };
+      }
+      const result = await open(spawn, runtime, installation, release);
+      return result;
+    } finally {
+      release();
+    }
+  };
+
   const take = (ids?: readonly string[]): SubagentReport[] => {
-    const taken = unread.filter((report) => ids === undefined || ids.includes(report.id));
-    unread = unread.filter((report) => !taken.includes(report));
+    const wanted = (report: SubagentReport): boolean => (ids === undefined ? !reserved.has(report.id) : ids.includes(report.id));
+    const taken = unread.filter((report) => wanted(report));
+    unread = unread.filter((report) => !wanted(report));
     return taken;
+  };
+
+  const reserve = (id: string, delta: number): void => {
+    const count = (reserved.get(id) ?? 0) + delta;
+    if (count <= 0) {
+      reserved.delete(id);
+    } else {
+      reserved.set(id, count);
+    }
+  };
+
+  const next = async (id: string, signal?: AbortSignal): Promise<SubagentReport | null> => {
+    reserve(id, 1);
+    try {
+      const over = (): boolean => closed || signal?.aborted === true || agents.get(id)?.info().state === "closed";
+      let [report] = take([id]);
+      while (report === undefined && !over()) {
+        await readerOrTimeout(readers, 60_000, signal);
+        [report] = take([id]);
+      }
+      return report ?? null;
+    } finally {
+      reserve(id, -1);
+    }
   };
 
   return {
     spawn: async (spawn: SpawnOptions): Promise<SpawnResult> => {
+      const refused = refusal(spawn);
       const runtime = registry.get(spawn.runtime);
-      if (runtime === undefined) {
-        return { kind: "refused", code: "unknown_runtime", reason: `unknown runtime: ${spawn.runtime}` };
+      if (refused !== null || runtime === undefined) {
+        return refused ?? { kind: "refused", code: "unknown_runtime", reason: `unknown runtime: ${spawn.runtime}` };
       }
-      if (hostDepth() + 1 > maxDepth) {
-        return { kind: "refused", code: "depth_limit", reason: `subagents nest at most ${String(maxDepth)} deep; do this task yourself` };
-      }
-      if (running() >= maxRunning) {
-        return { kind: "refused", code: "running_limit", reason: `${String(maxRunning)} subagents are already running; wait for one to finish rather than retrying` };
-      }
-      starting += 1;
+      const pending = spawnOne(spawn, runtime);
+      inFlight.add(pending);
       try {
-        const installation = await installationOf(runtime);
-        return typeof installation === "string"
-          ? { kind: "refused", code: "not_installed", reason: installation }
-          : await open(spawn, runtime, installation);
+        const result = await pending;
+        return result;
       } finally {
-        starting -= 1;
+        inFlight.delete(pending);
       }
     },
     get: (id: string): Subagent | undefined => agents.get(id),
     list: (): readonly SubagentInfo[] => [...agents.values()].map((agent) => agent.info()),
     wait: async (wait: WaitOptions = {}): Promise<readonly SubagentReport[]> => {
-      const timeoutMs = wait.timeoutMs ?? DEFAULT_WAIT_MS;
-      const deadline = Date.now() + timeoutMs;
+      const deadline = Date.now() + (wait.timeoutMs ?? DEFAULT_WAIT_MS);
+      const over = (): boolean => closed || wait.signal?.aborted === true || Date.now() >= deadline;
       let taken = take(wait.ids);
-      while (taken.length === 0 && Date.now() < deadline) {
-        await readerOrTimeout(readers, deadline - Date.now());
+      while (taken.length === 0 && !over()) {
+        await readerOrTimeout(readers, deadline - Date.now(), wait.signal);
         taken = take(wait.ids);
       }
       return taken;
+    },
+    next: async (id, nextOptions = {}): Promise<SubagentReport | null> => {
+      const report = await next(id, nextOptions.signal);
+      return report;
     },
     unread: (): readonly SubagentReport[] => [...unread],
     onTask: (observer): Unsubscribe => {
@@ -208,23 +238,48 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
     tasks: (): readonly TaskView[] => [...tasks.values()],
     deliverTo: (parent: Session, deliver: DeliverOptions = {}): Unsubscribe => {
       const format = deliver.format ?? formatReport;
-      const send = (report: SubagentReport): void => {
-        const input = format(report);
-        // An idle parent gets a turn of its own (it wakes); a busy one gets the input mid-turn or after it.
-        void (parent.status().value.kind === "idle" ? parent.prompt(input) : parent.steerOrQueue(input));
+      parentSessionId = parent.id;
+      const keep = (report: SubagentReport): void => {
+        unread.push(report);
+        wake();
       };
+      const send = async (report: SubagentReport): Promise<void> => {
+        try {
+          const input = format(report);
+          // An idle parent gets a turn of its own (it wakes); a busy one gets the input mid-turn or after it.
+          const prompted = parent.status().value.kind === "idle" ? await parent.prompt(input) : null;
+          if (prompted?.kind === "accepted") {
+            return;
+          }
+          const landed = await parent.steerOrQueue(input);
+          if (landed.landed === "rejected") {
+            keep(report);
+          }
+        } catch {
+          keep(report);
+        }
+      };
+      const observer = (report: SubagentReport): void => {
+        void send(report);
+      };
+      reportObserver = observer;
       for (const report of take()) {
-        send(report);
+        observer(report);
       }
-      reportObservers.add(send);
       return () => {
-        reportObservers.delete(send);
+        if (reportObserver === observer) {
+          reportObserver = null;
+        }
       };
     },
     close: async (): Promise<void> => {
+      closed = true;
+      wake();
+      await Promise.allSettled(inFlight);
       await Promise.all([...agents.values()].map(async (agent) => {
         await agent.close();
       }));
+      wake();
     },
   };
 }

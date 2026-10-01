@@ -53,7 +53,7 @@ function unreadNote(crew: Subagents): string {
   return `\n\nFinished with unread reports: ${names}. Call wait to read them.`;
 }
 
-async function callTool(options: McpServerOptions, params: Readonly<Record<string, unknown>>): Promise<unknown> {
+async function callTool(options: McpServerOptions, params: Readonly<Record<string, unknown>>, signal: AbortSignal): Promise<unknown> {
   const tool = options.tools.find((candidate) => candidate.name === params.name);
   if (tool === undefined) {
     return { content: [{ type: "text", text: `unknown tool ${String(params.name)}` }], isError: true };
@@ -62,7 +62,7 @@ async function callTool(options: McpServerOptions, params: Readonly<Record<strin
     ? Object.fromEntries(Object.entries(params.arguments))
     : {};
   try {
-    const result = await tool.call(args);
+    const result = await tool.call(args, signal);
     const refused = typeof result === "object" && result !== null && "kind" in result && (result.kind === "refused" || result.kind === "rejected");
     const note = tool.name === "wait" || tool.name === "run" ? "" : unreadNote(options.crew);
     return { content: [{ type: "text", text: `${JSON.stringify(result, null, 2)}${note}` }], ...(refused ? { isError: true } : {}) };
@@ -74,7 +74,7 @@ async function callTool(options: McpServerOptions, params: Readonly<Record<strin
   }
 }
 
-async function answer(options: McpServerOptions, request: JsonRpcRequest): Promise<unknown> {
+async function answer(options: McpServerOptions, request: JsonRpcRequest, signal: AbortSignal): Promise<unknown> {
   const params = request.params ?? {};
   switch (request.method ?? "") {
     case "initialize": {
@@ -91,7 +91,7 @@ async function answer(options: McpServerOptions, request: JsonRpcRequest): Promi
     case "tools/list":
       return { tools: options.tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) };
     case "tools/call": {
-      const result = await callTool(options, params);
+      const result = await callTool(options, params, signal);
       return result;
     }
     default:
@@ -99,27 +99,41 @@ async function answer(options: McpServerOptions, request: JsonRpcRequest): Promi
   }
 }
 
-/** Serve until the input ends (the client went away), then close every subagent. */
+/** Serve until the input ends (the client went away), then cancel pending calls and close every subagent. */
 export async function serveMcp(options: McpServerOptions): Promise<void> {
   const write = (message: unknown): void => {
     options.output.write(`${JSON.stringify(message)}\n`);
   };
-  const lines = createInterface({ input: options.input, crlfDelay: Infinity });
-  for await (const line of lines) {
-    const request = parse(line);
-    if (request?.id === undefined) {
-      continue; // Notifications (initialized, cancelled) need no answer.
-    }
-    const { id } = request;
-    // Calls run concurrently: a long `run` must not hold a `list` behind it.
-    void (async (): Promise<void> => {
-      try {
-        write({ jsonrpc: "2.0", id, result: await answer(options, request) });
-      } catch (error) {
-        const notFound = error instanceof RangeError;
-        write({ jsonrpc: "2.0", id, error: { code: notFound ? -32_601 : -32_603, message: error instanceof Error ? error.message : String(error) } });
+  const calls = new Map<JsonRpcId, AbortController>();
+  const handle = async (request: JsonRpcRequest, id: JsonRpcId): Promise<void> => {
+    const controller = new AbortController();
+    calls.set(id, controller);
+    try {
+      const result = await answer(options, request, controller.signal);
+      if (!controller.signal.aborted) {
+        write({ jsonrpc: "2.0", id, result });
       }
-    })();
+    } catch (error) {
+      const notFound = error instanceof RangeError;
+      write({ jsonrpc: "2.0", id, error: { code: notFound ? -32_601 : -32_603, message: error instanceof Error ? error.message : String(error) } });
+    } finally {
+      calls.delete(id);
+    }
+  };
+  for await (const line of createInterface({ input: options.input, crlfDelay: Infinity })) {
+    const request = parse(line);
+    if (request?.method === "notifications/cancelled") {
+      const cancelled = request.params?.requestId;
+      if (typeof cancelled === "string" || typeof cancelled === "number") {
+        calls.get(cancelled)?.abort();
+      }
+    } else if (request?.id !== undefined) {
+      // Calls run concurrently: a long `run` must not hold a `list` behind it.
+      void handle(request, request.id);
+    }
+  }
+  for (const controller of calls.values()) {
+    controller.abort();
   }
   await options.crew.close();
 }

@@ -38,15 +38,26 @@ function placeholder(event: TaskEvent): TaskView {
   return { taskId: event.taskId, sessionId: event.sessionId, agentPath: event.agentPath, taskType: "other", status: "running" };
 }
 
+/** The row without what its last end said: a task running again has no end yet. */
+function reopened(view: TaskView): TaskView {
+  const { endedAt: _endedAt, summary: _summary, outputFile: _outputFile, ...open } = view;
+  return open;
+}
+
 function apply(previous: TaskView | undefined, event: TaskEvent): TaskView {
   switch (event.kind) {
     case "task_started": {
       const { kind: _kind, receivedAt, ...fields } = event;
-      return { ...previous, ...fields, status: previous?.status ?? "running", startedAt: receivedAt };
+      // A start after an earlier start is the task beginning again (claude re-registers a resumed
+      // subagent); a row made from reports that came before the start keeps what they said.
+      const early = previous !== undefined && previous.startedAt === undefined;
+      return early ? { ...previous, ...fields, startedAt: receivedAt } : { ...fields, status: "running", startedAt: receivedAt };
     }
     case "task_updated": {
       const { kind: _kind, receivedAt: _receivedAt, taskId: _taskId, sessionId: _sessionId, agentPath: _agentPath, ...patch } = event;
-      return { ...(previous ?? placeholder(event)), ...patch };
+      const base = previous ?? placeholder(event);
+      const again = patch.status === "pending" || patch.status === "running" || patch.status === "paused";
+      return { ...(again ? reopened(base) : base), ...patch };
     }
     case "task_ended": {
       const { kind: _kind, receivedAt, taskId: _taskId, sessionId: _sessionId, agentPath: _agentPath, ...fields } = event;
