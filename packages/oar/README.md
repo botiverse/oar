@@ -62,6 +62,14 @@ has it. `runtime.accountUsage(installation)` reads account quota on claude,
 codex, grok and kimi; its failure semantics are documented in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
 
+`runtime.checkUpdate(installation)` reports the version the runtime's own
+updater would install and where that answer came from;
+`runtime.upgrade(installation)` runs that updater without a terminal and
+judges the result by the version the same executable reports afterwards,
+never by its exit code. oar never upgrades on its own. Claude, Codex, Cursor,
+Grok and Kimi have both; Antigravity has only the check; Pi moves with oar.
+See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
+
 Images go with an input through `InputOptions.images` (absolute paths to png,
 jpeg, gif or webp files) on prompt, steer and queue, as the runtime's own image
 content. `session.capabilities.images` says whether the runtime takes them; an

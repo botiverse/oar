@@ -19,7 +19,9 @@ with the installed CLIs and bundled Pi SDK before selecting live probes.
 Cross-runtime investigation: [native skills, MCP and tools inventories](inventory.md)
 (local probes, 2026-09-16); [live model and effort changes](live-configure.md)
 (local probes, 2026-09-29: what changes a running session's model or
-effort without a restart, and how it meets each adapter's queue).
+effort without a restart, and how it meets each adapter's queue); [runtime updaters](update.md) (sandbox probes,
+2026-10-01: how each runtime updates itself and how its updater can claim
+success without upgrading).
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|

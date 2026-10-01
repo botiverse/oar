@@ -4,6 +4,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { claudeAccountUsage } from "./account-usage.js";
 import { claudeInstallation } from "./installation.js";
 import { claudeListModels } from "./list-models.js";
+import { claudeCheckUpdate, claudeUpgrade } from "./update.js";
 import { claudeSession } from "./session.js";
 
 export const claudeRuntime = defineRuntime({
@@ -16,6 +17,8 @@ export const claudeRuntime = defineRuntime({
   installation: claudeInstallation,
   accountUsage: claudeAccountUsage,
   listModels: claudeListModels,
+  checkUpdate: claudeCheckUpdate,
+  upgrade: claudeUpgrade,
   session: claudeSession,
 });
 

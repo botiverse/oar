@@ -7,6 +7,7 @@ npx @botiverse/oar-cli list
 oar installation codex
 oar usage claude
 oar models claude
+oar upgrade --check
 oar run claude "What does this repo do?"
 ```
 
@@ -23,6 +24,11 @@ oar run claude "What does this repo do?"
 - `oar run <runtime> <prompt>`: run one turn in a fresh (or `--resume`d)
   session and show its progress; the exit code is 0 only when the turn
   completed.
+- `oar upgrade [runtime]`: upgrade each available installation with the
+  runtime's own updater, one at a time; `--check` only reports the version
+  the updater would install, `--json` prints the reports. The exit code is 1
+  when an upgrade failed or left the version unchanged. See
+  [runtime updates](../../docs/spec/update.md).
 - `oar skills|mcps|tools [runtime]`: native inventories, see
   [below](#native-inventories).
 

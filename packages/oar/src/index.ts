@@ -46,6 +46,15 @@ export type {
   ModelEntry,
   ModelLister,
 } from "./contracts/list-models.js";
+export type {
+  UpdateCheck,
+  UpdateChecker,
+  UpdateCheckOptions,
+  UpdateCheckUnavailableReason,
+  Upgrader,
+  UpgradeOptions,
+  UpgradeResult,
+} from "./contracts/update.js";
 export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,

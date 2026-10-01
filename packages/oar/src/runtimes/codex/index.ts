@@ -4,6 +4,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAccountUsage } from "./account-usage.js";
 import { codexInstallation } from "./installation.js";
 import { codexListModels } from "./list-models.js";
+import { codexCheckUpdate, codexUpgrade } from "./update.js";
 import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
@@ -15,6 +16,8 @@ export const codexRuntime = defineRuntime({
   installation: codexInstallation,
   accountUsage: codexAccountUsage,
   listModels: codexListModels,
+  checkUpdate: codexCheckUpdate,
+  upgrade: codexUpgrade,
   session: codexSession,
 });
 

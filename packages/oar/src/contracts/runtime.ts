@@ -1,4 +1,5 @@
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
+import type { UpdateChecker, Upgrader } from "./update.js";
 import type { AccountUsageReader } from "./account-usage.js";
 import type { InstallationProbe } from "./installation.js";
 import type { ModelLister } from "./list-models.js";
@@ -13,6 +14,10 @@ export interface Runtime extends RuntimeInventories {
   readonly installation?: InstallationProbe;
   readonly accountUsage?: AccountUsageReader;
   readonly listModels?: ModelLister;
+  /** Read only: the version the runtime's own updater would install. */
+  readonly checkUpdate?: UpdateChecker;
+  /** Runs the runtime's own updater; changes the machine, so only on the host's explicit call. */
+  readonly upgrade?: Upgrader;
 }
 
 async function unsupported(): Promise<InventoryResult<never>> {

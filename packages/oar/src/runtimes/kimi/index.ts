@@ -3,6 +3,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { kimiAccountUsage } from "./account-usage.js";
 import { kimiInstallation } from "./installation.js";
 import { kimiListModels } from "./list-models.js";
+import { kimiCheckUpdate, kimiUpgrade } from "./update.js";
 import { kimiSession } from "./session.js";
 
 export const kimiRuntime = defineRuntime({
@@ -11,6 +12,8 @@ export const kimiRuntime = defineRuntime({
   installation: kimiInstallation,
   accountUsage: kimiAccountUsage,
   listModels: kimiListModels,
+  checkUpdate: kimiCheckUpdate,
+  upgrade: kimiUpgrade,
   session: kimiSession,
 });
 
