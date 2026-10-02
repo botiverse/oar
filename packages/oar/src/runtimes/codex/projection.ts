@@ -8,7 +8,7 @@ import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { codexItemExitCode, codexItemInput, codexItemOutput } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
-import { codexTaskViews } from "./tasks.js";
+import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentParents } from "./tasks.js";
 
 /**
  * The codex notification → record projection as a PURE FOLD (see
@@ -50,10 +50,12 @@ export interface CodexProjectionState {
    * flag lets the second report close nothing instead of ending twice.
    */
   readonly compacting: boolean;
+  /** The thread that started each subagent thread, by child thread id. */
+  readonly startedBy: SubagentParents;
 }
 
 export function initialCodexProjection(rootThreadId: string): CodexProjectionState {
-  return { rootThreadId, lastErrorDetail: null, compacting: false };
+  return { rootThreadId, lastErrorDetail: null, compacting: false, startedBy: new Map() };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -172,12 +174,15 @@ function settingsViews(params: JsonRecord): RuntimeEventBody[] {
   return events;
 }
 
-/** Edges a collaboration item establishes: the root (sender) thread spawned or addressed the named threads. */
-function collabEdges(state: CodexProjectionState, item: JsonRecord | null): SessionEdge[] {
+/** Edges a collaboration item establishes: the sender thread (the reporting thread unless the item names one) spawned or addressed the named threads. */
+function collabEdges(state: CodexProjectionState, reporter: string, item: JsonRecord | null): SessionEdge[] {
   if (item === null || typeof item.type !== "string" || !COLLAB_ITEM_TYPES.has(item.type)) {
     return [];
   }
-  const parent = typeof item.senderThreadId === "string" ? item.senderThreadId : state.rootThreadId;
+  if (item.type === "subAgentActivity" && !aboutOwnChild(state.startedBy, state.rootThreadId, reporter, item)) {
+    return [];
+  }
+  const parent = typeof item.senderThreadId === "string" ? item.senderThreadId : reporter;
   const receivers: unknown[] = Array.isArray(item.receiverThreadIds) ? item.receiverThreadIds : [];
   const children = [...receivers, item.agentThreadId]
     .filter((id): id is string => typeof id === "string" && id.length > 0 && id !== parent);
@@ -192,7 +197,7 @@ function spanIdOf(params: JsonRecord): string | undefined {
   return typeof turnId === "string" ? turnId : undefined;
 }
 
-function viewsFor(state: CodexProjectionState, method: string, params: JsonRecord): RuntimeEventBody[] {
+function viewsFor(state: CodexProjectionState, reporter: string, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
     case "item/agentMessage/delta":
       return typeof params.delta === "string" ? [{ kind: "text_delta", text: params.delta }] : [];
@@ -224,7 +229,10 @@ function viewsFor(state: CodexProjectionState, method: string, params: JsonRecor
         return [{ kind: "compaction_ended", outcome: "completed" }];
       }
       const item = asRecord(params.item);
-      return item?.type === "subAgentActivity" ? codexTaskViews(item) : toolViews(method, item);
+      if (item?.type === "subAgentActivity") {
+        return aboutOwnChild(state.startedBy, state.rootThreadId, reporter, item) ? codexTaskViews(item) : [];
+      }
+      return toolViews(method, item);
     }
     case "turn/completed":
       return [{ kind: "turn_ended", outcome: settleOutcome(state, asRecord(params.turn)?.status) }];
@@ -247,12 +255,12 @@ export function foldCodexNotification(
   const spanId = spanIdOf(params);
   const event: ProjectionCommand = {
     kind: "frame",
-    body: { type: method, native: params, events: viewsFor(state, method, params) },
+    body: { type: method, native: params, events: viewsFor(state, threadId, method, params) },
     ...(spanId === undefined ? {} : { spanId }),
     ...(threadId === state.rootThreadId ? {} : { sessionId: threadId }),
   };
   const links = method === "item/started" || method === "item/completed"
-    ? collabEdges(state, asRecord(params.item)).map((edge): ProjectionCommand => ({ kind: "link", edge }))
+    ? collabEdges(state, threadId, asRecord(params.item)).map((edge): ProjectionCommand => ({ kind: "link", edge }))
     : [];
 
   let next = state;
@@ -270,6 +278,10 @@ export function foldCodexNotification(
     next = { ...state, compacting: method === "item/started" };
   } else if (method === "thread/compacted" && threadId === state.rootThreadId) {
     next = { ...state, compacting: false };
+  }
+  const startedBy = withStartedChild(next.startedBy, threadId, asRecord(params.item));
+  if (startedBy !== next.startedBy) {
+    next = { ...next, startedBy };
   }
   return { state: next, commands: [event, ...links] };
 }
