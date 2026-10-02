@@ -1,8 +1,8 @@
 # Maka: reference runtime
 
-Reviewed **2026-09-08** at Maka [`a96de5e2`][source] and OAR `9b102d0`.
-**OAR has no Maka adapter.** This page examines its programmatic agent interface;
-no model calls or tests were run.
+**OAR has no Maka adapter.** Reviewed **2026-09-08** at Maka [`a96de5e2`][source]
+and OAR `9b102d0` by reading its programmatic agent interface; no model calls
+or tests were run.
 
 ## Native core concepts and calling interfaces
 
@@ -15,12 +15,12 @@ and benchmark command execution are separate integrations. [Backend kinds][backe
 
 A **Session** is persistent conversation/configuration identity. A **Turn** is
 an admitted execution request; its **Run** identifies execution. The caller
-supplies a new turn ID to start a continuation, while the Host supplies its run
-ID. A source run and its RuntimeEvent high-water identify the exact continuation
-boundary. They differ from a subscription's delivery sequence or a transcript
+supplies a new turn ID to start a continuation; the Host supplies its run ID.
+A source run and its RuntimeEvent high-water identify the exact continuation
+boundary, distinct from a subscription's delivery sequence or a transcript
 pagination cursor.
 
-An API result saying `started` is not task completion. `TurnSnapshot` contains
+An API result of `started` is not task completion. `TurnSnapshot` contains
 `sessionId`, `turnId`, `runId`, and status: `admitted`, `created`, `running`,
 `waiting_for_user`, `completed`, `failed`, or `cancelled`. Terminal snapshots
 also carry terminal-event identity and failure/abort details. [Turn protocol][turn].
@@ -40,21 +40,18 @@ Sources: [Host exports][host-package], [client contract][connection],
 
 ## High-level mapping to OAR
 
-These are **reference-only conceptual correspondences**, not implemented Maka
-adapter behavior. Today's [OAR Session contract](../../packages/oar/src/contracts/session.ts)
-wraps external runtimes through a narrower control/observation interface.
+**Reference-only conceptual correspondences**, not Maka adapter behavior.
+The [OAR Session contract](../../packages/oar/src/contracts/session.ts) wraps
+external runtimes through a narrower control/observation interface. A future
+integration would need its own compatibility and behavior evidence.
 
 | Maka concept | Current OAR counterpart or gap |
 |---|---|
 | Persistent Session | `Session.id` and `SessionOptions.resume` preserve/reopen native conversation identity on existing backends. |
-| Host-admitted Turn plus Run | OAR has a Turn handle and outcome; it does not expose Maka's separate durable admission/run identities. |
-| Session subscription, state snapshot, paged transcript | OAR `subscribe()` carries a selected live event projection; public history hydration and persistent replay cursors are absent. |
+| Host-admitted Turn plus Run | OAR identifies a turn by its prompt request (`seq`, `requestId`) and the runtime's `turn_ended` event; it does not expose Maka's separate durable admission/run identities. |
+| Session subscription, state snapshot, paged transcript | OAR `events()` / `rawEvents()` carry a live projection whose `afterSeq` cursor holds only for the adapter process; public history readback ([refused](../design/decisions.md#session-history-readback-2026-09-15)) and persistent replay cursors are absent. |
 | Planned continuation from a source boundary | OAR resume is conversation reopening, without query/start recovery planning or a validated source high-water. |
-| Client capabilities and interaction settlement | OAR currently uses noninteractive adapter policies, without a general caller request/decision interface. |
-
-The detailed sections below describe native APIs first and identify their OAR
-correspondence. A future integration would need its own compatibility and
-behavior evidence.
+| Client capabilities and interaction settlement | OAR uses noninteractive adapter policies, without a general caller request/decision interface. |
 
 ## Per-feature correspondence
 
@@ -69,8 +66,8 @@ also exported. [Connection/bootstrap][connection].
 
 Subscriptions and connections have separate `close()` methods. Releasing a
 client connection is not the targeted stop operation. An OAR adapter would need
-to define whether it owns the Host or merely its connection; current OAR's
-process-owning adapters do not establish that answer for Maka.
+to define whether it owns the Host or only its connection; OAR's
+process-owning adapters do not answer that for Maka.
 
 ### Session creation and configuration
 
@@ -80,21 +77,22 @@ optional thinking/tool/permission/collaboration/orchestration settings.
 model/thinking/permission changes are not arbitrary resume fields.
 [Configuration protocol][catalog].
 
-OAR exposes initial cwd/model/instruction options but no equivalent general
-revision-checked configuration operation. Mapping similarly named settings
-would require checking the accepted native values and effective configuration.
+OAR exposes initial cwd/model/instruction options but no revision-checked
+configuration operation. Mapping similarly named settings would require
+checking the accepted native values and effective configuration.
 
 ### Attach, observe, and retrieve history
 
-Use `session.catalog.query` to discover sessions and
+`session.catalog.query` discovers sessions;
 `connection.openSessionSubscription({sessionId, transcript: {kind: 'tail', maxBytes}})`
-to obtain current session/root-turn state, transcript bootstrap, and live updates.
-The subscription supports paged history and decoded transcript loading.
+returns current session/root-turn state, transcript bootstrap, and live
+updates, with paged history and decoded transcript loading.
 [Subscription contract][subscription], [subscription client][subscription-client].
 
 CLI `switchSession(sessionId)` uses this path and can attach to an already
-active turn. It does not itself start inference. This is distinct from OAR's
-resume-and-open operation and from its live-only `subscribe()`.
+active turn without starting inference. OAR has no counterpart: its resume
+reopens the conversation, and its event subscription replays only what the
+current process retained; there is no persisted history or replay across processes.
 [CLI switching][switch].
 
 ### Start a new prompt
@@ -102,16 +100,17 @@ resume-and-open operation and from its live-only `subscribe()`.
 `turn.start` takes
 `{sessionId, turnId, content, skillIds?, turnOrchestration?, maxSteps?}`.
 Its result is `started` with a turn snapshot and skill-invocation result, or
-`blocked` with the skill-invocation result. OAR's `prompt(string)` instead
-returns a local Turn handle or `busy`; starting and native admission would need
-an explicit mapping. [Turn start][turn].
+`blocked` with the skill-invocation result. OAR's `prompt(input)` instead
+returns a `ControlOutcome`, `accepted` or rejected `busy`; starting and native
+admission would need an explicit mapping. [Turn start][turn].
 
 ### Stop and regenerate
 
 `turn.stop({sessionId, turnId, runId})` targets an exact execution and returns a
-snapshot. A stale run must not be silently retargeted. `turn.regenerate` uses
+snapshot; a stale run must not be silently retargeted. `turn.regenerate` uses
 `{sessionId, sourceTurnId, turnId}` for a separate regeneration request.
-OAR exposes handle-bound abort but no regenerate method. [Turn operations][turn].
+OAR's `abort()` interrupts whatever turn is active, with no run target, and OAR
+has no regenerate method. [Turn operations][turn].
 
 ### Resume incomplete execution
 
@@ -119,7 +118,7 @@ This operation continues a failed/cancelled run from a validated execution
 boundary, creating a new continuation turn without a new user message.
 **It is disabled by default in the inspected production composition:** the Host
 requires `MAKA_RUNTIME_SAFE_BOUNDARY_RESUME=1`. Ordinary session observation and
-subsequent messages do not require this recovery flag. [Production wiring][feature].
+subsequent messages do not require this flag. [Production wiring][feature].
 
 #### Query the continuation boundary
 
@@ -145,10 +144,10 @@ start rechecks the boundary and admission state. [Candidate selection][candidate
 
 #### Start and observe the continuation
 
-This call fragment assumes an **already connected client and existing session**,
-with observation arranged. The caller allocates and retains `newTurnId` for this
-logical continuation. It follows CLI `resumeLatest()`; bootstrap and event
-consumption are omitted. [CLI flow][resume-driver].
+This fragment assumes an **already connected client and existing session**,
+with observation arranged; the caller allocates and retains `newTurnId` for
+this logical continuation. It follows CLI `resumeLatest()`, omitting bootstrap
+and event consumption. [CLI flow][resume-driver].
 
 ```ts
 import type { RuntimeHostConnection } from '@maka/runtime-host/client';
@@ -198,29 +197,29 @@ Observe completion through the session subscription or
   Children must continue through their parent; import staging, absent account
   selection, and reserved coordination sessions can also prevent execution.
 
-Evidence: [error classes][connection], [operation declarations][turn],
-[admission/idempotence][admission], [two-client test][concurrency],
-[session availability][availability]. Safety checks include workspace, background
-operations, tools, and source execution state. These explain the refusal modes;
-OAR has no corresponding continuation-plan API. [Planner][candidate].
+Safety checks cover workspace, background operations, tools, and source
+execution state; they explain the refusal modes. OAR has no corresponding
+continuation-plan API. Evidence: [error classes][connection],
+[operation declarations][turn], [admission/idempotence][admission],
+[two-client test][concurrency], [session availability][availability],
+[planner][candidate].
 
 ### History import and branching
 
 `external-session.import({adapterId, sourceSessionId})` returns a Maka
-`SessionCatalogItem`. This imports transcript history; it does not reattach to a
-running Claude/Codex process. `session.branch.create` is another separate
-operation. Current OAR exposes neither history import nor branch creation.
+`SessionCatalogItem`. It imports transcript history; it does not reattach to a
+running Claude/Codex process. `session.branch.create` is a separate operation.
+OAR exposes neither history import nor branch creation.
 [Import protocol][import], [branch protocol][branch].
 
 ### Interactions and client capabilities
 
 The Host connection exports `replaceClientCapabilities(provider)` and
 `unregisterClientCapabilities()`; session configuration includes permission mode.
-These are distinct interfaces from receiving text or accepting a turn. Current
-OAR has no general client-capability registration or interaction reply channel.
-The reviewed API inventory does not establish a complete interaction-callback
-mapping for a future adapter. [Connection contract][connection],
-[configuration][catalog].
+These are separate from receiving text or accepting a turn. OAR has no general
+client-capability registration or interaction reply channel, and the reviewed
+API inventory does not establish a complete interaction-callback mapping.
+[Connection contract][connection], [configuration][catalog].
 
 ## Verification
 

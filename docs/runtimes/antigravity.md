@@ -3,68 +3,57 @@
 Independent inventories: not implemented for Antigravity yet.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
-Evidence baseline: **agy_acp_server 1.2.1** (Google Antigravity's ACP
-server, from the ACP registry zip, linux x64, model
-`gemini-3.8-flash-low`) on 2026-09-29 through
+Evidence baseline: **agy_acp_server 1.2.1** (Google Antigravity's ACP server,
+from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
+2026-09-29 through
 [`experiments/live-contract.ts antigravity`](../../experiments/live-contract.ts)
 (12/13, scenario names in parentheses below; `abort` fails, see
 [abort](#prompt-steering-queueing-and-abort)), plus direct ACP probes of the
 same binary for cancel timing and the model and mode methods. The server
 ships as a packaged Python archive with no public source, so statements
 beyond the wire are marked as such. Versions are evidence baselines, not a
-support range. The [spec](../spec/README.md) is the contract the adapter
-implements, not evidence of this adapter's behavior; see the
-[runtime index](README.md) for status conventions.
+support range; see the [runtime index](README.md) for status conventions.
 
 ## Native concepts and calling interfaces
 
 A native session is a persistent conversation with an id, a working
 directory, a permission mode (`default`, `auto_edit`, `yolo`), and a model.
 Effort is part of the model id (`gemini-3.8-flash-high`, `-medium`, `-low`),
-not a separate parameter. A child agent started through the
-`start_subagent` tool has its own id inside the harness but no ACP session
-of its own.
+not a separate parameter. A child agent started through the `start_subagent`
+tool has its own id inside the harness but no ACP session of its own.
 
-Antigravity offers three programmatic surfaces: the `agy` CLI's print mode
-(a one shot stream with no control channel while a turn runs), the SDK's
-local harness (undocumented), and `agy_acp_server`, a separate package of
-about 1 GB that speaks ACP JSON-RPC over stdio. Only the ACP server has
-prompt, cancel, resume, and reverse requests on one connection, so OAR uses
-it. The server keeps its own credential store under
-`$GEMINI_HOME/antigravity-acp/`, separate from the `agy` CLI's login.
+Antigravity offers three programmatic surfaces: the `agy` CLI's print mode (a
+one-shot stream with no control channel while a turn runs), the SDK's local
+harness (undocumented), and `agy_acp_server`, a separate package of about
+1 GB that speaks ACP JSON-RPC over stdio. Only the ACP server has prompt,
+cancel, resume and reverse requests on one connection, so OAR uses it. The
+server keeps its own credential store under `$GEMINI_HOME/antigravity-acp/`,
+separate from the `agy` CLI's login.
 
 ## High-level mapping to OAR
 
 OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as a frame's `native`; the cross-runtime `events` are what
-OAR read out of it. Control calls are request/response record pairs.
+OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `agy_acp_server` executable | One `agy_acp_server.par --uid=` subprocess per OAR Session on Linux (no args elsewhere), spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
-| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through `session/resume`, which replays nothing, so a resumed stream (seq 0) starts from the reattach. |
-| Handshake answers and opening pushes | `initialize`, `session/new`/`resume`, `session/set_config_option` answers are Frame records with `model` events where they report one; `available_commands_update` arrives after the `session/new` answer and is recorded in arrival order, so `Session.model()` is a fold over the stream. No `authenticate` is sent. |
-| Native agent and turn | Every `session/update` is one event with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier declared `opaque`: a child's activity arrives under the parent's session id with nothing that identifies it as a child. |
-| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is a frame with the `turn_ended` event. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback that a running shell command reaches. |
-| Typed events, history, and child graph | Events for message/tool/model updates; unknown kinds recorded with no events. No usage, reasoning, compaction, or retry frame arrived, so those events never appear. The graph is the root session only. |
-| Client execution and interaction duties | Antigravity runs its own tools: no `terminal/*` or `fs/*` request arrived in any scenario. In `yolo` no `session/request_permission` arrives; in `default` it precedes every shell call. |
+| `agy_acp_server` executable | One `agy_acp_server.par --uid=` subprocess per OAR Session on Linux (no args elsewhere), spawned in the session `cwd` with the env overlay; its exit is an `exited` response record. |
+| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through `session/resume`, which replays nothing. |
+| Handshake answers and opening pushes | Answers are Frame records with `model` events where they report one; pushes are recorded in arrival order, so `Session.model()` is a fold over the stream. No `authenticate` is sent. |
+| Native agent and turn | Every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier `opaque`: a child's activity arrives under the parent's session id with nothing that identifies it as a child. |
+| Prompt, steer, queue and cancel | A turn is one `session/prompt` RPC, its answer carrying `turn_ended`. No steer; `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback that a running shell command reaches. |
+| Typed events, history and child graph | Events for message, tool and model updates; unknown kinds are recorded with no events. No usage, reasoning, compaction or retry frame arrived. The graph is the root session only. |
+| Client execution and interaction duties | Antigravity runs its own tools. In `yolo` no `session/request_permission` arrives; in `default` it precedes every shell call. |
 
-See the [Antigravity profile](../../packages/oar/src/runtimes/antigravity/session.ts),
+Sources: [Antigravity profile](../../packages/oar/src/runtimes/antigravity/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
 [session controller](../../packages/oar/src/shared/acp/session.ts),
 [record placement](../../packages/oar/src/shared/acp/records.ts),
 [turn machinery](../../packages/oar/src/shared/acp/turns.ts),
-[event projection](../../packages/oar/src/shared/acp/projection.ts), and
+[event projection](../../packages/oar/src/shared/acp/projection.ts),
 [client app](../../packages/oar/src/shared/acp/client-app.ts).
-
-ACP `tool_call_update` reports `status: "completed" | "failed"` (ACP schema
-`ToolCallStatus`). OAR maps those explicit statuses to
-`tool_call_ended.result: "ok" | "failed"`; a non-terminal or missing status
-leaves the field absent.
-"Unexposed" means OAR has no mapping; "transport-limited" means the selected
-native boundary already loses the capability; "unverified" means evidence
-is missing.
 
 ## Capability details
 
@@ -72,49 +61,50 @@ is missing.
 
 **What the runtime advertises (1.2.1):** `initialize` answers
 `protocolVersion: 1`, `loadSession: true`, `sessionCapabilities` with `list`
-and `resume` (no `close`), `promptCapabilities` image, audio, and
-embeddedContext, `mcpCapabilities` http + sse, `agentInfo`
-`antigravity-acp` ("Google Antigravity", 1.2.1), an `auth` block offering
-logout, and four auth methods: `oauth-personal`, `oauth-business` (Gemini
-Enterprise), `gemini-api-key`, and `agent-platform` (Vertex). `session/new`
-answers `sessionId`, `modes` (`default` "Default permission prompt flow",
-`auto_edit` "Auto-approve file edit tools", `yolo` "Auto-approve all
-tools"; current `default`), `models`, and two `configOptions`: `model` and
-`mode`. Eleven model ids were offered on a personal login:
-`gemini-3.8-flash`, `gemini-3.7-flash`, and `gemini-3.6-flash`, each at
-`high`, `medium`, and `low`, plus `gemini-pro-agent` ("Gemini 3.1 Pro
-(High)") and `gemini-3.1-pro-low`.
+and `resume` (no `close`), `promptCapabilities` image, audio and
+embeddedContext, `mcpCapabilities` http + sse, `agentInfo` `antigravity-acp`
+("Google Antigravity", 1.2.1), an `auth` block offering logout, and four auth
+methods: `oauth-personal`, `oauth-business` (Gemini Enterprise),
+`gemini-api-key` and `agent-platform` (Vertex). `session/new` answers
+`sessionId`, `modes` (`default` "Default permission prompt flow", `auto_edit`
+"Auto-approve file edit tools", `yolo` "Auto-approve all tools"; current
+`default`), `models`, and two `configOptions`: `model` and `mode`. Eleven
+model ids were offered on a personal login: `gemini-3.8-flash`,
+`gemini-3.7-flash` and `gemini-3.6-flash`, each at `high`, `medium` and
+`low`, plus `gemini-pro-agent` ("Gemini 3.1 Pro (High)") and
+`gemini-3.1-pro-low`.
 
 **Mapped:** OAR launches `agy_acp_server.par --uid=` on Linux, the ACP
 registry's launch line. Without the empty `--uid=` the server drops
 privileges to group `nobody` at startup and, on a host without that group,
 aborts with `Check failed: LookupGIDByGroupName` before speaking ACP.
-Initialize declares `fs` read/write `false`, `terminal: true`, and
-`clientInfo` `oar`. OAR sends no `authenticate`: the server signs in from
-the `auth.type` its own login persisted in
+Initialize declares `fs` read/write `false`, `terminal: true` and
+`clientInfo` `oar`. OAR sends no `authenticate`: the server signs in from the
+`auth.type` its own login persisted in
 `$GEMINI_HOME/antigravity-acp/settings.json` with the cached token, or from
-`GEMINI_API_KEY`; with neither, `session/new` fails with `-32000` and
-session construction rejects. OAR passes `mcpServers: []`, then selects
-`yolo` with `session/set_mode` (answered `{}`) whenever the answer lists it,
-as a mode or as a `mode` config value. A requested model goes through
+`GEMINI_API_KEY`; with neither, `session/new` fails with `-32000` and session
+construction rejects. OAR passes `mcpServers: []`, then selects `yolo` with
+`session/set_mode` (answered `{}`) whenever the answer lists it, as a mode or
+as a `mode` config value. A requested model goes through
 `session/set_config_option {configId: "model"}`: the `session/set_model`
 answer is `{}` and no `config_option_update` is ever pushed, so only the
 config option answer reports the switch. Every opening request has a 30
-second deadline, because a cold start unpacks the Python archive; spawn,
-auth, and creation failures reject session construction with the process
-killed. The opening stream is four records before the first prompt:
-`initialize`, `session/new` (model event), `available_commands_update`
-(`/plan` and `/logout`), and the `session/set_config_option` answer (model
-event, e.g. `gemini-3.8-flash-low`); the `session/set_mode` answer is not a
-frame. Opening takes about 8 s (`basic`).
+second deadline, because a cold start unpacks the Python archive; spawn, auth
+and creation failures reject session construction with the process killed.
+The opening stream is four records before the first prompt: `initialize`,
+`session/new` (model event), `available_commands_update` (`/plan` and
+`/logout`), and the `session/set_config_option` answer (model event, e.g.
+`gemini-3.8-flash-low`); the `session/set_mode` answer is not a frame. Opening
+takes about 8 s (`basic`).
 
-**Resume (mapped):** OAR resumes through `session/resume { sessionId, cwd,
-mcpServers }`, which Antigravity answers without replaying history, so the
-resumed stream opens with `initialize`, the `session/resume` answer (model
-event), `available_commands_update`, and the model switch. The resumed
-session comes back in mode `default`, so OAR applies `yolo` again on every
-open. `Session.id` is the earlier id, and the next prompt recalls what was
-taught before disposal (`resume` scenario: a codeword).
+**Resume (mapped):** OAR resumes through
+`session/resume { sessionId, cwd, mcpServers }`, which Antigravity answers
+without replaying history, so the resumed stream (seq 0) opens with
+`initialize`, the `session/resume` answer (model event),
+`available_commands_update` and the model switch. The resumed session comes
+back in mode `default`, so OAR applies `yolo` again on every open.
+`Session.id` is the earlier id, and the next prompt recalls what was taught
+before disposal (`resume` scenario: a codeword).
 
 ```ts
 const resumed = await antigravityRuntime.session(installation, {
@@ -125,7 +115,7 @@ const next = resumed.prompt("Continue");
 ```
 
 `session/load` (with replay) is advertised and unused. Unknown ids,
-concurrent same id controllers, and continuing in flight work across OAR
+concurrent same-id controllers, and continuing in-flight work across OAR
 subprocesses are **unverified**. Native `session/list` is advertised; OAR
 does not expose it.
 
@@ -133,45 +123,43 @@ does not expose it.
 
 **Prompt (mapped):** `prompt(string)` records a prompt request answered
 `accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
-the transport error when the process is gone). The RPC answer is recorded as
-frame `session/prompt` with the `turn_ended` event; a second `prompt()`
-during a turn is `rejected busy` (`busy-and-late-control`). `InputOptions.images`
-go as ACP `image` blocks before the text, since `initialize` advertises
-`promptCapabilities.image`; delivery to the model is not yet probed live. The
-advertised audio and embedded context support is unused.
+`busy-and-late-control`; `runtime_exited` once the process is gone). The RPC
+answer is recorded as frame `session/prompt` with the `turn_ended` event.
+`InputOptions.images` go as ACP `image` blocks before the text, since
+`initialize` advertises `promptCapabilities.image`; delivery to the model is
+not probed live. The advertised audio and embedded context support is unused.
 
-**Steer (not available on this transport):** the ACP method set has no steer
-operation, so `steer()` is always `rejected not_steerable` and
-`capabilities.steer` is false (`steer`). `steerOrQueue()` therefore lands
-`queued`.
+**Steer (not available on this transport):** ACP has no steer method, so
+`steer()` is always `rejected` (`unsupported`, reason `not_steerable: runtime
+cannot inject into an active turn`) and `capabilities.steer` is false
+(`steer`). `steerOrQueue()` therefore lands `queued`.
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`), drained one input per turn end; the
-drained input runs as a spontaneous turn with its own `session/prompt`
-answer and no prompt request of its own (`queue`). Held input is dropped once
-the runtime is unreachable.
+drained input runs as a spontaneous turn with its own `session/prompt` answer
+and no prompt request of its own (`queue`). Held input is dropped once the
+runtime is unreachable.
 
 **Abort (mapped, fails live with a shell command running):** `abort()` sends
 `session/cancel` (a notification, so the `accepted` answer carries no
 `native`) and is `rejected no active turn` after the turn. While text is
 streaming Antigravity answers the prompt `stopReason: "cancelled"` at once,
-recorded as `turn_ended: aborted`. While a shell command runs it does not:
-in a direct probe the cancelled prompt was answered only when the command
+recorded as `turn_ended: aborted`. While a shell command runs it does not: in
+a direct probe the cancelled prompt was answered only when the command
 finished, 40.1 s after the cancel, with the command's output intact. OAR's
 fallback kills the process when the cancelled prompt is not answered within
 ten seconds, so the live `abort` scenario (a long shell command) ends
 `failed` with `runtime_exited` instead of the runtime's own aborted report,
 and a later `abort()` is `rejected runtime_exited`. The session itself
-survives the kill and can be resumed. The ten second fallback is kept: a
-longer one would hold `abort()` hostage to whatever the command does.
+survives the kill and can be resumed. The ten second fallback stays: a longer
+one would hold `abort()` hostage to whatever the command does.
 
-**Outcomes:** OAR's `turn_ended` event maps `cancelled` to aborted and every
-other stop reason to completed; the answer itself is in the event's
-`native`. Opening with an unknown model makes `session/set_config_option`
-answer an error with the message `Model '<id>' is not available for the
-current authentication method.` and `data {modelId, availableModels}`;
-session construction rejects with that error and no OAR session exists
-(`bad-model`).
+**Outcomes:** `turn_ended` maps `cancelled` to aborted and every other stop
+reason to completed; the answer itself is the event's `native`. Opening with
+an unknown model makes `session/set_config_option` answer an error with the
+message `Model '<id>' is not available for the current authentication
+method.` and `data {modelId, availableModels}`; session construction rejects
+with that error and no OAR session exists (`bad-model`).
 
 **Unreachable runtime:** `close` is not advertised, so `dispose()` mid-turn
 runs the cancel path, then the kill; the process exits with `code: null` and
@@ -184,96 +172,98 @@ later `prompt()` is rejected and a later `dispose()` is answered `accepted`
 
 ### Observation, children, and history
 
-**Mapped:** every update is a frame with `native` verbatim; events carry
-text (`agent_message_chunk` → `text_delta`), tool boundaries, and model
-reports. No `agent_thought_chunk` arrived in any scenario, so no reasoning
-events appear. Detail strings truncate at 10,000 characters (`native` does
-not). `Session.usage()` totals and `contextUsage()` stay empty: Antigravity
-sends no `usage_update` and no token totals on any answer.
+**Mapped:** every update is a frame with `native` verbatim; events carry text
+(`agent_message_chunk` → `text_delta`), tool boundaries and model reports. No
+`agent_thought_chunk` arrived in any scenario, so no reasoning events appear.
+Detail strings truncate at 10,000 characters (`native` does not).
+`Session.usage()` totals and `contextUsage()` stay empty: Antigravity sends no
+`usage_update` and no token totals on any answer.
 
 **Tool frames:** Antigravity executes tools itself. In `yolo` a shell call
 opens with a `tool_call` whose `title` is the command, `kind: "execute"`,
-`status: "in_progress"`, and `rawInput {command_line, working_dir}`, so
+`status: "in_progress"` and `rawInput {command_line, working_dir}`, so
 `tool_call_started` carries the command as `input`. A `completed` update
 follows with `rawOutput {commandLine, workingDir, exitCode, exit_code,
 combinedOutput, formatted_output}`, which becomes `tool_call_ended.output`
-with `result: "ok"` and `exitCode` (`tool-detail`). The `toolCallId` is
-`<sessionId>:<n>`, counting calls within the session. In `default` mode the
-same call is first offered through `session/request_permission` with
-`status: "pending"` and a bare hex `toolCallId`.
+with `result: "ok"` and `exitCode` (`tool-detail`). OAR maps the explicit ACP
+`ToolCallStatus` values `completed` / `failed` to `result: "ok"` /
+`"failed"`; a non-terminal or missing status leaves `result` absent. The
+`toolCallId` is `<sessionId>:<n>`, counting calls within the session. In
+`default` mode the same call is first offered through
+`session/request_permission` with `status: "pending"` and a bare hex
+`toolCallId`.
 
-**Children (opaque):** the model starts a child through the
-`start_subagent` tool. The parent's `tool_call` ("Running start_subagent",
-`kind: "other"`, `rawInput {}`) completes at once with `rawOutput` "Invoke
-subagent"; the child's tool calls then arrive under the parent's session id
-with `toolCallId` `<childId>:<n>`, and the child's text is interleaved into
-the parent's `agent_message_chunk` stream. Nothing on the wire says a frame
+**Children (opaque):** the model starts a child through the `start_subagent`
+tool. The parent's `tool_call` ("Running start_subagent", `kind: "other"`,
+`rawInput {}`) completes at once with `rawOutput` "Invoke subagent"; the
+child's tool calls then arrive under the parent's session id with
+`toolCallId` `<childId>:<n>`, and the child's text is interleaved into the
+parent's `agent_message_chunk` stream. Nothing on the wire says a frame
 belongs to the child except that `toolCallId` prefix, which is not a
-documented link, so OAR keeps everything on the root and adds no graph node
-or edge (`subagent`: one node, no edges, about 67 s). No child usage is
+documented link, so OAR keeps everything on the root and adds no graph node or
+edge (`subagent`: one node, no edges, about 67 s). No child usage is
 reported.
 
-**History:** the retained stream backs `subscribe(observer, cursor)` for the
+**History:** the retained stream backs `rawEvents(observer, cursor)` for the
 life of the process (`cursor`); OAR enumerates no native history.
 
 ### Models, instructions, and context
 
-**Mapped:** open time model selection (`SessionOptions.model` →
+**Mapped:** open-time model selection (`SessionOptions.model` →
 `session/set_config_option {configId: "model"}`), read back from the answer's
 `configOptions`, never from the request parameter. The server has no model
 list method, so `listModels` (and `oar models antigravity`) opens a throwaway
 session and reads the options of its `model` config option; the process is
 then killed, since there is no `session/close`. No entry carries effort
-levels (see below).
+levels.
 
 **Effort (not a separate setting):** effort is folded into the model id, so
 pick `gemini-3.8-flash-high` rather than setting effort. There is no
 `thought_level` option; a `session/set_config_option` on one answers
-`-32602`. `SessionOptions.effort` is not mapped and no `effort` event
-appears.
+`-32602`. `SessionOptions.effort` is not mapped: OAR refuses the open because
+no `thought_level` option is advertised, and no `effort` event appears.
 
 The OAR profile rejects `systemPrompt` and `appendSystemPrompt` because
 Antigravity's ACP exposes no override.
 
 **Context (unexposed by the runtime):** no frame carries context occupancy,
-so `contextUsage()` stays empty. Antigravity advertises no compaction
-through ACP.
+so `contextUsage()` stays empty. Antigravity advertises no compaction through
+ACP.
 
 ### Tools, permissions, and extensions
 
-Antigravity runs shell, file, and search tools itself, so OAR's terminal
-host is never called. OAR passes no MCP servers; vendor configured tools can
-still run.
+Antigravity runs shell, file and search tools itself: no `terminal/*` or `fs/*`
+request arrived in any scenario, so OAR's terminal host is never called. OAR passes no MCP servers; vendor-configured tools can still
+run.
 
 In `yolo` no `session/request_permission` arrived in any scenario. If a
 session cannot be put in `yolo` (the mode is missing from the answer), the
 agent asks through `session/request_permission`, which OAR answers with
-`allow_always`, then `allow_once`, otherwise `cancelled`; in a direct probe
-in `default` mode the request offered allow once options and the call ran
-after the answer. That path is **unverified** through OAR.
+`allow_always`, then `allow_once`, otherwise `cancelled`; in a direct probe in
+`default` mode the request offered allow-once options and the call ran after
+the answer. That path is **unverified** through OAR.
 
 ### Process ownership, installation, and account usage
 
-**Mapped:** OAR owns the spawned process. Disposal cancels active work,
-kills the process (no `session/close` is advertised), and disposes hosted
+**Mapped:** OAR owns the spawned process. Disposal cancels active work, kills
+the process (no `session/close` is advertised), and disposes hosted
 terminals; a dispose after an observed exit is answered `accepted` without
 further work. On POSIX the process leads its own process group, and a runtime
 still running a grace period after SIGTERM (10 s, or `OAR_KILL_GRACE_MS`) is
-SIGKILLed with its group. It does not delete persisted native sessions.
+SIGKILLed with its group. Persisted native sessions are not deleted.
 
 [Installation detection](../../packages/oar/src/runtimes/antigravity/installation.ts)
 checks `OAR_ANTIGRAVITY_BIN` and PATH `agy_acp_server.par`
 (`agy_acp_server.exe` on Windows), reading `Build label: <version>` from
 `--version` with a 30 second timeout. The ACP registry ships a zip with no
-installer, so there is no fallback path: put the binary on PATH or name it
-in `OAR_ANTIGRAVITY_BIN`.
+installer, so there is no fallback path: put the binary on PATH or name it in
+`OAR_ANTIGRAVITY_BIN`.
 
-**Account terms (caveat):** the vendor FAQ warns that using a personal
-Google account from third party tools may violate the terms of service and
-can lead to account suspension, and recommends an API key or Vertex
-instead. The evidence above was gathered on a personal login. For anything
-beyond evaluation, sign the server in with `gemini-api-key` or
-`agent-platform`.
+**Account terms (caveat):** the vendor FAQ warns that using a personal Google
+account from third-party tools may violate the terms of service and can lead
+to account suspension, and recommends an API key or Vertex instead. The
+evidence above was gathered on a personal login. For anything beyond
+evaluation, sign the server in with `gemini-api-key` or `agent-platform`.
 
 Account usage is **unexposed**: OAR has no Antigravity account usage query.
 
@@ -281,21 +271,21 @@ Account usage is **unexposed**: OAR has no Antigravity account usage query.
 
 [`experiments/live-contract.ts antigravity`](../../experiments/live-contract.ts)
 covers the promises above on a real login: `basic`, `multi-turn`,
-`tool-detail`, `busy-and-late-control`, `steer`, `queue`, `abort` (fails,
-see above), `dispose-mid-turn`, `cursor`, `resume`, `subagent`,
-`kill-runtime`, `bad-model`.
+`tool-detail`, `busy-and-late-control`, `steer`, `queue`, `abort` (fails, see
+above), `dispose-mid-turn`, `cursor`, `resume`, `subagent`, `kill-runtime`,
+`bad-model`.
 [Antigravity tests](../../tests/acp/acp-session-antigravity.test.ts) use a
 fake executable for the missing `authenticate`, `yolo` on new and resumed
 sessions, dispose without `session/close`, the model switch readback and
-refused effort, a turn that ends with no usage report, the Linux only
+refused effort, a turn that ends with no usage report, the Linux-only
 `--uid=`, and the system prompt refusal. The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes
 Antigravity.
 
 Open gaps: cancelling a running shell command (the vendor waits for the
-command; OAR kills after ten seconds), child attribution (the transport
-carries none), any usage or context report, the permission path through
-OAR, `session/list` and `session/load`, unknown resume ids, concurrent same
-id controllers, and macOS and Windows installation. Keep native API
-capabilities, transport limitations, OAR omissions, and unexecuted checks
-separate when designing or claiming support.
+command; OAR kills after ten seconds); child attribution (the transport
+carries none); any usage or context report; the permission path through OAR;
+`session/list` and `session/load`; unknown resume ids; concurrent same-id
+controllers; macOS and Windows installation. Keep native API capabilities,
+transport limitations, OAR omissions and unexecuted checks separate when
+designing or claiming support.

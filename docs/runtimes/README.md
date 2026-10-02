@@ -1,29 +1,20 @@
 # Runtime knowledge
 
-The primary subject is each runtime's **programming interface for calling an
-agent**: which operation to call, with what input and identity, what its result
-means, and what the caller can observe or control afterward. Native concepts
-explain those contracts; internals matter where they explain API behavior.
+The subject is each runtime's **programming interface for calling an agent**:
+which operation to call, with what input and identity, what its result means,
+and what the caller can observe or control afterward. Native concepts explain
+those contracts; internals matter where they explain API behavior.
 
 These pages connect **native concepts and calling surfaces → high-level OAR
-mapping → per-feature details and evidence**. They support abstraction design as well
-as adapter maintenance. A runtime can be useful design input even when it is
-not an OAR backend or prospective consumer.
+mapping → per-feature details and evidence**. They serve abstraction design as
+well as adapter maintenance, so a runtime can be useful design input even when
+it is not an OAR backend or prospective consumer.
 
 ## Pages
 
 Daily maintenance: [version inventory and latest probe results](../../experiments/runtime-version-checks/2026-10-02.md).
 Run `pnpm tsx experiments/runtime-versions.ts` to compare stable releases
 with the installed CLIs and bundled Pi SDK before selecting live probes.
-
-Cross-runtime investigation: [native skills, MCP and tools inventories](inventory.md)
-(local probes, 2026-09-16); [live model and effort changes](live-configure.md)
-(local probes, 2026-09-29: what changes a running session's model or
-effort without a restart, and how it meets each adapter's queue); [runtime updaters](update.md) (sandbox probes,
-2026-10-01: how each runtime updates itself and how its updater can claim
-success without upgrading); [crash and resume](crash-resume.md) (live probes,
-2026-10-02: what claude, codex and pi keep when the process tree dies mid tool
-call, and what they do by themselves on reopen).
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|
@@ -37,20 +28,27 @@ call, and what they do by themselves on reopen).
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
 | [OpenAI Agents API](agents-api.md) | **Reference only; no OAR adapter** | Managed Codex harness over HTTP: session/turn/item model, input events as control, no-replay stream, environment as a separate object, subagent attribution fields |
 
+Cross-runtime investigations:
+
+- [Steer, queue and cancellation](input-cancellation.md) (local probes without model turns, 2026-09-16): native withdrawal surfaces, adapter-held queues, abort semantics.
+- [Steer delivery](steer-delivery.md) (scripted-provider probes, 2026-09-16): what each runtime echoes for a steer and how the echo correlates with the input.
+- [Native skills, MCP and tool inventories](inventory.md) (local probes, 2026-09-16): what each runtime's own discovery calls return.
+- [Live model and effort changes](live-configure.md) (local probes, 2026-09-29): native setters that change a running session without a restart, and the adapter queues they meet.
+- [Runtime updaters](update.md) (sandbox probes, 2026-10-01): how each runtime updates itself and how its updater can claim success without upgrading.
+- [Crash and resume](crash-resume.md) (live probes, 2026-10-02): what claude, codex and pi keep when the process tree dies mid tool call, and what they do by themselves on reopen.
+
 Live-probe investigations of runtimes without an adapter live under
 [`investigations/`](investigations/README.md): currently
 [opencode](investigations/opencode.md) and [goose](investigations/goose.md).
-They are reference only and follow the same evidence conventions as the pages
-above.
+They are reference only and follow the same evidence conventions.
 
-The first review is dated **2026-09-08**, against OAR **`9b102d0`**. Each page
-records its own native source, documentation, and observed binary versions.
-Those versions are evidence baselines, not a declared support range. This
-documentation review did not run new runtime tests or model calls.
+Each page records its own native source, documentation and observed binary
+versions (first review 2026-09-08, OAR `9b102d0`). Those versions are evidence
+baselines, not a declared support range.
 
 ## Read the mappings precisely
 
-These are documentation labels, not a new capability API:
+These are documentation labels, not a capability API:
 
 | Status | Meaning |
 |---|---|
@@ -63,9 +61,9 @@ These are documentation labels, not a new capability API:
 
 Keep three layers distinct in every capability row: what the native runtime
 can do, what its selected interface reveals, and what OAR actually carries.
-For example, native session persistence does not imply OAR history replay;
-having a `contextUsage()` method does not prove that cumulative token counts
-measure current context occupancy.
+Native session persistence does not imply OAR history replay; a
+`contextUsage()` method does not prove that cumulative token counts measure
+current context occupancy.
 
 ## Evidence discipline
 
@@ -102,28 +100,27 @@ measure current context occupancy.
 6. What evidence validates those claims, and which focused probe would settle
    the most consequential remaining uncertainty?
 
-For **resume**, always distinguish these questions: which token is persisted
-and where it is valid; whether the call loads history, attaches to running
-work, starts a continuation, or replays events; whether new prompt submission
-is separate; what configuration is restored or overridden; and what happens
-on missing identity, concurrent controllers, or an ambiguous response. Do
-not infer one guarantee from another simply because the method is named
-`resume`.
+For **resume**, always distinguish: which token is persisted and where it is
+valid; whether the call loads history, attaches to running work, starts a
+continuation, or replays events; whether new prompt submission is separate;
+what configuration is restored or overridden; and what happens on missing
+identity, concurrent controllers, or an ambiguous response. Do not infer one
+guarantee from another because the method is named `resume`.
 
-Use this page structure consistently:
+Page structure:
 
-1. **Native concepts and calling interfaces.** Introduce the runtime's own
-   objects and lifetimes, then the available SDK/CLI/protocol entry points.
-2. **High-level mapping to OAR.** Show how native objects, identities, control,
-   and observation correspond to OAR. Keep this small enough to orient the
-   reader before individual operations.
-3. **Capability details.** Use separate subsections for creation/resume,
+1. **Native concepts and calling interfaces.** The runtime's own objects and
+   lifetimes, then the available SDK/CLI/protocol entry points.
+2. **High-level mapping to OAR.** How native objects, identities, control,
+   and observation correspond to OAR, small enough to orient the reader
+   before individual operations.
+3. **Capability details.** Separate subsections for creation/resume,
    prompt/steer/queue, cancellation/release, events/history/children,
    models/context, tools/permissions, and other relevant features. Each
-   subsection connects the native API, OAR mapping, limits, and evidence.
-4. **Evidence and verification.** Record source/observed versions, existing
-   tests, and unresolved questions. A short review baseline may appear at
-   the top; it should not displace the conceptual introduction.
+   connects the native API, OAR mapping, limits, and evidence.
+4. **Evidence and verification.** Source/observed versions, existing tests,
+   and unresolved questions. A short review baseline may appear at the top;
+   it should not displace the conceptual introduction.
 
 Keep broader runtime design brief and tied to caller-visible behavior. Do not
 force every runtime into an identical internal taxonomy or reproduce its
@@ -133,29 +130,20 @@ comparison explicitly as unimplemented.
 ## Where this fits and how to maintain it
 
 [`../design/`](../design/README.md) records OAR's design reasoning;
-[`../spec/`](../spec/README.md) is the record-stream contract the
-adapters implement. These runtime pages record native facts and **current
-implementation** (which native frames become which records and events,
-which controls are which requests, what each adapter declares in
-`capabilities`) and may expose reasons to revisit either. A contract
-guarantee is not evidence that a particular adapter honors it live; the
-evidence sections say what was verified.
-[`experiments/`](../../experiments/README.md) keeps reproducible live probes;
-[`sea-trial/`](../../sea-trial/README.md) explains ongoing behavior validation;
-the [source index](../../packages/oar/src/README.md) identifies implementation
-ownership.
+[`../spec/`](../spec/README.md) is the record-stream contract the adapters
+implement. These runtime pages record native facts and **current
+implementation** (which native frames become which records and events, which
+controls are which requests, what each adapter declares in `capabilities`)
+and may expose reasons to revisit either. A contract guarantee is not
+evidence that a particular adapter honors it live; the evidence sections say
+what was verified. [`experiments/`](../../experiments/README.md) keeps
+reproducible live probes; [`sea-trial/`](../../sea-trial/README.md) explains
+ongoing behavior validation; the [source index](../../packages/oar/src/README.md)
+identifies implementation ownership.
 
 When an adapter change, dependency upgrade, or probe changes a mapping, update
 its page in the same commit. Preserve uncertainty until new evidence resolves
 it; replace stale conclusions rather than building a chronological diary.
 Adding a runtime page updates this index and the root knowledge index.
 Follow the [development workflow](../development.md) for implementation and
-validation. These pages inform that work; they do not replace its tests.
-
-## Input cancellation
-
-[Steer, queue and cancellation](input-cancellation.md) compares native surfaces,
-adapter-owned queues, abort semantics and the remaining verification gaps.
-
-[Steer delivery and conversation reconstruction](steer-delivery.md) records
-request/response shapes, native identity probes and proposed consumer support.
+validation; these pages inform that work and do not replace its tests.
