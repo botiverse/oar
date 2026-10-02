@@ -19,6 +19,7 @@ the linked findings.
 | `claude-stream-json-phases.ts` | A multi-step turn absorbs mid-turn input at the next step boundary (a steer); isolation, continuity, FIFO. | [claude] | 2026-08-21, claude 2.1.237 |
 | `claude-session-adapter.ts` | Adapter path: the steer folds into the turn, abort ends it exactly once, busy invariant. | [claude] | 2026-08-21, claude 2.1.237 |
 | `codex-handshake.ts` | app-server `initialize` handshake shape. | [codex] | 2026-08-06, codex 0.144.6 |
+| `codex-concurrent-startup.ts <native-binary> [width] [rounds]` | Direct native startup with fresh shared, fresh isolated, initialized shared and serial-start homes; no login or model turn. | [findings](codex-concurrent-startup.md) | 2026-10-02, codex 0.160.0 Linux: 21/24 fresh-shared failures; each control 24/24 initialized |
 | `codex-session-adapter.ts` | Adapter path on codex: steer fold, abort, busy. | [codex] | 2026-08-21, codex 0.148.0 |
 | `codex-instant-interrupt.ts` | The native opt-in preempts sampling or yields code-mode cells through the existing OAR steer; queue, abort, direct tools and unfinished assistant items stay distinct. | [findings](codex-instant-interrupt.md) | 2026-09-29, codex 0.159.0: seven controlled cases with a local provider |
 | `acp-runtime.ts <grok\|kimi>` | Public adapter path: ACP handshake, shell-tool event lifecycle, text framing, and both account-usage readers. | [grok], [kimi] | grok 1.0.5 (2026-08-27); kimi 2.0.0 (2026-09-18) |

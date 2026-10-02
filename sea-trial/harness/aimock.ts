@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
-import { resolveExecutable, spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
+import { warmCodexHome } from "./codex-home.js";
 import { startRawCapture, type RawCapture, type RawProviderRequest } from "./raw-capture.js";
 
 export type { LLMock } from "@copilotkit/aimock";
@@ -114,8 +114,7 @@ export async function startCodexAimock(
   // fast (observed: "failed to initialize sqlite state runtime"). One
   // throwaway app-server does the heavy init; the suite then behaves like a
   // long-lived home.
-  await warmCodexHome(env);
-  return {
+  const result: AimockEnv = {
     env,
     mock,
     raw: capture?.requests ?? [],
@@ -131,38 +130,13 @@ export async function startCodexAimock(
       }
     },
   };
-}
-
-async function warmCodexHome(env: Readonly<Record<string, string>>): Promise<void> {
-  // Resolve + spawn through the shared executable layer for the Windows
-  // details (npm shims are .cmd files a raw spawn can't start). If codex is
-  // not installed at all, skip warming; the suite itself will skip later.
-  const command = resolveExecutable("codex");
-  if (command === null) {
-    return;
-  }
-  const child = spawnLineProcess(command, ["app-server", "--listen", "stdio://"], {
-    env: { ...process.env, ...env },
-  });
   try {
-    await child.spawned;
-  } catch {
-    return;
+    await warmCodexHome(env);
+    return result;
+  } catch (error) {
+    await result.stop();
+    throw error;
   }
-  child.write(`${JSON.stringify({
-    id: 1,
-    method: "initialize",
-    params: { clientInfo: { name: "oar-warmup", version: "0.0.0" }, capabilities: { experimentalApi: true } },
-  })}\n`);
-  // Blind 2.5s on purpose. The response-driven version (initialize response
-  // + 800ms grace) reintroduced the fresh-home init race on cold CI runners:
-  // the response lands before the skills install finishes and fast-cycling
-  // sessions then crash with "app-server exited" (CI run 32615648735).
-  await new Promise((resolve) => {
-    setTimeout(resolve, 2500);
-  });
-  child.kill();
-  await child.exited;
 }
 
 export async function startPiAimock(

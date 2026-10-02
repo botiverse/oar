@@ -119,6 +119,8 @@ Artifact upload warns when no trace directory was created; the failed test
 or startup step still fails the job. Codex RPC exit errors also retain a
 bounded stderr tail without this setting, so use that evidence before
 changing a timeout or assertion to address an intermittent startup failure.
+Installation readiness and `--version` execution failures retain the native
+error, signal, timeout, exit code and stderr tail in their exception too.
 
 ### Live: does the strong claim hold on the real runtime?
 

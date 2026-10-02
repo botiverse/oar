@@ -494,6 +494,13 @@ MCP-only (2026-09-16; [query contract](../spec/inventory.md),
 
 ### Process ownership, installation, and account usage
 
+Native 0.160.0 can fail SQLite initialization when several processes first
+open a fresh shared `CODEX_HOME`: a direct Linux probe failed 21/24 starts,
+while independent homes, a completed prior initialization, and serial starts
+each initialized 24/24. This does not establish the cause of similar Windows
+CI failures. [Reproduction and limits](../../experiments/codex-concurrent-startup.md),
+[upstream issue](https://github.com/openai/codex/issues/50290).
+
 **Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
 the exit because the process may hold state (codex's sqlite runtime in
 `CODEX_HOME`) that the next session needs released. On POSIX the app-server
