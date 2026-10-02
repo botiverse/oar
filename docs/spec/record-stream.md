@@ -4,13 +4,13 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-**Why this must be fixed first:** a design that pushes the control flow
-(prompt / steer / queue / abort / dispose commands and their replies) and the fact
-flow (what the runtime actually said) through one model lets the control
-plane trim, synthesize, and constrain the facts: whether a fact exists then
-depends on whether the object model is still alive. That is a protocol-level
-defect: attribution, the session graph, and the cursor cannot be built on a
-foundation that loses facts.
+Control (prompt / steer / queue / abort / dispose and their replies) and
+facts (what the runtime actually said) are records on one stream, and
+control never decides whether a fact exists. A model that pushes both
+through control objects lets the control plane trim, synthesize, and
+constrain facts, so whether a fact exists depends on whether an object is
+still alive. Attribution, the session graph, and the cursor cannot be built
+on a stream that loses facts.
 
 ## Evidence A: five ways a control-shaped event model loses facts
 
@@ -20,64 +20,63 @@ foundation that loses facts.
 - **A closed control plane swallows facts**: an `if (!isSettled) fanOut(...)`
   gate silently drops runtime events arriving after settlement.
 - **A mandatory `turnId` loses facts without a turn**: pi's session-level
-  events (compaction / queue / retry, …) belong to no turn and would have
+  events (compaction, queue, retry) belong to no turn and would have
   nowhere to go.
-- **One answer split across two paths**: a turn outcome half in a promise and
-  half in an event, a steer landing half in a return value and half in the
+- **One answer split across two paths**: a turn outcome half in a promise
+  and half in an event, or a steer half in a return value and half in the
   stream, forces every consumer to join the two.
-- **Query masquerade**: a `contextUsage()` that is a cached snapshot of the
-  latest usage seen carries no seq, so it can neither be aligned with other
-  records nor replayed.
+- **Query masquerade**: a `contextUsage()` that caches the latest usage seen
+  carries no seq, so it can neither be aligned with other records nor
+  replayed.
 
 ## Evidence B: why the fix is *not* "split into two channels"
 
 Every shipped runtime does this in a single channel:
 
-- kimi-cli's entire message algebra is one union whose discriminator is
-  "does it expect a reply": `type WireMessage = Event | Request`, with the
-  `Request` docstring verbatim "a message that expects a response". On the
-  wire the difference is only message shape (event has no id / request has
-  an id); one `_write_queue`, one `wire.jsonl` holds everything.
+- kimi-cli's message algebra is one union whose discriminator is "does it
+  expect a reply": `type WireMessage = Event | Request`, the `Request`
+  docstring verbatim "a message that expects a response". On the wire only
+  the shape differs (a request has an id); one `_write_queue` and one
+  `wire.jsonl` hold everything.
   [src: kimi-cli@cbc15c0 wire/types.py; wire/jsonrpc.py:49-56,174-204;
   wire/server.py; wire/file.py]
-- KLIP-12 explicitly lists "no new transport channel" as a non-goal.
+  KLIP-12 lists "no new transport channel" as a non-goal.
   [doc: klip-12, Implemented]
-- codex is isomorphic: `OutgoingMessage` carries notification / request /
-  response on one connection.
-  [src: codex-rs/app-server/src/outgoing_message.rs:1-80]
-- kimi-cli routes sub-agent records **by obligation** (request-class
-  records passed through verbatim, the rest wrapped as `SubagentEvent`):
-  same channel, same send. Independent corroboration that the split is by
-  obligation, not by channel. [src: subagents/runner.py:393-428]
-- Total order is what channel-splitting cannot buy back: two paths share
-  no seq, so "did the abort land before or after that tool_result" becomes
-  permanently unanswerable.
+- codex: `OutgoingMessage` carries notification / request / response on
+  one connection. [src: codex-rs/app-server/src/outgoing_message.rs:1-80]
+- kimi-cli routes sub-agent records **by obligation** (request-class records
+  passed through verbatim, the rest wrapped as `SubagentEvent`) on the same
+  channel and send: the split is by obligation, not by channel.
+  [src: subagents/runner.py:393-428]
+
+Total order is what channel-splitting cannot buy back: two paths share no
+seq, so "did the abort land before or after that tool_result" becomes
+permanently unanswerable.
 
 ## The rules
 
 **frame**: the runtime's own words. Expects no reply; append-only;
-monotonic seq. oar never synthesizes a frame. Turn boundaries, the one
-tempting synthesis case, have real replacements: the turn's start *is* the
+monotonic seq. oar never synthesizes a frame. The turn's start *is* the
 prompt request itself, and its end is the runtime's own completion event
 (claude's `result`, codex's `turn/completed`); if a runtime doesn't report
-one, it is honestly absent. No oar-made facts exist in the stream, so
-there is no origin self-disclosure label.
+one, it is honestly absent. No oar-made facts exist in the stream, so there
+is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: prompt / steer / queue / abort / dispose. runtime→app: approvals,
-questions, external tools. `direction` is needed because toApp request
-bodies are runtime verbatim with an open vocabulary: the
-server must decide "does the app need to answer this" without
-understanding the body, and only `direction` makes that possible.
+app→runtime: prompt / steer / queue / abort / dispose. runtime→app:
+approvals, questions, external tools. toApp request bodies are runtime
+verbatim with an open vocabulary, so `direction` is the only way a server
+can decide "does the app need to answer this" without understanding the
+body.
 
 **response**: must point at a request (`requestId`); the reverse is not
 guaranteed. A response exists *only* when oar observed an outcome the
 runtime will not say itself (e.g. the process exit code after a dispose).
-Outcomes the runtime does say (a prompt completing) are answered by its
-own frames, and oar adds no echoing response; otherwise the synthesized
-`turn_ended` returns under a new name. A request without a response is an
-honest record: the action was initiated and the outcome was not observed
-(crash, oar itself killed). Backfilling a guessed response is forbidden.
+Outcomes the runtime does say (a prompt completing) are answered by its own
+frames, and oar adds no echoing response (it would be a synthesized
+`turn_ended` under a new name). A request without a response is an honest
+record: the action was initiated and the outcome was not observed (crash,
+oar itself killed). Backfilling a guessed response is forbidden.
 
 Further rules:
 
@@ -87,9 +86,9 @@ Further rules:
 - **Reachability is read off the stream.** Once the stream holds an
   `exited` response (the runtime is gone) or a `dispose` request (the
   session is being released), every later prompt / steer / queue / abort
-  request is rejected (`runtime exited` / `session disposed`) by the shared
-  kernel before any adapter code runs: no adapter keeps a private "is it
-  alive" flag. `dispose` is the one control that still goes through after an
+  request is rejected (`runtime_exited` / `disposed`) by the shared kernel
+  before any adapter code runs: no adapter keeps a private "is it alive"
+  flag. `dispose` is the one control that still goes through after an
   observed exit: it is recorded and answered `accepted` at once (nothing is
   left to release), so a session whose runtime died on its own still ends
   with an answered dispose rather than a dangling one.
@@ -101,24 +100,39 @@ Further rules:
   turn outcome into `_handle_prompt`'s return value, while the `TurnEnd`
   docstring admits it "may be omitted" when interrupted.
   [src: wire/server.py:644-755; wire/types.py]
-- **A turn is a span on the stream, not a control object.** The envelope
-  carries an optional `spanId` holding only runtime-native ids (red line in
-  [runtime-matrix.md](runtime-matrix.md)); records without a native turn id,
-  such as pi's session-scoped frames, simply have none.
+- **A turn is a span on the stream, not a control object.** The envelope's
+  optional `spanId` holds only runtime-native ids (red line in
+  [runtime-matrix.md](runtime-matrix.md)); records without a native turn
+  id, such as pi's session-scoped frames, have none.
 - **Query is a projection over the stream.** `model()`, `effort()`,
-  `usage()`, `contextUsage()` and `status()` are folds over the retained records and
-  return `{ value, seq }`; `seq` is the last record consumed, or `-1` before
-  any record. `status()` is the one the control decisions must agree with: a
-  prompt recorded while it says `running` is rejected `busy`, and one
-  recorded while it says `idle` never is.
+  `usage()`, `contextUsage()` and `status()` are folds over the retained
+  records and return `{ value, seq }`; `seq` is the last record consumed,
+  or `-1` before any record. `status()` is the one the control decisions
+  must agree with: a prompt recorded while it says `running` is rejected
+  `busy`, and one recorded while it says `idle` never is.
+- **Folds scope to the root session.** A derived child session's records
+  (own `sessionId`, a node in `graph()`) never satisfy the folds or
+  `awaitTurnEnd`. On codex the child's `turn/completed` was observed
+  arriving before the root's ([env] 0.149.0), and the child's cumulative
+  usage would otherwise overwrite the root's under `agentPath []`. Scope a
+  fold to a child by passing its `sessionId` (`usageOf(records, sessionId)`).
+- **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
+  `"failed"`) is present only when the runtime explicitly reports the
+  outcome; oar never infers it from output, exit codes, or timing.
+  `exitCode` follows the same rule for the process status of a command the
+  runtime ran: present only when the runtime reported one (codex, grok),
+  `null` when it reported a signal exit, absent otherwise (claude and pi
+  report none). `output` is the result's text when the frame carries text
+  parts, otherwise its JSON. Per-runtime sources are in
+  [runtime-matrix.md](runtime-matrix.md#tool-outcomes).
 
 ## Record contracts
 
 ```ts
 type RecordKind = "frame" | "request" | "response";
-// kind is theoretically derivable from field shape (kimi-cli's wire
-// distinguishes by the presence of id), but TS discriminated unions need
-// an explicit discriminant, kept as the one deliberate convenience field.
+// Derivable from field shape (kimi-cli's wire tells them apart by the id),
+// but a TS discriminated union needs an explicit discriminant: the one
+// deliberate convenience field.
 
 type RawEvent = Frame | RequestRecord | ResponseRecord;  // one record of the stream
 
@@ -127,7 +141,7 @@ interface RecordEnvelope {
   agentPath: readonly string[]; // attribution + sub-agent lineage; [] = root
   spanId?: string;              // runtime-native turn id, optional; oar never generates it
   seq: number;                  // total order per stream, cursor anchor; record identity rests on seq alone
-  receivedAt: number;           // best-effort observation time, outside the determinism guarantee
+  receivedAt: number;           // Unix epoch ms at adapter ingress; best-effort, outside the determinism guarantee
 }
 
 interface Frame extends RecordEnvelope {
@@ -140,28 +154,30 @@ interface FrameBody {
   native: unknown;              // the frame as the runtime sent it, never trimmed or re-shaped
   events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
 }
-// RuntimeEventBody: text_delta | reasoning | tool_call_started |
-// tool_call_progress {callId, output?} |
-// tool_call_ended {callId, output?, result?: "ok" | "failed", exitCode?: number | null} |
-// turn_ended {outcome} | usage {context?, tokens?} | model {model} |
-// effort {effort} |
-// compaction_started {trigger?} |
-// compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
-// retry {attempt, maxAttempts?, delayMs?, reason?} |
-// task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
-// task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
-// task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}.
+// RuntimeEventBody:
+//   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
+//   text_delta {text} | reasoning {content} |
+//   tool_call_started {callId, tool, input?} |
+//   tool_call_progress {callId, output?} |
+//   tool_call_ended {callId, output?, result?: "ok" | "failed", exitCode?: number | null} |
+//   turn_ended {outcome} | usage {usage: {context?, tokens?}} | model {model} |
+//   effort {effort} |
+//   compaction_started {trigger?} |
+//   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
+//   retry {attempt, maxAttempts?, delayMs?, reason?} |
+//   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
+//   task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
+//   task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
-// three events) and one frame must stay one record; splitting it would
+// three events) and one frame must stay one record: splitting it would
 // duplicate `native`, merging frames would lose the runtime's own framing.
-// `Session.events()` delivers those three as three Events sharing the seq.
 
 interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // prompt | steer | queue | abort | dispose | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // prompt | steer | queue {input, inputId?, images?, origin?} | abort | dispose | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -179,53 +195,36 @@ interface ResponseRecord extends RecordEnvelope {
 
 The control surface that produces these records (`Session.prompt / steer /
 queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
-`graph()`, and the folds `model() / effort() / usage() / contextUsage() /
-status()`) is
-documented on the contract itself. An adapter's `prompt / steer / queue /
-abort` return both records they appended (`ControlResult`); the `Session` a
-consumer holds returns them read (`ControlOutcome`): `kind` is `accepted` or
-`rejected` (the two answers a toRuntime control can get), a rejection has
-its `code` and `reason` at hand, `seq` is the request's position in the
-stream (what `awaitTurnEnd` takes), and `request` / `response` are still the
-records themselves. `dispose()` returns void: its request and the `exited`
-response are read from the stream like everything else. The turn helpers
-build on this: `promptAndWait(session, input, { timeoutMs?, signal? })`
-prompts and waits for the runtime's own turn end (aborting when a limit
-fires, and reporting that as `interrupted` with the runtime's outcome), and
-`awaitIdle(session)` waits for the running turn, if any, to end.
-Each query returns `{ value, seq }`, with `seq` identifying the last record
-consumed by its fold (or `-1` before any record). A `tool_call_ended` event may
-carry `result: "ok" | "failed"` only when the runtime explicitly reports the
-outcome; oar never infers it from output, exit codes, or timing. When no
-runtime outcome is present, the key is absent. `exitCode` follows the same
-rule for the process status of a command the runtime ran: present only when
-the runtime reported one (codex, grok), `null` when it reported a signal
-exit, absent otherwise (claude and pi report none). `output` is the
-result's text when the frame carries text parts, otherwise its JSON.
-The folds, and `awaitTurnEnd`, scope to the ROOT session: a derived child
-session's records (own `sessionId`, a node in `graph()`) never satisfy
-them. On codex the child's `turn/completed` was observed arriving before
-the root's ([env] 0.149.0), and the child's cumulative usage would
-otherwise overwrite the root's under `agentPath []`. Scope a fold to a
-child by passing its `sessionId` (`usageOf(records, sessionId)`).
+`graph()`, and the folds) is documented on the contract itself. An
+adapter's `prompt / steer / queue / abort` return both records they
+appended (`ControlResult`); the `Session` a consumer holds returns them read
+(`ControlOutcome`): `kind` is `accepted` or `rejected` (the two answers a
+toRuntime control can get), a rejection has its `code` and `reason` at
+hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
+takes), and `request` / `response` are still the records themselves.
+`dispose()` returns void: its request and the `exited` response are read
+from the stream like everything else. The turn helpers build on this:
+`promptAndWait(session, input, { timeoutMs?, signal? })` prompts and waits
+for the runtime's own turn end (aborting when a limit fires, and reporting
+that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
+waits for the running turn, if any, to end.
 
 ## The Event layer: the consumer face, a projection over the stream
 
-Most consumers do not want records; they want the facts. `Session.events()`
-delivers them as flat `Event`s, and it is the surface to start with;
-`rawEvents()` and `records()` are the stream itself, for when the native
-frame matters.
+Most consumers want the facts, not records. `Session.events()` delivers
+them as flat `Event`s and is the surface to start with; `rawEvents()` and
+`records()` are the stream itself, for when the native frame matters.
 
 ```ts
 type Event = EventBody & RecordEnvelope;      // one attributed fact
 type EventBody = RuntimeEventBody | ControlEventBody;
 // ControlEventBody, read off request/response records so the consumer
 // never handles record kinds:
-//   turn_started {requestId, input}              ← a prompt request
-//   control_rejected {requestId, action, reason} ← a rejected response
-//   app_request {requestId, type}                ← a toApp request
-//   app_answered {requestId}                     ← an answered response
-//   exited {code}                                ← an exited response
+//   turn_started {requestId, input}                    ← a prompt request
+//   control_rejected {requestId, action, code, reason} ← a rejected response
+//   app_request {requestId, type}                      ← a toApp request
+//   app_answered {requestId}                           ← an answered response
+//   exited {code}                                      ← an exited response
 ```
 
 Which runtimes say which kinds (runtime pages hold the evidence):
@@ -241,8 +240,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `in_progress`). claude streams none.
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
-  `contextCompaction` item (no trigger). claude never: it reports only the
-  boundary after the fact. ACP never.
+  `contextCompaction` item (no trigger). Never claude (it reports only the
+  boundary after the fact) or ACP.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
   above); claude `system/compact_boundary` → completed with `trigger` from
@@ -259,9 +258,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   commands (`local_bash` → shell), subagents (`local_agent`, `remote_agent`
   → agent) and MCP calls moved to the background (`mcp_task` → tool), with
   `tool_use_id` as `toolCallId`, `is_backgrounded` as `background` and
-  `killed` read as `stopped`; `background_tasks_changed` repeats the live set
-  and maps to nothing (a change of `ambient` alone shows only there). codex `subAgentActivity` items on the parent thread
-  [env 0.158.0]: started → `task_started` (the child thread is `taskId` and
+  `killed` read as `stopped`; `background_tasks_changed` repeats the live
+  set and maps to nothing (a change of `ambient` alone shows only there).
+  codex `subAgentActivity` items on the parent thread [env 0.158.0]:
+  started → `task_started` (the child thread is `taskId` and
   `childSessionId`, its `/root/name` path the description), interacted →
   `task_updated` running, completed → `task_ended` completed, interrupted →
   `task_ended` stopped. A codex command the model detached itself
@@ -288,23 +288,22 @@ The rules that make this a projection and not a second source of truth:
   events out of one record: each entry of a Frame's `events` stamped with
   the frame's envelope, a `turn_started` for a prompt request, an
   `app_request` for a toApp request, a `control_rejected` for a rejected
-  response, an `app_answered` for an answered response, an `exited` for
-  the exit.
-  `events()` is `rawEvents()` with `eventsOf` applied to every record, so a
-  retained log replays into exactly the events the live subscription
-  delivered.
+  response, an `app_answered` for an answered response, an `exited` for the
+  exit. `events()` is `rawEvents()` with `eventsOf` applied to every
+  record, so a retained log replays into exactly the events the live
+  subscription delivered.
 - **Several events, one seq.** Events read from one frame share its `seq`,
   `agentPath`, `spanId` and `receivedAt`; `seq` is how a consumer gets back
   to the frame. A record oar read nothing from yields no event.
 - **Lossy by design, never lossy in the stream.** An Event carries no
-  `native` and no `type`. The Frame underneath keeps both, so nothing is
-  lost by choosing the consumer face.
+  `native` and no `type`. The Frame underneath keeps both.
 - **Coalescing is a consumer option.** `text_delta` arrives at the
   granularity the runtime emits (claude: a whole block per frame; pi and
   codex: token-sized pieces). `events(observer, { coalesceText })` merges
   consecutive text (or readable reasoning) of one agent into one event
-  carrying the last piece's envelope; off by default, so events stay
-  synchronous and one-to-one with what was read.
+  carrying the last piece's envelope (`{ maxHoldMs }` also flushes when the
+  stream goes quiet that long). Off by default, so events stay synchronous
+  and one-to-one with what was read.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 
@@ -317,9 +316,8 @@ seq=19  ✓ frame     root            assistant   → text_delta "Running them�
         ↳ ONE frame, one record, two events in the frame's order; `native` is the whole message
 seq=20  ✓ frame     root            user        → tool_call_ended call_1
 seq=21  ✓ frame     root            result      → turn_ended completed, usage {in:12034, out:512}
-        ↳ the turn's end = the runtime's own completion event, projected as a turn_ended event.
-          rq-9 gets no further response: the runtime said the outcome itself;
-          oar does not restate it
+        ↳ the turn's end = the runtime's own completion event. rq-9 gets no
+          further response: the runtime said the outcome itself
 ```
 
 ## Example 2 · dispose mid-flight: every frame up to the exit is recorded
@@ -333,9 +331,8 @@ seq=42  ✓ frame     root            result {usage:{in:45231, out:8120}, …}
         ↳ usage is in-stream, with a seq, replayable, never a snapshot
           held beside the stream
 seq=43  ◇ response  root  →rq-12    exited {code:143}
-        ↳ the one justification for a response to exist: the process exit
-          code is an outcome the runtime will never say itself; only oar
-          observes it
+        ↳ the one justification for a response: the exit code is an outcome
+          the runtime will never say itself; only oar observes it
 ```
 
 ## Example 3 · Dangling request: unobserved outcome stays unobserved
@@ -343,12 +340,12 @@ seq=43  ◇ response  root  →rq-12    exited {code:143}
 ```
 seq=57  ◆ request   root  id=rq-30  abort
         ○ absence: oar's own process was SIGKILLed; rq-30 never gets a response
-        ↳ not a bug, an honest record: the action was initiated, its outcome
+        ↳ an honest record, not a bug: the action was initiated, its outcome
           was not observed. Writing a guessed response after recovery is
           forbidden
 ```
 
-Non-goal recorded here: concurrent control planes / concurrent prompt
-queueing. No shipped runtime needs it: kimi-cli returns `INVALID_STATE`
-with a TODO in the source, pi has no such form, claude/codex do not expose
-the semantics. Zero empirical demand. [src: wire/server.py:644-755]
+Non-goal: concurrent control planes and concurrent prompt queueing. No
+shipped runtime needs them: kimi-cli returns `INVALID_STATE` with a TODO in
+the source, pi has no such form, claude/codex do not expose the semantics.
+[src: wire/server.py:644-755]

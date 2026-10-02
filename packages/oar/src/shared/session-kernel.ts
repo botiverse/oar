@@ -51,7 +51,7 @@ export interface RecordAt {
  * prunes facts (record-stream.md, "The rules"). The single-active-turn rule
  * is the adapter's control decision and shows up as a rejected prompt
  * response, never as a dropped event. Adapters keep only runtime-specific
- * pumping (frame → `frame()`) and control decisions (busy, not_steerable).
+ * pumping (frame → `frame()`) and control decisions (busy, no_active_turn).
  */
 export interface SessionKernel {
   readonly sessionId: string;

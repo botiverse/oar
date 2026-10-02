@@ -24,7 +24,7 @@
 - [Runtime 当前接口](../../packages/oar/src/contracts/runtime.ts#L6)：只有 session、installation、accountUsage、listModels。design 提到 detect/install/login/version-window 是目标面，不能只读愿景当现状。
 - [Session v1 范围](../../packages/oar/src/contracts/session.ts#L3)：ownership 是 object reference，多控制者仲裁明确归 host；YOLO 默认、interactive permission settlement/remote model deferred；pi session-scoped events 目前主动丢弃。注释还说 resume deferred，但当前 options/实现已支持部分 resume，因此该句有局部过期，不能照搬成完全没有 resume。
 - [当前事件 union](../../packages/oar/src/contracts/session.ts#L156)：只有 turn_started/text_delta/reasoning/tool_call_started/tool_call_ended/turn_ended，无公共 native raw body 或 agentPath；seq 严增不是可续读 API。
-- [spec 状态与 promise](../../docs/spec/README.md#L3)，[能力声明尚 open](../../docs/spec/README.md#L52)。`design/motivation.md` “everything emits available”“hard problems solved once” 应解读为设计目标，不是当前完成清单。
+- [spec 状态与 promise](../../docs/spec/README.md#L3)，[能力声明尚 open](../../docs/spec/README.md#open-decisions)。`design/motivation.md` “everything emits available”“hard problems solved once” 应解读为设计目标，不是当前完成清单。
 - [真实 aimock backend](../../sea-trial/harness/backends.ts#L39)，[CI matrix](../../.github/workflows/ci.yml#L26)。Claude/Codex CI 装 latest，属于最新版本漂移探测，不是支持窗口矩阵证明。
 
 ## Lody 反证了哪些自我叙事

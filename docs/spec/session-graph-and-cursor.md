@@ -6,27 +6,27 @@
 
 ## The session graph holds true sessions only
 
-**Why:** derived sessions (grok and codex children) form parent/child
-structure; without an explicit graph, consumers
-cannot answer "where did sess-B come from".
+Derived sessions (grok and codex children) form parent/child structure;
+without an explicit graph, consumers cannot answer "where did sess-B come
+from".
 
 A claude subagent is not a session; it is an entity on `agentPath`.
 Putting agent parent/child in the session graph would commit, inside the
-graph itself, exactly the merge the hard constraint in
-[attribution.md](attribution.md) forbids: collapsing session and agent
-into one dimension. The graph therefore holds true sessions only; agent
+graph itself, the merge the hard constraint in
+[attribution.md](attribution.md) forbids: collapsing session and agent into
+one dimension. The graph therefore holds true sessions only; agent
 parent/child is expressed by `agentPath` plus the spawning `tool_call`
-record. `SessionNode` carries no `kind` field; it is derivable from the
+record. `SessionNode` carries no `kind` field: it is derivable from the
 in-edge (no in-edge = root, `tool_call` edge = derived child), and the same
 information is not stored twice.
 
 - grok (ACP): explicit parent session → child session (independent
   sessionId) = a real session-derivation edge. [src]
 - codex (app-server): a child thread is a derived child session; the edge
-  comes from the collaboration item naming it (`subAgentActivity.agentThreadId`,
-  `receiverThreadIds`). [env 0.149.0]
-- claude: `parent_tool_use_id` is agent parent/child and produces no
-  new session; carried by `agentPath`, not in the graph. [sym]
+  comes from the collaboration item naming it
+  (`subAgentActivity.agentThreadId`, `receiverThreadIds`). [env 0.149.0]
+- claude: `parent_tool_use_id` is agent parent/child and produces no new
+  session; carried by `agentPath`, not in the graph. [sym]
 
 ```ts
 interface SessionNode { id: string; }
@@ -42,52 +42,49 @@ claude: root ──tool_call(call_3)──▶ subagent "a1"    (agent parent/chi
 ```
 
 Edges are emitted only when a runtime reports a tool call spawning a child
-session. `SessionOptions.resume` reopens the same node with a fresh stream at
-seq 0, so it is not an edge. Host continuity between distinct sessions
-(external compaction) is never an edge either: the new session's first prompt
-carries the summary as its input, and nothing links the two sessions in the
-graph.
+session. `SessionOptions.resume` reopens the same node with a fresh stream
+at seq 0, so it is not an edge. Host continuity between distinct sessions
+(external compaction) is never an edge either: the new session's first
+prompt carries the summary as its input, and nothing links the two
+sessions in the graph.
 
-A node's records are read by its own `sessionId`: the Session folds
-(`model / usage / contextUsage`, `awaitTurnEnd`) scope to the root session
-and never fold a child node's records into it (record-stream.md).
+A node's records are read by its own `sessionId`; the Session folds never
+fold a child node's records into the root
+([record-stream.md](record-stream.md#the-rules)).
 
 ## The resumable cursor
 
-**Why:** consumers (realtime UIs, offline writers) must reconnect after a
-disconnect and continue reading without loss or duplication; offline
-replay depends on it for positioning.
+Consumers (realtime UIs, offline writers) must reconnect after a disconnect
+and continue reading without loss or duplication; offline replay depends on
+it for positioning.
 
-**Semantics: sequence
-determinism, replay on the runtime side.** The total order of a session is
-uniquely determined by `seq`. Adapter constraint: the same record replayed
-twice gets the same `seq`. The determinism guarantee covers `seq` *only*:
-after the process dies, the adapter rebuilds the stream from the runtime's
-own resume / rollout / replay log, and the observation time `receivedAt`
-cannot be reproduced there; identity and positioning rest on `seq`
-alone, and `receivedAt` is best-effort metadata (otherwise "same record
-replayed twice → same seq" would be unsatisfiable). Process alive →
-in-memory continuation within the session; process dead → rebuild from
-the runtime log. oar grows no storage layer because of this, a
-deliberate design ruling: oar does not own storage.
+**Semantics: sequence determinism within a stream.** The total order of a
+stream is uniquely determined by `seq`; identity and positioning rest on
+`seq` alone, and `receivedAt` is observation metadata. While the adapter
+process lives, a cursor continues in memory without loss or duplication.
+After the process dies, the replay source is the host's own persisted log of
+those records, never the runtime's history: native storage is not isomorphic
+to the wire and cannot reproduce it, so a rebuild from it is not implemented and
+was refused as a readback
+([decision](../design/decisions.md#session-history-readback-2026-09-15);
+[replay boundary](../design/foundations.md#replay-boundary)). oar does not
+own storage, so it grows no storage layer for this.
 
 - `SessionOptions.resume` takes a runtime-native id and reopens the
   conversation; the cursor sinks resumable reading to the record level.
 - Counterexample: kimi-cli's `wire.jsonl` has wall-clock timestamps only,
   no seq. `_handle_replay` replays the entire log from the start *and*
-  re-sends historical requests as live requests; approvals that were
-  already answered get asked again. That is precisely the cost of "no
-  cursor + no replay/live distinction".
-  [src: wire/file.py; wire/server.py:797-880]
+  re-sends historical requests as live requests, so approvals already
+  answered get asked again: the cost of "no cursor + no replay/live
+  distinction". [src: wire/file.py; wire/server.py:797-880]
 
 ```ts
 interface Cursor { sessionId: string; afterSeq: number; }
-// No per-agent resume filter: no consumer has demonstrated "resume just
-// one sub-agent". For a single-agent view, resume the whole
-// stream and filter client-side by agentPath; the protocol keeps no
-// field for an unevidenced need.
-// Shipped: Session.rawEvents(observer, cursor) replays every retained
-// record with seq > afterSeq synchronously, then continues live, and
+// No per-agent resume filter: no consumer has demonstrated "resume just one
+// sub-agent". For a single-agent view, resume the whole stream and filter
+// client-side by agentPath.
+// Session.rawEvents(observer, cursor) replays every retained record with
+// seq > afterSeq synchronously, then continues live;
 // Session.events(observer, { cursor }) does the same for the flat Events;
 // Session.records() is the retained log. A cursor for another session id
 // throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
@@ -99,14 +96,14 @@ repeats nothing. `SessionOptions.resume` opens a fresh stream at `seq` 0 on
 the runtime-native conversation; each [runtime page](../runtimes/README.md)
 records what its native replay surface offers.
 
-### Example 6 · Reconnect, and rebuild after death
+### Example 6 · Reconnect, and after death
 
 ```
 Consumer holds {sessionId:"s1", afterSeq:41} at disconnect time.
 ── process alive: reconnect and continue from seq=42, no loss, no duplication.
-── process dead:  the adapter rebuilds from the runtime's own rollout/replay log;
-                  the same record replayed twice gets the same seq, so
-                  afterSeq=41 still positions precisely.
+── process dead:  replay comes from the host's persisted records; a resume
+                  opens a fresh stream at seq 0, so the host keeps a distinct
+                  streamId per stream (see conversation.md).
 Completion converges per agent (agentPath), not per parent turn; see
 hard spot 2 in runtime-matrix.md.
 ```

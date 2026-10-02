@@ -16,7 +16,7 @@ export interface SubagentsOptions {
   readonly maxDepth?: number;
   /** Working directory for children that name none; `process.cwd()` by default. */
   readonly cwd?: string;
-  /** Write each child's records to `<logDir>/<id>.jsonl` as an oar-voyage log. */
+  /** Write each child's records to `<logDir>/<name or runtime>-<sessionId>.jsonl` as an oar-voyage log. */
   readonly logDir?: string;
   /** Environment overlaid on every child (each spawn may add its own). */
   readonly env?: Readonly<Record<string, string>>;

@@ -14,8 +14,9 @@ small and links deeper instead of inlining.
 | [chat-ui.md](chat-ui.md) | What does a chat-shaped client consume, and why is session state the API rather than a message stream? |
 | [roadmap.md](roadmap.md) | Which system improvements are next, and what evidence gates them? |
 
-Suggested order: motivation → hard-problems → foundations → liveness → system
-→ roadmap. Each stands alone if you only need one answer.
+Suggested order: motivation, hard-problems, foundations, liveness, system,
+roadmap; decisions and chat-ui when their question comes up. Each page stands
+alone if you only need one answer.
 
 Related material elsewhere in the repo:
 
