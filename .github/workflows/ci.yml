@@ -36,6 +36,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
+      OAR_CHILD_STDERR: ${{ matrix.os == 'windows-latest' && matrix.backend == 'codex-aimock' && 'inherit' || '' }}
       # runner context is not allowed in job-level env; workspace-relative works everywhere
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
     steps:
@@ -72,4 +73,4 @@ jobs:
         with:
           name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run
-          if-no-files-found: error
+          if-no-files-found: warn

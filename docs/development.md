@@ -141,6 +141,13 @@ the open question.
 and the mock behavior suite. Vendor tests are not part of
 it; run them for the backend you touched.
 
+Windows Codex behavior jobs forward child stderr to the job log with
+`OAR_CHILD_STDERR=inherit`, including failures before a session trace exists.
+Artifact upload warns when no trace directory was created; the failed test
+or startup step still fails the job. Codex RPC exit errors also retain a
+bounded stderr tail without this setting, so use that evidence before
+changing a timeout or assertion to address an intermittent startup failure.
+
 ### Live: does the strong claim hold on the real runtime?
 
 The shared cases assert the minimum every backend must honor; the strong

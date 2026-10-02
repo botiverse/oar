@@ -489,6 +489,17 @@ it started, and disposal settles even when it ignores SIGTERM
 release, not detached execution or a lease against other controllers of the
 persisted thread. The environment overlay applies to the child process.
 
+The process layer continuously drains stderr and retains its last 8 KiB.
+When the app-server exits, pending and subsequent RPC calls fail with its
+exit code, signal, any native spawn error, and the stderr tail observed by
+that point. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's
+stderr while retaining the tail. These details live in the exception's
+message and cause; the `exited` record keeps its existing shape. They help
+the host distinguish a missing executable from a native crash when deciding
+whether to repair configuration or retry. OAR makes no automatic retry
+decision. [Exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
+[spawn failure test](../../tests/codex/codex-startup-diagnostics.test.ts).
+
 Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
 desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
 per-user installs), and requires `codex app-server --help` to succeed; a
@@ -498,6 +509,10 @@ separate reader on its own app-server process (`initialize`, `account/read`,
 rate-limit buckets merged as the codex TUI does); neither it nor installation
 discovery is inferred from turn token totals. Login management is **not
 exposed**.
+An installation probe that cannot run preserves its native error code,
+signal, timeout, exit code, and bounded stderr tail in the thrown error.
+The probe deadline is unchanged; an ordinary nonzero readiness exit still
+classifies the installation as unsupported.
 [Installation](../../packages/oar/src/runtimes/codex/installation.ts),
 [account usage](../../packages/oar/src/runtimes/codex/account-usage.ts).
 
