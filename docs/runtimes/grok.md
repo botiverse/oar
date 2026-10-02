@@ -6,57 +6,57 @@ See the [query contract](../spec/inventory.md) and [native probe evidence](inven
 Evidence baseline: native source
 [`grok-build` `bc7f02e`](https://github.com/xai-org/grok-build/tree/bc7f02e)
 (Grok 1.0.12); the [wire snapshot](../../tests/replay/fixtures/grok-acp-v1.vendor.json)
-is Grok 1.0.5 (`5115b46bc9`, 2026-08-26) and the
-[adapter experiment](../../experiments/acp-runtime.ts) ran on that binary
-(2026-08-27).
-Live observations below come from **grok 1.0.25 (`f7e67d6988e2`)**, darwin
-arm64, runtime default model, on 2026-09-11 through
+is Grok 1.0.5 (`5115b46bc9`, 2026-08-26), the binary the
+[adapter experiment](../../experiments/acp-runtime.ts) ran on (2026-08-27).
+Live observations come from **grok 1.0.25 (`f7e67d6988e2`)**, darwin arm64,
+runtime default model, 2026-09-11, through
 [`experiments/live-contract.ts grok`](../../experiments/live-contract.ts)
-(scenario names are cited as `live-contract/<id>`) and the raw
+(scenarios cited as `live-contract/<id>`) and the raw
 [`experiments/grok-wire-tap.ts`](../../experiments/grok-wire-tap.ts) below the
-SDK; see the [experiments index](../../experiments/README.md). Versions are
-evidence baselines, not a support range; source-supported claims are not a
-live check of a newer binary. The [spec](../spec/README.md) is not current OAR
-behavior. See the [runtime index](README.md) for evidence and status
-conventions.
+SDK ([experiments index](../../experiments/README.md)); facts from later
+binaries name their version. Versions are evidence baselines, not a support
+range; source-supported claims are not a live check of a newer binary. The
+[spec](../spec/README.md) is not current OAR behavior. See the
+[runtime index](README.md) for evidence and status conventions.
 
 ## Native concepts and calling interfaces
 
 Grok is a coding-agent harness. Its process owns sessions; each session owns
 model context, configuration, incoming prompts, tool execution, and persistent
 state. The ACP update log, model chat history, metadata, rewind points, and
-compaction checkpoints serve different purposes. See the
-[native session description](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/README.md#session-persistence).
+compaction checkpoints serve different purposes
+([native session description](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/README.md#session-persistence)).
 
 The interactive TUI, headless `grok -p`, and `grok agent stdio` are calling
 modes for that harness. OAR uses the last: ACP JSON-RPC over stdio, including
 vendor extensions. ACP is bidirectional: Grok can ask its client to execute a
 terminal command or decide a permission request while a prompt is running.
 
-A native session ID identifies conversation continuity. A `promptId`, native
+A native session ID identifies conversation continuity; a `promptId`, native
 turn number, and JSON-RPC request ID have separate roles. Ordinary prompts
 enter a delivery queue; `_meta.sendNow` selects immediate dispatch. Subagents
 are independent child sessions with their own context, which may inherit
-history/configuration, run in the background, and wake a parent. These native
-concepts exist before OAR chooses its Session/Turn abstraction.
+history/configuration, run in the background, and wake a parent.
 
 ## High-level mapping to OAR
 
 OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as a frame's `native`; the cross-runtime `events` are what
-OAR read out of it. Control calls are request/response record pairs.
+OAR read out of it. Control calls are request/response record pairs. The
+profile declares `capabilities` `{ steer: true, queue: { durable: false },
+attribution: "nested", images: true }`.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session, launched with noninteractive profile settings; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
-| Persistent native session | `Session.id` preserves its ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0; no history rebuild). |
-| Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are Frame records; the model and the `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
-| Prompt delivery and native execution | `prompt()` is a `toRuntime` request answered accepted/`busy`; each `session/prompt` RPC answer is a frame, and the one closing the turn carries the `turn_ended` event (newest request's outcome) plus a `usage` event. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
-| `session/update` notifications | One frame per notification, `native` verbatim, for EVERY session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. A non-terminal `tool_call_update` for a known call that carries `rawOutput` is a `tool_call_progress` event (its `content` is never read as progress). Grok reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. |
-| `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded verbatim with no events under the session id its envelope names; one naming a parent/child session pair links `Session.graph()` (`via: "tool_call"`). |
-| Native child sessions | An update or vendor frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier declared `nested`; `capabilities` are `{ steer: true, queue: { durable: false }, attribution: "nested" }`. |
-| Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
+| Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
+| Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0, no history rebuild). |
+| Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
+| Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
+| `session/update` notifications | One frame per notification, for every session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
+| `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded verbatim with no events under the session id its envelope names; one naming a parent/child pair links `Session.graph()` (`via: "tool_call"`). |
+| Native child sessions | A frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier `nested`. |
+| Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim, under the runtime's JSON-RPC id) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
 The implementation is divided between the [Grok profile](../../packages/oar/src/runtimes/grok/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
@@ -67,13 +67,10 @@ The implementation is divided between the [Grok profile](../../packages/oar/src/
 [client app](../../packages/oar/src/shared/acp/client-app.ts).
 
 ACP `tool_call_update` reports `status: "completed" | "failed"` ([src]
-ACP schema `ToolCallStatus`). OAR maps those explicit statuses to
-`tool_call_ended.result: "ok" | "failed"`; a non-terminal or missing status
-leaves the field absent.
-"Unexposed" below means a native capability has no current OAR operation;
-"unverified" means the available evidence does not establish the behavior;
-"[sym]" means the name exists in the binary's symbol table but has never been
-seen on a live wire.
+ACP schema `ToolCallStatus`); OAR maps those to `tool_call_ended.result:
+"ok" | "failed"`, and a non-terminal or missing status leaves the field
+absent. "[sym]" below means the name exists in the binary's symbol table but
+has never been seen on a live wire.
 
 ## Capability details
 
@@ -84,17 +81,16 @@ clientInfo, _meta? }`, followed by `authenticate { methodId }` when needed.
 `session/new { cwd, mcpServers, _meta? }` returns a new `sessionId`, model
 state, and metadata. Credentials must be available in the runtime environment.
 
-**Mapped:** OAR launches `grok agent --always-approve --no-leader stdio`,
-selects the advertised default auth method (`_meta.defaultAuthMethodId`) or
-`cached_token`, and sends noninteractive startup hints in the `initialize`
-`_meta` (`clientIdentifier: "oar"`, `clientType: "generic"`,
-`startupHints: { nonInteractive, skipGitStatus, skipProjectLayout }`). It
-advertises terminal support, disables client filesystem methods, and uses
-15-second deadlines for opening requests. Its session request supplies
-`mcpServers: []` and `_meta: { yoloMode: true }`. The `authenticate` answer's
-`_meta` carries the account email and `subscription_tier`; the `session/new`
-answer names the model (`models.currentModelId`) and advertises
-`totalContextTokens` (500000) per model. Spawn/auth/creation errors reject
+**Mapped:** OAR selects the advertised default auth method
+(`_meta.defaultAuthMethodId`) or `cached_token`, and sends noninteractive
+startup hints in the `initialize` `_meta` (`clientIdentifier: "oar"`,
+`clientType: "generic"`, `startupHints: { nonInteractive, skipGitStatus,
+skipProjectLayout }`). It advertises terminal support, disables client
+filesystem methods, and gives each opening request a 15-second deadline. The
+session request supplies `mcpServers: []` and `_meta: { yoloMode: true }`.
+The `authenticate` answer's `_meta` carries the account email and
+`subscription_tier`; the `session/new` answer names the model
+(`models.currentModelId`). Spawn, auth, and creation errors reject
 `grokRuntime.session(...)`; a failed open kills the process before rejecting.
 
 ### Resuming, loading, and forking
@@ -120,8 +116,8 @@ const next = resumed.prompt("Continue");
 ```
 
 **Mapped:** OAR chooses `session/resume` when
-`agentCapabilities.sessionCapabilities.resume` is `true` or an object;
-otherwise it selects `session/load` when `loadSession === true`, or rejects
+`agentCapabilities.sessionCapabilities.resume` is `true` or an object,
+otherwise `session/load` when `loadSession === true`, otherwise rejects
 (`ACP runtime does not support session resume`). This is capability
 selection, not a retry after a failed resume. An optional model is applied
 afterward with `session/set_model`. The `session/resume` answer carries
@@ -136,10 +132,11 @@ newer-source details.
 Native resident attachment can report
 [`_meta['x.ai/runningPromptId']`](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/session_setup.rs#L1456-L1522).
 OAR starts a fresh process, ignores that field, and creates no handle for
-previous execution. It retains neither load-time transcript nor replay cursor.
-Successful attachment does not establish that an interrupted tool restarted
-or an old turn completed. Concurrent same-ID controllers, cross-process live
-attachment, and load-fallback code effects remain **unverified** through OAR.
+previous execution; it retains neither load-time transcript nor replay
+cursor. Successful attachment does not establish that an interrupted tool
+restarted or an old turn completed. Concurrent same-ID controllers,
+cross-process live attachment, and load-fallback code effects remain
+**unverified** through OAR.
 
 Native [session fork](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/extensions/session_admin.rs#L994-L1007)
 exists as `x.ai/session/fork`; OAR exposes no fork operation.
@@ -153,46 +150,45 @@ and [queue/send-now dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e
 are vendor-specific semantics beyond standard ACP.
 
 **Images (mapped, against the advertisement):** grok's `initialize` answers
-`promptCapabilities.image: false`, yet an ACP `image` block reaches its model:
-live on grok 1.0.44 (latest stable, 2026-09-29), with `initialize` rewritten to
-advertise images, a plain green PNG named `probe.png` with "don't run any tools,
-just look: what color fills it?" was answered "Green. The image is a solid
-bright green fill.", and the same prompt without the image "NO IMAGE". (Allowed
-tools, grok instead saved the image under `~/.grok/sessions/` and decoded its
-pixels in Python.) The grok profile therefore declares `capabilities.images:
-true`; if a later grok refuses image blocks, the prompt fails with grok's own
-error and this override goes.
+`promptCapabilities.image: false`, yet an ACP `image` block reaches its model
+(grok 1.0.44, 2026-09-29: with `initialize` rewritten to advertise images, a
+plain green PNG named `probe.png` with "don't run any tools, just look: what
+color fills it?" was answered "Green. The image is a solid bright green
+fill.", and the same prompt without the image "NO IMAGE"; allowed tools, grok
+instead saved the image under `~/.grok/sessions/` and decoded its pixels in
+Python). Hence `capabilities.images: true`; if a later grok refuses image
+blocks, the prompt fails with grok's own error and this override goes.
 
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
-`accepted` once the `session/prompt` RPC is on the wire (no deadline; its
-lifetime is bounded by cancel), or `rejected` (`busy` while a turn is active;
-the transport error when the process is gone). Acceptance never waits for
-native acknowledgement. The RPC answer is Grok's own turn end: an event
+`accepted` once the `session/prompt` RPC is on the wire (no deadline; cancel
+bounds its lifetime), or `rejected` (`busy` while a turn is active; the
+transport error when the process is gone). Acceptance never waits for native
+acknowledgement. The RPC answer is Grok's own turn end: a frame
 `session/prompt` with `native` = the answer, a `turn_ended` event
 (`stopReason: "cancelled"` → aborted, else completed) and a `usage` event
 from `_meta`. An RPC error answer is a frame `session/prompt/error` with a
 failed `turn_ended` (`runtime_exited` when the process died, else the
 classified reason). Around each prompt Grok pushes `_x.ai/sessions/changed`
-(`working`, then `idle`) and, after the answer's `turn_completed`, an
+(`working`, then `idle`) and, after `turn_completed`,
 `_x.ai/session/prompt_complete` (`promptId`, `stopReason`,
-`cancellationCategory`); all are events with no events.
+`cancellationCategory`); all are frames with no events.
 [Turn machinery](../../packages/oar/src/shared/acp/turns.ts),
 [test](../../tests/acp/acp-session.test.ts).
 
 **Steer (mapped; a cancel-and-rerun natively):** `steer()` sends another
-`session/prompt` with `_meta.sendNow` inside the same turn (`rejected
-not_steerable: no active turn` otherwise); each answer is its own frame, and
+`session/prompt` with `_meta.sendNow` inside the same turn (otherwise rejected
+`no_active_turn`, reason `not_steerable: no active turn`); each answer is its own frame, and
 only the one that leaves no request pending carries `turn_ended`, with the
-newest request's outcome. What `_meta.sendNow` does natively is **not an
-injection into the running model call**: Grok answers the running prompt
-`stopReason: "cancelled"` with `_meta.cancelTrigger: "send_now"` and
+newest request's outcome. Natively `_meta.sendNow` is **not an injection
+into the running model call**: Grok answers the running prompt `stopReason:
+"cancelled"` with `_meta.cancelTrigger: "send_now"` and
 `cancellationCategory: "MidTurnAbort"` (the vendor `prompt_complete` says the
 same), while interrupted terminals keep running to completion (their
 `wait_for_exit` answers land afterwards), then starts a fresh model turn that
 re-issues the interrupted tool calls under new call ids and answers with the
-steered text. OAR folds both answers into the one turn; callers should know a
-steer costs a re-run of whatever the interrupted call was doing.
-(`live-contract/steer`; fixture replay in
+steered text. OAR folds both answers into the one turn; a steer costs a
+re-run of whatever the interrupted call was doing. (`live-contract/steer`;
+fixture replay in
 [`acp-grok-wire-shapes.test.ts`](../../tests/acp/acp-grok-wire-shapes.test.ts).)
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
@@ -206,8 +202,8 @@ the turn's end is still the cancelled prompt answer, which Grok delivers
 within about a second (`turn_completed stop_reason: cancelled`,
 `prompt_complete cancellationCategory: MidTurnAbort`, then the
 `session/prompt` answer with `turn_ended: aborted`). If no answer arrives
-within ten seconds, OAR kills the process, and the `exited` response is then
-the turn's end (a `runtime_exited` failure to `awaitTurnEnd`, not an aborted
+within ten seconds, OAR kills the process and the `exited` response is the
+turn's end (a `runtime_exited` failure to `awaitTurnEnd`, not an aborted
 outcome). A late abort is rejected `no active turn`. Effects on background
 children remain **unverified**. (`live-contract/abort`,
 `live-contract/busy-and-late-control`.)
@@ -236,23 +232,25 @@ with `_meta.eventId`, `promptId`, `totalTokens`, `chunkId`),
 `native` is present on every event and seqs are dense
 (`live-contract/basic`). Views preserve text, reasoning, tool wire IDs, tool
 boundaries, context snapshots, and model reports; detail strings truncate at
-10,000 characters but `native` never does. Unknown updates are recorded with
-no events. A tool the runtime never ended gets no synthetic end; the turn's
-`turn_ended` event is the only closure.
+10,000 characters but `native` never does. A non-terminal `tool_call_update`
+for a known call that carries `rawOutput` is a `tool_call_progress` event
+(its `content` is never read as progress). A tool the runtime never ended
+gets no synthetic end; the turn's `turn_ended` event is the only closure.
+Grok reports no retry through ACP, so `retry` never appears.
 [Projection](../../packages/oar/src/shared/acp/projection.ts).
 
 **Two notification methods.** On the wire `session/update` carries only
 standard kinds (`available_commands_update`, `session_info_update`,
 `agent_thought_chunk`, `agent_message_chunk`, `user_message_chunk`,
-`tool_call`, `tool_call_update`), for the root and for each child id alike.
+`tool_call`, `tool_call_update`), for the root and each child id alike.
 `_x.ai/session_notification` is its vendor twin (same envelope
-`{sessionId, update: {sessionUpdate: <kind>, …}}`) and is where every
-non-standard kind travels: `model_changed`, `session_summary_generated`,
+`{sessionId, update: {sessionUpdate: <kind>, …}}`) and carries every
+non-standard kind: `model_changed`, `session_summary_generated`,
 `tool_call_delta_chunk`, `pending_interaction`, `interaction_resolved`,
 `response_completed` (per model call, snake_case usage), `turn_completed`
 (per prompt, camelCase usage with `modelCalls` and `costUsdTicks`),
 `last_turn_summary`, `background_tasks` (pushed by `session/resume`), and the
-sub-agent lifecycle. This split matters because the ACP SDK (1.4.0) client
+sub-agent lifecycle. The split matters because the ACP SDK (1.4.0) client
 validates every `session/update` against a closed union of the standard kinds
 *before* any handler runs; a vendor kind on that method would be dropped
 with an "Error handling notification" line on OAR's stderr. Grok does not do
@@ -268,9 +266,8 @@ queue, with the prompt text), `_x.ai/models/update`, `_x.ai/settings/update`,
 `_x.ai/mcp/init_progress`, `_x.ai/mcp/server_status`, `_x.ai/mcp_initialized`.
 Still [sym]-only and kept registered: `_x.ai/session/update`,
 `_x.ai/task_backgrounded`, `_x.ai/task_completed`, `_x.ai/session/usage`.
-Each is recorded verbatim with no events; an unlisted method is a frame OAR
-never sees (`grok-wire-tap.ts` shows wire versus stream;
-[wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts)).
+An unlisted method is a frame OAR never sees (`grok-wire-tap.ts` shows wire
+versus stream; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts)).
 
 **Children (nested attribution):** native child
 [spawn events](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/subagent/handle_request.rs#L609-L634)
@@ -291,15 +288,13 @@ under the child id, and the child's own `response_completed`,
 child's. The root's `tool_call_ended` output embeds the child's report plus a
 `<subagent_meta>` block.
 
-OAR keeps every frame regardless of session id: a foreign id becomes a
-child-session record (envelope `sessionId` = the child's, `agentPath []`, a
-node in `Session.graph()`), for `session/update` and vendor frames alike, so
-the child's ledgers land under the child and the parent's `subagent_*`
-lifecycle under the parent. A vendor frame naming a parent/child pair (in
-either spelling (`parent_session_id`/`parentSessionId`) at either depth
-(`acpLineageOf`, [records.ts](../../packages/oar/src/shared/acp/records.ts)))
-links the graph `via: "tool_call"`; one child spawn yields two nodes and
-one edge. A child whose lineage notification was not observed stays a node
+OAR records `session/update` and vendor frames alike under the session id
+their envelope names, so the child's ledgers land under the child and the
+parent's `subagent_*` lifecycle under the parent. A vendor frame naming a
+parent/child pair, in either spelling (`parent_session_id`/`parentSessionId`)
+at either depth (`acpLineageOf`, [records.ts](../../packages/oar/src/shared/acp/records.ts)),
+links the graph `via: "tool_call"`; one child spawn yields two nodes and one
+edge. A child whose lineage notification was not observed stays a node
 without an edge; OAR never fabricates one. There is no child control handle.
 (`live-contract/subagent`; [wire-shape
 test](../../tests/acp/acp-grok-wire-shapes.test.ts) with fixture
@@ -311,7 +306,7 @@ JSON-RPC *response* with `id: "skills-reload"` matching no request of OAR's
 reproduce under the wire tap, so its params are unrecorded; it does not reach
 the stream.
 
-**History:** the retained stream backs `subscribe(observer, cursor)` for the
+**History:** the retained stream backs `rawEvents(observer, cursor)` for the
 life of the process; a mid-turn subscribe with `afterSeq` replays exactly the
 retained records and continues live; a full replay equals `records()`
 (`live-contract/cursor`). There is no native-history enumeration and no
@@ -322,25 +317,25 @@ rebuild after the process died.
 Native model discovery uses `_x.ai/models/list`; model selection uses
 `session/set_model`. [OAR listing](../../packages/oar/src/runtimes/grok/list-models.ts)
 handles the extra result envelope and filters hidden/unselectable entries
-(`grok-list-models.ts`). **Mapped:** open-time model selection applies
-`session/set_model` after the session opens, and `model()` folds the runtime's
-reports: `models.currentModelId` from `session/new`/`resume`, then the
-`set_model` answer's `_meta.model` (the applied id, never the request). A
-non-existent id is rejected `Invalid params`, so `session()` throws at open
-(`live-contract/bad-model`). The runtime default model is not stable across
-sessions: with no request from OAR, `session/new` has reported both
-`grok-4.6` and `grok-4.5`; a `model_changed` vendor push precedes the answer
-and names the same id. [Model read-back](../../packages/oar/src/shared/acp/model.ts),
+([`grok-list-models.ts`](../../experiments/grok-list-models.ts)). **Mapped:**
+open-time model selection applies `session/set_model` after the session
+opens, and `model()` folds the runtime's reports: `models.currentModelId`
+from `session/new`/`resume`, then the `set_model` answer's `_meta.model` (the
+applied id, never the request). A non-existent id is rejected `Invalid
+params`, so `session()` throws at open (`live-contract/bad-model`). The
+runtime default model is not stable across sessions: with no request from
+OAR, `session/new` has reported both `grok-4.6` and `grok-4.5`; a
+`model_changed` vendor push precedes the answer and names the same id.
+[Model read-back](../../packages/oar/src/shared/acp/model.ts),
 [test](../../tests/acp/acp-session-model-usage.test.ts).
 
 **Effort (mapped).** The effort menu is per model. `_x.ai/models/list`
 entries carry it under `_meta` ([env] 1.0.41: `supportsReasoningEffort`,
 `reasoningEffort` (the default), `reasoningEfforts: [{id, value, label,
 description, default}]`; grok-4.7 offers xhigh/high/medium/low, grok-4.5
-high/medium/low), and the lister reads it there. Before that move it listed
-no levels at all. The session channel is the ACP config option
-`reasoning_effort` in the `thought_level` category, which `session/new` and
-`session/resume` advertise. `SessionOptions.effort` is
+high/medium/low), and the lister reads it there. The session channel is the
+ACP config option `reasoning_effort` in the `thought_level` category, which
+`session/new` and `session/resume` advertise. `SessionOptions.effort` is
 `session/set_config_option {configId: "reasoning_effort", value}`, sent
 after any `set_model` (a model switch re-derives the option's menu for the
 new model). grok answers with every option's current value, then pushes
@@ -388,15 +383,14 @@ spawned a child bills the child's calls inside its own ledger (53321/355,
 `modelCalls: 4` = the parent's two and the child's two `response_completed`
 frames, `input_tokens` + `cache_read_input_tokens` each, while the child's
 own `turn_completed` reports 19280/96, `modelCalls: 2`). The adapter
-therefore accumulates only the
-root's prompt ledgers and stamps the running total on each answer's `usage`
-event; the root's `usage()` already covers the child's spend. The child's own
-ledgers (its `response_completed` per call, its `turn_completed`, and the
-parent's `subagent_progress`/`subagent_finished` `tokens_used`) are recorded
-verbatim (`native` only, child-envelope ones under the child's session id)
-and deliberately NOT folded a second time. (`live-contract/multi-turn`,
-`steer`, `subagent`; [wire-shape
-test](../../tests/acp/acp-grok-wire-shapes.test.ts).)
+therefore accumulates only the root's prompt ledgers and stamps the running
+total on each answer's `usage` event; the root's `usage()` already covers
+the child's spend. The child's own ledgers (its `response_completed` per
+call, its `turn_completed`, and the parent's
+`subagent_progress`/`subagent_finished` `tokens_used`) are recorded verbatim
+(`native` only, child-envelope ones under the child's session id) and
+deliberately NOT folded a second time. (`live-contract/multi-turn`, `steer`,
+`subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts).)
 
 Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)
 exists through `x.ai/compact_conversation`; automatic compaction remains
@@ -425,10 +419,7 @@ back to `rawOutput` JSON-encoded. Under `--always-approve` no
 `pending_interaction`/`interaction_resolved` pairs; if one did, the
 [client app](../../packages/oar/src/shared/acp/client-app.ts) selects
 `allow_always`, then `allow_once`, otherwise `cancelled`, alongside the
-launch/session yolo settings. Each reverse request is recorded as a `toApp`
-request under the runtime's JSON-RPC id and OAR's reply as the `answered`
-response. [Terminal tests](../../tests/acp/acp-terminal.test.ts) cover shell
-compatibility, truncation, and cleanup.
+launch/session yolo settings.
 
 There is no application approval callback, generic client-tool callback, or
 per-session MCP configuration (all **unexposed**). Passing no MCP servers and
@@ -440,18 +431,18 @@ tool.
 Native ACP advertises session close. **Mapped:** OAR owns the spawned
 process; disposal cancels active work, attempts `session/close` when
 advertised (2-second deadline), kills its process, and disposes hosted
-terminals. On POSIX the process and each hosted terminal command lead their own
-process groups, so OAR's signals reach what they started (a shell line's
+terminals. On POSIX the process and each hosted terminal command lead their
+own process groups, so OAR's signals reach what they started (a shell line's
 children too). The runtime gets SIGTERM, then SIGKILL if it is still running
 after a grace period (10 s, or `OAR_KILL_GRACE_MS`), so disposal settles even
 when Grok ignores SIGTERM ([test](../../tests/session-dispose.test.ts));
 hosted terminals are SIGKILLed at release and disposal. A terminal still
-pending `terminal/wait_for_exit` at disposal is
-answered `{exitCode: null, signal: "SIGKILL"}` *after* the `exited` response
-(the spec keeps late facts). Disposal does not delete the persistent native
-session and supplies resource release, not detached execution or a lease
-against other controllers. The environment overlay applies to the child
-process and to hosted terminals.
+pending `terminal/wait_for_exit` at disposal is answered `{exitCode: null,
+signal: "SIGKILL"}` *after* the `exited` response (the spec keeps late
+facts). Disposal does not delete the persistent native session and supplies
+resource release, not detached execution or a lease against other
+controllers. The environment overlay applies to the child process and to
+hosted terminals.
 
 Installation checks `OAR_GROK_BIN`, PATH, and the official script/npm layouts
 (`$GROK_BIN_DIR`, `$GROK_HOME/bin`, `~/.grok/bin`), probing with
@@ -463,13 +454,12 @@ occupancy are distinct APIs and measurements.
 
 Grok updates itself by default. Launched from `~/.grok/bin`, as the script
 install puts it, `grok agent stdio` (OAR's own launch) checks for a release
-and silently repoints the link: a sandboxed 1.0.44 became 1.0.46 within 40
-seconds of an idle launch on 2026-10-01, and that is how this host moved to
-1.0.46. So a grok session can start on a different version than
-`installation()` reported. `GROK_DISABLE_AUTOUPDATER=1` or `[cli] auto_update
-= false` stop it; an explicit `grok update` ignores both. **Not mapped:** OAR
-passes neither, so the user's setting decides. `checkUpdate` and `upgrade`
-use `grok update` ([runtime updates](../spec/update.md)).
+and silently repoints the link (a sandboxed 1.0.44 became 1.0.46 within 40
+seconds of an idle launch, 2026-10-01), so a grok session can start on a
+different version than `installation()` reported. `GROK_DISABLE_AUTOUPDATER=1`
+or `[cli] auto_update = false` stop it; an explicit `grok update` ignores
+both. **Not mapped:** OAR passes neither, so the user's setting decides.
+`checkUpdate` and `upgrade` use `grok update` ([runtime updates](../spec/update.md)).
 
 ## Verification and open gaps
 
@@ -500,10 +490,10 @@ Claude, Codex, and Pi backends, not Grok.
 Open gaps: grok 1.0.41 pushes `_x.ai/session/setup {method: "session/new",
 phase: "model_switch", sessionId}` while opening (seen 2026-09-29 below the
 SDK), a vendor method not in `GROK_EXTENSION_NOTIFICATIONS`, so the SDK
-drops it before the stream; concurrent children; cancellation with background children
-(`will_wake`, `task_backgrounded`, `task_completed`); usage across
-compaction; concurrent same-ID controllers, cross-process live attachment
-and load-fallback code effects; the `skills-reload` response's payload; the
-[sym]-only vendor methods. Design should distinguish restoring context,
-replaying observations, and adopting live execution; the Session OAR returns
-does not imply all three.
+drops it before the stream; concurrent children; cancellation with
+background children (`will_wake`, `task_backgrounded`, `task_completed`);
+usage across compaction; concurrent same-ID controllers, cross-process live
+attachment and load-fallback code effects; the `skills-reload` response's
+payload; the [sym]-only vendor methods. Design should distinguish restoring
+context, replaying observations, and adopting live execution; the Session
+OAR returns does not imply all three.

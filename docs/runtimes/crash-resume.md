@@ -1,7 +1,7 @@
 # What survives a crash and a resume
 
 OAR resumes a conversation by its native id; it does not resume execution
-([pi](pi.md#observation-history-and-children) states this for pi, and it holds
+([pi](pi.md#session-creation-and-resume) states this for pi, and it holds
 for every adapter). This page measures what that means when the whole process
 tree dies in the middle of a tool call: which inputs and outputs the reopened
 conversation still holds, what the model is told about the interrupted call,

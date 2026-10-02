@@ -1,20 +1,19 @@
 # Live model and effort changes
 
-Local probe investigation, 2026-09-29: claude 2.1.284, codex-cli 0.155.1,
-grok 1.0.41, kimi 2.0.0, pi SDK 0.84.2. Reproduction:
-[experiments/effort-channels.ts](../../experiments/effort-channels.ts). This
-page records native facts for a later `Session.configure` design; nothing on
-it is implemented.
+Local probes, 2026-09-29: claude 2.1.284, codex-cli 0.155.1, grok 1.0.41,
+kimi 2.0.0, pi SDK 0.84.2. Reproduction:
+[experiments/effort-channels.ts](../../experiments/effort-channels.ts). These
+are native facts for a later `Session.configure` design; nothing here is
+implemented.
 
 **The question.** Which native surface changes the model and/or reasoning
-effort of a *running* session between turns, without restarting the
-runtime process, and how would that meet each adapter's queue? Today OAR
-applies both at open only (`SessionOptions.model` / `effort`, read back
-against the runtime's own report). A host that switches mid-conversation
-disposes the Session at a turn boundary and resumes the runtime-native id
-with new options: a process restart and a new handshake, where claude
-also re-runs its SessionStart hooks and every runtime starts its MCP
-servers again.
+effort of a *running* session between turns without restarting the runtime
+process, and how would that meet each adapter's queue? OAR applies both at
+open only (`SessionOptions.model` / `effort`, read back against the runtime's
+own report). A host switching mid-conversation disposes the Session at a turn
+boundary and resumes the native id with new options: a process restart and a
+new handshake, where claude also re-runs its SessionStart hooks and every
+runtime starts its MCP servers again.
 
 ## What each runtime offers
 
@@ -32,35 +31,32 @@ Probed, token-free:
   `set_model opus` moved `get_settings.applied` to `claude-opus-5-5` / `low`,
   `apply_flag_settings {effortLevel: "high"}` to `high`, and `set_model haiku`
   to `claude-haiku-4-5-20251001` / `null` (the model takes no effort). Every
-  answer was a bare `success`, and `apply_flag_settings` answers `success`
-  for an unknown level too, so only a `get_settings` read-back tells what
-  took effect. `system/init` says `per_turn_effort_active: true`: claude
-  sends an effort change inside the conversation at the turn where it
-  changes, keeping the prompt cache (`system/per_turn_effort_changed` reports
-  a fallback). `update_settings` writes settings *files* and is not a
-  session setter.
+  answer was a bare `success`, including `apply_flag_settings` with an unknown
+  level, so only a `get_settings` read-back tells what took effect.
+  `system/init` says `per_turn_effort_active: true`: claude sends an effort
+  change inside the conversation at the turn where it changes, keeping the
+  prompt cache (`system/per_turn_effort_changed` reports a fallback).
+  `update_settings` writes settings *files* and is not a session setter.
 - **codex (aimock provider):** between two turns of one thread,
   `thread/settings/update {effort: "high"}` answered `{}`, codex pushed
-  `thread/settings/updated` with `effort: "high"`, the next prompted turn's
-  Responses request carried `reasoning.effort: "high"`, and so did the turn
-  codex started from its own queue afterwards. `thread/queue/add` takes no
+  `thread/settings/updated` with `effort: "high"`, and both the next prompted
+  turn's Responses request and the turn codex started from its own queue
+  afterwards carried `reasoning.effort: "high"`. `thread/queue/add` takes no
   per-submission overrides (`threadId`, `input`, `clientUserMessageId`).
   `turn/start` also takes `model` / `effort` ("for this turn and subsequent
-  turns"), and `turn/settings/update {turnId, model, effort}` changes one
+  turns"); `turn/settings/update {turnId, model, effort}` changes one
   *running* turn only ("not future turns"). `config/value/write` edits
-  `config.toml` and is not a session setter. A `config` override on
-  `thread/resume` is not one either: it rebuilds the thread's settings from
-  `config.toml`, so a resume that does not repeat `model` switches to the
-  configured default (live: `gpt-6-luna` came back as `gpt-6-astra`), and
-  the rebuild stays with the thread even without a turn.
-  `thread/settings/update` to the level a thread already runs pushes
-  nothing.
+  `config.toml` and is not a session setter. Nor is a `config` override on
+  `thread/resume`: it rebuilds the thread's settings from `config.toml`, so a
+  resume that does not repeat `model` switches to the configured default
+  (live: `gpt-6-luna` came back as `gpt-6-astra`), and the rebuild stays with
+  the thread even without a turn. `thread/settings/update` to the level a
+  thread already runs pushes nothing.
 - **grok, kimi:** `session/set_config_option` works on an idle session, with
   no prompt needed. A model switch re-derives the effort option's menu for
-  the new model: grok-4.5 offers high/medium/low where grok-4.7 adds xhigh,
-  and kimi-k2.5 offers off/on/low where k3 offers low/high/max, keeping a
-  level the new menu still has. An unknown value is refused
-  `-32602 Invalid params`.
+  the new model (grok-4.5 offers high/medium/low where grok-4.7 adds xhigh;
+  kimi-k2.5 offers off/on/low where k3 offers low/high/max), keeping a level
+  the new menu still has. An unknown value is refused `-32602 Invalid params`.
 - **pi:** both setters write pi's *global* settings as the user's new default
   (`settingsManager.setDefaultModelAndProvider`, `setDefaultThinkingLevel`
   when the level changes; agent-session.js 0.84.2), besides appending
@@ -68,35 +64,33 @@ Probed, token-free:
   `setThinkingLevel` clamps to the model's levels as creation does.
 
 Not probed anywhere: a change *during* a turn (claude and ACP accept the
-request at any time, but when it reaches the running model calls is
-unknown; codex's `turn/settings/update` is the one surface documented for
-it), and a change racing a queued input.
+request at any time, but when it reaches the running model calls is unknown;
+codex's `turn/settings/update` is the one surface documented for it), and a
+change racing a queued input.
 
 ## What a `Session.configure` would have to settle
 
 - **A control like the others.** A `configure` request record answered by
   the runtime's own acknowledgement. The effect is the `model` / `effort`
-  events the runtime then says, never the request echoed (the same rule the
+  events the runtime then says, never the request echoed (the rule the
   open-time read-back follows). claude acknowledges with a bare `success`,
   and its only report is `get_settings`, whose answer also dumps the merged
   settings. It would be consumed unrecorded, as at open
   ([decision](../design/decisions.md#recording-claudes-effort-read-back-2026-09-29)),
   and claude's `effort()` would stay null.
-- **Turn boundaries and queues.** Applied while the session is idle, the
-  change must still be ordered against queued input. On the adapter-held
-  queues (claude, grok, kimi, pi), the adapter drains the next held input at
-  the turn end, so a configure accepted before a drain must be sent (and
-  answered) before that drain's prompt; a configure issued mid-turn waits
-  for the boundary or is refused `busy`. Codex holds its queue natively, and
-  `thread/settings/update` already governs a drained submission, so there
-  the ordering is codex's own.
+- **Turn boundaries and queues.** A change applied while idle must still be
+  ordered against queued input. On the adapter-held queues (claude, grok,
+  kimi, pi) the adapter drains the next held input at the turn end, so a
+  configure accepted before a drain must be sent (and answered) before that
+  drain's prompt; a configure issued mid-turn waits for the boundary or is
+  refused `busy`. Codex holds its queue natively and `thread/settings/update`
+  already governs a drained submission, so there the ordering is codex's own.
 - **Where the setter has side effects.** pi's setters rewrite the user's
-  global defaults. A configure through them would need that accepted as
-  pi's semantics or avoided by other means. The restart path passes
-  creation-time options, which write only the session file.
-- **Resume semantics stay separate.** What a resume restores when it is
-  asked for nothing differs per runtime: codex, grok and kimi restore the
-  level the session last ran with; pi restores the level its session file
-  recorded, and an explicit level on resume is not recorded; claude restores
-  none. A configure would change the running session. What the next resume
-  restores remains each runtime's rule and belongs in its page.
+  global defaults; a configure through them would need that accepted as pi's
+  semantics or avoided by other means. The restart path passes creation-time
+  options, which write only the session file.
+- **Resume semantics stay separate.** Asked for nothing, codex, grok and kimi
+  restore the level the session last ran with; pi restores the level its
+  session file recorded, and an explicit level on resume is not recorded;
+  claude restores none. A configure would change the running session; what the
+  next resume restores remains each runtime's rule and belongs in its page.

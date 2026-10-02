@@ -5,18 +5,18 @@ See the [query contract](../spec/inventory.md) and [native probe evidence](inven
 
 Evidence baseline: native source
 [`kimi-code` `f9ca33376`](https://github.com/MoonshotAI/kimi-code/tree/f9ca33376)
-(0.41.0, reviewed 2026-09-08). The checked-in
+(0.41.0, reviewed 2026-09-08). The
 [wire snapshot](../../tests/replay/fixtures/kimi-acp-v1.vendor.json) is
-**0.38.0** (2026-08-26; `acp-runtime.ts kimi` records 2026-08-27 on the same
-version). Live observations below come from **kimi 0.42.0** (`agentInfo.name`
-"Kimi Code CLI", darwin arm64, default model `kimi-code/k3`, no `--model`) on
-2026-09-11 through [`experiments/live-contract.ts kimi`](../../experiments/live-contract.ts)
-(scenario names in parentheses below) and the kimi probes listed in the
+**0.38.0** (2026-08-26; `acp-runtime.ts kimi` ran on it 2026-08-27). Live
+observations come from **kimi 0.42.0** (`agentInfo.name` "Kimi Code CLI",
+darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
+[`experiments/live-contract.ts kimi`](../../experiments/live-contract.ts)
+(scenario names in parentheses below) and the kimi probes in the
 [experiments index](../../experiments/README.md): `kimi-wire-tap.ts`,
-`kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of these
-were re-run against **kimi 2.0.0** on 2026-09-18 (live-contract 13/13, every
-probe unchanged) with one observed difference: the `thinking` config option's
-values are now `["low", "high", "max"]` with no `"off"` entry. Versions are
+`kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. On **kimi
+2.0.0** (2026-09-18) all of them pass unchanged (live-contract 13/13) except
+that the `thinking` config option's values are `["low", "high", "max"]`, with
+no `"off"`. Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
 the [runtime index](README.md) for status conventions.
@@ -41,25 +41,27 @@ has prompt/steer methods and approval/question handlers. Native
 [agent services](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/klient/src/contract/agent/services.ts#L28-L55)
 separate submission from cancellation. ACP instead binds
 [`klient.session(sessionId).agent('main')`](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L249-L344)
-and translates that agent's event stream. One ACP session therefore does not
-expose every agent in the native session. OAR uses `kimi acp`.
+and translates that agent's event stream, so one ACP session does not expose
+every agent in the native session. OAR uses `kimi acp`.
 
 ## High-level mapping to OAR
 
 OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as a frame's `native`; the cross-runtime `events` are what
-OAR read out of it. Control calls are request/response record pairs.
+OAR read out of it. Control calls are request/response record pairs. The
+profile declares `capabilities` `{ steer: false, queue: { durable: false },
+attribution: "opaque" }`, with `images` read from `initialize`.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | `kimi-code` executable | One `kimi acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
-| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0; no history rebuild). |
-| Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are Frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
-| Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one event with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier declared `opaque`. |
-| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request answered `accepted`/`busy`; the `session/prompt` answer is a frame with the `turn_ended` event. Steer is always `rejected not_steerable` (no ACP method); `queue()` is a host-memory FIFO, `durable: false`; `abort()` is `session/cancel` with a kill fallback. |
-| Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. A non-terminal `tool_call_update` carrying `rawOutput` is a `tool_call_progress` event; the argument-streaming updates (content only) are not. Kimi reports no compaction and no retry through ACP, so `compaction_started` / `compaction_ended` / `retry` never appear. No child session ever arrives on this transport, so the graph holds the root only. |
-| Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record and OAR's fixed-policy answer the `answered` response; `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
+| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0, no history rebuild). |
+| Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
+| Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). |
+| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request whose `session/prompt` answer carries `turn_ended`. Steer is always rejected (no ACP method); `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
+| Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. No child session arrives on this transport, so the graph holds the root only. |
+| Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record (verbatim, under the runtime's JSON-RPC id) and OAR's fixed-policy answer the `answered` response; `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
 See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
 [ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
@@ -71,12 +73,10 @@ See the [Kimi profile](../../packages/oar/src/runtimes/kimi/session.ts),
 the [native ACP reference](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/docs/en/reference/kimi-acp.md).
 
 ACP `tool_call_update` reports `status: "completed" | "failed"` ([src]
-ACP schema `ToolCallStatus`). OAR maps those explicit statuses to
-`tool_call_ended.result: "ok" | "failed"`; a non-terminal or missing status
-leaves the field absent.
-"Unexposed" means OAR has no mapping; "transport-limited" means the selected
-native boundary already loses the capability; "unverified" means evidence
-is missing.
+ACP schema `ToolCallStatus`); OAR maps those to `tool_call_ended.result:
+"ok" | "failed"`, and a non-terminal or missing status leaves the field
+absent. "Transport-limited" below means the selected native boundary already
+loses the capability.
 
 ## Capability details
 
@@ -95,9 +95,9 @@ true`, `sessionCapabilities` `list`/`resume`/`close`/`delete`/`fork`/
 `additionalDirectories`, `promptCapabilities` image + embeddedContext (no
 audio), `mcpCapabilities` http + sse, and one auth method `login`
 (`type: "terminal"`, a device-code flow OAR never starts). `session/new`
-answers `sessionId`, `configOptions` (`model`, `thinking` with
-`low`/`high`/`max`, `mode` with `default`/`plan`/`auto`/`yolo`) and `modes`
-(the same four); the model catalog is listed under
+answers `sessionId`, `configOptions` (`model`, `thinking`, `mode` with
+`default`/`plan`/`auto`/`yolo`) and `modes` (the same four); the model
+catalog and `thinking` values are under
 [Models](#models-instructions-and-context).
 
 **Mapped:** OAR launches `kimi acp` (initialize declares `fs` read/write
@@ -107,8 +107,8 @@ method, passes `mcpServers: []`, applies a requested model through
 answer advertises it (in `modes` or the `mode` config option). Every opening
 request has a 30-second deadline; spawn, auth, and creation failures reject
 session construction with the process killed. The opening stream is six
-events: `initialize`, `authenticate` (`{}`), `session/new` (model event), then
-three pushes: `available_commands_update` (the slash commands, `compact`
+records: `initialize`, `authenticate` (`{}`), `session/new` (model event),
+then three pushes: `available_commands_update` (the slash commands, `compact`
 first) right after the `session/new` answer, and `current_mode_update`
 (`yolo`) plus `config_option_update` (model event again) between the
 `session/set_mode` request and its `{}` answer. Opening takes about 1.9 s
@@ -139,13 +139,13 @@ OAR selects `session/resume` when `sessionCapabilities.resume` is `true` or
 an object, otherwise `session/load` when `loadSession === true`, otherwise
 rejects; it does not retry a failed resume as load. The resume answer carries
 `configOptions` + `modes` only (no `sessionId`, nothing replayed on the wire);
-the resumed stream restarts at seq 0 with the same six-event opening,
-`session/resume` in place of `session/new`, and `Session.id` is the earlier
-id. The next prompt recalls what was taught before disposal (`resume`
-scenario: a codeword). Success returns a Session with the supplied native ID
-and no restored Turn handle or transcript; history pushed during a
-`session/load` opening is not retained. Concurrent same-ID controllers and
-continuing in-flight work across OAR subprocesses are **unverified**.
+the resumed stream restarts at seq 0 with the same six-record opening,
+`session/resume` in place of `session/new`, and `Session.id` is the supplied
+earlier id. The next prompt recalls what was taught before disposal (`resume`
+scenario: a codeword). No Turn handle or transcript is restored; history
+pushed during a `session/load` opening is not retained. Concurrent same-ID
+controllers and continuing in-flight work across OAR subprocesses are
+**unverified**.
 
 The Node SDK separately offers
 [`harness.resumeSession({ id, includeSubagents?, replayTurnLimit?, ... })`](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/node-sdk/src/types.ts#L222-L237),
@@ -168,19 +168,19 @@ ACP accepts image and resource blocks. OAR sends `InputOptions.images` as
 because `initialize` advertises `promptCapabilities.image`
 (`capabilities.images` is read from it). Probed live (kimi 2.0.0, model
 `kimi-code/k3`, 2026-09-29): asked for the color of a plain green PNG named
-`probe.png`, it answered `green`, its reasoning describing "a solid green square". Audio is explicitly unsupported in the capability declaration.
+`probe.png`, it answered `green`, its reasoning describing "a solid green
+square".
 
 **Prompt (mapped):** `prompt(string)` records a prompt request answered
 `accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
-the transport error when the process is gone). The RPC answer is recorded as
-frame `session/prompt` with the `turn_ended` event; an RPC error answer as
-`session/prompt/error` with a failed end
-([test](../../tests/acp/acp-session.test.ts)); a second `prompt()` during a
-turn is `rejected busy` (`busy-and-late-control`).
+as in `busy-and-late-control`; the transport error when the process is gone). The
+RPC answer is recorded as frame `session/prompt` with the `turn_ended`
+event; an RPC error answer as `session/prompt/error` with a failed end
+([test](../../tests/acp/acp-session.test.ts)).
 
 **Steer (not available on this transport):** the native SDK and agent
 services support steering, but the ACP method set has no steer operation, so
-`steer()` is always `rejected not_steerable` and `capabilities.steer` is
+`steer()` is always rejected `unsupported` (reason prefix `not_steerable:`) and `capabilities.steer` is
 false, after a turn as well as during one. `steerOrQueue()` therefore lands
 `queued`: the steer request is rejected, the queue request accepted, and the
 input runs after the current turn (`kimi-steer-or-queue.ts`).
@@ -207,13 +207,13 @@ lands after the turn end. Effects on background children are **unverified**.
 blocked/filtered cases become `refusal`, while auth failures use the RPC
 error channel. OAR's `turn_ended` event maps `cancelled` to aborted and every
 other stop reason to completed; the answer itself is in the event's `native`,
-so a consumer can still read `refusal` or any other stop reason the runtime
-gave. This separates loss before OAR receives a response (native) from OAR's
-reading (the event). Opening with an unknown model makes `session/set_model`
-answer a JSON-RPC error `-32603 "Internal error"` with `data.details`
-`Model "<id>" is not configured in config.toml.`; session construction
-rejects with the SDK's `RequestError` (message `Internal error`, the details
-on its `data`) and no OAR session or log exists (`bad-model`).
+so a consumer can still read `refusal` or any other stop reason. This
+separates loss before OAR receives a response (native) from OAR's reading
+(the event). Opening with an unknown model makes `session/set_model` answer a
+JSON-RPC error `-32603 "Internal error"` with `data.details` `Model "<id>" is
+not configured in config.toml.`; session construction rejects with the SDK's
+`RequestError` (message `Internal error`, the details on its `data`) and no
+OAR session or log exists (`bad-model`).
 
 **Unreachable runtime:** `dispose()` mid-turn runs the cancel path, then
 `session/close` (advertised; answered `{}`), then the kill; the dispose
@@ -223,7 +223,7 @@ before the kill (seen once, `subagent`). When `kimi acp` dies on its own
 (SIGKILL mid-turn), the stream gets an `exited` response with `requestId ""`
 and `code: null`, which is the turn's end (read as failed /
 `runtime_exited`); a later `prompt()` is rejected and a later `dispose()` is a
-request answered `accepted` (`kill-runtime`;
+request answered `accepted` without further work (`kill-runtime`;
 [test](../../tests/acp/acp-kimi-wire-shapes.test.ts)).
 
 ### Observation, children, and history
@@ -232,30 +232,31 @@ request answered `accepted` (`kill-runtime`;
 text (`agent_message_chunk` → `text_delta`), reasoning, tool boundaries,
 context snapshots, and model reports. Reasoning arrives as
 `agent_thought_chunk` text deltas ending with an empty chunk (`reasoning:
-empty`); `session_info_update` (the session title) is recorded viewless after
-each first prompt. Native `${turnId}:${toolCallId}` wire IDs survive as call
-IDs. Detail strings truncate at 10,000 characters (`native` does not); tool
-progress/status distinctions are in `native` only; a tool the runtime never
-ended gets no synthetic end. `Session.usage()` totals stay zero: no frame
-carries token totals, only `usage_update` context.
+empty`); `session_info_update` (the session title) is recorded with no events
+after each first prompt. Native `${turnId}:${toolCallId}` wire IDs survive as
+call IDs. Detail strings truncate at 10,000 characters (`native` does not);
+tool progress/status distinctions are in `native` only; a tool the runtime
+never ended gets no synthetic end. Kimi reports no retry through ACP, so
+`retry` never appears. `Session.usage().total` stays `null`: no frame carries
+token totals, only `usage_update` context.
 
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
 `content` text block, and no `rawInput`, so `tool_call_started` has no
 `input`. The arguments then stream as partial-JSON `content` text over a
-dozen `tool_call_update` frames (no event: `content` while `in_progress` is
-input, not output, so it is never read as `tool_call_progress`; only an
-update carrying `rawOutput` would be), and one more update carries the
-full `rawInput` (`{"command": …}`) with `title` "Running: …". The command runs
+dozen `tool_call_update` frames with no event (`content` while `in_progress`
+is input, not output, so it is never read as `tool_call_progress`; only an
+update carrying `rawOutput` would be), and one more update carries the full
+`rawInput` (`{"command": …}`) with `title` "Running: …". The command runs
 through `terminal/create` (`/bin/bash -c "cd '<cwd>' && …"`, env `NO_COLOR`,
 `TERM=dumb`, …), `wait_for_exit`, `output`, `release`, each a `toApp` request
-with OAR's answer: the captured output is in the `terminal/output` answer.
+with OAR's answer; the captured output is in the `terminal/output` answer.
 The completed frame's `content` is a terminal reference
 (`{type: "terminal", terminalId}`) with no `rawOutput`, so
 `tool_call_ended.output` is that reference as JSON, not the command's text
 (`tool-detail`). The `tool` label is the opening `tool_call` frame's `title`
 rather than the ACP `kind` category; for the two tools observed live (`Bash`,
-`Agent`) that title is the tool's name, whether every kimi tool opens with its
+`Agent`) that title is the tool's name; whether every kimi tool opens with its
 name as `title` is **unverified**. A call first seen on a `tool_call_update`
 (whose `title` is progress text) is labelled by `kind`; an explicit
 `name`/`toolName` always wins
@@ -280,9 +281,10 @@ root `Agent` tool card is not a child trajectory. OAR does not filter by
 session id: should a future `kimi acp` emit updates for other session ids,
 they would be recorded as child-session records. (The `isFromMainAgent`
 guard lives in the older `acp-adapter` package; this baseline uses
-`acp-server` with scoped subscriptions, see runtime-matrix.md.)
+`acp-server` with scoped subscriptions; see the
+[runtime matrix](../spec/runtime-matrix.md).)
 
-**History:** the retained stream backs `subscribe(observer, cursor)` for the
+**History:** the retained stream backs `rawEvents(observer, cursor)` for the
 life of the process (`cursor`); there is no native-history enumeration and
 no rebuild after the process died.
 
@@ -303,7 +305,10 @@ temporary authenticated session (`terminal: false`), reads the `model`
 config option, closes and kills it; the `thinking` option (found by its
 `thought_level` category, as the session finds it) is emitted only for the
 current model, so effort levels attach to that entry only (`off` is a
-toggle and dropped).
+toggle and dropped). A `-32601` error reads as unsupported, `-32000` or an
+auth message as unauthenticated. On this account the 0.42.0 catalog is
+`kimi-k2.5`, `kimi-code/kimi-for-coding`, `kimi-code/kimi-for-coding-highspeed`,
+`kimi-code/k3` (current, thinking `high`), `kimi-code/k3-256k`.
 
 **Effort (mapped).** kimi's effort is the `thinking` config option in
 ACP's `thought_level` category ([env] 2.0.0: low/high/max on k3, while
@@ -323,10 +328,7 @@ The level persists with the session: a resume answers the level last set
 `low` on the first turn, `high` after the resume). Live changes on a
 running session are absent ([native surfaces](live-configure.md)).
 [ACP effort channel](../../packages/oar/src/shared/acp/effort.ts),
-[test](../../tests/acp/acp-session-effort.test.ts). `-32601` reads as unsupported, `-32000` or an auth
-message as unauthenticated. On this account the 0.42.0 catalog is
-`kimi-k2.5`, `kimi-code/kimi-for-coding`, `kimi-code/kimi-for-coding-highspeed`,
-`kimi-code/k3` (current, thinking `high`), `kimi-code/k3-256k`.
+[test](../../tests/acp/acp-session-effort.test.ts).
 
 The OAR profile rejects `systemPrompt` and `appendSystemPrompt` because its
 selected ACP integration exposes no override. This is not a claim that the
@@ -339,7 +341,7 @@ model. OAR holds the `session/prompt` answer event at most 500 ms for that
 push (`usageUpdateAfterPrompt`), then records the answer as-is; this keeps
 the usage record before the turn end but is not a freshness guarantee. Live
 the push follows the answer by about 8 ms, so `contextUsage()` at
-`turn_ended` reads the turn's own value: growing across turns, e.g.
+`turn_ended` reads the turn's own value, growing across turns, e.g.
 `[20611, 20657]` (`kimi-usage-update-order.ts live`). `size` is `1048576` for
 `kimi-code/k3`; a one-word turn already occupies about 20.6k tokens (the
 system prompt). Per-agent usage remains unexposed.
@@ -367,20 +369,18 @@ OAR uses yolo when available and answers `session/request_permission` with
 `allow_always`, then `allow_once`, otherwise `cancelled`. With yolo selected
 no `request_permission` arrives; the only reverse requests are `terminal/*`,
 and while a command runs kimi polls `terminal/output` every ~250 ms, each poll
-a `toApp` request/answer pair (`busy-and-late-control`, `kimi-wire-tap.ts`).
-Each reverse request is recorded as a `toApp` request under the runtime's
-JSON-RPC id and OAR's reply as the `answered` response, verbatim (terminal
-output included). No caller decision channel exists, so approval and question
-semantics cannot be represented as application interactions. The stream
-shows what was asked and what OAR answered.
+a `toApp` request/answer pair, terminal output included
+(`busy-and-late-control`, `kimi-wire-tap.ts`). No caller decision channel
+exists, so approval and question semantics cannot be represented as
+application interactions; the stream shows what was asked and what OAR
+answered.
 
 ### Process ownership, installation, and account usage
 
 **Mapped:** OAR owns the spawned process. Native ACP close tears down a live
 session; delete is a separate operation. Disposal cancels active work,
 attempts the advertised `session/close`, kills the process, and disposes
-hosted terminals; a dispose after an observed exit is answered `accepted`
-without further work. On POSIX the process and each hosted terminal command
+hosted terminals. On POSIX the process and each hosted terminal command
 lead their own process groups, so `terminal/kill`, release, and disposal reach
 what they started, and a runtime still running a grace period after SIGTERM
 (10 s, or `OAR_KILL_GRACE_MS`) is SIGKILLed with its group
@@ -401,8 +401,9 @@ and `/me` endpoints; 401/403 or a missing token read `reauth_required`, 404
 `unsupported`. [`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a
 best-effort identity add-on: it supplies `plan` (`user_level_name`), `email`,
 and `displayName` (`nickname`). Phone or WeChat sign-ins return no `email`, so
-`displayName` is often their only readable identity. Account quota and session context occupancy are distinct
-APIs; neither supplies the missing child-agent usage stream.
+`displayName` is often their only readable identity. Account quota and
+session context occupancy are distinct APIs; neither supplies the missing
+child-agent usage stream.
 
 ## Verification and open gaps
 
@@ -418,7 +419,7 @@ notifications (`available_commands_update` 1, `current_mode_update` 1,
 `config_option_update` 1, `session_info_update` 1, `agent_thought_chunk` 22,
 `tool_call` 1, `tool_call_update` 14, `agent_message_chunk` 7, `usage_update`
 1) and four `terminal/*` requests (no vendor extension notification, no
-unknown method) and every one reaches the stream with the same count
+unknown method), every one reaching the stream with the same count
 (`missingFromStream: []`).
 [`kimi-usage-update-order.ts`](../../experiments/kimi-usage-update-order.ts)
 separates fixture and live modes;
