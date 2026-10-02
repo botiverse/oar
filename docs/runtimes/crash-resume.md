@@ -79,8 +79,8 @@ the real answer came after it. The frame is distinguishable: a turn claude
 starts by itself carries `origin` (here `task-notification`, with
 `num_turns: 0` when no model ran), and the host's prompt has a
 `command_lifecycle` entry naming its `inputId`. The same race exists without a
-crash whenever a background task ends as the host prompts. Tracked as a
-follow-up to the claude adapter's turn binding.
+crash whenever a background task ends as the host prompts. Tracked in
+[issue #55](https://github.com/botiverse/oar/issues/55).
 
 ## Evidence
 
