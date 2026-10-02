@@ -1,11 +1,13 @@
 import type { LineProcess } from "../../packages/oar/src/shared/executable/index.js";
 import { PassThrough } from "node:stream";
+import { StderrTail, type ProcessDiagnostics } from "../../packages/oar/src/shared/executable/diagnostics.js";
 
 export interface FakeLineProcess extends LineProcess {
   /** Emit a raw chunk on stdout; `onLine` handlers see complete lines. */
   emit(chunk: string): void;
   /** End the process with the given code; resolves `exited` and fires `onExit`. */
-  end(code: number | null): void;
+  end(code: number | null, signal?: NodeJS.Signals | null): void;
+  emitStderr(chunk: string): void;
   readonly written: string[];
   killed(): boolean;
 }
@@ -25,6 +27,9 @@ class ScriptedLineProcess implements FakeLineProcess {
   private pending = "";
   private ended = false;
   private wasKilled = false;
+  private exitCode: number | null = null;
+  private exitSignal: NodeJS.Signals | null = null;
+  private readonly stderr = new StderrTail();
 
   constructor(onWrite: WriteHook | undefined) {
     this.onWrite = onWrite;
@@ -38,6 +43,14 @@ class ScriptedLineProcess implements FakeLineProcess {
 
   killed(): boolean {
     return this.wasKilled;
+  }
+
+  diagnostics(): ProcessDiagnostics {
+    return { exitCode: this.exitCode, signal: this.exitSignal, stderr: this.stderr.text() };
+  }
+
+  emitStderr(chunk: string): void {
+    this.stderr.append(chunk);
   }
 
   write(text: string): void {
@@ -62,11 +75,13 @@ class ScriptedLineProcess implements FakeLineProcess {
     this.stdout.write(chunk);
   }
 
-  end(code: number | null): void {
+  end(code: number | null, signal: NodeJS.Signals | null = null): void {
     if (this.ended) {
       return;
     }
     this.ended = true;
+    this.exitCode = code;
+    this.exitSignal = signal;
     this.stdout.end();
     this.resolveExit(code);
     for (const handler of this.exitHandlers) {

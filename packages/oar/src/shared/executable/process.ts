@@ -2,6 +2,7 @@ import type { ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
+import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 
 interface ProcessOptions {
   readonly cwd?: string;
@@ -74,6 +75,8 @@ export interface LineProcess {
   readonly exited: Promise<number | null>;
   readonly stdin: Writable;
   readonly stdout: Readable;
+  /** Native status and the last 8 KiB of stderr observed so far. */
+  diagnostics(): ProcessDiagnostics;
   write(text: string): void;
   /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
@@ -106,10 +109,20 @@ export function spawnLineProcess(
   const child = spawn(command, [...args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
-    stdio: ["pipe", "pipe", process.env.OAR_CHILD_STDERR === "inherit" ? "inherit" : "ignore"],
+    stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
   });
   const { stdin, stdout } = child;
+  const stderr = new StderrTail();
+  const inheritStderr = process.env.OAR_CHILD_STDERR === "inherit";
+  // Always drain stderr, even after the tail is full and without a host
+  // observer. Otherwise a verbose child can block before its next RPC reply.
+  child.stderr?.on("data", (chunk: Buffer | string) => {
+    stderr.append(chunk);
+    if (inheritStderr) {
+      process.stderr.write(chunk);
+    }
+  });
   if (stdin === null || stdout === null) {
     throw new Error("line process stdio must be piped");
   }
@@ -119,16 +132,19 @@ export function spawnLineProcess(
   let readingLines = false;
   let ended = false;
   let exitCode: number | null = null;
+  let exitSignal: NodeJS.Signals | null = null;
+  let spawnError: ProcessDiagnostics["error"] = undefined;
   let escalation: NodeJS.Timeout | null = null;
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
   const { promise: exited, resolve: exitDone } = Promise.withResolvers<number | null>();
   child.once("spawn", spawnOk);
-  const end = (code: number | null): void => {
+  const end = (code: number | null, signal: NodeJS.Signals | null = null): void => {
     if (ended) {
       return;
     }
     ended = true;
     exitCode = code;
+    exitSignal = signal;
     if (escalation !== null) {
       clearTimeout(escalation);
     }
@@ -139,6 +155,7 @@ export function spawnLineProcess(
   };
   child.on("exit", end);
   child.on("error", (error) => {
+    spawnError = nativeError(error);
     spawnFailed(error);
     end(null);
   });
@@ -167,6 +184,10 @@ export function spawnLineProcess(
     exited,
     stdin,
     stdout,
+    diagnostics: () => ({
+      exitCode, signal: exitSignal, stderr: stderr.text(),
+      ...(spawnError === undefined ? {} : { error: spawnError }),
+    }),
     write: (text) => {
       stdin.write(text);
     },

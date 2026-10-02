@@ -1,4 +1,5 @@
 import { spawnLineProcess } from "../../shared/executable/index.js";
+import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 
 /**
@@ -70,6 +71,11 @@ export function startAppServerClient(
     ["app-server", ...overrideArgs, "--listen", "stdio://"],
     { ...(cwd === undefined ? {} : { cwd }), ...(env === undefined ? {} : { env: { ...process.env, ...env } }) },
   );
+  // Session initialization observes spawn failures through its pending RPC.
+  // Mark this parallel promise handled while preserving its rejection for
+  // callers that explicitly await spawned.
+  // oxlint-disable-next-line promise/prefer-await-to-then -- client construction remains synchronous
+  void child.spawned.catch(() => {});
   const pending = new Map<number, Pending>();
   // Inbound frames and marks share one queue until `handle` registers the
   // handlers, so their relative order is the wire's whatever kind they are.
@@ -83,7 +89,7 @@ export function startAppServerClient(
     }
   };
   let nextId = 1;
-  let exited = false;
+  let exitFailure: Error | null = null;
 
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
@@ -122,9 +128,9 @@ export function startAppServerClient(
     }
   });
   child.onExit(() => {
-    exited = true;
+    exitFailure = processFailure("app-server exited", child.diagnostics());
     for (const waiter of pending.values()) {
-      const error = new Error("app-server exited");
+      const error = exitFailure;
       waiter.settled({ kind: "error", error });
       waiter.reject(error);
     }
@@ -136,8 +142,8 @@ export function startAppServerClient(
     exited: child.exited,
     async request(method, params, onSettled) {
       const settled = onSettled ?? ((): void => {});
-      if (exited) {
-        const error = new Error("app-server exited");
+      if (exitFailure !== null) {
+        const error = exitFailure;
         settled({ kind: "error", error });
         throw error;
       }
