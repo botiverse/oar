@@ -126,6 +126,62 @@ test("codex notifications of another thread are child-session records; collab it
   expect(event?.kind === "frame" ? event.spanId : null).toBe("t-child");
 });
 
+/** The task events (`reporting thread: kind taskId`) and distinct edges a recorded fixture folds to. */
+function tasksAndEdges(lines: readonly string[]): { tasks: string[]; edges: string[] } {
+  let state = initialCodexProjection(ROOT);
+  const commands = lines.flatMap((line) => {
+    const frame = asRecord(parseJson(line)) ?? {};
+    const result = foldCodexNotification(state, String(frame.method), frame);
+    ({ state } = result);
+    return result.commands;
+  });
+  const tasks = commands.flatMap((command) => (command.kind === "frame"
+    ? command.body.events.flatMap((view) => (view.kind === "task_started" || view.kind === "task_updated" || view.kind === "task_ended"
+      ? [`${command.sessionId ?? ROOT}: ${view.kind} ${view.taskId}`]
+      : []))
+    : []));
+  const edges = commands.flatMap((command) => (command.kind === "link" ? [`${command.edge.parent} → ${command.edge.child}`] : []));
+  return { tasks, edges: [...new Set(edges)] };
+}
+
+test("codex peers: a thread's subAgentActivity changes only its own children's tasks and edges", () => {
+  // Recorded on 0.158.0: root starts alpha and beta, alpha messages beta and
+  // starts gamma, gamma messages the root. Each reports on its own thread.
+  const lines = readFileSync(path.join(here, "fixtures", "codex-peers.raw.jsonl"), "utf8")
+    .split("\n")
+    .filter((line) => line.trim().length > 0);
+  expect(tasksAndEdges(lines)).toEqual({
+    tasks: [
+      "thread-root: task_started thread-alpha",
+      "thread-root: task_started thread-beta",
+      "thread-alpha: task_started thread-gamma",
+      "thread-root: task_ended thread-beta",
+      "thread-alpha: task_ended thread-gamma",
+      "thread-root: task_ended thread-alpha",
+    ],
+    edges: ["thread-root → thread-alpha", "thread-root → thread-beta", "thread-alpha → thread-gamma"],
+  });
+});
+
+/** A `subAgentActivity` item reported on `thread`, as a fixture line. */
+function activity([thread, kind, agentThreadId, agentPath]: readonly [string, string, string, string]): string {
+  return JSON.stringify({ method: "item/completed", threadId: thread, item: { type: "subAgentActivity", id: `${thread}-${kind}`, kind, agentThreadId, agentPath } });
+}
+
+test("codex peers after a resume: the agentPath decides whose child an unstarted thread is", () => {
+  // alpha, beta and gamma were started before the resume, so no `started`
+  // item names them; the parent path says beta is the root's, gamma alpha's.
+  expect(tasksAndEdges([
+    activity(["thread-alpha", "interacted", "thread-beta", "/root/beta"]),
+    activity(["thread-alpha", "completed", "thread-gamma", "/root/alpha/gamma"]),
+    activity([ROOT, "completed", "thread-beta", "/root/beta"]),
+    activity([ROOT, "interacted", "thread-gamma", "/root/alpha/gamma"]),
+  ])).toEqual({
+    tasks: ["thread-alpha: task_ended thread-gamma", "thread-root: task_ended thread-beta"],
+    edges: ["thread-alpha → thread-gamma", "thread-root → thread-beta"],
+  });
+});
+
 test("codex error detail folds into the failed turn_ended and usage is the cumulative total", () => {
   let state = initialCodexProjection(ROOT);
   const errored = foldCodexNotification(state, "error", { threadId: ROOT, error: { message: "boom", additionalDetails: "quota" } });
