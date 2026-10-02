@@ -77,7 +77,6 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 
 ## Docs
 
-
 | Read                                         | To answer                                                                |
 | -------------------------------------------- | ------------------------------------------------------------------------ |
 | [docs/design/](docs/design/README.md)        | Why oar exists and which design problems it treats as load-bearing       |
@@ -93,9 +92,6 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 | [docs/prior-arts/feature-comparison.md](docs/prior-arts/feature-comparison.md) | Surveyed projects compared by concrete features and evidence |
 | [docs/design/decisions.md](docs/design/decisions.md) | Design decisions, their evidence, and conditions for reconsideration |
 | [docs/design/roadmap.md](docs/design/roadmap.md) | Which system improvements are next, and what evidence gates them |
-
-
-
 
 ## Library
 
@@ -121,14 +117,14 @@ if (installation?.kind === "available") {
 ```
 
 `events()` is the flat, attributed reading of the session: one `Event` per
-fact (native user message echoes, text, reasoning, background tasks, tool call start / progress / end, turn start and
-end, usage, model, effort, compaction, retry, app requests, control
-rejections, the process exit), with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to
-get text in blocks instead of pieces. When the runtime's own frame matters,
-`session.rawEvents()` and `session.records()` expose the underlying record
-stream with every native payload verbatim.
-
-
+fact (native user message echoes, text, reasoning, background tasks, tool call
+start / progress / end, turn start and end, usage, model, effort, compaction,
+retry, app requests, control rejections, the process exit), with `seq` and
+`agentPath` on each. Pass `{ coalesceText: true }` to get text in blocks
+instead of pieces. When the runtime's own frame matters, `session.rawEvents()`
+and `session.records()` expose the underlying record stream with every native
+payload verbatim. The [package README](packages/oar/README.md) lists the
+public entry points.
 
 ## CLI
 

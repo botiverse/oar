@@ -37,4 +37,4 @@ provider inclusion. The scripts test one unique steer at a tool boundary;
 not repeated-text ambiguity, abort races, post-turn delivery, or replay after
 resume. Grok and Kimi were inspected locally, not run against a mock provider.
 
-Findings and proposed consumer contract: [steer delivery](../../docs/runtimes/steer-delivery.md).
+Findings: [steer delivery](../../docs/runtimes/steer-delivery.md); the implemented contract: [conversation](../../docs/spec/conversation.md).
