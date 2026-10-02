@@ -21,7 +21,9 @@ Cross-runtime investigation: [native skills, MCP and tools inventories](inventor
 (local probes, 2026-09-29: what changes a running session's model or
 effort without a restart, and how it meets each adapter's queue); [runtime updaters](update.md) (sandbox probes,
 2026-10-01: how each runtime updates itself and how its updater can claim
-success without upgrading).
+success without upgrading); [crash and resume](crash-resume.md) (live probes,
+2026-10-02: what claude, codex and pi keep when the process tree dies mid tool
+call, and what they do by themselves on reopen).
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|

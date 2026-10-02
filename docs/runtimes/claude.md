@@ -420,8 +420,10 @@ the former only.
    log say about an in flight tool call?** No runtime frame. The last record
    is OAR's `exited` response with `requestId ""` and code `null` (source,
    death test). The stream then holds a `tool_call_started` with no
-   `tool_call_ended`. Whether the transcript holds the `tool_use` without its
-   `tool_result` in that case was not probed.
+   `tool_call_ended`. The transcript then holds the `tool_use` without its
+   `tool_result` until a `--resume` writes an interrupted error result and a
+   synthetic `No response requested.`
+   ([crash and resume](crash-resume.md), 2.1.284).
 6. **Do hosted forms report environment lifecycle events?** Not on OAR's
    path. The CLI exposes background, cloud, teleport, and remote control
    modes (vendor); OAR spawns none of them and has no evidence about their
