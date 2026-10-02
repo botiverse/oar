@@ -13,45 +13,48 @@ oar run claude "What does this repo do?"
 
 ## Commands
 
+Commands that take an optional `[runtime]` cover every registered runtime when
+it is omitted.
+
 - `oar list`: registered runtimes and their capabilities.
 - `oar installation [runtime]` (alias `detect`): probe local installation
   and version, no account or usage I/O.
 - `oar usage [runtime]`: account usage for each available installation.
 - `oar models [runtime]`: models each available installation can run right
-  now (login state, plan, and configured providers included); `--json` prints
-  the `ListModelsResult` per runtime, `--timeout <ms>` bounds each query.
-  The first column after the runtime is the `id` to pass to `oar run --model`.
+  now (login state, plan, and configured providers included). The first
+  column after the runtime is the `id` to pass to `oar run --model`; `--json`
+  prints the `ListModelsResult` per runtime, `--timeout <ms>` bounds each
+  query.
 - `oar run <runtime> <prompt>`: run one turn in a fresh (or `--resume`d)
-  session and show its progress; the exit code is 0 only when the turn
-  completed.
+  session and show its progress; [below](#oar-run-the-run-and-verify-entrypoint).
 - `oar upgrade [runtime]`: upgrade each available installation with the
   runtime's own updater, one at a time; `--check` only reports the version
-  the updater would install, `--json` prints the reports. The exit code is 1
-  when an upgrade failed or left the version unchanged. See
-  [runtime updates](../../docs/spec/update.md).
+  the updater would install, `--json` prints the reports, `--timeout <ms>`
+  bounds each runtime. The exit code is 1 when an upgrade failed or left the
+  version unchanged, or when a runtime could not be probed. See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 - `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,
   any MCP client) can delegate tasks to other runtimes: `run` waits for a
-  subagent's turn, `spawn` / `send` / `wait` work in parallel. Flags
+  subagent's turn, `spawn` / `send` / `wait` work in parallel, and
+  `runtimes`, `list`, `interrupt` and `close` complete the tool set. Flags
   `--runtimes`, `--max-running`, `--max-depth`, `--cwd`, `--log-dir`.
   Subagents run with full permissions. A codex agent starts MCP servers with
   a reduced environment, so give its `oar` entry
   `env_vars = ["OAR_SUBAGENT_DEPTH"]` for the nesting limit to hold. See
-  [subagents](../../docs/spec/subagents.md).
+  [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md).
 - `oar skills|mcps|tools [runtime]`: native inventories, see
   [below](#native-inventories).
 
 ## `oar run`: the run-and-verify entrypoint
 
-By default `run` prints readable progress from the session's `events()`,
-after one opening line naming the session (the id `--resume` takes; it
-reads `[resumed <id> …]` on a resumed run) and the
-model and effort the runtime reported while opening, when it did (the
-`model()` / `effort()` folds, never the flags echoed):
-assistant text verbatim (coalesced into blocks via `coalesceText`), and
-everything else as a bracketed meta line (`[compacting: threshold]`,
-`[compacted]` or `[compaction failed] reason`, `[retry 2/3] reason`,
-`[waiting for app: type]`; tool progress deltas and oar's own answers to
-app requests print nothing):
+By default `run` prints one opening line naming the session (the id
+`--resume` takes; `[resumed <id> …]` on a resumed run) and the model and
+effort the runtime reported while opening, when it did (the `model()` /
+`effort()` folds, never the flags echoed). Then it prints readable progress
+from the session's `events()`: assistant text verbatim (coalesced into blocks
+via `coalesceText`), and everything else as a bracketed meta line
+(`[compacting: threshold]`, `[compacted]` or `[compaction failed] reason`,
+`[retry 2/3] reason`, `[waiting for app: type]`; tool progress deltas and
+oar's own answers to app requests print nothing):
 
 ```
 [session 01a0e982-… · model gpt-6-luna · effort low]
@@ -61,6 +64,9 @@ app requests print nothing):
 The repo is a pnpm workspace...
 [turn completed]
 ```
+
+The exit code is 0 only when the turn completed. The first Ctrl-C interrupts
+the turn and exits 130; a second one disposes the session at once.
 
 Flags:
 
@@ -80,47 +86,46 @@ Flags:
   of progress (frames with their verbatim `native` payload and oar's
   `events`, plus the request/response records of the run), and a final
   `{"outcome": ...}` line.
-- `--record <file>`: additionally write the run as an `oar-voyage/3` JSONL
-  log (works in both output modes; the log always carries every record).
+- `--record <file>`: also write the run as an `oar-voyage/3` JSONL log (in
+  both output modes; the log always carries every record).
 
 A run without a record is an anecdote. When a run is meant to be evidence
 (verifying a doc claim, reproducing a bug, checking a runtime's live
 behavior), pass `--record` so the claim points at a log anyone can read:
 
 1. **Run live, don't infer.** A claim about runtime behavior is verified by
-   actually running it, not by reading code or remembering last time.
-2. **Record the evidence.** Keep the voyage log and reference it in the
+   running it, not by reading code or remembering last time.
+2. **Record the evidence.** Keep the voyage log and cite it in the
    conclusion, so "it works" is checkable later.
 3. **Triage what you see.** If reality differs from the docs, decide which
-   moved: the runtime changed → fix the doc; oar regressed → file the bug
-   and pin it with a test (`docs/development.md` has the test ladder).
+   moved: the runtime changed, so fix the doc; or oar regressed, so file the
+   bug and pin it with a test (`docs/development.md` has the test layers).
 4. **Report honest outcomes.** A turn that failed or aborted is a finding,
    not something to retry until it looks clean: the exit code and the
-   runtime's own `turn_ended` event in the log say what actually happened.
+   runtime's own `turn_ended` event in the log say what happened.
 
 ## The `oar-voyage/3` format
 
 `--record` writes one JSON object per line, discriminated by `kind`. The
 format is defined and owned by `@botiverse/oar`, which exports the line
-builders and `openVoyage` recorder; other tools (such as the
+builders and the `openVoyage` recorder; other tools (such as the
 [oar-coxswain](https://github.com/botiverse/oar-coxswain) cockpit) may write
-or read the same format as consumers.
+or read it as consumers.
 
 - Line 1 is always the header:
   `{"kind":"header","format":"oar-voyage/3","runtime","model?","effort?","cwd","sessionId","startedAt","recorder"}`
   (`model` and `effort` are omitted when none was requested; `recorder`
   names the writer, e.g. `oar-cli/<version>`).
 - `{"kind":"record","record":{...}}`: one `RawEvent` verbatim, no
-  filtering or re-timestamping. Human inputs are in the stream already as
-  `request` records, so the format has no separate submission line; the
-  `seq` on each record is the order.
+  filtering or re-timestamping. Human inputs are already in the stream as
+  `request` records, so there is no separate submission line; the `seq` on
+  each record is the order.
 - `{"kind":"end","at","reason"}`: always the last line; a log without it
   is a truncated capture.
 
 All timestamps are Unix epoch milliseconds on the same clock as each
 record's `receivedAt`. Lines are written synchronously in arrival order, so
 a crashed run still leaves a readable prefix.
-
 
 ## Native inventories
 
@@ -130,11 +135,11 @@ oar mcps claude --cwd /path/to/project --timeout 15000
 oar tools pi
 ```
 
-Each command prints JSON. Omit the runtime to query all runtimes. The directory
-defaults to the current working directory. These are independent discovery
-queries; no existing agent is inspected. Check `kind`, `view` and `partial`
-before displaying results: `mcp-only` excludes built-in tools, unsupported
-queries are not empty lists, and a pending/failed MCP connection can produce a
-partial catalog. Native startup can load extensions and connect configured MCP
-servers; no model prompt is sent.
-See the [inventory contract](../../docs/spec/inventory.md).
+Each command prints JSON. `--cwd` defaults to the current working directory;
+`--timeout <ms>` bounds each runtime. These are independent discovery
+queries: no existing agent is inspected and no model prompt is sent, though
+native startup can load extensions and connect configured MCP servers. Check
+`kind`, `view` and `partial` before displaying results: `mcp-only` excludes
+built-in tools, unsupported queries are not empty lists, and a pending or
+failed MCP connection can produce a partial catalog. See the
+[inventory contract](https://github.com/botiverse/oar/blob/main/docs/spec/inventory.md).
