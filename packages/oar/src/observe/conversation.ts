@@ -1,4 +1,4 @@
-import type { ControlAction, Cursor, Event, InputImage, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
+import type { ControlAction, Cursor, Event, InputImage, InputOrigin, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
 import { eventsOf } from "./events.js";
 
 export interface InputAttempt {
@@ -15,6 +15,8 @@ export interface ConversationInput {
   readonly input: string;
   /** The images the input carried (`InputOptions.images`), from its latest request; absent when none. A UI shows them with the text. */
   readonly images?: readonly InputImage[];
+  /** Who the input came from (`InputOptions.origin`), from its latest request; absent when the host said nothing. */
+  readonly origin?: InputOrigin;
   readonly state: "pending" | "accepted" | "rejected" | "untracked";
   readonly attempts: readonly InputAttempt[];
   /** Native observations; none of these alone proves model consumption. */
@@ -59,12 +61,12 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
   if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind !== "native") {
     actions.set(operationKey(record.id), record.body.kind);
     if ("input" in record.body) {
-      const { input, inputId, images } = record.body;
+      const { input, inputId, images, origin } = record.body;
       const id = inputId === undefined ? operationKey(record.id) : identity(record, inputId);
       const existing = inputs.get(id);
       const attempts: readonly InputAttempt[] = [...(existing?.attempts ?? []), { request: record, streamId, state: "pending" }];
       requests.set(operationKey(record.id), id);
-      publish({ id, input, ...(inputId === undefined ? {} : { inputId }), ...(images === undefined || images.length === 0 ? {} : { images }), attempts,
+      publish({ id, input, ...(inputId === undefined ? {} : { inputId }), ...(images === undefined || images.length === 0 ? {} : { images }), ...(origin === undefined ? {} : { origin }), attempts,
         state: inputState(attempts), observations: existing?.observations ?? [] });
       handled = true;
     }

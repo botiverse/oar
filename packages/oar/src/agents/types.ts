@@ -121,9 +121,6 @@ export interface WaitOptions {
   readonly signal?: AbortSignal;
 }
 
-export interface DeliverOptions {
-  readonly format?: (report: SubagentReport) => string;
-}
 
 export interface Subagents {
   spawn(options: SpawnOptions): Promise<SpawnResult>;
@@ -143,11 +140,13 @@ export interface Subagents {
   onTask(observer: (event: SubagentTaskEvent) => void): Unsubscribe;
   tasks(): readonly TaskView[];
   /**
-   * Deliver every report into a parent session as input, taking it from the
-   * unread ones: a prompt when the parent is idle (so it wakes), otherwise
-   * steered into its turn or queued behind it.
+   * The application's hook for reports: every report goes to the handlers
+   * instead of the unread list (a `next(id)` still gets its own first). What
+   * happens next is the application's choice: its own inbox, a log, or the
+   * parent session, e.g. `parent.deliver(formatReport(r), { origin: reportOrigin(r) })`.
+   * A report every handler throws on stays unread.
    */
-  deliverTo(parent: Session, options?: DeliverOptions): Unsubscribe;
+  onReport(handler: (report: SubagentReport) => void): Unsubscribe;
   /** Close every subagent, including spawns in flight, and refuse new ones. Pending waits return. */
   close(): Promise<void>;
 }

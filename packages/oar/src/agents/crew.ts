@@ -4,10 +4,9 @@ import type { Runtime } from "../contracts/runtime.js";
 import type { Session, TaskEventBody, Unsubscribe } from "../contracts/session.js";
 import { applyTaskEvent, initialTasks, type TaskMap, type TaskView } from "../observe/tasks.js";
 import { runtimes as builtInRuntimes } from "../index.js";
-import { attachLog, DEFAULT_WAIT_MS, formatReport, hostDepth, installationOf, logName, readerOrTimeout, sessionOf, SUBAGENT_DEPTH_ENV } from "./helpers.js";
+import { attachLog, DEFAULT_WAIT_MS, hostDepth, installationOf, logName, readerOrTimeout, sessionOf, SUBAGENT_DEPTH_ENV } from "./helpers.js";
 import { createSubagent } from "./subagent.js";
 import type {
-  DeliverOptions,
   SpawnOptions,
   SpawnResult,
   Subagent,
@@ -34,10 +33,9 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
   const readers = new Set<() => void>();
   const taskObservers = new Set<(event: SubagentTaskEvent) => void>();
   const inFlight = new Set<Promise<SpawnResult>>();
-  let reportObserver: ((report: SubagentReport) => void) | null = null;
+  const reportHandlers = new Set<(report: SubagentReport) => void>();
   let unread: SubagentReport[] = [];
   let tasks: TaskMap = initialTasks;
-  let parentSessionId = "";
   let starting = 0;
   let closed = false;
 
@@ -51,7 +49,7 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
 
   const emitTask = (body: TaskEventBody): void => {
     const at = Date.now();
-    tasks = applyTaskEvent(tasks, body, { sessionId: parentSessionId, agentPath: [], receivedAt: at });
+    tasks = applyTaskEvent(tasks, body, { sessionId: "", agentPath: [], receivedAt: at });
     for (const observer of taskObservers) {
       try {
         observer({ ...body, at });
@@ -62,9 +60,19 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
   };
 
   const received = (report: SubagentReport): void => {
-    if (reportObserver !== null && !reserved.has(report.id)) {
-      reportObserver(report);
-      return;
+    if (reportHandlers.size > 0 && !reserved.has(report.id)) {
+      let handled = false;
+      for (const handler of reportHandlers) {
+        try {
+          handler(report);
+          handled = true;
+        } catch {
+          // The next handler still gets it; a report no handler takes stays unread.
+        }
+      }
+      if (handled) {
+        return;
+      }
     }
     unread.push(report);
     wake();
@@ -236,40 +244,10 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
       };
     },
     tasks: (): readonly TaskView[] => [...tasks.values()],
-    deliverTo: (parent: Session, deliver: DeliverOptions = {}): Unsubscribe => {
-      const format = deliver.format ?? formatReport;
-      parentSessionId = parent.id;
-      const keep = (report: SubagentReport): void => {
-        unread.push(report);
-        wake();
-      };
-      const send = async (report: SubagentReport): Promise<void> => {
-        try {
-          const input = format(report);
-          // An idle parent gets a turn of its own (it wakes); a busy one gets the input mid-turn or after it.
-          const prompted = parent.status().value.kind === "idle" ? await parent.prompt(input) : null;
-          if (prompted?.kind === "accepted") {
-            return;
-          }
-          const landed = await parent.steerOrQueue(input);
-          if (landed.landed === "rejected") {
-            keep(report);
-          }
-        } catch {
-          keep(report);
-        }
-      };
-      const observer = (report: SubagentReport): void => {
-        void send(report);
-      };
-      reportObserver = observer;
-      for (const report of take()) {
-        observer(report);
-      }
+    onReport: (handler): Unsubscribe => {
+      reportHandlers.add(handler);
       return () => {
-        if (reportObserver === observer) {
-          reportObserver = null;
-        }
+        reportHandlers.delete(handler);
       };
     },
     close: async (): Promise<void> => {

@@ -36,6 +36,11 @@ and `session.records()` expose that stream (`RawEvent`: `Frame` with the
 native payload verbatim, `RequestRecord`, `ResponseRecord`) for consumers
 who need the runtime's own frames.
 
+`session.deliver(input, { when, origin })` sends input the host produces (a
+subagent's result, a finished job) at the right moment: a new turn when the
+session is idle, so the agent wakes, otherwise steered into the turn or
+queued behind it. `origin` is recorded so a UI can tell it from typed input.
+
 For conversation UIs, use the browser-safe `reduceConversation` projection over
 `session.rawEvents()`. It joins input requests, responses and native echoes by
 identity, including steer → queue fallback. See the

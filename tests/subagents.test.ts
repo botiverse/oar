@@ -2,7 +2,9 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { SUBAGENT_DEPTH_ENV, type Subagents } from "../packages/oar/src/agents/index.js";
+import { formatReport, reportOrigin, SUBAGENT_DEPTH_ENV, type Subagents } from "../packages/oar/src/agents/index.js";
+import type { Session } from "../packages/oar/src/contracts/session.js";
+import { conversationOf } from "../packages/oar/src/observe/conversation.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { crewOf, echo, Gate, spawned } from "./fixtures/subagent-fixtures.js";
 
@@ -69,19 +71,36 @@ test("the running limit and unknown runtimes refuse with a reason", async () => 
   await crew.close();
 });
 
-test("delivered reports wake an idle parent with a turn of its own", async () => {
-  const inputs: string[] = [];
-  const parent = await scriptedRuntime({ id: "parent", turn: (turn) => {
+async function recordingParent(inputs: string[]): Promise<Session> {
+  const session = await scriptedRuntime({ id: "parent", turn: (turn) => {
     inputs.push(turn.input);
   } }).session({ kind: "available", via: "bundled" }, { cwd: process.cwd() });
+  return session;
+}
+
+test("an onReport hook delivering into an idle parent wakes it with a turn of its own", async () => {
+  const inputs: string[] = [];
+  const parent = await recordingParent(inputs);
   const crew = crewOf(echo);
-  crew.deliverTo(parent);
+  crew.onReport((report) => {
+    void parent.deliver(formatReport(report), { origin: reportOrigin(report) });
+  });
   await spawned(crew, "summarize", "helper");
   await expect.poll(() => inputs.length, { timeout: 5000 }).toBe(1);
   expect(inputs[0]).toMatch(/^\[subagent helper on fake, turn 1: completed; session [^\]]+\]\ndid: summarize$/u);
   expect(crew.unread()).toEqual([]);
+  expect([...conversationOf(parent.records()).inputs.values()].map((input) => input.origin)).toEqual([{ kind: "notification", source: "subagent:helper" }]);
+  await Promise.all([crew.close(), parent.dispose()]);
+});
+
+test("a report every hook throws on stays unread", async () => {
+  const crew = crewOf(echo);
+  crew.onReport(() => {
+    throw new Error("app inbox down");
+  });
+  await spawned(crew, "x");
+  await expect.poll(() => crew.unread().length, { timeout: 5000 }).toBe(1);
   await crew.close();
-  await parent.dispose();
 });
 
 async function closeMidTurn(dir: string): Promise<Subagents> {
