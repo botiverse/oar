@@ -22,6 +22,7 @@ A fresh process's connections or active defaults do not describe an existing
 agent. No model prompt is submitted; native startup can load extensions and
 connect configured MCP servers. Pi uses a temporary in-memory SDK session,
 without writing trust configuration, and disposes it after discovery.
+Inventory results never enter a session's record stream.
 
 ## Results
 
@@ -29,10 +30,11 @@ without writing trust configuration, and disposes it after discovery.
 
 * `ok`: `items`, absolute directory in `scope.cwd`, `observedAt`, `view` and
   `partial`. An empty list is a successful native empty result.
-* `unsupported`: stable `code` and explanatory `reason`. No native query,
-  unavailable transport, unavailable scope, and incompatible installation are
-  distinct codes. The default supplied by `defineRuntime` is
-  `transport_unavailable`.
+* `unsupported`: stable `code` and explanatory `reason`. The codes are
+  `native_query_unavailable` (no native query), `transport_unavailable`
+  (the default supplied by `defineRuntime`), `scope_unavailable` and
+  `installation_unsupported`. No built-in runtime returns
+  `scope_unavailable` today.
 * `unavailable`: `timeout` or `query_failed`. Malformed payloads, process
   failures and failed native requests must not become successful empty lists.
   Native error strings and raw server configuration are not copied into this
@@ -61,8 +63,8 @@ manufactures parameter schemas. A tool can reference its server through
 | Codex | `skills/list` | Paginated `mcpServerStatus/list` | Same native MCP catalog, including input schemas |
 | Claude | `get_context_usage` skill frontmatter | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
 | Grok | `inspect --json` skills | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
-| Kimi | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 | Pi | SDK resource loader | Unsupported | SDK registered tools, parameter schemas and active membership |
+| Kimi, Cursor, Antigravity | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi's separate native Web API was probed but is not integrated. Grok's
 session-only MCP tool view is not used. Claude's historical session-init tool
@@ -77,12 +79,9 @@ Omitting runtime queries all registered runtimes.
 
 Custom runtimes should use `defineRuntime({id, session, ...})`: it fills missing
 inventory methods with explicit unsupported results. A manually constructed
-object typed as `Runtime` must implement all three methods; this is a TypeScript
-surface change from 0.3.x.
+object typed as `Runtime` must implement all three methods.
 
 Protocol tests cover cwd forwarding, pagination, malformed responses, partial
 startup, response correlation, secret-bearing config exclusion, timeout cleanup,
 and unsupported queries without subprocess launch. Mocked Pi SDK tests cover
-registered versus active tools and cleanup after late startup. Existing Session
-contracts and adapters are unchanged; inventory results do not enter their
-record streams.
+registered versus active tools and cleanup after late startup.

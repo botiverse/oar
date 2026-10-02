@@ -90,7 +90,7 @@ The library is mechanism; the host chooses the policy.
   restricted gains that access through a child, so whoever starts the host
   decides whether to offer subagents at all.
 - **Evidence.** With `logDir`, each child's records, from its first, are
-  written to `<logDir>/<id>-<sessionId>.jsonl` as an `oar-voyage/3` log;
+  written to `<logDir>/<name>-<sessionId>.jsonl` (the runtime id when the spawn has no name) as an `oar-voyage/3` log;
   characters other than letters, digits, `.`, `_` and `-` become `_`, so a
   chosen name never leaves the directory.
 

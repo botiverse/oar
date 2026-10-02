@@ -66,14 +66,16 @@ subject of [foundations.md](foundations.md).
     silently discarding notifications when no client is attached. Docs don't
     tell you this; only conformance tests against real behavior pin it down
     (see [`../../experiments/README.md`](../../experiments/README.md)).
-13. **Cancellation and steering.** Abort vs steer vs interject differ per
-    runtime (grok has interject + send_now queueing; others can't steer at
-    all), and each interacts with the event stream differently.
+13. **Cancellation and steering.** Abort, steer and queue differ per
+    runtime: claude, codex and pi absorb a steer at the next step boundary,
+    grok's `send_now` cancels the running turn and starts a new one, and
+    kimi, cursor and antigravity cannot steer at all. Each interacts with the
+    event stream differently.
 
 ## Beyond a single local process
 
 14. **Context management.** Context accounting and native compaction events
-    (codex); external compaction continuity is defined by the
+    (codex, claude and pi report compaction differently); external compaction continuity is defined by the
     [record-stream spec](../spec/record-stream.md).
 15. **Placement.** Local co-process vs remote service vs managed cloud:
     session, process, and host lifecycle are three different layers, and

@@ -32,13 +32,16 @@ The design answer is to make death observable in the record stream itself:
   event.
 - **Process exit produces a response record.** Death shows up in the stream,
   not only in the OS.
-- **Dangling tool calls get post-mortem settlement.** When a process dies
-  mid-tool-call, explicit settlement records close the open state instead of
-  hanging consumers forever
-  ([hard problem 8](hard-problems.md#the-session-and-event-model)).
+- **Death settles what was waiting, without inventing outcomes.** When a
+  process dies mid tool call, the `exited` record is what lets every fold
+  stop waiting: the turn is sealed and the tool call stays without an
+  outcome, because none was observed
+  ([hard problem 8](hard-problems.md#the-session-and-event-model)). What
+  each runtime tells its model about that call after a resume is measured in
+  [crash and resume](../runtimes/crash-resume.md).
 - **Replay is final.** Combined with the cursor, an observer who reconnects
-  and replays reaches the same alive/dead/why conclusion as one who watched
-  live. (grok's leader mode stumbled toward this property; oar makes it a
+  and replays the retained stream reaches the same alive/dead/why conclusion
+  as one who watched live. (grok's leader mode stumbled toward this property; oar makes it a
   guarantee.)
 - **Per-agent, not per-process.** Agent attribution in the stream makes the
   liveness answer addressable per agent in the tree, not just per OS

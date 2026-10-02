@@ -65,17 +65,19 @@ nothing a runtime exposes is walled off.
 - **Tooling that consumes the record stream**: trajectory viewers, test
   harnesses, evaluation pipelines. oar emits the complete attributed stream;
   derivation and storage stay the consumer's business.
-- **Advanced individual users via the `oar` CLI**: detect, install, catalog,
-  config, drive.
+- **Advanced individual users via the `oar` CLI**: detect runtimes, read
+  models, usage and native inventories, run a prompt, check for and apply
+  runtime updates, and serve subagents over MCP.
 
 Explicit non-goals: multi-language bindings, and being a storage/replay
 system (that layer exists as separate protocols; oar emits, they persist).
 
 ## Why oar instead of each harness directly?
 
-- **One contract instead of N mechanisms.** Detect / install / version
-  catalog / login / usage / config / session-drive written once per
-  application, not once per application × runtime.
+- **One contract instead of N mechanisms.** Detection, version and update
+  checks, model catalogs, account usage, native inventories and session
+  control are written once per application, not once per application and
+  runtime.
 - **Lossless producer, semantically clear consumer.** Everything the harness
   emits is available (unknown events preserved, never dropped), through a
   typed surface where status is a fold over events.
