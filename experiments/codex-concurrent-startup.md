@@ -45,6 +45,15 @@ Retained runs: `2026-10-02T11-43-45.390Z` and
 `codex-cli 0.160.0`, native `@openai/codex-linux-x64` binary, Linux x64;
 driver Node.js 24.19.0.
 
+The warm control stops immediately after the `initialize` reply and the
+`initialized` notification: it closes stdin, sends SIGTERM, and waits for exit.
+It does not wait for a background-setup notification or add a sleep. Across
+the two runs, all 48 subsequent concurrent starts initialized. Reply to
+warmup exit took 12–69 ms; exit to the next spawn took 1–3 ms. This directly
+tests immediate termination after the handshake for this binary and platform;
+it does not establish that every background task has finished, or invalidate
+the older cold-runner failures recorded in commit `0f49bd2`.
+
 ## Scope and next evidence
 
 The controls isolate a concurrent first-initialization failure, not the exact
