@@ -22,8 +22,10 @@ one `inputId` across attempts:
 | `when_idle` | `prompt` | waits until idle, then `prompt` |
 
 A `prompt` refused `busy` (a turn opened between the status read and the
-prompt) and a `steer` refused `no_active_turn` (the turn just ended) are
-retried as the new state requires. `steerOrQueue` stays as the running half
+prompt) and a `steer` refused because the turn just ended (`no_active_turn`,
+or the runtime's own refusal once the status shows that turn is over, as
+codex answers a steer that reaches it after the turn) are retried as the new
+state requires. `steerOrQueue` stays as the running half
 of `now`; unlike it, `deliver` never queues into an idle session, where some
 runtimes would hold the input without starting a turn. Queueing, batching,
 priority and persistence stay with the host's own delivery layer, which

@@ -153,6 +153,34 @@ test("an interrupt the runtime refuses is a rejected abort, not an error", async
   await session.dispose();
 });
 
+test("deliver prompts when codex refuses its steer because the turn ended in flight", async () => {
+  // codex 0.158.0 answers turn/steer for a completed turn with an RPC error,
+  // "no active turn to steer"; here the turn completes while the steer is on the wire.
+  const fake = fakeLineProcess((text, process) => {
+    const message = asRecord(JSON.parse(text));
+    if (typeof message?.id !== "number" || typeof message.method !== "string") {
+      return;
+    }
+    if (message.method === "turn/steer") {
+      notify(process, "turn/completed", { threadId, turn: { id: "turn-1", status: "completed" } });
+      process.emit(`${JSON.stringify({ id: message.id, error: { message: "no active turn to steer" } })}\n`);
+      return;
+    }
+    answer(process, { id: message.id, method: message.method, params: asRecord(message.params) ?? {} }, false);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const session = await codexSession(installation, { cwd: "/work" });
+  await session.prompt("hold");
+  const delivered = await session.deliver("report");
+  expect(delivered).toMatchObject({ landed: "prompted" });
+  const attempts = session.records().flatMap((record) =>
+    record.kind === "request" && (record.body.kind === "steer" || record.body.kind === "prompt") && record.body.input === "report"
+      ? [{ kind: record.body.kind, inputId: record.body.inputId }]
+      : []);
+  expect(attempts).toEqual([{ kind: "steer", inputId: delivered.inputId }, { kind: "prompt", inputId: delivered.inputId }]);
+  await session.dispose();
+});
+
 test("a server-initiated request is recorded verbatim as a toApp request and left unanswered", async () => {
   scriptedAppServer();
   const session = await codexSession(installation, { cwd: "/work" });

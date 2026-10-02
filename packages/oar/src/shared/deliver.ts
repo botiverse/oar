@@ -15,14 +15,24 @@ function refused(inputId: string, result: ControlOutcome): DeliverResult {
     : { landed: "rejected", inputId, code: "unsupported", reason: "accepted", result };
 }
 
+/** The running turn's start, or null when the session is idle. */
+function runningSince(session: Session): number | null {
+  const status = session.status().value;
+  return status.kind === "running" ? status.sinceSeq : null;
+}
+
 /** One attempt into a running turn; null when the turn ended meanwhile (try again). */
 async function intoRunning(session: Session, input: string, options: InputOptions & { readonly inputId: string }, when: "now" | "after_turn"): Promise<DeliverResult | null> {
   if (when === "now") {
+    const target = runningSince(session);
     const steered = await session.steer(input, options);
     if (steered.kind === "accepted") {
       return landed("steered", options.inputId, steered);
     }
-    if (steered.code === "no_active_turn") {
+    // The turn ended while the steer was in flight. The adapter's gate says
+    // `no_active_turn`; past the gate the runtime refuses in its own words
+    // (codex 0.158.0: "no active turn to steer"), so read the status too.
+    if (steered.code === "no_active_turn" || runningSince(session) !== target) {
       return null;
     }
     if (steered.code !== "unsupported") {
