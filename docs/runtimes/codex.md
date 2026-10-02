@@ -292,17 +292,25 @@ identifies a thread/path; the rolling guide documents `collabToolCall` with
 different fields instead. Claude's `parent_tool_use_id` is not Codex's
 linkage. OAR records notifications of other thread ids as child-session
 records (`sessionId` is the child thread, a `graph()` node) and adds a
-`tool_call` edge from the sender (`senderThreadId`, else the root) to each
-`receiverThreadIds` / `agentThreadId` entry that is not the sender. Lineage
+`tool_call` edge from the sender (`senderThreadId`, else the thread that
+reported the item) to each `receiverThreadIds` / `agentThreadId` entry that
+is not the sender. Lineage
 (an edge) stays distinct from observation (a node), and no edge is
 fabricated. `agentPath` stays `[]` on every record: attribution is `nested`
 (child session ids), not agent paths. Collaboration items carry no events,
-except that `item/completed` for a `subAgentActivity` is a task event with the
-child thread as task id (and as `childSessionId` on `task_started`): `started` → `task_started` (the
+except that `item/completed` for a `subAgentActivity` about the reporting
+thread's own child is a task event with the child thread as task id (and as
+`childSessionId` on `task_started`): `started` → `task_started` (the
 `agentPath` as description), `interacted` → `task_updated` running,
 `completed` → `task_ended` completed, `interrupted` → `task_ended` stopped
 ([env] 0.149.0 to 0.158.0, `completed` on 0.158.0; [tasks][oar-tasks],
-[task views](../spec/subagents.md#tasks)).
+[task views](../spec/subagents.md#tasks)). A subagent that messages a sibling
+or the root reports `subAgentActivity` (`interacted`) on its own thread too
+(0.158.0: alpha's `interacted /root/beta`, gamma's `interacted /root`); that
+item stays on its frame and changes no task and no edge. Whether the item is
+about the reporter's own child is decided by the recorded `started`, else by
+the parent of its `agentPath`, else taken to be the reporter's
+([#65](https://github.com/botiverse/oar/pull/65)).
 
 On the wire, with `multi_agent` enabled ([env]; the item vocabulary differs
 by build):
@@ -322,9 +330,8 @@ by build):
   `collabAgentToolCall { tool: "wait", status: "inProgress" → "completed",
   senderThreadId: <root>, receiverThreadIds: [] }`; the child emitted
   `subAgentActivity { kind: "interacted", agentThreadId: <root>, agentPath:
-  "/root" }` once, which adds no edge because it names the parent, but is
-  read as a `task_updated` for the root thread
-  ([issue #60](https://github.com/botiverse/oar/issues/60)).
+  "/root" }` once, which adds no edge and no task event because it names
+  the parent.
 - 0.154.0 (Spark, `multi_agent` stable/on, `multi_agent_v2` off) emitted only
   `collabAgentToolCall` (`tool: "spawnAgent"` and `"wait"`; no
   `subAgentActivity`, no `collabToolCall`) with `senderThreadId` (root),
