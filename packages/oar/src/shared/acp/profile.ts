@@ -92,7 +92,7 @@ export interface OpenedAcpSession {
   readonly openMethod: "session/new" | "session/resume" | "session/load";
   /** The agent advertised `session/close`. */
   readonly supportsClose: boolean;
-  /** The model switch response, when a model was requested; grok reports the applied model in its `_meta`, cursor in its `configOptions`. */
+  /** The model switch response, when a model was requested and confirmed; grok reports the applied model in its `_meta`, cursor in its `configOptions`. */
   readonly setModelResponse?: JsonRecord;
 }
 
@@ -250,15 +250,10 @@ export async function openAcpSession(
   profile: AcpSessionProfile,
   options: SessionOptions,
   observe: AcpOpenObserver = () => {},
+  pushedModels: () => readonly string[] = () => [],
 ): Promise<OpenedAcpSession> {
   const initialized = await initialize(process, profile, options, observe);
-  const opened = await createOrResume(
-    process,
-    profile,
-    initialized,
-    options,
-    profile.sessionMeta?.(options),
-  );
+  const opened = await createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options));
   observe({ method: opened.openMethod, response: opened.response });
   const setModelResponse = options.model === undefined
     ? undefined
@@ -266,6 +261,7 @@ export async function openAcpSession(
       viaConfigOption: profile.modelViaConfigOption === true,
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
+      pushedModels,
     });
   // A model switch re-derives the effort menu, so effort reads its answer when it lists one.
   const configAnswer = Array.isArray(setModelResponse?.configOptions) ? setModelResponse : opened.response;

@@ -47,6 +47,15 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       },
     };
   }
+  // On thread/resume, model and baseInstructions apply but
+  // developerInstructions is dropped without a word (probed 2026-09-30,
+  // codex 0.158.0, aimock provider: the resumed turn's request carried the
+  // new model and base prompt, and only the thread's first developer
+  // message; experiments/resume-overrides.ts). No other seam appends to a
+  // resumed thread, so the option is refused rather than kept silently.
+  if (options.appendSystemPrompt !== undefined) {
+    throw new Error("codex cannot apply appendSystemPrompt to a resumed thread (thread/resume drops developerInstructions); set systemPrompt instead or start a new thread");
+  }
   return {
     method: "thread/resume",
     params: {
@@ -60,7 +69,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       // oar session owns its own app-server process.
       ...modelParams,
       approvalPolicy: "never",
-      ...instructionParams,
+      ...(options.systemPrompt === undefined ? {} : { baseInstructions: options.systemPrompt }),
     },
   };
 }

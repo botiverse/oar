@@ -190,9 +190,21 @@ projection tests; it is not a public raw/replay interface.
 **Mapped:** `--model` selects the initial model; `model()` folds the `model`
 event OAR reads from each `system/init` frame, so it is `null` until the
 first turn's init frame (`haiku` reads back as `claude-haiku-4-5-20251001`).
-Opening with a model that does not exist succeeds; the first turn fails with
-claude's "issue with the selected model" message, classified
-`invalid_request`. The token-free `list_models` control request
+`--model` applies on a new session and on `--resume` alike (2.1.284), so a
+resume can switch the model. A setting can still replace the flag without a
+word (under an `availableModels: ["haiku"]` allowlist `--model sonnet` runs
+`claude-opus-5-5`, stdout and stderr silent), so the adapter confirms the
+model before the session opens: the `get_settings` answer's `applied.model`
+must be the requested name, or what the `list_models` row for that alias
+resolves to (`sonnet` → `claude-sonnet-5-5`, with any `[1m]` suffix kept).
+Anything else refuses the open, claude stopped: `claude runs
+claude-opus-5-5 although model sonnet was requested`
+([model read-back](../../packages/oar/src/runtimes/claude/model.ts),
+[unit test](../../tests/claude/claude-session-model.test.ts),
+[probe](../../experiments/resume-overrides.ts)). An unknown full name is
+echoed as given, so opening with a model that does not exist still succeeds;
+the first turn fails with claude's "issue with the selected model" message,
+classified `invalid_request`. The token-free `list_models` control request
 preserves selector versus resolved ID, disabled entries, and effort choices
 (`supportedEffortLevels` per model; haiku lists none).
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
@@ -234,7 +246,14 @@ exposed** ([native surfaces](live-configure.md)).
 [unit test](../../tests/claude/claude-session-effort.test.ts).
 
 Replace/append instructions map to native system-prompt flags; native harness
-metadata may remain alongside replacement text. The existing vendor test checks
+metadata may remain alongside replacement text. claude snapshots the system
+prompt when a session starts and replays that snapshot on `--resume`,
+ignoring new prompt flags without a word. A resume that sets either prompt
+therefore also passes `--system-prompt-snapshot off`, and the next turn's
+request carries the new prompts (2.1.284, claude-aimock
+[vendor test](../../sea-trial/vendor/resume-overrides.vendor.test.ts)); a
+later resume without prompt flags goes back to the original snapshot
+([probe](../../experiments/resume-overrides.ts)). The existing vendor test checks
 that the configured instructions survive manual `/compact`.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
@@ -332,9 +351,10 @@ the former only.
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
    --verbose --dangerously-skip-permissions` plus `--session-id <uuid>` or
-   `--resume <id>`, and optional `--model`, `--effort` (then a `get_settings`
-   control request before the first turn), `--system-prompt`,
-   `--append-system-prompt`. `CLAUDECODE` is cleared from the child
+   `--resume <id>`, and optional `--model`, `--effort` (then `get_settings`
+   and `list_models` control requests before the first turn),
+   `--system-prompt`, `--append-system-prompt` (on a resume with
+   `--system-prompt-snapshot off`). `CLAUDECODE` is cleared from the child
    environment. Prompts are `user` message lines on stdin. Not on OAR's path
    although present in 2.1.261 help: `--include-partial-messages`,
    `--fork-session`, `--no-session-persistence`,

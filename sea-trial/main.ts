@@ -10,12 +10,7 @@
  *   OAR_TEST=claude-aimock pnpm sea-trial # real binary, scripted provider, zero tokens
  *   OAR_TEST=codex-aimock pnpm sea-trial
  */
-import { accountUsageCases } from "./cases/account-usage.js";
-import { installationCases } from "./cases/installation.js";
-import { sessionCases } from "./cases/session.js";
-import { sessionDisposeCases } from "./cases/session-dispose.js";
-import { sessionEffortCases } from "./cases/session-effort.js";
-import { sessionImagesCases } from "./cases/session-images.js";
+import { cases } from "./cases/index.js";
 import { selectBackend } from "./harness/backends.js";
 import { runSuite } from "./harness/runner.js";
 import { openTrace } from "./harness/trace.js";
@@ -33,7 +28,6 @@ if (installation === undefined || installation.kind !== "available") {
 
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
 // OAR_TEST-gated). The behavior CI job runs them right after this suite.
-const cases = [...installationCases, ...accountUsageCases, ...sessionCases, ...sessionDisposeCases, ...sessionEffortCases, ...sessionImagesCases];
 const tracePath = openTrace(target);
 const outcomes = await runSuite(cases, runtimeUnderTest(runtime, aimockEnv?.env));
 let failures = 0;

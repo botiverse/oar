@@ -69,16 +69,16 @@ export const codexSession: StartSession = async (installation, options) => {
   // OAR_CODEX_SANDBOX=inherit to skip the override entirely.
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const configOverrides = sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` };
+  // Threads persist so a later SessionOptions.resume can reattach; the thread
+  // id is the runtime-native identity and becomes Session.id (open.ts builds
+  // the request, and refuses an option codex would drop before anything runs).
+  const { method: openMethod, params: openParams } = codexThreadOpen(options);
   const client = startAppServerClient(installation.command, options.env, configOverrides);
   await client.request("initialize", {
     clientInfo: { name: "oar", version: "0.0.0" },
     capabilities: { experimentalApi: true },
   });
   client.notify("initialized", {});
-  // Threads persist so a later SessionOptions.resume can reattach; the thread
-  // id is the runtime-native identity and becomes Session.id (open.ts builds
-  // the request).
-  const { method: openMethod, params: openParams } = codexThreadOpen(options);
   // The open event is marked at the reply's wire position AS the reply line
   // is read (onSettled → client.mark), not after this await: a frame codex
   // wrote in the same chunk right after the reply (thread/started) would

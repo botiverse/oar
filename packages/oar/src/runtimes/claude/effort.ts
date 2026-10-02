@@ -22,8 +22,8 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
  *   recording it (see session.ts).
  */
 
-/** How long the adapter waits for claude to answer its `get_settings` read-back (after the SessionStart hooks). */
-export const CLAUDE_EFFORT_READBACK_MS = 30_000;
+/** How long the adapter waits for claude to answer each read-back control request at open (after the SessionStart hooks). */
+export const CLAUDE_READBACK_MS = 30_000;
 
 /** The `get_settings` control request the adapter writes to stdin, under its own request id. */
 export function claudeSettingsRequest(requestId: string): string {

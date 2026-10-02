@@ -124,7 +124,8 @@ const next = resumed.prompt("Continue");
 otherwise it selects `session/load` when `loadSession === true`, or rejects
 (`ACP runtime does not support session resume`). This is capability
 selection, not a retry after a failed resume. An optional model is applied
-afterward with `session/set_model`. The `session/resume` answer carries
+afterward with `session/set_model` and confirmed by its answer (see
+[models](#models-and-instructions)). The `session/resume` answer carries
 `models.currentModelId` (a `model` event), preceded by `background_tasks` and
 `model_changed` vendor pushes; the resumed session keeps the id, opens at
 seq 0, and recalls the earlier transcript (`live-contract/resume`). Native
@@ -325,9 +326,15 @@ handles the extra result envelope and filters hidden/unselectable entries
 (`grok-list-models.ts`). **Mapped:** open-time model selection applies
 `session/set_model` after the session opens, and `model()` folds the runtime's
 reports: `models.currentModelId` from `session/new`/`resume`, then the
-`set_model` answer's `_meta.model` (the applied id, never the request). A
-non-existent id is rejected `Invalid params`, so `session()` throws at open
-(`live-contract/bad-model`). The runtime default model is not stable across
+`set_model` answer's `_meta.model` (the applied id, never the request; a
+bare string in 1.0.12, `{Ok: id}` in 1.0.44, which pushes
+`config_option_update` only after the answer). That report must name the
+requested model, on a new session and on a resume alike, or the open is
+refused (`session/set_model left the model at <reported> although model
+<id> was requested`), so a model grok substitutes is never kept silently.
+A non-existent id is rejected `-32602 Invalid params` ("unknown model id"),
+so `session()` throws at open (`session/set_model <id> was refused: Invalid
+params (unknown model id)`, `live-contract/bad-model`). The runtime default model is not stable across
 sessions: with no request from OAR, `session/new` has reported both
 `grok-4.6` and `grok-4.5`; a `model_changed` vendor push precedes the answer
 and names the same id. [Model read-back](../../packages/oar/src/shared/acp/model.ts),
@@ -362,7 +369,17 @@ changes are **unexposed** ([native surfaces](live-configure.md)).
 Grok's initialization extensions accept system-instruction configuration.
 OAR maps `systemPrompt` to `_meta.systemPromptOverride` and
 `appendSystemPrompt` to `_meta.rules` on `initialize`; these are Grok
-mappings, not standard ACP fields.
+mappings, not standard ACP fields. Probed on 1.0.44 (2026-09-30,
+[probe](../../experiments/resume-overrides.ts) `grok-prompt`): the
+override replaces the system prompt on `session/new` and on `session/load`
+alike, and when it is given `rules` are dropped; `rules` alone are folded
+into grok's own prompt only on `session/new`, and a loaded session keeps the
+rules it was created with. So when both are set the adapter folds the
+appended text into the override, and a resume with `appendSystemPrompt` but
+no `systemPrompt` is refused before grok starts: `grok keeps a loaded
+session's own rules, so appendSystemPrompt cannot apply on resume without
+systemPrompt` ([adapter](../../packages/oar/src/runtimes/grok/session.ts),
+[test](../../tests/grok/grok-session-prompt.test.ts)).
 
 ### Context usage, billing, and compaction
 

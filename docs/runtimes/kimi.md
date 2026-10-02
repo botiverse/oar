@@ -212,8 +212,9 @@ gave. This separates loss before OAR receives a response (native) from OAR's
 reading (the event). Opening with an unknown model makes `session/set_model`
 answer a JSON-RPC error `-32603 "Internal error"` with `data.details`
 `Model "<id>" is not configured in config.toml.`; session construction
-rejects with the SDK's `RequestError` (message `Internal error`, the details
-on its `data`) and no OAR session or log exists (`bad-model`).
+rejects naming the request and kimi's details (`session/set_model <id> was
+refused: Internal error (...)`, the SDK's `RequestError` as its `cause`) and
+no OAR session or log exists (`bad-model`).
 
 **Unreachable runtime:** `dispose()` mid-turn runs the cancel path, then
 `session/close` (advertised; answered `{}`), then the kill; the dispose
@@ -297,7 +298,13 @@ Native ACP config options cover model, thinking, and mode, with
 `session/set_model`) and early config-update readback: `Session.model()` is
 the latest `model` event, read from `configOptions` id `model` on the open
 answer and from every `config_option_update`, never from the request
-parameter. The
+parameter. The switch itself must be confirmed the same way, on a new
+session and on a resume alike: kimi answers `set_model` with `{}`, so the
+open reads the model the `config_option_update` pushed during the request,
+and a push naming another model, or none at all, refuses the open
+(`session/set_model left the model at <reported> although model <id> was
+requested`; probed 2026-09-30, [probe](../../experiments/resume-overrides.ts),
+[test](../../tests/acp/acp-session-model-usage.test.ts)). The
 [model lister](../../packages/oar/src/runtimes/kimi/list-models.ts) creates a
 temporary authenticated session (`terminal: false`), reads the `model`
 config option, closes and kills it; the `thinking` option (found by its

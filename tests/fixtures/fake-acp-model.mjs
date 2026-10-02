@@ -58,11 +58,15 @@ function pushedModel(currentValue) {
 }
 
 /**
- * What `session/set_model <modelId>` does. `grok-meta`: the applied model
- * rides in the response `_meta` (xai-grok-shell). `kimi-push`: a
- * config_option_update is emitted BEFORE the request is answered, and the
- * answer itself is empty (kimi-code). Anything else: accepted with an empty
- * answer while the fixture keeps running EFFECTIVE_MODEL.
+ * What `session/set_model <modelId>` does, by the requested id:
+ * - `grok-meta`: the applied model rides in the answer's `_meta.model` as
+ *   `{Ok: id}` (xai-grok-shell 1.0.44); `grok-meta-legacy`: as a bare string
+ *   (1.0.12); `grok-substitute`: `{Ok}` names another model.
+ * - `grok-unknown`: refused `-32602` "unknown model id" (xai-grok-shell 1.0.44).
+ * - `kimi-push`: a config_option_update naming the id is pushed BEFORE the
+ *   empty answer (kimi-code 2.0.0); `kimi-substitute`: the push names another.
+ * - anything else: accepted with an empty answer and no push while the
+ *   fixture keeps running EFFECTIVE_MODEL, a switch nobody confirms.
  */
 // Mode "cursor" replays cursor-agent 2026.09.28: the effort selector exists
 // only when the client opts into `clientCapabilities._meta.parameterizedModelPicker`.
@@ -73,16 +77,24 @@ export function sessionModelReport(mode, parameterizedModelPicker) {
 }
 
 export function setModelResponse(modelId) {
-  if (modelId === "grok-meta") {
-    return { response: { _meta: { model: "grok-applied" } } };
+  switch (modelId) {
+    case "grok-meta":
+      return { response: { _meta: { model: { Ok: modelId } } } };
+    case "grok-meta-legacy":
+      return { response: { _meta: { model: modelId } } };
+    case "grok-substitute":
+      return { response: { _meta: { model: { Ok: "grok-default" } } } };
+    case "grok-unknown":
+      return { error: { code: -32_602, message: "Invalid params", data: "unknown model id" } };
+    case "kimi-push":
+      return { pushedUpdate: pushedModel(modelId), response: {} };
+    case "kimi-substitute":
+      return { pushedUpdate: pushedModel("kimi-default"), response: {} };
+    case "switch-to-z":
+      return { pushedUpdate: pushedModel("fixture-model-z"), response: {} };
+    default:
+      return { response: {} };
   }
-  if (modelId === "kimi-push") {
-    return { pushedUpdate: pushedModel("kimi-pushed"), response: {} };
-  }
-  if (modelId === "switch-to-z") {
-    return { pushedUpdate: pushedModel("fixture-model-z"), response: {} };
-  }
-  return { response: {} };
 }
 
 /**

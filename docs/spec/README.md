@@ -88,7 +88,11 @@ the shared behavior suite (`sea-trial/cases/session.ts`):
 - the session graph with true sessions only, and an explicit attribution
   tier per adapter (`capabilities.attribution`);
 - `SessionOptions.resume` reopening the runtime-native conversation with a
-  fresh stream starting at `seq` 0;
+  fresh stream starting at `seq` 0, where every other option given applies
+  as on a new session or the open is refused naming it (contract comment on
+  `SessionOptions.resume`);
+- `SessionOptions.model` applied and read back against the runtime's own
+  report where it gives one: a refusal or another model refuses the open;
 - `SessionOptions.effort` applied through each runtime's native channel and
   read back: a runtime that would run another level, or has no channel,
   refuses the open (contract comment on `SessionOptions.effort`; per-runtime

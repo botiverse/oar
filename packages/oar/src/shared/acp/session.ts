@@ -1,5 +1,4 @@
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
-import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
   ControlResult,
   InputOptions,
@@ -7,12 +6,12 @@ import type {
   RequestRecord,
   ResponseBody,
   Session,
-  SessionOptions,
   StartSession,
 } from "../../contracts/session.js";
 import { sealSession } from "../seal-session.js";
 import { createSessionKernel } from "../session-kernel.js";
 import { createAcpClientApp } from "./client-app.js";
+import { createAcpPushedModels } from "./model.js";
 import {
   closeAcpSession,
   createUsageUpdateGate,
@@ -39,7 +38,7 @@ export type { AcpSessionProfile } from "./profile.js";
  */
 
 export function acpSession(profile: AcpSessionProfile): StartSession {
-  return async (installation: AvailableInstallation, options: SessionOptions): Promise<Session> => {
+  return async (installation, options): Promise<Session> => {
     if (installation.via !== "executable") {
       throw new Error("ACP runtimes require an executable installation");
     }
@@ -53,8 +52,11 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // id and the kernel can be bound (records.ts).
     const usageGate = createUsageUpdateGate();
     const recorder = createAcpRecorder(usageGate);
+    // Models the agent pushed, for the open's model confirmation (effort.ts applyAcpModel).
+    const pushedModels = createAcpPushedModels();
     const client = createAcpClientApp(terminalHost, {
       update: (notification) => {
+        pushedModels.observe(notification.update);
         recorder.update(notification);
       },
       extension: (method, params) => {
@@ -76,7 +78,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
-    }).catch(async (error: unknown) => {
+    }, pushedModels.list).catch(async (error: unknown) => {
       runtime.kill();
       await runtime.exited;
       await terminalHost.dispose();

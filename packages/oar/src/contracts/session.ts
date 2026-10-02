@@ -104,7 +104,16 @@ export interface InputOptions {
 export interface SessionOptions {
   /** Working directory the runtime operates in. */
   readonly cwd: string;
-  /** Runtime-native model identifier; the runtime's default when omitted. */
+  /**
+   * Runtime-native model identifier; the runtime's default when omitted (on
+   * resume, what the runtime restores; the runtime pages say which).
+   *
+   * Invariant: a requested model is never ignored, with or without `resume`.
+   * The adapter applies it through the runtime's native channel and, where
+   * the runtime reports the model it will run, reads that report back; a
+   * refusal, or a report naming another model, rejects the open with an Error
+   * naming the requested model. `Session.model()` is the runtime's report.
+   */
   readonly model?: string;
   /**
    * Runtime-native reasoning-effort level for every turn of this Session, one
@@ -125,7 +134,17 @@ export interface SessionOptions {
    * `Session.effort()` is the runtime's report, where it gives one.
    */
   readonly effort?: string;
-  /** Resume the runtime-native session identified by a previous Session.id. */
+  /**
+   * Resume the runtime-native session identified by a previous Session.id.
+   *
+   * Invariant: every other option given with `resume` (model, effort,
+   * systemPrompt, appendSystemPrompt, env) applies to the resumed session
+   * exactly as on a new one, or the open rejects with an Error naming the
+   * option the runtime cannot apply on resume; the session's old setting is
+   * never kept silently (oar#22). What an option given on one resume leaves
+   * for the next resume that omits it is the runtime's rule, stated in its
+   * page (codex keeps a resumed model, not a resumed system prompt).
+   */
   readonly resume?: string;
   /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. */
   readonly env?: Readonly<Record<string, string>>;

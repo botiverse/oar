@@ -218,7 +218,9 @@ from the replay a `session/load` produces.
 
 **Mapped:** open time model selection (`SessionOptions.model` →
 `session/set_config_option {configId: "model"}`), read back from the answer's
-`configOptions`, never from the request parameter. The
+`configOptions`, never from the request parameter. A switch the answer does
+not confirm (another model, or none) refuses the open, on a new session and
+on a resume alike. The
 [model lister](../../packages/oar/src/runtimes/cursor/list-models.ts) starts a
 temporary ACP process (`terminal: false`, the same `_meta`), authenticates,
 and calls the vendor method `cursor/list_available_models`, which answers
