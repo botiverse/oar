@@ -8,7 +8,7 @@ import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { codexItemExitCode, codexItemInput, codexItemOutput } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
-import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentParents } from "./tasks.js";
+import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
 
 /**
  * The codex notification → record projection as a PURE FOLD (see
@@ -50,12 +50,12 @@ export interface CodexProjectionState {
    * flag lets the second report close nothing instead of ending twice.
    */
   readonly compacting: boolean;
-  /** The thread that started each subagent thread, by child thread id. */
-  readonly startedBy: SubagentParents;
+  /** Subagent threads the stream reported starting: who started each, and its path. */
+  readonly subagents: SubagentThreads;
 }
 
 export function initialCodexProjection(rootThreadId: string): CodexProjectionState {
-  return { rootThreadId, lastErrorDetail: null, compacting: false, startedBy: new Map() };
+  return { rootThreadId, lastErrorDetail: null, compacting: false, subagents: new Map() };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -179,7 +179,7 @@ function collabEdges(state: CodexProjectionState, reporter: string, item: JsonRe
   if (item === null || typeof item.type !== "string" || !COLLAB_ITEM_TYPES.has(item.type)) {
     return [];
   }
-  if (item.type === "subAgentActivity" && !aboutOwnChild(state.startedBy, state.rootThreadId, reporter, item)) {
+  if (item.type === "subAgentActivity" && !aboutOwnChild(state.subagents, state.rootThreadId, reporter, item)) {
     return [];
   }
   const parent = typeof item.senderThreadId === "string" ? item.senderThreadId : reporter;
@@ -230,7 +230,7 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       }
       const item = asRecord(params.item);
       if (item?.type === "subAgentActivity") {
-        return aboutOwnChild(state.startedBy, state.rootThreadId, reporter, item) ? codexTaskViews(item) : [];
+        return aboutOwnChild(state.subagents, state.rootThreadId, reporter, item) ? codexTaskViews(item) : [];
       }
       return toolViews(method, item);
     }
@@ -279,9 +279,9 @@ export function foldCodexNotification(
   } else if (method === "thread/compacted" && threadId === state.rootThreadId) {
     next = { ...state, compacting: false };
   }
-  const startedBy = withStartedChild(next.startedBy, threadId, asRecord(params.item));
-  if (startedBy !== next.startedBy) {
-    next = { ...next, startedBy };
+  const subagents = withStartedChild(next.subagents, threadId, asRecord(params.item));
+  if (subagents !== next.subagents) {
+    next = { ...next, subagents };
   }
   return { state: next, commands: [event, ...links] };
 }

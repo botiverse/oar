@@ -163,6 +163,25 @@ test("codex peers: a thread's subAgentActivity changes only its own children's t
   });
 });
 
+/** A `subAgentActivity` item reported on `thread`, as a fixture line. */
+function activity([thread, kind, agentThreadId, agentPath]: readonly [string, string, string, string]): string {
+  return JSON.stringify({ method: "item/completed", threadId: thread, item: { type: "subAgentActivity", id: `${thread}-${kind}`, kind, agentThreadId, agentPath } });
+}
+
+test("codex peers after a resume: the agentPath decides whose child an unstarted thread is", () => {
+  // alpha, beta and gamma were started before the resume, so no `started`
+  // item names them; the parent path says beta is the root's, gamma alpha's.
+  expect(tasksAndEdges([
+    activity(["thread-alpha", "interacted", "thread-beta", "/root/beta"]),
+    activity(["thread-alpha", "completed", "thread-gamma", "/root/alpha/gamma"]),
+    activity([ROOT, "completed", "thread-beta", "/root/beta"]),
+    activity([ROOT, "interacted", "thread-gamma", "/root/alpha/gamma"]),
+  ])).toEqual({
+    tasks: ["thread-alpha: task_ended thread-gamma", "thread-root: task_ended thread-beta"],
+    edges: ["thread-alpha → thread-gamma", "thread-root → thread-beta"],
+  });
+});
+
 test("codex error detail folds into the failed turn_ended and usage is the cumulative total", () => {
   let state = initialCodexProjection(ROOT);
   const errored = foldCodexNotification(state, "error", { threadId: ROOT, error: { message: "boom", additionalDetails: "quota" } });
