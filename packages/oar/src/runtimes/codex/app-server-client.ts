@@ -1,6 +1,7 @@
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
+import { coordinateHomeInitialization } from "./home-initialization.js";
 
 /**
  * Minimal persistent JSON-RPC client over codex app-server's stdio JSONL
@@ -62,6 +63,17 @@ export function startAppServerClient(
   configOverrides: Readonly<Record<string, string>> = {},
   cwd?: string,
 ): AppServerClient {
+  const environment = { ...process.env, ...env };
+  const directory = cwd ?? process.cwd();
+  return coordinateHomeInitialization(environment, directory, () => createAppServerClient(command, environment, configOverrides, directory));
+}
+
+function createAppServerClient(
+  command: string,
+  env: NodeJS.ProcessEnv,
+  configOverrides: Readonly<Record<string, string>>,
+  cwd: string,
+): AppServerClient {
   // -c KEY=VALUE injects config at launch. This is the ONLY seam that reaches
   // codex's exec tool: thread/start.sandboxMode does not (pinned on a real
   // login: thread param honored for its own turns but exec follows config).
@@ -69,7 +81,7 @@ export function startAppServerClient(
   const child = spawnLineProcess(
     command,
     ["app-server", ...overrideArgs, "--listen", "stdio://"],
-    { ...(cwd === undefined ? {} : { cwd }), ...(env === undefined ? {} : { env: { ...process.env, ...env } }) },
+    { cwd, env },
   );
   // Session initialization observes spawn failures through its pending RPC.
   // Mark this parallel promise handled while preserving its rejection for

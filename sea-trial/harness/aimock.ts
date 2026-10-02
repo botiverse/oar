@@ -83,7 +83,7 @@ export async function startClaudeAimock(
 
 export async function startCodexAimock(
   configure: (mock: LLMock) => void = baseFixtures,
-  options: AimockOptions = {},
+  options: AimockOptions & { readonly warmHome?: boolean } = {},
 ): Promise<AimockEnv> {
   const mock = new LLMock({ port: 0 });
   configure(mock);
@@ -131,7 +131,8 @@ export async function startCodexAimock(
     },
   };
   try {
-    await warmCodexHome(env);
+    // Cold-start regressions must exercise the adapter without a prior process.
+    if (options.warmHome !== false) { await warmCodexHome(env); }
     return result;
   } catch (error) {
     await result.stop();

@@ -54,6 +54,44 @@ tests immediate termination after the handshake for this binary and platform;
 it does not establish that every background task has finished, or invalidate
 the older cold-runner failures recorded in commit `0f49bd2`.
 
+## Model listing alongside startup
+
+The same native script has a separate model-listing group:
+
+```sh
+node experiments/codex-concurrent-startup.ts /absolute/path/to/native/codex 8 3 models
+```
+
+Each round uses a fresh shared home. `models-only` runs eight `codex debug
+models` commands; `models-with-server` starts one app-server and seven model
+readers together. The report records each command, model count, exit and
+stderr, plus the home's recursive directory listing after all children exit.
+The custom provider and absence of login are the same as above.
+
+On 0.160.0/Linux x64 (2026-10-02), all 24 standalone model readers and all
+21 readers alongside three app-servers succeeded. Each reader exited 0 with
+11 models, and all three app-servers initialized. All three models-only
+homes still contained just the input `config.toml`; the mixed homes contained
+the app-server's SQLite databases. Retained run:
+`2026-10-02T12-53-47.036Z`, under the output directory above.
+
+A separate models-only run under `strace -f -e trace=%file` also exited 0,
+returned 11 models and left only `config.toml`. Its file-system calls included
+no SQLite paths, so the conclusion does not rely only on absence of failure.
+The 0.160.0 [CLI entry point][models-cli] builds a [model manager][models-build];
+its [OpenAI-compatible implementation][models-manager] uses
+`models_cache.json`, not the app-server's SQLite state runtime. Model cache
+files may therefore appear with other provider or authentication settings.
+
+Within this observed version and environment, model listing does not
+initialize the state database. OAR leaves it outside the app-server
+coordination. This does not establish the behavior of other versions,
+platforms or provider/authentication combinations.
+
+[models-cli]: https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/cli/src/main.rs#L2068-L2095
+[models-build]: https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/core/src/thread_manager.rs#L432-L446
+[models-manager]: https://github.com/openai/codex/blob/rust-v0.160.0/codex-rs/models-manager/src/manager.rs#L304-L319
+
 ## Scope and next evidence
 
 The controls isolate a concurrent first-initialization failure, not the exact
