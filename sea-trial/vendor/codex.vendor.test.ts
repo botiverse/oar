@@ -9,6 +9,32 @@ import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapt
 
 /** Vendor-specific error edges for the real codex app-server (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edges", () => {
+  test("concurrent sessions initialize one fresh home without a warmup process", async () => {
+    const env = await startCodexAimock(undefined, { warmHome: false });
+    try {
+      const installation = await codexInstallation();
+      expectAvailable(installation, "codex");
+      const openings = await Promise.allSettled(Array.from({ length: 8 }, async () => codexSession(installation, {
+        cwd: process.cwd(), model: "gpt-5.1", ...(env.env === undefined ? {} : { env: env.env }),
+      })));
+      await Promise.all(openings.map(async (opening) => {
+        if (opening.status === "fulfilled") { await opening.value.dispose(); }
+      }));
+      expect(openings.map((opening) => opening.status === "fulfilled" ? "opened" : String(opening.reason))).toMatchInlineSnapshot(`
+        [
+          "opened",
+          "opened",
+          "opened",
+          "opened",
+          "opened",
+          "opened",
+          "opened",
+          "opened",
+        ]
+      `);
+    } finally { await env.stop(); }
+  }, 120_000);
+
   test("an invalid request fails the turn fast with the API error", async () => {
     const env = await startCodexAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, {

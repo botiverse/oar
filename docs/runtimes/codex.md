@@ -501,6 +501,40 @@ each initialized 24/24. This does not establish the cause of similar Windows
 CI failures. [Reproduction and limits](../../experiments/codex-concurrent-startup.md),
 [upstream issue](https://github.com/openai/codex/issues/50290).
 
+OAR coordinates the first app-server initialization for each home within one
+loaded adapter module. Sessions, account usage and inventories share this
+entry point: one process starts, and other clients wait until its
+`initialize` succeeds and `initialized` is sent. Later starts on that home
+can run concurrently. A failed initializer releases the next waiting client
+after exit; its own caller still receives the original failure. Cancelling
+a waiting client prevents its process from spawning, and query deadlines
+include the wait. There is no added warmup process, delay or retry.
+
+The key uses the child's effective environment and working directory,
+resolves relative paths and symlinks, and ignores trailing separators.
+Readiness comes from the observed handshake, not the presence of a database
+file; replacing the home directory invalidates it. This coordination does
+not cover other host processes, separately loaded copies of OAR, or the
+separate `codex debug models` command. It is not a native migration lock or
+an arbitration mechanism for concurrent controllers of the same thread.
+[Implementation](../../packages/oar/src/runtimes/codex/home-initialization.ts),
+[cancellation and concurrency tests](../../tests/codex/codex-home-initialization.test.ts).
+
+Model listing was separately verified not to initialize the SQLite state
+database on 0.160.0/Linux with the probe's custom provider and no login:
+24 standalone readers and 21 readers alongside three app-servers succeeded;
+models-only homes contained just their input config, and file-system tracing
+observed no SQLite paths. The native implementation uses a separate model
+catalog/cache. This evidence supports leaving that command outside the
+coordination; it is not a guarantee for other versions or environments.
+[Reproducible models control and source](../../experiments/codex-concurrent-startup.md#model-listing-alongside-startup).
+
+A [vendor regression](../../sea-trial/vendor/codex.vendor.test.ts) bypasses
+test-home warmup and opens eight real sessions concurrently in a fresh
+home. All eight opened on 0.160.0/Linux (2026-10-02); the same test runs in
+the existing cross-platform Codex CI jobs. This adapter result does not
+establish the root cause of the earlier Windows failures.
+
 **Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
 the exit because the process may hold state (codex's sqlite runtime in
 `CODEX_HOME`) that the next session needs released. On POSIX the app-server
