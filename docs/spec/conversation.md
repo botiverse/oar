@@ -8,6 +8,32 @@ queue fallback; each attempt has its own request ID. Custom adapters must copy
 `InputOptions.inputId` into the request body. Older records without an input ID
 remain readable, but their separate attempts cannot be merged reliably.
 
+## Delivering input from the host
+
+`Session.deliver(input, { when?, origin? })` is for input the host sends on
+the agent's behalf, such as a subagent's result, a finished job or a message
+from elsewhere. It chooses the control from the session's status and keeps
+one `inputId` across attempts:
+
+| `when` | Session idle | Session running |
+| --- | --- | --- |
+| `now` (default) | `prompt`: a new turn, so an idle agent wakes | `steer`, or `queue` when the runtime cannot steer |
+| `after_turn` | `prompt` | `queue`, or held until idle and then `prompt` when the runtime holds no queue |
+| `when_idle` | `prompt` | waits until idle, then `prompt` |
+
+A `prompt` refused `busy` (a turn opened between the status read and the
+prompt) and a `steer` refused `no_active_turn` (the turn just ended) are
+retried as the new state requires. `steerOrQueue` stays as the running half
+of `now`; unlike it, `deliver` never queues into an idle session, where some
+runtimes would hold the input without starting a turn. Queueing, batching,
+priority and persistence stay with the host's own delivery layer, which
+calls `deliver` for the last step.
+
+`InputOptions.origin` (`{ kind: "user" | "notification" | "automation", source? }`)
+says who an input comes from. It is recorded on the request body, never sent
+to the runtime, and `ConversationInput.origin` carries it from the latest
+request, so a UI can show injected input apart from what a person typed.
+
 UUIDs are required because Claude's native input identity uses UUIDs. A supplied
 ID must represent exactly one logical input, including retries of that input;
 reusing it for a different input merges those submissions by design. Do not

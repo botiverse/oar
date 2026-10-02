@@ -9,9 +9,10 @@ import type {
   SessionGraph,
   TokenTotals,
 } from "./records.js";
+import type { DeliverOptions, DeliverResult } from "./deliver.js";
+import type { InputImage, InputOrigin } from "./input.js";
 import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
-import type { InputImage } from "./input.js";
 
 export type {
   ContextUsage,
@@ -44,7 +45,8 @@ export type {
 } from "./records.js";
 export type { TaskEventBody, TaskStatus, TaskType } from "./tasks.js";
 export type { AgentStatus, RunningPhase } from "./status.js";
-export type { InputImage } from "./input.js";
+export type { InputImage, InputOrigin } from "./input.js";
+export type { DeliverOptions, DeliverResult, DeliverWhen } from "./deliver.js";
 
 export interface QueryResult<T> {
   /** The fold's current value. */
@@ -63,6 +65,8 @@ export interface InputOptions {
    * `unsupported` when `capabilities.images` is false.
    */
   readonly images?: readonly InputImage[];
+  /** Who the input comes from; kept on the request record, never sent to the runtime. */
+  readonly origin?: InputOrigin;
 }
 
 
@@ -252,6 +256,14 @@ export interface Session extends AdapterSession {
    * the caller still owns it.
    */
   steerOrQueue(input: string, options?: InputOptions): Promise<SteerOrQueueResult>;
+  /**
+   * DERIVED: put an input into the session at the moment `when` names
+   * (default `now`), choosing prompt, steer or queue from the session's
+   * status and retrying across the races between them; an idle session gets
+   * a new turn, so an idle agent wakes. For hosts delivering notifications;
+   * `origin` tells a UI the input did not come from a person.
+   */
+  deliver(input: string, options?: DeliverOptions): Promise<DeliverResult>;
 }
 
 export interface SessionUsage {

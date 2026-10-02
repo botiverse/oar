@@ -10,6 +10,7 @@ import type {
 import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
 import { contextUsageOf, effortOf, modelOf, usageOf } from "../observe/usage.js";
+import { deliverInto } from "./deliver.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
   const inputId = options.inputId ?? randomUUID();
@@ -69,7 +70,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
       ? { landed: "queued", result: queued }
       : { landed: "rejected", code: queued.code, reason: queued.reason, result: queued };
   };
-  return {
+  const sealed: Session = {
     ...adapterSession,
     prompt,
     steer,
@@ -88,5 +89,10 @@ export function sealSession(adapterSession: AdapterSession): Session {
     contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),
     status: () => statusOf(adapterSession.records(), adapterSession.id),
     steerOrQueue,
+    deliver: async (input, options = {}) => {
+      const result = await deliverInto(sealed, input, { ...options, inputId: identify(options).inputId ?? "" });
+      return result;
+    },
   };
+  return sealed;
 }

@@ -1,4 +1,4 @@
-import type { InputImage } from "./input.js";
+import type { InputImage, InputOrigin } from "./input.js";
 import type { TaskEventBody } from "./tasks.js";
 
 /**
@@ -201,9 +201,9 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
 export type Event = EventBody & RecordEnvelope;
 
 export type RequestBody =
-  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[] }
-  | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[] }
-  | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[] }
+  | { readonly kind: "prompt"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
+  | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
+  | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */

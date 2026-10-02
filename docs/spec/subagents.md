@@ -36,13 +36,24 @@ its signal takes nothing. `unread()` looks without taking.
 `Subagent.nextReport()` observes the next report without taking it, and is
 null when the subagent closes first.
 
-`deliverTo(parent)` hands every report to a parent session instead: a prompt
-when the parent is idle, so it wakes with a turn of its own, otherwise
-steered into its turn or queued behind it; a report the parent refuses goes
-back to the unread list. This is what claude's own harness
-does for its background tasks; a host that runs its parent through oar gets
-it for any runtime. The default text is one header line (id, runtime, turn,
-outcome, session) and the report's text; `format` replaces it.
+Where reports go next is the application's decision, so the library gives
+it a hook: `onReport(handler)` hands every report to the handlers instead of
+the unread list (a `next(id)` still gets its own report first; a report every
+handler throws on stays unread). The handler can post into the application's
+own inbox, or wake a parent session the way claude's harness does for its
+background tasks:
+
+```ts
+crew.onReport((report) => {
+  void parent.deliver(formatReport(report), { origin: reportOrigin(report) });
+});
+```
+
+`Session.deliver` prompts an idle parent, so it wakes with a turn of its own,
+and steers or queues into a running one ([conversation](conversation.md#delivering-input-from-the-host)).
+`formatReport` is one header line (id, runtime, turn, outcome, session) and
+the report's text; `reportOrigin` marks the input as a notification from that
+subagent.
 
 ## Tasks
 
@@ -51,7 +62,9 @@ their own background work (`task_started`, `task_updated`, `task_ended`; see
 the [record stream](record-stream.md)): `onTask` delivers them live and
 `tasks()` folds them. A host can therefore draw one panel for a runtime's
 own background commands and subagents (`tasksOf` over a session's records)
-and the subagents it started itself.
+and the subagents it started itself. Crew rows belong to the host, not to a
+session, so their `sessionId` is empty; `childSessionId` names the
+subagent's own session.
 
 ## Limits and policy
 

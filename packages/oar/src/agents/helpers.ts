@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import type { AvailableInstallation } from "../contracts/installation.js";
 import type { Runtime } from "../contracts/runtime.js";
-import type { Session, SessionOptions } from "../contracts/session.js";
+import type { InputOrigin, Session, SessionOptions } from "../contracts/session.js";
 import { openVoyage } from "../voyage.js";
 import type { SubagentReport } from "./types.js";
 
@@ -12,6 +12,11 @@ export const DEFAULT_WAIT_MS = 30_000;
 export function hostDepth(): number {
   const depth = Number(process.env[SUBAGENT_DEPTH_ENV] ?? "0");
   return Number.isInteger(depth) && depth >= 0 ? depth : 0;
+}
+
+/** The origin to deliver a report with: a notification from that subagent. */
+export function reportOrigin(report: SubagentReport): InputOrigin {
+  return { kind: "notification", source: `subagent:${report.id}` };
 }
 
 export function formatReport(report: SubagentReport): string {
