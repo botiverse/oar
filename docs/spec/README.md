@@ -40,6 +40,7 @@ concurrent prompt queueing (no shipped runtime needs it; see
 | [inventory.md](inventory.md) | Independent skills, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [account-usage.md](account-usage.md) | Account quota queries and failure reason semantics |
 | [update.md](update.md) | Runtime update checks and upgrades through each runtime's own updater, and how outcomes are judged |
+| [login.md](login.md) | Signing a runtime in through its own login without a terminal, the sign-in status query, and the secret-handling rules |
 
 For each runtime's native calls, resume behavior, and current mapping into
 this contract, read [`../runtimes/`](../runtimes/README.md).

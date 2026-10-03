@@ -305,11 +305,42 @@ without guessing an authentication cause; unsupported control requests map to
 `unsupported/endpoint_unavailable`. Available replies map native five-hour,
 weekly, model-scoped and enabled extra-usage windows. The new process's
 session totals are not account usage and are not exposed. The native API is
-experimental (verified on 2.1.273); older versions can lack it. Login
-management is **not exposed**.
+experimental (verified on 2.1.273); older versions can lack it. Login is
+mapped [below](#login).
 [Installation](../../packages/oar/src/runtimes/claude/installation.ts),
 [account usage](../../packages/oar/src/runtimes/claude/account-usage.ts),
 [updater](../../packages/oar/src/runtimes/claude/update.ts).
+
+### Login
+
+**Mapped** ([runtime login](../spec/login.md)): `login` runs
+`claude auth login` (the default claude.ai subscription login; `--console`,
+`--email` and `--sso` are not exposed) over pipes, with `CLAUDECODE` cleared
+as for sessions. Native behavior [sym 2.1.288]: it prints
+`If the browser didn't open, visit: <url>` (an OSC 8 hyperlink from 2.1.202)
+and `Paste code here if prompted > ` with no newline on stdout, then races
+two ends: the browser's redirect to its localhost listener, and a
+`code#state` line on stdin, which the page behind the URL shows after the
+sign-in. A line it cannot parse prints `Invalid code. Please make sure the
+full code was copied.` to stderr and reading goes on; the end is
+`Login successful.` (exit 0) or `Login failed: <message>` on stderr (exit 1).
+
+OAR strips terminal escapes from both streams, relays the URL as `auth_url`,
+asks a `manual_code` prompt when the paste prompt appears and again after
+`Invalid code`, and writes the answer (whitespace removed) to stdin only; the
+pasted value and its authorization code are redacted from every reported
+`detail`. On a desktop host claude also tries to open a browser, and a
+sign-in finished there ends the login while the prompt is still open. claude
+has no deadline of its own, so OAR stops it after 15 minutes. A successful
+exit is confirmed with `claude auth status --json`, which is also
+`authStatus`: `loggedIn` (exit 0 signed in, 1 signed out) and `email`,
+`subscriptionType` and `authMethod` as the account. `auth login` arrived in
+2.1.41 and reading a pasted code in 2.1.126 [doc changelog], so an older
+claude is `unsupported` / `version_unsupported`. Verified against a fake CLI
+that prints the 2.1.288 strings
+([tests](../../tests/login/claude-login.test.ts)); a real login through OAR
+is not yet recorded.
+[Login](../../packages/oar/src/runtimes/claude/login.ts).
 
 ## Harness fact matrix
 
