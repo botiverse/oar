@@ -6,7 +6,7 @@ import type { FailureClass } from "../contracts/session.js";
  * snapshot moves and this table gets a conscious update.
  */
 export function classifyFailure(reason: string): FailureClass {
-  if (/\b401\b|authentication|unauthorized|invalid (?:x-)?api[- ]?key|log(?:ged)? ?in/iu.test(reason)) {
+  if (/\b401\b|authenticat(?:e|ed|ion)|\boauth\b|unauthorized|invalid (?:x-)?api[- ]?key|log(?:ged)? ?in/iu.test(reason)) {
     return "auth";
   }
   if (/\b429\b|rate.?limit|quota|usage limit/iu.test(reason)) {
