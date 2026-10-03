@@ -40,10 +40,28 @@ function toolCallsFromCodex(lines: string[]): ToolCall[] {
     const frame = asRecord(parseJson(line));
     const item = frame?.method === "item/started" ? asRecord(frame.item) : null;
     if (item !== null && typeof item.type === "string" && CODEX_TOOL_TYPES.has(item.type)) {
-      calls.push({ runtime: "codex", tool: item.type, input: JSON.stringify({ command: item.command }) });
+      // As the projection hands it on (codex/item-detail.ts): commandExecution's input is the bare command line.
+      calls.push(typeof item.command === "string"
+        ? { runtime: "codex", tool: item.type, input: item.command }
+        : { runtime: "codex", tool: item.type });
     }
   }
   return calls;
+}
+
+function toolCallsFromPi(lines: string[]): ToolCall[] {
+  const calls: ToolCall[] = [];
+  for (const line of lines) {
+    const event = asRecord(parseJson(line));
+    if (event?.type === "tool_execution_start") {
+      calls.push({ runtime: "pi", tool: String(event.toolName), input: JSON.stringify(event.args) });
+    }
+  }
+  return calls;
+}
+
+function fixture(name: string): string[] {
+  return readFileSync(path.join(here, "fixtures", name), "utf8").split("\n").filter((l) => l.trim());
 }
 
 function render(calls: ToolCall[]): string {
@@ -61,4 +79,26 @@ test("claude tool calls render as friendly activity", async () => {
 test("codex tool calls render as friendly activity", async () => {
   const lines = readFileSync(path.join(here, "fixtures", "codex-tool-round.raw.jsonl"), "utf8").split("\n").filter((l) => l.trim());
   await expect(render(toolCallsFromCodex(lines))).toMatchFileSnapshot(path.join(here, "fixtures", "codex-tool-round.activity.txt"));
+});
+
+test("pi tool calls render as friendly activity", async () => {
+  const lines = render(toolCallsFromPi(fixture("pi-tool-round.raw.jsonl")));
+  await expect(lines).toMatchFileSnapshot(path.join(here, "fixtures", "pi-tool-round.activity.txt"));
+});
+
+function shellFields(call: ToolCall | undefined): { command: string | undefined; description: string | undefined } {
+  if (call === undefined) {
+    return { command: undefined, description: undefined };
+  }
+  const { command, description } = classifyTool(call.runtime, call.tool, call.input);
+  return { command, description };
+}
+
+test("shell calls carry their command, and claude's its description, as recorded", () => {
+  const claude = toolCallsFromClaude(fixture("claude-tool-round.raw.jsonl")).find((c) => c.tool === "Bash");
+  const [codex] = toolCallsFromCodex(fixture("codex-tool-round.raw.jsonl"));
+  const [pi] = toolCallsFromPi(fixture("pi-tool-round.raw.jsonl"));
+  expect(shellFields(claude)).toEqual({ command: "echo oar-replay-marker", description: "Echo the marker string" });
+  expect(shellFields(codex)).toEqual({ command: "/bin/bash -lc 'echo oar-codex-marker'", description: undefined });
+  expect(shellFields(pi)).toEqual({ command: "echo oar-round-one", description: undefined });
 });

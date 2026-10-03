@@ -24,6 +24,13 @@ export interface ToolAction {
   readonly kind: ToolActionKind;
   /** A short target extracted from the tool input: the command text, a file path, a query. */
   readonly detail?: string;
+  /**
+   * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
+   * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`).
+   */
+  readonly command?: string;
+  /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`). */
+  readonly description?: string;
 }
 
 // Per-runtime tool name → kind. Names are what the tool_call_started event
@@ -70,6 +77,38 @@ function kindOf(runtimeId: string, tool: string): ToolActionKind {
   return "other";
 }
 
+type ShellFields = Pick<ToolAction, "command" | "description">;
+
+/** The recorded keys' string values: `command` and, where the shape has one, `description`. */
+function stringFields(inputJson: string, withDescription: boolean): ShellFields {
+  const input = asRecord(parseJson(inputJson));
+  const pick = (key: string): string | undefined => {
+    const value = input?.[key];
+    return typeof value === "string" && value.length > 0 ? value : undefined;
+  };
+  const command = pick("command");
+  const description = withDescription ? pick("description") : undefined;
+  return {
+    ...(command === undefined ? {} : { command }),
+    ...(description === undefined ? {} : { description }),
+  };
+}
+
+/**
+ * Where each runtime's shell tool keeps its command, from recorded inputs
+ * (tests/replay/fixtures/*-tool-round.raw.jsonl); a runtime with no recorded
+ * shape gets none. codex's `commandExecution` input is the bare command line,
+ * not JSON (codex/item-detail.ts).
+ */
+const SHELL: Record<string, Record<string, (input: string) => ShellFields>> = {
+  claude: { Bash: (input) => stringFields(input, true) },
+  codex: {
+    commandExecution: (input) =>
+      input.length === 0 || asRecord(parseJson(input)) !== null ? {} : { command: input },
+  },
+  pi: { bash: (input) => stringFields(input, false) },
+};
+
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];
 
 function detailOf(inputJson: string | undefined): string | undefined {
@@ -99,8 +138,10 @@ function detailOf(inputJson: string | undefined): string | undefined {
 /** Classify one tool call into a cross-runtime semantic action plus an extracted detail. */
 export function classifyTool(runtimeId: string, tool: string, inputJson?: string): ToolAction {
   const kind = kindOf(runtimeId, tool);
-  const detail = detailOf(inputJson) ?? (kind === "other" ? tool : undefined);
-  return detail === undefined ? { kind } : { kind, detail };
+  const runtime = runtimeId.replace(/-aimock$/u, "");
+  const shell = inputJson === undefined ? {} : (SHELL[runtime]?.[tool]?.(inputJson) ?? {});
+  const detail = detailOf(inputJson) ?? shell.command ?? (kind === "other" ? tool : undefined);
+  return { kind, ...(detail === undefined ? {} : { detail }), ...shell };
 }
 
 const LABELS: Record<ToolActionKind, { running: string; done: string; failed: string }> = {
