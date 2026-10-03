@@ -206,6 +206,27 @@ test("grok projection falls back to legacy used/limit cents", () => {
   expect(projectGrokUsage({ config: null })).toEqual({ kind: "unsupported", reason: "quota_unavailable" });
 });
 
+test("grok projection defaults omitted metrics to zero but rejects malformed usage", () => {
+  const unused = {
+    kind: "available", rateLimited: false,
+    windows: [{ label: "Included usage", usedRatio: 0 }],
+  };
+  expect(projectGrokUsage({ config: {} })).toEqual(unused);
+  expect(projectGrokUsage({
+    config: { creditUsagePercent: null, used: null, monthlyLimit: null },
+  })).toEqual(unused);
+  expect(projectGrokUsage({ config: { creditUsagePercent: 0 } })).toMatchObject({
+    kind: "available", windows: [{ usedRatio: 0 }], rateLimited: false,
+  });
+  for (const config of [
+    { creditUsagePercent: "invalid" },
+    { creditUsagePercent: -1 },
+    { used: { val: 100 }, monthlyLimit: { val: 0 } },
+  ]) {
+    expect(() => projectGrokUsage({ config })).toThrow("no usable account usage percentage");
+  }
+});
+
 test("grok projection keeps paid headroom distinct from included usage", () => {
   expect(projectGrokUsage({
     config: {

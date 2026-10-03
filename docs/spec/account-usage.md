@@ -48,6 +48,14 @@ Operational failures (network errors, timeouts, malformed responses) still rejec
 the promise. Reasons do not include tokens, credential values, or raw provider
 responses.
 
+Grok can return a valid billing configuration and subscription tier without
+`creditUsagePercent` or legacy `used`/`monthlyLimit` metrics (observed with
+Grok 1.0.46 on an unused account). OAR follows Grok's native `/usage`
+[projection](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-pager/src/app/effects/helpers.rs#L1582-L1596)
+and defaults these omitted metrics to zero, preserving the plan and reset time.
+An absent config still returns `quota_unavailable`; present but malformed
+usage metrics still reject.
+
 Claude account usage delegates to its native stream-json `get_usage` request
 (with `skip_behaviors: true`). OAR does not read Claude credentials or call its
 HTTP quota endpoint. A native `rate_limits_available: false` becomes

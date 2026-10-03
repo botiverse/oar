@@ -50,11 +50,17 @@ export function projectGrokUsage(result: unknown, email?: string): AccountUsageS
   if (config === null) {
     return { kind: "unsupported", reason: "quota_unavailable" };
   }
+  // Match Grok's credit_balance_from_config: an existing billing config
+  // without percentage or legacy metrics defaults to zero usage. The native
+  // /usage UI uses this for accounts that have not consumed credits yet.
+  const missingMetrics = [config.creditUsagePercent, config.used, config.monthlyLimit]
+    .every((value) => value === null || value === undefined);
   const explicitPercent = asNumber(config.creditUsagePercent);
   const used = centValue(config.used);
   const limit = centValue(config.monthlyLimit);
   const usedPercent = explicitPercent
-    ?? (used !== null && limit !== null && limit > 0 ? (used / limit) * 100 : null);
+    ?? (used !== null && limit !== null && limit > 0 ? (used / limit) * 100 : null)
+    ?? (missingMetrics ? 0 : null);
   if (usedPercent === null || usedPercent < 0) {
     throw new Error("Grok returned no usable account usage percentage");
   }
