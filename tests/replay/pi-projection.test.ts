@@ -109,11 +109,11 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
 test("pi tool_execution_end maps the explicit isError flag", () => {
   const failed = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-fail", true));
   expect(failed.commands[0]?.body.events).toEqual([
-    { kind: "tool_call_ended", callId: "tool-fail", output: JSON.stringify("boom"), result: "failed" },
+    { kind: "tool_call_ended", callId: "tool-fail", content: [{ type: "text", text: "boom" }], result: "failed" },
   ]);
   const successful = foldPiEvent(piPrompted(initialPiProjection), toolEndEvent("tool-success", false));
   expect(successful.commands[0]?.body.events).toEqual([
-    { kind: "tool_call_ended", callId: "tool-success", output: JSON.stringify("boom"), result: "ok" },
+    { kind: "tool_call_ended", callId: "tool-success", content: [{ type: "text", text: "boom" }], result: "ok" },
   ]);
 });
 

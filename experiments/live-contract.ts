@@ -27,6 +27,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   awaitTurnEnd,
   openVoyage,
+  toolResultText,
   turnEndAfter,
   type ControlResult,
   type Session,
@@ -301,7 +302,10 @@ const scenarios: Scenario[] = [
       const startedViews = events.flatMap((view) => (view.kind === "tool_call_started" ? [view] : []));
       const endedViews = events.flatMap((view) => (view.kind === "tool_call_ended" ? [view] : []));
       facts.toolCalls = startedViews.map((view) => ({ tool: view.tool, callId: view.callId, inputHasCommand: view.input?.includes("TOOL-MARK-4412") ?? false, input: view.input?.slice(0, 120) }));
-      facts.toolEnds = endedViews.map((view) => ({ callId: view.callId, outputHasMarker: view.output?.includes("TOOL-MARK-4412") ?? false, output: view.output?.slice(0, 120) }));
+      facts.toolEnds = endedViews.map((view) => {
+        const output = toolResultText(view.content);
+        return { callId: view.callId, outputHasMarker: output?.includes("TOOL-MARK-4412") ?? false, output: output?.slice(0, 120) };
+      });
       facts.callIdsMatch = startedViews.every((start) => endedViews.some((end) => end.callId === start.callId));
       facts.reasoningViews = events.flatMap((view) => (view.kind === "reasoning" ? [view.content.kind] : [])).slice(0, 10);
       facts.text = rootText(session, result.request.seq).slice(0, 200);

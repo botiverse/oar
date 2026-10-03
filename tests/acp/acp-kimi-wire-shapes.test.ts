@@ -49,7 +49,7 @@ test("kimi tool ends: the terminal tool's completed frame is a terminal referenc
     content: [{ terminalId: "bb80f18f", type: "terminal" }],
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(terminal, [{ kind: "tool_call_ended", callId: BASH_ID, output: "[{\"terminalId\":\"bb80f18f\",\"type\":\"terminal\"}]", result: "ok" }]);
+  assert.deepEqual(terminal, [{ kind: "tool_call_ended", callId: BASH_ID, content: [{ type: "other", value: { terminalId: "bb80f18f", type: "terminal" } }], result: "ok" }]);
   const agent = projectAcpUpdate(state, {
     toolCallId: AGENT_ID,
     status: "completed",
@@ -57,7 +57,7 @@ test("kimi tool ends: the terminal tool's completed frame is a terminal referenc
     rawOutput: AGENT_REPORT,
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(agent, [{ kind: "tool_call_ended", callId: AGENT_ID, output: AGENT_REPORT, result: "ok" }]);
+  assert.deepEqual(agent, [{ kind: "tool_call_ended", callId: AGENT_ID, content: [{ type: "text", text: AGENT_REPORT }], result: "ok" }]);
 });
 
 test("ACP tool_call_update maps failed status and omits result when status is absent", () => {
@@ -67,7 +67,7 @@ test("ACP tool_call_update maps failed status and omits result when status is ab
     rawOutput: "boom",
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(failed, [{ kind: "tool_call_started", callId: "failed", tool: "tool" }, { kind: "tool_call_ended", callId: "failed", output: "boom", result: "failed" }]);
+  assert.deepEqual(failed, [{ kind: "tool_call_started", callId: "failed", tool: "tool" }, { kind: "tool_call_ended", callId: "failed", content: [{ type: "text", text: "boom" }], result: "failed" }]);
   const unknown = projectAcpUpdate(createAcpProjectionState(), {
     toolCallId: "unknown",
     rawOutput: "?",
@@ -84,7 +84,7 @@ test("a non-terminal tool_call_update with rawOutput is tool progress; one with 
   const streamed = projectAcpUpdate(state, { toolCallId: BASH_ID, status: "in_progress", rawOutput: "partial", sessionUpdate: "tool_call_update" });
   assert.deepEqual(streamed, [{ kind: "tool_call_progress", callId: BASH_ID, output: "partial" }]);
   const done = projectAcpUpdate(state, { toolCallId: BASH_ID, status: "completed", rawOutput: "partial and rest", sessionUpdate: "tool_call_update" });
-  assert.deepEqual(done, [{ kind: "tool_call_ended", callId: BASH_ID, output: "partial and rest", result: "ok" }]);
+  assert.deepEqual(done, [{ kind: "tool_call_ended", callId: BASH_ID, content: [{ type: "text", text: "partial and rest" }], result: "ok" }]);
 });
 
 test("a name-bearing frame still labels the tool by name, and a kind-only frame by kind", () => {

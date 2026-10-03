@@ -1,4 +1,6 @@
+import type { ToolOutputPart } from "../../contracts/tool-output.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { toolContent } from "../../shared/tool-output.js";
 
 export function codexItemInput(item: JsonRecord): string | undefined {
   switch (item.type) {
@@ -25,31 +27,42 @@ export function codexItemExitCode(item: JsonRecord): number | null | undefined {
   return typeof item.exitCode === "number" ? item.exitCode : null;
 }
 
-export function codexItemOutput(item: JsonRecord): string | undefined {
+/** A status word (`declined`, `completed`) when a command or file change reported nothing else. */
+function statusOf(item: JsonRecord): string | undefined {
+  return typeof item.status === "string" ? item.status : undefined;
+}
+
+/**
+ * An `mcpToolCall` result (`{content, structuredContent?, _meta?}`, the
+ * content being MCP blocks [src] app-server v2 `McpToolCallResult`): its
+ * blocks, or the whole result when it has none; an error is its message.
+ */
+function mcpContent(item: JsonRecord): readonly ToolOutputPart[] | undefined {
+  const error = asRecord(item.error);
+  if (typeof error?.message === "string") {
+    return [{ type: "text", text: `error: ${error.message}` }];
+  }
+  const result = asRecord(item.result);
+  if (result === null) {
+    return undefined;
+  }
+  return (Array.isArray(result.content) ? toolContent(result.content) : undefined) ?? [{ type: "other", value: result }];
+}
+
+/** A finished tool item's `tool_call_ended.content`. */
+export function codexToolContent(item: JsonRecord): readonly ToolOutputPart[] | undefined {
   switch (item.type) {
     case "commandExecution": {
-      // The exit status travels as `tool_call_ended.exitCode`; the output is the command's own.
-      const output = typeof item.aggregatedOutput === "string" ? item.aggregatedOutput : undefined;
-      if (output !== undefined && output.length > 0) {
-        return output;
-      }
-      return typeof item.status === "string" ? item.status : undefined;
+      // The exit status travels as `tool_call_ended.exitCode`; the content is the command's own output.
+      const output = typeof item.aggregatedOutput === "string" && item.aggregatedOutput.length > 0 ? item.aggregatedOutput : undefined;
+      return toolContent(output ?? statusOf(item));
     }
     case "fileChange":
-      return typeof item.status === "string" ? item.status : undefined;
-    case "mcpToolCall": {
-      const error = asRecord(item.error);
-      if (typeof error?.message === "string") {
-        return `error: ${error.message}`;
-      }
-      // result is the schema's nullable MCP result object; null means there is
-      // no result to display.
-      return item.result === undefined || item.result === null
-        ? undefined
-        : JSON.stringify(item.result);
-    }
+      return toolContent(statusOf(item));
+    case "mcpToolCall":
+      return mcpContent(item);
     case "webSearch":
-      return Array.isArray(item.results) ? JSON.stringify(item.results) : undefined;
+      return Array.isArray(item.results) ? [{ type: "other", value: item.results }] : undefined;
     default:
       return undefined;
   }

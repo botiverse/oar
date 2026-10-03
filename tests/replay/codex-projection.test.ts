@@ -205,14 +205,14 @@ test("codex tool completion maps an explicit item status and otherwise leaves re
     item: { type: "commandExecution", id: "exec-fail", status: "failed", aggregatedOutput: "boom" },
   });
   expect(failed.commands[0]?.kind === "frame" ? failed.commands[0].body.events : null).toEqual([
-    { kind: "tool_call_ended", callId: "exec-fail", output: "boom", result: "failed" },
+    { kind: "tool_call_ended", callId: "exec-fail", content: [{ type: "text", text: "boom" }], result: "failed" },
   ]);
   const unknown = foldCodexNotification(initialCodexProjection(ROOT), "item/completed", {
     threadId: ROOT,
     item: { type: "commandExecution", id: "exec-unknown", aggregatedOutput: "?" },
   });
   expect(unknown.commands[0]?.kind === "frame" ? unknown.commands[0].body.events : null).toEqual([
-    { kind: "tool_call_ended", callId: "exec-unknown", output: "?" },
+    { kind: "tool_call_ended", callId: "exec-unknown", content: [{ type: "text", text: "?" }] },
   ]);
 });
 

@@ -97,14 +97,14 @@ test("grok bash end: output is the content block's text, not the rawOutput byte 
     rawOutput: { type: "Bash", output: [226, 156, 148, 32, 97, 100, 100], output_for_prompt: "exit: 0\n✔ add (0.27ms)\n", exit_code: 0, signal: null, timed_out: false, command: "node --test" },
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(ended, [{ kind: "tool_call_ended", callId: "call-bash", output: "✔ add (0.27ms)\n✔ mul (0.06ms)\n", result: "ok", exitCode: 0 }]);
+  assert.deepEqual(ended, [{ kind: "tool_call_ended", callId: "call-bash", content: [{ type: "text", text: "✔ add (0.27ms)\n✔ mul (0.06ms)\n" }], result: "ok", exitCode: 0 }]);
   // A signal exit is grok's `exit_code: null`; a rawOutput without the key says nothing.
   projectAcpUpdate(state, { toolCallId: "call-killed", title: "run_terminal_command", sessionUpdate: "tool_call" });
   const killed = projectAcpUpdate(state, { toolCallId: "call-killed", status: "failed", rawOutput: { type: "Bash", exit_code: null, signal: "SIGKILL" }, sessionUpdate: "tool_call_update" });
-  assert.deepEqual(killed, [{ kind: "tool_call_ended", callId: "call-killed", output: "{\"type\":\"Bash\",\"exit_code\":null,\"signal\":\"SIGKILL\"}", result: "failed", exitCode: null }]);
+  assert.deepEqual(killed, [{ kind: "tool_call_ended", callId: "call-killed", content: [{ type: "other", value: { type: "Bash", exit_code: null, signal: "SIGKILL" } }], result: "failed", exitCode: null }]);
   projectAcpUpdate(state, { toolCallId: "call-read", title: "read_file", sessionUpdate: "tool_call" });
   const read = projectAcpUpdate(state, { toolCallId: "call-read", status: "completed", rawOutput: { type: "ReadFile", FileContent: { content: "x" } }, sessionUpdate: "tool_call_update" });
-  assert.deepEqual(read, [{ kind: "tool_call_ended", callId: "call-read", output: "{\"type\":\"ReadFile\",\"FileContent\":{\"content\":\"x\"}}", result: "ok" }]);
+  assert.deepEqual(read, [{ kind: "tool_call_ended", callId: "call-read", content: [{ type: "other", value: { type: "ReadFile", FileContent: { content: "x" } } }], result: "ok" }]);
 });
 
 const grokProfile = {

@@ -47,7 +47,7 @@ test("a prompt turn groups text and tool parts under one lane section", () => {
     accepted(1, "r1"),
     text(2, "Hello"),
     frame(3, [{ kind: "tool_call_started", callId: "c1", tool: "Read", input: "f.ts" }]),
-    frame(4, [{ kind: "tool_call_ended", callId: "c1", output: "contents", result: "ok" }]),
+    frame(4, [{ kind: "tool_call_ended", callId: "c1", content: [{ type: "text", text: "contents" }], result: "ok" }]),
     frame(5, [{ kind: "turn_ended", outcome: { kind: "completed" } }]),
   ]);
   expect(view.messages.map((message) => message.kind)).toEqual(["input", "turn"]);
@@ -57,7 +57,7 @@ test("a prompt turn groups text and tool parts under one lane section", () => {
   expect(turn?.sections).toHaveLength(1);
   expect(turn?.sections[0]?.parts).toEqual([
     { kind: "text", text: "Hello" },
-    { kind: "tool", callId: "c1", tool: "Read", input: "f.ts", output: "contents", result: "ok" },
+    { kind: "tool", callId: "c1", tool: "Read", input: "f.ts", content: [{ type: "text", text: "contents" }], result: "ok" },
   ]);
 });
 
@@ -71,14 +71,14 @@ test("a call's progress after its turn ended settles its own part; no segment, n
     frame(4, [{ kind: "tool_call_progress", callId: "c1", output: "a.ts" }]),
     request(5, "r2"),
     accepted(6, "r2"),
-    frame(7, [{ kind: "tool_call_ended", callId: "c1", output: "a.ts b.ts", result: "ok" }]),
+    frame(7, [{ kind: "tool_call_ended", callId: "c1", content: [{ type: "text", text: "a.ts b.ts" }], result: "ok" }]),
     frame(8, [{ kind: "tool_call_progress", callId: "c9", output: "unseen" }]),
   ]);
   expect(view.messages.map((message) => message.kind)).toEqual(["input", "turn", "input", "turn"]);
   const [first, second] = turns(view);
   expect(first?.outcome).toEqual({ kind: "completed" });
   expect(first?.sections.flatMap((section) => section.parts)).toEqual([
-    { kind: "tool", callId: "c1", tool: "Bash", input: "ls", output: "a.ts b.ts", result: "ok" },
+    { kind: "tool", callId: "c1", tool: "Bash", input: "ls", content: [{ type: "text", text: "a.ts b.ts" }], result: "ok" },
   ]);
   expect(second?.sections.flatMap((section) => section.parts)).toEqual([
     { kind: "tool", callId: "c9", tool: "?", output: "unseen", result: "running" },
@@ -235,4 +235,20 @@ test("the flat-event entry folds display facts without conversation state", () =
   expect(turn?.openedBy).toBe("r1");
   expect(turn?.sections[0]?.parts).toEqual([{ kind: "text", text: "hi" }]);
   expect(turn?.outcome).toEqual({ kind: "completed" });
+});
+
+test("a tool part carries the result's ordered parts (#73)", () => {
+  const content = [{ type: "text", text: "shot" }, { type: "image", mediaType: "image/png", data: "iVBOR" }] as const;
+  const view = fold([
+    request(0, "r1"),
+    accepted(1, "r1"),
+    frame(2, [{ kind: "tool_call_started", callId: "c1", tool: "Read", input: "a.png" }]),
+    frame(3, [{ kind: "tool_call_ended", callId: "c1", content, result: "ok" }]),
+    frame(4, [{ kind: "tool_call_ended", callId: "c2", content, result: "ok" }]),
+  ]);
+  const parts = turns(view)[0]?.sections.flatMap((section) => section.parts) ?? [];
+  expect(parts).toMatchObject([
+    { kind: "tool", callId: "c1", content, result: "ok" },
+    { kind: "tool", callId: "c2", tool: "?", content, result: "ok" },
+  ]);
 });

@@ -184,7 +184,7 @@ opens with a `tool_call` whose `title` is the command, `kind: "execute"`,
 `status: "in_progress"` and `rawInput {command_line, working_dir}`, so
 `tool_call_started` carries the command as `input`. A `completed` update
 follows with `rawOutput {commandLine, workingDir, exitCode, exit_code,
-combinedOutput, formatted_output}`, which becomes `tool_call_ended.output`
+combinedOutput, formatted_output}`, which becomes `tool_call_ended.content` (one `other` part)
 with `result: "ok"` and `exitCode` (`tool-detail`). OAR maps the explicit ACP
 `ToolCallStatus` values `completed` / `failed` to `result: "ok"` /
 `"failed"`; a non-terminal or missing status leaves `result` absent. The

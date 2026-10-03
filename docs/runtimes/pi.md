@@ -232,8 +232,8 @@ Agent and turn boundaries, assistant `message_start`, queue, entry,
 session-info, bash execution and the other retry events are in the stream
 with no event.
 
-`tool_call_ended.output` is the text parts of pi's `result` joined (its JSON
-when it has none); `details` such as an edit's `patch` stay in `native`; pi
+`tool_call_ended.content` is the blocks of pi's `result` in order (an image
+block is an image part; a result without blocks is one `other` part); `details` such as an edit's `patch` stay in `native`; pi
 reports no exit status, so `exitCode` is absent. `result` comes from pi's
 explicit `isError` boolean ([src] `@earendil-works/pi-coding-agent` 0.84.2
 `core/extensions/types.d.ts:595-600`): false is `"ok"`, true is `"failed"`,

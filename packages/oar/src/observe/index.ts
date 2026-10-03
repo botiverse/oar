@@ -13,6 +13,7 @@ export type { StallInfo } from "./stall-observer.js";
 export { observeAgent, simpleStateOf } from "./observe-agent.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe-agent.js";
 export { classifyTool, toolActionLabel } from "./tool-activity.js";
+export { toolResultText } from "./tool-output.js";
 export type { ToolAction, ToolActionKind } from "./tool-activity.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
 export type { PromptRun, PromptRunOptions } from "./turns.js";

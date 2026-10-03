@@ -25,7 +25,7 @@ test("ACP session records every update verbatim with its events, and the prompt 
   assert.deepEqual(toolEnded.body.events, [{
     kind: "tool_call_ended",
     callId: "call-read",
-    output: JSON.stringify({ content: "fixture-value" }),
+    content: [{ type: "other", value: { content: "fixture-value" } }],
     result: "ok",
   }]);
   // native is the whole notification, untouched

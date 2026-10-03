@@ -72,7 +72,8 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         kind: "tool",
         callId: event.callId,
         tool: "?",
-        ...(event.output === undefined ? {} : { output: event.output }),
+        ...(event.kind === "tool_call_progress" && event.output !== undefined ? { output: event.output } : {}),
+        ...(event.kind === "tool_call_ended" && event.content !== undefined ? { content: event.content } : {}),
         result,
       });
       return;

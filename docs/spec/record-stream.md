@@ -122,8 +122,17 @@ Further rules:
   `exitCode` follows the same rule for the process status of a command the
   runtime ran: present only when the runtime reported one (codex, grok),
   `null` when it reported a signal exit, absent otherwise (claude and pi
-  report none). `output` is the result's text when the frame carries text
-  parts, otherwise its JSON. Per-runtime sources are in
+  report none).
+- **A tool result is its parts.** `tool_call_ended.content` is the result
+  as the runtime reported it, in its order: `{type: "text", text}`,
+  `{type: "image", mediaType, data}` (base64, normalized from Anthropic
+  `source` blocks and MCP / pi / ACP `{data, mimeType}` blocks alike), and
+  `{type: "other", value}` for a block or a result OAR does not recognize,
+  kept whole. A plain string result is one text part; `content` is absent
+  when the runtime reported no result. The frame's `native` keeps the
+  original. `toolResultText(content)` (`@botiverse/oar/observe`) joins the
+  text parts for a host that shows only text. Streamed output while a call
+  runs stays `tool_call_progress.output`. Per-runtime sources are in
   [runtime-matrix.md](runtime-matrix.md#tool-outcomes).
 
 ## Record contracts
@@ -159,7 +168,7 @@ interface FrameBody {
 //   text_delta {text} | reasoning {content} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_progress {callId, output?} |
-//   tool_call_ended {callId, output?, result?: "ok" | "failed", exitCode?: number | null} |
+//   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
 //   turn_ended {outcome} | usage {usage: {context?, tokens?}} | model {model} |
 //   effort {effort} |
 //   compaction_started {trigger?} |

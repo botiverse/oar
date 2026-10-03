@@ -105,6 +105,7 @@ export type {
   TaskStatus,
   TaskType,
   TokenTotals,
+  ToolOutputPart,
   TurnOutcome,
   Unsubscribe,
   UsageReport,
@@ -132,6 +133,7 @@ export { observeStalls } from "./observe/stall-observer.js";
 export type { StallInfo } from "./observe/stall-observer.js";
 export { observeAgent, simpleStateOf } from "./observe/observe-agent.js";
 export { classifyTool, toolActionLabel } from "./observe/tool-activity.js";
+export { toolResultText } from "./observe/tool-output.js";
 export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
 export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
 export { applyTaskEvent, initialTasks, reduceTasks, tasksOf } from "./observe/tasks.js";

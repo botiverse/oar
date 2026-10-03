@@ -67,7 +67,7 @@ For an application that renders with assistant-ui:
 |---|---|
 | input text, attempts, observations | user message text, plus metadata for a delivery badge |
 | text, reasoning | standard parts |
-| tool part | tool call part (`argsText` from `input`, `result` from `output`, `isError` when `result === "failed"`) |
+| tool part | tool call part (`argsText` from `input`, `result` from `content` once ended or the streamed `output` while running, `isError` when `result === "failed"`); image parts render as images |
 | sub-agent section | a custom part and renderer: the projection's largest value, since every client otherwise rebuilds it |
 | turn outcome | message status (`complete`, `incomplete`, error) |
 | notices, `pendingRequests` | custom parts in flow, the latter actionable |

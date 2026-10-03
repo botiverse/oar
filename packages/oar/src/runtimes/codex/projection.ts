@@ -6,7 +6,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { codexItemExitCode, codexItemInput, codexItemOutput } from "./item-detail.js";
+import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
 import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
 
@@ -91,7 +91,7 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
       ? { kind: "tool_call_started", callId: itemId, tool: itemType }
       : { kind: "tool_call_started", callId: itemId, tool: itemType, input }];
   }
-  const output = item === null ? undefined : codexItemOutput(item);
+  const content = item === null ? undefined : codexToolContent(item);
   const exitCode = item === null ? undefined : codexItemExitCode(item);
   const status = typeof item?.status === "string" ? item.status : undefined;
   let result: "ok" | "failed" | undefined = undefined;
@@ -103,7 +103,7 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
   return [{
     kind: "tool_call_ended",
     callId: itemId,
-    ...(output === undefined ? {} : { output }),
+    ...(content === undefined ? {} : { content }),
     ...(result === undefined ? {} : { result }),
     ...(exitCode === undefined ? {} : { exitCode }),
   }];
