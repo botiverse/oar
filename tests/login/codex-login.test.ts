@@ -157,6 +157,19 @@ test("an abort after codex reported success is not a cancel, and stops waiting f
   assert.deepEqual(result, { kind: "logged_in" });
 });
 
+test("a success before the start reply shows nothing more: a caller that cannot show the code doesn't undo it", async () => {
+  const interaction = recordedInteraction([]);
+  const throwing = { ...interaction, onEvent: () => { throw new Error("no screen"); } };
+  const result = await codexLogin(installation(fakeCodex({ mode: "early" })), throwing);
+  assert.equal(result.kind, "logged_in");
+});
+
+test("a missing codex says the executable wasn't found", async () => {
+  const result = await codexLogin({ kind: "available", via: "executable", command: path.join(tmpdir(), "no-such-codex"), version: "codex-cli 0.160.0" }, recordedInteraction([]));
+  assert.equal(result.kind === "failed" ? result.reason : result.kind, "process_failed");
+  expect(result.kind === "failed" ? result.detail : "").toMatch(/ENOENT/u);
+});
+
 test("a command that cannot be spawned fails at once", async () => {
   const result = await codexLogin({ kind: "available", via: "executable", command: "invalid\0binary", version: "codex-cli 0.160.0" }, recordedInteraction([]));
   assert.equal(result.kind === "failed" ? result.reason : result.kind, "process_failed");

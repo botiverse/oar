@@ -96,10 +96,10 @@ export interface LineProcess {
   onExit(handler: (code: number | null) => void): void;
   /**
    * Stop the process and everything it started: close stdin, SIGTERM its
-   * process group (the child alone on Windows), and SIGKILL the group if the
-   * child is still running once the grace period is over. Idempotent; a
-   * no-op after the exit, since a reaped pid may already belong to another
-   * process.
+   * process group, and SIGKILL the group if the child is still running once
+   * the grace period is over. On Windows it ends the child alone, or its whole
+   * tree with `killTree`. Idempotent; a no-op after the exit, since a reaped
+   * pid may already belong to another process.
    */
   kill(): void;
 }

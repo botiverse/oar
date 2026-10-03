@@ -39,7 +39,9 @@ that pi's provider login already uses.
   in the browser included); `options.timeoutMs` overrides it. Aborting
   `interaction.signal` stops the login process and everything it started (its
   process group on POSIX, its process tree on Windows) and resolves
-  `cancelled`.
+  `cancelled`. The deadline bounds the login, not the call: the status query
+  after a success (up to 20 s) and the 10 s grace a process that ignores the
+  stop signal gets can take a call past `timeoutMs`.
 - **Not serialized.** oar does not stop two logins from running at once;
   whether a host allows that is its own policy.
 - **`login` changes the machine.** oar never calls it on its own; a host
