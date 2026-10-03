@@ -1,27 +1,42 @@
-import { homedir } from "node:os";
-import path from "node:path";
-import { executableInstallation } from "../../shared/installation.js";
+import type { InstallationProbe, InstallationSnapshot } from "../../contracts/installation.js";
 
-/**
- * The official installer's layout, which can be invisible to GUI-process
- * PATH: `~/.local/bin/cursor-agent` links into
- * `~/.local/share/cursor-agent/versions/<version>/` (cursor-agent 2026.09.28).
- * The installer also links `~/.local/bin/agent`, a name too generic to probe.
- */
-export function cursorInstalledExecutableCandidates(
-  platform: NodeJS.Platform = process.platform,
-  home: string = homedir(),
-): readonly string[] {
-  if (platform === "win32") {
-    return [];
+const SDK_PACKAGE = "@cursor/sdk";
+
+/** The platforms `@cursor/sdk` 1.0.35 ships a native companion package for. */
+const PLATFORMS: ReadonlySet<string> = new Set(["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win32-x64"]);
+
+async function sdkLoads(): Promise<boolean> {
+  try {
+    // A string LITERAL, not SDK_PACKAGE: bundlers only compile in (and
+    // resolve) literal specifiers, and this fallback exists for bundles.
+    await import("@cursor/sdk");
+    return true;
+  } catch {
+    return false;
   }
-  return [path.posix.join(home, ".local", "bin", "cursor-agent")];
 }
 
-export const cursorInstallation = executableInstallation(
-  "OAR_CURSOR_BIN",
-  "cursor-agent",
-  cursorInstalledExecutableCandidates,
-  ["acp", "--help"],
-  { readinessTimeoutMs: 30_000, versionTimeoutMs: 30_000 },
-);
+/**
+ * Cursor ships inside this package as the `@cursor/sdk` dependency, the way
+ * pi does: there is no executable to probe and no version to report (the
+ * embedder pins the SDK). The SDK's agent needs its native companion package,
+ * which exists only for the platforms in `PLATFORMS`.
+ */
+export function cursorInstallationFor(platform: string, arch: string, resolvable: () => Promise<boolean>): InstallationProbe {
+  return async (): Promise<InstallationSnapshot> => {
+    if (!PLATFORMS.has(`${platform}-${arch}`)) {
+      return { kind: "unsupported", reason: `@cursor/sdk has no native package for ${platform}-${arch}` };
+    }
+    return await resolvable() ? { kind: "available", via: "bundled" } : { kind: "not_found" };
+  };
+}
+
+export const cursorInstallation: InstallationProbe = cursorInstallationFor(process.platform, process.arch, async () => {
+  try {
+    import.meta.resolve(SDK_PACKAGE);
+    return true;
+  } catch {
+    const loads = await sdkLoads();
+    return loads;
+  }
+});

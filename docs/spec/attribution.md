@@ -27,9 +27,9 @@ carried.
   `thread/tokenUsage/updated`. [env: `experiments/codex-child-threads.ts`]
 - grok (ACP): a child has its own ACP sessionId but travels the same ACP
   connection. [src]
-- cursor (ACP): the same shape once the client opts in with
-  `_meta.subagents`; without it the child is only the parent's `task` tool
-  call. [env]
+- cursor (`@cursor/sdk`, in process): no connection at all; a child's
+  updates arrive through the parent run's `onDelta` as `tool-call-delta`
+  wrappers keyed by the `task` call id. [env]
 - kimi-cli (native wire): sub-agents open no new connection; the parent
   wire receives `SubagentEvent{parent_tool_call_id, agent_id,
   subagent_type, event}` wrapper records sharing the one `_write_queue`
@@ -90,8 +90,9 @@ already show the degeneration (adapter red lines in
   usage. [env]
 - grok (ACP): nested sessions; child has its own sessionId + per-child
   usage. [src]
-- cursor (ACP): nested sessions behind the `subagents` opt-in; no usage
-  for parent or child. [env]
+- cursor (`@cursor/sdk`): attributed; a child's updates carry
+  `agentPath = [...parentPath, taskCallId]`, and each run's `turn-ended`
+  usage is the root's. [env]
 - antigravity (ACP): opaque; agy_acp_server 1.2.1 flattens the child's
   tool calls and text onto the parent session (the child id survives only
   as a `toolCallId` prefix) and reports no usage, so only the root is

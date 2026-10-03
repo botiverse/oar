@@ -27,7 +27,7 @@ export interface ToolAction {
   readonly detail?: string;
   /**
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
-   * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`).
+   * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`, cursor `shell`).
    */
   readonly command?: string;
   /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`). */
@@ -70,6 +70,21 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     write: "edit_file",
     grep: "search",
     find: "search",
+  },
+  // The `toolCall.type` of `@cursor/sdk` 1.0.35's tool updates.
+  cursor: {
+    shell: "run_command",
+    read: "read_file",
+    ls: "read_file",
+    edit: "edit_file",
+    write: "edit_file",
+    delete: "edit_file",
+    grep: "search",
+    glob: "search",
+    semSearch: "search",
+    webSearch: "web",
+    webFetch: "web",
+    mcp: "mcp",
   },
 };
 
@@ -124,6 +139,7 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
     sleep: waitFields,
   },
   pi: { bash: (input) => stringFields(input, false) },
+  cursor: { shell: (input) => stringFields(input, false) },
 };
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];

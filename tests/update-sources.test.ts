@@ -5,9 +5,8 @@ import path from "node:path";
 import { afterAll, beforeAll, test } from "vitest";
 import { antigravityUpdateCheck } from "../packages/oar/src/runtimes/antigravity/update.js";
 import { claudeUpdateCheck } from "../packages/oar/src/runtimes/claude/update.js";
-import { cursorUpdateCheck } from "../packages/oar/src/runtimes/cursor/update.js";
 import { kimiUpdateCheck } from "../packages/oar/src/runtimes/kimi/update.js";
-import { printingExecutable, startReleaseServer, type ReleaseServer } from "./fixtures/update-fixtures.js";
+import { startReleaseServer, type ReleaseServer } from "./fixtures/update-fixtures.js";
 
 let server: ReleaseServer = { base: "", routes: new Map(), close: () => undefined };
 let dir = "";
@@ -111,13 +110,3 @@ test("antigravity counts only a newer registry version as an update", async () =
   assert.equal(behind.kind === "ok" && behind.updateAvailable, true);
 });
 
-test("cursor builds without a latest report ask the release service for their channel", async () => {
-  const fake = printingExecutable({ dir, name: "cursor-old", line: JSON.stringify({ cliVersion: "2026.08.11-e8db854" }) });
-  const configPath = path.join(dir, "cli-config.json");
-  writeFileSync(configPath, JSON.stringify({ channel: "lab" }));
-  routes.set("/cursor-releases", [200, JSON.stringify({ version: "2026.09.28-3cdcc3f" })]);
-  const check = await cursorUpdateCheck({ releases: `${base}/cursor-releases`, configPath: () => configPath })(executable(fake, "2026.08.11-e8db854"));
-  assert.deepEqual(check, {
-    kind: "ok", installed: "2026.08.11-e8db854", latest: "2026.09.28-3cdcc3f", updateAvailable: true, channel: "lab", source: `${base}/cursor-releases`,
-  });
-});

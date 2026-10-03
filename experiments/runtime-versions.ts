@@ -3,8 +3,9 @@
  * Run: pnpm tsx experiments/runtime-versions.ts > versions.json
  *
  * Compare with the last probe report, then run live-contract.ts for changed
- * versions. A version match is not a compatibility result. Pi is the SDK loaded
- * by OAR, never the unrelated executable named `pi` on the host's PATH.
+ * versions. A version match is not a compatibility result. Pi and Cursor are
+ * the SDKs loaded by OAR, never an executable of the same name on the host's
+ * PATH.
  */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -13,33 +14,32 @@ import path from "node:path";
 import { runtimes } from "../packages/oar/src/index.js";
 
 const PI_PACKAGE = "@earendil-works/pi-coding-agent";
+const CURSOR_PACKAGE = "@cursor/sdk";
 const sources = [
   { id: "antigravity", url: "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json" },
   { id: "claude", url: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" },
   { id: "codex", url: "https://registry.npmjs.org/@openai/codex/latest" },
-  // Read the bundled version from the official installer; never execute it.
-  { id: "cursor", url: "https://cursor.com/install" },
+  { id: "cursor", url: `https://registry.npmjs.org/${CURSOR_PACKAGE}/latest` },
   // The stable pointer used by the official https://x.ai/cli/install.sh.
   { id: "grok", url: "https://x.ai/cli/stable" },
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },
   { id: "pi", url: `https://registry.npmjs.org/${PI_PACKAGE}/latest` },
 ] as const;
 
-function versionOf(value: string, runtime?: string): string {
-  const pattern = runtime === "cursor"
-    ? /\b\d{4}\.\d{2}\.\d{2}-[\da-f]+\b/u
-    : /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u;
-  const version = pattern.exec(value)?.[0];
+function versionOf(value: string): string {
+  const version = /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u.exec(value)?.[0];
   assert.ok(version !== undefined, "version response has no recognized version");
   return version;
 }
 
-async function piVersion(): Promise<string> {
+const BUNDLED: Readonly<Record<string, string>> = { pi: PI_PACKAGE, cursor: CURSOR_PACKAGE };
+
+async function bundledVersion(id: string, sdk: string): Promise<string> {
   // Resolve from the adapter, not the workspace: the two dependency ranges
   // need not resolve to the same installed SDK in a consumer's checkout.
-  const adapter = new URL("../packages/oar/src/runtimes/pi/installation.ts", import.meta.url);
-  const manifest = findPackageJSON(PI_PACKAGE, adapter);
-  assert.ok(manifest !== undefined, "cannot locate the installed Pi SDK manifest");
+  const adapter = new URL(`../packages/oar/src/runtimes/${id}/installation.ts`, import.meta.url);
+  const manifest = findPackageJSON(sdk, adapter);
+  assert.ok(manifest !== undefined, `cannot locate the installed ${sdk} manifest`);
   const data: unknown = JSON.parse(await readFile(manifest, "utf8"));
   assert.ok(typeof data === "object" && data !== null && "version" in data && typeof data.version === "string");
   return versionOf(data.version);
@@ -52,11 +52,6 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
     let latest = "";
     if (id === "grok") {
       latest = versionOf(await response.text());
-    } else if (id === "cursor") {
-      const installer = await response.text();
-      const version = /https:\/\/downloads\.cursor\.com\/lab\/(?<version>\d{4}\.\d{2}\.\d{2}-[\da-f]+)\//u.exec(installer)?.groups?.version;
-      assert.ok(version !== undefined, "Cursor installer has no versioned official download URL");
-      latest = version;
     } else {
       const data: unknown = await response.json();
       assert.ok(typeof data === "object" && data !== null && "version" in data && typeof data.version === "string");
@@ -64,10 +59,11 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
     }
     const installation = await runtimes.require(id).installation?.();
     let installed: string | null = null;
-    if (id === "pi") {
-      installed = await piVersion();
+    const sdk = BUNDLED[id];
+    if (sdk !== undefined) {
+      installed = await bundledVersion(id, sdk);
     } else if (installation?.kind === "available" && installation.via === "executable" && installation.version !== undefined) {
-      installed = versionOf(installation.version, id);
+      installed = versionOf(installation.version);
     }
     let status = "unavailable";
     if (installed !== null) {

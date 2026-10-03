@@ -39,28 +39,19 @@ export function acpReportedModel(frame: JsonRecord | null): string | null {
 /**
  * The agent's reasoning-effort selector: the config option in ACP's reserved
  * `thought_level` category (ACP schema `SessionConfigOptionCategory`:
- * "thought/reasoning level"), read off a frame's `configOptions`. Both ACP
- * runtimes put effort there, under their own ids ([env] 2026-09-29): grok
+ * "thought/reasoning level"), read off a frame's `configOptions`. grok and
+ * kimi put effort there, under their own ids ([env] 2026-09-29): grok
  * 1.0.41 `reasoning_effort` (xhigh/high/medium/low per model), kimi 2.0.0
- * `thinking` (low/high/max on k3). The category, not the id, is what this
- * shared layer relies on; it carries no runtime identity. Null when the frame
+ * `thinking` (low/high/max on k3); agy_acp_server 1.2.1 has none, its effort
+ * being part of the model id. The category, not the id, is what this shared
+ * layer relies on; it carries no runtime identity. Null when the frame
  * advertises none.
- *
- * cursor-agent 2026.09.28 lists two for most Claude models: `thinking`
- * (false/true) and `effort` (low…max). The level menu wins over the on/off
- * switch; a model whose only option is the switch (claude-haiku-4-5) keeps it.
  */
 export function acpThoughtLevelOption(frame: JsonRecord | null): JsonRecord | null {
   if (frame === null) {
     return null;
   }
-  const candidates = asRecordList(frame.configOptions).filter((entry) => entry.category === "thought_level");
-  return candidates.find((entry) => !isOnOffSwitch(entry)) ?? candidates[0] ?? null;
-}
-
-function isOnOffSwitch(option: JsonRecord): boolean {
-  const values = asRecordList(option.options).map((entry) => entry.value);
-  return values.length === 2 && values.includes("false") && values.includes("true");
+  return asRecordList(frame.configOptions).find((entry) => entry.category === "thought_level") ?? null;
 }
 
 /**

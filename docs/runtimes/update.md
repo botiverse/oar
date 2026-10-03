@@ -2,8 +2,8 @@
 
 Probed on 2026-10-01 (Linux x64, Node 24.19.0) in sandboxed homes, with no
 terminal and stdin closed. Versions then: claude 2.1.286 (stable 2.1.285),
-codex 0.159.3, grok 1.0.46, kimi 2.1.1, cursor-agent 2026.09.28-64d2043,
-Antigravity ACP server 1.2.1 in the registry. The contract built on these
+codex 0.159.3, grok 1.0.46, kimi 2.1.1, Antigravity ACP server 1.2.1 in
+the registry. The contract built on these
 facts is [runtime updates](../spec/update.md).
 
 ## What every updater shares
@@ -58,20 +58,13 @@ included. It reads `code.kimi.com/kimi-code/latest` (`code.kimi.ai` for the
 `global` region) and ignores the staged rollout. Auto update runs only in the
 interactive TUI.
 
-**cursor.** Installs: official script (`~/.local/share/cursor-agent/versions`,
-links in `~/.local/bin`). `cursor-agent update` installs the new version
-beside the old one without a prompt and repoints the links, so running
-versions stay intact. `about --format json` gives
-`latestVersion` and `latestStatus` from 2026.09.28; older builds lack them,
-and the release service (`GetCliDownloadUrl`, by channel) answers instead.
-The `static` channel disables updates.
-
 **antigravity.** `agy_acp_server` has no updater and Google publishes no
 latest pointer. The ACP registry lists a zip per platform and trails Google's
 downloads (1.2.1 listed while 1.3.0 was downloadable). The `agy` CLI's own
 `update` does not touch the ACP server.
 
-**pi.** Bundled with oar; it moves with the oar version.
+**pi and cursor.** Bundled with oar (the pi SDK and `@cursor/sdk`); they
+move with the oar version.
 
 ## oar runs
 
@@ -86,5 +79,4 @@ downloads (1.2.1 listed while 1.3.0 was downloadable). The `agy` CLI's own
 | kimi native 2.1.0 | upgraded to 2.1.1 (23 s, staged then swapped) |
 | kimi npm 2.1.0 | unchanged: kimi did not recognize the npm layout and printed the manual command; `kimi upgrade -y` run directly in the same sandbox refused the same way |
 | kimi native 0.38.0 | unsupported: requires_terminal |
-| cursor 2026.08.11 | check via the release service, then upgraded to 2026.09.28 |
 | antigravity 1.3.0 | check: no update (registry lists 1.2.1); no updater |

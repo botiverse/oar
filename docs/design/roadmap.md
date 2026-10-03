@@ -85,7 +85,8 @@ and `SessionView.effort`. Regression: per-adapter unit tests, sea-trial
 
 **Next:** a `Session.configure` control over the native live setters
 surveyed in [live-configure](../runtimes/live-configure.md) (claude, codex,
-grok, kimi and pi; cursor and antigravity are unprobed), which
+grok, kimi and pi; cursor's SDK types a model per send, not yet probed, and
+antigravity is unprobed), which
 would record the request, answer with the runtime's acknowledgement, and let
 the `model` and `effort` events carry the effect. Today a host switches by
 disposing at a turn boundary and resuming with new options.

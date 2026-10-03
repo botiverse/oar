@@ -5,8 +5,6 @@
 // Reported in both upstream spellings: kimi's configOptions row and grok's
 // models.currentModelId.
 const EFFECTIVE_MODEL = "fixture-model-x";
-// Only a `set_config_option` model switch (cursor) moves it; `set_model` never does.
-let currentModel = EFFECTIVE_MODEL;
 
 function modelOption(currentValue) {
   return {
@@ -39,10 +37,14 @@ function effortOption(currentValue) {
   };
 }
 
-/** `mode` "no-thought-level": an agent that offers no effort selector at all. */
+/**
+ * `mode` "no-thought-level": an agent that offers no effort selector at all.
+ * Mode "antigravity" replays agy_acp_server 1.2.1, whose effort is part of the model id.
+ */
 export function modelReport(mode) {
+  const effort = mode !== "no-thought-level" && mode !== "antigravity";
   return {
-    configOptions: [modelOption(EFFECTIVE_MODEL), ...(mode === "no-thought-level" ? [] : [effortOption("medium")])],
+    configOptions: [modelOption(EFFECTIVE_MODEL), ...(effort ? [effortOption("medium")] : [])],
     models: {
       currentModelId: EFFECTIVE_MODEL,
       availableModels: [
@@ -64,14 +66,6 @@ function pushedModel(currentValue) {
  * answer itself is empty (kimi-code). Anything else: accepted with an empty
  * answer while the fixture keeps running EFFECTIVE_MODEL.
  */
-// Mode "cursor" replays cursor-agent 2026.09.28: the effort selector exists
-// only when the client opts into `clientCapabilities._meta.parameterizedModelPicker`.
-// Mode "antigravity" replays agy_acp_server 1.2.1, whose effort is part of the model id.
-export function sessionModelReport(mode, parameterizedModelPicker) {
-  const noEffort = mode === "antigravity" || (mode === "cursor" && parameterizedModelPicker !== true);
-  return modelReport(noEffort ? "no-thought-level" : mode);
-}
-
 export function setModelResponse(modelId) {
   if (modelId === "grok-meta") {
     return { response: { _meta: { model: "grok-applied" } } };
@@ -87,16 +81,15 @@ export function setModelResponse(modelId) {
 
 /**
  * What `session/set_config_option {configId: "model", value}` does, the way
- * cursor-agent 2026.09.28 answers it: a known model is applied and answered
- * with the full option set, the new model's effort menu at its default; no
- * `config_option_update` is pushed. An unknown model is refused `-32602`.
+ * agy_acp_server 1.2.1 answers it: a known model is applied and answered with
+ * the model option, no `config_option_update` is pushed, and there is no
+ * effort selector to report. An unknown model is refused `-32602`.
  */
-function setModelOption(value, effort) {
+function setModelOption(value) {
   if (value !== EFFECTIVE_MODEL && value !== "requested-y") {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
   }
-  currentModel = value;
-  return { response: { configOptions: [modelOption(value), ...(effort === true ? [effortOption("medium")] : [])] } };
+  return { response: { configOptions: [modelOption(value)] } };
 }
 
 /**
@@ -107,33 +100,32 @@ function setModelOption(value, effort) {
  * `-32602 Invalid params`. `sticky` is a level the fixture accepts but does
  * not apply (answered at `medium`), the silent substitution oar must refuse.
  */
-export function setConfigOption(params, effort = true) {
+export function setConfigOption(params) {
   if (params?.configId === "model") {
-    return setModelOption(params.value, effort);
+    return setModelOption(params.value);
   }
   if (params?.configId !== EFFORT_ID) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
   }
   if (params.value === "sticky") {
-    return { response: { configOptions: [modelOption(currentModel), effortOption("medium")] } };
+    return { response: { configOptions: [modelOption(EFFECTIVE_MODEL), effortOption("medium")] } };
   }
   if (!EFFORT_LEVELS.includes(params.value)) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown ${EFFORT_ID} value` } };
   }
-  const configOptions = [modelOption(currentModel), effortOption(params.value)];
+  const configOptions = [modelOption(EFFECTIVE_MODEL), effortOption(params.value)];
   return { pushedUpdate: { sessionUpdate: "config_option_update", configOptions }, response: { configOptions } };
 }
 
 /**
  * Answer `session/set_model` or `session/set_config_option` on the wire:
  * any push first (kimi pushes before it answers), then the answer, or the
- * refusal as a JSON-RPC error. `effort` false: the agent has no effort
- * selector (agy_acp_server 1.2.1), so a model switch answers the model alone.
+ * refusal as a JSON-RPC error.
  */
-export function answerConfigRequest(message, wire, effort = true) {
+export function answerConfigRequest(message, wire) {
   const outcome = message.method === "session/set_model"
     ? setModelResponse(message.params?.modelId)
-    : setConfigOption(message.params, effort);
+    : setConfigOption(message.params);
   if (outcome.error !== undefined) {
     wire.error(message.id, outcome.error.code, outcome.error.message, outcome.error.data);
     return;

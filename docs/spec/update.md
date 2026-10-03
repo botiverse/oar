@@ -45,10 +45,10 @@ verdict where it gives one; otherwise `latest !== installed`.
 
 | Reason | Meaning |
 | --- | --- |
-| unsupported_installation | Not a machine installed executable; a bundled runtime (pi) moves with the oar version. |
+| unsupported_installation | Not a machine installed executable; a bundled runtime (pi, cursor) moves with the oar version. |
 | package_manager | A package manager (Homebrew, WinGet, mise) owns the copy and its updates. |
 | unmanaged_installation | The runtime's updater does not recognize the copy (codex reports `manual or unknown` for a copied binary). |
-| updates_disabled | The runtime's configuration turns updates off (claude `DISABLE_UPDATES`, cursor's `static` channel). |
+| updates_disabled | The runtime's configuration turns updates off (claude `DISABLE_UPDATES`). |
 | lookup_failed | The release source could not be read; `detail` carries the runtime's or the network's words. |
 | version_unreadable | The installed or released version could not be read. |
 
@@ -74,9 +74,8 @@ instruction to run `brew upgrade`.
 | codex | `codex doctor --json`, row `updates.status` (the JSON decides; doctor exits 1 when any row fails) | `codex update` |
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
-| cursor | `cursor-agent about --format json`; builds without it ask the release service for the configured channel | `cursor-agent update` |
 | antigravity | The ACP registry entry, which trails Google's downloads; only a newer registry version counts | none: no updater exists |
-| pi | none: bundled with oar | none |
+| pi, cursor | none: bundled with oar | none |
 
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.
