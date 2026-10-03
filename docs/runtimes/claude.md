@@ -127,7 +127,12 @@ it answered `green`. The echo's `user_message.input` stays the text alone.
 
 **Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
 false`), drained one message per turn end; the queued input runs as a
-spontaneous turn with no prompt request of its own.
+spontaneous turn with no prompt request of its own. A queue while idle is
+written at once. `withdraw(inputId)` takes a held message back before a turn
+end writes it (`accepted`) and answers `not_queued` once it is on stdin;
+claude's own `cancel_queued` markers stay unmapped
+([input cancellation](input-cancellation.md),
+[test](../../tests/claude/claude-session-withdraw.test.ts)).
 
 **Abort (mapped):** `abort()` records an `abort` request whose id is the
 `control_request` id and sends `control_request/interrupt`; claude's

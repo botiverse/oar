@@ -34,8 +34,8 @@ usable; secrets are absent; stale and partial facts stay distinguishable.
 ### 2. Make actions self-describing
 
 **Shipped for controls:** a rejected control carries a typed `code` beside the
-prose `reason` (`busy`, `no_active_turn`, `unsupported`, `runtime_exited`,
-`disposed`, `runtime_refused`, `error`); `Session.status()` is a query whose
+prose `reason` (`busy`, `no_active_turn`, `not_queued`, `unsupported`,
+`runtime_exited`, `disposed`, `runtime_refused`, `error`); `Session.status()` is a query whose
 `busy` matches its `running`; `awaitIdle` and `promptAndWait` (with
 `timeoutMs` and `signal`) write the wait, abort and settle sequence once. The
 caller that forced it was the arena app, which matched `reason === "busy"` and

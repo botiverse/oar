@@ -2,7 +2,7 @@ import type { RuntimeBrand } from "../contracts/brand.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
-import { createSessionKernel, inputImagesRefusal, sealSession } from "../kernel.js";
+import { createSessionKernel, inputImagesRefusal, sealSession, withdrawHeld } from "../kernel.js";
 import { toolContent } from "../shared/tool-output.js";
 import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scripted-tasks.js";
 
@@ -67,7 +67,8 @@ const tokensOf = (text: string): number => Math.ceil(text.length / 4);
  * A runtime whose model is a script: for hosts' tests and demos that need a
  * real `Session` (the same records, folds and control semantics as a vendor
  * runtime) without a binary, a login or a provider. Capabilities: steer,
- * a non-durable queue, no sub-agents. Installation is always `bundled`.
+ * a non-durable queue whose entries can be withdrawn before their turn
+ * starts, no sub-agents. Installation is always `bundled`.
  */
 export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
   const id = options.id ?? "scripted";
@@ -79,7 +80,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       throw new Error(`${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
     }
     const kernel = createSessionKernel(sessionOptions.resume);
-    const queued: { readonly input: string; readonly images: readonly InputImage[] }[] = [];
+    const queued: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly InputImage[] }[] = [];
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
     let disposed = false;
@@ -233,10 +234,15 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           if (active === null) {
             run(input, inputOptions?.images);
           } else {
-            queued.push({ input, images: inputOptions?.images ?? [] });
+            queued.push({ input, inputId: inputOptions?.inputId, images: inputOptions?.images ?? [] });
           }
           return { kind: "accepted" };
         });
+        return result;
+      },
+      withdraw: async (inputId) => {
+        // The turn-end drain shifts its entry before running it, so an entry still here was never sent.
+        const result = await kernel.control({ kind: "withdraw", inputId }, () => withdrawHeld(queued, inputId));
         return result;
       },
       abort: async () => {

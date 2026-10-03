@@ -33,7 +33,7 @@ export type { AcpSessionProfile } from "./profile.js";
  * - vendor extension notifications the profile lists are recorded verbatim.
  * - runtime→app requests (permission, terminal) are toApp request records;
  *   oar's automatic answer is the matching `answered` response (client-app.ts).
- * - prompt / steer / queue / abort / dispose are toRuntime requests answered
+ * - prompt / steer / queue / withdraw / abort / dispose are toRuntime requests answered
  *   accepted-or-rejected; the turn's end is the runtime's own prompt answer
  *   (turns.ts) or the process exit oar observed (`exited` response).
  */
@@ -128,7 +128,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
         (turns.active() === null ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
       ...steer,
-      queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images)),
+      queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images, inputOptions?.inputId)),
+      // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
+      withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
       abort: (): Promise<ControlResult> => control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
         const state = turns.active();
         return state === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : turns.abort(state);

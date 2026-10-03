@@ -51,9 +51,10 @@ export function controlOutcomeOf(result: ControlResult): ControlOutcome {
 export function sealSession(adapterSession: AdapterSession): Session {
   const prompt = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
     controlOutcomeOf(await adapterSession.prompt(input, { ...options, ...identify(options) }));
-  // A session that cannot steer has no `steer`: its absence is the capability.
-  // Where the adapter has one, the sealed `steer` below replaces it in the spread.
-  const adapterFace: Omit<AdapterSession, "steer"> = adapterSession;
+  // A session that cannot steer (or withdraw) has no `steer` (`withdraw`): its
+  // absence is the capability. Where the adapter has one, the sealed member
+  // below replaces it in the spread.
+  const adapterFace: Omit<AdapterSession, "steer" | "withdraw"> = adapterSession;
   const adapterSteer = adapterSession.steer?.bind(adapterSession);
   const steer = adapterSteer === undefined
     ? undefined
@@ -61,6 +62,10 @@ export function sealSession(adapterSession: AdapterSession): Session {
       controlOutcomeOf(await adapterSteer(input, identify(options)));
   const queue = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
     controlOutcomeOf(await adapterSession.queue(input, identify(options)));
+  const adapterWithdraw = adapterSession.withdraw?.bind(adapterSession);
+  const withdraw = adapterWithdraw === undefined
+    ? undefined
+    : async (inputId: string): Promise<ControlOutcome> => controlOutcomeOf(await adapterWithdraw(inputId));
   const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
@@ -80,6 +85,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     prompt,
     ...(steer === undefined ? {} : { steer }),
     queue,
+    ...(withdraw === undefined ? {} : { withdraw }),
     abort,
     events: (observer, options = {}) => {
       const coalesce = options.coalesceText ?? false;

@@ -33,11 +33,16 @@ export function awaitsEcho(input: ConversationInput, conversation: ConversationS
  * Upsert a user input. One waiting for its echo goes to `pendingInputs`;
  * otherwise it enters `messages`, and a NEW entry seals the open segment
  * (seq order is render order). A placed input that must now wait (a refused
- * attempt retried as a steer or queue) leaves `messages` again.
+ * attempt retried as a steer or queue) leaves `messages` again. A withdrawn
+ * input leaves both lists.
  */
 export function upsertInput(draft: Draft, input: ConversationInput, awaitEcho: boolean): void {
   const id = `in:${input.id}`;
   const index = draft.messages.findIndex((message) => message.id === id);
+  if (input.state === "withdrawn") {
+    withdrawInput(draft, input, index);
+    return;
+  }
   if (index !== -1 && !awaitEcho) {
     draft.messages[index] = { kind: "input", id, input };
     return;
@@ -59,6 +64,26 @@ export function upsertInput(draft: Draft, input: ConversationInput, awaitEcho: b
   }
   draft.messages.push({ kind: "input", id, input });
   sealTurn(draft);
+}
+
+/**
+ * An input taken back before it was sent leaves `pendingInputs` and, on a
+ * stream that placed it at its request, `messages`. Unlike `removeInput`, the
+ * segment its entry sealed stays sealed: the records folded since were
+ * placed around it, and joining the segments again would be a merge the
+ * stream never said.
+ */
+function withdrawInput(draft: Draft, input: ConversationInput, index: number): void {
+  if (index !== -1) {
+    draft.messages.splice(index, 1);
+    if (draft.openTurn > index) {
+      draft.openTurn -= 1;
+    }
+  }
+  const pending = draft.pendingInputs.findIndex((waiting) => waiting.id === input.id);
+  if (pending !== -1) {
+    draft.pendingInputs.splice(pending, 1);
+  }
 }
 
 /**

@@ -68,10 +68,10 @@ every adapter:
   (an event body plus the record's envelope): text, reasoning, tool call
   start / progress / end, turn end, usage, model, effort, compaction start /
   end and retry as the runtime says them, plus `turn_started`,
-  `control_rejected`, `app_request`, `app_answered` and `exited` read off
-  request/response records; a pure projection (`eventsOf`) over the stream,
-  never a second source of truth;
-- control as records: prompt / steer / queue / abort / dispose requests
+  `input_withdrawn`, `control_rejected`, `app_request`, `app_answered` and
+  `exited` read off request/response records; a pure projection (`eventsOf`)
+  over the stream, never a second source of truth;
+- control as records: prompt / steer / queue / withdraw / abort / dispose requests
   answered `accepted` / `rejected` (a rejection carries a typed `code` beside
   its prose `reason`); the `Session` returns those records read, as a
   `ControlOutcome`; runtime→app requests recorded `toApp` and oar's

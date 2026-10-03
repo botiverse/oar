@@ -4,7 +4,7 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-Control (prompt / steer / queue / abort / dispose and their replies) and
+Control (prompt / steer / queue / withdraw / abort / dispose and their replies) and
 facts (what the runtime actually said) are records on one stream, and
 control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and
@@ -63,7 +63,7 @@ one, it is honestly absent. No oar-made facts exist in the stream, so there
 is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: prompt / steer / queue / abort / dispose. runtime→app:
+app→runtime: prompt / steer / queue / withdraw / abort / dispose. runtime→app:
 approvals, questions, external tools. toApp request bodies are runtime
 verbatim with an open vocabulary, so `direction` is the only way a server
 can decide "does the app need to answer this" without understanding the
@@ -85,8 +85,8 @@ Further rules:
   span has ended.
 - **Reachability is read off the stream.** Once the stream holds an
   `exited` response (the runtime is gone) or a `dispose` request (the
-  session is being released), every later prompt / steer / queue / abort
-  request is rejected (`runtime_exited` / `disposed`) by the shared kernel
+  session is being released), every later prompt / steer / queue / withdraw /
+  abort request is rejected (`runtime_exited` / `disposed`) by the shared kernel
   before any adapter code runs: no adapter keeps a private "is it alive"
   flag. `dispose` is the one control that still goes through after an
   observed exit: it is recorded and answered `accepted` at once (nothing is
@@ -94,8 +94,8 @@ Further rules:
   with an answered dispose rather than a dangling one.
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. A rejection carries one typed `code`
-  (`busy`, `no_active_turn`, `unsupported`, `runtime_exited`, `disposed`,
-  `runtime_refused`, `error`) next to the prose `reason`, so an application
+  (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`,
+  `disposed`, `runtime_refused`, `error`) next to the prose `reason`, so an application
   branches on a word, not on vendor text. `unsupported` means the runtime
   cannot do this control with these inputs (images where it takes none,
   images on a cursor steer); a control a runtime cannot do at all is a
@@ -193,7 +193,7 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // prompt | steer | queue {input, inputId?, images?, origin?} | abort | dispose | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // prompt | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | dispose | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -210,12 +210,15 @@ interface ResponseRecord extends RecordEnvelope {
 ```
 
 The control surface that produces these records (`Session.prompt / steer /
-queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
+queue / withdraw / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
 `graph()`, and the folds) is documented on the contract itself. `steer` is
 optional: its presence is the capability (kimi and antigravity sessions have
 none), and `steerOrQueue` and `deliver` queue where it is absent. `queue`
 is on every session; `capabilities.queue.durable` says whether held input
-survives a restart. An adapter's `prompt / steer / queue / abort` return
+survives a restart. `withdraw` is optional too: it exists where OAR holds
+the queue itself (claude, pi, cursor and the ACP runtimes; codex holds its
+own and has none). See [withdrawing held input](#withdrawing-held-input).
+An adapter's `prompt / steer / queue / withdraw / abort` return
 both records they appended (`ControlResult`); the `Session` a consumer holds
 returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
 (the two answers a toRuntime control can get), a rejection has its `code`
@@ -227,6 +230,47 @@ from the stream like everything else. The turn helpers build on this:
 for the runtime's own turn end (aborting when a limit fires, and reporting
 that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
 waits for the running turn, if any, to end.
+
+## Withdrawing held input
+
+`Session.withdraw(inputId)` takes back an input a `queue` request left in
+OAR's own held queue, before it is sent. It is a new operation targeting
+earlier input ([input cancellation](../runtimes/input-cancellation.md#consequences-for-oar-and-rao)):
+a `toRuntime` request `withdraw {inputId}` recorded through the kernel's
+control path, so a disposed or exited session refuses it like any control.
+Its answer is one of two:
+
+- `accepted`: the held entry was removed before it was sent, and the caller
+  owns the input again. `events()` reads it as `input_withdrawn {requestId,
+  inputId}`.
+- `rejected` `not_queued`: no held input with this `inputId` is waiting. It
+  was already sent to the runtime, never queued in this session, or already
+  withdrawn; the stream before the withdraw says which.
+
+The adapter decides and removes in one synchronous step, and its drain takes
+an entry off the same queue in one step before sending it, so a withdraw
+racing the drain either removes the entry first or finds it gone: an input
+is never both sent and withdrawn. The queue request and its `accepted`
+response stay in the stream as they were; the withdrawal is a fact of its
+own. A withdrawn input can be queued again under the same `inputId` (edit)
+or sent with `deliver` (send now): a new attempt, read by the ordinary
+rules ([conversation](conversation.md#withdrawing-held-input)).
+
+`withdraw` exists where OAR holds the queue: claude, pi, cursor, kimi, grok
+and antigravity. codex holds its queue natively, and its
+`thread/queue/delete` is experimental and not live-verified, so a codex
+session has no `withdraw`.
+
+```
+seq=30  ◆ request   root  id=rq-14  queue "and then this" inputId=in-7
+seq=31  ◇ response  root  →rq-14    accepted
+        ↳ held by the adapter: a turn is still running
+seq=32  ◆ request   root  id=rq-15  withdraw inputId=in-7
+seq=33  ◇ response  root  →rq-15    accepted
+        ↳ removed before the drain reached it; rq-14 and its answer stand
+seq=34  ✓ frame     root            result      → turn_ended completed
+        ↳ nothing is drained: no turn follows for in-7
+```
 
 ## The Event layer: the consumer face, a projection over the stream
 
@@ -240,6 +284,7 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 // ControlEventBody, read off request/response records so the consumer
 // never handles record kinds:
 //   turn_started {requestId, input}                    ← a prompt request
+//   input_withdrawn {requestId, inputId}               ← an accepted withdraw response
 //   control_rejected {requestId, action, code, reason} ← a rejected response
 //   app_request {requestId, type}                      ← a toApp request
 //   app_answered {requestId}                           ← an answered response
@@ -310,8 +355,11 @@ The rules that make this a projection and not a second source of truth:
   events out of one record: each entry of a Frame's `events` stamped with
   the frame's envelope, a `turn_started` for a prompt request, an
   `app_request` for a toApp request, a `control_rejected` for a rejected
-  response, an `app_answered` for an answered response, an `exited` for the
-  exit. `events()` is `rawEvents()` with `eventsOf` applied to every
+  response, an `input_withdrawn` for an accepted withdraw response, an
+  `app_answered` for an answered response, an `exited` for the exit. A
+  response names only its `requestId`, so the reading takes the toRuntime
+  requests seen before it (`controlActionsOf(records)` builds them from a
+  log). `events()` is `rawEvents()` with `eventsOf` applied to every
   record, so a retained log replays into exactly the events the live
   subscription delivered.
 - **Several events, one seq.** Events read from one frame share its `seq`,

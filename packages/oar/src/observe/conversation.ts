@@ -1,7 +1,8 @@
-import type { ControlAction, Cursor, Event, InputImage, InputOrigin, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
-import { eventsOf } from "./events.js";
+import type { Cursor, Event, InputImage, InputOrigin, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
+import { eventsOf, type KnownControl } from "./events.js";
 
 export interface InputAttempt {
+  /** A delivery attempt (prompt, steer, queue) or a withdraw of the input. */
   readonly request: RequestRecord;
   readonly streamId: string;
   readonly response?: ResponseRecord;
@@ -17,7 +18,9 @@ export interface ConversationInput {
   readonly images?: readonly InputImage[];
   /** Who the input came from (`InputOptions.origin`), from its latest request; absent when the host said nothing. */
   readonly origin?: InputOrigin;
-  readonly state: "pending" | "accepted" | "rejected" | "untracked";
+  /** `withdrawn`: an accepted withdraw took the held input back before it was sent, and no delivery attempt followed it. */
+  readonly state: "pending" | "accepted" | "rejected" | "withdrawn" | "untracked";
+  /** Every request that targeted the input, in fold order: delivery attempts and withdraws, each with its observed response. */
   readonly attempts: readonly InputAttempt[];
   /** Native observations; none of these alone proves model consumption. */
   readonly observations: readonly (UserMessage & { readonly seq: number })[];
@@ -28,7 +31,7 @@ export type ConversationUpdate =
 export interface ConversationState {
   readonly inputs: ReadonlyMap<string, ConversationInput>;
   readonly requests: ReadonlyMap<string, string>;
-  readonly actions: ReadonlyMap<string, ControlAction>;
+  readonly actions: ReadonlyMap<string, KnownControl>;
   readonly cursors: ReadonlyMap<string, number>;
   /** Changes produced by this record, in record order; use for incremental UI updates. */
   readonly updates: readonly ConversationUpdate[];
@@ -39,9 +42,17 @@ export function initialConversation(): ConversationState {
 function identity(record: RawEvent, id: string): string {
   return JSON.stringify([record.sessionId, record.agentPath, id]);
 }
+/**
+ * An accepted withdraw closes the input's delivery history: only delivery
+ * attempts after the latest one count, and with none the input is
+ * `withdrawn`. Among those, an accepted attempt wins over later refusals;
+ * otherwise the latest sets the state. A withdraw pending or refused changes nothing.
+ */
 function inputState(attempts: readonly InputAttempt[]): ConversationInput["state"] {
-  if (attempts.some((attempt) => attempt.state === "accepted")) {return "accepted";}
-  return attempts.at(-1)?.state ?? "pending";
+  const cut = attempts.findLastIndex((attempt) => attempt.request.body.kind === "withdraw" && attempt.state === "accepted");
+  const delivery = attempts.slice(cut + 1).filter((attempt) => attempt.request.body.kind !== "withdraw");
+  if (delivery.some((attempt) => attempt.state === "accepted")) {return "accepted";}
+  return delivery.at(-1)?.state ?? (cut === -1 ? "pending" : "withdrawn");
 }
 
 /** One ordered stream per streamId. Use a new streamId after runtime resume (seq restarts).
@@ -59,8 +70,15 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
   const publish = (input: ConversationInput): void => { inputs.set(input.id, input); updates.push({ kind: "input", input }); };
   let handled = false;
   if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind !== "native") {
-    actions.set(operationKey(record.id), record.body.kind);
-    if ("input" in record.body) {
+    actions.set(operationKey(record.id), record.body.kind === "withdraw" ? record.body : record.body.kind);
+    const target = record.body.kind === "withdraw" ? inputs.get(identity(record, record.body.inputId)) : undefined;
+    if (target !== undefined && target.attempts.length > 0) {
+      // A withdraw is an attempt on the input it targets, never a bubble of its own.
+      const attempts: readonly InputAttempt[] = [...target.attempts, { request: record, streamId, state: "pending" }];
+      requests.set(operationKey(record.id), target.id);
+      publish({ ...target, attempts, state: inputState(attempts) });
+      handled = true;
+    } else if ("input" in record.body) {
       const { input, inputId, images, origin } = record.body;
       const id = inputId === undefined ? operationKey(record.id) : identity(record, inputId);
       const existing = inputs.get(id);
@@ -83,7 +101,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
     }
   }
   if (!handled) {
-    const control = new Map<string, ControlAction>();
+    const control = new Map<string, KnownControl>();
     if (record.kind === "response") {
       const action = actions.get(operationKey(record.requestId));
       if (action !== undefined) {control.set(record.requestId, action);}

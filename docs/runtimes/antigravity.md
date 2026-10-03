@@ -137,7 +137,9 @@ the session has no `steer`; the live `steer` scenario skips on that.
 (`capabilities.queue.durable: false`), drained one input per turn end; the
 drained input runs as a spontaneous turn with its own `session/prompt` answer
 and no prompt request of its own (`queue`). Held input is dropped once the
-runtime is unreachable.
+runtime is unreachable. `withdraw(inputId)` takes an input out of the FIFO
+before it is prompted (`accepted`) and answers `not_queued` after
+([test](../../tests/acp/acp-session-withdraw.test.ts)).
 
 **Abort (mapped, fails live with a shell command running):** `abort()` sends
 `session/cancel` (a notification, so the `accepted` answer carries no

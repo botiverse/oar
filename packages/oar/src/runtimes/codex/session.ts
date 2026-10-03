@@ -1,12 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type {
-  ControlResult,
-  InputImage,
-  InputOptions,
-  RequestRecord,
-  Session,
-  StartSession,
-} from "../../contracts/session.js";
+import type { ControlResult, InputImage, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -274,6 +267,7 @@ export const codexSession: StartSession = async (installation, options) => {
     prompt: via(promptPlan),
     steer: via(steerPlan),
     queue: via(queuePlan),
+    // No withdraw: the queue is codex's own, and thread/queue/delete is experimental and not live-verified (docs/runtimes/input-cancellation.md).
     abort: via(abortPlan),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),

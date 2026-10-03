@@ -124,6 +124,9 @@ afterwards (probed); the steered text landed in the same turn (`steer`).
 **Queue (mapped):** `queue()` is an adapter-held FIFO
 (`capabilities.queue.durable: false`) sent as a new run when the current one
 ends, a spontaneous turn with no prompt request of its own (`queue`).
+`withdraw(inputId)` takes an input out of it before it is sent (`accepted`)
+and answers `not_queued` once it was
+([test](../../tests/cursor/cursor-session-withdraw.test.ts)).
 
 **Abort (mapped):** `abort()` is `run.cancel()`; the run answers `cancelled`
 within about two seconds, recorded as `turn_ended: aborted` (`abort`). An

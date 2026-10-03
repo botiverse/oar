@@ -8,18 +8,18 @@ import type {
   TurnOutcome,
 } from "../../contracts/session.js";
 import { pathToFileURL } from "node:url";
+import { withdrawHeld } from "../held-input.js";
 import { withInputImages, type LoadedImage } from "../input-images.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
-import { promptAcp, type AcpSessionProfile } from "./profile.js";
+import { promptAcp, type AcpSessionProfile, type UsageUpdateGate } from "./profile.js";
 import { methods, type AcpProcess } from "./process.js";
 import {
   acpErrorNative,
   acpFailureOutcome,
   defaultAcpPromptOutcome,
 } from "./projection.js";
-import type { UsageUpdateGate } from "./usage-wait.js";
 
 /**
  * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
@@ -63,7 +63,9 @@ export interface AcpTurns {
   /** session/cancel, then a bounded wait after which the process is killed. */
   abort(state: ActiveTurn): Promise<ResponseBody>;
   /** Hold input for the next turn, drained when the active one closes; rejected like `begin`. */
-  hold(input: string, images?: readonly InputImage[]): Promise<ResponseBody>;
+  hold(input: string, images: readonly InputImage[] | undefined, inputId: string | undefined): Promise<ResponseBody>;
+  /** Take a held input back by its `inputId` before the drain sends it (`withdrawHeld`). */
+  withdraw(inputId: string): ResponseBody;
   /** The process is gone: close the active turn (its end is the exited response) and drop held input. */
   onExit(): void;
 }
@@ -77,7 +79,7 @@ export function createAcpTurns(deps: {
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate, capabilities } = deps;
   const rootId = kernel.sessionId;
-  const held: JsonRecord[][] = [];
+  const held: { readonly inputId: string | undefined; readonly prompt: JsonRecord[] }[] = [];
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
   // Running session total of the per-prompt ledgers (profile.promptTokenUsage).
@@ -183,9 +185,10 @@ export function createAcpTurns(deps: {
     if (kernel.unreachable() !== null || active !== null || runtime.closed) {
       return;
     }
-    const prompt = held.shift();
-    if (prompt !== undefined) {
-      open(null, prompt);
+    // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
+    const next = held.shift();
+    if (next !== undefined) {
+      open(null, next.prompt);
     }
   }
 
@@ -221,17 +224,18 @@ export function createAcpTurns(deps: {
       }
       return { kind: "accepted" };
     },
-    async hold(input, images) {
+    async hold(input, images, inputId) {
       await runtime.spawned;
       if (runtime.closed) {
         return gone();
       }
       return withInputImages(capabilities, images, (loaded) => {
-        held.push(acpPrompt(input, loaded));
+        held.push({ inputId, prompt: acpPrompt(input, loaded) });
         queueMicrotask(drainHeld);
         return { kind: "accepted" };
       });
     },
+    withdraw: (inputId) => withdrawHeld(held, inputId),
     onExit() {
       if (active !== null) {
         closeTurn(active);

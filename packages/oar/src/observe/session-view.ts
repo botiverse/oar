@@ -45,7 +45,8 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   until then it waits in `pendingInputs`. On a stream that never echoed
  *   one (pi, ACP runtimes) it enters at its request, the best fact known. A
  *   refused input enters where it was refused; a retry of it that must wait
- *   for its echo takes it back out.
+ *   for its echo takes it back out. A withdrawn input leaves `pendingInputs`
+ *   and `messages`; the segment its request sealed stays sealed.
  * - A SECTION is a contiguous run of one lane (`sessionId`, `agentPath`)
  *   inside a turn. Sub-agent and child-session activity nests inside the
  *   parent turn as sections; a child session's own `turn_ended` degrades
@@ -156,7 +157,8 @@ export interface SessionView {
    * order: each leaves this list for `messages` at its first native echo.
    * A host shows them apart (above the composer, say). An input the
    * runtime never echoes stays here; no turn end or text match places it.
-   * Always empty on a stream that never echoed an input id.
+   * A withdrawn input leaves it. Always empty on a stream that never echoed
+   * an input id.
    */
   readonly pendingInputs: readonly ConversationInput[];
   /** Index of the unsealed turn segment in `messages`; -1 when none. */

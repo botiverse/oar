@@ -162,7 +162,7 @@ export interface ControlResult {
 }
 
 /**
- * What `Session.prompt / steer / queue / abort` return (the API face): the
+ * What `Session.prompt / steer / queue / withdraw / abort` return (the API face): the
  * answer read off the two records, with the records still underneath. A
  * consumer branches on `kind` (two cases, not the four a response body can
  * carry) and on the typed `code`; `seq` is the request's position in the
@@ -189,7 +189,7 @@ export type AttributionTier = "none" | "opaque" | "attributed" | "nested";
  * its presence is the capability, with no flag beside it.
  */
 export interface SessionCapabilities {
-  /** Where input held for a LATER turn lives: `durable` says whether it survives a process restart (codex: runtime-persisted; claude/pi/cursor/ACP: held by the adapter, this process only). Every runtime can at least hold input in the adapter. */
+  /** Where input held for a LATER turn lives: `durable` says whether it survives a process restart (codex: runtime-persisted; claude/pi/cursor/ACP: held by the adapter, this process only). Every runtime can at least hold input in the adapter. Whether held input can be taken back is `Session.withdraw`'s presence, not a flag here. */
   readonly queue: { readonly durable: boolean };
   readonly attribution: AttributionTier;
   /** Input can carry images (`InputOptions.images`), delivered as the runtime's native image content. ACP runtimes: what `initialize` advertised (`promptCapabilities.image`). */
@@ -225,6 +225,7 @@ export interface AdapterSession {
   prompt(input: string, options?: InputOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
   steer?(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; ABSENT when the runtime cannot inject into an active turn (kimi, antigravity): its presence is the capability. Rejected `no_active_turn` when nothing is active, `unsupported` when the runtime cannot take these inputs mid-turn (images on a cursor steer), `runtime_refused` when the runtime itself refuses (reasons start `not_steerable:`). Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn, held by the runtime or the adapter (`capabilities.queue.durable` says which). That later turn has events but no request of its own: a spontaneous turn.
+  withdraw?(inputId: string): Promise<ControlResult>; // take a held input (a queue request's `inputId`) back before it is sent; ABSENT where OAR cannot remove held input (codex, whose queue is the runtime's own): its presence is the capability. Accepted means the entry was removed before dispatch and the caller owns the input again; rejected `not_queued` when no held input with this id is waiting (already sent, never queued here, or already withdrawn). Atomic against the drain: never accepted when the input may already have been sent. The queue request and its response stay in the stream unchanged.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
@@ -238,6 +239,8 @@ export interface Session extends AdapterSession {
   /** Present only when the runtime can steer; a host shows a steer control only where it exists, and `steerOrQueue` / `deliver` queue without it. */
   steer?(input: string, options?: InputOptions): Promise<ControlOutcome>;
   queue(input: string, options?: InputOptions): Promise<ControlOutcome>;
+  /** Present only where OAR holds the queue and can remove an entry before it is sent: a host offers withdraw, edit (withdraw, then `queue`) and send now (withdraw, then `deliver`) only where it exists. */
+  withdraw?(inputId: string): Promise<ControlOutcome>;
   abort(): Promise<ControlOutcome>;
   /**
    * The consumer face of the stream: every fact oar read, flat and attributed

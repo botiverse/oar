@@ -6,6 +6,7 @@ import type {
   Session,
   StartSession,
 } from "../../contracts/session.js";
+import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -72,8 +73,8 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     let active: ActiveRun | null = null;
     let forceNext = options.resume !== undefined;
     let disposeRequest: RequestRecord | null = null;
-    // Adapter-held queue, drained one input per run end.
-    const held: { readonly input: string; readonly images: readonly LoadedImage[] }[] = [];
+    // Adapter-held queue, drained one input per run end; withdrawable by inputId until then.
+    const held: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly LoadedImage[] }[] = [];
 
     const record = (frame: CursorFrame): void => {
       kernel.frame(
@@ -233,12 +234,13 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
           withInputImages(capabilities, inputOptions?.images, (images) => {
-            held.push({ input, images });
+            held.push({ input, inputId: inputOptions?.inputId, images });
             drainHeld();
             return { kind: "accepted" };
           }));
         return result;
       },
+      withdraw: withdrawControl(kernel, held),
       abort: async (): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "abort" }, async () => {
           if (!gate.running) {

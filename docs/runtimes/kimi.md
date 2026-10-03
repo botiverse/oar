@@ -198,6 +198,10 @@ recorded (`kimi-steer-or-queue.ts`, run against kimi 0.42.0 and 2.0.0 when
 durability), drained one input per turn end; the drained input runs as a
 spontaneous turn with its own `session/prompt` answer and no prompt request
 of its own (`queue`). Held input is dropped once the runtime is unreachable.
+`withdraw(inputId)` takes an input out of the FIFO before it is prompted
+(`accepted`) and answers `not_queued` after; kimi's `session/cancel` targets
+the running turn, not held input ([input cancellation](input-cancellation.md),
+[test](../../tests/acp/acp-session-withdraw.test.ts)).
 
 **Abort (mapped):** `abort()` sends `session/cancel` (a notification, so
 the `accepted` answer carries no `native`) and is `rejected no active

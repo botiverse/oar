@@ -1,4 +1,5 @@
 import type { InputOptions, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
+import { withdrawHeld } from "../../packages/oar/src/shared/held-input.js";
 import { inputImagesRefusal } from "../../packages/oar/src/shared/input-images.js";
 import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
@@ -21,7 +22,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
   }
   const kernel = createSessionKernel(options.resume);
   const steered: string[] = [];
-  const queued: string[] = [];
+  const queued: { readonly input: string; readonly inputId: string | undefined }[] = [];
   let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
   let disposed = false;
   const say = (text: string): void => {
@@ -35,7 +36,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     ] });
     const next = queued.shift();
     if (next !== undefined) {
-      run(next);
+      run(next.input);
     }
   };
   function run(input: string): void {
@@ -95,10 +96,14 @@ export const startMockSession: StartSession = async (_installation, options): Pr
       if (active === null) {
         run(input);
       } else {
-        queued.push(input);
+        queued.push({ input, inputId: inputOptions?.inputId });
       }
       return { kind: "accepted" };
       });
+      return result;
+    },
+    withdraw: async (inputId) => {
+      const result = await kernel.control({ kind: "withdraw", inputId }, () => withdrawHeld(queued, inputId));
       return result;
     },
     abort: async () => {

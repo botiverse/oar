@@ -34,7 +34,7 @@ framework:
 
 - `SessionView`: `messages` (inputs and turn segments, each turn holding per
   lane sections and parts), `pendingInputs` (steered or queued inputs the
-  runtime has not taken yet), `openTurn`, `status`, `model`, `effort`,
+  runtime has not taken yet; a withdrawn one leaves it), `openTurn`, `status`, `model`, `effort`,
   `context`, `usage`, `usageByAgent`, `pendingRequests`, `exited`, and the
   underlying `conversation` fold.
 - `reduceSessionView(view, record, streamId?)` folds one record;
@@ -52,12 +52,13 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 | `prompt` request | its `ConversationInput` enters `messages`, and its turn opens below it |
 | `steer` / `queue` request | on a stream that has echoed an input id before (codex, claude): the input waits in `pendingInputs` until its echo. On one that never has (pi, grok, kimi): it enters `messages` at the request and seals the open segment |
 | `prompt` / `steer` / `queue` response | updates the input in place, with attempts and delivery state (folded by `reduceConversation`). A rejected input enters `messages` there if it was waiting; a retry of it that must wait for its echo takes it back out |
+| `withdraw` request / response | an attempt on the input it names. Accepted: the input is `withdrawn` and leaves `pendingInputs`, and `messages` too where the stream placed it at its request; the segment that request sealed stays sealed. Refused `not_queued`: nothing moves. Queued again, the input enters by the rows above |
 | `text_delta`, `reasoning` | appended to the current section of the lane `(sessionId, agentPath)`; a `text_delta` whose `messageId` differs from the last text part's starts a new part (one per assistant message), one without a `messageId` joins the last; `redacted` and `empty` reasoning render as lifecycle-only parts |
 | `tool_call_started` / `progress` / `ended` | one tool part per lane and call id, settled where its start landed even after the turn ended; an end without a start still renders. `startedAt` / `endedAt` are the `receivedAt` of the start and end records (epoch ms): when OAR observed them, not a time the runtime reported, and only those it saw (a running call has no `endedAt`; an end without a start has no `startedAt`), as `tasksOf` does |
 | `turn_ended` of the root session | seals the turn segment and stamps its outcome; a child session's `turn_ended` is a notice and never closes the root turn |
 | `compaction_started` / `ended`, `retry` | notice parts inside the running turn |
 | `app_request` / `app_answered` | a `pendingRequests` entry and an actionable part, then settled |
-| `control_rejected` | a rejected prompt removes its empty turn; a rejected steer, queue or abort adds a notice |
+| `control_rejected` | a rejected prompt removes its empty turn; a rejected steer, queue or abort adds a notice, as does a refused withdraw of an input the view never held |
 | `exited` | `exited` set, a notice, and the open turn sealed without a fabricated outcome |
 | `user_message` | folds into the input's observations, never a second bubble. The first echo of a waiting steer or queue moves it from `pendingInputs` into `messages` there and seals the open segment: the input sits where the runtime took it, so replies to earlier input come before it. An unechoed input stays pending; neither a turn end nor text matching places it |
 | `usage`, `model`, `effort` | the matching view fields |
@@ -69,7 +70,7 @@ For an application that renders with assistant-ui:
 | View field | assistant-ui surface |
 |---|---|
 | input text, attempts, observations | user message text, plus metadata for a delivery badge |
-| `pendingInputs` | outside the thread: a tray above the composer until the runtime takes the input |
+| `pendingInputs` | outside the thread: a tray above the composer until the runtime takes the input. Where `session.withdraw` exists, a queued entry can offer withdraw, edit and send now (see Commands), and a withdrawn one leaves the tray. An entry the adapter already sent but the runtime has not echoed yet answers `not_queued`. On a stream that never echoes (pi, ACP runtimes) a queued input sits in `messages` instead, and the same commands can hang off that bubble while its latest attempt is a queue |
 | text, reasoning | standard parts |
 | tool part | tool call part (`argsText` from `input`, `result` from `content` once ended or the streamed `output` while running, `isError` when `result === "failed"`); image parts render as images |
 | sub-agent section | a custom part and renderer: the projection's largest value, since every client otherwise rebuilds it |
@@ -78,9 +79,10 @@ For an application that renders with assistant-ui:
 | `status` (plus a client-side stall check) | `isRunning` and the app's own chrome |
 | `model`, `usage`, `context` | thread-level data outside the message list |
 
-Edit, regenerate and branch stay dark: OAR cannot rerun or fork a runtime's
-history, and `ExternalStoreRuntime` enables those features only when their
-callbacks exist.
+Edit, regenerate and branch of sent messages stay dark: OAR cannot rerun or
+fork a runtime's history, and `ExternalStoreRuntime` enables those features
+only when their callbacks exist. Input not yet sent is different: a queued
+input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 ## Commands
 
@@ -88,6 +90,9 @@ callbacks exist.
 |---|---|---|
 | send | `deliver` | prompts when idle, steers or queues when running; where it landed is in the result and the stream, never assumed |
 | steer now | `steer` | the control exists only when `session.steer` does (a kimi or antigravity session has none); the UI reads the member, never a runtime name |
+| withdraw a queued input | `withdraw(inputId)` | the control exists only when `session.withdraw` does (not on codex). `accepted`: the input is the caller's again; `not_queued`: none is waiting (it already went to the runtime, or was withdrawn before) |
+| edit a queued input | `withdraw`, then `queue` with the same `inputId` | only after an accepted withdraw; the input waits again from its new request |
+| send a queued input now | `withdraw`, then `deliver` with the same `inputId` | only after an accepted withdraw; prompts when idle, steers into the running turn where the session can steer, otherwise queues it again |
 | cancel | `abort` | the outcome arrives as `turn_ended`, not as the call's return value |
 | answer a runtime request | open, see below | |
 | dispose | `dispose` | lifecycle, not a chat command |

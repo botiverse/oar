@@ -11,7 +11,7 @@ import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import { refuseResumeElsewhere } from "./resume-cwd.js";
 
-export { createUsageUpdateGate } from "./usage-wait.js";
+export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
