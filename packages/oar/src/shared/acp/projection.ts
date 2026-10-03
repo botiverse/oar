@@ -5,6 +5,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../json.js";
+import { toolContent } from "../tool-output.js";
 import { AcpError } from "./errors.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
 
@@ -120,11 +121,14 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
   }
   if (!tool.ended && terminal) {
     tool.ended = true;
-    // Text the runtime put in `content` is what it wants shown (grok's bash
-    // `rawOutput.output` is a byte array); rawOutput is the fallback, then
-    // any non-text content (kimi's terminal reference) as JSON.
-    const text = textContent(update.content);
-    const output = (text === null ? undefined : truncate(text)) ?? detail(update.rawOutput) ?? detail(update.content);
+    // `content` is what the runtime wants shown (grok's bash text; kimi's
+    // terminal reference); each ToolCallContent wraps its ContentBlock as
+    // `{type: "content", content}`. Without content, `rawOutput` is the result.
+    const unwrapped = toolContent(update.content, (item: unknown) => {
+      const wrapper = asRecord(item);
+      return wrapper?.type === "content" ? wrapper.content : item;
+    }) ?? toolContent(update.rawOutput);
+    const content = unwrapped?.map((part) => (part.type === "text" ? { type: "text" as const, text: truncate(part.text) } : part));
     let result: "ok" | "failed" | undefined = undefined;
     if (update.status === "completed") {
       result = "ok";
@@ -135,7 +139,7 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
     events.push({
       kind: "tool_call_ended",
       callId,
-      ...(output === undefined ? {} : { output }),
+      ...(content === undefined ? {} : { content }),
       ...(result === undefined ? {} : { result }),
       ...(exitCode === undefined ? {} : { exitCode }),
     });

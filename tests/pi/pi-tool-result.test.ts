@@ -15,18 +15,23 @@ function events(event: AgentSessionEvent): readonly unknown[] {
   return commands[0]?.body.events ?? [];
 }
 
-test("pi tool end: output is the result's text parts, joined; details stay in the native frame", () => {
+test("pi tool end: the result's content blocks are its ordered parts; details stay in the native frame", () => {
   const bash = ended("bash", { content: [{ type: "text", text: "✔ add (0.29ms)\n✔ mul (0.06ms)\n" }] });
-  assert.deepEqual(events(bash), [{ kind: "tool_call_ended", callId: "call_bash", output: "✔ add (0.29ms)\n✔ mul (0.06ms)\n", result: "ok" }]);
+  assert.deepEqual(events(bash), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "✔ add (0.29ms)\n✔ mul (0.06ms)\n" }], result: "ok" }]);
   const edit = ended("edit", { content: [{ type: "text", text: "Successfully replaced 1 block(s) in math.js." }], details: { patch: "--- math.js\n+++ math.js\n", firstChangedLine: 1 } });
-  assert.deepEqual(events(edit), [{ kind: "tool_call_ended", callId: "call_edit", output: "Successfully replaced 1 block(s) in math.js.", result: "ok" }]);
-  const two = ended("read", { content: [{ type: "text", text: "a" }, { type: "image", data: "…" }, { type: "text", text: "b" }] });
-  assert.deepEqual(events(two), [{ kind: "tool_call_ended", callId: "call_read", output: "a\nb", result: "ok" }]);
+  assert.deepEqual(events(edit), [{ kind: "tool_call_ended", callId: "call_edit", content: [{ type: "text", text: "Successfully replaced 1 block(s) in math.js." }], result: "ok" }]);
+  const two = ended("read", { content: [{ type: "text", text: "a" }, { type: "image", data: "…", mimeType: "image/png" }, { type: "text", text: "b" }] });
+  assert.deepEqual(events(two), [{ kind: "tool_call_ended", callId: "call_read", content: [
+    { type: "text", text: "a" }, { type: "image", mediaType: "image/png", data: "…" }, { type: "text", text: "b" },
+  ], result: "ok" }]);
 });
 
-test("pi tool end: a result without text parts falls back to its JSON, and an error keeps its text", () => {
+test("pi tool end: an image is an image part, an unknown block is kept whole, a result without blocks is kept whole, and an error keeps its text (#73)", () => {
   const image = ended("screenshot", { content: [{ type: "image", data: "…", mimeType: "image/png" }] });
-  assert.deepEqual(events(image), [{ kind: "tool_call_ended", callId: "call_screenshot", output: "{\"content\":[{\"type\":\"image\",\"data\":\"…\",\"mimeType\":\"image/png\"}]}", result: "ok" }]);
+  assert.deepEqual(events(image), [{ kind: "tool_call_ended", callId: "call_screenshot", content: [{ type: "image", mediaType: "image/png", data: "…" }], result: "ok" }]);
+  const resource = { type: "resource", uri: "file:///x" };
+  assert.deepEqual(events(ended("custom", { content: [resource] })), [{ kind: "tool_call_ended", callId: "call_custom", content: [{ type: "other", value: resource }], result: "ok" }]);
+  assert.deepEqual(events(ended("bare", { details: { n: 1 } })), [{ kind: "tool_call_ended", callId: "call_bare", content: [{ type: "other", value: { details: { n: 1 } } }], result: "ok" }]);
   const failed = ended("bash", { content: [{ type: "text", text: "command not found" }] }, true);
-  assert.deepEqual(events(failed), [{ kind: "tool_call_ended", callId: "call_bash", output: "command not found", result: "failed" }]);
+  assert.deepEqual(events(failed), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "command not found" }], result: "failed" }]);
 });

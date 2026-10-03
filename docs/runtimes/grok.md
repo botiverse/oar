@@ -285,7 +285,7 @@ under the child id, and the child's own `response_completed`,
 `turn_completed`, `pending_interaction`/`interaction_resolved`,
 `tool_call_delta_chunk`, and per-child `_x.ai/queue/changed` /
 `_x.ai/mcp_initialized` are vendor frames whose envelope `sessionId` is the
-child's. The root's `tool_call_ended` output embeds the child's report plus a
+child's. The root's `tool_call_ended` content embeds the child's report plus a
 `<subagent_meta>` block.
 
 OAR records `session/update` and vendor frames alike under the session id
@@ -411,10 +411,10 @@ output payloads verbatim), and closes with a `tool_call_update` whose
 `rawOutput` is `{type: "Bash", output: [<bytes>], output_for_prompt:
 "exit: 0\n…", exit_code: 0, signal: null}` and whose `content` is an ACP
 content block holding the same output as text. The `tool_call_ended` event
-carries the content block's text as `output` (the byte array stays in
-`native`) and `exit_code` as `exitCode` (`null` for a signal exit); a
-closing update without text content (`read_file`, `search_replace`) falls
-back to `rawOutput` JSON-encoded. Under `--always-approve` no
+carries the content block's text as a text part of `content` (the byte array
+stays in `native`) and `exit_code` as `exitCode` (`null` for a signal exit);
+a closing update without content (`read_file`, `search_replace`) falls back
+to `rawOutput` as one `other` part. Under `--always-approve` no
 `session/request_permission` arrives, though Grok still pushes
 `pending_interaction`/`interaction_resolved` pairs; if one did, the
 [client app](../../packages/oar/src/shared/acp/client-app.ts) selects

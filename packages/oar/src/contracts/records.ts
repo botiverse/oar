@@ -1,5 +1,6 @@
 import type { InputImage, InputOrigin } from "./input.js";
 import type { TaskEventBody } from "./tasks.js";
+import type { ToolOutputPart } from "./tool-output.js";
 
 /**
  * The record stream and the events read off it. Three words, three layers:
@@ -136,8 +137,8 @@ export type RuntimeEventBody = UserMessage
   | {
       readonly kind: "tool_call_ended";
       readonly callId: string;
-      /** Best-effort human-readable result detail when the runtime exposes it: the result's text when the frame carries text parts, otherwise its JSON. */
-      readonly output?: string;
+      /** The result as the runtime reported it, in its order: text parts, images (base64 with their media type, normalized from the runtime's own block shape), and blocks OAR does not recognize kept whole as `other`. Absent when the runtime reported no result. The native frame keeps the original. */
+      readonly content?: readonly ToolOutputPart[];
       /** The runtime's explicit tool outcome; absent when it reported none. */
       readonly result?: "ok" | "failed";
       /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok `rawOutput.exit_code`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, pi), never derived from `result` or output. */

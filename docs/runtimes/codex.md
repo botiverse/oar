@@ -724,9 +724,10 @@ status, `declined` included, or none leaves `result` absent, the native status
 remaining on the frame. OAR does not infer a result from an exit code or
 output. A `commandExecution` item's `exitCode` is carried as
 `tool_call_ended.exitCode` (`null` when codex reports a signal exit, absent
-when the item has none), and its `aggregatedOutput` is the event's `output`
-as-is (the status when the output is empty), the exit status not folded in.
-Other items' `output` comes from [`item-detail.ts`][oar-item-detail].
+when the item has none), and its `aggregatedOutput` is the event's text
+`content` as-is (the status when the output is empty), the exit status not
+folded in. An `mcpToolCall`'s MCP blocks are its ordered parts (an image is an
+image part); other items' `content` comes from [`item-detail.ts`][oar-item-detail].
 
 ## Native storage and listing, probed live
 

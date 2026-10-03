@@ -8,6 +8,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord } from "../../shared/json.js";
+import { toolContent } from "../../shared/tool-output.js";
 
 /**
  * The pi SDK-event → record projection as a PURE FOLD (see
@@ -81,23 +82,6 @@ function jsonDetail(value: unknown): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-/**
- * The text parts of a pi `AgentToolResult` (`{content: [{type: "text",
- * text}], details}`), joined; null when the result carries none (an image
- * result, an unexpected shape), so the caller falls back to its JSON.
- */
-function resultText(result: unknown): string | undefined {
-  const content = asRecord(result)?.content;
-  if (!Array.isArray(content)) {
-    return undefined;
-  }
-  const texts = content.flatMap((part) => {
-    const record = asRecord(part);
-    return record?.type === "text" && typeof record.text === "string" ? [record.text] : [];
-  });
-  return texts.length === 0 ? undefined : texts.join("\n");
 }
 
 function foldMessageUpdate(
@@ -198,11 +182,17 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "summarization_retry_scheduled":
       return { state, events: [{ kind: "retry", attempt: event.attempt, maxAttempts: event.maxAttempts, delayMs: event.delayMs, reason: event.errorMessage }] };
     case "tool_execution_end": {
-      const output = resultText(event.result) ?? jsonDetail(event.result);
+      // An AgentToolResult's `content` blocks are the result; `details`
+      // stays in the native frame. Any other shape is kept whole.
+      const blocks = asRecord(event.result)?.content;
+      const content = Array.isArray(blocks) && blocks.length > 0 ? toolContent(blocks) : toolContent(event.result);
       const result = typeof event.isError === "boolean" ? (event.isError ? "failed" as const : "ok" as const) : undefined;
-      return { state, events: [output === undefined
-        ? { kind: "tool_call_ended", callId: event.toolCallId, ...(result === undefined ? {} : { result }) }
-        : { kind: "tool_call_ended", callId: event.toolCallId, output, ...(result === undefined ? {} : { result }) }] };
+      return { state, events: [{
+        kind: "tool_call_ended",
+        callId: event.toolCallId,
+        ...(content === undefined ? {} : { content }),
+        ...(result === undefined ? {} : { result }),
+      }] };
     }
     case "turn_end":
       // A provider failure surfaces only as stopReason "error" on the turn's

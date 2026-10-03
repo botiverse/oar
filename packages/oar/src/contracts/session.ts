@@ -43,6 +43,7 @@ export type {
   TurnOutcome,
   UsageReport,
 } from "./records.js";
+export type { ToolOutputPart } from "./tool-output.js";
 export type { TaskEventBody, TaskStatus, TaskType } from "./tasks.js";
 export type { AgentStatus, RunningPhase } from "./status.js";
 export type { InputImage, InputOrigin } from "./input.js";

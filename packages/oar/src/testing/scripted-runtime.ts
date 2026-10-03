@@ -3,6 +3,7 @@ import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
 import { createSessionKernel, inputImagesRefusal, sealSession } from "../kernel.js";
+import { toolContent } from "../shared/tool-output.js";
 import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scripted-tasks.js";
 
 /**
@@ -30,7 +31,7 @@ export interface ScriptedTurn {
   readonly think: (text: string) => void;
   /**
    * Run a tool: `tool_call_started`, then `run` (awaited), then
-   * `tool_call_ended` carrying its result as output (`ok`), or the thrown
+   * `tool_call_ended` carrying its result as content (`ok`), or the thrown
    * error's message (`failed`, and the error is rethrown to the script).
    * A tool that settles after the turn ended (an abort or dispose ended it
    * while `run` was in flight) records nothing: the call gets no
@@ -135,12 +136,12 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
             if (!live()) {
               return;
             }
-            const output = typeof result === "string" || result === undefined ? result : JSON.stringify(result);
-            frame("scripted/tool_end", { callId, output, result: "ok" }, [{ kind: "tool_call_ended", callId, result: "ok", ...(output === undefined ? {} : { output }) }]);
+            const content = toolContent(result);
+            frame("scripted/tool_end", { callId, output: result, result: "ok" }, [{ kind: "tool_call_ended", callId, result: "ok", ...(content === undefined ? {} : { content }) }]);
           } catch (error) {
             if (live()) {
               const output = error instanceof Error ? error.message : String(error);
-              frame("scripted/tool_end", { callId, output, result: "failed" }, [{ kind: "tool_call_ended", callId, result: "failed", output }]);
+              frame("scripted/tool_end", { callId, output, result: "failed" }, [{ kind: "tool_call_ended", callId, result: "failed", content: [{ type: "text", text: output }] }]);
             }
             throw error;
           }

@@ -253,7 +253,7 @@ through `terminal/create` (`/bin/bash -c "cd '<cwd>' && …"`, env `NO_COLOR`,
 with OAR's answer; the captured output is in the `terminal/output` answer.
 The completed frame's `content` is a terminal reference
 (`{type: "terminal", terminalId}`) with no `rawOutput`, so
-`tool_call_ended.output` is that reference as JSON, not the command's text
+`tool_call_ended.content` is that reference as an `other` part, not the command's text
 (`tool-detail`). The `tool` label is the opening `tool_call` frame's `title`
 rather than the ACP `kind` category; for the two tools observed live (`Bash`,
 `Agent`) that title is the tool's name; whether every kimi tool opens with its

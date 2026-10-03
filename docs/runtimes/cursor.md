@@ -174,7 +174,7 @@ token totals on any answer.
 `status: "pending"` and `rawInput {command}`, so `tool_call_started` carries
 the command as `input`. An `in_progress` update follows, then a `completed`
 update with `rawOutput {exitCode, stdout, stderr}`, which becomes
-`tool_call_ended.output` with `result: "ok"` and `exitCode` (`tool-detail`).
+`tool_call_ended.content` (one `other` part) with `result: "ok"` and `exitCode` (`tool-detail`).
 OAR maps the explicit ACP `ToolCallStatus` values `completed` / `failed` to
 `result: "ok"` / `"failed"`; a non-terminal or missing status leaves `result`
 absent. The `toolCallId` is two lines (`call_…\nfc_…`) and survives verbatim

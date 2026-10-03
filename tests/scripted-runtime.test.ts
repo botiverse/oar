@@ -6,7 +6,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterAll, beforeAll, test } from "vitest";
 import type { Event, InputImage, Session } from "../packages/oar/src/index.js";
-import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
+import { awaitTurnEnd, toolResultText } from "../packages/oar/src/observe/index.js";
 import { scriptedRuntime, type ScriptedTurn } from "../packages/oar/src/testing/index.js";
 
 /**
@@ -46,7 +46,7 @@ test("a script's text, reasoning and tool call become events, ended by the runti
   assert.deepEqual(outcome, { kind: "completed" });
   assert.deepEqual(events.map((event) => event.kind), ["turn_started", "reasoning", "tool_call_started", "tool_call_ended", "text_delta", "turn_ended", "usage"]);
   const ended = events.find((event) => event.kind === "tool_call_ended");
-  assert.ok(ended?.kind === "tool_call_ended" && ended.result === "ok" && ended.output === "contents");
+  assert.ok(ended?.kind === "tool_call_ended" && ended.result === "ok" && toolResultText(ended.content) === "contents");
   assert.equal(session.model().value, "scripted-1");
   await session.dispose();
 });

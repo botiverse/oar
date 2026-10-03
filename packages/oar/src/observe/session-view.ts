@@ -8,6 +8,7 @@ import type {
   Session,
   SessionUsage,
   TokenTotals,
+  ToolOutputPart,
   TurnOutcome,
   Unsubscribe,
 } from "../contracts/session.js";
@@ -72,7 +73,10 @@ export type ViewPart =
       readonly callId: string;
       readonly tool: string;
       readonly input?: string;
+      /** Streamed output while the call runs (`tool_call_progress`). */
       readonly output?: string;
+      /** The result once the call ended (`tool_call_ended.content`). */
+      readonly content?: readonly ToolOutputPart[];
       readonly result: "running" | "ok" | "failed" | "ended";
     }
   | { readonly kind: "notice"; readonly notice: ViewNotice }

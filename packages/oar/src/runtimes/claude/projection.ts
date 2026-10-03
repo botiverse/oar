@@ -7,6 +7,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { toolContent } from "../../shared/tool-output.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
 import { claudeTaskViews } from "./tasks.js";
 
@@ -114,11 +115,14 @@ function toolResultViews(message: JsonRecord): RuntimeEventBody[] {
   const out: RuntimeEventBody[] = [];
   for (const block of contentBlocks(message)) {
     if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-      const output = block.content === undefined ? undefined : JSON.stringify(block.content);
+      const content = toolContent(block.content);
       const result = typeof block.is_error === "boolean" ? (block.is_error ? "failed" as const : "ok" as const) : undefined;
-      out.push(output === undefined
-        ? { kind: "tool_call_ended", callId: block.tool_use_id, ...(result === undefined ? {} : { result }) }
-        : { kind: "tool_call_ended", callId: block.tool_use_id, output, ...(result === undefined ? {} : { result }) });
+      out.push({
+        kind: "tool_call_ended",
+        callId: block.tool_use_id,
+        ...(content === undefined ? {} : { content }),
+        ...(result === undefined ? {} : { result }),
+      });
     }
   }
   return out;

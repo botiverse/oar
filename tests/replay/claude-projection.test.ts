@@ -155,15 +155,37 @@ test("claude tool_result maps only its explicit is_error outcome", () => {
     message: { content: [{ type: "tool_result", tool_use_id: "c-fail", is_error: true, content: "nope" }] },
   });
   expect(failed.commands[0]?.kind === "frame" ? failed.commands[0].body.events : null).toEqual([
-    { kind: "tool_call_ended", callId: "c-fail", output: JSON.stringify("nope"), result: "failed" },
+    { kind: "tool_call_ended", callId: "c-fail", content: [{ type: "text", text: "nope" }], result: "failed" },
   ]);
   const absent = foldClaudeStdout(failed.state, {
     type: "user",
     message: { content: [{ type: "tool_result", tool_use_id: "c-unknown", content: "?" }] },
   });
   expect(absent.commands[0]?.kind === "frame" ? absent.commands[0].body.events : null).toEqual([
-    { kind: "tool_call_ended", callId: "c-unknown", output: JSON.stringify("?") },
+    { kind: "tool_call_ended", callId: "c-unknown", content: [{ type: "text", text: "?" }] },
   ]);
+});
+
+function endedEvents(content: unknown): unknown {
+  const { commands } = foldClaudeStdout(claudePrompted(initialClaudeProjection), {
+    type: "user",
+    message: { content: [{ type: "tool_result", tool_use_id: "c", content }] },
+  });
+  return commands[0]?.kind === "frame" ? commands[0].body.events : null;
+}
+
+test("claude tool_result: a string is one text part, blocks are ordered parts, unknown blocks are kept whole (#73)", () => {
+  // `Read` of a png on 2.1.288: the result is one Anthropic image block.
+  const png = { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBORw0KGgo" } };
+  expect(endedEvents([png])).toEqual([{ kind: "tool_call_ended", callId: "c", content: [{ type: "image", mediaType: "image/png", data: "iVBORw0KGgo" }] }]);
+  // An MCP tool's image arrives in the MCP shape between texts; order is kept.
+  const mcp = [{ type: "text", text: "before" }, { type: "image", data: "R0lGOD", mimeType: "image/gif" }, { type: "text", text: "after" }];
+  expect(endedEvents(mcp)).toEqual([{ kind: "tool_call_ended", callId: "c", content: [
+    { type: "text", text: "before" }, { type: "image", mediaType: "image/gif", data: "R0lGOD" }, { type: "text", text: "after" },
+  ] }]);
+  const reference = { type: "tool_reference", tool_name: "x" };
+  expect(endedEvents([reference])).toEqual([{ kind: "tool_call_ended", callId: "c", content: [{ type: "other", value: reference }] }]);
+  expect(endedEvents([])).toEqual([{ kind: "tool_call_ended", callId: "c" }]);
 });
 
 test("claude compact_boundary is the runtime's after-the-fact compaction report", () => {

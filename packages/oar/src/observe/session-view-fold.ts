@@ -250,7 +250,13 @@ export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResu
         continue;
       }
       const parts = [...section.parts];
-      parts[partIndex] = { ...part, ...(event.output === undefined ? {} : { output: event.output }), result };
+      if (event.kind === "tool_call_ended") {
+        // The streamed preview gives way to the result.
+        const { output: _streamed, ...settled } = part;
+        parts[partIndex] = { ...settled, ...(event.content === undefined ? {} : { content: event.content }), result };
+      } else {
+        parts[partIndex] = { ...part, ...(event.output === undefined ? {} : { output: event.output }), result };
+      }
       const sections = [...message.sections];
       sections[s] = { ...section, parts };
       draft.messages[m] = { ...message, sections };
