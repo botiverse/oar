@@ -3,7 +3,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { claudeAuthStatus, claudeLogin } from "../../packages/oar/src/runtimes/claude/login.js";
+import { claudeAuthStatus } from "../../packages/oar/src/runtimes/claude/auth-status.js";
+import { claudeLogin } from "../../packages/oar/src/runtimes/claude/login.js";
 import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 import { gone } from "../fixtures/process-tree.js";
@@ -115,19 +116,80 @@ test("a sign-in finished in the browser ends the login while the paste prompt is
   assert.deepEqual(fake.read().received, []);
 });
 
-test("success that claude's own status does not confirm is not a sign-in", async () => {
+test("success that claude's own status does not confirm is not a login", async () => {
   const fake = fakeClaude({ mode: "unverified" });
   const result = await claudeLogin(installation(fake), recordedInteraction([CODE]));
   expect(result).toMatchInlineSnapshot(`
     {
-      "detail": "claude auth login exited 0, yet claude auth status says signed out",
+      "detail": "claude auth login reported success, yet claude auth status says logged out",
       "kind": "failed",
-      "reason": "not_signed_in",
+      "reason": "not_logged_in",
     }
   `);
 });
 
-test.skipIf(process.platform === "win32")("past the deadline the login is stopped with everything it started", async () => {
+test("a failure in claude's own words is reported in them, and `Login failed: Invalid code ...` asks nothing more", async () => {
+  const ownWords = recordedInteraction([CODE]);
+  const verifier = recordedInteraction([CODE]);
+  const results = [
+    await claudeLogin(installation(fakeClaude({ mode: "own_words" })), ownWords),
+    await claudeLogin(installation(fakeClaude({ mode: "verifier" })), verifier),
+  ];
+  expect(results).toMatchInlineSnapshot(`
+    [
+      {
+        "detail": "This organization does not allow logging in to Claude Code.",
+        "kind": "failed",
+        "reason": "rejected",
+      },
+      {
+        "detail": "Invalid code verifier",
+        "kind": "failed",
+        "reason": "rejected",
+      },
+    ]
+  `);
+  assert.equal(ownWords.prompts.length, 1);
+  assert.equal(verifier.prompts.length, 1);
+});
+
+test("a deadline after `Login successful.` is not a timeout: the stored login is confirmed by the status", async () => {
+  const fake = fakeClaude({ mode: "linger" });
+  const result = await claudeLogin(installation(fake), recordedInteraction([CODE]), { timeoutMs: 1500 });
+  expect(result).toMatchInlineSnapshot(`
+    {
+      "account": {
+        "email": "user@example.com",
+        "method": "claude.ai",
+        "plan": "pro",
+      },
+      "kind": "logged_in",
+    }
+  `);
+  assert.ok(await gone(reportedPid(fake, "pid")), "claude auth login outlived the deadline");
+});
+
+test("an abort after `Login successful.` is not a cancel: the login is stored, with no status query left to ask", async () => {
+  const fake = fakeClaude({ mode: "linger" });
+  const abort = new AbortController();
+  const interaction = recordedInteraction([CODE], {
+    signal: abort.signal,
+    onPrompt: () => {
+      setTimeout(() => {
+        abort.abort();
+      }, 1000);
+    },
+  });
+  const result = await claudeLogin(installation(fake), interaction);
+  assert.deepEqual(result, { kind: "logged_in" });
+});
+
+test("a command that cannot be spawned fails at once", async () => {
+  const result = await claudeLogin({ kind: "available", via: "executable", command: "invalid\0binary", version: "2.1.288" }, recordedInteraction([]));
+  assert.equal(result.kind === "failed" ? result.reason : result.kind, "process_failed");
+});
+
+test("past the deadline the login is stopped with everything it started", async () => {
   const fake = fakeClaude({ mode: "hang" });
   const result = await claudeLogin(installation(fake), recordedInteraction(["never"]), { timeoutMs: 1000 });
   expect(result).toMatchInlineSnapshot(`
@@ -141,7 +203,7 @@ test.skipIf(process.platform === "win32")("past the deadline the login is stoppe
   assert.ok(await gone(reportedPid(fake, "workerPid")), "a process claude started outlived the deadline");
 });
 
-test.skipIf(process.platform === "win32")("aborting the signal cancels the login and stops its process group", async () => {
+test("aborting the signal cancels the login and stops its process group (its tree on Windows)", async () => {
   const fake = fakeClaude({ mode: "hang" });
   const abort = new AbortController();
   const interaction = recordedInteraction(["never"], {
@@ -170,23 +232,6 @@ test("a prompt or an event handler that throws stops the login", async () => {
   assert.equal(fake.read().loggedIn, false);
 });
 
-test("a second login while one runs is busy and starts nothing", async () => {
-  const fake = fakeClaude();
-  const opened = Promise.withResolvers<void>();
-  const running = claudeLogin(installation(fake), recordedInteraction([CODE], {
-    onPrompt: () => {
-      opened.resolve();
-    },
-  }));
-  await opened.promise;
-  const other = fakeClaude();
-  const second = await claudeLogin(installation(other), recordedInteraction([CODE]));
-  assert.deepEqual(second, { kind: "failed", reason: "busy", detail: "a claude login is already running" });
-  assert.equal(other.read().loginStarted, undefined);
-  const first = await running;
-  assert.equal(first.kind, "logged_in");
-});
-
 test("a claude that cannot read a pasted code, or an aborted signal, starts nothing", async () => {
   const fake = fakeClaude();
   expect(await claudeLogin(installation(fake, "2.1.100 (Claude Code)"), recordedInteraction([]))).toMatchInlineSnapshot(`
@@ -213,11 +258,11 @@ test("auth status reads claude auth status --json", async () => {
           "method": "claude.ai",
           "plan": "pro",
         },
-        "kind": "signed_in",
+        "kind": "logged_in",
         "source": "claude auth status --json",
       },
       {
-        "kind": "signed_out",
+        "kind": "logged_out",
         "source": "claude auth status --json",
       },
       {

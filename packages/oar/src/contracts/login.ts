@@ -10,12 +10,11 @@ export interface LoginAccount {
   readonly method?: string;
 }
 
-/** Why a login ended without a signed-in runtime. */
+/** Why a login ended without a logged-in runtime. */
 export type LoginFailureReason =
-  | "busy" // another login for this runtime is running in this process; nothing was started
-  | "timed_out" // oar's deadline passed; the login process and everything it started were stopped
+  | "timed_out" // oar's deadline passed before the runtime reported success; the login process and everything it started were stopped
   | "rejected" // the runtime reported that the sign-in failed (`detail` carries its words)
-  | "not_signed_in" // the runtime reported success, yet its own status query says signed out
+  | "not_logged_in" // the runtime reported success, yet its own status query says logged out
   | "interaction_failed" // the caller's `prompt` or `onEvent` threw; the login process was stopped
   | "process_failed"; // the login process could not start, or ended without a result
 
@@ -27,13 +26,14 @@ export type LoginUnsupportedReason =
 
 /**
  * How a login ended. `failed.detail` and `unsupported.detail` are for people:
- * the runtime's own words with every pasted code and token shape redacted.
+ * one line in the runtime's own words where it gave one, with every pasted
+ * code and token shape redacted.
  */
 export type LoginResult =
   /** The runtime's own status query confirms the sign-in (or, when it cannot tell, the runtime reported success). */
   | { readonly kind: "logged_in"; readonly account?: LoginAccount }
   | { readonly kind: "failed"; readonly reason: LoginFailureReason; readonly detail?: string }
-  /** `interaction.signal` aborted; the login process and everything it started were stopped. */
+  /** `interaction.signal` aborted before the runtime reported success; the login process and everything it started were stopped. */
   | { readonly kind: "cancelled" }
   | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail?: string };
 
@@ -50,14 +50,18 @@ export interface LoginOptions {
  *   what a person opens or types, `info` the runtime's guidance. When the
  *   runtime needs a code pasted back, `interaction.prompt` is asked with
  *   `kind: "manual_code"`; the answer is written to the runtime's stdin only.
- * - Never: a token or a pasted code in an event, a result or an error.
- * - Never signs the current account out first: a login that fails or is
- *   cancelled leaves the previous sign-in as it was.
+ * - Never: a token or a pasted code in an event, a result, an error or a log.
+ * - Never logs the current account out first: a login that fails, times out
+ *   or is cancelled leaves the previous login as it was.
  * - Aborting `interaction.signal` stops the login process with everything it
  *   started and resolves `cancelled`. A prompt still open when the login
  *   settles is moot; the caller closes it.
- * - One login per runtime at a time in this process; a second resolves
- *   `failed` with `busy`.
+ * - Once the runtime reports success it has stored the new login: a deadline
+ *   or abort after that never yields `timed_out` or `cancelled`. The status
+ *   query decides; when it cannot answer (it failed, or the caller aborted)
+ *   the result is `logged_in` without an account.
+ * - Logins are not serialized: whether two may run at once is the host's
+ *   policy.
  */
 export type RuntimeLogin = (
   installation: AvailableInstallation,
@@ -66,12 +70,12 @@ export type RuntimeLogin = (
 ) => Promise<LoginResult>;
 
 /**
- * Whether the runtime is signed in, from its own local status query.
+ * Whether the runtime is logged in, from its own local status query.
  * `source` names the command that answered.
  */
 export type AuthStatus =
-  | { readonly kind: "signed_in"; readonly account?: LoginAccount; readonly source: string }
-  | { readonly kind: "signed_out"; readonly source: string }
+  | { readonly kind: "logged_in"; readonly account?: LoginAccount; readonly source: string }
+  | { readonly kind: "logged_out"; readonly source: string }
   /** The status query failed or gave an answer oar cannot read; never a guess either way. */
   | { readonly kind: "unknown"; readonly detail?: string; readonly source?: string };
 
@@ -82,7 +86,7 @@ export interface AuthStatusOptions {
 /**
  * Cheap and read only: runs the runtime's local status query, never a login
  * flow, and returns no secret. Hosts call it to decide whether to offer a
- * sign-in.
+ * login.
  */
 export type AuthStatusReader = (
   installation: AvailableInstallation,

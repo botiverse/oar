@@ -4,10 +4,14 @@
 // { version, code, email, loggedIn, mode }. `auth login` prints the URL as an
 // OSC 8 hyperlink and the paste prompt with no newline, then reads stdin
 // lines: a line without `#` is an invalid code (retryable), `code` signs in.
-// Modes: "paste" (the default), "reject" (fails, echoing the pasted line, as
-// a careless error message could), "browser" (the localhost callback signs
-// in by itself), "unverified" (reports success without signing in), "hang"
-// (starts a worker in its process group and never finishes).
+// Modes for a pasted line: "paste" (the default), "reject" (fails, echoing the
+// pasted line, as a careless error message could), "verifier" (fails with
+// `Login failed: Invalid code verifier`), "own_words" (fails with a message
+// of its own, then a blank line), "unverified" (reports success without
+// signing in), "linger" (signs in, then keeps running, as claude does while
+// it flushes telemetry). Without a pasted line: "browser" (the localhost
+// callback signs in by itself), "hang" (starts a worker in its process group
+// and never finishes).
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -62,6 +66,14 @@ if (command === "--version") {
       process.stderr.write(`Login failed: invalid_grant for code ${line}\n`);
       process.exit(1);
     }
+    if (state.mode === "verifier") {
+      process.stderr.write("Login failed: Invalid code verifier\n");
+      process.exit(1);
+    }
+    if (state.mode === "own_words") {
+      process.stderr.write("This organization does not allow logging in to Claude Code.\n\n");
+      process.exit(1);
+    }
     if (!line.includes("#")) {
       process.stderr.write("Invalid code. Please make sure the full code was copied.\n");
       return;
@@ -75,6 +87,11 @@ if (command === "--version") {
     }
     // No newline came before: claude's output continues the prompt's line.
     process.stdout.write("Login successful.\n");
+    if (state.mode === "linger") {
+      save({ pid: process.pid });
+      setInterval(() => {}, 1000);
+      return;
+    }
     process.exit(0);
   });
 } else {

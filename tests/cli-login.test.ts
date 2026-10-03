@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
+import { PassThrough } from "node:stream";
 import {
   loginExitCode,
   readAuthStatus,
   renderAuthStatus,
-  renderLoginEvent,
   renderLoginReport,
   runLogin,
-  selectAnswer,
 } from "../packages/cli/src/login.js";
+import { EchoGate, hidesInput, renderLoginEvent, selectAnswer } from "../packages/cli/src/login-terminal.js";
 
 // The CLI resolves `@botiverse/oar` to the built package, so fixtures take
 // their shapes from the CLI functions under test.
@@ -96,7 +96,7 @@ test("a login reports the runtime's result and maps it to the exit code", async 
   expect(reports.map((report) => [renderLoginReport(report), loginExitCode(report)])).toMatchInlineSnapshot(`
     [
       [
-        "fake	signed in as user@example.com (claude.ai, pro)",
+        "fake	logged in as user@example.com (claude.ai, pro)",
         0,
       ],
       [
@@ -131,8 +131,8 @@ test("a runtime without a login, or whose login throws, fails the command", asyn
 
 test("--status reports each runtime's own status query", async () => {
   const statuses = [
-    { kind: "signed_in", account: { email: "user@example.com" }, source: "fake status" },
-    { kind: "signed_out", source: "fake status" },
+    { kind: "logged_in", account: { email: "user@example.com" }, source: "fake status" },
+    { kind: "logged_out", source: "fake status" },
     { kind: "unknown", detail: "Error loading configuration", source: "fake status" },
   ] as const;
   const reports = await Promise.all(statuses.map(async (status) => readAuthStatus(runtime("fake", {
@@ -144,12 +144,44 @@ test("--status reports each runtime's own status query", async () => {
   const none = await readAuthStatus(runtime("agy", {}));
   expect([...reports, none].map((report) => renderAuthStatus(report))).toMatchInlineSnapshot(`
     [
-      "fake	signed in as user@example.com",
-      "fake	signed out",
+      "fake	logged in as user@example.com",
+      "fake	logged out",
       "fake	status unknown (Error loading configuration)",
       "agy	agy exposes no sign-in status query",
     ]
   `);
+});
+
+test("a pasted code or a secret is typed blind, any other answer is echoed", () => {
+  assert.equal(hidesInput({ kind: "manual_code", message: "Paste" }), true);
+  assert.equal(hidesInput({ kind: "secret", message: "API key" }), true);
+  assert.equal(hidesInput({ kind: "text", message: "Email" }), false);
+});
+
+/** What reaches the screen through an echo gate after `steps`. */
+async function throughGate(steps: (gate: EchoGate) => void): Promise<string> {
+  const screen = new PassThrough();
+  const written: string[] = [];
+  screen.on("data", (chunk: Buffer) => {
+    written.push(chunk.toString());
+  });
+  const gate = new EchoGate(screen);
+  steps(gate);
+  const ended = Promise.withResolvers<void>();
+  gate.end(ended.resolve);
+  await ended.promise;
+  return written.join("");
+}
+
+test("the echo gate drops what the terminal echoes while muted", async () => {
+  const screen = await throughGate((gate) => {
+    gate.write("Paste the code: ");
+    gate.muted = true;
+    gate.write("pasted-authorization-code#state");
+    gate.muted = false;
+    gate.write("\n");
+  });
+  assert.equal(screen, "Paste the code: \n");
 });
 
 test("a select prompt takes an option's number or its id", () => {

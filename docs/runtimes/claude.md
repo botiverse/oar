@@ -322,19 +322,26 @@ and `Paste code here if prompted > ` with no newline on stdout, then races
 two ends: the browser's redirect to its localhost listener, and a
 `code#state` line on stdin, which the page behind the URL shows after the
 sign-in. A line it cannot parse prints `Invalid code. Please make sure the
-full code was copied.` to stderr and reading goes on; the end is
-`Login successful.` (exit 0) or `Login failed: <message>` on stderr (exit 1).
+full code was copied.` to stderr and reading goes on. Success is
+`Login successful.`, followed by a few seconds of telemetry flushing before
+exit 0. A failure exits 1 with `Login failed: <message>` on stderr, or with a
+message of its own (a suspended account, an organization or provider that
+disallows the login, a managed gateway login).
 
 OAR strips terminal escapes from both streams, relays the URL as `auth_url`,
-asks a `manual_code` prompt when the paste prompt appears and again after
-`Invalid code`, and writes the answer (whitespace removed) to stdin only; the
-pasted value and its authorization code are redacted from every reported
-`detail`. On a desktop host claude also tries to open a browser, and a
-sign-in finished there ends the login while the prompt is still open. claude
-has no deadline of its own, so OAR stops it after 15 minutes. A successful
-exit is confirmed with `claude auth status --json`, which is also
-`authStatus`: `loggedIn` (exit 0 signed in, 1 signed out) and `email`,
-`subscriptionType` and `authMethod` as the account. `auth login` arrived in
+asks a `manual_code` prompt when the paste prompt appears and again after a
+stderr line that starts with `Invalid code` (not after
+`Login failed: Invalid code verifier`, which is a failure), and writes the
+answer (whitespace removed) to stdin only; the pasted value and its
+authorization code are redacted from every reported `detail`. A failure is
+`rejected` with the `Login failed:` message, or else claude's last stderr
+line. On a desktop host claude also tries to open a browser, and a sign-in
+finished there ends the login while the prompt is still open. claude has no
+deadline of its own, so OAR stops it after 15 minutes. A successful exit, or a
+deadline or abort after `Login successful.` (while claude flushes), is
+confirmed with `claude auth status --json`, which is also `authStatus`:
+`loggedIn` (exit 0 logged in, 1 logged out) and `email`, `subscriptionType`
+and `authMethod` as the account. `auth login` arrived in
 2.1.41 and reading a pasted code in 2.1.126 [doc changelog], so an older
 claude is `unsupported` / `version_unsupported`. Verified against a fake CLI
 that prints the 2.1.288 strings

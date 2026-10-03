@@ -1,12 +1,24 @@
-import type { ChildProcess } from "node:child_process";
+import { execFile, type ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 
-interface ProcessOptions {
+export interface LineProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Forward the child's stderr to the host's stderr. Defaults to
+   * `OAR_CHILD_STDERR=inherit`; a child whose output must stay inside oar
+   * (a login) passes false.
+   */
+  readonly inheritStderr?: boolean;
+  /**
+   * On Windows, `kill()` ends the child's whole process tree
+   * ({@link killProcessTree}) instead of the direct child alone, which for an
+   * npm `.cmd` shim is only `cmd.exe`. POSIX always signals the group.
+   */
+  readonly killTree?: boolean;
 }
 
 /**
@@ -92,6 +104,23 @@ export interface LineProcess {
   kill(): void;
 }
 
+/**
+ * Windows has no process groups: end the child and everything it started by
+ * walking its process tree (`taskkill /T /F`), falling back to the child
+ * alone when the walk fails.
+ */
+export function killProcessTree(child: ChildProcess): void {
+  if (child.pid === undefined) {
+    child.kill();
+    return;
+  }
+  execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], (error) => {
+    if (error !== null) {
+      child.kill();
+    }
+  });
+}
+
 /** Windows npm shims need a shell for one-shot execFile calls. */
 export function requiresShell(command: string, platform: NodeJS.Platform): boolean {
   return platform === "win32" && /\.(?:cmd|bat)$/iu.test(command);
@@ -104,7 +133,7 @@ export function requiresShell(command: string, platform: NodeJS.Platform): boole
 export function spawnLineProcess(
   command: string,
   args: readonly string[],
-  options: ProcessOptions = {},
+  options: LineProcessOptions = {},
 ): LineProcess {
   const child = spawn(command, [...args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
@@ -114,7 +143,7 @@ export function spawnLineProcess(
   });
   const { stdin, stdout } = child;
   const stderr = new StderrTail();
-  const inheritStderr = process.env.OAR_CHILD_STDERR === "inherit";
+  const inheritStderr = options.inheritStderr ?? process.env.OAR_CHILD_STDERR === "inherit";
   // Always drain stderr, even after the tail is full and without a host
   // observer. Otherwise a verbose child can block before its next RPC reply.
   child.stderr?.on("data", (chunk: Buffer | string) => {
@@ -210,6 +239,13 @@ export function spawnLineProcess(
     kill() {
       stdin.end();
       if (ended || escalation !== null) {
+        return;
+      }
+      if (options.killTree === true && process.platform === "win32") {
+        killProcessTree(child);
+        escalation = setTimeout(() => {
+          child.kill("SIGKILL");
+        }, killGraceMs());
         return;
       }
       signalProcessGroup(child, "SIGTERM");

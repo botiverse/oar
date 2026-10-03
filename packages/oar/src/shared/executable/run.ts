@@ -13,6 +13,8 @@ export interface ExecutableResult {
 export interface ExecutableRunOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
+  /** Stops the command; the result is then a failure with no exit code. */
+  readonly signal?: AbortSignal;
 }
 
 export type ExecutableRunner = (
@@ -49,6 +51,7 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       execFile(executable, [...args], {
         env: options.env,
         timeout: timeoutMs,
+        ...(options.signal === undefined ? {} : { signal: options.signal }),
         maxBuffer: 2 * 1024 * 1024,
         // Modern Node rejects shell-less execution of Windows .cmd/.bat shims.
         shell: requiresShell(executable, process.platform),

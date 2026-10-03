@@ -1,15 +1,15 @@
-import { execFile, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult } from "../contracts/login.js";
-import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup } from "./executable/index.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./executable/index.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
 
 /*
  * Mechanisms every login driver shares: running a vendor login command over
  * pipes, reading what it prints, keeping secrets out of what oar reports,
- * and the deadline, cancellation and one-at-a-time rules of the contract.
+ * and the deadline and cancellation rules of the contract.
  */
 
 const ESC = String.fromCodePoint(0x1B);
@@ -60,6 +60,15 @@ export class LoginSecrets {
     }
     return redacted.length > DETAIL_LIMIT ? `${redacted.slice(0, DETAIL_LIMIT)}...` : redacted;
   }
+
+  /** The first non-blank line of `text`, redacted: a runtime's one-line reason, never a log tail. */
+  line(text: string): string {
+    return this.redact(text.split(/\r?\n/u).map((line) => line.trim()).find((line) => line !== "") ?? "");
+  }
+}
+
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export type LoginStream = "stdout" | "stderr";
@@ -130,9 +139,7 @@ function readStream(
 
 function stopTree(child: ChildProcess): void {
   if (process.platform === "win32") {
-    if (child.pid !== undefined) {
-      execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], () => {});
-    }
+    killProcessTree(child);
     return;
   }
   signalProcessGroup(child, "SIGTERM");
@@ -145,7 +152,8 @@ function stopTree(child: ChildProcess): void {
 /**
  * Run a login command over pipes (no terminal), in its own process group on
  * POSIX, reading stdout and stderr alike. Nothing it prints is logged or
- * forwarded except through `handlers`.
+ * forwarded except through `handlers`. Throws when the command cannot be
+ * spawned at all (an invalid path on Windows).
  */
 export function spawnLoginProcess(
   command: string,
@@ -217,6 +225,8 @@ export function loginBounds(signal: AbortSignal | undefined, timeoutMs: number):
   const timer = setTimeout(() => {
     resolve("timed_out");
   }, timeoutMs);
+  // A deadline alone never keeps the host alive; the login process and the caller's prompt do.
+  timer.unref();
   const onAbort = (): void => {
     resolve("cancelled");
   };
@@ -238,22 +248,6 @@ export function stoppedResult(stop: LoginStop, timeoutMs: number): LoginResult {
   return stop === "cancelled"
     ? { kind: "cancelled" }
     : { kind: "failed", reason: "timed_out", detail: `no sign-in within ${String(timeoutMs)} ms` };
-}
-
-const running = new Set<string>();
-
-/** One login per key (a runtime id) at a time in this process; a second resolves `busy` without starting anything. */
-export async function exclusiveLogin(key: string, run: () => Promise<LoginResult>): Promise<LoginResult> {
-  if (running.has(key)) {
-    return { kind: "failed", reason: "busy", detail: `a ${key} login is already running` };
-  }
-  running.add(key);
-  try {
-    const result = await run();
-    return result;
-  } finally {
-    running.delete(key);
-  }
 }
 
 export type LoginExecutable =
