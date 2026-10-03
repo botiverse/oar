@@ -1,4 +1,4 @@
-import { asRecord, parseJson } from "../shared/json.js";
+import { asNumber, asRecord, parseJson } from "../shared/json.js";
 
 /**
  * Cross-runtime tool classification: the friendly-Activity utility. Each
@@ -18,6 +18,7 @@ export type ToolActionKind =
   | "search"
   | "web"
   | "mcp"
+  | "wait"
   | "other";
 
 export interface ToolAction {
@@ -31,6 +32,13 @@ export interface ToolAction {
   readonly command?: string;
   /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`). */
   readonly description?: string;
+  /**
+   * `wait`: how long the agent asked to wait, in ms, as the runtime reported it (codex
+   * `sleep`'s `durationMs`). How long it waited, as OAR saw it, is the tool part's
+   * `endedAt - startedAt` (when OAR observed the call start and end): a steer can end a
+   * wait early.
+   */
+  readonly durationMs?: number;
 }
 
 // Per-runtime tool name → kind. Names are what the tool_call_started event
@@ -52,6 +60,7 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     fileChange: "edit_file",
     webSearch: "web",
     mcpToolCall: "mcp",
+    sleep: "wait",
   },
   pi: {
     bash: "run_command",
@@ -77,10 +86,10 @@ function kindOf(runtimeId: string, tool: string): ToolActionKind {
   return "other";
 }
 
-type ShellFields = Pick<ToolAction, "command" | "description">;
+type InputFields = Pick<ToolAction, "command" | "description" | "durationMs">;
 
 /** The recorded keys' string values: `command` and, where the shape has one, `description`. */
-function stringFields(inputJson: string, withDescription: boolean): ShellFields {
+function stringFields(inputJson: string, withDescription: boolean): InputFields {
   const input = asRecord(parseJson(inputJson));
   const pick = (key: string): string | undefined => {
     const value = input?.[key];
@@ -94,17 +103,25 @@ function stringFields(inputJson: string, withDescription: boolean): ShellFields 
   };
 }
 
+/** A wait's asked duration: the input's `durationMs`, when a finite positive number. */
+function waitFields(inputJson: string): InputFields {
+  const durationMs = asNumber(asRecord(parseJson(inputJson))?.durationMs);
+  return durationMs !== null && durationMs > 0 ? { durationMs } : {};
+}
+
 /**
- * Where each runtime's shell tool keeps its command, from recorded inputs
- * (tests/replay/fixtures/*-tool-round.raw.jsonl); a runtime with no recorded
- * shape gets none. codex's `commandExecution` input is the bare command line,
- * not JSON (codex/item-detail.ts).
+ * Where each runtime's tools keep the fields a host shows, from recorded inputs
+ * (tests/replay/fixtures/*-tool-round.raw.jsonl): a shell tool's command (and
+ * description), a wait's duration. A runtime with no recorded shape gets none.
+ * codex's `commandExecution` input is the bare command line, not JSON
+ * (codex/item-detail.ts).
  */
-const SHELL: Record<string, Record<string, (input: string) => ShellFields>> = {
+const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   claude: { Bash: (input) => stringFields(input, true) },
   codex: {
     commandExecution: (input) =>
       input.length === 0 || asRecord(parseJson(input)) !== null ? {} : { command: input },
+    sleep: waitFields,
   },
   pi: { bash: (input) => stringFields(input, false) },
 };
@@ -139,9 +156,9 @@ function detailOf(inputJson: string | undefined): string | undefined {
 export function classifyTool(runtimeId: string, tool: string, inputJson?: string): ToolAction {
   const kind = kindOf(runtimeId, tool);
   const runtime = runtimeId.replace(/-aimock$/u, "");
-  const shell = inputJson === undefined ? {} : (SHELL[runtime]?.[tool]?.(inputJson) ?? {});
-  const detail = detailOf(inputJson) ?? shell.command ?? (kind === "other" ? tool : undefined);
-  return { kind, ...(detail === undefined ? {} : { detail }), ...shell };
+  const fields = inputJson === undefined ? {} : (FIELDS[runtime]?.[tool]?.(inputJson) ?? {});
+  const detail = detailOf(inputJson) ?? fields.command ?? (kind === "other" ? tool : undefined);
+  return { kind, ...(detail === undefined ? {} : { detail }), ...fields };
 }
 
 const LABELS: Record<ToolActionKind, { running: string; done: string; failed: string }> = {
@@ -151,6 +168,7 @@ const LABELS: Record<ToolActionKind, { running: string; done: string; failed: st
   search: { running: "Searching", done: "Searched", failed: "Search failed" },
   web: { running: "Searching the web", done: "Searched the web", failed: "Web request failed" },
   mcp: { running: "Using a tool", done: "Used a tool", failed: "Tool failed" },
+  wait: { running: "Waiting", done: "Waited", failed: "Wait failed" },
   other: { running: "Working", done: "Done", failed: "Failed" },
 };
 

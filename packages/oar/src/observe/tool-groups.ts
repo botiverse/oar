@@ -79,6 +79,7 @@ const DONE: Record<ToolActionKind, (count: number) => string> = {
   search: (n) => (n === 1 ? "searched" : `searched ${n} times`),
   web: (n) => (n === 1 ? "searched the web" : `searched the web ${n} times`),
   mcp: (n) => (n === 1 ? "used a tool" : `used ${n} tools`),
+  wait: (n) => (n === 1 ? "waited" : `waited ${n} times`),
   other: (n) => (n === 1 ? "used a tool" : `used ${n} tools`),
 };
 

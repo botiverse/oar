@@ -38,6 +38,19 @@ test("toolGroupSummary words the counts, MCP and unknown tools alike", () => {
   assert.equal(toolGroupSummary([]), "");
 });
 
+test("groupToolActivity counts a codex sleep as a wait", () => {
+  const parts = [text("I'll wait."), call({ id: "1", tool: "sleep", input: { durationMs: 50_000 }, result: "ended" }), text("Done waiting.")];
+  const [, group] = groupToolActivity("codex", parts);
+  assert.ok(group?.kind === "tools");
+  assert.deepEqual(group.counts, [{ kind: "wait", count: 1 }]);
+  assert.equal(toolGroupSummary(group.counts), "Waited");
+});
+
+test("toolGroupSummary words a wait", () => {
+  assert.equal(toolGroupSummary([{ kind: "wait", count: 1 }]), "Waited");
+  assert.equal(toolGroupSummary([{ kind: "run_command", count: 1 }, { kind: "wait", count: 2 }]), "Ran a command, waited 2 times");
+});
+
 test("a claude run reads by claude's tool names", () => {
   const [group] = groupToolActivity("claude", [
     call({ id: "1", tool: "Read", input: { file_path: "a.ts" } }),
