@@ -55,7 +55,7 @@ export type {
   UpgradeOptions,
   UpgradeResult,
 } from "./contracts/update.js";
-export type { Runtime } from "./contracts/runtime.js";
+export type { RefusableSessionOption, RefusedSessionOptions, Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
   AttributionTier,

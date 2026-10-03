@@ -220,8 +220,10 @@ servers) as the SDK does by default.
 
 **Environment (unsupported):** the SDK has no per-agent environment for
 tools, and the agent shares the host's process, so `SessionOptions.env` is
-rejected at open. The `@botiverse/oar/agents` crew passes its depth variable
-through `env`, so a cursor session cannot be a crew child yet.
+rejected at open. `refusedSessionOptions` declares this (and the system
+prompt refusals) before any session opens. The `@botiverse/oar/agents` crew
+passes its depth variable through `env`, so it refuses to spawn a cursor
+child.
 
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from

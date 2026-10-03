@@ -1,3 +1,4 @@
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import type { CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
 
@@ -54,17 +55,16 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * had them, or as the catalog's default variant sets them (a `thinking`
  * switch stays on beside an `effort` level).
  */
-/** Options the SDK cannot honor, refused before anything opens. */
-export function validateCursorOptions(options: SessionOptions): void {
-  if (options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined) {
-    // SDK 1.0.35 types a `systemPrompt`, but a local agent's run fails with
-    // "unknown option '--system-prompt'" (probed 2026-10-03), and there is no append.
-    throw new Error("Cursor's SDK runs no system prompt override for a local agent");
-  }
-  if (options.env !== undefined && Object.keys(options.env).length > 0) {
-    throw new Error("Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported");
-  }
-}
+/**
+ * Options the SDK cannot honor, refused before anything opens. SDK 1.0.35
+ * types a `systemPrompt`, but a local agent's run fails with "unknown option
+ * '--system-prompt'" (probed 2026-10-03), and there is no append.
+ */
+export const cursorRefusedSessionOptions: RefusedSessionOptions = {
+  systemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
+  appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
+  env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported",
+};
 
 export async function cursorModelSelection(sdk: CursorSdk, options: SessionOptions): Promise<ModelSelection> {
   const base = options.model === undefined && options.resume !== undefined

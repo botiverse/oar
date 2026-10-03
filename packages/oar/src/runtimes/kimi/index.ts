@@ -4,7 +4,7 @@ import { kimiAccountUsage } from "./account-usage.js";
 import { kimiInstallation } from "./installation.js";
 import { kimiListModels } from "./list-models.js";
 import { kimiCheckUpdate, kimiUpgrade } from "./update.js";
-import { kimiSession } from "./session.js";
+import { kimiRefusedSessionOptions, kimiSession } from "./session.js";
 
 export const kimiRuntime = defineRuntime({
   id: "kimi",
@@ -15,6 +15,7 @@ export const kimiRuntime = defineRuntime({
   checkUpdate: kimiCheckUpdate,
   upgrade: kimiUpgrade,
   session: kimiSession,
+  refusedSessionOptions: kimiRefusedSessionOptions,
 });
 
 export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";

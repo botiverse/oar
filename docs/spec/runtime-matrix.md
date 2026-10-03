@@ -51,6 +51,21 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event.
 
+## Refused session options
+
+`Runtime.refusedSessionOptions` declares, before any session opens, the
+`SessionOptions` a runtime refuses when given (`env`: a non-empty one), each
+with the reason `session()` rejects with. The adapter checks the same map,
+so the declaration and the refusal cannot drift
+(`tests/refused-session-options.test.ts`). A host leaves a declared option
+out instead of naming runtimes.
+
+| runtime | refuses | why |
+|---|---|---|
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
+| kimi, antigravity | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
+| claude, codex, grok, pi | nothing | |
+
 ## Adapter red lines
 
 "The adapter drops attribution" appears in identical form in mutually

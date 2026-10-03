@@ -140,8 +140,14 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
     if (closed) {
       return { kind: "refused", code: "closed", reason: "the subagents are closed" };
     }
-    if (registry.get(spawn.runtime) === undefined) {
+    const runtime = registry.get(spawn.runtime);
+    if (runtime === undefined) {
       return { kind: "refused", code: "unknown_runtime", reason: `unknown runtime: ${spawn.runtime}` };
+    }
+    // A child carries its depth in `env`, so a runtime that refuses `env` cannot be one.
+    const envRefused = runtime.refusedSessionOptions?.env;
+    if (envRefused !== undefined) {
+      return { kind: "refused", code: "open_failed", reason: `${spawn.runtime} cannot be a subagent: ${envRefused}` };
     }
     if (hostDepth() + 1 > maxDepth) {
       return { kind: "refused", code: "depth_limit", reason: `subagents nest at most ${String(maxDepth)} deep; do this task yourself` };

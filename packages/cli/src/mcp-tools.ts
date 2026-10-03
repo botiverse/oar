@@ -51,10 +51,13 @@ const SPAWN_PROPERTIES = {
 async function installed(runtimes: readonly Runtime[]): Promise<unknown[]> {
   const rows = await Promise.all(runtimes.map(async (runtime) => {
     const installation = await runtime.installation?.();
+    // A child carries its depth in `env`, so a runtime that refuses `env` cannot be spawned.
+    const envRefused = runtime.refusedSessionOptions?.env;
     return {
       runtime: runtime.id,
       installation: installation?.kind ?? "unknown",
       ...(installation?.kind === "available" && installation.via === "executable" && installation.version !== undefined ? { version: installation.version } : {}),
+      ...(envRefused === undefined ? {} : { spawnable: false, reason: envRefused }),
     };
   }));
   return rows;
