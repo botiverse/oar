@@ -126,11 +126,13 @@ and `session.records()` expose the underlying record stream with every native
 payload verbatim. The [package README](packages/oar/README.md) lists the
 public entry points.
 
-## Without a session
+## Handy utilities, no session needed
 
-The runtime registry is useful on its own, with no session opened: every
-query below works for each supported runtime that has it, through the same
-types.
+OAR also offers a set of handy utilities you can use without running an
+agent at all: is it installed, which account and how much quota is left,
+which models it can run, is there an update (and install it), what skills
+and tools it has. One API covers every supported runtime, so a dashboard, a
+setup wizard or a quota monitor needs no per-runtime code.
 
 ```ts
 import { runtimes } from "@botiverse/oar";
