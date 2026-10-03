@@ -8,6 +8,7 @@ oar installation codex
 oar usage claude
 oar models claude
 oar upgrade --check
+oar login claude
 oar run claude "What does this repo do?"
 ```
 
@@ -32,6 +33,12 @@ it is omitted.
   the updater would install, `--json` prints the reports, `--timeout <ms>`
   bounds each runtime. The exit code is 1 when an upgrade failed or left the
   version unchanged, or when a runtime could not be probed. See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
+- `oar login <runtime>`: log a runtime in through its own login. It prints
+  the sign-in URL or device code and reads a pasted code from stdin, without
+  echoing it, when the runtime asks for one; Ctrl-C cancels. `--status` only
+  reports whether each runtime (or the named one) is logged in, `--json`
+  prints events, prompts and the result as JSON, `--timeout <ms>` bounds the
+  login. The exit code is 0 when logged in, 130 when cancelled, 1 otherwise. See [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
 - `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,
   any MCP client) can delegate tasks to other runtimes: `run` waits for a
   subagent's turn, `spawn` / `send` / `wait` work in parallel, and

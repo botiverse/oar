@@ -1,6 +1,8 @@
 import { runtimeBrands } from "../../brands.js";
 import { claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
+import { claudeAuthStatus } from "./auth-status.js";
+import { claudeLogin } from "./login.js";
 import { claudeAccountUsage } from "./account-usage.js";
 import { claudeInstallation } from "./installation.js";
 import { claudeListModels } from "./list-models.js";
@@ -19,6 +21,8 @@ export const claudeRuntime = defineRuntime({
   listModels: claudeListModels,
   checkUpdate: claudeCheckUpdate,
   upgrade: claudeUpgrade,
+  login: claudeLogin,
+  authStatus: claudeAuthStatus,
   session: claudeSession,
 });
 

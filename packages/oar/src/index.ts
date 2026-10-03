@@ -55,6 +55,17 @@ export type {
   UpgradeOptions,
   UpgradeResult,
 } from "./contracts/update.js";
+export type {
+  AuthStatus,
+  AuthStatusOptions,
+  AuthStatusReader,
+  LoginAccount,
+  LoginFailureReason,
+  LoginOptions,
+  LoginResult,
+  LoginUnsupportedReason,
+  RuntimeLogin,
+} from "./contracts/login.js";
 export type { Runtime } from "./contracts/runtime.js";
 export type {
   AdapterSession,
