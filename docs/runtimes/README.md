@@ -12,7 +12,7 @@ it is not an OAR backend or prospective consumer.
 
 ## Pages
 
-Daily maintenance: [version inventory and latest probe results](../../experiments/runtime-version-checks/2026-10-02.md).
+Daily maintenance: [version inventory and latest probe results](../../experiments/runtime-version-checks/2026-10-03.md).
 Run `pnpm tsx experiments/runtime-versions.ts` to compare stable releases
 with the installed CLIs and bundled Pi SDK before selecting live probes.
 

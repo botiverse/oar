@@ -9,7 +9,7 @@ the linked findings.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
-| `runtime-versions.ts` | Read-only stable release inventory of all seven runtimes against the detected CLIs and OAR's resolved Pi SDK; a version match is not a live compatibility result. | [daily reports][version-checks] | [2026-10-02] |
+| `runtime-versions.ts` | Read-only stable release inventory of all seven runtimes against the detected CLIs and OAR's resolved Pi SDK; a version match is not a live compatibility result. | [daily reports][version-checks] | [2026-10-03] |
 | `pi-upgrade-resume.ts <older-oar-checkout>` | A Pi session created in an older checkout resumes in a fresh process with this checkout; a scripted provider verifies the earlier user and assistant messages reach the new request, without login or model quota. | [report][2026-10-02] | 2026-10-02, SDK 0.99.2 to 1.0.0: same native id and saved model, new stream starts at seq 0 |
 | [`inventory/probe.py`](inventory/README.md) | Native skills, MCP and tools across five runtimes; query scopes, schemas and startup state. | [inventory] | 2026-09-16 |
 | [`native-read-survey.ts`](native-read-survey.ts) `[all\|codex\|claude] [cwd]` | Native config, MCP, skills/hooks/permissions, context, usage and inventory queries without model turns; field-only output. | [findings and limits](native-read-survey.md) | 2026-09-16, codex 0.154.0, claude 2.1.273 |
@@ -47,6 +47,7 @@ the linked findings.
 | `agents-api-sandbox-probe.ts [--model] [--skip S3,S6,H1]` | Agents API with an `openai_hosted` sandbox: environment event timing, `command_execution` items and output deltas, steer at a tool boundary, cancel of a running command, mid-turn reconnect, subagent command visibility, artifacts, the function-tool `requires_action` round trip, reasoning summaries, and a local `codex exec-server` as self-hosted executor. | [agents-api] | 2026-09-12, gpt-6-astra |
 | `agents-api-executor-probe.ts [--model]` | Agents API self-hosted executor lifecycle (no sandbox bill): input before any executor, executor SIGKILLed mid-command, replacement executor on the same environment id, session deleted with the executor connected, five completed-but-not-idle race posts. | [agents-api] | 2026-09-12, gpt-6-astra + codex 0.154.0 |
 
+[2026-10-03]: runtime-version-checks/2026-10-03.md
 [2026-10-02]: runtime-version-checks/2026-10-02.md
 [version-checks]: runtime-version-checks/
 [agents-api]: ../docs/runtimes/agents-api.md
