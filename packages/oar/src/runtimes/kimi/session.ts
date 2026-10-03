@@ -44,6 +44,9 @@ export const kimiAcpProfile: AcpSessionProfile = {
   // kimi-code f9ca33376 acp-server session.ts onTurnEnded: prompt answered
   // first, usage_update pushed afterwards from an un-awaited async task.
   usageUpdateAfterPrompt: true,
+  // A resume naming another directory ran in the session's own (2.1.1, probed
+  // 2026-10-03), so a resume elsewhere is refused (profile.ts).
+  resumeKeepsSessionCwd: true,
   configureSession: async ({ connection, sessionId, response, requestOptions }) => {
     if (supportsKimiYolo(response)) {
       await connection.agent.request(

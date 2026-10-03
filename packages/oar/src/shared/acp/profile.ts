@@ -9,6 +9,7 @@ import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, Tu
 import { asRecord, type JsonRecord } from "../json.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
+import { refuseResumeElsewhere } from "./resume-cwd.js";
 
 export { createUsageUpdateGate } from "./usage-wait.js";
 
@@ -33,6 +34,14 @@ export interface AcpSessionProfile {
    * `{}` and pushes nothing (agy_acp_server 1.2.1): only that answer reports the applied model.
    */
   readonly modelViaConfigOption?: boolean;
+  /**
+   * The agent resumes a session in the directory it was created in, whatever
+   * `cwd` the resume names (kimi 2.1.1, probed 2026-10-03: a resume naming B
+   * ran its shell as `cd <A> && …`). OAR reads the session's own directory
+   * from `session/list` and refuses a resume elsewhere, rather than let the
+   * session run where the host did not ask.
+   */
+  readonly resumeKeepsSessionCwd?: boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
   readonly validateOptions?: (options: SessionOptions) => void;
@@ -193,6 +202,9 @@ async function createOrResume(
   const timeoutMs = profile.requestTimeoutMs ?? 15_000;
   if (options.resume !== undefined) {
     const sessionId = options.resume;
+    if (profile.resumeKeepsSessionCwd === true && hasAcpCapability(sessionCapabilities?.list)) {
+      await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
+    }
     const params = { ...baseParams, sessionId };
     let method: typeof methods.agent.session.resume | typeof methods.agent.session.load | undefined =
       undefined;
