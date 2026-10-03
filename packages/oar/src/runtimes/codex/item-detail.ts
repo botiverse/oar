@@ -14,6 +14,8 @@ export function codexItemInput(item: JsonRecord): string | undefined {
       return item.arguments === undefined ? undefined : JSON.stringify(item.arguments);
     case "webSearch":
       return typeof item.query === "string" ? item.query : undefined;
+    case "sleep":
+      return typeof item.durationMs === "number" ? JSON.stringify({ durationMs: item.durationMs }) : undefined;
     default:
       return undefined;
   }

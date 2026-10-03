@@ -22,7 +22,9 @@ import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads }
  * recorded fixtures.
  */
 
-const TOOL_ITEM_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch"]);
+// `sleep` is the model waiting (`{durationMs}`, the wait it asked for; a steer
+// can end it early). It reports no status, so its end carries no result.
+const TOOL_ITEM_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch", "sleep"]);
 const COLLAB_ITEM_TYPES = new Set(["collabAgentToolCall", "collabToolCall", "subAgentActivity"]);
 
 export type ProjectionCommand =
