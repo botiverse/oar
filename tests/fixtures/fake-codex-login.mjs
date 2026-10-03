@@ -5,8 +5,10 @@
 // appended to `invocations`, so a test can tell `codex login` never ran.
 // Modes for account/login/start: "success", "failure" (codex reports the
 // code expired), "start_error" (the start request is refused), "crash" (the
-// app-server exits mid-login), "unverified" (success, then no account),
-// "hang" (starts a worker in its process group and never completes).
+// app-server exits mid-login, with a stderr tail), "unverified" (success,
+// then no account), "read_error" (success, then account/read fails), "early"
+// (the completion arrives before the start reply), "hang" (starts a worker in
+// its process group and never completes). `readDelayMs` delays account/read.
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -36,7 +38,14 @@ function loginStart(id, params) {
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
     save({ workerPid: worker.pid });
   }
-  send({ id, result: { type: "chatgptDeviceCode", loginId: "login-1", verificationUrl: "https://auth.openai.com/codex/device", userCode: "ABCD-EFGH" } });
+  const reply = { id, result: { type: "chatgptDeviceCode", loginId: "login-1", verificationUrl: "https://auth.openai.com/codex/device", userCode: "ABCD-EFGH" } };
+  if (state.mode === "early") {
+    save({ loggedIn: true });
+    send({ method: "account/login/completed", params: { loginId: "login-1", success: true, error: null } });
+    send(reply);
+    return;
+  }
+  send(reply);
   if (state.mode === "hang") {
     return;
   }
@@ -46,7 +55,7 @@ function loginStart(id, params) {
       process.exit(3);
     }
     const success = state.mode !== "failure";
-    if (state.mode === "success") {
+    if (state.mode === "success" || state.mode === "read_error") {
       save({ loggedIn: true });
     }
     send({ method: "account/login/completed", params: { loginId: "login-1", success, error: success ? null : "device code expired" } });
@@ -80,9 +89,13 @@ if (command === "--version") {
       send({ id: message.id, result: { userAgent: "fake-codex" } });
     } else if (message.method === "account/login/start") {
       loginStart(message.id, message.params);
+    } else if (message.method === "account/read" && state.mode === "read_error") {
+      send({ id: message.id, error: { code: -32_603, message: "failed to read the credential store" } });
     } else if (message.method === "account/read") {
       const account = state.loggedIn === true ? { type: "chatgpt", email: state.email, planType: "plus" } : null;
-      send({ id: message.id, result: { account, requiresOpenaiAuth: true } });
+      setTimeout(() => {
+        send({ id: message.id, result: { account, requiresOpenaiAuth: true } });
+      }, state.readDelayMs ?? 0);
     } else {
       send({ id: message.id, error: { code: -32_601, message: `method not found: ${message.method}` } });
     }

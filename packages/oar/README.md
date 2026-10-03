@@ -109,11 +109,11 @@ neither, their SDK versions following oar's (Pi's SDK is a dependency,
 Cursor's an exact peer dependency).
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
-`runtime.login(installation, interaction)` signs an installation in through
+`runtime.login(installation, interaction)` logs an installation in through
 the runtime's own login, without a terminal: the sign-in URL or device code
 arrives as a `ProviderLoginInteraction` event, and a code the person pastes
 back is answered through its `manual_code` prompt and written to the
-runtime's stdin only. It never signs the current account out first, and
+runtime's stdin only. It never logs the current account out first, and
 `interaction.signal` cancels it. `runtime.authStatus(installation)` reads the
 runtime's local status query. Claude and Codex have both; Antigravity's login
 is `unsupported` (its terms). See

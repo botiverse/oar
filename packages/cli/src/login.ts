@@ -1,14 +1,12 @@
-import { createInterface, type Interface } from "node:readline/promises";
 import type { Command } from "commander";
 import type {
   AuthStatus,
   InstallationSnapshot,
   LoginResult,
-  ProviderLoginEvent,
   ProviderLoginInteraction,
-  ProviderLoginPrompt,
   Runtime,
 } from "@botiverse/oar";
+import { terminalInteraction } from "./login-terminal.js";
 
 // Pure shapes of `oar login` output, so the action stays a print loop and the
 // mapping can be pinned by tests without running any login.
@@ -94,29 +92,14 @@ export function renderAuthStatus(report: AuthStatusReport): string {
     return `${runtimeId}\t${report.unsupported ?? "no status"}`;
   }
   switch (status.kind) {
-    case "signed_in":
-      return `${runtimeId}\tsigned in${accountLabel(status.account)}`;
-    case "signed_out":
-      return `${runtimeId}\tsigned out`;
+    case "logged_in":
+      return `${runtimeId}\tlogged in${accountLabel(status.account)}`;
+    case "logged_out":
+      return `${runtimeId}\tlogged out`;
     case "unknown":
       break;
   }
   return `${runtimeId}\tstatus unknown${status.detail === undefined ? "" : ` (${status.detail})`}`;
-}
-
-export function renderLoginEvent(event: ProviderLoginEvent): string[] {
-  switch (event.kind) {
-    case "auth_url":
-      return [event.instructions ?? "Open this URL to sign in:", `  ${event.url}`];
-    case "device_code":
-      return [
-        `Open ${event.verificationUri} and enter this code${event.expiresInSeconds === undefined ? "" : ` (expires in ${String(event.expiresInSeconds)} s)`}:`,
-        `  ${event.userCode}`,
-      ];
-    case "info":
-      break;
-  }
-  return [event.message];
 }
 
 export function renderLoginReport(report: LoginReport): string {
@@ -132,7 +115,7 @@ export function renderLoginReport(report: LoginReport): string {
   }
   switch (result.kind) {
     case "logged_in":
-      return `${runtimeId}\tsigned in${accountLabel(result.account)}`;
+      return `${runtimeId}\tlogged in${accountLabel(result.account)}`;
     case "cancelled":
       return `${runtimeId}\tlogin cancelled`;
     case "failed":
@@ -143,7 +126,7 @@ export function renderLoginReport(report: LoginReport): string {
   return `${runtimeId}\tlogin unsupported: ${result.reason}${result.detail === undefined ? "" : ` (${result.detail})`}`;
 }
 
-/** 0 signed in, 130 cancelled (as for Ctrl-C), 1 otherwise. */
+/** 0 logged in, 130 cancelled (as for Ctrl-C), 1 otherwise. */
 export function loginExitCode(report: LoginReport): number {
   if (report.result?.kind === "logged_in") {
     return 0;
@@ -151,91 +134,12 @@ export function loginExitCode(report: LoginReport): number {
   return report.result?.kind === "cancelled" ? 130 : 1;
 }
 
-function promptText(prompt: ProviderLoginPrompt): string {
-  if (prompt.kind !== "select") {
-    return `${prompt.message}${prompt.placeholder === undefined ? "" : ` (${prompt.placeholder})`}: `;
-  }
-  const options = prompt.options.map((option, index) => `  ${String(index + 1)}. ${option.label}${option.description === undefined ? "" : ` - ${option.description}`}`);
-  return `${[prompt.message, ...options].join("\n")}\nChoose a number: `;
-}
-
-/** A select answer is an option id; a person types its number or the id itself. */
-export function selectAnswer(prompt: ProviderLoginPrompt, typed: string): string {
-  if (prompt.kind !== "select") {
-    return typed;
-  }
-  const answer = typed.trim();
-  return prompt.options[Number(answer) - 1]?.id ?? answer;
-}
-
-interface TerminalInteraction extends ProviderLoginInteraction {
-  close(): void;
-}
-
-function write(text: string): void {
-  process.stdout.write(text);
-}
-
-/** Events and prompts on the terminal; Ctrl-C aborts. With `json`, events and prompts are JSON lines on stdout. */
-function terminalInteraction(abort: AbortController, json: boolean): TerminalInteraction {
-  let lines: Interface | null = null;
-  // Input that ends (a closed pipe, Ctrl-D) fails the open prompt instead of leaving the login waiting.
-  let ended = false;
-  let onEnd: (() => void) | null = null;
-  const open = (): Interface => {
-    if (lines === null) {
-      lines = createInterface({ input: process.stdin, output: json ? process.stderr : process.stdout });
-      // While it reads a terminal, Ctrl-C arrives as this event rather than a signal.
-      lines.on("SIGINT", () => {
-        abort.abort();
-      });
-      lines.on("close", () => {
-        ended = true;
-        onEnd?.();
-      });
-    }
-    return lines;
-  };
-  return {
-    signal: abort.signal,
-    onEvent(event) {
-      write(json ? `${JSON.stringify({ event })}\n` : `${renderLoginEvent(event).join("\n")}\n`);
-    },
-    async prompt(prompt) {
-      if (json) {
-        write(`${JSON.stringify({ prompt })}\n`);
-      }
-      const reader = open();
-      if (ended) {
-        throw new Error("input ended before an answer");
-      }
-      const end = Promise.withResolvers<string>();
-      onEnd = (): void => {
-        end.reject(new Error("input ended before an answer"));
-      };
-      try {
-        const typed = await Promise.race([reader.question(json ? "" : promptText(prompt), { signal: abort.signal }), end.promise]);
-        if (!json && !process.stdin.isTTY) {
-          // Piped input is not echoed; end the prompt's line anyway.
-          write("\n");
-        }
-        return selectAnswer(prompt, typed);
-      } finally {
-        onEnd = null;
-      }
-    },
-    close() {
-      lines?.close();
-    },
-  };
-}
-
 /** `oar login [runtime]`: sign a runtime in through its own login; `--status` only reports. */
 export function registerLoginCommand(program: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
   program
     .command("login [runtime]")
-    .description("Sign a runtime in through its own login; --status only reports whether each is signed in")
-    .option("--status", "report whether each runtime is signed in, change nothing")
+    .description("Log a runtime in through its own login; --status only reports whether each is logged in")
+    .option("--status", "report whether each runtime is logged in, change nothing")
     .option("--json", "print events, prompts and the result as JSON lines")
     .option("--timeout <ms>", "bound for the login (or each status query) in milliseconds")
     .action(async (id: string | undefined, flags: { status?: boolean; json?: boolean; timeout?: string }) => {

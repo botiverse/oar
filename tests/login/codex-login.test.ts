@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, expect, test } from "vitest";
+import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { codexAuthStatus, codexLogin } from "../../packages/oar/src/runtimes/codex/login.js";
 import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
@@ -66,13 +66,9 @@ test("the device code and its URL are relayed, and account/read names the accoun
   assert.deepEqual(fake.read().invocations, ["app-server --listen stdio://"]);
 });
 
-test("codex's own failure, a refused start and an app-server crash are reported apart", async () => {
-  const results = [];
-  for (const mode of ["failure", "start_error", "crash", "unverified"]) {
-    const fake = fakeCodex({ mode });
-    // oxlint-disable-next-line eslint/no-await-in-loop -- one codex login at a time, as the driver enforces
-    results.push(await codexLogin(installation(fake), recordedInteraction([])));
-  }
+test("codex's own failure, a refused start, an app-server crash and an unconfirmed success are reported apart", async () => {
+  const modes = ["failure", "start_error", "crash", "unverified"];
+  const results = await Promise.all(modes.map(async (mode) => codexLogin(installation(fakeCodex({ mode })), recordedInteraction([]))));
   expect(results).toMatchInlineSnapshot(`
     [
       {
@@ -86,20 +82,87 @@ test("codex's own failure, a refused start and an app-server crash are reported 
         "reason": "rejected",
       },
       {
-        "detail": "codex app-server exited before the sign-in completed",
+        "detail": "codex app-server exited with code 3 before the sign-in completed",
         "kind": "failed",
         "reason": "process_failed",
       },
       {
         "detail": "codex reported success, yet account/read shows no account",
         "kind": "failed",
-        "reason": "not_signed_in",
+        "reason": "not_logged_in",
       },
     ]
   `);
 });
 
-test.skipIf(process.platform === "win32")("past the deadline the app-server is stopped with everything it started", async () => {
+test("the app-server's stderr reaches neither the host's stderr nor the result", async () => {
+  vi.stubEnv("OAR_CHILD_STDERR", "inherit");
+  const write = vi.spyOn(process.stderr, "write");
+  try {
+    const result = await codexLogin(installation(fakeCodex({ mode: "crash" })), recordedInteraction([]));
+    assert.ok(!JSON.stringify(result).includes("panicked"), JSON.stringify(result));
+    const forwarded = write.mock.calls.map(([chunk]) => String(chunk)).join("");
+    assert.ok(!forwarded.includes("panicked"), forwarded);
+  } finally {
+    write.mockRestore();
+    vi.unstubAllEnvs();
+  }
+});
+
+test("once codex reports success the login stands: an account/read that fails, a completion before the start reply", async () => {
+  const results = await Promise.all(["read_error", "early"].map(async (mode) => codexLogin(installation(fakeCodex({ mode })), recordedInteraction([]))));
+  expect(results).toMatchInlineSnapshot(`
+    [
+      {
+        "kind": "logged_in",
+      },
+      {
+        "account": {
+          "email": "user@example.com",
+          "method": "chatgpt",
+          "plan": "plus",
+        },
+        "kind": "logged_in",
+      },
+    ]
+  `);
+});
+
+test("a deadline after codex reported success is not a timeout: account/read still names the account", async () => {
+  const result = await codexLogin(installation(fakeCodex({ readDelayMs: 1500 })), recordedInteraction([]), { timeoutMs: 1000 });
+  expect(result).toMatchInlineSnapshot(`
+    {
+      "account": {
+        "email": "user@example.com",
+        "method": "chatgpt",
+        "plan": "plus",
+      },
+      "kind": "logged_in",
+    }
+  `);
+});
+
+test("an abort after codex reported success is not a cancel, and stops waiting for account/read", async () => {
+  const abort = new AbortController();
+  const interaction = recordedInteraction([], { signal: abort.signal });
+  const result = await codexLogin(installation(fakeCodex({ readDelayMs: 60_000 })), {
+    ...interaction,
+    onEvent(event) {
+      interaction.onEvent(event);
+      setTimeout(() => {
+        abort.abort();
+      }, 500);
+    },
+  });
+  assert.deepEqual(result, { kind: "logged_in" });
+});
+
+test("a command that cannot be spawned fails at once", async () => {
+  const result = await codexLogin({ kind: "available", via: "executable", command: "invalid\0binary", version: "codex-cli 0.160.0" }, recordedInteraction([]));
+  assert.equal(result.kind === "failed" ? result.reason : result.kind, "process_failed");
+});
+
+test("past the deadline the app-server is stopped with everything it started", async () => {
   const fake = fakeCodex({ mode: "hang" });
   const result = await codexLogin(installation(fake), recordedInteraction([]), { timeoutMs: 1000 });
   assert.deepEqual(result, { kind: "failed", reason: "timed_out", detail: "no sign-in within 1000 ms" });
@@ -107,7 +170,7 @@ test.skipIf(process.platform === "win32")("past the deadline the app-server is s
   assert.ok(await gone(reportedPid(fake, "workerPid")), "a process the app-server started outlived the deadline");
 });
 
-test.skipIf(process.platform === "win32")("aborting the signal cancels the login and stops the app-server's process group", async () => {
+test("aborting the signal cancels the login and stops the app-server's process group (its tree on Windows)", async () => {
   const fake = fakeCodex({ mode: "hang" });
   const abort = new AbortController();
   const interaction = recordedInteraction([], { signal: abort.signal });
@@ -143,11 +206,11 @@ test("auth status reads codex login status", async () => {
         "account": {
           "method": "chatgpt",
         },
-        "kind": "signed_in",
+        "kind": "logged_in",
         "source": "codex login status",
       },
       {
-        "kind": "signed_out",
+        "kind": "logged_out",
         "source": "codex login status",
       },
       {

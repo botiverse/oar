@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
-import { exclusiveLogin, LoginSecrets, loginExecutable, stripTerminalEscapes } from "../../packages/oar/src/shared/login.js";
+import { LoginSecrets, loginExecutable, stripTerminalEscapes } from "../../packages/oar/src/shared/login.js";
 
 const ESC = "\u001B";
 const BEL = "\u0007";
@@ -25,24 +25,7 @@ test("redaction removes pasted values and token shapes, longest first, and bound
   expect(secrets.redact(`code pasted-authorization-code#state, again pasted-authorization-code; key sk-ant-oat01-abcdefghijklmnopqrstuvwxyz; jwt ${jwt}; #`))
     .toMatchInlineSnapshot(`"code [redacted], again [redacted]; key [redacted]; jwt [redacted]; #"`);
   assert.equal(secrets.redact("x".repeat(600)).length, 503);
-});
-
-test("one login per key at a time", async () => {
-  const { promise, resolve } = Promise.withResolvers<void>();
-  const first = exclusiveLogin("fixture", async () => {
-    await promise;
-    return { kind: "cancelled" };
-  });
-  assert.deepEqual(await exclusiveLogin("fixture", async () => {
-    await Promise.resolve();
-    return { kind: "logged_in" };
-  }), { kind: "failed", reason: "busy", detail: "a fixture login is already running" });
-  resolve();
-  assert.deepEqual(await first, { kind: "cancelled" });
-  assert.deepEqual(await exclusiveLogin("fixture", async () => {
-    await Promise.resolve();
-    return { kind: "logged_in" };
-  }), { kind: "logged_in" });
+  assert.equal(secrets.line("\n  fatal: pasted-authorization-code rejected\nat stack frame\n"), "fatal: [redacted] rejected");
 });
 
 test("a bundled runtime has no login to drive, and an unreadable version is tried", () => {

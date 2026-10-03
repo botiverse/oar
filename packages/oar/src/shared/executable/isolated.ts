@@ -1,6 +1,6 @@
-import { execFile, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
-import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup } from "./process.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./process.js";
 
 export interface IsolatedResult {
   readonly exitCode: number | null;
@@ -25,9 +25,7 @@ function keepTail(text: string): string {
 /** Stop the command and everything it started: its process group on POSIX, its process tree on Windows. */
 function stopTree(child: ChildProcess): void {
   if (process.platform === "win32") {
-    if (child.pid !== undefined) {
-      execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], () => {});
-    }
+    killProcessTree(child);
     return;
   }
   signalProcessGroup(child, "SIGTERM");

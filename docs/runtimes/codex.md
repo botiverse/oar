@@ -559,7 +559,8 @@ earlier Windows failures.
 its last 8 KiB. When the app-server exits, pending and later RPC calls fail
 with its exit code, signal, any native spawn error and the stderr tail seen
 by then, in the exception's message and cause; the `exited` record keeps its
-shape. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's. A host
+shape. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's (never
+for a [login](#login)'s app-server). A host
 can tell a missing executable from a native crash; OAR makes no automatic
 retry decision
 ([exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
@@ -591,21 +592,27 @@ ChatGPT device code flow on its own app-server process: `initialize`, then
 `{ loginId, verificationUrl, userCode }` [schema 0.160.0], relayed as one
 `device_code` event plus an `info` event on the account setting below. The
 app-server polls by itself and ends with the `account/login/completed`
-notification (`success`, `error`); OAR then reads `account/read` for the
-account (`email`, `planType`, `type`) and confirms a sign-in only when it
-names one. The device code expires after 15 minutes; OAR's deadline is 16, so
+notification (`success`, `error`); a completion read before the start reply
+waits for its login id. After a success OAR reads `account/read` for the
+account (`email`, `planType`, `type`): no account is `failed` /
+`not_logged_in`, and a read that fails, or a deadline or abort after the
+success, is `logged_in` without an account, since codex has already stored
+the login. The device code expires after 15 minutes; OAR's deadline is 16, so
 codex reports the expiry itself. Cancelling or the deadline stops the
-app-server with its process group, which ends its polling. `chatgptDeviceCode`
-arrived in 0.118.0, so an older codex is `unsupported` /
-`version_unsupported`.
+app-server with its process group on POSIX and its process tree on Windows
+(an npm install runs it under a `cmd.exe` shim), which ends its polling. The
+login's app-server never forwards its stderr, `OAR_CHILD_STDERR=inherit`
+notwithstanding, and a failure `detail` is codex's one-line error or the exit
+code, never the stderr tail. `chatgptDeviceCode` arrived in 0.118.0, so an
+older codex is `unsupported` / `version_unsupported`.
 
 The app-server writes the credential store only after the new tokens are
 exchanged and the workspace check passes (`complete_device_code_login`, then
 `persist_tokens_async`); a failure, a cancel or the expiry leaves the stored
-sign-in untouched. OAR never runs `codex login`: its browser and device code
-flows call `clear_existing_auth_before_login`, which signs out and revokes
-the current tokens before the new sign-in completes, so a failed or abandoned
-login would leave the user signed out [src `openai/codex` b741e480,
+login untouched. OAR never runs `codex login`: its browser and device code
+flows call `clear_existing_auth_before_login`, which logs out and revokes
+the current tokens before the new login completes, so a failed or abandoned
+login would leave the user logged out [src `openai/codex` b741e480,
 `app-server/src/request_processors/account_processor.rs`,
 `login/src/device_code_auth.rs`, `cli/src/login.rs`]. Its browser flow also
 listens on `127.0.0.1:1455`, which a phone cannot reach.
@@ -614,9 +621,9 @@ Device code sign-in must first be allowed in the ChatGPT account's security
 settings, or by an admin for a workspace account, and is still in beta
 [doc]; when it is not, codex's own error comes back as `failed` /
 `rejected`. `authStatus` runs `codex login status`, which reads the local
-credential store without a request: exit 0 signed in (`Logged in using
+credential store without a request: exit 0 logged in (`Logged in using
 ChatGPT` or `... an API key`, read as the `method`; the masked key is never
-read), exit 1 with `Not logged in` signed out, anything else (an unreadable
+read), exit 1 with `Not logged in` logged out, anything else (an unreadable
 configuration) `unknown`. Verified against a fake app-server that answers
 with the 0.160.0 shapes ([tests](../../tests/login/codex-login.test.ts)); a
 real login through OAR is not yet recorded.

@@ -1,4 +1,4 @@
-import { spawnLineProcess } from "../../shared/executable/index.js";
+import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { coordinateHomeInitialization } from "./home-initialization.js";
@@ -57,15 +57,19 @@ interface Pending {
   settled(outcome: RpcOutcome): void;
 }
 
+/** How the app-server process is handled: whether its stderr may reach the host's, and whether a kill takes its Windows process tree. */
+export type AppServerProcessOptions = Pick<LineProcessOptions, "inheritStderr" | "killTree">;
+
 export function startAppServerClient(
   command: string,
   env?: Readonly<Record<string, string>>,
   configOverrides: Readonly<Record<string, string>> = {},
   cwd?: string,
+  processOptions: AppServerProcessOptions = {},
 ): AppServerClient {
   const environment = { ...process.env, ...env };
   const directory = cwd ?? process.cwd();
-  return coordinateHomeInitialization(environment, directory, () => createAppServerClient(command, environment, configOverrides, directory));
+  return coordinateHomeInitialization(environment, directory, () => createAppServerClient(command, environment, configOverrides, directory, processOptions));
 }
 
 function createAppServerClient(
@@ -73,6 +77,7 @@ function createAppServerClient(
   env: NodeJS.ProcessEnv,
   configOverrides: Readonly<Record<string, string>>,
   cwd: string,
+  processOptions: AppServerProcessOptions,
 ): AppServerClient {
   // -c KEY=VALUE injects config at launch. This is the ONLY seam that reaches
   // codex's exec tool: thread/start.sandboxMode does not (pinned on a real
@@ -81,7 +86,7 @@ function createAppServerClient(
   const child = spawnLineProcess(
     command,
     ["app-server", ...overrideArgs, "--listen", "stdio://"],
-    { cwd, env },
+    { cwd, env, ...processOptions },
   );
   // Session initialization observes spawn failures through its pending RPC.
   // Mark this parallel promise handled while preserving its rejection for
