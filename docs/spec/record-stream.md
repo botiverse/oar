@@ -120,9 +120,9 @@ Further rules:
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.
   `exitCode` follows the same rule for the process status of a command the
-  runtime ran: present only when the runtime reported one (codex, grok),
-  `null` when it reported a signal exit, absent otherwise (claude and pi
-  report none).
+  runtime ran: present only when the runtime reported one (codex, grok,
+  cursor), `null` when it reported a signal exit, absent otherwise (claude
+  and pi report none).
 - **A tool result is its parts.** `tool_call_ended.content` is the result
   as the runtime reported it, in its order: `{type: "text", text}`,
   `{type: "image", mediaType, data}` (base64, normalized from Anthropic
@@ -283,7 +283,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi): the
   current value of the config option in ACP's `thought_level` category, in
   a handshake answer or a `config_option_update`; pi: `thinkingLevel` on
-  `pi/session_opened` and pi's `thinking_level_changed`. claude never: its
+  `pi/session_opened` and pi's `thinking_level_changed`; cursor: the
+  reasoning parameter in the SDK's model selection at open and in each
+  run's answer, which the SDK passes through unchecked (codex's case: OAR
+  checks the level against the model's menu first). claude never: its
   stream names no level, and its one report (`get_settings`) is read at open
   but not recorded, since it also dumps the user's merged settings. A
   requested `SessionOptions.effort` is never an event of its own: what the

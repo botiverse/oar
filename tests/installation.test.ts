@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
-import {
-  cursorInstallation,
-  cursorInstalledExecutableCandidates,
-} from "../packages/oar/src/runtimes/cursor/installation.js";
+import { cursorInstallation, cursorInstallationFor } from "../packages/oar/src/runtimes/cursor/installation.js";
 import {
   grokInstallation,
   grokInstalledExecutableCandidates,
@@ -122,13 +119,6 @@ test("a pinned env var does not evaluate fallback factories", async () => {
   });
 });
 
-test("cursor candidates match the official installer's link", () => {
-  assert.deepEqual(cursorInstalledExecutableCandidates("linux", "/home/oar"), [
-    "/home/oar/.local/bin/cursor-agent",
-  ]);
-  assert.deepEqual(cursorInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`), []);
-});
-
 test("grok candidates match the official script and npm layouts", () => {
   assert.deepEqual(
     grokInstalledExecutableCandidates("linux", "/home/oar", {
@@ -218,13 +208,7 @@ test("claude and codex probe through their pin env vars", async () => {
   assert.deepEqual(codex, { kind: "unsupported", reason: "app-server --help failed" });
 });
 
-test("cursor, grok and kimi gate their ACP entrypoints", async () => {
-  const cursor = await withEnv(
-    { OAR_CURSOR_BIN: process.execPath },
-    async () => cursorInstallation(),
-  );
-  assert.deepEqual(cursor, { kind: "unsupported", reason: "acp --help failed" });
-
+test("grok and kimi gate their ACP entrypoints", async () => {
   const grok = await withEnv(
     { OAR_GROK_BIN: process.execPath },
     async () => grokInstallation(),
@@ -241,4 +225,18 @@ test("cursor, grok and kimi gate their ACP entrypoints", async () => {
 test("pi installation reports a versionless bundled availability", async () => {
   const snapshot = await piInstallation();
   assert.deepEqual(snapshot, { kind: "available", via: "bundled" });
+});
+
+const resolves = (found: boolean) => async (): Promise<boolean> => {
+  await Promise.resolve();
+  return found;
+};
+
+test("cursor is the bundled SDK, where its native package exists", async () => {
+  assert.deepEqual(await cursorInstallation(), { kind: "available", via: "bundled" });
+  assert.deepEqual(await cursorInstallationFor("win32", "arm64", resolves(true))(), {
+    kind: "unsupported",
+    reason: "@cursor/sdk has no native package for win32-arm64",
+  });
+  assert.deepEqual(await cursorInstallationFor("linux", "x64", resolves(false))(), { kind: "not_found" });
 });

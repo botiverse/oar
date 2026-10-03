@@ -6,13 +6,12 @@ import { parseJson } from "./json.js";
 
 export const CHECK_TIMEOUT_MS = 20_000;
 const UPGRADE_TIMEOUT_MS = 600_000;
-/** The slowest installation probes (cursor, kimi) allow 30 s for `--version`; a kimi start after an upgrade also swaps the staged binary in. */
+/** The slowest installation probe (kimi) allows 30 s for `--version`; a kimi start after an upgrade also swaps the staged binary in. */
 const VERSION_TIMEOUT_MS = 30_000;
 
-/** The release version inside a `--version` line or release pointer: a cursor date build or a semver. */
+/** The release version inside a `--version` line or release pointer: a semver. */
 export function releaseVersion(text: string): string | undefined {
-  return /\b\d{4}\.\d{2}\.\d{2}-[\da-f]+\b/u.exec(text)?.[0]
-    ?? /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u.exec(text)?.[0];
+  return /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u.exec(text)?.[0];
 }
 
 function numericParts(value: string): number[] {

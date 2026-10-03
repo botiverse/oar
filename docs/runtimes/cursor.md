@@ -3,297 +3,260 @@
 Independent inventories: not implemented for Cursor yet.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
-Evidence baseline: **cursor-agent 2026.09.28-64d2043** (the Cursor CLI from
-the official installer, linux x64, model `gpt-5.4-nano`) on 2026-09-29
-through [`experiments/live-contract.ts cursor`](../../experiments/live-contract.ts):
-13/13, with the `subagent` scenario run under the subagent opt-in (nested, one
-edge); scenario names appear in parentheses below. On **2026.10.01-e373342**
-(2026-10-02) `basic` and `tool-detail` passed; the other scenarios were not
-rerun ([version check](../../experiments/runtime-version-checks/2026-10-02.md)).
-The CLI ships as a bundled JavaScript application with no public source, so
-statements about native behavior beyond the wire come from its installed
-bundle and are marked as such. Versions are evidence baselines, not a support
-range; see the [runtime index](README.md) for status conventions.
+Evidence baseline: **`@cursor/sdk` 1.0.35** (Cursor's official TypeScript
+SDK, linux x64, model `gpt-5.4-nano`) on 2026-10-03 through
+[`experiments/live-contract.ts cursor`](../../experiments/live-contract.ts):
+12 of 12 run scenarios pass, `kill-runtime` is skipped (no process of its
+own); scenario names appear in parentheses below. Statements marked "probed"
+come from direct SDK probes the same day (models `composer-2.5` and
+`gpt-5.4-mini`). The SDK ships compiled, with no public source, so behavior
+beyond its types comes from those probes and its installed bundle, marked as
+such. Versions are evidence baselines, not a support range; see the
+[runtime index](README.md) for status conventions.
 
 ## Native concepts and calling interfaces
 
-A native session is a persistent chat with an id, a working directory, a
-mode (`agent`, `plan`, `ask`), and a model with per-model parameters. Chats
-are stored under `~/.cursor/` (`chats/`, `acp-sessions/`); a child agent
-started through the Task tool is its own native session with its own id.
+The SDK runs Cursor's agent inside the calling process, locally or as a cloud
+agent; OAR uses the local runtime. A local **agent** (`agent-<uuid>`) is a
+persistent conversation bound to a working directory and stored under
+`~/.cursor/projects/<cwd>/` (`sdk-agent-store`, `agent-transcripts`). Each
+`agent.send` starts a **run** (`run-<uuid>`), the agent loop until it ends:
+`run.wait()` answers with its status (`finished`, `error`, `cancelled`), its
+model and token usage; `run.steer(text)` adds input mid run; `run.cancel()`
+stops it. Progress arrives through `send(…, { onDelta })` as updates, each a
+record with a `type`; `run.stream()` offers a coarser message view of the
+same run. An agent takes one run at a time: a second `send` while one runs is
+refused (`already has active run`, probed).
 
-The CLI (`cursor-agent`, also linked as `agent`) offers the terminal
-application, a print mode (`-p` with `--output-format stream-json`), and a
-hidden `acp` subcommand that speaks ACP JSON-RPC over stdio. Print mode is a
-one-shot stream with no control channel while a turn runs; ACP is the only
-surface with prompt, cancel, load and reverse requests on one connection.
-OAR uses `cursor-agent --force acp`.
+The credential is `CURSOR_API_KEY`, or the key `Cursor.auth.login()` mints
+and stores in `~/.cursor/sdk/auth.json`. It is separate from the Cursor CLI's
+login and from the editor's.
 
 ## High-level mapping to OAR
 
 OAR exposes one ordered record stream per Session
-([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
+([contract](../../packages/oar/src/contracts/session.ts)). Every update is
 recorded verbatim as a frame's `native`; the cross-runtime `events` are what
 OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `cursor-agent` executable | One `cursor-agent --force acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record. |
-| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through `session/load`, which replays history onto the new stream. |
-| Handshake answers and opening pushes | Answers are Frame records with `model` and `effort` events where they report one; pushes are recorded in arrival order. `Session.model()` and `effort()` are folds over the stream. |
-| Native agent and turn | Every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier `nested`: with the subagent opt-in each child speaks under its own session id and is linked to the parent. |
-| Prompt, steer, queue and cancel | A turn is one `session/prompt` RPC, its answer carrying `turn_ended`. No steer; `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
-| Typed events, history and child graph | Events for message, thought, tool and model updates; unknown kinds are recorded with no events. No usage, compaction or retry frame arrives. Two vendor subagent updates are carried past the SDK and add the graph edge. |
-| Client execution and interaction duties | Cursor runs its own tools; its five vendor requests are recorded and refused with `-32601`. |
+| `@cursor/sdk` package | A dependency of `@botiverse/oar`, loaded on first use; the agent runs in the host process. |
+| Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
+| Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
+| Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
+| Updates | One frame per update; a subagent's updates arrive inside its `task` call and are attributed to it (`agentPath`, tier `attributed`). |
+| Steer, queue, abort | `run.steer`; an adapter-held queue sent as the next run; `run.cancel`. |
 
-Sources: [Cursor profile](../../packages/oar/src/runtimes/cursor/session.ts),
-[vendor update carrier](../../packages/oar/src/shared/acp/vendor-updates.ts),
-[ACP opening path](../../packages/oar/src/shared/acp/profile.ts),
-[session controller](../../packages/oar/src/shared/acp/session.ts),
-[record placement](../../packages/oar/src/shared/acp/records.ts),
-[turn machinery](../../packages/oar/src/shared/acp/turns.ts),
-[event projection](../../packages/oar/src/shared/acp/projection.ts),
-[client app](../../packages/oar/src/shared/acp/client-app.ts).
+Sources: [session](../../packages/oar/src/runtimes/cursor/session.ts),
+[projection](../../packages/oar/src/runtimes/cursor/projection.ts),
+[model selection](../../packages/oar/src/runtimes/cursor/model.ts),
+[SDK surface](../../packages/oar/src/runtimes/cursor/sdk.ts).
 
 ## Capability details
 
 ### Session creation and resume
 
-**What the runtime advertises (2026.09.28):** `initialize` answers
-`loadSession: true`, `sessionCapabilities` with `list` only (no `resume`, no
-`close`), `promptCapabilities` image (no audio, no embeddedContext),
-`mcpCapabilities` http + sse, and one auth method `cursor_login` ("Cursor
-Login": reuse existing credentials, run `agent login` first). `session/new`
-answers `sessionId`, `modes` (`agent`, `plan`, `ask`; current `agent`),
-`models`, and `configOptions`: `mode`, `model`, and the current model's
-parameters, each its own select option (`model_config` for context size and
-fast, `thought_level` for the reasoning one, whose id is `effort`,
-`reasoning`, `reasoning_effort` or `thinking` depending on the model).
+**Mapped:** a new session is `Agent.create({ model, local: { cwd,
+sandboxOptions: { enabled: false } } })`. A local agent must have a model, so
+without `SessionOptions.model` OAR opens `default`, the catalog's Auto entry.
+The SDK checks the model id against `Cursor.models.list()` and resolves an
+alias to its catalog id (`composer` opens as `composer-2.5`); an unknown id
+rejects the open with the SDK's `Cannot use this model: <id>. Available
+models: …` (`bad-model`). Opening writes one `cursor/agent_opened` frame with
+the SDK's `agentId` and model selection, read as `model` (and `effort`)
+events.
 
-**Mapped:** OAR launches `cursor-agent --force acp`. `--force` (alias
-`--yolo`) is a root option, so it precedes the hidden subcommand; it runs
-commands without asking, so there is no yolo mode to select. Initialize
-declares `fs` read/write `false`, `terminal: true`, `clientInfo` `oar`, and
-`_meta` `{parameterizedModelPicker: true, subagents: true}`. Without the
-picker flag cursor answers in its "variants" picker mode, where every model
-and effort pair is one flat `model` value and no `thought_level` option
-exists; without `subagents` a child is visible only as the parent's `task`
-tool call. OAR selects `cursor_login`, passes `mcpServers: []`, and applies a
-requested model through `session/set_config_option {configId: "model"}`: the
-`session/set_model` answer is `{}` and cursor never pushes
-`config_option_update`, so only the config option answer reports the switch.
-Every opening request has a 30 second deadline; spawn, auth and creation
-failures reject session construction with the process killed. The opening
-stream is five records: `initialize`, `authenticate` (`{}`), `session/new`
-(model event), `available_commands_update` (the slash commands), and the
-`session/set_config_option` answer (`model` and `effort` events, e.g.
-`gpt-5.4-nano` at `medium`). Opening takes about 4.5 s (`basic`). Credentials
-and persisted sessions must be accessible under the subprocess's `HOME`.
+**Resume (mapped):** `Agent.resume(agentId, …)` with the same `cwd`; an
+agent is found only under the directory it was created in (`AgentNotFoundError`
+otherwise, probed). The resumed stream starts at seq 0 with only the
+`cursor/agent_opened` frame: the SDK replays no history. A resumed agent does
+not restore its own model (a `send` without one is refused, probed), so
+without `SessionOptions.model` OAR reopens with the model of the agent's
+latest run (`Agent.listRuns`), or `default` when it has none. The next prompt
+recalls what was taught before disposal (`resume`).
 
-**Resume (mapped):** OAR resumes through
-`session/load { sessionId, cwd, mcpServers }`. Cursor replays the chat as
-standard updates around the answer: live, the earlier prompt arrived as a
-`user_message_chunk` before the `session/load` answer and the earlier reply as
-an `agent_message_chunk` after it, both under the same session id. OAR records
-the replay in arrival order, so a resumed stream (seq 0) opens with the
-history before `available_commands_update` and the model switch; the replayed
-`agent_message_chunk` carries a `text_delta` event outside any turn.
-`Session.id` is the earlier id, and the next prompt recalls what was taught
-before disposal (`resume` scenario: a codeword).
+The agent's store holds its last run as active until the agent object that
+started that run ends it. After a process that died mid run, or a session
+closed before its first prompt, every `send` on the resumed agent is refused
+`already has active run` (probed). The first send after a resume therefore
+passes the SDK's `local.force`, which takes the agent over; with it the
+same agent answered normally (probed). Arbitrating one agent between two
+live processes is the host's, as for every runtime.
 
 ```ts
 const resumed = await cursorRuntime.session(installation, {
-  cwd,
-  resume: previousSessionId, // Exact earlier Session.id.
+  cwd, // The directory the agent was created in.
+  resume: previousSessionId, // agent-<uuid>
 });
-const next = resumed.prompt("Continue");
 ```
 
-Unknown ids, concurrent same-id controllers, and continuing in-flight work
-across OAR subprocesses are **unverified**. Native `session/list` is
-advertised; OAR does not expose it.
+Sessions of the earlier cursor-agent adapter (bare UUIDs) are not SDK agents
+and cannot be resumed.
 
 ### Prompt, steering, queueing, and abort
 
-**Prompt (mapped):** `prompt(string)` records a prompt request answered
-`accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
-`busy-and-late-control`; `runtime_exited` once the process is gone). The RPC
-answer is recorded as frame `session/prompt` with the `turn_ended` event.
-Cursor pushes a `session_info_update` (the chat title) shortly after the first
-prompt of a session. `InputOptions.images` go as ACP `image` blocks before the
-text, since `initialize` advertises `promptCapabilities.image`; delivery to
-cursor's model was probed live (cursor-agent 2026.05.09-0afadcc, 2026-09-29):
-asked for the color of a plain green PNG named `probe.png`, it answered
-`green`.
+**Prompt (mapped):** `prompt()` is one `agent.send`, answered `accepted`
+(with the `runId` as `native`) once the SDK returns the run, `rejected busy`
+during a turn (`busy-and-late-control`), and `runtime_refused` with the SDK's
+message when `send` throws, or after 60 seconds without a run (a cold start
+took about four seconds). A run the SDK returns after that, or after a
+dispose, is cancelled, and its end is still recorded. `InputOptions.images` go as the SDK's image
+content (`{ data, mimeType }`); asked for the color of a plain red PNG, the
+model answered `Red` (probed).
 
-**Steer (not available on this transport):** ACP has no steer method, so
-`steer()` is always `rejected` (`unsupported`, reason `not_steerable: runtime
-cannot inject into an active turn`) and `capabilities.steer` is false
-(`steer`). `steerOrQueue()` therefore lands `queued`.
+**Steer (mapped):** `steer()` is `run.steer(text)`, which settles once the
+agent has taken the text (`complete_delivered`, the `accepted` answer's
+`native.ack`) or handed it back (`revert_to_followup`, `rejected
+runtime_refused`, the caller keeps the input). A steer the run ends without
+taking is rejected the same way. The delivered text is echoed as a
+`user-message-appended` update, read as a `user_message` event with evidence
+`conversation` and no input id: the echo carries only the text. With a
+foreground shell command running, a steer moves that command to the
+background (its call ends at once with empty output) and the model polls it
+afterwards (probed); the steered text landed in the same turn (`steer`).
+`run.steer` takes text only, so a steer with images is rejected
+`unsupported`. `Session.deliver` does not fall back to the queue on a
+handed back steer; `steerOrQueue` does.
 
-**Queue (mapped):** `queue()` is a host-memory FIFO
-(`capabilities.queue.durable: false`), drained one input per turn end; the
-drained input runs as a spontaneous turn with its own `session/prompt` answer
-and no prompt request of its own (`queue`). Held input is dropped once the
-runtime is unreachable.
+**Queue (mapped):** `queue()` is an adapter-held FIFO
+(`capabilities.queue.durable: false`) sent as a new run when the current one
+ends, a spontaneous turn with no prompt request of its own (`queue`).
 
-**Abort (mapped):** `abort()` sends `session/cancel` (a notification, so the
-`accepted` answer carries no `native`) and is `rejected no active turn` after
-the turn. With a shell command running, cursor answers the prompt
-`stopReason: "cancelled"` about 10 ms after the cancel, recorded as
-`turn_ended: aborted` (`abort`); no `tool_call_update` ends the running call.
-If the cancelled prompt is not answered within ten seconds OAR kills the
-process; that fallback has not been needed live.
+**Abort (mapped):** `abort()` is `run.cancel()`; the run answers `cancelled`
+within about two seconds, recorded as `turn_ended: aborted` (`abort`). An
+abort that arrives before the SDK has returned the run is held and delivered
+as soon as it exists.
 
-**Outcomes:** `turn_ended` maps `cancelled` to aborted and every other stop
-reason to completed; the answer itself is the event's `native`. Opening with
-an unknown model makes `session/set_config_option` answer `-32602 "Invalid
-params"` with `data.message` `Invalid model value: <id>`; session construction
-rejects with that error and no OAR session exists (`bad-model`).
+**Outcomes:** `run.wait()`'s `finished` is completed, `cancelled` aborted,
+and `error` failed with the SDK's `error.message` classified by
+`classifyFailure` (a missing credential fails the first run with `[unknown]
+Invalid User API Key`, read as `auth`; probed). A `run.wait()` that throws
+instead records `cursor/run_failed` with the message, which ends the turn.
 
-**Unreachable runtime:** `close` is not advertised, so `dispose()` mid-turn
-runs the cancel path, then the kill; cursor exits `143` on SIGTERM and the
-dispose request is answered by that `exited` response, which also ends the
-open turn as failed (`runtime_exited`, `dispose-mid-turn`). When the process
-dies on its own (SIGKILL mid-turn), the stream gets an `exited` response with
-`requestId ""` and `code: null`, which is the turn's end; a later `prompt()`
-is rejected and a later `dispose()` is answered `accepted` (`kill-runtime`).
+**Dispose (mapped):** `dispose()` gives up a `send` still on its way,
+cancels a running run, waits up to five seconds for its `cancelled` answer,
+closes the agent, and answers the dispose request `accepted`: an in-process
+runtime has no exit to observe (`dispose-mid-turn`). The agent's stored
+conversation is kept.
 
 ### Observation, children, and history
 
-**Mapped:** every update is a frame with `native` verbatim; events carry text
-(`agent_message_chunk` → `text_delta`), reasoning (`agent_thought_chunk`,
-present in some turns only: none in `tool-detail`, dozens in `abort` and
-`queue` with the same model), tool boundaries and model reports. Detail
-strings truncate at 10,000 characters (`native` does not). `Session.usage()`
-totals and `contextUsage()` stay empty: cursor sends no `usage_update` and no
-token totals on any answer.
+**Mapped:** every update is one frame (`type` is the update's `type`).
+`text-delta` is a `text_delta`, `thinking-delta` a `reasoning` text, and
+`turn-ended` a `usage` event: its `inputTokens` exclude cache reads and
+writes, so OAR adds `cacheReadTokens` and `cacheWriteTokens` to the input,
+and the totals accumulate. It is the run's usage, recorded on the root; no
+update reports a child's own tokens, and whether the run's figure includes a
+child's is unverified. `token-delta`, `thinking-completed`,
+`partial-tool-call` (a call's arguments while they stream),
+`tool-requests-listed`, `step-started`, `step-completed` and
+`shell-output-delta` are recorded with no events. The SDK drops its
+`summary` updates before `onDelta`, so compaction is not observable, and no
+update reports context occupancy, so `contextUsage()` stays empty.
 
-**Tool frames:** Cursor executes tools itself. A shell call opens with a
-`tool_call` whose `title` is the command in backticks, `kind: "execute"`,
-`status: "pending"` and `rawInput {command}`, so `tool_call_started` carries
-the command as `input`. An `in_progress` update follows, then a `completed`
-update with `rawOutput {exitCode, stdout, stderr}`, which becomes
-`tool_call_ended.content` (one `other` part) with `result: "ok"` and `exitCode` (`tool-detail`).
-OAR maps the explicit ACP `ToolCallStatus` values `completed` / `failed` to
-`result: "ok"` / `"failed"`; a non-terminal or missing status leaves `result`
-absent. The `toolCallId` is two lines (`call_…\nfc_…`) and survives verbatim
-as the call id.
+**Tool frames:** `tool-call-started {callId, toolCall: {type, args}}` is
+`tool_call_started` with the tool's `type` as its name (`shell`, `read`,
+`edit`, `grep`, `glob`, `ls`, `task`, `mcp`, …) and the JSON args as `input`.
+`tool-call-completed` carries `toolCall.result`: `{status: "success",
+value}` is `result: "ok"`, `{status: "error", error}` is `"failed"`. A shell
+call's content is its stdout and stderr (one empty text part when it printed
+nothing) and its `exitCode` the shell's, `null` when `signal` names one (a
+failing command is still a successful tool call: `ls` of a missing path ends
+`ok` with exit code 2, probed); a read is the file text, an edit its diff, an
+error its message, and any other result one `other` part. No shell output
+streams while a command runs. With the model reading and editing in one step,
+one read call started and never completed (probed); after a steer moved a
+command to the background, the model's poll of it produced no tool updates.
 
-**Children (mapped, `nested`):** with the `subagents` opt-in, cursor announces
-a Task-tool child on the parent's `session/update` as `subagent_spawned
-{subagentSessionId, name, task, capabilities, _meta.cursor.{toolCallId,
-agentId}}` and later `subagent_state_update` (completed, failed, cancelled or
-disconnected); the child's own standard updates arrive under its session id.
-The ACP SDK (1.4.0) parses every `session/update` against the closed set of
-standard kinds and silently drops the rest, so the
-[carrier](../../packages/oar/src/shared/acp/vendor-updates.ts) rewrites those
-two kinds into `session_info_update` frames holding the original under
-`_meta["oar/vendorSessionUpdate"]` before the SDK sees them, and the recorder
-restores the original as `native`. They stay in wire order with the child's
-updates. `subagent_spawned` adds the graph edge (`via: "tool_call"`). Live
-(`subagent`): two graph nodes, one edge; the root has `subagent_spawned` and
-`subagent_state_update` once each, the child session 22 message chunks and its
-own shell call. The parent still sends `cursor/task` (tool call id,
-description, prompt, model, agent id, duration) as a `toApp` request after
-the child finishes; it is refused like the other vendor requests. Child usage
-is not reported.
+**Children (mapped, `attributed`):** a subagent is the parent's `task` tool
+call. Its own updates (thinking, text, its tool calls) arrive as
+`tool-call-delta {callId, taskUpdate}`, keyed by the task's call id; OAR
+reads `taskUpdate` as the child's update and records the frame with
+`agentPath: [callId]` (`subagent`: one child path, 30 child frames). The
+SDK's schema allows no `tool-call-delta` inside a `taskUpdate`, so a child's
+own children are not visible. The `task` call's own result holds the child's
+conversation steps. No child session or graph edge exists.
 
 **History:** the retained stream backs `rawEvents(observer, cursor)` for the
-life of the process (`cursor`); OAR enumerates no native history, and the only
-replay is the one `session/load` produces.
+life of the session (`cursor`); OAR enumerates no native history.
 
 ### Models, instructions, and context
 
-**Mapped:** open-time model selection (`SessionOptions.model` →
-`session/set_config_option {configId: "model"}`), read back from the answer's
-`configOptions`, never from the request parameter. The
-[model lister](../../packages/oar/src/runtimes/cursor/list-models.ts) starts a
-temporary ACP process (`terminal: false`, the same `_meta`), authenticates,
-and calls the vendor method `cursor/list_available_models`, which answers
-`{models: [{value, name, configOptions}]}` for every model at once, each with
-its parameters at their defaults. Effort levels come from each model's
-`thought_level` option. `-32601` reads as unsupported, `-32000` or an auth
-message as unauthenticated; the default deadline is 15 s. On this account the
-catalog has about 45 models with `default` (Auto) first; for example
-`gpt-5.4-nano` offers `none`/`low`/`medium`/`high`/`xhigh` (default `medium`)
-and `claude-opus-5-5` offers `low` through `max`.
+**Mapped:** the [model lister](../../packages/oar/src/runtimes/cursor/list-models.ts)
+is `Cursor.models.list()` (about 45 models on this account, `default` first),
+`unauthenticated` without a credential, with a 15 second deadline. Each model
+lists its own parameters; the reasoning one has a different id per family:
+`effort` (Claude 5, Grok 4.6), `reasoning` (GPT), `reasoning_effort` (Grok
+4.7, Gemini 3.8, Claude Sonnet 5.5). Several Claude models also have a
+`thinking` on/off switch; the level menu wins, and a model whose only
+reasoning parameter is the switch (`claude-haiku-4-5`) offers `false` and
+`true`. `defaultEffort` is that parameter's value in the variant the catalog
+marks default.
 
-**Effort (mapped):** `SessionOptions.effort` is `session/set_config_option` on
-the model's `thought_level` option, sent after the model switch so it lands on
-the switched model's menu. A Claude model with both a `thinking` switch and an
-`effort` menu gets the menu. The answer carries every option's current value
-and so the `effort` event.
+**Effort (mapped):** `SessionOptions.effort` is that parameter in the model
+selection; the other parameters stay as the catalog's default variant sets
+them (or as the resumed run had them), so a `thinking` switch stays on
+beside an `effort` level (`claude-opus-5` at `low` ran with the default
+variant's `thinking: true` and `context: 1m`, probed). The SDK passes an unknown value through and reports it back as
+given (`reasoning: "ludicrous"` ran, probed), so OAR checks the level against
+the model's menu first and rejects the open otherwise, naming the levels.
+The `model` and `effort` events come from the SDK's selection at open and
+from each run's `model` in `run.wait()`; both are the selection the run was
+sent with, not an independent report.
 
-**Global persistence (caveat):** cursor writes every model and parameter
-change to the account-wide `~/.cursor/cli-config.json` (`model`,
-`modelParameters`, `selectedModel`), the same file that holds the approval
-allowlist. A session opened with a model therefore changes the default for
-later sessions and for the terminal application under the same `HOME`. Run
-OAR sessions under a dedicated `HOME` when that matters.
+**Instructions (unsupported):** the SDK types a `systemPrompt`, but a local
+agent's run fails with `unknown option '--system-prompt'` (probed), and there
+is no append; OAR rejects `systemPrompt` and `appendSystemPrompt` at open.
 
-The OAR profile rejects `systemPrompt` and `appendSystemPrompt` because
-Cursor's ACP exposes no override.
+### Tools, permissions, and environment
 
-**Context (unexposed by the runtime):** no frame carries context occupancy, so
-`contextUsage()` stays empty. Cursor advertises no compaction through ACP.
+Cursor runs its own tools in the host process tree; no request reaches the
+application, and none of the scenarios asked for permission. OAR opens every
+agent with the SDK's sandbox off (`sandboxOptions.enabled: false`), as every
+OAR session runs by default; otherwise a `~/.cursor/sandbox.json` would turn
+one on. The agent loads the user's and project's Cursor settings (rules, MCP
+servers) as the SDK does by default.
 
-### Tools, permissions, and extensions
+**Environment (unsupported):** the SDK has no per-agent environment for
+tools, and the agent shares the host's process, so `SessionOptions.env` is
+rejected at open. The `@botiverse/oar/agents` crew passes its depth variable
+through `env`, so a cursor session cannot be a crew child yet.
 
-Cursor runs shell, file and search tools itself: no `terminal/*` or `fs/*`
-request arrived in any scenario, so OAR's terminal host is never called. OAR passes no MCP servers; vendor-configured tools can still
-run.
+**Native companion:** the agent's ripgrep and tree-sitter shell parser come
+from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
+the host's entry script. A layout that does not hoist it (pnpm's, a bundled
+host) leaves it unfound: the SDK warns `tree-sitter natives are unavailable`
+and searches without its own ripgrep. OAR resolves the package from the SDK
+and sets the SDK's own `CURSOR_TREE_SITTER_VENDOR_DIR` and
+`CURSOR_RIPGREP_PATH` before loading it, unless the host set them. The
+setting is process wide: it stays for the host and every process it starts
+afterwards.
 
-`--force` runs commands without asking, and no `session/request_permission`
-arrived in any scenario. The installed bundle shows a team whose admin
-controls auto run can switch `--force` off; the agent then asks through
-`session/request_permission`, which OAR answers with `allow_always`, then
-`allow_once`, otherwise `cancelled`. That path is **unverified** live.
+### Installation and account usage
 
-Cursor sends five vendor requests to its client: `cursor/ask_question`,
-`cursor/create_plan`, `cursor/update_todos`, `cursor/task` and
-`cursor/generate_image`. OAR implements none: each is recorded as a `toApp`
-request and refused with `-32601`, as the SDK refuses any unregistered
-method; `events()` reads each pair as `app_request` (method as `type`) and
-`app_answered`. From the installed bundle: on that refusal
-`cursor/ask_question` falls back to one `session/request_permission` per
-single-select question (OAR picks its first option), `cursor/create_plan`
-writes the plan to a local file, and the other three are notices the agent
-does not wait on. Only `cursor/task` was observed live.
+[Installation](../../packages/oar/src/runtimes/cursor/installation.ts) is
+`bundled`, like pi: available when `@cursor/sdk` resolves, versionless (the
+embedder pins it), and `unsupported` on a platform without a native package
+(the SDK ships darwin arm64 and x64, linux arm64 and x64, win32 x64). There
+is no update check or upgrade: the SDK moves with OAR's own version.
 
-### Process ownership, installation, and account usage
-
-**Mapped:** OAR owns the spawned process. Disposal cancels active work, kills
-the process (no `session/close` is advertised), and disposes hosted
-terminals; a dispose after an observed exit is answered `accepted` without
-further work. On POSIX the process leads its own process group, and a runtime
-still running a grace period after SIGTERM (10 s, or `OAR_KILL_GRACE_MS`) is
-SIGKILLed with its group. Persisted native sessions are not deleted.
-
-[Installation detection](../../packages/oar/src/runtimes/cursor/installation.ts)
-checks `OAR_CURSOR_BIN`, PATH `cursor-agent`, and `~/.local/bin/cursor-agent`
-(the installer's link into `~/.local/share/cursor-agent/versions/<version>/`),
-probing `cursor-agent acp --help` with 30 second timeouts. The installer also
-links `agent`, a name too generic to probe. There is no Windows candidate.
-
-Account usage is **unexposed**: OAR has no Cursor account usage query.
+Account usage is **unexposed**: `agent.getUsage()` answers `feature_unavailable`
+on this account (probed), and each run reports its own tokens.
 
 ## Verification and open gaps
 
 [`experiments/live-contract.ts cursor`](../../experiments/live-contract.ts)
 covers the promises above on a real login: `basic`, `multi-turn`,
 `tool-detail`, `busy-and-late-control`, `steer`, `queue`, `abort`,
-`dispose-mid-turn`, `cursor`, `resume`, `subagent`, `kill-runtime`,
-`bad-model`. [Cursor tests](../../tests/acp/acp-session-cursor.test.ts) use a
-fake executable for the picker opt-in, model switch readback, effort after a
-switch, the unknown model refusal, vendor request recording and refusal, and
-the carried subagent updates (in wire order, with the edge; an unlisted kind
-is dropped and claims no edge). The
+`dispose-mid-turn`, `cursor`, `resume`, `subagent`, `bad-model`.
+[Cursor tests](../../tests/cursor/) drive the session with a stand-in SDK
+(prompt, busy, steer delivered, handed back and outrun, images, queue, abort
+before and after the run exists, dispose, resume, refused options) and fold
+recorded updates (tools, usage, the subagent path, run outcomes). The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Cursor.
 
-Open gaps: the permission path when an admin overrides `--force`; the
-`cursor/ask_question` and `cursor/create_plan` fallbacks live; any usage or
-context report (the transport carries none); unknown resume ids; concurrent
-same-id controllers; Windows installation. Keep native API capabilities,
-transport limitations, OAR omissions and unexecuted checks separate when
-designing or claiming support.
+Open gaps: login through OAR; a crew child (no environment); tool calls the
+SDK runs without updates; the cloud runtime; Windows and macOS live runs.
+Keep native API capabilities, SDK limitations, OAR omissions and unexecuted
+checks separate when designing or claiming support.

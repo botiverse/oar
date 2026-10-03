@@ -59,7 +59,7 @@ The package has six public entry points:
 
 Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`. Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 
-Antigravity, Cursor, Grok, and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime.
+Antigravity, Grok, and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. Pi and Cursor run in the host process through their SDKs (`@earendil-works/pi-coding-agent`, `@cursor/sdk`), both dependencies of this package; `@cursor/sdk` is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
@@ -73,8 +73,9 @@ codex, grok and kimi; its failure semantics are in the
 updater would install and where that answer came from;
 `runtime.upgrade(installation)` runs that updater without a terminal and
 judges the result by the version the same executable reports afterwards,
-never by its exit code. oar never upgrades on its own. Claude, Codex, Cursor,
-Grok and Kimi have both; Antigravity has only the check; Pi moves with oar.
+never by its exit code. oar never upgrades on its own. Claude, Codex, Grok
+and Kimi have both; Antigravity has only the check; Pi and Cursor move with
+oar.
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
 Images go with an input through `InputOptions.images` (`{ path }` entries:

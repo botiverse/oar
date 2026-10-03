@@ -66,7 +66,7 @@ export async function applyAcpEffort(
 /**
  * Apply `SessionOptions.model`: `session/set_model {modelId}`, or with
  * `viaConfigOption` `session/set_config_option` on the `model` option (for
- * agents whose set_model answer reports nothing, cursor-agent 2026.09.28).
+ * agents whose set_model answer reports nothing, agy_acp_server 1.2.1).
  * The answer is observed like any handshake answer and returned.
  */
 export async function applyAcpModel(

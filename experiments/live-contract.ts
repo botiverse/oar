@@ -600,7 +600,7 @@ const scenarios: Scenario[] = [
   },
   {
     id: "kill-runtime",
-    skip: () => (runtimeId === "pi" || runtimeId === "mock" ? "in-process runtime, no process to kill" : null),
+    skip: () => (runtimeId === "pi" || runtimeId === "cursor" || runtimeId === "mock" ? "in-process runtime, no process to kill" : null),
     async run(open, facts) {
       const session = await open();
       const result = accepted(await session.prompt(`${shell(LONG_LOOP)}. Then reply done.`), "prompt");

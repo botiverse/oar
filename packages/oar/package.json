@@ -56,11 +56,12 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.4.0",
-    "cross-spawn": "^7.0.6",
-    "which": "^2.0.2",
-    "@earendil-works/pi-coding-agent": "^1.0.0",
+    "@cursor/sdk": "1.0.35",
     "@earendil-works/pi-ai": "^1.0.0",
-    "undici": "8.10.2"
+    "@earendil-works/pi-coding-agent": "^1.0.0",
+    "cross-spawn": "^7.0.6",
+    "undici": "8.10.2",
+    "which": "^2.0.2"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",

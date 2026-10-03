@@ -6,6 +6,8 @@ test.each([
   ["Failed to authenticate: OAuth session expired and could not be refreshed", "auth"],
   ["Not logged in", "auth"],
   ["Invalid API key · Please run /login", "auth"],
+  // @cursor/sdk 1.0.35, a run without a usable credential
+  ["[unknown] Invalid User API Key", "auth"],
   ["429 rate limit exceeded", "quota"],
   ["Overloaded", "overloaded"],
   ["the agent stopped", "unknown"],

@@ -5,7 +5,6 @@ import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
 import type { UsageUpdateGate } from "./usage-wait.js";
-import { carriedVendorUpdate } from "./vendor-updates.js";
 
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
@@ -51,9 +50,7 @@ function stringField(record: JsonRecord, names: readonly string[]): string | nul
  * "subagent_spawned" | "subagent_progress", parent_session_id,
  * child_session_id, subagent_type, …}}`: snake_case, nested under `update`;
  * its `subagent_finished` carries only `child_session_id`, the parent being
- * the envelope's `sessionId`. cursor-agent 2026.09.28 names the child
- * `subagentSessionId` in a parent `session/update` (`subagent_spawned`,
- * `subagent_state_update`). A flat camelCase `{parentSessionId,
+ * the envelope's `sessionId`. A flat camelCase `{parentSessionId,
  * childSessionId | sessionId}` is the fixture spelling.
  */
 export function acpLineageOf(params: JsonRecord): { readonly parent: string; readonly child: string } | null {
@@ -66,7 +63,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   }
   // Nested: an explicit child, the parent explicit or the envelope's own id.
   const update = asRecord(params.update);
-  const nestedChild = update === null ? null : stringField(update, ["childSessionId", "child_session_id", "subagentSessionId"]);
+  const nestedChild = update === null ? null : stringField(update, ["childSessionId", "child_session_id"]);
   const nestedParent = update === null ? null : (stringField(update, ["parentSessionId", "parent_session_id"]) ?? envelope);
   if (nestedParent !== null && nestedChild !== null && nestedParent !== nestedChild) {
     return { parent: nestedParent, child: nestedChild };
@@ -74,7 +71,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-function linkLineage(kernel: SessionKernel, params: JsonRecord): void {
+function linkFromExtension(kernel: SessionKernel, params: JsonRecord): void {
   const lineage = acpLineageOf(params);
   if (lineage !== null) {
     kernel.link({ ...lineage, via: "tool_call" });
@@ -107,13 +104,9 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
         append(kernel);
       }
     },
-    update(received) {
+    update(notification) {
       write((kernel) => {
-        // A vendor kind carried past the SDK's parse is recorded as the
-        // runtime sent it (vendor-updates.ts).
-        const carried = carriedVendorUpdate(received);
-        const notification = carried === null ? received : { ...received, update: carried };
-        const update = carried ?? asRecord(notification.update);
+        const update = asRecord(notification.update);
         const { sessionId } = notification;
         const foreign = sessionId !== kernel.sessionId;
         if (foreign) {
@@ -125,7 +118,6 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
         if (!foreign) {
           usageGate.observe(events.some((event) => event.kind === "usage") ? record.seq : undefined);
         }
-        linkLineage(kernel, notification);
       });
     },
     extension(method, params) {
@@ -142,7 +134,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
           kernel.node(sessionId);
         }
         kernel.frame({ type: method, native: params, events: [] }, foreign ? { sessionId } : undefined);
-        linkLineage(kernel, params);
+        linkFromExtension(kernel, params);
       });
     },
     step(method, response) {

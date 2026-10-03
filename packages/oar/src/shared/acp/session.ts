@@ -67,13 +67,8 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         recorder.answered(id, reply);
       },
       extensionNotifications: profile.extensionNotifications ?? [],
-      extensionRequests: profile.extensionRequests ?? [],
     });
-    const runtime = startAcpProcess(installation.command, args, client, {
-      cwd: options.cwd,
-      env: environment,
-      ...(profile.vendorSessionUpdates === undefined ? {} : { vendorSessionUpdates: profile.vendorSessionUpdates }),
-    });
+    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
     }).catch(async (error: unknown) => {

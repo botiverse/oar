@@ -18,7 +18,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; child usage stays unattributed (unverified) |
 | codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge (`subAgentActivity.agentThreadId`). [env] codex 0.149.0: child-thread notifications arrive on the parent's connection (experiments/codex-child-threads.ts) |
 | pi | `none` | pi has no native sub-agents; `agentPath` is always root |
-| cursor (ACP) | `nested` | with the `subagents` opt-in, vendor `subagent_spawned` on the parent's `session/update` names the child session and adds a `tool_call` edge; the child's own updates arrive under its session id ([env] cursor-agent 2026.09.28) |
+| cursor (`@cursor/sdk`) | `attributed` | a child's updates arrive inside the parent's `task` call as `tool-call-delta {callId, taskUpdate}` and carry `agentPath = [...parentPath, taskCallId]` ([env] SDK 1.0.35) |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
 | antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
@@ -28,7 +28,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | current transport's child usage attribution unverified | `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
 | codex (app-server) | native child threads and collaboration items on the parent's connection | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` ([env]: `started` on the root names the child, `interacted` on the child names the root) | both threads report cumulative `thread/tokenUsage/updated`; the child's is in its own session's records, not in the root `usage()` ([env]) | native thread topology; child threads are child sessions | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
 | pi | no native (host composes) | host-nested sessions | flat (host splits) | no runtime-reported edges | session id | [src] |
-| cursor (ACP) | nested sessions (#3), same connection, behind a client opt-in | `subagent_spawned.subagentSessionId`, `_meta.cursor.toolCallId`; `subagent_state_update` ends it | no usage reported for any session ([env]) | parent→child session edges (in graph, [env]) | ACP `sessionId` | [native/current mapping](../runtimes/cursor.md) |
+| cursor (`@cursor/sdk`) | wrapper records (#2) in the parent run's updates | the `task` call id on `tool-call-delta` | each run's `turn-ended` usage is the root's; none seen for a child ([env]) | `agentPath` (not in graph) | `agentId` | [native/current mapping](../runtimes/cursor.md) |
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | antigravity (ACP) | opaque (#1): child activity flattened onto the parent session | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
@@ -46,6 +46,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 | codex | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
 | pi | `tool_execution_end.isError` false/true ([src]) | none |
 | grok, kimi (ACP) | `tool_call_update.status` `completed`/`failed` ([src]) | grok: `rawOutput.exit_code` on the closing `tool_call_update` ([src] grok 1.0.25) |
+| cursor (`@cursor/sdk`) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event.

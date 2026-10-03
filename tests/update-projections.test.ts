@@ -2,18 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { claudeInstallMethod } from "../packages/oar/src/runtimes/claude/update.js";
 import { projectCodexUpdateStatus } from "../packages/oar/src/runtimes/codex/update.js";
-import { projectCursorAbout } from "../packages/oar/src/runtimes/cursor/update.js";
 import { projectGrokUpdateCheck } from "../packages/oar/src/runtimes/grok/update.js";
 import { releaseVersion, updaterEnv, versionAtLeast } from "../packages/oar/src/shared/update.js";
 
 // The native answers each runtime's check reads, as observed on 2026-10-01
-// (codex 0.158.0 doctor, grok 1.0.46, cursor-agent 2026.09.28).
+// (codex 0.158.0 doctor, grok 1.0.46).
 
 test("release versions are read out of --version lines and release pointers", () => {
   assert.equal(releaseVersion("2.1.284 (Claude Code)"), "2.1.284");
   assert.equal(releaseVersion("codex-cli 0.158.0"), "0.158.0");
   assert.equal(releaseVersion("grok 1.0.46 (2765805b9442) [stable]"), "1.0.46");
-  assert.equal(releaseVersion("2026.09.28-64d2043"), "2026.09.28-64d2043");
   assert.equal(releaseVersion("0.161.0-alpha.9"), "0.161.0-alpha.9");
   assert.equal(releaseVersion("no version here"), undefined);
   assert.equal(versionAtLeast("0.43.0", "0.43.0"), true);
@@ -51,15 +49,6 @@ test("grok's check JSON decides, and a lookup error is never a current installat
   const failed = projectGrokUpdateCheck("1.0.46", { latestVersion: null, updateAvailable: false, error: "GCS channel pointer fetch failed" });
   assert.equal(failed.kind === "unavailable" ? failed.reason : failed.kind, "lookup_failed");
   assert.equal(projectGrokUpdateCheck("1.0.46", undefined).kind, "unavailable");
-});
-
-test("cursor's about report gives the latest version and update verdict", () => {
-  const available2 = projectCursorAbout("2026.08.11-e8db854", { latestStatus: "update_available", latestVersion: "2026.09.28-64d2043" });
-  assert.equal(available2.kind === "ok" && available2.updateAvailable, true);
-  const disabled = projectCursorAbout("2026.09.28-64d2043", { latestStatus: "disabled" });
-  assert.equal(disabled.kind === "unavailable" ? disabled.reason : disabled.kind, "updates_disabled");
-  const unreachable = projectCursorAbout("2026.09.28-64d2043", { latestStatus: "unavailable" });
-  assert.equal(unreachable.kind === "unavailable" ? unreachable.reason : unreachable.kind, "lookup_failed");
 });
 
 test("claude's install method comes from the executable's real path", () => {

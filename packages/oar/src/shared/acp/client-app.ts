@@ -2,7 +2,6 @@
 import {
   client as createClient,
   methods,
-  RequestError,
   type ClientApp,
   type CreateTerminalRequest,
   type JsonRpcId,
@@ -31,8 +30,6 @@ export interface AcpClientHooks {
   readonly answered: (id: string, reply: unknown) => void;
   readonly extension: (method: string, params: JsonRecord) => void;
   readonly extensionNotifications: readonly string[];
-  /** Vendor request methods to record before refusing them as unknown. */
-  readonly extensionRequests: readonly string[];
 }
 
 /** OAR's YOLO answer to a permission request: the broadest allow on offer, else cancel. */
@@ -92,13 +89,6 @@ export function createAcpClientApp(
     app = app.onNotification(method, passthrough, ({ params }) => {
       hooks.extension(method, params);
     });
-  }
-  // The same -32601 the SDK sends for an unregistered method, so the agent
-  // takes its own fallback, but the request and the refusal are on record.
-  for (const method of hooks.extensionRequests) {
-    app = app.onRequest(method, passthrough, observed(method, () => {
-      throw RequestError.methodNotFound(method);
-    }));
   }
   return app;
 }

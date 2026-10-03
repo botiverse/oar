@@ -27,25 +27,10 @@ export interface AcpSessionProfile {
    * frame oar never sees, so list everything the runtime is known to emit.
    */
   readonly extensionNotifications?: readonly string[];
-  /**
-   * Vendor request methods (runtime→app) oar records, then answers `-32601`, so the agent takes
-   * its fallback (cursor-agent 2026.09.28 `cursor/ask_question` → `session/request_permission`).
-   */
-  readonly extensionRequests?: readonly string[];
-  /**
-   * Vendor `session/update` kinds the SDK would drop (cursor-agent 2026.09.28 `subagent_spawned`);
-   * listed ones are recorded in wire order and their `subagentSessionId` links the child session.
-   */
-  readonly vendorSessionUpdates?: readonly string[];
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
   /**
-   * `clientCapabilities._meta` on initialize (cursor-agent 2026.09.28 `parameterizedModelPicker`,
-   * without which it folds effort into the model id and advertises no `thought_level` option).
-   */
-  readonly clientCapabilitiesMeta?: (options: SessionOptions) => JsonRecord | undefined;
-  /**
    * Switch models with `session/set_config_option` on `model`, for agents whose `set_model` answers
-   * `{}` and pushes nothing (cursor-agent 2026.09.28): only that answer reports the effort menu.
+   * `{}` and pushes nothing (agy_acp_server 1.2.1): only that answer reports the applied model.
    */
   readonly modelViaConfigOption?: boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
@@ -92,7 +77,7 @@ export interface OpenedAcpSession {
   readonly openMethod: "session/new" | "session/resume" | "session/load";
   /** The agent advertised `session/close`. */
   readonly supportsClose: boolean;
-  /** The model switch response, when a model was requested; grok reports the applied model in its `_meta`, cursor in its `configOptions`. */
+  /** The model switch response, when a model was requested; grok reports the applied model in its `_meta`, antigravity in its `configOptions`. */
   readonly setModelResponse?: JsonRecord;
 }
 
@@ -156,7 +141,6 @@ async function initialize(
   observe: AcpOpenObserver,
 ): Promise<JsonRecord> {
   const meta = profile.initializeMeta?.(options);
-  const capabilitiesMeta = profile.clientCapabilitiesMeta?.(options);
   const method = methods.agent.initialize;
   const initialized = await withAcpDeadline(
     process,
@@ -167,7 +151,6 @@ async function initialize(
       clientCapabilities: {
         fs: { readTextFile: false, writeTextFile: false },
         terminal: true,
-        ...(capabilitiesMeta === undefined ? {} : { _meta: capabilitiesMeta }),
       },
       clientInfo: { name: "oar", version: "0.0.0" },
       ...(meta === undefined ? {} : { _meta: meta }),
@@ -267,10 +250,8 @@ export async function openAcpSession(
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
     });
-  // A model switch re-derives the effort menu, so effort reads its answer when it lists one.
-  const configAnswer = Array.isArray(setModelResponse?.configOptions) ? setModelResponse : opened.response;
   if (options.effort !== undefined) {
-    await applyAcpEffort(process, { ...opened, response: configAnswer }, options.effort, {
+    await applyAcpEffort(process, opened, options.effort, {
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
     });

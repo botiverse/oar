@@ -68,9 +68,10 @@ Native echoes (`user_message.input`) remain text only.
   with prompt/steer/queue; `item.clientId` links the item to the input. The
   native item ID and turn ID are retained. Item completion does not create a
   second user message event.
-- `conversation`: Pi's user `message_start`. There is no proven native request
-  association, so `inputId` is absent. Template expansion and duplicate text
-  make text-based matching unsafe.
+- `conversation`: Pi's user `message_start`, and cursor's
+  `user-message-appended` for a delivered steer. There is no proven native
+  request association, so `inputId` is absent. Template expansion and
+  duplicate text make text-based matching unsafe.
 
 No evidence kind promises model consumption or semantic effect. Request
 acceptance and native observation are independent facts. Grok and Kimi carry

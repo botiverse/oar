@@ -1,15 +1,12 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
 import { createInterface } from "node:readline";
 import { grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
-import { spawnChildCursor } from "./fake-acp-cursor.mjs";
-import { answerConfigRequest, sessionModelReport, setModelResponse } from "./fake-acp-model.mjs";
+import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 
 const mode = process.argv[2] ?? "session";
 const pendingPrompts = new Map();
 const reverseRequests = new Map();
 let reverseId = 0;
-// Mode "cursor": see sessionModelReport in fake-acp-model.mjs.
-let parameterizedModelPicker = false;
 // Mode "antigravity" replays agy_acp_server 1.2.1: no `close` (exits 3 if sent), no usage_update,
 // and every open starts at mode `default`, which a "mode" prompt reports.
 const antigravity = mode === "antigravity";
@@ -152,10 +149,6 @@ function handleSessionPrompt(message) {
     result(message.id, { stopReason: "end_turn" });
     return;
   }
-  if (text === "spawn-child-cursor") {
-    result(message.id, spawnChildCursor(update));
-    return;
-  }
   if (text === "spawn-child-grok" || text === "grok-usage") {
     result(message.id, text === "grok-usage" ? grokUsageAnswer(send, update) : spawnChildGrok(send, update)); // grok 1.0.25's real frames
     return;
@@ -169,15 +162,6 @@ function handleSessionPrompt(message) {
         { optionId: "always", kind: "allow_always", name: "Always allow" },
         { optionId: "reject", kind: "reject_once", name: "Reject" },
       ],
-    });
-    return;
-  }
-  if (text === "ask-question") {
-    // cursor-agent 2026.09.28 asks its client first and falls back on refusal.
-    askClient("ask", message.id, "cursor/ask_question", {
-      toolCallId: "ask-tool",
-      title: "Pick",
-      questions: [{ id: "q1", prompt: "Which?", options: [{ id: "a", label: "A" }] }],
     });
     return;
   }
@@ -195,7 +179,6 @@ function handleSessionPrompt(message) {
 function handleSessionRequest(message) {
   switch (message.method) {
     case "initialize":
-      parameterizedModelPicker = message.params?.clientCapabilities?._meta?.parameterizedModelPicker === true;
       result(message.id, {
         protocolVersion: 1,
         agentCapabilities: {
@@ -219,7 +202,7 @@ function handleSessionRequest(message) {
             { id: "yolo", name: "YOLO" },
           ],
         },
-        ...sessionModelReport(mode, parameterizedModelPicker),
+        ...modelReport(mode),
       });
       break;
     case "session/resume":
@@ -229,12 +212,12 @@ function handleSessionRequest(message) {
           currentModeId: "default",
           availableModes: [{ id: "yolo", name: "YOLO" }],
         },
-        ...sessionModelReport(mode, parameterizedModelPicker),
+        ...modelReport(mode),
       });
       break;
     case "session/set_model":
     case "session/set_config_option":
-      answerConfigRequest(message, { update, result, error }, !antigravity);
+      answerConfigRequest(message, { update, result, error });
       break;
     case "session/set_mode":
       currentMode = message.params?.modeId ?? currentMode;
@@ -266,10 +249,8 @@ function handleResponse(message) {
     result(pending.outerId, { reverse: message.result });
     return;
   }
-  const text = pending.kind === "ask"
-    ? `ask:${message.error?.code ?? "answered"}`
-    : `permission:${message.result?.outcome?.optionId ?? "cancelled"}`;
-  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text } });
+  const optionId = message.result?.outcome?.optionId ?? "cancelled";
+  update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `permission:${optionId}` } });
   result(pending.outerId, { stopReason: "end_turn" });
 }
 

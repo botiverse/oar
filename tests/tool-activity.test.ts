@@ -31,6 +31,18 @@ test("classifyTool extracts a detail from the input across field spellings", () 
   assert.equal(classifyTool("codex", "commandExecution", JSON.stringify({ command: ["bash", "-lc", "echo deep"] })).detail, "echo deep");
 });
 
+test("classifyTool reads cursor's tool types and its shell command", () => {
+  // `toolCall.args` of a `@cursor/sdk` 1.0.35 shell call, recorded 2026-10-03.
+  assert.deepEqual(classifyTool("cursor", "shell", JSON.stringify({ command: "echo TOOL-MARK-4412", timeout: 30_000 })), {
+    kind: "run_command", detail: "echo TOOL-MARK-4412", command: "echo TOOL-MARK-4412",
+  });
+  assert.deepEqual(classifyTool("cursor", "read", JSON.stringify({ path: "/tmp/note.txt" })), { kind: "read_file", detail: "/tmp/note.txt" });
+  assert.equal(classifyTool("cursor", "edit").kind, "edit_file");
+  assert.equal(classifyTool("cursor", "glob").kind, "search");
+  assert.equal(classifyTool("cursor", "webFetch").kind, "web");
+  assert.equal(classifyTool("cursor", "task").kind, "other");
+});
+
 test("toolActionLabel gives tense-correct labels per state", () => {
   assert.equal(toolActionLabel("run_command", "running"), "Running command");
   assert.equal(toolActionLabel("run_command", "done"), "Ran command");
