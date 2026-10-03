@@ -60,6 +60,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         tool: event.tool,
         ...(event.input === undefined ? {} : { input: event.input }),
         result: "running",
+        startedAt: event.receivedAt,
       });
       return;
     case "tool_call_progress":
@@ -76,6 +77,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         ...(event.kind === "tool_call_progress" && event.output !== undefined ? { output: event.output } : {}),
         ...(event.kind === "tool_call_ended" && event.content !== undefined ? { content: event.content } : {}),
         result,
+        ...(event.kind === "tool_call_ended" ? { endedAt: event.receivedAt } : {}),
       });
       return;
     }

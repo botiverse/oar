@@ -89,6 +89,18 @@ export type ViewPart =
       /** The result once the call ended (`tool_call_ended.content`). */
       readonly content?: readonly ToolOutputPart[];
       readonly result: "running" | "ok" | "failed" | "ended";
+      /**
+       * When OAR observed the call start: its `tool_call_started` record's
+       * `receivedAt` (epoch ms), not a time the runtime reported. Absent when
+       * the start was never seen.
+       */
+      readonly startedAt?: number;
+      /**
+       * When OAR observed the call end: its `tool_call_ended` record's
+       * `receivedAt` (epoch ms). Absent while it runs, or when the end was
+       * never seen. `endedAt - startedAt` is how long it ran, as OAR saw it.
+       */
+      readonly endedAt?: number;
     }
   | { readonly kind: "notice"; readonly notice: ViewNotice }
   | {

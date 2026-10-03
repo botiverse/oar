@@ -57,7 +57,7 @@ test("a prompt turn groups text and tool parts under one lane section", () => {
   expect(turn?.sections).toHaveLength(1);
   expect(turn?.sections[0]?.parts).toEqual([
     { kind: "text", text: "Hello" },
-    { kind: "tool", callId: "c1", tool: "Read", input: "f.ts", content: [{ type: "text", text: "contents" }], result: "ok" },
+    { kind: "tool", callId: "c1", tool: "Read", input: "f.ts", content: [{ type: "text", text: "contents" }], result: "ok", startedAt: 1, endedAt: 1 },
   ]);
 });
 
@@ -78,7 +78,7 @@ test("a call's progress after its turn ended settles its own part; no segment, n
   const [first, second] = turns(view);
   expect(first?.outcome).toEqual({ kind: "completed" });
   expect(first?.sections.flatMap((section) => section.parts)).toEqual([
-    { kind: "tool", callId: "c1", tool: "Bash", input: "ls", content: [{ type: "text", text: "a.ts b.ts" }], result: "ok" },
+    { kind: "tool", callId: "c1", tool: "Bash", input: "ls", content: [{ type: "text", text: "a.ts b.ts" }], result: "ok", startedAt: 1, endedAt: 1 },
   ]);
   expect(second?.sections.flatMap((section) => section.parts)).toEqual([
     { kind: "tool", callId: "c9", tool: "?", output: "unseen", result: "running" },
@@ -123,7 +123,7 @@ test("sub-agent activity nests as a section; the parent's tool settles in its ow
   expect(turn?.sections).toHaveLength(2);
   expect(turn?.sections[0]?.agentPath).toEqual([]);
   expect(turn?.sections[0]?.parts).toEqual([
-    { kind: "tool", callId: "c1", tool: "Task", result: "ok" },
+    { kind: "tool", callId: "c1", tool: "Task", result: "ok", startedAt: 1, endedAt: 1 },
   ]);
   expect(turn?.sections[1]?.agentPath).toEqual(["child-1"]);
   expect(turn?.sections[1]?.parts).toEqual([{ kind: "text", text: "child says" }]);
@@ -250,6 +250,27 @@ test("a tool part carries the result's ordered parts (#73)", () => {
   expect(parts).toMatchObject([
     { kind: "tool", callId: "c1", content, result: "ok" },
     { kind: "tool", callId: "c2", tool: "?", content, result: "ok" },
+  ]);
+});
+
+function received(receivedAt: number, record: Frame): Frame {
+  return { ...record, receivedAt };
+}
+
+test("a tool part carries when OAR saw its start and end, and only what it saw", () => {
+  const view = fold([
+    request(0, "r1"),
+    accepted(1, "r1"),
+    received(1000, frame(2, [{ kind: "tool_call_started", callId: "c1", tool: "sleep", input: '{"durationMs":50000}' }])),
+    received(8500, frame(3, [{ kind: "tool_call_ended", callId: "c1" }])),
+    received(9000, frame(4, [{ kind: "tool_call_started", callId: "c2", tool: "Bash" }])),
+    received(9500, frame(5, [{ kind: "tool_call_ended", callId: "c3", result: "ok" }])),
+  ]);
+  const parts = turns(view)[0]?.sections.flatMap((section) => section.parts) ?? [];
+  expect(parts).toEqual([
+    { kind: "tool", callId: "c1", tool: "sleep", input: '{"durationMs":50000}', result: "ended", startedAt: 1000, endedAt: 8500 },
+    { kind: "tool", callId: "c2", tool: "Bash", result: "running", startedAt: 9000 },
+    { kind: "tool", callId: "c3", tool: "?", result: "ok", endedAt: 9500 },
   ]);
 });
 
