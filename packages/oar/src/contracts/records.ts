@@ -124,7 +124,8 @@ export interface UserMessage {
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody = UserMessage
-  | { readonly kind: "text_delta"; readonly text: string }
+  /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, ACP) and in older records. */
+  | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. */
   | { readonly kind: "reasoning"; readonly content: ReasoningContent }
   | {

@@ -167,7 +167,7 @@ interface FrameBody {
 }
 // RuntimeEventBody:
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
-//   text_delta {text} | reasoning {content} |
+//   text_delta {text, messageId?} | reasoning {content} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_progress {callId, output?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
@@ -315,6 +315,11 @@ The rules that make this a projection and not a second source of truth:
   carrying the last piece's envelope (`{ maxHoldMs }` also flushes when the
   stream goes quiet that long). Off by default, so events stay synchronous
   and one-to-one with what was read.
+- **Text names its message when the runtime does.** `text_delta.messageId`
+  is the runtime's id of the assistant message the text is part of (codex:
+  the `agentMessage` item id; claude: the API `message.id`), so two messages
+  of one turn stay apart in coalescing and in the session view. pi and the
+  ACP runtimes name none, and older records lack it.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 

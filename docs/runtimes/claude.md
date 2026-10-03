@@ -153,10 +153,11 @@ later `dispose` `accepted`
 Frame, or of the response record for a control reply), except the effort
 read-back answer the adapter consumes at open, so message identity, input
 echoes, control replies and telemetry are there even where OAR has no event
-for them. Text blocks become `text_delta` events; reasoning keeps the text,
-redacted, and empty distinctions; tools keep IDs and available input/output.
-One assistant message with several blocks is one record with several events
-in block order. OAR does not request `--include-partial-messages`, so `text_delta`
+for them. Text blocks become `text_delta` events naming the API message
+(`messageId` = `message.id`); reasoning keeps the text, redacted, and empty
+distinctions; tools keep IDs and available input/output. One assistant
+message with several blocks is one record with several events in block
+order. OAR does not request `--include-partial-messages`, so `text_delta`
 does not imply token-level streaming. [Native streaming][native-output],
 [projection](../../packages/oar/src/runtimes/claude/projection.ts).
 

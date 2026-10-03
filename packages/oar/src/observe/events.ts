@@ -97,18 +97,24 @@ function withText(event: Event, text: string): Event {
   return event.kind === "text_delta" ? { ...event, text } : event;
 }
 
+function messageIdOf(event: Event): string | undefined {
+  return event.kind === "text_delta" ? event.messageId : undefined;
+}
+
 function sameLane(held: Event, next: Event): boolean {
   return held.kind === next.kind
     && held.sessionId === next.sessionId
     && held.agentPath.length === next.agentPath.length
-    && held.agentPath.every((segment, index) => segment === next.agentPath[index]);
+    && held.agentPath.every((segment, index) => segment === next.agentPath[index])
+    && messageIdOf(held) === messageIdOf(next);
 }
 
 /**
  * Consumer-side coalescing: wrap an event observer so consecutive text (or
  * readable reasoning) pieces of one agent arrive as one event instead of a
- * token stream. Flushes when the kind or agent changes, a non-text event
- * arrives, or (when `maxHoldMs` is set) the stream goes quiet for that long.
+ * token stream. Flushes when the kind, agent or text `messageId` changes, a
+ * non-text event arrives, or (when `maxHoldMs` is set) the stream goes quiet
+ * for that long.
  * The merged event carries the LAST piece's envelope. Order is safe because
  * only consecutive same-lane pieces are ever held.
  */

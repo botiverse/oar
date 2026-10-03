@@ -27,6 +27,7 @@ import type {
 
 export interface Draft {
   messages: ViewMessage[];
+  pendingInputs: ConversationInput[];
   openTurn: number;
   /** The clone of `messages[openTurn]` once written this record; null before. */
   turn: MutableTurn | null;
@@ -42,6 +43,7 @@ export interface Draft {
 export function draftOf(state: SessionView): Draft {
   return {
     messages: [...state.messages],
+    pendingInputs: [...state.pendingInputs],
     openTurn: state.openTurn,
     turn: null,
     pendingRequests: [...state.pendingRequests],
@@ -75,6 +77,7 @@ export function assemble(
     total === null ? { total: null } : (byAgent.length <= 1 && onlyRoot ? { total } : { total, byAgent });
   return {
     messages: draft.messages,
+    pendingInputs: draft.pendingInputs,
     openTurn: draft.openTurn,
     status,
     model: draft.model,
@@ -176,19 +179,6 @@ export function laneFor(draft: Draft, event: Event, streamId: string): MutableSe
 
 export function noticePart(draft: Draft, event: Event, streamId: string, notice: ViewNotice): void {
   laneFor(draft, event, streamId)?.parts.push({ kind: "notice", notice });
-}
-
-/** Upsert a user input; a NEW input seals the open segment (seq order is render order). */
-export function upsertInput(draft: Draft, input: ConversationInput): void {
-  const id = `in:${input.id}`;
-  const index = draft.messages.findIndex((message) => message.id === id);
-  const message: ViewMessage = { kind: "input", id, input };
-  if (index === -1) {
-    draft.messages.push(message);
-    sealTurn(draft);
-  } else {
-    draft.messages[index] = message;
-  }
 }
 
 export function markRequestAnswered(draft: Draft, requestId: string): void {

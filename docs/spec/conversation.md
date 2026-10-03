@@ -131,3 +131,34 @@ all steering inputs from `turn_ended`. Cancellation is outside this contract.
 Evidence: [local steer identity probes](../runtimes/steer-delivery.md). Regression
 coverage includes pure reducer cases, mock fallback, and Codex/Claude native
 harnesses with a local scripted provider.
+
+## Where an input enters the session view
+
+`reduceSessionView` ([chat UI](../design/chat-ui.md)) places each input in
+`messages` where the runtime took it, as far as the stream shows:
+
+- A `prompt` enters at its request; its turn opens below it.
+- A `steer` or `queue` enters at its first `user_message` carrying its
+  `inputId`, and seals the open turn segment there. Codex holds a steer until
+  its current step ends, so replies to earlier input come before it. Until
+  then the input is in `SessionView.pendingInputs` (request order), for a
+  host to show apart, above the composer for instance. A queued input's echo
+  comes as the runtime drains it, so it sits before the turn it starts, even
+  in a later stream after resume.
+- Whether a stream echoes is read off the stream itself: once it has carried
+  a `user_message` with an `inputId` (the echo of the first prompt, on codex
+  and claude), later steers and queues wait for their echo. A stream that
+  never has (grok and kimi echo nothing; pi's echo carries no `inputId`)
+  places them at their request, the best fact it has. No capability flag
+  or runtime name takes part.
+- A rejected input enters where it was refused. If a retry of the same
+  input (`deliver`, `steerOrQueue`) must wait for its echo, it leaves
+  `messages` for `pendingInputs` again.
+- An input never echoed stays pending, even after its turn ends: OAR does
+  not invent a position for it from a turn end or matching text.
+
+Records already folded in a stream (same `streamId`, `seq` not past the
+cursor) leave the view unchanged, as they leave the conversation.
+
+Evidence: a real codex run that steers three times while the agent sleeps,
+replayed in [codex-steer-order](../../tests/replay/codex-steer-order.test.ts).

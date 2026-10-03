@@ -196,10 +196,11 @@ export interface EventsOptions {
   /**
    * Merge consecutive `text_delta` (and readable `reasoning`) events of one
    * agent into one event instead of a token stream. A merged event carries the
-   * LAST piece's envelope. It flushes when the kind or agent changes, another
-   * event arrives, or (with `maxHoldMs`) the stream goes quiet for that long,
-   * so a stalled model pause cannot hold text hostage. Off by default: events
-   * are then synchronous and one-to-one with what was read from the stream.
+   * LAST piece's envelope. It flushes when the kind, agent or text
+   * `messageId` changes, another event arrives, or (with `maxHoldMs`) the
+   * stream goes quiet for that long, so a stalled model pause cannot hold
+   * text hostage. Off by default: events are then synchronous and one-to-one
+   * with what was read from the stream.
    */
   readonly coalesceText?: boolean | { readonly maxHoldMs: number };
 }
