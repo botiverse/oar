@@ -127,6 +127,12 @@ can apply those ephemeral servers, already-live sessions pass through.
 Unknown IDs return `invalid_params` (`-32602`); missing authentication returns
 `auth_required` (`-32000`). Neither creates a substitute session.
 
+Because the handlers ignore `cwd`, a resume that names another directory runs
+in the session's own: live (2.1.1, 2026-10-03), a resume naming B ran its
+shell as `cd <A> && pwd`. OAR therefore reads the session's directory from
+`session/list` before resuming and refuses a resume elsewhere, naming both
+directories ([resume in another directory](resume-cwd.md)).
+
 ```ts
 const resumed = await kimiRuntime.session(installation, {
   cwd,

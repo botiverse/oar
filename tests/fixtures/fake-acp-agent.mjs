@@ -10,6 +10,8 @@ let reverseId = 0;
 // Mode "antigravity" replays agy_acp_server 1.2.1: no `close` (exits 3 if sent), no usage_update,
 // and every open starts at mode `default`, which a "mode" prompt reports.
 const antigravity = mode === "antigravity";
+// Mode "listed" answers `session/list` with one session that lives in FAKE_ACP_SESSION_CWD.
+const listed = mode === "listed";
 let currentMode = "default";
 
 function send(message) {
@@ -183,7 +185,7 @@ function handleSessionRequest(message) {
         protocolVersion: 1,
         agentCapabilities: {
           loadSession: true,
-          sessionCapabilities: antigravity ? { list: {}, resume: {} } : { resume: {}, close: {} },
+          sessionCapabilities: antigravity || listed ? { list: {}, resume: {} } : { resume: {}, close: {} },
           promptCapabilities: { image: mode !== "no-images" },
         },
         authMethods: [{ id: "cached", name: "Cached login" }],
@@ -214,6 +216,9 @@ function handleSessionRequest(message) {
         },
         ...modelReport(mode),
       });
+      break;
+    case "session/list":
+      result(message.id, { sessions: [{ sessionId: "fake-session", cwd: process.env.FAKE_ACP_SESSION_CWD ?? "/" }] });
       break;
     case "session/set_model":
     case "session/set_config_option":
