@@ -42,7 +42,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 
 | runtime | `result` from | `exitCode` from |
 |---|---|---|
-| claude | stream-json `tool_result.is_error` ([src]) | none (`tool_use_result` carries no exit status) |
+| claude | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
 | codex | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
 | pi | `tool_execution_end.isError` false/true ([src]) | none |
 | grok, kimi (ACP) | `tool_call_update.status` `completed`/`failed` ([src]) | grok: `rawOutput.exit_code` on the closing `tool_call_update` ([src] grok 1.0.25) |

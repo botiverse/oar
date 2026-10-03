@@ -149,7 +149,9 @@ test("claude result usage accumulates per agent into cumulative totals", () => {
   ]);
 });
 
-test("claude tool_result maps only its explicit is_error outcome", () => {
+// The Messages API's `is_error` is optional and false by default; claude
+// 2.1.288 omits it on a successful Read, Write or Edit (Ferry's log, 2026-10-03).
+test("claude tool_result is failed on is_error true and ok otherwise, the field's default", () => {
   const failed = foldClaudeStdout(claudePrompted(initialClaudeProjection), {
     type: "user",
     message: { content: [{ type: "tool_result", tool_use_id: "c-fail", is_error: true, content: "nope" }] },
@@ -159,10 +161,10 @@ test("claude tool_result maps only its explicit is_error outcome", () => {
   ]);
   const absent = foldClaudeStdout(failed.state, {
     type: "user",
-    message: { content: [{ type: "tool_result", tool_use_id: "c-unknown", content: "?" }] },
+    message: { content: [{ type: "tool_result", tool_use_id: "c-write", content: "File created successfully at: /tmp/a.js" }] },
   });
   expect(absent.commands[0]?.kind === "frame" ? absent.commands[0].body.events : null).toEqual([
-    { kind: "tool_call_ended", callId: "c-unknown", content: [{ type: "text", text: "?" }] },
+    { kind: "tool_call_ended", callId: "c-write", content: [{ type: "text", text: "File created successfully at: /tmp/a.js" }], result: "ok" },
   ]);
 });
 
@@ -177,15 +179,15 @@ function endedEvents(content: unknown): unknown {
 test("claude tool_result: a string is one text part, blocks are ordered parts, unknown blocks are kept whole (#73)", () => {
   // `Read` of a png on 2.1.288: the result is one Anthropic image block.
   const png = { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBORw0KGgo" } };
-  expect(endedEvents([png])).toEqual([{ kind: "tool_call_ended", callId: "c", content: [{ type: "image", mediaType: "image/png", data: "iVBORw0KGgo" }] }]);
+  expect(endedEvents([png])).toEqual([{ kind: "tool_call_ended", callId: "c", content: [{ type: "image", mediaType: "image/png", data: "iVBORw0KGgo" }], result: "ok" }]);
   // An MCP tool's image arrives in the MCP shape between texts; order is kept.
   const mcp = [{ type: "text", text: "before" }, { type: "image", data: "R0lGOD", mimeType: "image/gif" }, { type: "text", text: "after" }];
   expect(endedEvents(mcp)).toEqual([{ kind: "tool_call_ended", callId: "c", content: [
     { type: "text", text: "before" }, { type: "image", mediaType: "image/gif", data: "R0lGOD" }, { type: "text", text: "after" },
-  ] }]);
+  ], result: "ok" }]);
   const reference = { type: "tool_reference", tool_name: "x" };
-  expect(endedEvents([reference])).toEqual([{ kind: "tool_call_ended", callId: "c", content: [{ type: "other", value: reference }] }]);
-  expect(endedEvents([])).toEqual([{ kind: "tool_call_ended", callId: "c" }]);
+  expect(endedEvents([reference])).toEqual([{ kind: "tool_call_ended", callId: "c", content: [{ type: "other", value: reference }], result: "ok" }]);
+  expect(endedEvents([])).toEqual([{ kind: "tool_call_ended", callId: "c", result: "ok" }]);
 });
 
 test("claude compact_boundary is the runtime's after-the-fact compaction report", () => {

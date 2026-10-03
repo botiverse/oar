@@ -43,7 +43,7 @@ Programs have two entry points:
 | stream-json frame | One `Frame` record per stdout line (control traffic below and the effort read-back at open are the exceptions): `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, user_message, turn_ended, usage, model, task_*, compaction_ended). Frames OAR does not interpret (`rate_limit_event`, `system/thinking_tokens`, …) carry no events. No `spanId`: claude frames carry no turn id. |
 | User turn and `result` | The `prompt` request record starts the turn; the `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`) plus a `usage` event. |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
-| `tool_use` / `tool_result` blocks | `tool_call_started` (`callId`, `tool`, `input`) and `tool_call_ended` (`callId`, `content`, `result`): `is_error: false` is `ok`, `true` is `failed`, an absent field leaves `result` absent ([evidence](#tool-call-outcome-reporting)). |
+| `tool_use` / `tool_result` blocks | `tool_call_started` (`callId`, `tool`, `input`) and `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`, and `false` or an absent field is `ok`: the Messages API defines the field as optional and false by default ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request (none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). `background_tasks_changed` (the live set) and `task_progress` carry no events. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
@@ -442,10 +442,13 @@ former only.
 ### Tool call outcome reporting
 
 Claude reports the outcome of every tool call: the `tool_result` block
-carries `is_error` ([src] stream-json schema). Vendor: the Messages API
-defines the field ([tool result blocks][native-tool-result]). Observed: the
-recorded tool round has `is_error: false` on its one result; the inspected
-transcript has 2217 `false` and 158 `true`. The mapping to
+carries `is_error` when it matters ([src] stream-json schema). Vendor: the
+Messages API defines the field as optional, false by default ([tool result
+blocks][native-tool-result]). Observed: the recorded tool round has
+`is_error: false` on its one result; the inspected transcript has 2217
+`false` and 158 `true`; 2.1.288 leaves the field out of a successful Read,
+Write or Edit result and keeps `false` on Bash (Ferry's log, 2026-10-03), so
+an absent field reads as `ok`. The mapping to
 `tool_call_ended.result` is in the [mapping table](#high-level-mapping-to-oar);
 the block stays verbatim in `native`. A missing tool result after process
 death is not an observed failure.

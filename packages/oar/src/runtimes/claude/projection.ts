@@ -118,12 +118,15 @@ function toolResultViews(message: JsonRecord): RuntimeEventBody[] {
   for (const block of contentBlocks(message)) {
     if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
       const content = toolContent(block.content);
-      const result = typeof block.is_error === "boolean" ? (block.is_error ? "failed" as const : "ok" as const) : undefined;
+      // The Messages API defines `is_error` as optional and false by
+      // default, and claude 2.1.288 leaves it out of a successful Read, Write
+      // or Edit result (Bash carries `false`): an absent field is the
+      // protocol's own "no error", not a missing report.
       out.push({
         kind: "tool_call_ended",
         callId: block.tool_use_id,
         ...(content === undefined ? {} : { content }),
-        ...(result === undefined ? {} : { result }),
+        result: block.is_error === true ? "failed" : "ok",
       });
     }
   }
