@@ -12,6 +12,7 @@ small and links deeper instead of inlining.
 | [system.md](system.md) | How discovery, control, evidence, projection, and continuation form one agent-facing system? |
 | [decisions.md](decisions.md) | Which proposals were refused, why, and what evidence would reopen them? |
 | [chat-ui.md](chat-ui.md) | What does a chat-shaped client consume, and why is session state the API rather than a message stream? |
+| [capabilities.md](capabilities.md) | How does a host learn what a runtime it picked at run time can do, and what happens when it asks for more? |
 | [roadmap.md](roadmap.md) | Which system improvements are next, and what evidence gates them? |
 
 Suggested order: motivation, hard-problems, foundations, liveness, system,
