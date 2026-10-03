@@ -27,8 +27,9 @@ member cannot disagree with itself.
 
 `session()` exists on every runtime, so what differs is its options. An
 option a runtime cannot honor makes `session()` reject with
-`UnsupportedOptionError` (`runtime`, `option`, and the reason as its
-message), never a session that quietly runs without it. A host may simply
+`UnsupportedOptionError` (the `option`, and the reason as its message; the
+host knows which runtime it called), never a session that quietly runs
+without it. A host may simply
 try and fall back on that error; it needs no list to do so.
 
 The error says which option, so a host can tell "not this runtime" from a
