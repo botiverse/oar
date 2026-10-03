@@ -17,6 +17,10 @@ export interface AccountUsageWindow {
   readonly usedRatio: number;
   /** Next reset as a UTC instant; omitted when the runtime does not report one. */
   readonly resetsAt?: UtcInstant;
+  /** The runtime's own key for this window, stable across reads (`label` is for display and may be reworded): key a time series by it. Omitted when the runtime names none. */
+  readonly id?: string;
+  /** The window's length in milliseconds, when the runtime reports it or its key names it; with `resetsAt` it places the window's start. Omitted otherwise. */
+  readonly durationMs?: number;
 }
 
 /** Stable reason codes; no credentials or provider response bodies are included. */

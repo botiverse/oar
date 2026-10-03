@@ -7,6 +7,21 @@ A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
 `resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid
 date, rather than casting a string to `UtcInstant`.
 
+## Windows
+
+Each window carries a display `label`, `usedRatio` (0 to 1), and, where the
+runtime gives them, `resetsAt`, `id` and `durationMs`. `id` is the runtime's
+own key for the window and stays the same across reads, so a host storing
+readings over time keys them by `id`, never by `label` (labels are reworded).
+`durationMs` is the window's length; with `resetsAt` it places the window's
+start, which an even-burn line needs. Sources:
+
+| Runtime | `id` | `durationMs` |
+| --- | --- | --- |
+| claude | the native key (`five_hour`, `seven_day`, `seven_day_oauth_apps`, `seven_day_opus`, `seven_day_sonnet`, `extra_usage`), and `model_scoped:<display name>` for a model-scoped week (claude names it only by display name) | 5 h for `five_hour`, 7 days for the weekly keys (claude's own `limits[].group` says session or weekly); none for extra usage |
+| codex | `<limitId>:primary` or `<limitId>:secondary` | `windowDurationMins` as reported |
+| grok, kimi | none | none |
+
 ## Failure reasons
 
 Unsuccessful account-usage snapshots retain `kind: "unsupported"` or

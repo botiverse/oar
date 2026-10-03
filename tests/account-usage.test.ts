@@ -45,6 +45,7 @@ test("codex projection preserves typed rate-limit windows", () => {
       "rateLimited": false,
       "windows": [
         {
+          "durationMs": 18000000,
           "label": "5 hours",
           "resetsAt": "2027-01-15T08:00:00.000Z",
           "usedRatio": 0.25,
@@ -63,16 +64,22 @@ test("codex projection distinguishes windows from separate limits", () => {
       "rateLimited": false,
       "windows": [
         {
+          "durationMs": 604800000,
+          "id": "codex:primary",
           "label": "Codex · 1 week",
           "resetsAt": "2027-01-17T15:33:20.000Z",
           "usedRatio": 0.92,
         },
         {
+          "durationMs": 18000000,
+          "id": "codex_bengalfox:primary",
           "label": "GPT-5.3-Codex-Spark · 5 hours",
           "resetsAt": "2027-01-15T08:00:00.000Z",
           "usedRatio": 0,
         },
         {
+          "durationMs": 604800000,
+          "id": "codex_bengalfox:secondary",
           "label": "GPT-5.3-Codex-Spark · 1 week",
           "resetsAt": "2027-01-16T11:46:40.000Z",
           "usedRatio": 0,
@@ -105,11 +112,13 @@ test("codex projection merges an extra-only indexed view", () => {
       "rateLimited": false,
       "windows": [
         {
+          "durationMs": 604800000,
           "label": "1 week",
           "resetsAt": "2027-01-15T08:00:00.000Z",
           "usedRatio": 0.5,
         },
         {
+          "durationMs": 18000000,
           "label": "GPT-5.3-Codex-Spark · 5 hours",
           "resetsAt": "2027-01-16T11:46:40.000Z",
           "usedRatio": 0,

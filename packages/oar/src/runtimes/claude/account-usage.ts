@@ -4,7 +4,16 @@ import { runExecutable, spawnLineProcess } from "../../shared/executable/index.j
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 
-function windowOf(label: string, value: unknown): AccountUsageWindow | null {
+const HOUR_MS = 3_600_000;
+const WEEK_MS = 7 * 24 * HOUR_MS;
+
+/** The native key and, where the key names it, the window's length (claude's own `limits[].group` says session or weekly). */
+interface WindowKey {
+  readonly id: string;
+  readonly durationMs?: number;
+}
+
+function windowOf(label: string, value: unknown, key?: WindowKey): AccountUsageWindow | null {
   const entry = asRecord(value);
   const percent = asNumber(entry?.utilization);
   if (percent === null || percent < 0) {
@@ -15,6 +24,8 @@ function windowOf(label: string, value: unknown): AccountUsageWindow | null {
     label,
     usedRatio: Math.min(1, Number((percent / 100).toFixed(6))),
     ...(reset === null ? {} : { resetsAt: reset }),
+    ...(key === undefined ? {} : { id: key.id }),
+    ...(key?.durationMs === undefined ? {} : { durationMs: key.durationMs }),
   };
 }
 
@@ -34,28 +45,29 @@ export function projectClaudeUsage(payload: unknown, email?: string): AccountUsa
     throw new Error("Claude get_usage did not return account rate limits");
   }
   const windows: AccountUsageWindow[] = [];
-  const add = (label: string, value: unknown): void => {
-    const window = windowOf(label, value);
+  const add = (label: string, value: unknown, key: WindowKey): void => {
+    const window = windowOf(label, value, key);
     if (window !== null) {
       windows.push(window);
     }
   };
-  add("Current session", limits.five_hour);
-  add("Current week (all models)", limits.seven_day);
-  add("Current week (OAuth apps)", limits.seven_day_oauth_apps);
+  add("Current session", limits.five_hour, { id: "five_hour", durationMs: 5 * HOUR_MS });
+  add("Current week (all models)", limits.seven_day, { id: "seven_day", durationMs: WEEK_MS });
+  add("Current week (OAuth apps)", limits.seven_day_oauth_apps, { id: "seven_day_oauth_apps", durationMs: WEEK_MS });
   if (Array.isArray(limits.model_scoped)) {
     for (const entry of asRecordList(limits.model_scoped)) {
       if (typeof entry.display_name === "string" && entry.display_name.trim().length > 0) {
-        add(`Current week (${entry.display_name})`, entry);
+        // A scoped entry names its model only by display name (2.1.288: `scope.model.id` is null).
+        add(`Current week (${entry.display_name})`, entry, { id: `model_scoped:${entry.display_name}`, durationMs: WEEK_MS });
       }
     }
   } else {
-    add("Current week (Opus)", limits.seven_day_opus);
-    add("Current week (Sonnet)", limits.seven_day_sonnet);
+    add("Current week (Opus)", limits.seven_day_opus, { id: "seven_day_opus", durationMs: WEEK_MS });
+    add("Current week (Sonnet)", limits.seven_day_sonnet, { id: "seven_day_sonnet", durationMs: WEEK_MS });
   }
   const includedExhausted = windows.some((window) => window.usedRatio >= 1);
   const extra = asRecord(limits.extra_usage);
-  const extraWindow = extra?.is_enabled === true ? windowOf("Extra usage", extra) : null;
+  const extraWindow = extra?.is_enabled === true ? windowOf("Extra usage", extra, { id: "extra_usage" }) : null;
   if (extraWindow !== null) {
     windows.push(extraWindow);
   }

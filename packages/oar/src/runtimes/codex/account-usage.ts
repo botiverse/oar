@@ -143,10 +143,14 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
       }
       const resetsAt = asEpochInstant(candidate.resetsAt);
       const durationLabel = windowLabel(candidate.windowDurationMins);
+      const minutes = asNumber(candidate.windowDurationMins);
+      const limitId = text(bucket.limitId);
       windows.push({
         label: sourceLabel === undefined ? durationLabel : `${sourceLabel} · ${durationLabel}`,
         usedRatio: Number((usedPercent / 100).toFixed(6)),
         ...(resetsAt === null ? {} : { resetsAt }),
+        ...(limitId === undefined ? {} : { id: `${limitId}:${kind}` }),
+        ...(minutes === null || minutes <= 0 ? {} : { durationMs: minutes * 60_000 }),
       });
       rateLimited ||= usedPercent >= 100;
     }
