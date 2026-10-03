@@ -126,6 +126,47 @@ and `session.records()` expose the underlying record stream with every native
 payload verbatim. The [package README](packages/oar/README.md) lists the
 public entry points.
 
+## Without a session
+
+The runtime registry is useful on its own, with no session opened: every
+query below works for each supported runtime that has it, through the same
+types.
+
+```ts
+import { runtimes } from "@botiverse/oar";
+
+for (const runtime of runtimes.list()) {
+  const installation = await runtime.installation?.();
+  if (installation?.kind === "available") {
+    const [usage, models, update] = await Promise.all([
+      runtime.accountUsage?.(installation),
+      runtime.listModels?.(installation),
+      runtime.checkUpdate?.(installation),
+    ]);
+    console.log(runtime.id, usage?.kind, models?.kind, update?.kind);
+  }
+}
+```
+
+- **Installation:** `installation()` finds the runtime on this machine and
+  reports its version, with no account or network calls.
+- **Account usage:** `accountUsage()` reads the plan and quota windows with
+  their reset times (claude, codex, grok, kimi;
+  [reference](docs/spec/account-usage.md)).
+- **Models:** `listModels()` lists the models the installation can run now,
+  with their effort levels; not being logged in is its own answer, not an
+  empty list.
+- **Updates:** `checkUpdate()` reports the version the runtime's own updater
+  would install, and `upgrade()` runs that updater and judges it by the
+  version afterwards ([reference](docs/spec/update.md)).
+- **Inventories:** `skills()`, `mcpServers()` and `tools()` read what the
+  runtime has configured natively ([reference](docs/spec/inventory.md)).
+- **Session options:** `refusedSessionOptions` says which session options a
+  runtime refuses, before anything opens.
+
+The CLI exposes the same queries: `oar installation`, `oar usage`,
+`oar models` and `oar upgrade --check`.
+
 ## CLI
 
 ```bash
