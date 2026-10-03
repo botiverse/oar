@@ -36,3 +36,15 @@ test("toolActionLabel gives tense-correct labels per state", () => {
   assert.equal(toolActionLabel("run_command", "done"), "Ran command");
   assert.equal(toolActionLabel("read_file", "failed"), "Read failed");
 });
+
+// codex reports the model waiting as a `sleep` item (#84): a wait, with the time it asked for.
+test("classifyTool reads codex sleep as a wait with the asked duration", () => {
+  assert.deepEqual(classifyTool("codex", "sleep", JSON.stringify({ durationMs: 50_000 })), {
+    kind: "wait",
+    durationMs: 50_000,
+  });
+  assert.deepEqual(classifyTool("codex", "sleep"), { kind: "wait" });
+  assert.deepEqual(classifyTool("codex", "sleep", JSON.stringify({ durationMs: -1 })), { kind: "wait" });
+  assert.equal(toolActionLabel("wait", "running"), "Waiting");
+  assert.equal(toolActionLabel("wait", "done"), "Waited");
+});

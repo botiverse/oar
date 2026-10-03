@@ -18,6 +18,7 @@ export type ToolActionKind =
   | "search"
   | "web"
   | "mcp"
+  | "wait"
   | "other";
 
 export interface ToolAction {
@@ -31,6 +32,12 @@ export interface ToolAction {
   readonly command?: string;
   /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`). */
   readonly description?: string;
+  /**
+   * `wait`: how long the agent asked to wait, in ms, as the runtime reported it (codex
+   * `sleep`'s `durationMs`). How long it actually waited is the tool part's
+   * `endedAt - startedAt`: a steer can end a wait early.
+   */
+  readonly durationMs?: number;
 }
 
 // Per-runtime tool name → kind. Names are what the tool_call_started event
@@ -52,6 +59,7 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     fileChange: "edit_file",
     webSearch: "web",
     mcpToolCall: "mcp",
+    sleep: "wait",
   },
   pi: {
     bash: "run_command",
@@ -141,7 +149,19 @@ export function classifyTool(runtimeId: string, tool: string, inputJson?: string
   const runtime = runtimeId.replace(/-aimock$/u, "");
   const shell = inputJson === undefined ? {} : (SHELL[runtime]?.[tool]?.(inputJson) ?? {});
   const detail = detailOf(inputJson) ?? shell.command ?? (kind === "other" ? tool : undefined);
-  return { kind, ...(detail === undefined ? {} : { detail }), ...shell };
+  const durationMs = kind === "wait" && inputJson !== undefined ? waitOf(inputJson) : undefined;
+  return {
+    kind,
+    ...(detail === undefined ? {} : { detail }),
+    ...shell,
+    ...(durationMs === undefined ? {} : { durationMs }),
+  };
+}
+
+/** The wait a `wait` call asked for: its input's `durationMs`, when a finite positive number. */
+function waitOf(inputJson: string): number | undefined {
+  const value = asRecord(parseJson(inputJson))?.durationMs;
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 const LABELS: Record<ToolActionKind, { running: string; done: string; failed: string }> = {
@@ -151,6 +171,7 @@ const LABELS: Record<ToolActionKind, { running: string; done: string; failed: st
   search: { running: "Searching", done: "Searched", failed: "Search failed" },
   web: { running: "Searching the web", done: "Searched the web", failed: "Web request failed" },
   mcp: { running: "Using a tool", done: "Used a tool", failed: "Tool failed" },
+  wait: { running: "Waiting", done: "Waited", failed: "Wait failed" },
   other: { running: "Working", done: "Done", failed: "Failed" },
 };
 
