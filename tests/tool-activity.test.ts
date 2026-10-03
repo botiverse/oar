@@ -44,7 +44,9 @@ test("classifyTool reads codex sleep as a wait with the asked duration", () => {
     durationMs: 50_000,
   });
   assert.deepEqual(classifyTool("codex", "sleep"), { kind: "wait" });
-  assert.deepEqual(classifyTool("codex", "sleep", JSON.stringify({ durationMs: -1 })), { kind: "wait" });
+  for (const input of [JSON.stringify({ durationMs: -1 }), JSON.stringify({ durationMs: 0 }), JSON.stringify({ durationMs: "50000" }), "{not json"]) {
+    assert.deepEqual(classifyTool("codex", "sleep", input), { kind: "wait" });
+  }
   assert.equal(toolActionLabel("wait", "running"), "Waiting");
   assert.equal(toolActionLabel("wait", "done"), "Waited");
 });
