@@ -1,6 +1,7 @@
-import type { SessionOptions } from "../../contracts/session.js";
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 
 export function selectKimiAuthMethod(initialized: JsonRecord): string | undefined {
   const methods = Array.isArray(initialized.authMethods) ? initialized.authMethods : [];
@@ -23,11 +24,10 @@ export function supportsKimiYolo(response: JsonRecord): boolean {
   return values.map((value) => asRecord(value)).some((option) => option?.value === "yolo");
 }
 
-function validateKimiOptions(options: SessionOptions): void {
-  if (options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined) {
-    throw new Error("Kimi ACP does not expose a system prompt override");
-  }
-}
+export const kimiRefusedSessionOptions: RefusedSessionOptions = {
+  systemPrompt: "Kimi ACP does not expose a system prompt override",
+  appendSystemPrompt: "Kimi ACP does not expose a system prompt override",
+};
 
 export const kimiAcpProfile: AcpSessionProfile = {
   args: ["acp"],
@@ -38,7 +38,9 @@ export const kimiAcpProfile: AcpSessionProfile = {
   capabilities: { steer: false, queue: { durable: false }, attribution: "opaque" },
   requestTimeoutMs: 30_000,
   selectAuthMethod: selectKimiAuthMethod,
-  validateOptions: validateKimiOptions,
+  validateOptions: (options) => {
+    refuseSessionOptions(kimiRefusedSessionOptions, options);
+  },
   // kimi-code f9ca33376 acp-server session.ts onTurnEnded: prompt answered
   // first, usage_update pushed afterwards from an un-awaited async task.
   usageUpdateAfterPrompt: true,

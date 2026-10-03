@@ -9,7 +9,8 @@ import type {
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
-import { cursorModelSelection, validateCursorOptions } from "./model.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
+import { cursorModelSelection, cursorRefusedSessionOptions } from "./model.js";
 import {
   cursorOpenedFrame,
   cursorRunFailedFrame,
@@ -48,7 +49,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     if (installation.via !== "bundled") {
       throw new Error("The cursor session adapter needs the bundled @cursor/sdk installation");
     }
-    validateCursorOptions(options);
+    refuseSessionOptions(cursorRefusedSessionOptions, options);
     const sdk = await load();
     // No sandbox, as every OAR session runs by default (contracts/session.ts):
     // without this a `~/.cursor/sandbox.json` would turn one on.

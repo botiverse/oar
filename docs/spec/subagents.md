@@ -1,9 +1,10 @@
 # Subagents
 
 `@botiverse/oar/agents` lets a host start child sessions on any runtime that
-takes `SessionOptions.env` (every built-in runtime but cursor, which runs in
-the host process and refuses it, so the depth limit could not reach it),
-follow them, and feed their results back into a parent. `oar mcp` serves the
+takes `SessionOptions.env`, follow them, and feed their results back into a
+parent. A child carries its depth in `env`, so a runtime that declares `env`
+in `refusedSessionOptions` (cursor) is refused at spawn with `open_failed`
+and the reason, and the `runtimes` tool marks it `spawnable: false`. `oar mcp` serves the
 same library to any agent that speaks MCP. The
 [TypeScript contract](../../packages/oar/src/agents/types.ts) is normative.
 

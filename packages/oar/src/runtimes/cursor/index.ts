@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { cursorInstallation } from "./installation.js";
 import { cursorListModels } from "./list-models.js";
+import { cursorRefusedSessionOptions } from "./model.js";
 import { cursorSession } from "./session.js";
 
 /**
@@ -16,6 +17,7 @@ export const cursorRuntime = defineRuntime({
   installation: cursorInstallation,
   listModels: cursorListModels,
   session: cursorSession,
+  refusedSessionOptions: cursorRefusedSessionOptions,
 });
 
 export { cursorListModels, projectCursorModels } from "./list-models.js";

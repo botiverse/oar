@@ -63,6 +63,11 @@ Antigravity, Grok, and Kimi share an internal ACP v1 transport and session kerne
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
+`runtime.refusedSessionOptions` names the `SessionOptions` a runtime refuses
+at open (`systemPrompt`, `appendSystemPrompt`, `env`), each with the reason,
+so a host can leave them out before opening: cursor refuses all three, kimi
+and antigravity the two prompt options.
+
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. `runtime.accountUsage(installation)` reads account quota on claude,

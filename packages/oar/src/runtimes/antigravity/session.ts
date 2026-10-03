@@ -1,6 +1,7 @@
-import type { SessionOptions } from "../../contracts/session.js";
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 
 /**
  * The ACP registry's launch line for agy_acp_server 1.2.1. On Linux the
@@ -28,11 +29,10 @@ export function supportsAntigravityYolo(response: JsonRecord): boolean {
   return values.map((value) => asRecord(value)).some((option) => option?.value === "yolo");
 }
 
-function validateAntigravityOptions(options: SessionOptions): void {
-  if (options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined) {
-    throw new Error("Antigravity ACP does not expose a system prompt override");
-  }
-}
+export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
+  systemPrompt: "Antigravity ACP does not expose a system prompt override",
+  appendSystemPrompt: "Antigravity ACP does not expose a system prompt override",
+};
 
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
@@ -45,7 +45,9 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   requestTimeoutMs: 30_000,
   // No `authenticate`: the server signs in from the `auth.type` its own
   // login persisted plus the cached token, or from GEMINI_API_KEY.
-  validateOptions: validateAntigravityOptions,
+  validateOptions: (options) => {
+    refuseSessionOptions(antigravityRefusedSessionOptions, options);
+  },
   // `session/set_model` answers `{}` and no `config_option_update` is ever
   // pushed, so only `set_config_option` reports the switch. Effort is part
   // of the model id and no `thought_level` option exists.

@@ -6,11 +6,27 @@ import type { ModelLister } from "./list-models.js";
 import type { RuntimeBrand } from "./brand.js";
 import type { StartSession } from "./session.js";
 
+/** The `SessionOptions` a runtime can refuse at open. */
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env";
+
+/**
+ * The options a runtime refuses when they are given (`env`: a non-empty
+ * one), each with the reason `session()` rejects with. Options it does not
+ * list, and every option when the map is absent, are accepted.
+ */
+export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
+
 /** One provider-independent runtime adoption unit. */
 export interface Runtime extends RuntimeInventories {
   readonly id: string;
   readonly brand: RuntimeBrand;
   readonly session: StartSession; // the core capability: a runtime without sessions is not usable
+  /**
+   * Declared before any session opens, so a host leaves a refused option out
+   * without knowing runtimes by name. `session()` checks the same map, so a
+   * declared option is always refused and a refused one always declared.
+   */
+  readonly refusedSessionOptions?: RefusedSessionOptions;
   readonly installation?: InstallationProbe;
   readonly accountUsage?: AccountUsageReader;
   readonly listModels?: ModelLister;
