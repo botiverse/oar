@@ -54,6 +54,9 @@ while (!toolStartedAfter(first.request.seq)) {
   // oxlint-disable-next-line eslint/no-await-in-loop -- polling the stream
   await delay(100);
 }
+if (session.steer === undefined) {
+  throw new Error("a codex session has steer");
+}
 const steered = await session.steer("Also append the word MANGO to your final reply.");
 process.stdout.write(`steer -> ${steered.response.body.kind}\n`);
 const firstOutcome = await awaitTurnEnd(session, first.request.seq);

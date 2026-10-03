@@ -34,8 +34,9 @@ export const kimiAcpProfile: AcpSessionProfile = {
   // `kimi acp` binds the native session's `main` agent only (kimi-code
   // f9ca33376 acp-server session.ts), so children exist natively but never
   // reach this transport: opaque (tier #1), honestly root-only. The ACP
-  // method set has no steer.
-  capabilities: { steer: false, queue: { durable: false }, attribution: "opaque" },
+  // method set has no steer, so the profile has no `steerParams` and the
+  // session no `steer`.
+  capabilities: { queue: { durable: false }, attribution: "opaque" },
   requestTimeoutMs: 30_000,
   selectAuthMethod: selectKimiAuthMethod,
   validateOptions: (options) => {

@@ -108,8 +108,15 @@ export class FakeCursorAgent implements CursorAgent {
   }
 }
 
+/** A session with `steer`, as every cursor session has. */
+export type SteeringSession = Session & Required<Pick<Session, "steer">>;
+
+function steers(session: Session): session is SteeringSession {
+  return session.steer !== undefined;
+}
+
 export interface FakeCursorHarness {
-  readonly session: Session;
+  readonly session: SteeringSession;
   readonly agent: FakeCursorAgent;
   readonly opened: readonly { readonly how: "create" | "resume"; readonly id?: string; readonly options: CursorAgentOptions }[];
 }
@@ -151,6 +158,7 @@ export async function openFakeCursor(options?: Omit<SessionOptions, "cwd">): Pro
     return sdk;
   });
   const session = await start({ kind: "available", via: "bundled" }, { cwd: "/w", ...(options ?? { model: "composer" }) });
+  assert.ok(steers(session), "a cursor session has steer");
   return { session, agent: holder.agent ?? assert.fail("no agent"), opened };
 }
 

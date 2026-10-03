@@ -3,10 +3,9 @@ import type { RejectionCode } from "./records.js";
 
 /**
  * When a delivered input should reach the agent.
- * `now`: into the running turn (steered, or queued when the runtime cannot
- * steer), or a new turn when the session is idle, so an idle agent wakes.
- * `after_turn`: after the running turn (queued, or held until idle when the
- * runtime holds no queue), or a new turn when idle.
+ * `now`: into the running turn (steered, or queued when the session has no
+ * `steer`), or a new turn when the session is idle, so an idle agent wakes.
+ * `after_turn`: after the running turn (queued), or a new turn when idle.
  * `when_idle`: once the session is idle, as a new turn.
  */
 export type DeliverWhen = "now" | "after_turn" | "when_idle";

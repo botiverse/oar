@@ -109,21 +109,25 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       return kernel.control(body, decide);
     };
 
+    // A profile without steer params cannot inject, so the session has no `steer`.
+    const { steerParams } = profile;
+    const steer = steerParams === undefined
+      ? {}
+      : {
+        steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
+          const state = turns.active();
+          return state === null
+            ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
+            : turns.steer(state, input, inputOptions?.images, steerParams(input));
+        }),
+      };
+
     return sealSession({
       id: kernel.sessionId,
       capabilities,
       prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
         (turns.active() === null ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
-      steer: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
-        const steerParams = profile.steerParams;
-        if (steerParams === undefined) {
-          return { kind: "rejected", code: "unsupported", reason: "not_steerable: runtime cannot inject into an active turn" };
-        }
-        const state = turns.active();
-        return state === null
-          ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
-          : turns.steer(state, input, inputOptions?.images, steerParams(input));
-      }),
+      ...steer,
       queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images)),
       abort: (): Promise<ControlResult> => control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
         const state = turns.active();

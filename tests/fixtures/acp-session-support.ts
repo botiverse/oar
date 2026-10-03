@@ -13,7 +13,7 @@ const installation = {
 export function profile(overrides: Partial<AcpSessionProfile> = {}): AcpSessionProfile {
   return {
     args: [fixture, "session"],
-    capabilities: { steer: false, queue: { durable: false }, attribution: "nested" },
+    capabilities: { queue: { durable: false }, attribution: "nested" },
     selectAuthMethod: () => "cached",
     abortTimeoutMs: 500,
     configureSession: async ({ connection, sessionId, requestOptions }) => {

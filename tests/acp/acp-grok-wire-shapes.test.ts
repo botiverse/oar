@@ -11,6 +11,7 @@ import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/s
 import { acpLineageOf } from "../../packages/oar/src/shared/acp/records.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { describe, start } from "../fixtures/acp-session-support.js";
+import { steer } from "../fixtures/steer.js";
 
 // Frames as grok 1.0.25 (f7e67d6988e2) sent them on 2026-09-11, tapped below
 // the ACP SDK (experiments/grok-wire-tap.ts → oar-trial-run/live-grok-tap/
@@ -209,7 +210,7 @@ test("a send-now steer's two answers are two per-prompt ledgers: summed once, st
   const session = await start({ ...grokProfile, steerParams: () => ({ _meta: { sendNow: true } }) });
   const base = await session.prompt("grok-steer-base");
   assert.equal(base.response.body.kind, "accepted");
-  const steered = await session.steer("grok-steer-new");
+  const steered = await steer(session, "grok-steer-new");
   assert.equal(steered.response.body.kind, "accepted");
   assert.deepEqual(await awaitTurnEnd(session, base.request.seq), { kind: "completed" });
   const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));

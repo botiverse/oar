@@ -40,6 +40,10 @@ stream, which `session.rawEvents()` and `session.records()` expose
 subagent's result, a finished job) at the right moment: a new turn when the
 session is idle, so the agent wakes, otherwise steered into the turn or queued
 behind it. `origin` is recorded so a UI can tell it from typed input.
+`session.steer` exists only on a session whose runtime can steer (kimi and
+antigravity sessions have none), so a host offers a steer control by reading
+the member, never a runtime name; `deliver` and `steerOrQueue` queue where it
+is absent.
 
 For conversation UIs, use the browser-safe `reduceConversation` projection
 over `session.rawEvents()`. It joins input requests, responses and native
@@ -50,7 +54,7 @@ echoes by identity, including steer → queue fallback. See the
 
 The package has six public entry points:
 
-- `@botiverse/oar`: the full surface (runtime registry, adapters, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar`: the full surface (runtime registry, adapters, `UnsupportedOptionError`, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports the same utilities.
 - `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse.
@@ -63,10 +67,15 @@ Antigravity, Grok, and Kimi share an internal ACP v1 transport and session kerne
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
-`runtime.refusedSessionOptions` names the `SessionOptions` a runtime refuses
-at open (`systemPrompt`, `appendSystemPrompt`, `env`), each with the reason,
-so a host can leave them out before opening: cursor refuses all three, kimi
-and antigravity the two prompt options.
+What a runtime cannot honor is refused, never dropped: `runtime.session()`
+rejects with an `UnsupportedOptionError` (`option` names the refused
+`SessionOptions` key, the message is the reason), so a host can try and fall
+back on it. `runtime.refusedSessionOptions` names the options a runtime
+refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`), each with the
+reason, so a host can leave them out before opening: cursor refuses all
+three, kimi and antigravity the two prompt options. Kimi also refuses a
+`resume` in another directory than the session's own (`option: "cwd"`). See
+[refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
 
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime

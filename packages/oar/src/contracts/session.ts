@@ -102,8 +102,15 @@ export interface InputOptions {
  *   with a fresh stream starting at seq 0.
  */
 
+/**
+ * How a session opens. What a runtime cannot honor is refused, never
+ * dropped: `session()` rejects with an `UnsupportedOptionError` naming the
+ * option rather than open a session that runs without it. A host that must
+ * decide before opening reads `Runtime.refusedSessionOptions`
+ * (docs/spec/runtime-matrix.md#refused-session-options).
+ */
 export interface SessionOptions {
-  /** Working directory the runtime operates in. */
+  /** Working directory the runtime operates in. With `resume`, a directory other than the session's own is refused where the runtime would run in its own instead (kimi: `UnsupportedOptionError` on `cwd`); cursor, pi and grok refuse it with their own error (docs/runtimes/resume-cwd.md). */
   readonly cwd: string;
   /** Runtime-native model identifier; the runtime's default when omitted. */
   readonly model?: string;
@@ -126,13 +133,13 @@ export interface SessionOptions {
    * `Session.effort()` is the runtime's report, where it gives one.
    */
   readonly effort?: string;
-  /** Resume the runtime-native session identified by a previous Session.id. */
+  /** Resume the runtime-native session identified by a previous Session.id. In a `cwd` other than the session's own, see `cwd`: kimi refuses it with `UnsupportedOptionError` (docs/spec/runtime-matrix.md#refused-session-options). */
   readonly resume?: string;
-  /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. */
+  /** Extra environment overlaid on the host env for the processes THIS session spawns. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. Refused when non-empty by cursor, whose tools run in the host process with no environment of their own: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly env?: Readonly<Record<string, string>>;
-  /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction (pinned per vendor). */
+  /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction (pinned per vendor). Refused by cursor, kimi and antigravity: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly systemPrompt?: string;
-  /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction (pinned per vendor). */
+  /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction (pinned per vendor). Refused by cursor, kimi and antigravity: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly appendSystemPrompt?: string;
 }
 
@@ -176,11 +183,14 @@ export type ControlOutcome =
  */
 export type AttributionTier = "none" | "opaque" | "attributed" | "nested";
 
+/**
+ * Per-session facts a host must read before acting that are not operations.
+ * A whole operation is a member that may be absent instead (`Session.steer`):
+ * its presence is the capability, with no flag beside it.
+ */
 export interface SessionCapabilities {
-  /** Mid-turn input can be injected into the active turn. */
-  readonly steer: boolean;
-  /** Input can be held for a LATER turn; `durable` says whether that survives a process restart (codex: runtime-persisted; claude/pi/ACP: this process only). Null when the runtime cannot even hold input. */
-  readonly queue: { readonly durable: boolean } | null;
+  /** Where input held for a LATER turn lives: `durable` says whether it survives a process restart (codex: runtime-persisted; claude/pi/cursor/ACP: held by the adapter, this process only). Every runtime can at least hold input in the adapter. */
+  readonly queue: { readonly durable: boolean };
   readonly attribution: AttributionTier;
   /** Input can carry images (`InputOptions.images`), delivered as the runtime's native image content. ACP runtimes: what `initialize` advertised (`promptCapabilities.image`). */
   readonly images: boolean;
@@ -213,8 +223,8 @@ export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
   prompt(input: string, options?: InputOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
-  steer(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; rejected `no_active_turn` when nothing is active, `unsupported` when the runtime cannot inject, `runtime_refused` when the runtime itself refuses (reasons start `not_steerable:`). Input written during runtime-autonomous compaction is HELD, not lost.
-  queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn; rejected when `capabilities.queue` is null. That later turn has events but no request of its own: a spontaneous turn.
+  steer?(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; ABSENT when the runtime cannot inject into an active turn (kimi, antigravity): its presence is the capability. Rejected `no_active_turn` when nothing is active, `unsupported` when the runtime cannot take these inputs mid-turn (images on a cursor steer), `runtime_refused` when the runtime itself refuses (reasons start `not_steerable:`). Input written during runtime-autonomous compaction is HELD, not lost.
+  queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn, held by the runtime or the adapter (`capabilities.queue.durable` says which). That later turn has events but no request of its own: a spontaneous turn.
   abort(): Promise<ControlResult>; // interrupt the active turn; accepted means the interrupt was delivered, the outcome is the runtime's own turn_ended event. Rejected when nothing is active; a late abort is a normal race, not an error.
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
@@ -225,7 +235,8 @@ export interface AdapterSession {
 /** The API face: the SPI plus surfaces sealSession derives from the stream. Control members answer with `ControlOutcome`: the same records, read. */
 export interface Session extends AdapterSession {
   prompt(input: string, options?: InputOptions): Promise<ControlOutcome>;
-  steer(input: string, options?: InputOptions): Promise<ControlOutcome>;
+  /** Present only when the runtime can steer; a host shows a steer control only where it exists, and `steerOrQueue` / `deliver` queue without it. */
+  steer?(input: string, options?: InputOptions): Promise<ControlOutcome>;
   queue(input: string, options?: InputOptions): Promise<ControlOutcome>;
   abort(): Promise<ControlOutcome>;
   /**
@@ -253,9 +264,9 @@ export interface Session extends AdapterSession {
    */
   status(): QueryResult<AgentStatus>;
   /**
-   * DERIVED: steer when the runtime can, fall back to queueing, always report
-   * where the input landed. `rejected` means the input was NOT taken over and
-   * the caller still owns it.
+   * DERIVED: steer when the session has `steer` and the steer is accepted,
+   * otherwise queue; always report where the input landed. `rejected` means
+   * the input was NOT taken over and the caller still owns it.
    */
   steerOrQueue(input: string, options?: InputOptions): Promise<SteerOrQueueResult>;
   /**
@@ -278,5 +289,5 @@ export interface SessionUsage {
 export type SteerOrQueueResult =
   | { readonly landed: "steered"; readonly result: ControlOutcome }
   | { readonly landed: "queued"; readonly result: ControlOutcome }
-  /** `result` is the last attempt (the queue when one was made, else the steer); `code` / `reason` are its. */
+  /** `result` is the last attempt, the queue; `code` / `reason` are its. */
   | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly result: ControlOutcome };

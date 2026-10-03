@@ -28,7 +28,7 @@ function sessionOver(kernel: SessionKernel): AdapterSession {
     kernel.control(body, () => ({ kind: "accepted" }));
   return {
     id: kernel.sessionId,
-    capabilities: { steer: false, queue: null, attribution: "nested", images: false },
+    capabilities: { queue: { durable: false }, attribution: "nested", images: false },
     prompt: async (input) => control({ kind: "prompt", input }),
     steer: async (input) => control({ kind: "steer", input }),
     queue: async (input) => control({ kind: "queue", input }),

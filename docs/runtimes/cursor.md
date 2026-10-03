@@ -116,8 +116,10 @@ foreground shell command running, a steer moves that command to the
 background (its call ends at once with empty output) and the model polls it
 afterwards (probed); the steered text landed in the same turn (`steer`).
 `run.steer` takes text only, so a steer with images is rejected
-`unsupported`. `Session.deliver` does not fall back to the queue on a
-handed back steer; `steerOrQueue` does.
+`unsupported`. A run whose SDK object has no `run.steer` refuses the steer
+`runtime_refused`: the session still has `steer`, the run declined.
+`Session.deliver` does not fall back to the queue on a handed back steer;
+`steerOrQueue` does.
 
 **Queue (mapped):** `queue()` is an adapter-held FIFO
 (`capabilities.queue.durable: false`) sent as a new run when the current one

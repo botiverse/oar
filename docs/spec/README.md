@@ -105,10 +105,14 @@ they appear:
 1. **Causal links between records.** No consumer scenario has required a
    causal-link field between records (a `causedBy`-style pointer). Adding
    one stays open.
-2. **Capability declaration beyond attribution.** `SessionCapabilities`
-   declares steer, queue durability, the attribution tier and image input.
-   A fuller typed surface (what each adapter supports, with typed
-   `unsupported`) is a candidate for the next revision.
+2. **Capability declaration beyond attribution.** A whole operation a
+   runtime cannot do is a member the session lacks (`steer`); an option it
+   cannot honor is refused with an `UnsupportedOptionError`, declared up
+   front in `Runtime.refusedSessionOptions`
+   ([refused session options](runtime-matrix.md#refused-session-options));
+   `SessionCapabilities` declares queue durability, the attribution tier and
+   image input. Which further facts deserve a declaration (a remote
+   environment, for one) stays open.
 
 ## Legend
 

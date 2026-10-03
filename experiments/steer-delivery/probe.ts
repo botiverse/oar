@@ -30,6 +30,7 @@ const session = await runtime.session(installation, {
   cwd, model: { pi: "aimock/aimock-model", claude: "haiku", codex: "gpt-5.1" }[id],
   env: { ...env.env, CLAUDE_CONFIG_DIR: cwd, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" },
 });
+const steer = session.steer?.bind(session) ?? assert.fail(`${id} has no steer`);
 const pending: { steering?: Promise<ControlResult> } = {};
 const timeline: { seq: number; kind: string; type?: string; marker?: boolean; native?: unknown }[] = [];
 function observe(record: RawEvent): void {
@@ -40,7 +41,7 @@ function observe(record: RawEvent): void {
     ...(containsMarker || record.kind === "response" ? { native } : {}),
   });
   if (pending.steering === undefined && record.kind === "frame" && record.body.events.some((event) => event.kind === "tool_call_started")) {
-    pending.steering = session.steer(marker);
+    pending.steering = steer(marker);
   }
 }
 const off = session.rawEvents(observe);

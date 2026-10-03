@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import type { ControlResult, RequestRecord, ResponseRecord, Session, RawEvent, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
-import type { TrialCase } from "../harness/runner.js";
+import { steerOrSkip, type TrialCase } from "../harness/runner.js";
 /** Prompt and insist the runtime accepted it. */
 async function accepted(session: Session, input: string, options?: Parameters<Session["prompt"]>[1]): Promise<ControlResult> {
   const result = await session.prompt(input, options);
@@ -137,8 +137,9 @@ export const sessionCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
+      const steer = await steerOrSkip(session);
       await runTurn(session, "hello");
-      const late = await session.steer("too late");
+      const late = await steer("too late");
       assert.equal(late.response.body.kind, "rejected", "steer with no active turn must be rejected");
       await session.dispose();
     },
@@ -197,10 +198,11 @@ export const sessionCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
+      const steer = await steerOrSkip(session);
       const started = await accepted(session, "please answer slow-ly");
-      const steer = await session.steer("mid-turn note");
-      assert.equal(steer.request.body.kind, "steer");
-      assert.ok(steer.response.body.kind === "accepted" || steer.response.body.kind === "rejected");
+      const steered = await steer("mid-turn note");
+      assert.equal(steered.request.body.kind, "steer");
+      assert.ok(steered.response.body.kind === "accepted" || steered.response.body.kind === "rejected");
       const outcome = await awaitTurnEnd(session, started.request.seq);
       assert.ok(outcome.kind !== "failed", `steer broke the turn: ${JSON.stringify(outcome)}`);
       await session.dispose();
@@ -211,12 +213,6 @@ export const sessionCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
-      if (session.capabilities.queue === null) {
-        const refused = await session.queue("held");
-        assert.equal(refused.response.body.kind, "rejected", "a runtime without a queue must reject, not silently drop");
-        await session.dispose();
-        return;
-      }
       const first = await accepted(session, "please answer slow-ly");
       const queued = await session.queue("and then this");
       assert.equal(queued.response.body.kind, "accepted");

@@ -11,8 +11,9 @@ export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "en
 
 /**
  * The options a runtime refuses when they are given (`env`: a non-empty
- * one), each with the reason `session()` rejects with. Options it does not
- * list, and every option when the map is absent, are accepted.
+ * one), each with the reason `session()` rejects with, as the message of an
+ * `UnsupportedOptionError` naming the option. Options it does not list, and
+ * every option when the map is absent, are accepted.
  */
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
 
@@ -24,7 +25,10 @@ export interface Runtime extends RuntimeInventories {
   /**
    * Declared before any session opens, so a host leaves a refused option out
    * without knowing runtimes by name. `session()` checks the same map, so a
-   * declared option is always refused and a refused one always declared.
+   * declared option is always refused (an `UnsupportedOptionError`) and a
+   * refused one always declared. A refusal only the runtime can decide at
+   * open (kimi's directory for a resume) is not declared here but is the
+   * same error.
    */
   readonly refusedSessionOptions?: RefusedSessionOptions;
   readonly installation?: InstallationProbe;

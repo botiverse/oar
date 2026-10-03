@@ -44,8 +44,8 @@ OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as a frame's `native`; the cross-runtime `events` are what
 OAR read out of it. Control calls are request/response record pairs. The
-profile declares `capabilities` `{ steer: true, queue: { durable: false },
-attribution: "nested", images: true }`.
+profile declares `capabilities` `{ queue: { durable: false }, attribution:
+"nested", images: true }` and its steer params, so the session has `steer`.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |

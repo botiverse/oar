@@ -111,6 +111,7 @@ export type {
   UsageReport,
 } from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
+export { UnsupportedOptionError } from "./contracts/errors.js";
 export { utcInstantFromDate } from "./shared/instant.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
 export {

@@ -1,6 +1,7 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import { realpathSync } from "node:fs";
 import path from "node:path";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
 import { type AcpProcess, methods, withAcpDeadline } from "./process.js";
 
@@ -17,7 +18,7 @@ function sameDirectory(left: string, right: string): boolean {
   return path.resolve(left) === path.resolve(right) || real(left) === real(right);
 }
 
-/** Refuse a resume that names another directory than the one `session/list` says the session lives in. */
+/** Refuse a resume that names another directory than the one `session/list` says the session lives in: an `UnsupportedOptionError` on `cwd`. */
 export async function refuseResumeElsewhere(process: AcpProcess, sessionId: string, cwd: string, timeoutMs: number): Promise<void> {
   const method = methods.agent.session.list;
   let cursor: string | null = null;
@@ -28,7 +29,7 @@ export async function refuseResumeElsewhere(process: AcpProcess, sessionId: stri
     const found = asRecordList(page?.sessions).find((session) => session.sessionId === sessionId);
     if (found !== undefined) {
       if (typeof found.cwd === "string" && !sameDirectory(found.cwd, cwd)) {
-        throw new Error(`session ${sessionId} lives in ${found.cwd} and this runtime resumes it only there; the resume names ${cwd}`);
+        throw new UnsupportedOptionError("cwd", `session ${sessionId} lives in ${found.cwd} and this runtime resumes it only there; the resume names ${cwd}`);
       }
       return;
     }

@@ -55,6 +55,9 @@ while (!toolStartedAfter(first.request.seq)) {
   // eslint-disable-next-line no-await-in-loop
   await delay(100);
 }
+if (session.steer === undefined) {
+  throw new Error("a claude session has steer");
+}
 const steer = await session.steer("Also append the word MANGO to your final reply.");
 process.stdout.write(`steer -> ${steer.response.body.kind}\n`);
 const firstOutcome = await awaitTurnEnd(session, first.request.seq);

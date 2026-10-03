@@ -50,8 +50,9 @@ OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
 recorded verbatim as a frame's `native`; the cross-runtime `events` are what
 OAR read out of it. Control calls are request/response record pairs. The
-profile declares `capabilities` `{ steer: false, queue: { durable: false },
-attribution: "opaque" }`, with `images` read from `initialize`.
+profile declares `capabilities` `{ queue: { durable: false }, attribution:
+"opaque" }`, with `images` read from `initialize`; the session has no
+`steer`.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
@@ -59,7 +60,7 @@ attribution: "opaque" }`, with `images` read from `initialize`.
 | Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0, no history rebuild). |
 | Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). |
-| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request whose `session/prompt` answer carries `turn_ended`. Steer is always rejected (no ACP method); `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
+| Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request whose `session/prompt` answer carries `turn_ended`. The session has no `steer` (no ACP method); `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
 | Typed events, history, and child graph | Events for message/thought/tool/usage/model updates; unknown kinds recorded with no events. No child session arrives on this transport, so the graph holds the root only. |
 | Client execution and interaction duties | Every reverse request (`session/request_permission`, `terminal/*`) is a `toApp` request record (verbatim, under the runtime's JSON-RPC id) and OAR's fixed-policy answer the `answered` response; `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
@@ -186,10 +187,11 @@ event; an RPC error answer as `session/prompt/error` with a failed end
 
 **Steer (not available on this transport):** the native SDK and agent
 services support steering, but the ACP method set has no steer operation, so
-`steer()` is always rejected `unsupported` (reason prefix `not_steerable:`) and `capabilities.steer` is
-false, after a turn as well as during one. `steerOrQueue()` therefore lands
-`queued`: the steer request is rejected, the queue request accepted, and the
-input runs after the current turn (`kimi-steer-or-queue.ts`).
+the session has no `steer`: a host reads the absent member, not a runtime
+name. `steerOrQueue()` and `deliver()` therefore queue: the queue request is
+accepted and the input runs after the current turn; no steer request is
+recorded (`kimi-steer-or-queue.ts`, run against kimi 0.42.0 and 2.0.0 when
+`steer()` still existed and was rejected before the queue).
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`, no claim about native queue
@@ -415,9 +417,9 @@ child-agent usage stream.
 
 [`experiments/live-contract.ts kimi`](../../experiments/live-contract.ts)
 covers the promises above on the real login: `basic`, `multi-turn`,
-`tool-detail`, `busy-and-late-control`, `steer`, `queue`, `abort`,
-`dispose-mid-turn`, `cursor`, `resume`, `subagent`, `kill-runtime`,
-`bad-model`. [`kimi-wire-tap.ts`](../../experiments/kimi-wire-tap.ts) checks
+`tool-detail`, `busy-and-late-control`, `steer` (now skipped: the session
+has no `steer`), `queue`, `abort`, `dispose-mid-turn`, `cursor`, `resume`,
+`subagent`, `kill-runtime`, `bad-model`. [`kimi-wire-tap.ts`](../../experiments/kimi-wire-tap.ts) checks
 the raw JSON-RPC below the SDK against the record stream: one shell-tool turn
 is outbound `initialize`, `authenticate`, `session/new`, `session/set_mode`,
 `session/prompt`, `session/close`, all answered; inbound 49 `session/update`

@@ -164,7 +164,9 @@ for (const runtime of runtimes.list()) {
 - **Inventories:** `skills()`, `mcpServers()` and `tools()` read what the
   runtime has configured natively ([reference](docs/spec/inventory.md)).
 - **Session options:** `refusedSessionOptions` says which session options a
-  runtime refuses, before anything opens.
+  runtime refuses, before anything opens; `session()` rejects them with an
+  `UnsupportedOptionError` rather than drop them
+  ([reference](docs/spec/runtime-matrix.md#refused-session-options)).
 
 The CLI exposes the same queries: `oar installation`, `oar usage`,
 `oar models` and `oar upgrade --check`.

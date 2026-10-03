@@ -48,8 +48,8 @@ protocol version 2 over stdio, and exposes it as the
 [record stream](../spec/README.md): every notification is one Frame record
 (params verbatim in `native`, OAR's reading in `events`), every control call is
 a request record answered by the RPC reply, and codex's own `turn/completed`
-ends the turn. The adapter declares `capabilities: { steer: true, queue:
-{ durable: true }, attribution: "nested", images: true }`.
+ends the turn. The adapter declares `capabilities: { queue: { durable: true
+}, attribution: "nested", images: true }`, and the session has `steer`.
 
 | Native concept or boundary | Current OAR mapping |
 |---|---|

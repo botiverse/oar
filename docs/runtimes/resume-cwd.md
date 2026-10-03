@@ -22,5 +22,8 @@ the shell runs in B.
 
 A refusal is the runtime's (or for kimi, OAR's) error from `session()`, so a
 host that tries a resume in B and falls back to a handoff on refusal never
-runs in a directory it did not ask for. Not covered: antigravity (not
-installed here), and runtimes whose session store the host moved by hand.
+runs in a directory it did not ask for. Kimi's is an `UnsupportedOptionError`
+with `option: "cwd"`
+([refused session options](../spec/runtime-matrix.md#refused-session-options)).
+Not covered: antigravity (not installed here), and runtimes whose session
+store the host moved by hand.

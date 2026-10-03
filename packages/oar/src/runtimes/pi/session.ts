@@ -173,7 +173,7 @@ export const piSession: StartSession = async (installation, options) => {
     });
   }
 
-  const capabilities = { steer: true, queue: { durable: false }, attribution: "none", images: true } as const;
+  const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
   const session: Session = sealSession({
     id: kernel.sessionId,
     capabilities,

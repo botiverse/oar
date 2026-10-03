@@ -155,11 +155,19 @@ export function createSubagent(identity: SubagentIdentity, session: Session, hoo
   };
 
   const control = async (message: string, mode: "steer" | "queue"): Promise<SendResult> => {
-    if (mode === "queue" && session.status().value.kind === "idle" && !hooks.mayRun()) {
+    if (mode === "steer") {
+      // A session that cannot steer has no `steer`; nothing reaches the runtime.
+      if (session.steer === undefined) {
+        return { kind: "rejected", code: "unsupported", reason: `${identity.runtime} cannot steer; send followup or queue instead` };
+      }
+      const steered = await session.steer(message);
+      return steered.kind === "accepted" ? { kind: "accepted", landed: "steered" } : rejected(steered);
+    }
+    if (session.status().value.kind === "idle" && !hooks.mayRun()) {
       return RUNNING_LIMIT;
     }
-    const outcome = mode === "steer" ? await session.steer(message) : await session.queue(message);
-    return outcome.kind === "accepted" ? { kind: "accepted", landed: mode === "steer" ? "steered" : "queued" } : rejected(outcome);
+    const queued = await session.queue(message);
+    return queued.kind === "accepted" ? { kind: "accepted", landed: "queued" } : rejected(queued);
   };
 
   return {

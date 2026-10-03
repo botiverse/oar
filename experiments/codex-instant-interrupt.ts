@@ -141,7 +141,8 @@ async function probe(enabled: boolean, action: "steer" | "queue" | "abort", scen
       ? record.body.type === "item/agentMessage/delta" && asRecord(record.body.native)?.delta === partial
       : record.body.events.some((event) => event.kind === "tool_call_started"))), "partial response or running tool");
     const actionAtMs = Date.now() - start;
-    const control: ControlResult = action === "abort" ? await session.abort() : await session[action](marker, { inputId: randomUUID() });
+    const identity = { inputId: randomUUID() };
+    const control: ControlResult = action === "abort" ? await session.abort() : await (action === "queue" ? session.queue(marker, identity) : session.steer?.(marker, identity)) ?? assert.fail("a codex session has steer");
     assert.equal(control.response.body.kind, "accepted");
     if (enabled && action === "steer" && scenario !== "direct-tool") {
       await until(() => requests.length >= 2, "replacement while first response is held");

@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import type { RawEvent, RequestRecord, ResponseRecord, Frame } from "../packages/oar/src/index.js";
 import { conversationOf, initialConversation, reduceConversation, observeConversation, type ConversationState } from "../packages/oar/src/observe/conversation.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
+import { steer } from "./fixtures/steer.js";
 
 const inputId = "11111111-2222-4333-8444-555555555555";
 const envelope = { sessionId: "native", agentPath: [], receivedAt: 1 };
@@ -77,7 +78,7 @@ test("steerOrQueue preserves generated identity across both attempts", async () 
 test("live observer folds the prefix even when callbacks start after a cursor", async () => {
   const session = await startMockSession({ kind: "available", via: "bundled" }, { cwd: "/tmp" });
   try {
-    await session.steer("before");
+    await steer(session, "before");
     const views: ConversationState[] = [];
     const off = observeConversation(session, (state) => { views.push(state); }, { sessionId: session.id, afterSeq: session.records().at(-1)?.seq ?? -1 });
     expect(views).toEqual([]);

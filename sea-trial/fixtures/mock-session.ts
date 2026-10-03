@@ -50,7 +50,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     active = { timer, aborted: false };
   }
   kernel.frame({ type: "mock/model", native: { model: "mock-1", effort }, events: [{ kind: "model", model: "mock-1" }, { kind: "effort", effort }] });
-  const capabilities = { steer: true, queue: { durable: false }, attribution: "none", images: true } as const;
+  const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
   return sealSession({
     id: kernel.sessionId,
     capabilities,

@@ -43,7 +43,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 | Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through `session/resume`, which replays nothing. |
 | Handshake answers and opening pushes | Answers are Frame records with `model` events where they report one; pushes are recorded in arrival order, so `Session.model()` is a fold over the stream. No `authenticate` is sent. |
 | Native agent and turn | Every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier `opaque`: a child's activity arrives under the parent's session id with nothing that identifies it as a child. |
-| Prompt, steer, queue and cancel | A turn is one `session/prompt` RPC, its answer carrying `turn_ended`. No steer; `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback that a running shell command reaches. |
+| Prompt, steer, queue and cancel | A turn is one `session/prompt` RPC, its answer carrying `turn_ended`. The session has no `steer`; `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback that a running shell command reaches. |
 | Typed events, history and child graph | Events for message, tool and model updates; unknown kinds are recorded with no events. No usage, reasoning, compaction or retry frame arrived. The graph is the root session only. |
 | Client execution and interaction duties | Antigravity runs its own tools. In `yolo` no `session/request_permission` arrives; in `default` it precedes every shell call. |
 
@@ -130,9 +130,8 @@ answer is recorded as frame `session/prompt` with the `turn_ended` event.
 not probed live. The advertised audio and embedded context support is unused.
 
 **Steer (not available on this transport):** ACP has no steer method, so
-`steer()` is always `rejected` (`unsupported`, reason `not_steerable: runtime
-cannot inject into an active turn`) and `capabilities.steer` is false
-(`steer`). `steerOrQueue()` therefore lands `queued`.
+the session has no `steer`; the live `steer` scenario skips on that.
+`steerOrQueue()` and `deliver()` therefore queue.
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`), drained one input per turn end; the
@@ -271,9 +270,9 @@ Account usage is **unexposed**: OAR has no Antigravity account usage query.
 
 [`experiments/live-contract.ts antigravity`](../../experiments/live-contract.ts)
 covers the promises above on a real login: `basic`, `multi-turn`,
-`tool-detail`, `busy-and-late-control`, `steer`, `queue`, `abort` (fails, see
-above), `dispose-mid-turn`, `cursor`, `resume`, `subagent`, `kill-runtime`,
-`bad-model`.
+`tool-detail`, `busy-and-late-control`, `steer` (now skipped: the session has
+no `steer`), `queue`, `abort` (fails, see above), `dispose-mid-turn`,
+`cursor`, `resume`, `subagent`, `kill-runtime`, `bad-model`.
 [Antigravity tests](../../tests/acp/acp-session-antigravity.test.ts) use a
 fake executable for the missing `authenticate`, `yolo` on new and resumed
 sessions, dispose without `session/close`, the model switch readback and

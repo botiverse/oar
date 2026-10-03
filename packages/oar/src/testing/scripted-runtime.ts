@@ -192,7 +192,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     }
 
     frame("scripted/model", { model }, [{ kind: "model", model }]);
-    const capabilities: SessionCapabilities = { steer: true, queue: { durable: false }, attribution: "none", images: true };
+    const capabilities: SessionCapabilities = { queue: { durable: false }, attribution: "none", images: true };
     return sealSession({
       id: kernel.sessionId,
       capabilities,

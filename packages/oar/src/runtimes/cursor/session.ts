@@ -199,7 +199,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       return pending.current;
     };
 
-    const capabilities = { steer: true, queue: { durable: false }, attribution: "attributed", images: true } as const;
+    const capabilities = { queue: { durable: false }, attribution: "attributed", images: true } as const;
     const session: Session = sealSession({
       id: kernel.sessionId,
       capabilities,

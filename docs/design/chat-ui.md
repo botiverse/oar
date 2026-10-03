@@ -87,6 +87,7 @@ callbacks exist.
 | UI action | Session call | Note |
 |---|---|---|
 | send | `deliver` | prompts when idle, steers or queues when running; where it landed is in the result and the stream, never assumed |
+| steer now | `steer` | the control exists only when `session.steer` does (a kimi or antigravity session has none); the UI reads the member, never a runtime name |
 | cancel | `abort` | the outcome arrives as `turn_ended`, not as the call's return value |
 | answer a runtime request | open, see below | |
 | dispose | `dispose` | lifecycle, not a chat command |
