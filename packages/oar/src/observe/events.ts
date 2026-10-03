@@ -5,6 +5,7 @@ import type {
   RawEvent,
   RawEventObserver,
 } from "../contracts/session.js";
+import { upgradeLegacyBody } from "./legacy.js";
 
 /**
  * The consumer face of the stream. `eventsOf` reads the flat, attributed
@@ -23,7 +24,7 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, ControlA
   const envelope = { sessionId, agentPath, seq, receivedAt, ...(record.spanId === undefined ? {} : { spanId: record.spanId }) };
   switch (record.kind) {
     case "frame":
-      return record.body.events.map((event): Event => ({ ...event, ...envelope }));
+      return record.body.events.map((event): Event => ({ ...upgradeLegacyBody(event), ...envelope }));
     case "request":
       if (record.direction === "toApp") {
         const type = record.body.kind === "native" ? record.body.type : record.body.kind;

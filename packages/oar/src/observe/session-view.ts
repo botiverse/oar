@@ -21,6 +21,7 @@ import {
 } from "./conversation.js";
 import { assemble, draftOf, upsertInput } from "./session-view-fold.js";
 import { foldEvent, recordFacts } from "./session-view-events.js";
+import { upgradeLegacyEvent } from "./legacy.js";
 
 /**
  * The chat-UI projection: one `SessionView` is everything a conversation
@@ -207,7 +208,7 @@ export function reduceSessionViewEvent(
 ): SessionView {
   const draft = draftOf(previous);
   draft.rootSessionId ??= event.sessionId;
-  foldEvent(draft, event, streamId);
+  foldEvent(draft, upgradeLegacyEvent(event), streamId);
   return assemble(draft, previous.conversation, previous.status);
 }
 
