@@ -188,6 +188,12 @@ async function runCodexLogin(command: string, interaction: ProviderLoginInteract
 
   const run = async (): Promise<LoginResult> => {
     try {
+      await app.spawned;
+    } catch (error) {
+      // A missing executable says so ("spawn codex ENOENT"), as claude's driver does.
+      return { kind: "failed", reason: "process_failed", detail: secrets.line(errorMessage(error)) };
+    }
+    try {
       await app.request("initialize", { clientInfo: { name: "oar", version: "0.0.0" }, capabilities: { experimentalApi: true } });
       app.notify("initialized", {});
       const started = await app.request("account/login/start", { type: "chatgptDeviceCode" }, (outcome) => {
@@ -204,6 +210,11 @@ async function runCodexLogin(command: string, interaction: ProviderLoginInteract
       const userCode = text(started.userCode);
       if (flow.loginId === undefined || verificationUri === undefined || userCode === undefined) {
         return { kind: "failed", reason: "process_failed", detail: "codex answered account/login/start without a device code" };
+      }
+      // A success that came before the start reply is final: nothing left to show the person.
+      const early = flow.confirmation;
+      if (early !== undefined) {
+        return await early;
       }
       if (!flow.settled) {
         try {
