@@ -214,6 +214,10 @@ and ran by itself as a new turn on resume, before any prompt (codex 0.158.0,
 one run, [crash and resume](crash-resume.md)), so a prompt sent right after
 such a resume is rejected `busy` until that turn ends. A steer accepted but
 not yet read when the process died was lost in the same run. [Thread schema][thread-schema].
+The session has no `withdraw` yet: the queue is codex's own, and its
+`thread/queue/delete` is experimental and not live-verified (its `deleted:
+false` cannot tell "already dispatched" from "never there"), so OAR does not
+claim it ([input cancellation](input-cancellation.md)).
 
 **Abort (mapped):** native `turn/interrupt { threadId, turnId }` targets an
 execution; `turn/completed` reports whether the interrupt won the race.

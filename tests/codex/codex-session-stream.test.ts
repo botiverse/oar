@@ -134,6 +134,8 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
     { kind: "accepted", native: { submissionId: "sub-9" } },
     { kind: "accepted", native: {} },
   ]);
+  // The queue is codex's own (thread/queue/add): OAR offers no withdraw until thread/queue/delete is verified.
+  expect("withdraw" in session).toBe(false);
   expect(await awaitTurnEnd(session, held.request.seq)).toEqual({ kind: "aborted" });
   expect(await bodiesOf([session.abort(), steer(session, "late")])).toEqual([
     { kind: "rejected", code: "no_active_turn", reason: "no active turn" },

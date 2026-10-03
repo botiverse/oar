@@ -195,6 +195,10 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
     case "task_ended":
       // Tasks are not transcript content; `tasksOf` folds them for a task panel.
       break;
+    case "input_withdrawn":
+      // Input facts reach the view as conversation updates: a withdrawn input
+      // leaves the lists there. A withdraw of an input never folded has nothing to remove.
+      break;
   }
 }
 

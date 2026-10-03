@@ -5,7 +5,7 @@ import type { Session } from "../../packages/oar/src/contracts/session.js";
 
 export type RuntimeCapability = Exclude<keyof Runtime, "id">;
 /** A whole operation a session may lack: its presence is the capability. */
-type SessionMember = "steer";
+type SessionMember = "steer" | "withdraw";
 type Missing = RuntimeCapability | SessionMember;
 
 /**
@@ -30,6 +30,16 @@ export async function steerOrSkip(session: Session): Promise<NonNullable<Session
     throw new SessionLacksError("steer");
   }
   return steer;
+}
+
+/** The session's `withdraw`; a session without one (codex) is disposed and the case skips on that capability. */
+export async function withdrawOrSkip(session: Session): Promise<NonNullable<Session["withdraw"]>> {
+  const withdraw = session.withdraw?.bind(session);
+  if (withdraw === undefined) {
+    await session.dispose();
+    throw new SessionLacksError("withdraw");
+  }
+  return withdraw;
 }
 
 export interface TrialCase {

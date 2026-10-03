@@ -6,6 +6,7 @@
  * root `@botiverse/oar` re-exports these too, for Node consumers.
  */
 export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./events.js";
+export type { KnownControl } from "./events.js";
 export { initialStatus, reduceStatus, stallOf, statusOf } from "./agent-status.js";
 export type { AgentStatus, RunningPhase } from "./agent-status.js";
 export { observeStalls } from "./stall-observer.js";

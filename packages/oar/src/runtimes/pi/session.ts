@@ -1,6 +1,7 @@
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
+import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -54,8 +55,9 @@ export const piSession: StartSession = async (installation, options) => {
   // Adapter-held queue, drained one input per run end. pi's native followUp
   // CONTINUES the active run (more internal turns, one agent_end), which
   // would land the queued input inside the same turn; the queue contract
-  // promises a later turn of its own, so the adapter owns the handoff.
-  const held: { readonly input: string; readonly images: readonly LoadedImage[] }[] = [];
+  // promises a later turn of its own, so the adapter owns the handoff (and
+  // can withdraw an entry by its inputId until the drain takes it).
+  const held: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly LoadedImage[] }[] = [];
 
   // pi is authoritative on context fullness: getContextUsage() returns
   // tokens (null right after compaction, before the next response),
@@ -207,12 +209,13 @@ export const piSession: StartSession = async (installation, options) => {
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          held.push({ input, images });
+          held.push({ input, inputId: inputOptions?.inputId, images });
           drainHeld();
           return { kind: "accepted" };
         }));
       return result;
     },
+    withdraw: withdrawControl(kernel, held),
     abort: async (): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "abort" }, () => {
         if (!gate.running) {

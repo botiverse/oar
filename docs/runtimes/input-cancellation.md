@@ -6,6 +6,19 @@ logins or model requests were run. Native behavior not exercised is marked;
 a missing match in a binary is never proof of absence. Reproduction and
 sanitized observations: [experiments/cancellation](../../experiments/cancellation/README.md).
 
+**Since then (2026-10-03):** OAR offers `Session.withdraw(inputId)` for the
+queues it holds itself (claude, pi, cursor, and the ACP runtimes kimi, grok
+and antigravity), built as the [consequences](#consequences-for-oar-and-rao)
+below ask: a `withdraw` request of its own targeting the earlier input by
+`inputId`, answered `accepted` only when the held entry was removed before
+dispatch and `not_queued` otherwise, with the queue request and its response
+left as they were ([record stream](../spec/record-stream.md#withdrawing-held-input)).
+It removes OAR's own held entries only; the native leads below (claude
+`cancel_queued`, grok `x.ai/queue/*`, pi `clearQueue()`) stay unmapped.
+codex has no `withdraw` yet: its queue is native, and `thread/queue/delete`
+waits on the validation listed at the end. The research below is kept as
+found.
+
 ## Findings
 
 | Runtime / examined version | Steer withdrawal | Queue withdrawal | Current OAR behavior |
@@ -16,9 +29,10 @@ sanitized observations: [experiments/cancellation](../../experiments/cancellatio
 | Kimi Code 0.42.0 (TypeScript harness) | Selected ACP interface has no mapped steer; no per-input withdrawal established | No per-item withdrawal established on selected ACP interface; do not generalize to every native KAP/SDK surface | `kimiAcpProfile` has no steer params, so the session has no `steer`; the ACP queue is OAR-held; `session/cancel` routes to the active agent turn, including deferred cancellation while its turn ID is pending |
 | Pi SDK 0.84.2 | **Native bulk clearing** of pending steering and follow-up messages via `AgentSession.clearQueue()`; no public per-item handle established | SDK clear applies to SDK queues; OAR's later-turn queue is a different array | Steer enters Pi's queue; OAR queue is adapter-held. `abort()` and `clearQueue()` are separate. Installed SDK methods exercised with a mock receiver |
 
-`queue: { durable: false }` says nothing about cancellation. OAR has `abort()`
-but no `cancel(requestId)`, `removeQueuedInput()` or `clearQueue()` Session
-operation ([contracts/session.ts](../../packages/oar/src/contracts/session.ts)).
+`queue: { durable: false }` says nothing about cancellation. At 3582a52 OAR had
+`abort()` but no `cancel(requestId)`, `removeQueuedInput()` or `clearQueue()`
+Session operation ([contracts/session.ts](../../packages/oar/src/contracts/session.ts));
+`withdraw` (above) now removes one adapter-held entry.
 Native features stay unadvertised until an adapter maps and verifies them.
 
 ## Evidence and limits by runtime
@@ -149,7 +163,9 @@ implement cancellation of OAR `queue()`.
    Claude's held queue already carries each input's `inputId`; pi's `held`
    and the shared ACP queue do not. Identity-bearing entries could permit
    removal before dispatch, with a recorded result. That is a separate implementation decision
-   and must not be presented as vendor capability.
+   and must not be presented as vendor capability. (Taken since: every
+   adapter-held queue now stores the `inputId`, and `withdraw` records the
+   attempt and its result; no runtime page presents it as native.)
 6. **Unknown stays unknown.** A transport timeout, a queue item that
    disappeared, or a notification without a receipt must not become
    "cancelled". Once delivery began, abort cannot promise that the input was

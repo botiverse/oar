@@ -195,7 +195,11 @@ fixture replay in
 (`capabilities.queue.durable: false`), drained one message per turn end; a
 drained input runs as a spontaneous turn with an answer but no prompt request
 of its own, and held input is dropped once the stream says the runtime is
-unreachable (`live-contract/queue`).
+unreachable (`live-contract/queue`). `withdraw(inputId)` takes an input out
+of this FIFO before it is prompted (`accepted`) and answers `not_queued`
+after; grok's own `x.ai/queue/remove` is a different queue and stays
+unmapped ([input cancellation](input-cancellation.md),
+[test](../../tests/acp/acp-session-withdraw.test.ts)).
 
 **Abort (mapped):** `abort()` sends `session/cancel` and answers `accepted`;
 the turn's end is still the cancelled prompt answer, which Grok delivers

@@ -98,7 +98,8 @@ for (const update of state.updates) {
 `state.inputs` contains logical inputs, every attempt's original request and
 observed response, and native observations. `state.updates` contains only the
 changes from the most recently folded record. Input states are `pending`,
-`accepted`, `rejected`, or `untracked` (a native echo without an observed request).
+`accepted`, `rejected`, `withdrawn` (taken back before it was sent, see
+below), or `untracked` (a native echo without an observed request).
 An accepted attempt wins over later refusals; otherwise the latest attempt
 sets the state. A missing response remains pending: neither exceptions nor a
 turn end manufacture a refusal or consumption receipt.
@@ -127,11 +128,34 @@ persistence belongs to the application
 
 Rao uses this reducer over its persisted records. It shows input requests
 immediately and hides routine success badges. It must not infer completion of
-all steering inputs from `turn_ended`. Cancellation is outside this contract.
+all steering inputs from `turn_ended`. Taking back held input is `withdraw`
+(below); any other cancellation is outside this contract.
 
 Evidence: [local steer identity probes](../runtimes/steer-delivery.md). Regression
 coverage includes pure reducer cases, mock fallback, and Codex/Claude native
 harnesses with a local scripted provider.
+
+## Withdrawing held input
+
+`Session.withdraw(inputId)`, where the session has it, takes back an input
+held for a later turn before it is sent
+([record stream](record-stream.md#withdrawing-held-input)). The reducer
+adds the withdraw request to the input's `attempts` (it is never a bubble of
+its own) and reads its answer:
+
+- An accepted withdraw makes the input `withdrawn`. Its queue attempt and
+  that attempt's `accepted` response stay as they were.
+- A withdraw still unanswered, or refused `not_queued`, changes nothing: the
+  input keeps the state its delivery attempts give it.
+- Only delivery attempts after the latest accepted withdraw count. A later
+  `queue` of the same `inputId` (edit) or a `deliver` (send now) makes the
+  input `pending`, then `accepted` or `rejected`, by the rules above.
+- A withdraw of an input the reducer never saw adds no input. Its answer
+  stays an ordinary event update (`input_withdrawn`, or `control_rejected`
+  with action `withdraw`).
+
+Coverage: [reducer cases](../../tests/withdraw-events.test.ts), one test per
+adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 
 ## Where an input enters the session view
 
@@ -157,6 +181,11 @@ harnesses with a local scripted provider.
   `messages` for `pendingInputs` again.
 - An input never echoed stays pending, even after its turn ends: OAR does
   not invent a position for it from a turn end or matching text.
+- A withdrawn input leaves `pendingInputs`, and `messages` too on a stream
+  that placed it at its request. The segment that request sealed stays
+  sealed: content folded since sits on either side of where the input was,
+  and joining the two would be a merge the stream never said. Queued again,
+  it enters by the rules above, at its new request or echo.
 
 Records already folded in a stream (same `streamId`, `seq` not past the
 cursor) leave the view unchanged, as they leave the conversation.

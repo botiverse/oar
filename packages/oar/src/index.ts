@@ -123,6 +123,7 @@ export {
 } from "./voyage.js";
 export type { VoyageHeader, VoyageRecorder } from "./voyage.js";
 export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./observe/events.js";
+export type { KnownControl } from "./observe/events.js";
 export {
   initialStatus,
   reduceStatus,

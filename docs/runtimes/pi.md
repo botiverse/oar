@@ -177,6 +177,10 @@ drains one input per run end; a drained input runs as a spontaneous turn
 its reply ends its own turn (`queue` scenario). If pi refuses a drained input,
 the refusal is recorded as a `pi/prompt_rejected` frame with no events.
 Native extension commands cannot simply be queued like ordinary text.
+`withdraw(inputId)` takes an input out of the FIFO before the drain prompts
+it (`accepted`) and answers `not_queued` after; pi's own `clearQueue()` is a
+different queue and is not used ([input cancellation](input-cancellation.md),
+[test](../../tests/pi/pi-session-withdraw.test.ts)).
 [Agent loop][native-agent-loop], [SDK][native-sdk],
 [adapter](../../packages/oar/src/runtimes/pi/session.ts).
 

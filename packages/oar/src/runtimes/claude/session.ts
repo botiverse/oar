@@ -8,6 +8,7 @@ import type {
 import { randomUUID } from "node:crypto";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
+import { withdrawControl } from "../../shared/held-input.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
@@ -109,7 +110,8 @@ export const claudeSession: StartSession = async (installation, options) => {
     disposed: false,
   };
   // claude cannot hold input for a LATER turn natively (an active-turn write
-  // steers), so queueing is adapter-held: drained one message per turn end.
+  // steers), so queueing is adapter-held: drained one message per turn end,
+  // and an entry can be withdrawn by its inputId until then.
   const heldQueue: { input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;
@@ -244,6 +246,7 @@ export const claudeSession: StartSession = async (installation, options) => {
         }));
       return result;
     },
+    withdraw: withdrawControl(kernel, heldQueue),
     abort: async (): Promise<ControlResult> => {
       // The interrupt's outcome is claude's control_response, which the fold
       // routes to THIS request id; the turn's end is claude's result frame.

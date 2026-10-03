@@ -16,7 +16,8 @@ tools, each used only where the one before does not fit.
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
 `listModels`, `checkUpdate` and `upgrade` already work this way; `Session`
-`steer` and `queue` do too: a session that cannot steer has no `steer`.
+`steer` and `withdraw` do too: a session that cannot steer has no `steer`,
+and one whose queue OAR does not hold (codex) has no `withdraw`.
 TypeScript makes every caller handle the absence, and the check works the
 same for a runtime chosen at run time: it reads the member, not a name.
 
@@ -71,8 +72,8 @@ the way OpenDAL's `ReadOptions::if_match` doc names
 ## Tests skip by capability
 
 A shared behavior case that needs a capability skips when it is absent
-(`session.steer === undefined`, an in-process `bundled` installation for
-the kill case), never by runtime name.
+(`session.steer === undefined`, `session.withdraw === undefined`, an
+in-process `bundled` installation for the kill case), never by runtime name.
 
 ## What this refuses
 
