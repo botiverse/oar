@@ -132,7 +132,9 @@ Further rules:
   when the runtime reported no result. The frame's `native` keeps the
   original. `toolResultText(content)` (`@botiverse/oar/observe`) joins the
   text parts for a host that shows only text. Streamed output while a call
-  runs stays `tool_call_progress.output`. Per-runtime sources are in
+  runs stays `tool_call_progress.output`. Records written before 0.14.0
+  carry `output` instead; `eventsOf` and the session view read it as
+  `content` (`observe/legacy.ts`), so a persisted log keeps replaying. Per-runtime sources are in
   [runtime-matrix.md](runtime-matrix.md#tool-outcomes).
 
 ## Record contracts
