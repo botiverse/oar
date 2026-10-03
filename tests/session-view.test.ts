@@ -252,3 +252,20 @@ test("a tool part carries the result's ordered parts (#73)", () => {
     { kind: "tool", callId: "c2", tool: "?", content, result: "ok" },
   ]);
 });
+
+test("text with a new messageId starts a new part; text without one joins the last", () => {
+  const say = (seq: number, value: string, messageId?: string): Frame =>
+    frame(seq, [{ kind: "text_delta", text: value, ...(messageId === undefined ? {} : { messageId }) }]);
+  const view = fold([
+    request(0, "r1"),
+    accepted(1, "r1"),
+    say(2, "Got it", "m1"),
+    say(3, ".", "m1"),
+    say(4, "Waited", "m2"),
+    say(5, " 100 s."),
+  ]);
+  expect(turns(view)[0]?.sections[0]?.parts).toEqual([
+    { kind: "text", text: "Got it.", messageId: "m1" },
+    { kind: "text", text: "Waited 100 s.", messageId: "m2" },
+  ]);
+});

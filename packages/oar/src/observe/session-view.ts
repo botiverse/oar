@@ -19,7 +19,8 @@ import {
   type ConversationInput,
   type ConversationState,
 } from "./conversation.js";
-import { assemble, draftOf, upsertInput } from "./session-view-fold.js";
+import { assemble, draftOf } from "./session-view-fold.js";
+import { awaitsEcho, upsertInput } from "./session-view-inputs.js";
 import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
 
@@ -35,8 +36,16 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   consumed, mid-turn subscriber, replay slice). A rejected prompt removes
  *   its empty turn — the turn never began (same rule as `reduceStatus`).
  *   `turn_ended` of the ROOT session stamps the open segment; an input
- *   arriving mid-turn seals the current segment so seq order stays the
+ *   entering mid-turn seals the current segment so seq order stays the
  *   render order, and later content opens a new segment.
+ * - An INPUT enters where the runtime took it. A prompt enters at its
+ *   request (it opens its turn). A steer or queue enters at its first native
+ *   echo (`user_message` with its `inputId`) when the stream echoes input
+ *   ids at all, which it shows by having echoed one before (codex, claude);
+ *   until then it waits in `pendingInputs`. On a stream that never echoed
+ *   one (pi, ACP runtimes) it enters at its request, the best fact known. A
+ *   refused input enters where it was refused; a retry of it that must wait
+ *   for its echo takes it back out.
  * - A SECTION is a contiguous run of one lane (`sessionId`, `agentPath`)
  *   inside a turn. Sub-agent and child-session activity nests inside the
  *   parent turn as sections; a child session's own `turn_ended` degrades
@@ -67,7 +76,8 @@ export type ViewNotice =
   | { readonly cause: "exited"; readonly code: number | null };
 
 export type ViewPart =
-  | { readonly kind: "text"; readonly text: string }
+  /** One assistant message's text; `messageId` when the runtime named the message (`text_delta.messageId`). */
+  | { readonly kind: "text"; readonly text: string; readonly messageId?: string }
   | { readonly kind: "reasoning"; readonly content: ReasoningContent }
   | {
       readonly kind: "tool";
@@ -129,6 +139,14 @@ export interface AgentTokens {
 
 export interface SessionView {
   readonly messages: readonly ViewMessage[];
+  /**
+   * Steered or queued inputs the runtime has not taken yet, in request
+   * order: each leaves this list for `messages` at its first native echo.
+   * A host shows them apart (above the composer, say). An input the
+   * runtime never echoes stays here; no turn end or text match places it.
+   * Always empty on a stream that never echoed an input id.
+   */
+  readonly pendingInputs: readonly ConversationInput[];
   /** Index of the unsealed turn segment in `messages`; -1 when none. */
   readonly openTurn: number;
   readonly status: AgentStatus;
@@ -150,6 +168,7 @@ export interface SessionView {
 export function initialSessionView(): SessionView {
   return {
     messages: [],
+    pendingInputs: [],
     openTurn: -1,
     status: initialStatus,
     model: null,
@@ -174,6 +193,10 @@ export function reduceSessionView(
   record: RawEvent,
   streamId = "",
 ): SessionView {
+  if (record.seq <= (previous.conversation.cursors.get(streamId) ?? -1)) {
+    // Already folded in this stream (an overlapping history and live push): a no-op.
+    return { ...previous, conversation: { ...previous.conversation, updates: [] } };
+  }
   const draft = draftOf(previous);
   draft.rootSessionId ??= record.sessionId;
   if (
@@ -187,7 +210,7 @@ export function reduceSessionView(
   const conversation = reduceConversation(previous.conversation, record, streamId);
   for (const update of conversation.updates) {
     if (update.kind === "input") {
-      upsertInput(draft, update.input);
+      upsertInput(draft, update.input, awaitsEcho(update.input, conversation));
     } else {
       foldEvent(draft, update.event, streamId);
     }
@@ -212,13 +235,13 @@ export function reduceSessionViewEvent(
   return assemble(draft, previous.conversation, previous.status);
 }
 
-/** Upsert a user input from a non-record source (an app's own submission log). */
+/** Upsert a user input from a non-record source (an app's own submission log); it enters `messages` now. */
 export function reduceSessionViewInput(
   previous: SessionView,
   input: ConversationInput,
 ): SessionView {
   const draft = draftOf(previous);
-  upsertInput(draft, input);
+  upsertInput(draft, input, false);
   return assemble(draft, previous.conversation, previous.status);
 }
 

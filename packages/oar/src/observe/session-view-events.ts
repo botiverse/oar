@@ -32,10 +32,11 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
     case "text_delta": {
       const section = laneFor(draft, event, streamId);
       const last = section?.parts.at(-1);
-      if (last?.kind === "text") {
-        section?.parts.splice(-1, 1, { kind: "text", text: last.text + event.text });
+      // A new message id starts a new part; text without one joins the last (older records, pi, ACP).
+      if (last?.kind === "text" && (event.messageId === undefined || event.messageId === last.messageId)) {
+        section?.parts.splice(-1, 1, { ...last, text: last.text + event.text });
       } else {
-        section?.parts.push({ kind: "text", text: event.text });
+        section?.parts.push({ kind: "text", text: event.text, ...(event.messageId === undefined ? {} : { messageId: event.messageId }) });
       }
       return;
     }

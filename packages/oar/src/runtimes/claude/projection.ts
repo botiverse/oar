@@ -75,11 +75,13 @@ function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
 
 function assistantViews(message: JsonRecord): RuntimeEventBody[] {
   const out: RuntimeEventBody[] = [];
+  // The API message id: every frame carrying blocks of one assistant message names it.
+  const messageId = asRecord(message.message)?.id;
   for (const block of contentBlocks(message)) {
     switch (String(block.type)) {
       case "text": {
         if (typeof block.text === "string") {
-          out.push({ kind: "text_delta", text: block.text });
+          out.push({ kind: "text_delta", text: block.text, ...(typeof messageId === "string" ? { messageId } : {}) });
         }
         break;
       }

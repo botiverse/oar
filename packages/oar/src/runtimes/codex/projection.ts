@@ -202,7 +202,10 @@ function spanIdOf(params: JsonRecord): string | undefined {
 function viewsFor(state: CodexProjectionState, reporter: string, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
     case "item/agentMessage/delta":
-      return typeof params.delta === "string" ? [{ kind: "text_delta", text: params.delta }] : [];
+      // `itemId` names the agentMessage item: one turn can say several.
+      return typeof params.delta === "string"
+        ? [{ kind: "text_delta", text: params.delta, ...(typeof params.itemId === "string" ? { messageId: params.itemId } : {}) }]
+        : [];
     case "item/commandExecution/outputDelta":
       // Streamed stdout of a running command item; `itemId` is the tool call.
       return typeof params.itemId === "string"

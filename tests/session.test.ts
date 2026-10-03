@@ -265,3 +265,17 @@ test("reduceStatus: compaction and retry are running phases; tool progress only 
   status = reduceStatus(status, event([{ kind: "retry", attempt: 1 }], { receivedAt: 5 }));
   assert.equal(status.kind === "running" ? status.phase : status.kind, "waiting_model");
 });
+
+test("coalesceText keeps two assistant messages apart by messageId", () => {
+  const seen: string[] = [];
+  const observer = flat(coalesceText((item) => {
+    seen.push(item.kind === "text_delta" ? `${item.messageId ?? "-"}:${item.text}` : item.kind);
+  }));
+  observer(event([{ kind: "text_delta", text: "Got", messageId: "m1" }]));
+  observer(event([{ kind: "text_delta", text: " it.", messageId: "m1" }]));
+  observer(event([{ kind: "text_delta", text: "Done.", messageId: "m2" }]));
+  observer(event([{ kind: "text_delta", text: "a" }]));
+  observer(event([{ kind: "text_delta", text: "b" }]));
+  observer(event([{ kind: "turn_ended", outcome: { kind: "completed" } }]));
+  assert.deepEqual(seen, ["m1:Got it.", "m2:Done.", "-:ab", "turn_ended"]);
+});

@@ -208,3 +208,16 @@ test("claude compact_boundary is the runtime's after-the-fact compaction report"
     ]
   `);
 });
+
+function assistantEvents(message: Record<string, unknown>): unknown {
+  const [command] = foldClaudeStdout(claudePrompted(initialClaudeProjection), { type: "assistant", message }).commands;
+  return command?.kind === "frame" ? command.body.events : null;
+}
+
+test("claude assistant text names its API message id as the text's messageId", () => {
+  expect(assistantEvents({ id: "msg_01", role: "assistant", content: [{ type: "text", text: "first" }, { type: "tool_use", id: "c1", name: "Read", input: {} }] })).toEqual([
+    { kind: "text_delta", text: "first", messageId: "msg_01" },
+    { kind: "tool_call_started", callId: "c1", tool: "Read", input: "{}" },
+  ]);
+  expect(assistantEvents({ content: [{ type: "text", text: "no id" }] })).toEqual([{ kind: "text_delta", text: "no id" }]);
+});
