@@ -165,3 +165,131 @@ test("options the SDK cannot honor are refused at open", async () => {
   await expect(openFakeCursor({ env: { A: "1" } })).rejects.toThrow("SessionOptions.env is unsupported");
   await expect(openFakeCursor({ env: {} })).resolves.toBeDefined();
 });
+
+// oxlint-disable-next-line eslint/max-statements -- a resumed session and a fresh one, side by side.
+test("the first send after a resume takes the agent over from a run its store still holds", async () => {
+  const { session, agent } = await openFakeCursor({ resume: "agent-9" });
+  await session.prompt("first");
+  agent.latest().end("finished");
+  await settle();
+  await session.prompt("second");
+  assert.deepEqual(agent.forced, [true, false]);
+  await session.dispose();
+  const fresh = await openFakeCursor();
+  await fresh.session.prompt("first");
+  assert.deepEqual(fresh.agent.forced, [false]);
+  await fresh.session.dispose();
+});
+
+test("a refused send is the prompt's refusal, and the session takes the next prompt", async () => {
+  const { session, agent } = await openFakeCursor();
+  agent.refuse = new Error("Agent agent-1 already has active run");
+  const refused = await session.prompt("first");
+  assert.equal(codeOf(refused), "runtime_refused");
+  assert.equal(reasonOf(refused), "Agent agent-1 already has active run");
+  assert.equal(session.status().value.kind, "idle");
+  const again = await session.prompt("again");
+  assert.equal(again.kind, "accepted");
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- the held abort must not outlive its own launch.
+test("an abort held for a send that is then refused does not cancel the next run", async () => {
+  const { session, agent } = await openFakeCursor();
+  const release = Promise.withResolvers<void>();
+  agent.gate = release.promise;
+  agent.refuse = new Error("network down");
+  const prompt = session.prompt("first");
+  await settle();
+  const abort = await session.abort();
+  assert.equal(abort.kind, "accepted");
+  release.resolve();
+  assert.equal(codeOf(await prompt), "runtime_refused");
+  agent.gate = null;
+  await session.prompt("second");
+  assert.equal(agent.latest().cancelled, false);
+  await session.dispose();
+});
+
+test("a run whose wait() throws ends the turn failed with the SDK's message", async () => {
+  const { session, agent } = await openFakeCursor();
+  const prompt = await session.prompt("work");
+  agent.latest().fail(new Error("socket hang up"));
+  assert.deepEqual(await awaitTurnEnd(session, prompt.seq), { kind: "failed", reason: "socket hang up", failure: "unknown" });
+  assert.ok(session.records().some((record) => record.kind === "frame" && record.body.type === "cursor/run_failed"));
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- one refused drain, then the next input still runs.
+test("a queued input the SDK refuses is recorded, and the queue keeps draining", async () => {
+  const { session, agent } = await openFakeCursor();
+  await session.prompt("first");
+  await session.queue("refused");
+  await session.queue("next");
+  agent.refuse = new Error("rate limited");
+  agent.latest().end("finished");
+  await settle();
+  await settle();
+  const rejected = session.records().find((record) => record.kind === "frame" && record.body.type === "cursor/send_rejected");
+  assert.deepEqual(rejected?.kind === "frame" ? rejected.body.native : null, { message: "rate limited", input: "refused" });
+  assert.deepEqual(agent.runs.map((run) => run.message), ["first", "next"]);
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- two instant runs, then a held one.
+test("runs that end the moment they start still leave the next input steerable and disposable", async () => {
+  const { session, agent } = await openFakeCursor();
+  agent.endAtOnce = "finished";
+  await session.prompt("first");
+  await session.queue("drained");
+  await settle();
+  agent.endAtOnce = null;
+  await session.queue("held");
+  await settle();
+  const steer = await session.steer("into the held one");
+  assert.equal(steer.kind, "accepted");
+  await session.dispose();
+  assert.equal(agent.latest().cancelled, true);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- the late run is stopped and still recorded.
+test("dispose while a send is pending answers at once, and a run that comes later is stopped", async () => {
+  const { session, agent } = await openFakeCursor();
+  const release = Promise.withResolvers<void>();
+  agent.gate = release.promise;
+  const prompt = session.prompt("long");
+  await settle();
+  await session.dispose();
+  assert.equal(agent.closed, true);
+  assert.equal(reasonOf(await prompt), "the session was disposed before cursor started the run");
+  release.resolve();
+  await settle();
+  await settle();
+  assert.equal(agent.latest().cancelled, true);
+  assert.ok(session.records().some((record) => record.kind === "frame" && record.body.type === "cursor/run_result"));
+});
+
+// oxlint-disable-next-line eslint/max-statements -- the steer is issued while the send is held.
+test("a steer during a pending send waits for the run, then steers it", async () => {
+  const { session, agent } = await openFakeCursor();
+  const release = Promise.withResolvers<void>();
+  agent.gate = release.promise;
+  const prompt = session.prompt("work");
+  await settle();
+  const steer = session.steer("also this");
+  release.resolve();
+  await prompt;
+  const steered = await steer;
+  assert.equal(steered.kind, "accepted");
+  assert.deepEqual(agent.latest().steered, ["also this"]);
+  await session.dispose();
+});
+
+test("a subagent's update keeps its agentPath through the session", async () => {
+  const { session, agent } = await openFakeCursor();
+  await session.prompt("delegate");
+  agent.latest().delta({ type: "tool-call-delta", callId: "task-1", taskUpdate: { type: "text-delta", text: "child says" } });
+  const child = session.records().find((record) => record.kind === "frame" && record.body.type === "tool-call-delta");
+  assert.deepEqual(child?.agentPath, ["task-1"]);
+  await session.dispose();
+});

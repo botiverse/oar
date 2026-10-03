@@ -46,6 +46,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 | codex | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
 | pi | `tool_execution_end.isError` false/true ([src]) | none |
 | grok, kimi (ACP) | `tool_call_update.status` `completed`/`failed` ([src]) | grok: `rawOutput.exit_code` on the closing `tool_call_update` ([src] grok 1.0.25) |
+| cursor (`@cursor/sdk`) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event.

@@ -26,7 +26,8 @@ export interface CursorRun {
 export interface CursorAgent {
   readonly agentId: string;
   readonly model: ModelSelection | undefined;
-  send(message: string | SDKUserMessage, options: { readonly onDelta: CursorDeltaListener }): Promise<CursorRun>;
+  /** `local.force` takes the agent over from a run its store still holds as active. */
+  send(message: string | SDKUserMessage, options: { readonly onDelta: CursorDeltaListener; readonly local?: { readonly force: boolean } }): Promise<CursorRun>;
   close(): void;
 }
 

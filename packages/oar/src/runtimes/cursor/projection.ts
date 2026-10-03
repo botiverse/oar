@@ -37,8 +37,8 @@ export interface CursorFrame {
  * A subagent speaks through its `task` call: `tool-call-delta` carries the
  * child's own update under `taskUpdate`, keyed by the call id (probed
  * 2026-10-03: the child's thinking, tool calls and text all arrive this way).
- * A grandchild nests the same way, so the path grows by one call id per
- * level.
+ * SDK 1.0.35's schema allows no `tool-call-delta` inside a `taskUpdate`; if
+ * one ever came, it is unwrapped the same way, one call id deeper.
  */
 function innermost(update: JsonRecord, path: readonly string[]): { readonly update: JsonRecord; readonly path: readonly string[] } {
   const nested = asRecord(update.taskUpdate);
@@ -77,7 +77,8 @@ export function cursorToolContent(tool: string, result: JsonRecord | null): read
     case "shell":
       add(value?.stdout);
       add(value?.stderr);
-      return parts.length === 0 ? undefined : parts;
+      // The command ran and printed nothing: a result, with empty text.
+      return parts.length === 0 ? [{ type: "text", text: "" }] : parts;
     case "read":
       add(value?.content);
       break;
@@ -98,6 +99,19 @@ function toolOutcome(status: unknown): "ok" | "failed" | undefined {
   return status === "error" ? "failed" : undefined;
 }
 
+/** A shell's exit code, or `null` when cursor names the signal that ended it. */
+function shellExit(tool: string, result: JsonRecord | null): { readonly exitCode?: number | null } {
+  const value = tool === "shell" && result?.status === "success" ? asRecord(result.value) : null;
+  if (value === null) {
+    return {};
+  }
+  if (typeof value.signal === "string" && value.signal !== "") {
+    return { exitCode: null };
+  }
+  const exitCode = asNumber(value.exitCode);
+  return exitCode === null ? {} : { exitCode };
+}
+
 function toolEnded(update: JsonRecord): RuntimeEventBody | null {
   const callId = text(update.callId);
   if (callId === undefined) {
@@ -108,13 +122,12 @@ function toolEnded(update: JsonRecord): RuntimeEventBody | null {
   const result = asRecord(call?.result);
   const content = cursorToolContent(tool, result);
   const outcome = toolOutcome(result?.status);
-  const exitCode = tool === "shell" && result?.status === "success" ? asNumber(asRecord(result.value)?.exitCode) : null;
   return {
     kind: "tool_call_ended",
     callId,
     ...(content === undefined ? {} : { content }),
     ...(outcome === undefined ? {} : { result: outcome }),
-    ...(exitCode === null ? {} : { exitCode }),
+    ...shellExit(tool, result),
   };
 }
 

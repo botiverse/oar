@@ -4,13 +4,12 @@ import type {
   RequestRecord,
   ResponseBody,
   Session,
-  SessionOptions,
   StartSession,
 } from "../../contracts/session.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
-import { cursorModelSelection } from "./model.js";
+import { cursorModelSelection, validateCursorOptions } from "./model.js";
 import {
   cursorOpenedFrame,
   cursorRunFailedFrame,
@@ -20,8 +19,8 @@ import {
   type CursorFrame,
   type CursorProjectionState,
 } from "./projection.js";
-import { settled, steerRun, type ActiveRun } from "./run.js";
-import { loadCursorSdk, type CursorDeltaListener, type CursorSdk } from "./sdk.js";
+import { giveUp, newLaunch, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
+import { loadCursorSdk, type CursorDeltaListener, type CursorRun, type CursorSdk } from "./sdk.js";
 
 /*
  * Cursor through `@cursor/sdk` (1.0.35), in process (settled 2026-10-03,
@@ -30,23 +29,19 @@ import { loadCursorSdk, type CursorDeltaListener, type CursorSdk } from "./sdk.j
  * `run.wait()` answers; steer is `run.steer`; abort is `run.cancel`; the
  * agent takes one run at a time (a second `send` is refused "already has
  * active run"), so queued input is held here and sent when the run ends.
+ * The agent's store keeps its last run as active until that run's own
+ * agent object ends it, so after a process that died mid-run, or a session
+ * closed before its first prompt, a resumed agent refuses every send the
+ * same way (probed 2026-10-03); the first send after a resume is `force`d,
+ * which takes the agent over. Arbitrating between processes is the host's.
  */
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 /** How long dispose waits for a cancelled run to report its own end before releasing the agent. */
 const DISPOSE_SETTLE_MS = 5000;
-
-function validateCursorOptions(options: SessionOptions): void {
-  if (options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined) {
-    // SDK 1.0.35 types a `systemPrompt`, but a local agent's run fails with
-    // "unknown option '--system-prompt'" (probed 2026-10-03), and there is no append.
-    throw new Error("Cursor's SDK runs no system prompt override for a local agent");
-  }
-  if (options.env !== undefined && Object.keys(options.env).length > 0) {
-    throw new Error("Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported");
-  }
-}
+/** How long a `send` may take to return its run (a cold start took about 4 s in the probes). */
+const SEND_TIMEOUT_MS = 60_000;
 
 export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession {
   return async (installation, options) => {
@@ -71,10 +66,10 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     // until its run's end is recorded. Held in an object so closures always
     // read the live value.
     const gate = { running: false };
-    // The run being sent (null until `send` returns it) and the run in flight.
-    let sending: Promise<ActiveRun | null> | null = null;
+    // The send on its way to a run, and the run in flight.
+    let launching: Launch | null = null;
     let active: ActiveRun | null = null;
-    let pendingAbort = false;
+    let forceNext = options.resume !== undefined;
     let disposeRequest: RequestRecord | null = null;
     // Adapter-held queue, drained one input per run end.
     const held: { readonly input: string; readonly images: readonly LoadedImage[] }[] = [];
@@ -101,11 +96,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       drainHeld();
     };
 
-    const send = async (input: string, images: readonly LoadedImage[]): Promise<ActiveRun> => {
-      const content = images.length === 0
-        ? input
-        : { text: input, images: images.map((image) => ({ data: image.data, mimeType: image.mediaType })) };
-      const run = await agent.send(content, { onDelta });
+    const adopt = (run: CursorRun): ActiveRun => {
       const { promise: ended, resolve: onEnded } = Promise.withResolvers<void>();
       const current: ActiveRun = { run, ended };
       active = current;
@@ -121,25 +112,55 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       return current;
     };
 
+    const launch = (input: string, images: readonly LoadedImage[]): Launch => {
+      const attempt = newLaunch();
+      const content = images.length === 0
+        ? input
+        : { text: input, images: images.map((image) => ({ data: image.data, mimeType: image.mediaType })) };
+      const force = forceNext;
+      void (async (): Promise<void> => {
+        try {
+          const run = await agent.send(content, { onDelta, ...(force ? { local: { force: true } } : {}) });
+          forceNext = false;
+          if (attempt.state === "given_up") {
+            stopOrphan(run, record);
+            return;
+          }
+          attempt.state = "sent";
+          attempt.current = adopt(run);
+        } catch (error) {
+          if (attempt.state === "sending") {
+            attempt.state = "failed";
+            attempt.reason = message(error);
+          }
+        } finally {
+          attempt.decide();
+        }
+      })();
+      return attempt;
+    };
+
     const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
       gate.running = true;
-      const sent = settled(send(input, images));
-      sending = (async (): Promise<ActiveRun | null> => {
-        const outcome = await sent;
-        return "value" in outcome ? outcome.value : null;
-      })();
-      const outcome = await sent;
-      sending = null;
-      if ("error" in outcome) {
-        gate.running = false;
-        pendingAbort = false;
-        return { kind: "rejected", code: "runtime_refused", reason: message(outcome.error) };
+      const attempt = launch(input, images);
+      launching = attempt;
+      const deadline = setTimeout(() => {
+        giveUp(attempt, `cursor did not start the run within ${String(SEND_TIMEOUT_MS / 1000)} s`);
+      }, SEND_TIMEOUT_MS);
+      deadline.unref();
+      await attempt.decided;
+      clearTimeout(deadline);
+      if (launching === attempt) {
+        launching = null;
       }
-      const current = outcome.value;
-      if (pendingAbort) {
+      const { current } = attempt;
+      if (current === null) {
+        gate.running = false;
+        return { kind: "rejected", code: "runtime_refused", reason: attempt.reason };
+      }
+      if (attempt.abortRequested) {
         // The abort was accepted before the run existed; its outcome is the
         // run's own end, so a failed cancel leaves the run to finish.
-        pendingAbort = false;
         try {
           await current.run.cancel();
         } catch {
@@ -168,7 +189,14 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     }
 
     /** The run in flight, waiting out a `send` that has not returned it yet. */
-    const inFlight = async (): Promise<ActiveRun | null> => active ?? (sending === null ? null : await sending);
+    const inFlight = async (): Promise<ActiveRun | null> => {
+      const pending = launching;
+      if (active !== null || pending === null) {
+        return active;
+      }
+      await pending.decided;
+      return pending.current;
+    };
 
     const capabilities = { steer: true, queue: { durable: false }, attribution: "attributed", images: true } as const;
     const session: Session = sealSession({
@@ -217,7 +245,9 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
           }
           if (active === null) {
             // The run does not exist yet: cancelled as soon as `send` returns it.
-            pendingAbort = true;
+            if (launching !== null) {
+              launching.abortRequested = true;
+            }
             return { kind: "accepted" };
           }
           // Accepted means taken over; the outcome is the run's own `cancelled`.
@@ -236,7 +266,11 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
         held.splice(0);
         const request = kernel.request("toRuntime", { kind: "dispose" });
         disposeRequest = request;
-        const current = gate.running ? await inFlight() : null;
+        if (launching !== null) {
+          // A send still on its way: its run, if it comes, is stopped, not adopted.
+          giveUp(launching, "the session was disposed before cursor started the run");
+        }
+        const current = active;
         if (current !== null) {
           // The run's own `cancelled` ends the turn in the stream.
           try {

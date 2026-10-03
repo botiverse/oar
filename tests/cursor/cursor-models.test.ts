@@ -84,6 +84,11 @@ test("an effort is set through the model's own parameter, after checking its men
     id: "gpt-5.4-mini",
     params: [{ id: "reasoning", value: "low" }],
   });
+  // The other parameters stay as the default variant sets them: thinking stays on beside the level.
+  assert.deepEqual(await cursorModelSelection(sdkWith(), { cwd: "/w", model: "claude-opus-5", effort: "low" }), {
+    id: "claude-opus-5",
+    params: [{ id: "thinking", value: "true" }, { id: "context", value: "300k" }, { id: "effort", value: "low" }],
+  });
   await expect(cursorModelSelection(sdkWith(), { cwd: "/w", model: "gpt-5.4-mini", effort: "ludicrous" })).rejects.toThrow(
     "Cursor model gpt-5.4-mini does not offer effort ludicrous; it lists none, low, medium, high",
   );

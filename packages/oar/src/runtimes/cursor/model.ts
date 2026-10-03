@@ -5,8 +5,8 @@ import type { CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
  * Cursor's catalog (`Cursor.models.list()`, SDK 1.0.35) gives each model its
  * own parameters, and the reasoning one has a different id per family:
  * `effort` (Claude 5, Grok 4.6), `reasoning` (GPT), `reasoning_effort`
- * (Grok 4.7, Gemini 3.8, Claude Sonnet 5.5). Older Claude models also have a
- * `thinking` on/off switch; the level menu wins over it, and a model whose
+ * (Grok 4.7, Gemini 3.8, Claude Sonnet 5.5). Several Claude models also have
+ * a `thinking` on/off switch; the level menu wins over it, and a model whose
  * only reasoning parameter is the switch (claude-haiku-4-5) keeps it.
  */
 const LEVEL_PARAMETERS = ["effort", "reasoning", "reasoning_effort"] as const;
@@ -49,8 +49,23 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * agent's latest recorded run says what it ran. A requested effort is
  * checked against the model's own parameter menu, because the SDK passes an
  * unknown value through unchecked and reports it back as given (probed
- * 2026-10-03: `reasoning: "ludicrous"` ran and came back verbatim).
+ * 2026-10-03: `reasoning: "ludicrous"` ran and came back verbatim). It
+ * replaces only that parameter: the other parameters stay as the resumed run
+ * had them, or as the catalog's default variant sets them (a `thinking`
+ * switch stays on beside an `effort` level).
  */
+/** Options the SDK cannot honor, refused before anything opens. */
+export function validateCursorOptions(options: SessionOptions): void {
+  if (options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined) {
+    // SDK 1.0.35 types a `systemPrompt`, but a local agent's run fails with
+    // "unknown option '--system-prompt'" (probed 2026-10-03), and there is no append.
+    throw new Error("Cursor's SDK runs no system prompt override for a local agent");
+  }
+  if (options.env !== undefined && Object.keys(options.env).length > 0) {
+    throw new Error("Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported");
+  }
+}
+
 export async function cursorModelSelection(sdk: CursorSdk, options: SessionOptions): Promise<ModelSelection> {
   const base = options.model === undefined && options.resume !== undefined
     ? await latestRunModel(sdk, options.resume, options.cwd)
@@ -70,7 +85,8 @@ export async function cursorModelSelection(sdk: CursorSdk, options: SessionOptio
   if (!parameter.levels.includes(options.effort)) {
     throw new Error(`Cursor model ${model.id} does not offer effort ${options.effort}; it lists ${parameter.levels.join(", ")}`);
   }
-  const kept = (base?.params ?? []).filter((param) => !EFFORT_PARAMETERS.includes(param.id));
+  const others = base?.params ?? model.variants?.find((variant) => variant.isDefault === true)?.params ?? [];
+  const kept = others.filter((param) => param.id !== parameter.id);
   return { id: model.id, params: [...kept, { id: parameter.id, value: options.effort }] };
 }
 
@@ -85,7 +101,7 @@ async function latestRunModel(sdk: CursorSdk, agentId: string, cwd: string): Pro
         latest = run;
       }
     }
-    cursor = page.nextCursor ?? null;
+    cursor = page.nextCursor === undefined || page.nextCursor === "" ? null : page.nextCursor;
   } while (cursor !== null);
   return latest?.model;
 }

@@ -73,6 +73,13 @@ test("a read is the file text, an edit its diff, an error its message, anything 
     kind: "tool_call_ended", callId: "c", content: [{ type: "other", value: { files: ["a.ts"] } }], result: "ok",
   });
   assert.deepEqual(ended("ls", undefined), { kind: "tool_call_ended", callId: "c" });
+  // A command that printed nothing still reported a result; one a signal ended has no exit code.
+  assert.deepEqual(ended("shell", { status: "success", value: { exitCode: 0, signal: "", stdout: "", stderr: "" } }), {
+    kind: "tool_call_ended", callId: "c", content: [{ type: "text", text: "" }], result: "ok", exitCode: 0,
+  });
+  assert.deepEqual(ended("shell", { status: "success", value: { exitCode: 143, signal: "SIGTERM", stdout: "", stderr: "" } }), {
+    kind: "tool_call_ended", callId: "c", content: [{ type: "text", text: "" }], result: "ok", exitCode: null,
+  });
 });
 
 test("a delivered steer's echo is a user message without an input id", () => {
@@ -101,8 +108,8 @@ test("a subagent's update arrives inside its task call and is attributed to that
     { type: "tool-call-delta", callId: task, modelCallId: "m-1", taskUpdate: { type: "thinking-delta", text: "Running a shell command" } },
     { type: "tool-call-delta", callId: task, modelCallId: "m-1", taskUpdate: { type: "tool-call-started", callId: child, toolCall: { type: "shell", args: { command: "ls -la" } } } },
     { type: "tool-call-delta", callId: task, modelCallId: "m-1", taskUpdate: { type: "text-delta", text: "Here" } },
+    // SDK 1.0.35's schema allows no nesting deeper than this; one would unwrap the same way.
     { type: "tool-call-delta", callId: task, modelCallId: "m-1", taskUpdate: { type: "tool-call-delta", callId: "grandchild-task", taskUpdate: { type: "text-delta", text: "deep" } } },
-    { type: "tool-call-delta", callId: task, modelCallId: "m-1", taskUpdate: { type: "turn-ended", usage: { inputTokens: 5, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0 } } },
     { type: "turn-ended", usage: { inputTokens: 7, outputTokens: 2, cacheReadTokens: 0, cacheWriteTokens: 0 } },
   ]);
   assert.deepEqual(frames.map((frame) => [frame.type, frame.agentPath]), [
@@ -110,14 +117,12 @@ test("a subagent's update arrives inside its task call and is attributed to that
     ["tool-call-delta", [task]],
     ["tool-call-delta", [task]],
     ["tool-call-delta", [task, "grandchild-task"]],
-    ["tool-call-delta", [task]],
     ["turn-ended", []],
   ]);
   assert.deepEqual(frames[1]?.events, [{ kind: "tool_call_started", callId: child, tool: "shell", input: JSON.stringify({ command: "ls -la" }) }]);
   assert.deepEqual(frames[3]?.events, [{ kind: "text_delta", text: "deep" }]);
-  // Usage stays per agent: the child's turn does not add to the root's total.
-  assert.deepEqual(frames[4]?.events, [{ kind: "usage", usage: { tokens: { input: 5, output: 1 } } }]);
-  assert.deepEqual(frames[5]?.events, [{ kind: "usage", usage: { tokens: { input: 7, output: 2 } } }]);
+  // The run's own usage is recorded on the root.
+  assert.deepEqual(frames[4]?.events, [{ kind: "usage", usage: { tokens: { input: 7, output: 2 } } }]);
 });
 
 test("a run's status is the turn's outcome, and its model and effort what the SDK records it ran", () => {

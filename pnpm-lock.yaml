@@ -51,7 +51,7 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0(zod@4.4.3)
       '@cursor/sdk':
-        specifier: ^1.0.35
+        specifier: 1.0.35
         version: 1.0.35
       '@earendil-works/pi-ai':
         specifier: ^1.0.0

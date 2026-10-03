@@ -1,10 +1,60 @@
 import type { ResponseBody } from "../../contracts/session.js";
+import { cursorRunFailedFrame, cursorRunResultFrame, type CursorFrame } from "./projection.js";
 import type { CursorRun, SteerAckOutcome } from "./sdk.js";
 
 export interface ActiveRun {
   readonly run: CursorRun;
   /** Settles once the run's end is in the stream. */
   readonly ended: Promise<void>;
+}
+
+/**
+ * One `send` on its way to a run. The prompt's answer waits on `decided`;
+ * an abort that arrives first is held in `abortRequested`; a dispose or the
+ * send deadline gives the launch up, and a run the SDK returns after that is
+ * stopped rather than adopted. Each launch is its own object, so a later one
+ * never reads or clears an earlier one's state.
+ */
+export interface Launch {
+  state: "sending" | "sent" | "failed" | "given_up";
+  abortRequested: boolean;
+  current: ActiveRun | null;
+  /** Why it was not sent: the SDK's error, or the reason it was given up. */
+  reason: string;
+  readonly decided: Promise<void>;
+  readonly decide: () => void;
+}
+
+export function newLaunch(): Launch {
+  const { promise, resolve } = Promise.withResolvers<void>();
+  return { state: "sending", abortRequested: false, current: null, reason: "", decided: promise, decide: resolve };
+}
+
+export function giveUp(launch: Launch, reason: string): void {
+  if (launch.state === "sending") {
+    launch.state = "given_up";
+    launch.reason = reason;
+    launch.decide();
+  }
+}
+
+/**
+ * A run the SDK returned after its launch was given up: it did start, so it
+ * is stopped, and its end still enters the stream.
+ */
+export function stopOrphan(run: CursorRun, record: (frame: CursorFrame) => void): void {
+  void (async (): Promise<void> => {
+    try {
+      await run.cancel();
+    } catch {
+      // It may have ended on its own.
+    }
+    try {
+      record(cursorRunResultFrame(await run.wait()));
+    } catch (error) {
+      record(cursorRunFailedFrame(error instanceof Error ? error.message : String(error)));
+    }
+  })();
 }
 
 export async function steerRun(current: ActiveRun, input: string): Promise<ResponseBody> {
@@ -40,13 +90,4 @@ export async function steerRun(current: ActiveRun, input: string): Promise<Respo
     reason: ack === null ? "not_steerable: the run ended before cursor took the input" : `not_steerable: cursor handed the input back (${ack})`,
     ...(ack === null ? {} : { native: { ack } }),
   };
-}
-
-/** A promise's value or its rejection, as data. */
-export async function settled<T>(work: Promise<T>): Promise<{ readonly value: T } | { readonly error: unknown }> {
-  try {
-    return { value: await work };
-  } catch (error) {
-    return { error };
-  }
 }

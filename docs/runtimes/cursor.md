@@ -76,6 +76,14 @@ without `SessionOptions.model` OAR reopens with the model of the agent's
 latest run (`Agent.listRuns`), or `default` when it has none. The next prompt
 recalls what was taught before disposal (`resume`).
 
+The agent's store holds its last run as active until the agent object that
+started that run ends it. After a process that died mid run, or a session
+closed before its first prompt, every `send` on the resumed agent is refused
+`already has active run` (probed). The first send after a resume therefore
+passes the SDK's `local.force`, which takes the agent over; with it the
+same agent answered normally (probed). Arbitrating one agent between two
+live processes is the host's, as for every runtime.
+
 ```ts
 const resumed = await cursorRuntime.session(installation, {
   cwd, // The directory the agent was created in.
@@ -91,7 +99,9 @@ and cannot be resumed.
 **Prompt (mapped):** `prompt()` is one `agent.send`, answered `accepted`
 (with the `runId` as `native`) once the SDK returns the run, `rejected busy`
 during a turn (`busy-and-late-control`), and `runtime_refused` with the SDK's
-message when `send` throws. `InputOptions.images` go as the SDK's image
+message when `send` throws, or after 60 seconds without a run (a cold start
+took about four seconds). A run the SDK returns after that, or after a
+dispose, is cancelled, and its end is still recorded. `InputOptions.images` go as the SDK's image
 content (`{ data, mimeType }`); asked for the color of a plain red PNG, the
 model answered `Red` (probed).
 
@@ -106,7 +116,8 @@ foreground shell command running, a steer moves that command to the
 background (its call ends at once with empty output) and the model polls it
 afterwards (probed); the steered text landed in the same turn (`steer`).
 `run.steer` takes text only, so a steer with images is rejected
-`unsupported`.
+`unsupported`. `Session.deliver` does not fall back to the queue on a
+handed back steer; `steerOrQueue` does.
 
 **Queue (mapped):** `queue()` is an adapter-held FIFO
 (`capabilities.queue.durable: false`) sent as a new run when the current one
@@ -123,10 +134,11 @@ and `error` failed with the SDK's `error.message` classified by
 Invalid User API Key`, read as `auth`; probed). A `run.wait()` that throws
 instead records `cursor/run_failed` with the message, which ends the turn.
 
-**Dispose (mapped):** `dispose()` cancels a running run, waits up to five
-seconds for its `cancelled` answer, closes the agent, and answers the dispose
-request `accepted`: an in-process runtime has no exit to observe
-(`dispose-mid-turn`). The agent's stored conversation is kept.
+**Dispose (mapped):** `dispose()` gives up a `send` still on its way,
+cancels a running run, waits up to five seconds for its `cancelled` answer,
+closes the agent, and answers the dispose request `accepted`: an in-process
+runtime has no exit to observe (`dispose-mid-turn`). The agent's stored
+conversation is kept.
 
 ### Observation, children, and history
 
@@ -134,7 +146,9 @@ request `accepted`: an in-process runtime has no exit to observe
 `text-delta` is a `text_delta`, `thinking-delta` a `reasoning` text, and
 `turn-ended` a `usage` event: its `inputTokens` exclude cache reads and
 writes, so OAR adds `cacheReadTokens` and `cacheWriteTokens` to the input,
-and the totals accumulate per agent. `token-delta`, `thinking-completed`,
+and the totals accumulate. It is the run's usage, recorded on the root; no
+update reports a child's own tokens, and whether the run's figure includes a
+child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),
 `tool-requests-listed`, `step-started`, `step-completed` and
 `shell-output-delta` are recorded with no events. The SDK drops its
@@ -146,7 +160,8 @@ update reports context occupancy, so `contextUsage()` stays empty.
 `edit`, `grep`, `glob`, `ls`, `task`, `mcp`, …) and the JSON args as `input`.
 `tool-call-completed` carries `toolCall.result`: `{status: "success",
 value}` is `result: "ok"`, `{status: "error", error}` is `"failed"`. A shell
-call's content is its stdout and stderr and its `exitCode` the shell's (a
+call's content is its stdout and stderr (one empty text part when it printed
+nothing) and its `exitCode` the shell's, `null` when `signal` names one (a
 failing command is still a successful tool call: `ls` of a missing path ends
 `ok` with exit code 2, probed); a read is the file text, an edit its diff, an
 error its message, and any other result one `other` part. No shell output
@@ -158,8 +173,9 @@ command to the background, the model's poll of it produced no tool updates.
 call. Its own updates (thinking, text, its tool calls) arrive as
 `tool-call-delta {callId, taskUpdate}`, keyed by the task's call id; OAR
 reads `taskUpdate` as the child's update and records the frame with
-`agentPath: [callId]`, one level deeper per nested task (`subagent`: one child
-path, 30 child frames). The `task` call's own result holds the child's
+`agentPath: [callId]` (`subagent`: one child path, 30 child frames). The
+SDK's schema allows no `tool-call-delta` inside a `taskUpdate`, so a child's
+own children are not visible. The `task` call's own result holds the child's
 conversation steps. No child session or graph edge exists.
 
 **History:** the retained stream backs `rawEvents(observer, cursor)` for the
@@ -172,14 +188,17 @@ is `Cursor.models.list()` (about 45 models on this account, `default` first),
 `unauthenticated` without a credential, with a 15 second deadline. Each model
 lists its own parameters; the reasoning one has a different id per family:
 `effort` (Claude 5, Grok 4.6), `reasoning` (GPT), `reasoning_effort` (Grok
-4.7, Gemini 3.8, Claude Sonnet 5.5). Older Claude models also have a
+4.7, Gemini 3.8, Claude Sonnet 5.5). Several Claude models also have a
 `thinking` on/off switch; the level menu wins, and a model whose only
 reasoning parameter is the switch (`claude-haiku-4-5`) offers `false` and
 `true`. `defaultEffort` is that parameter's value in the variant the catalog
 marks default.
 
 **Effort (mapped):** `SessionOptions.effort` is that parameter in the model
-selection. The SDK passes an unknown value through and reports it back as
+selection; the other parameters stay as the catalog's default variant sets
+them (or as the resumed run had them), so a `thinking` switch stays on
+beside an `effort` level (`claude-opus-5` at `low` ran with the default
+variant's `thinking: true` and `context: 1m`, probed). The SDK passes an unknown value through and reports it back as
 given (`reasoning: "ludicrous"` ran, probed), so OAR checks the level against
 the model's menu first and rejects the open otherwise, naming the levels.
 The `model` and `effort` events come from the SDK's selection at open and
@@ -210,7 +229,9 @@ the host's entry script. A layout that does not hoist it (pnpm's, a bundled
 host) leaves it unfound: the SDK warns `tree-sitter natives are unavailable`
 and searches without its own ripgrep. OAR resolves the package from the SDK
 and sets the SDK's own `CURSOR_TREE_SITTER_VENDOR_DIR` and
-`CURSOR_RIPGREP_PATH` before loading it, unless the host set them.
+`CURSOR_RIPGREP_PATH` before loading it, unless the host set them. The
+setting is process wide: it stays for the host and every process it starts
+afterwards.
 
 ### Installation and account usage
 

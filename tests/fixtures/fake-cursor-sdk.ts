@@ -31,6 +31,11 @@ export class FakeCursorRun implements CursorRun {
     return result;
   }
 
+  /** `wait()` rejects instead of answering. */
+  fail(error: Error): void {
+    this.done.reject(error);
+  }
+
   async cancel(): Promise<void> {
     this.cancelled = true;
     this.end("cancelled");
@@ -63,18 +68,34 @@ export class FakeCursorRun implements CursorRun {
 /** A stand-in for `@cursor/sdk` 1.0.35's local agent: each `send` returns a run the test ends. */
 export class FakeCursorAgent implements CursorAgent {
   readonly runs: FakeCursorRun[] = [];
+  /** Whether each `send` asked to take the agent over (`local.force`). */
+  readonly forced: boolean[] = [];
   closed = false;
   /** Set to hold the next `send` until the test resolves it. */
   gate: Promise<void> | null = null;
+  /** Set to make the next `send` throw. */
+  refuse: Error | null = null;
+  /** Set to end every new run as soon as it exists, with this status. */
+  endAtOnce: RunResult["status"] | null = null;
 
   constructor(readonly agentId: string, readonly model: ModelSelection | undefined) {}
 
-  async send(message: unknown, options: { readonly onDelta: CursorDeltaListener }): Promise<CursorRun> {
+  // oxlint-disable-next-line eslint/max-statements -- each knob the tests turn, in the order the SDK would act.
+  async send(message: unknown, options: { readonly onDelta: CursorDeltaListener; readonly local?: { readonly force: boolean } }): Promise<CursorRun> {
+    this.forced.push(options.local?.force === true);
     if (this.gate !== null) {
       await this.gate;
     }
+    const { refuse } = this;
+    if (refuse !== null) {
+      this.refuse = null;
+      throw refuse;
+    }
     const run = new FakeCursorRun(`run-${String(this.runs.length + 1)}`, message, options.onDelta);
     this.runs.push(run);
+    if (this.endAtOnce !== null) {
+      run.end(this.endAtOnce);
+    }
     return run;
   }
 
