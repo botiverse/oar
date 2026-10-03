@@ -47,6 +47,50 @@ afterEach(() => {
   acp.request.mockReset();
 });
 
+test("grok reader matches native zero usage for billing without usage metrics", async () => {
+  acp.request.mockImplementation(async (method) => {
+    switch (method) {
+      case "initialize":
+        return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
+      case "_x.ai/billing":
+        // Grok 1.0.46 returns this shape for an authenticated SuperGrok account.
+        return {
+          config: {
+            currentPeriod: {
+              type: "USAGE_PERIOD_TYPE_WEEKLY",
+              start: "2026-10-01T00:00:00Z",
+              end: "2026-10-08T00:00:00Z",
+            },
+            onDemandCap: { val: 0 },
+            onDemandUsed: { val: 0 },
+            prepaidBalance: { val: 0 },
+            isUnifiedBillingUser: true,
+            billingPeriodStart: "2026-10-01T00:00:00Z",
+            billingPeriodEnd: "2026-10-08T00:00:00Z",
+          },
+          subscription_tier: "SuperGrok",
+        };
+      case "_x.ai/auth/info":
+        return { methodId: "cached_token", email: "person@example.com" };
+      default:
+        throw new Error(`Unexpected method: ${method}`);
+    }
+  });
+
+  await expect(grokAccountUsage(installation)).resolves.toEqual({
+    kind: "available",
+    plan: "SuperGrok",
+    email: "person@example.com",
+    rateLimited: false,
+    windows: [{
+      label: "Weekly included usage",
+      usedRatio: 0,
+      resetsAt: "2026-10-08T00:00:00.000Z",
+    }],
+  });
+  expect(acp.kill).toHaveBeenCalledOnce();
+});
+
 test("grok reader merges email from the authenticated auth-info extension", async () => {
   acp.request.mockImplementation(async (method) => {
     switch (method) {
