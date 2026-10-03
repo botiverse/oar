@@ -279,6 +279,11 @@ account from third-party tools may violate the terms of service and can lead
 to account suspension, and recommends an API key or Vertex instead. The
 evidence above was gathered on a personal login. For anything beyond
 evaluation, sign the server in with `gemini-api-key` or `agent-platform`.
+For the same reason `login` is `unsupported` / `terms_of_service`
+([runtime login](../spec/login.md)); the ACP server's own sign-in also
+redirects only to a loopback listener with no code to paste back, so a
+person on another device could not finish it. There is no `authStatus`.
+[Login](../../packages/oar/src/runtimes/antigravity/login.ts).
 
 Account usage is **unexposed**: OAR has no Antigravity account usage query.
 

@@ -6,7 +6,7 @@ increments, not a promise to add every feature listed.
 ## Shipped foundation
 
 - A provider-independent runtime registry with installation, model, account
-  usage, native inventory, update check and session entry points.
+  usage, native inventory, update check, login and session entry points.
 - One lossless, attributed, resumable record stream with explicit, typed
   controls (`prompt`, `steer`, `queue`, `withdraw`, `abort`, `deliver`,
   `dispose`), input identity and origin, images, and task events for runtime

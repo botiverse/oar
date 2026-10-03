@@ -85,6 +85,7 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 | [docs/spec/inventory.md](docs/spec/inventory.md) | Independent native skills, MCP server and tool queries |
 | [docs/spec/subagents.md](docs/spec/subagents.md) | Subagents on any runtime that takes `env` (not cursor), from a host or over `oar mcp` |
 | [docs/spec/update.md](docs/spec/update.md)   | Update checks and upgrades through each runtime's own updater |
+| [docs/spec/login.md](docs/spec/login.md)     | Signing a runtime in through its own login, and its sign-in status |
 | [docs/runtimes/](docs/runtimes/README.md)    | What each runtime says natively and how oar maps it |
 | [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
 | [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |

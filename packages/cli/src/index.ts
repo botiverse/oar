@@ -13,6 +13,7 @@ import { readModels, renderModels } from "./models.js";
 import { createProgressRenderer, renderOpened } from "./progress.js";
 import { registerUpgradeCommand } from "./upgrade.js";
 import { exitWhenFinished } from "./exit.js";
+import { registerLoginCommand } from "./login.js";
 import { registerMcpCommand } from "./mcp-command.js";
 import { runtimes } from "./runtimes.js";
 
@@ -50,6 +51,8 @@ program
       listModels: runtime.listModels !== undefined,
       checkUpdate: runtime.checkUpdate !== undefined,
       upgrade: runtime.upgrade !== undefined,
+      login: runtime.login !== undefined,
+      authStatus: runtime.authStatus !== undefined,
     }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
@@ -137,6 +140,7 @@ program
   });
 
 registerUpgradeCommand(program, selected);
+registerLoginCommand(program, selected);
 registerMcpCommand(program, packageVersion());
 
 const jsonObserver: RawEventObserver = (record) => {
