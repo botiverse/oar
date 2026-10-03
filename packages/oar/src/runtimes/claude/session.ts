@@ -201,7 +201,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   }
 
   let interruptCounter = 0;
-  const capabilities = { steer: true, queue: { durable: false }, attribution: "attributed", images: true } as const;
+  const capabilities = { queue: { durable: false }, attribution: "attributed", images: true } as const;
   const session: Session = sealSession({
     id: kernel.sessionId,
     capabilities,

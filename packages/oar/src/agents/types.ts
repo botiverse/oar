@@ -82,7 +82,8 @@ export interface SubagentInfo {
 /**
  * How a message reaches a child: `followup` starts a turn when the child is
  * idle and steers the running one otherwise (queueing when it cannot steer);
- * `steer` and `queue` are the session controls of the same names.
+ * `steer` and `queue` are the session controls of the same names, and `steer`
+ * is rejected `unsupported` when the child's session has no `steer`.
  */
 export type SendMode = "followup" | "steer" | "queue";
 

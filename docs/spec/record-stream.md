@@ -96,9 +96,14 @@ Further rules:
   landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `unsupported`, `runtime_exited`, `disposed`,
   `runtime_refused`, `error`) next to the prose `reason`, so an application
-  branches on a word, not on vendor text. Counterexample: kimi-cli leaks the
-  turn outcome into `_handle_prompt`'s return value, while the `TurnEnd`
-  docstring admits it "may be omitted" when interrupted.
+  branches on a word, not on vendor text. `unsupported` means the runtime
+  cannot do this control with these inputs (images where it takes none,
+  images on a cursor steer); a control a runtime cannot do at all is a
+  member the session lacks, never a request that is always rejected: a
+  session that cannot steer has no `steer`, so its stream holds no steer
+  request. Counterexample: kimi-cli leaks the turn outcome into
+  `_handle_prompt`'s return value, while the `TurnEnd` docstring admits it
+  "may be omitted" when interrupted.
   [src: wire/server.py:644-755; wire/types.py]
 - **A turn is a span on the stream, not a control object.** The envelope's
   optional `spanId` holds only runtime-native ids (red line in
@@ -206,12 +211,15 @@ interface ResponseRecord extends RecordEnvelope {
 
 The control surface that produces these records (`Session.prompt / steer /
 queue / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
-`graph()`, and the folds) is documented on the contract itself. An
-adapter's `prompt / steer / queue / abort` return both records they
-appended (`ControlResult`); the `Session` a consumer holds returns them read
-(`ControlOutcome`): `kind` is `accepted` or `rejected` (the two answers a
-toRuntime control can get), a rejection has its `code` and `reason` at
-hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
+`graph()`, and the folds) is documented on the contract itself. `steer` is
+optional: its presence is the capability (kimi and antigravity sessions have
+none), and `steerOrQueue` and `deliver` queue where it is absent. `queue`
+is on every session; `capabilities.queue.durable` says whether held input
+survives a restart. An adapter's `prompt / steer / queue / abort` return
+both records they appended (`ControlResult`); the `Session` a consumer holds
+returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
+(the two answers a toRuntime control can get), a rejection has its `code`
+and `reason` at hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
 takes), and `request` / `response` are still the records themselves.
 `dispose()` returns void: its request and the `exited` response are read
 from the stream like everything else. The turn helpers build on this:

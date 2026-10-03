@@ -133,7 +133,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   // session id, linked in the graph when a lifecycle notification says so.
   // Images despite `initialize` saying `promptCapabilities.image: false`: grok 1.0.44
   // hands an ACP image block to the model (live, docs/runtimes/grok.md).
-  capabilities: { steer: true, queue: { durable: false }, attribution: "nested", images: true },
+  capabilities: { queue: { durable: false }, attribution: "nested", images: true },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,

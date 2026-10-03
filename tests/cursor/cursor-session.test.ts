@@ -5,6 +5,7 @@ import path from "node:path";
 import { setImmediate as settle } from "node:timers/promises";
 import { expect, test } from "vitest";
 import type { RequestRecord } from "../../packages/oar/src/contracts/session.js";
+import { UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { codeOf, openFakeCursor, reasonOf } from "../fixtures/fake-cursor-sdk.js";
 
@@ -20,7 +21,7 @@ test("a session is one SDK agent, opened without a sandbox, reporting the model 
   assert.deepEqual(opened, [{ how: "create", options: { model: { id: "composer" }, local: { cwd: "/w", sandboxOptions: { enabled: false } } } }]);
   assert.equal(session.id, "agent-1");
   assert.equal(session.model().value, "composer");
-  assert.deepEqual(session.capabilities, { steer: true, queue: { durable: false }, attribution: "attributed", images: true });
+  assert.deepEqual(session.capabilities, { queue: { durable: false }, attribution: "attributed", images: true });
   await session.dispose();
 });
 
@@ -159,10 +160,14 @@ test("resume reopens the agent by id with the model its latest run ran", async (
   await session.dispose();
 });
 
-test("options the SDK cannot honor are refused at open", async () => {
-  await expect(openFakeCursor({ systemPrompt: "x" })).rejects.toThrow("Cursor's SDK runs no system prompt override for a local agent");
-  await expect(openFakeCursor({ appendSystemPrompt: "x" })).rejects.toThrow("Cursor's SDK runs no system prompt override for a local agent");
-  await expect(openFakeCursor({ env: { A: "1" } })).rejects.toThrow("SessionOptions.env is unsupported");
+test("options the SDK cannot honor are refused at open, typed and named", async () => {
+  const prompt = "Cursor's SDK runs no system prompt override for a local agent";
+  await expect(openFakeCursor({ systemPrompt: "x" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "systemPrompt", message: prompt });
+  await expect(openFakeCursor({ appendSystemPrompt: "x" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "appendSystemPrompt", message: prompt });
+  const env = openFakeCursor({ env: { A: "1" } });
+  await expect(env).rejects.toBeInstanceOf(UnsupportedOptionError);
+  await expect(env).rejects.toMatchObject({ option: "env" });
+  await expect(env).rejects.toThrow("SessionOptions.env is unsupported");
   await expect(openFakeCursor({ env: {} })).resolves.toBeDefined();
 });
 

@@ -51,19 +51,24 @@ export function controlOutcomeOf(result: ControlResult): ControlOutcome {
 export function sealSession(adapterSession: AdapterSession): Session {
   const prompt = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
     controlOutcomeOf(await adapterSession.prompt(input, { ...options, ...identify(options) }));
-  const steer = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
-    controlOutcomeOf(await adapterSession.steer(input, identify(options)));
+  // A session that cannot steer has no `steer`: its absence is the capability.
+  // Where the adapter has one, the sealed `steer` below replaces it in the spread.
+  const adapterFace: Omit<AdapterSession, "steer"> = adapterSession;
+  const adapterSteer = adapterSession.steer?.bind(adapterSession);
+  const steer = adapterSteer === undefined
+    ? undefined
+    : async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
+      controlOutcomeOf(await adapterSteer(input, identify(options)));
   const queue = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
     controlOutcomeOf(await adapterSession.queue(input, identify(options)));
   const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
-    const steered = await steer(input, identified);
-    if (steered.kind === "accepted") {
-      return { landed: "steered", result: steered };
-    }
-    if (adapterSession.capabilities.queue === null) {
-      return { landed: "rejected", code: steered.code, reason: steered.reason, result: steered };
+    if (steer !== undefined) {
+      const steered = await steer(input, identified);
+      if (steered.kind === "accepted") {
+        return { landed: "steered", result: steered };
+      }
     }
     const queued = await queue(input, identified);
     return queued.kind === "accepted"
@@ -71,9 +76,9 @@ export function sealSession(adapterSession: AdapterSession): Session {
       : { landed: "rejected", code: queued.code, reason: queued.reason, result: queued };
   };
   const sealed: Session = {
-    ...adapterSession,
+    ...adapterFace,
     prompt,
-    steer,
+    ...(steer === undefined ? {} : { steer }),
     queue,
     abort,
     events: (observer, options = {}) => {

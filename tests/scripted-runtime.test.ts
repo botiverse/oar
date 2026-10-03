@@ -74,7 +74,7 @@ test("steers reach the running turn; a second prompt is busy", async () => {
     seen.push([...steered]);
   });
   const first = await session.prompt("long");
-  const [busy, steer] = [await session.prompt("again"), await session.steer("also this")];
+  const [busy, steer] = [await session.prompt("again"), await (session.steer?.("also this") ?? assert.fail("the scripted runtime steers"))];
   gate.resolve(undefined);
   await awaitTurnEnd(session, first.seq);
   await session.dispose();

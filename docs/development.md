@@ -166,8 +166,14 @@ backend's vendor tests.
    - control calls go through `kernel.control()` so request and response are
      records;
    - the process exit is an `exited` response;
-   - `capabilities` declares steer, queue durability, the attribution tier and
-     image input as the runtime actually exposes them.
+   - a whole operation the runtime cannot do is a member the session lacks:
+     no `steer` on a runtime that cannot inject, never a `steer` that always
+     rejects; `capabilities` declares queue durability, the attribution tier
+     and image input as the runtime actually exposes them;
+   - an option the runtime cannot honor is refused at open with an
+     `UnsupportedOptionError`, never dropped; one it refuses whenever given
+     is declared in `refusedSessionOptions` and checked by
+     `refuseSessionOptions`, so the declaration and the refusal agree.
 
    Keep the projection a pure fold (frame → commands) so replay tests
    (`tests/replay/`, fixtures captured by `pnpm sea-trial:record`) can pin
@@ -179,7 +185,9 @@ backend's vendor tests.
    to the built-in `runtimes` registry, re-export.
 4. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
    against your real local installation. The cases in `sea-trial/cases/` are
-   the contract: make the runtime pass them, don't loosen them to fit.
+   the contract: make the runtime pass them, don't loosen them to fit. A case
+   that needs a capability skips on its absence (a session without `steer`),
+   never on a runtime name.
 5. **Add an aimock backend if feasible** (`sea-trial/harness/aimock.ts`,
    `backends.ts`, and the `behavior` matrix in `.github/workflows/ci.yml`) so
    the contract stays verifiable without a login, and add vendor tests for the

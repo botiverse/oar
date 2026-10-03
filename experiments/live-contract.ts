@@ -92,15 +92,27 @@ interface ScenarioResult {
   readonly ms: number;
 }
 
-class ScenarioFailureError extends Error {
-  constructor(message: string) {
+/**
+ * Ends a scenario early with its verdict: a failed expectation, or a skip on
+ * a capability only an open session shows (a `steer` member), never on a
+ * runtime name.
+ */
+class ScenarioVerdictError extends Error {
+  readonly status: "fail" | "skip";
+
+  constructor(status: "fail" | "skip", message: string) {
     super(message);
-    this.name = "ScenarioFailureError";
+    this.name = "ScenarioVerdictError";
+    this.status = status;
   }
 }
 
 function fail(message: string): never {
-  throw new ScenarioFailureError(message);
+  throw new ScenarioVerdictError("fail", message);
+}
+
+function skip(message: string): never {
+  throw new ScenarioVerdictError("skip", message);
 }
 
 const SCENARIO_TIMEOUT_MS = 300_000;
@@ -328,34 +340,26 @@ const scenarios: Scenario[] = [
       const outcome = await awaitTurnEnd(session, first.request.seq);
       facts.outcome = outcome;
       const lateAbort = await session.abort();
-      const lateSteer = await session.steer("too late");
+      // A session without `steer` has no late steer to refuse.
+      const lateSteer = await session.steer?.("too late");
       facts.lateAbort = lateAbort.response.body;
-      facts.lateSteer = lateSteer.response.body;
+      facts.lateSteer = lateSteer?.response.body ?? "no steer";
       facts.rootTurnEnds = rootTurnEnds(session).length;
       await session.dispose();
       if (second.response.body.kind !== "rejected") {
         fail("second prompt during an active turn was not rejected");
       }
-      if (lateAbort.response.body.kind !== "rejected" || lateSteer.response.body.kind !== "rejected") {
+      if (lateAbort.response.body.kind !== "rejected" || (lateSteer !== undefined && lateSteer.response.body.kind !== "rejected")) {
         fail("late abort/steer must be rejected");
       }
     },
   },
   {
     id: "steer",
-    async run(open, facts, notes) {
+    async run(open, facts) {
       const session = await open();
-      if (!session.capabilities.steer) {
-        const result = accepted(await session.prompt(`${shell("sleep 4; echo A")}. Then reply DONE.`), "prompt");
-        const steer = await session.steer("Also append the word MANGO.");
-        facts.steer = steer.response.body;
-        await awaitTurnEnd(session, result.request.seq);
-        await session.dispose();
-        notes.push("runtime declares steer: false; verified the rejection only");
-        if (steer.response.body.kind !== "rejected") {
-          fail("steer must be rejected when capabilities.steer is false");
-        }
-        return;
+      if (session.steer === undefined) {
+        skip("the session has no steer"); // the runner disposes it
       }
       const result = accepted(await session.prompt([
         shell("sleep 5; echo ALPHA"), "then, as a SECOND separate tool call,", shell("sleep 5; echo BRAVO").replace(/^Use|^Run/u, (word) => word.toLowerCase()),
@@ -387,17 +391,9 @@ const scenarios: Scenario[] = [
   },
   {
     id: "queue",
-    async run(open, facts, notes) {
+    async run(open, facts) {
       const session = await open();
       const result = accepted(await session.prompt(`${shell("sleep 6; echo SLOW-DONE")}. Then reply with exactly DONE-1.`), "prompt");
-      if (session.capabilities.queue === null) {
-        const refused = await session.queue("Reply with exactly ok-q.");
-        facts.queue = refused.response.body;
-        await awaitTurnEnd(session, result.request.seq);
-        await session.dispose();
-        notes.push("runtime declares no queue; verified the rejection only");
-        return;
-      }
       await waitUntil(() => toolStartedAfter(session, result.request.seq), 120_000, "tool call");
       const queued = await session.queue("Reply with exactly ok-q and nothing else.");
       facts.queue = queued.response.body;
@@ -600,7 +596,8 @@ const scenarios: Scenario[] = [
   },
   {
     id: "kill-runtime",
-    skip: () => (runtimeId === "pi" || runtimeId === "cursor" || runtimeId === "mock" ? "in-process runtime, no process to kill" : null),
+    // The in-process fact, not a runtime name: a bundled installation (pi, cursor, mock) runs in this process.
+    skip: () => (installation.via === "bundled" ? "in-process runtime, no process to kill" : null),
     async run(open, facts) {
       const session = await open();
       const result = accepted(await session.prompt(`${shell(LONG_LOOP)}. Then reply done.`), "prompt");
@@ -668,8 +665,8 @@ const results: ScenarioResult[] = [];
 const openSessions = new Set<Session>();
 
 function statusOf(error: unknown): ScenarioResult["status"] {
-  if (error instanceof ScenarioFailureError) {
-    return "fail";
+  if (error instanceof ScenarioVerdictError) {
+    return error.status;
   }
   const message = error instanceof Error ? error.message : String(error);
   return message.startsWith("timeout") ? "timeout" : "error";

@@ -38,8 +38,8 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
   // Subagents run inside the harness and never reach ACP under their own
   // ids: opaque (tier #1, docs/spec/attribution.md). The method set has no
-  // steer.
-  capabilities: { steer: false, queue: { durable: false }, attribution: "opaque" },
+  // steer, so the profile has no `steerParams` and the session no `steer`.
+  capabilities: { queue: { durable: false }, attribution: "opaque" },
   // Startup unpacks a large Python archive; the first initialize can take
   // several seconds on a cold disk.
   requestTimeoutMs: 30_000,

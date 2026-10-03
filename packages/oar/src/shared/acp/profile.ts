@@ -52,7 +52,7 @@ export interface AcpSessionProfile {
     readonly options: SessionOptions;
     readonly requestOptions?: SendRequestOptions;
   }) => Promise<void>;
-  /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer. */
+  /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. */
   readonly steerParams?: (input: string) => JsonRecord;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   /**

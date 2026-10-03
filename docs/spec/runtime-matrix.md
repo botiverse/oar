@@ -53,18 +53,30 @@ native frame stays verbatim beside the event.
 
 ## Refused session options
 
+What a runtime cannot honor is refused, never dropped: `session()` rejects
+with an `UnsupportedOptionError` whose `option` names the refused
+`SessionOptions` key and whose message is the reason, rather than open a
+session that quietly runs without it. A host may simply try and fall back
+on that error, and tells it from a failed login or a network error without
+reading the message.
+
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`: a non-empty one), each
-with the reason `session()` rejects with. The adapter checks the same map,
-so the declaration and the refusal cannot drift
-(`tests/refused-session-options.test.ts`). A host leaves a declared option
-out instead of naming runtimes.
+with that reason. The adapter checks the same map, so the declaration and
+the refusal cannot drift (`tests/refused-session-options.test.ts`). A host
+leaves a declared option out instead of naming runtimes.
 
 | runtime | refuses | why |
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
 | kimi, antigravity | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
 | claude, codex, grok, pi | nothing | |
+
+Kimi also refuses a `resume` that names another directory than the one
+its `session/list` says the session lives in (option `cwd`): kimi would run
+the session in its own directory instead. Only the runtime knows the
+session's directory, so this refusal is not declared up front; it is the
+same error ([resume in another directory](../runtimes/resume-cwd.md)).
 
 ## Adapter red lines
 

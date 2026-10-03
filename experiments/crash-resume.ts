@@ -88,6 +88,9 @@ async function phaseOne(run: Run): Promise<void> {
   assert.equal(prompted.response.body.kind, "accepted");
   await until(() => toolRunning(session, prompted.request.seq), 180_000, "no tool call started within 180 s");
   await delay(4000);
+  if (session.steer === undefined) {
+    throw new Error(`${run.runtime} has no steer`);
+  }
   const steered = await session.steer(STEER);
   const queued = await session.queue(QUEUE);
   await delay(4000);

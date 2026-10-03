@@ -23,7 +23,8 @@ function runningSince(session: Session): number | null {
 
 /** One attempt into a running turn; null when the turn ended meanwhile (try again). */
 async function intoRunning(session: Session, input: string, options: InputOptions & { readonly inputId: string }, when: "now" | "after_turn"): Promise<DeliverResult | null> {
-  if (when === "now") {
+  // A session without `steer` cannot inject: the input goes straight to the queue.
+  if (when === "now" && session.steer !== undefined) {
     const target = runningSince(session);
     const steered = await session.steer(input, options);
     if (steered.kind === "accepted") {
@@ -35,14 +36,10 @@ async function intoRunning(session: Session, input: string, options: InputOption
     if (steered.code === "no_active_turn" || runningSince(session) !== target) {
       return null;
     }
+    // A steer that cannot take these inputs (images on a cursor steer) still queues.
     if (steered.code !== "unsupported") {
       return refused(options.inputId, steered);
     }
-  }
-  if (session.capabilities.queue === null) {
-    // Nothing holds input for a later turn here: hold it ourselves until the turn ends.
-    await awaitIdle(session);
-    return null;
   }
   const queued = await session.queue(input, options);
   return queued.kind === "accepted" ? landed("queued", options.inputId, queued) : refused(options.inputId, queued);

@@ -41,7 +41,7 @@ test("an agent without image prompts refuses an input with images, unsupported, 
 test("a profile can say, on evidence, that an agent takes images its initialize doesn't advertise", async () => {
   const session = await start({
     args: [fixture, "no-images"],
-    capabilities: { steer: false, queue: { durable: false }, attribution: "nested", images: true },
+    capabilities: { queue: { durable: false }, attribution: "nested", images: true },
   });
   expect(session.capabilities.images).toBe(true);
   const run = await promptAndWait(session, "look", { images: [{ path: image }] });

@@ -60,7 +60,7 @@ export function stopOrphan(run: CursorRun, record: (frame: CursorFrame) => void)
 export async function steerRun(current: ActiveRun, input: string): Promise<ResponseBody> {
   const steer = current.run.steer?.bind(current.run);
   if (steer === undefined) {
-    return { kind: "rejected", code: "unsupported", reason: "not_steerable: this cursor run takes no mid-run input" };
+    return { kind: "rejected", code: "runtime_refused", reason: "not_steerable: this cursor run takes no mid-run input" };
   }
   // `run.steer` settles once the agent took the text ("complete_delivered")
   // or handed it back ("revert_to_followup"); a run that ends first must

@@ -14,7 +14,7 @@ describe("@botiverse/oar/kernel", () => {
         const kernel = createSessionKernel(options.resume);
         return sealSession({
           id: kernel.sessionId,
-          capabilities: { steer: false, queue: null, attribution: "none", images: false },
+          capabilities: { queue: { durable: false }, attribution: "none", images: false },
           prompt: async (input, inputOptions) =>
             kernel.control({ kind: "prompt", input, ...inputOptions }, () => {
               setTimeout(() => {

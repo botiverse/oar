@@ -23,7 +23,8 @@ real model latency is the speed stat. An illegal answer is a hallucination: no
 effect, 5 self-damage. Knockout wins; after 20 rounds the higher HP does.
 
 The crowd can shout at a fighter while it thinks (the box under its panel).
-That is `session.steer()`: the line lands inside the active turn.
+That is `session.steer()`: the line lands inside the active turn. A runtime
+that cannot steer has no `session.steer`, and its fighter ignores the crowd.
 
 ## How it uses oar
 
@@ -34,7 +35,7 @@ That is `session.steer()`: the line lands inside the active turn.
 | A move | `promptAndWait()`: the turn's outcome and its text in one call |
 | Thinking aloud, live | `session.events()`: `text_delta`, `reasoning`, `tool_call_started` |
 | Too slow | `promptAndWait({ timeoutMs })` aborts and reports `interrupted` |
-| Heckling | `session.steer()`; a shout that became a turn of its own is waited out with `awaitIdle()` |
+| Heckling | `session.steer()` where the session has one; a shout that became a turn of its own is waited out with `awaitIdle()` |
 | Panel header | `session.model()`, `session.usage()`, `session.contextUsage()` |
 | Fighter portrait | `runtime.brand` |
 

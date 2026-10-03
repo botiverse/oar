@@ -5,6 +5,7 @@ import { simpleStateOf as simpleStateOfSync } from "../packages/oar/src/observe/
 import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
 import type { Event, EventObserver, RawEvent, RuntimeEventBody } from "../packages/oar/src/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
+import { steer } from "./fixtures/steer.js";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -30,7 +31,7 @@ async function runEvents(options: { coalesceText?: boolean | { maxHoldMs: number
     seen.push(`${String(item.seq)} ${describeEvent(item)}`);
   }, options);
   const result = await session.prompt("hello");
-  await session.steer("extra");
+  await steer(session, "extra");
   await awaitTurnEnd(session, result.request.seq);
   await session.dispose();
   return seen;

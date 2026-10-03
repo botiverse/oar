@@ -17,8 +17,8 @@ one `inputId` across attempts:
 
 | `when` | Session idle | Session running |
 | --- | --- | --- |
-| `now` (default) | `prompt`: a new turn, so an idle agent wakes | `steer`, or `queue` when the runtime cannot steer |
-| `after_turn` | `prompt` | `queue`, or held until idle and then `prompt` when the runtime holds no queue |
+| `now` (default) | `prompt`: a new turn, so an idle agent wakes | `steer`, or `queue` when the session has no `steer` |
+| `after_turn` | `prompt` | `queue` |
 | `when_idle` | `prompt` | waits until idle, then `prompt` |
 
 A `prompt` refused `busy` (a turn opened between the status read and the

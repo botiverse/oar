@@ -111,6 +111,9 @@ function sessionFighter(session: Session, name: string, icon: string | null, cwd
     },
     async heckle(text) {
       // Steer only: a queued shout would run as a turn of its own and make the referee's next prompt `busy`.
+      if (session.steer === undefined) {
+        return "ignored (this runtime cannot steer)";
+      }
       const shout = await session.steer(`[CROWD] ${text}`);
       return shout.kind === "accepted" ? "steered" : `missed (${shout.code})`;
     },

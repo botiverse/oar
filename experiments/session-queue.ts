@@ -35,9 +35,6 @@ while (!records.some((record) => record.kind === "frame" && record.body.events.s
   // eslint-disable-next-line no-await-in-loop
   await delay(100);
 }
-if (session.capabilities.queue === null) {
-  throw new Error(`${runtime.id} has no queue capability`);
-}
 const queued = await session.queue("Reply with exactly ok-q and nothing else.");
 process.stdout.write(`queued during active turn (durable=${String(session.capabilities.queue.durable)}) -> ${queued.response.body.kind}\n`);
 const firstEnd = await awaitTurnEnd(session, first.request.seq);

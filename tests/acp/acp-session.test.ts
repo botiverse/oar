@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { describe, start, tail } from "../fixtures/acp-session-support.js";
+import { steer } from "../fixtures/steer.js";
 
 // oxlint-disable-next-line eslint/max-statements -- one specimen turn, asserted end to end.
 test("ACP session records every update verbatim with its events, and the prompt answer as the turn end", async () => {
@@ -77,7 +78,7 @@ test("ACP session rejects a second prompt busy and drains its host-held queue as
 test("ACP native steer (send-now) folds both prompt answers into one turn with one end", async () => {
   const session = await start({ steerParams: () => ({ _meta: { sendNow: true } }) });
   const base = await session.prompt("steer-base");
-  const steered = await session.steer("steer-new");
+  const steered = await steer(session, "steer-new");
   assert.equal(steered.response.body.kind, "accepted");
   assert.deepEqual(await awaitTurnEnd(session, base.request.seq), { kind: "completed" });
   const answers = session.records().filter((record) => record.kind === "frame" && record.body.type === "session/prompt");
@@ -87,14 +88,21 @@ test("ACP native steer (send-now) folds both prompt answers into one turn with o
   await session.dispose();
 });
 
-test("steer is rejected not_steerable when the profile cannot inject or nothing is active", async () => {
+test("a profile that cannot inject gives a session without steer; steerOrQueue and deliver queue", async () => {
   const session = await start();
-  const idle = await session.steer("nothing active");
-  const { body } = idle.response;
-  assert.ok(body.kind === "rejected");
-  assert.match(body.reason, /not_steerable/u);
-  const later = await session.steerOrQueue("later");
-  assert.equal(later.landed, "queued");
+  assert.ok(!("steer" in session), "the session has no steer member");
+  const held = await session.prompt("hold");
+  assert.deepEqual([await session.steerOrQueue("later"), await session.deliver("now")].map((result) => result.landed), ["queued", "queued"]);
+  assert.ok(!session.records().some((record) => record.kind === "request" && record.body.kind === "steer"), "nothing was steered");
+  await session.abort();
+  assert.deepEqual(await awaitTurnEnd(session, held.request.seq), { kind: "aborted" });
+  await session.dispose();
+});
+
+test("a steer with nothing active is rejected no_active_turn", async () => {
+  const session = await start({ steerParams: () => ({ _meta: { sendNow: true } }) });
+  const idle = await steer(session, "nothing active");
+  assert.deepEqual(idle.response.body, { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" });
   await session.dispose();
 });
 

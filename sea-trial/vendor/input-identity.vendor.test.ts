@@ -26,10 +26,11 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
     assert.ok(installation?.kind === "available");
     const session = await runtime.session(installation, { cwd, model: id === "codex" ? "gpt-5.1" : "haiku", env: { ...env.env, CLAUDE_CONFIG_DIR: cwd, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" } });
     const pending: { steer?: Promise<ControlResult> } = {};
+    const steerNow = session.steer?.bind(session) ?? assert.fail(`${id} has no steer`);
     const timer = setTimeout(() => { void session.dispose(); }, 30_000);
     try {
       session.events((event) => {
-        if (mode === "steer" && event.kind === "tool_call_started" && pending.steer === undefined) {pending.steer = session.steer(marker, { inputId });}
+        if (mode === "steer" && event.kind === "tool_call_started" && pending.steer === undefined) {pending.steer = steerNow(marker, { inputId });}
       });
       const started = mode === "steer" ? await session.prompt("run a tool") : await session.steerOrQueue(marker, { inputId });
       const prompt = "landed" in started ? started.result : started;

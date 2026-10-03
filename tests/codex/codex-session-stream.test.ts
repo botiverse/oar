@@ -4,6 +4,7 @@ import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
+import { steer } from "../fixtures/steer.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
@@ -127,14 +128,14 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
   const session = await codexSession(installation, { cwd: "/work" });
   const held = await session.prompt("hold");
   expect(held.response.body.kind).toBe("accepted");
-  expect(await bodiesOf([session.prompt("again"), session.steer("more"), session.queue("later"), session.abort()])).toEqual([
+  expect(await bodiesOf([session.prompt("again"), steer(session, "more"), session.queue("later"), session.abort()])).toEqual([
     { kind: "rejected", code: "busy", reason: "busy" },
     { kind: "accepted", native: { turnId: "turn-1" } },
     { kind: "accepted", native: { submissionId: "sub-9" } },
     { kind: "accepted", native: {} },
   ]);
   expect(await awaitTurnEnd(session, held.request.seq)).toEqual({ kind: "aborted" });
-  expect(await bodiesOf([session.abort(), session.steer("late")])).toEqual([
+  expect(await bodiesOf([session.abort(), steer(session, "late")])).toEqual([
     { kind: "rejected", code: "no_active_turn", reason: "no active turn" },
     { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" },
   ]);

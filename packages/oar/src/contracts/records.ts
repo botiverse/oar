@@ -223,7 +223,7 @@ export type RejectionCode =
   | "busy"
   /** steer / abort: nothing is running; a late abort is a normal race, not an error. */
   | "no_active_turn"
-  /** The runtime cannot do this at all: queue on a runtime that holds no input, steer on one that cannot inject. */
+  /** The runtime cannot do this control with these inputs: images where it takes none, or a format it does not read, images on a cursor steer. A control the runtime cannot do at all is an absent member (`Session.steer`), not a rejection. */
   | "unsupported"
   /** The stream already holds the process exit. */
   | "runtime_exited"

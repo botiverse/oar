@@ -1,11 +1,12 @@
 /**
- * KIMI steerOrQueue: the fallback path on a runtime that declares
- * `capabilities.steer: false`.
+ * KIMI steerOrQueue: the fallback path on a session that has no `steer`.
  *
  * Why: `kimi acp` has no steer method (kimi-code acp-server exposes
- * `session/prompt` and `session/cancel` only), so the profile declares
- * `steer: false` and `steer()` is always `rejected not_steerable`. The sealed
- * session's `steerOrQueue()` must then land the input as `queued`, and the
+ * `session/prompt` and `session/cancel` only), so the profile has no
+ * `steerParams` and the session no `steer` (until 0.17.0 the profile declared
+ * `steer: false` and `steer()` was rejected `not_steerable`, which is what
+ * the observations below ran against). The sealed session's `steerOrQueue()`
+ * must then land the input as `queued`, and the
  * queued input must run as a SPONTANEOUS turn once the active one closes:
  * its own `session/prompt` answer with a `turn_ended` view, but no prompt
  * request record of its own (the queue request is the caller's record).
@@ -71,6 +72,7 @@ log.end("done");
 const report = {
   version: installation.via === "executable" ? (installation.version ?? null) : null,
   capabilities: session.capabilities,
+  hasSteer: session.steer !== undefined,
   landed: landed.landed,
   steerAnswer: steerAnswer?.kind === "response" ? { seq: steerAnswer.seq, body: steerAnswer.body } : null,
   queueRequestSeq: landed.result.request.seq,
@@ -85,5 +87,6 @@ const report = {
 };
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 assert.equal(landed.landed, "queued", "steerOrQueue must fall back to the host queue on kimi");
+assert.equal(steerRecord, undefined, "a session without steer records no steer request");
 assert.equal(report.promptRequestsBetween, 0, "the drained input runs as a spontaneous turn: no prompt request of its own");
 assert.ok(secondText.includes("QUEUED-OK"), `queued input did not run as the next turn: ${JSON.stringify(secondText)}`);

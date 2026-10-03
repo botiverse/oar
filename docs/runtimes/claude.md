@@ -370,9 +370,10 @@ former only.
    Records carry `sessionId` and `agentPath`; `parent_tool_use_id` nests a
    child under the Task call that spawned it. There is no lease against
    another controller and no connection id. Source: adapter, projection.
-5. **Capability honesty.** Declared `{ steer: true, queue: { durable: false },
-   attribution: "attributed", images: true }`; what an accepted steer or
-   queue means is in the [steering section](#prompt-steering-queueing-and-abort).
+5. **Capability honesty.** Declared `{ queue: { durable: false },
+   attribution: "attributed", images: true }`, and the session has `steer`;
+   what an accepted steer or queue means is in the
+   [steering section](#prompt-steering-queueing-and-abort).
    Source: adapter; observed: steering section.
 6. **Deployment and lifecycle.** Local subprocess only. Process exit is an
    `exited` response ([unreachable runtime](#prompt-steering-queueing-and-abort));

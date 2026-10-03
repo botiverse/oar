@@ -25,7 +25,9 @@ library follows it (evidence: claude 2.1.284 `Agent` / `SendMessage`, codex
   background task ends) each produce one report, numbered by `turn`.
 - **Follow-ups.** `send(message, "followup")` starts a turn when the child
   is idle and steers its running turn otherwise (queueing when it cannot
-  steer); `steer` and `queue` are the session controls of the same names.
+  steer); `steer` and `queue` are the session controls of the same names,
+  and `steer` is rejected `unsupported` when the child's session has no
+  `steer`.
 
 ## Reading results
 

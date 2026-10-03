@@ -212,7 +212,7 @@ export const codexSession: StartSession = async (installation, options) => {
       const result = await rpcControl(kernel, client, plan(...args));
       return result;
     };
-  const capabilities = { steer: true, queue: { durable: true }, attribution: "nested", images: true } as const;
+  const capabilities = { queue: { durable: true }, attribution: "nested", images: true } as const;
   const promptPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "prompt", input, ...inputOptions },
     gate: (request) => {
