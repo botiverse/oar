@@ -32,7 +32,7 @@ function toolCallsFromClaude(lines: string[]): ToolCall[] {
 }
 
 // Only items that become tool_call events (see codex projection TOOL_ITEM_TYPES).
-const CODEX_TOOL_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch"]);
+const CODEX_TOOL_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch", "sleep"]);
 
 function toolCallsFromCodex(lines: string[]): ToolCall[] {
   const calls: ToolCall[] = [];

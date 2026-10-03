@@ -85,3 +85,14 @@ test("an MCP result's blocks are its content in order, the whole result without 
   expect(codexToolContent({ type: "mcpToolCall", result: null, error: { message: "boom" } })).toEqual([{ type: "text", text: "error: boom" }]);
   expect(codexToolContent({ type: "webSearch", results: [{ url: "u" }] })).toEqual([{ type: "other", value: [{ url: "u" }] }]);
 });
+
+// A `sleep` item as codex emitted it after "sleep 100" (#83): it ended after 7.5 s of its 50 s when a steer arrived.
+test("a sleep item is a sleep tool call with its requested duration as input and no reported result", () => {
+  const item = { type: "sleep", id: "call_rorJ", durationMs: 50_000 };
+  const started = foldCodexNotification(initialCodexProjection("thread-1"), "item/started", { threadId: "thread-1", item, startedAtMs: 1_791_015_508_662 });
+  assert.deepEqual(started.commands[0]?.kind === "frame" ? started.commands[0].body.events : [], [
+    { kind: "tool_call_started", callId: "call_rorJ", tool: "sleep", input: "{\"durationMs\":50000}" },
+  ]);
+  const ended = foldCodexNotification(started.state, "item/completed", { threadId: "thread-1", item, completedAtMs: 1_791_015_516_209 });
+  assert.deepEqual(ended.commands[0]?.kind === "frame" ? ended.commands[0].body.events : [], [{ kind: "tool_call_ended", callId: "call_rorJ" }]);
+});
