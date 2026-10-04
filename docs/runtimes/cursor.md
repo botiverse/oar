@@ -233,12 +233,17 @@ child.
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
 the host's entry script. A layout that does not hoist it (pnpm's, a bundled
-host) leaves it unfound: the SDK warns `tree-sitter natives are unavailable`
-and searches without its own ripgrep. OAR resolves the package from the SDK
-and sets the SDK's own `CURSOR_TREE_SITTER_VENDOR_DIR` and
-`CURSOR_RIPGREP_PATH` before loading it, unless the host set them. The
-setting is process wide: it stays for the host and every process it starts
-afterwards.
+host) leaves it unfound: commands still run, but the SDK warns
+`shell-parser: tree-sitter natives are unavailable in this artifact; shell
+command analysis degrades to parsingFailed` and searches without its own
+ripgrep. OAR resolves the package from the SDK and sets the SDK's own
+`CURSOR_TREE_SITTER_VENDOR_DIR` and `CURSOR_RIPGREP_PATH` before loading it,
+unless the host set them. The setting is process wide: it stays for the host
+and every process it starts afterwards. Where OAR cannot resolve the package
+either (a single executable with no `node_modules`), the host ships the
+platform's package and sets both variables itself, as absolute paths: the
+SDK ignores relative ones (Ferry CLI 0.1.35, a real turn with and without
+them, 2026-10-04).
 
 ### Installation and account usage
 
