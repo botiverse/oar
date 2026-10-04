@@ -131,6 +131,9 @@ export function cursorSdkLoader(load: () => Promise<CursorSdk>): () => Promise<C
   let loading: Promise<CursorSdk> | null = null;
   const attempt = async (): Promise<CursorSdk> => {
     try {
+      // Yield first: a loader that throws synchronously would otherwise
+      // reset `loading` before `??=` stores this failed attempt in it.
+      await Promise.resolve();
       pointSdkAtNativePackage();
       const sdk = await load();
       return sdk;

@@ -7,7 +7,9 @@ const PLATFORMS: ReadonlySet<string> = new Set(["darwin-arm64", "darwin-x64", "l
  * Cursor runs in process through `@cursor/sdk`, the way pi does, on the SDK
  * the host installs and hands over (`createCursorRuntime`): there is no
  * executable to probe and no version to report (the embedder pins the SDK),
- * and the host's own compile already found the package. The SDK's agent
+ * and no package to look for: that would load the SDK, and the host's own
+ * compile already found it (a package missing anyway fails the first call
+ * that needs it, docs/runtimes/cursor.md). The SDK's agent
  * needs its native companion package, which exists only for the platforms in
  * `PLATFORMS`.
  */

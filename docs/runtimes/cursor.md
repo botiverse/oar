@@ -246,7 +246,11 @@ afterwards.
 `bundled`, like pi: versionless (the embedder pins the SDK) and available
 wherever the SDK has a native package, `unsupported` elsewhere (the SDK
 ships darwin arm64 and x64, linux arm64 and x64, win32 x64). It does not
-look for the package: the host's compile already did. There is no update
+look for the package, which would mean loading the SDK: a TypeScript host's
+compile already found it, and where the package is missing anyway (a plain
+JavaScript host, a deploy that left it out) the first call that needs the
+SDK fails with `cursor could not load @cursor/sdk through the host's sdk
+loader`, carrying the loader's error as its cause. There is no update
 check or upgrade: the version OAR supports moves with OAR's own version,
 through the peer dependency's range.
 

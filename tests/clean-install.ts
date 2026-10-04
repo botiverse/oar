@@ -150,11 +150,15 @@ const withSdk = probe("cursor");
 assert.equal(withSdk.kinds.cursor, "available");
 assert.ok(withSdk.models === "ok" || withSdk.models === "unauthenticated", String(withSdk.models));
 
+// The CLI brings the SDK itself: take the host's copy away first, then list
+// cursor's models through the CLI's own loader (`unauthenticated` without a key).
+run("npm", ["uninstall", "--no-audit", "--no-fund", "@cursor/sdk"], host);
 npmInstall(cli);
-const help = run(path.join(host, "node_modules/.bin/oar"), ["--help"], host);
-assert.match(help, /Usage: oar/u);
-const cursor: unknown = JSON.parse(run(path.join(host, "node_modules/.bin/oar"), ["installation", "cursor"], host));
-assert.deepEqual(cursor, [{ runtimeId: "cursor", installation: { kind: "available", via: "bundled" } }]);
+const oar = path.join(host, "node_modules/.bin/oar");
+assert.match(run(oar, ["--help"], host), /Usage: oar/u);
+const listed: unknown = JSON.parse(run(oar, ["models", "cursor", "--json"], host));
+assert.ok(Array.isArray(listed) && listed.length === 1, JSON.stringify(listed));
+assert.match(JSON.stringify(listed[0]), /"runtimeId":"cursor","models":\{"kind":"(?:ok|unauthenticated)"/u);
 
 rmSync(work, { recursive: true, force: true });
 process.stdout.write(`clean install ok: built in ${JSON.stringify(bare.kinds)}; forgetting @cursor/sdk fails the host's compile\n`);

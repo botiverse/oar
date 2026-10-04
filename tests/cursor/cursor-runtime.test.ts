@@ -45,3 +45,16 @@ test("a failed load says so and is retried by the next call", async () => {
   await expect(runtime.session(bundled, { cwd: "/w" })).rejects.toMatchObject({ cause: { message: "Cannot find package '@cursor/sdk'" } });
   assert.equal(loads, 2);
 });
+
+test("a loader that throws before returning a promise is retried too", async () => {
+  let loads = 0;
+  const runtime = createCursorRuntime({
+    sdk: () => {
+      loads += 1;
+      throw new Error("cursor is switched off");
+    },
+  });
+  await expect(runtime.session(bundled, { cwd: "/w" })).rejects.toThrow("cursor could not load @cursor/sdk through the host's sdk loader");
+  await expect(runtime.session(bundled, { cwd: "/w" })).rejects.toThrow("cursor could not load @cursor/sdk through the host's sdk loader");
+  assert.equal(loads, 2);
+});
