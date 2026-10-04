@@ -1,15 +1,52 @@
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { ModelListItem, ModelSelection, RunResult, SDKUserMessage, SteerAckOutcome } from "@cursor/sdk";
-
-export type { ModelListItem, ModelSelection, RunResult, SteerAckOutcome } from "@cursor/sdk";
-
 /*
  * The part of `@cursor/sdk` (1.0.35) the adapter uses, narrowed so tests can
  * stand in for it. The SDK runs Cursor's agent in this process: a local
  * agent keeps its conversation under `~/.cursor/projects/<cwd>/`, and its
  * credential is `CURSOR_API_KEY` or the key `Cursor.auth.login()` stored.
+ *
+ * The SDK is an optional peer dependency the host installs, so these types
+ * are written out here rather than imported: OAR's published declarations
+ * must not name a package a host may not have. `importSdk` checks the real
+ * module against `CursorSdk`, so this repo's typecheck still catches drift.
  */
+
+export interface ModelParameterValue {
+  readonly id: string;
+  readonly value: string;
+}
+
+/** Also an argument the SDK takes, whose `params` it types as a mutable array. */
+export interface ModelSelection {
+  readonly id: string;
+  readonly params?: ModelParameterValue[];
+}
+
+export interface ModelListItem {
+  readonly id: string;
+  readonly displayName: string;
+  readonly description?: string;
+  readonly aliases?: readonly string[];
+  readonly parameters?: readonly {
+    readonly id: string;
+    readonly displayName?: string;
+    readonly values: readonly { readonly value: string; readonly displayName?: string }[];
+  }[];
+  readonly variants?: readonly {
+    readonly params: readonly ModelParameterValue[];
+    readonly displayName: string;
+    readonly description?: string;
+    readonly isDefault?: boolean;
+  }[];
+}
+
+export type SteerAckOutcome = "complete_delivered" | "revert_to_followup";
+
+interface CursorUserMessage {
+  readonly text: string;
+  readonly images?: { readonly data: string; readonly mimeType: string }[];
+}
 
 export type CursorDeltaListener = (args: { readonly update: unknown }) => void;
 
@@ -17,7 +54,7 @@ export type CursorDeltaListener = (args: { readonly update: unknown }) => void;
 export interface CursorRun {
   readonly id: string;
   /** Settles with the run's status once it ends (finished, error or cancelled). */
-  wait(): Promise<RunResult>;
+  wait(): Promise<unknown>;
   cancel(): Promise<void>;
   /** Present on runs that take mid-run input; settles once the agent took the text or handed it back. */
   steer?(text: string): Promise<SteerAckOutcome>;
@@ -27,7 +64,7 @@ export interface CursorAgent {
   readonly agentId: string;
   readonly model: ModelSelection | undefined;
   /** `local.force` takes the agent over from a run its store still holds as active. */
-  send(message: string | SDKUserMessage, options: { readonly onDelta: CursorDeltaListener; readonly local?: { readonly force: boolean } }): Promise<CursorRun>;
+  send(message: string | CursorUserMessage, options: { readonly onDelta: CursorDeltaListener; readonly local?: { readonly force: boolean } }): Promise<CursorRun>;
   close(): void;
 }
 
@@ -85,6 +122,9 @@ async function importSdk(): Promise<CursorSdk> {
     return await import("@cursor/sdk");
   } catch (error) {
     loading = null;
+    if (error instanceof Error && "code" in error && error.code === "ERR_MODULE_NOT_FOUND" && error.message.includes("'@cursor/sdk'")) {
+      throw new Error("cursor needs @cursor/sdk 1.0.35, an optional peer dependency of @botiverse/oar: install it next to OAR", { cause: error });
+    }
     throw error;
   }
 }

@@ -25,6 +25,21 @@ jobs:
       - run: pnpm run check
       - run: pnpm run build
 
+  # The packed packages installed into an empty project the way a host
+  # installs them: OAR without its optional peer @cursor/sdk must load,
+  # type-check and probe every other runtime (tests/clean-install.ts).
+  clean-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run clean-install
+
   # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
   # backend. aimock backends run the REAL claude/codex binaries against a
   # scripted local provider (no login, no tokens), so they can run on every
