@@ -25,6 +25,7 @@ selecting live probes.
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Prompt delivery, independent child sessions, client execution, context versus billing |
 | [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
+| [Mister Morph](morph.md) | Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
 | [OpenAI Agents API](agents-api.md) | **Reference only; no OAR adapter** | Managed Codex harness over HTTP: session/turn/item model, input events as control, no-replay stream, environment as a separate object, subagent attribution fields |
