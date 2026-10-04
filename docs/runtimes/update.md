@@ -63,8 +63,9 @@ latest pointer. The ACP registry lists a zip per platform and trails Google's
 downloads (1.2.1 listed while 1.3.0 was downloadable). The `agy` CLI's own
 `update` does not touch the ACP server.
 
-**pi and cursor.** Bundled with oar (the pi SDK and `@cursor/sdk`); they
-move with the oar version.
+**pi and cursor.** In process through their SDKs: the pi SDK is a
+dependency of oar, and `@cursor/sdk` an optional peer dependency the host
+installs at the version oar names. Both move with the oar version.
 
 ## oar runs
 

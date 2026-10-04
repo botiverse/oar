@@ -41,6 +41,9 @@ importers:
       '@botiverse/oar':
         specifier: workspace:*
         version: link:../oar
+      '@cursor/sdk':
+        specifier: 1.0.35
+        version: 1.0.35
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -50,9 +53,6 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: ^1.4.0
         version: 1.4.0(zod@4.4.3)
-      '@cursor/sdk':
-        specifier: 1.0.35
-        version: 1.0.35
       '@earendil-works/pi-ai':
         specifier: ^1.0.0
         version: 1.0.0(@aws-sdk/credential-provider-node@3.972.84)(@smithy/signature-v4@5.7.3)(undici@8.10.2)(ws@8.21.3)(zod@4.4.3)
@@ -69,6 +69,9 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
     devDependencies:
+      '@cursor/sdk':
+        specifier: 1.0.35
+        version: 1.0.35
       '@types/cross-spawn':
         specifier: ^6.0.6
         version: 6.0.6

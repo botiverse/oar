@@ -9,9 +9,17 @@ import type {
   CursorRun,
   CursorSdk,
   ModelSelection,
-  RunResult,
   SteerAckOutcome,
 } from "../../packages/oar/src/runtimes/cursor/sdk.js";
+
+/** The part of `@cursor/sdk` 1.0.35's `RunResult` (what `run.wait()` answers) these tests set. */
+interface RunResult {
+  readonly id: string;
+  readonly status: "finished" | "error" | "cancelled";
+  readonly result?: string;
+  readonly error?: { readonly message: string };
+  readonly model?: ModelSelection;
+}
 
 /**
  * A stand-in for one `@cursor/sdk` 1.0.35 run, driven by the test: it ends

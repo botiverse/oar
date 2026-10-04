@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@botiverse/oar": "workspace:*",
+    "@cursor/sdk": "1.0.35",
     "commander": "^12.1.0"
   },
   "publishConfig": {

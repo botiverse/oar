@@ -41,7 +41,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | A dependency of `@botiverse/oar`, loaded on first use; the agent runs in the host process. |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar`: the host installs it (`@cursor/sdk@1.0.35`), OAR loads it on first use, and the agent runs in the host process. Without it cursor is `not_found`. The `oar` CLI depends on it, so the CLI has cursor out of the box. |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -244,9 +244,20 @@ afterwards.
 
 [Installation](../../packages/oar/src/runtimes/cursor/installation.ts) is
 `bundled`, like pi: available when `@cursor/sdk` resolves, versionless (the
-embedder pins it), and `unsupported` on a platform without a native package
-(the SDK ships darwin arm64 and x64, linux arm64 and x64, win32 x64). There
-is no update check or upgrade: the SDK moves with OAR's own version.
+embedder pins it), and `not_found` when the host did not install it. It is
+`unsupported` on a platform without a native package (the SDK ships darwin
+arm64 and x64, linux arm64 and x64, win32 x64). There is no update check or
+upgrade: the version OAR supports moves with OAR's own version, through the
+peer dependency's range.
+
+The SDK is an optional peer rather than a dependency because it is large
+(about 38 MB with its native package) and most hosts never open cursor. OAR
+imports it only when a cursor call needs it, and its published declarations
+spell out the few SDK types it uses instead of importing them, so a
+TypeScript host without the SDK still type-checks. A bundling host should
+leave `@cursor/sdk` external. A clean install of the packed packages, with
+and without the SDK, checks all of this in CI
+([test](../../tests/clean-install.ts)).
 
 Account usage is **unexposed**: `agent.getUsage()` answers `feature_unavailable`
 on this account (probed), and each run reports its own tokens.

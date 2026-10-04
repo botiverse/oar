@@ -119,7 +119,8 @@
     {
       "files": [
         "**/*.test.ts",
-        "tests/fixtures/**"
+        "tests/fixtures/**",
+        "tests/clean-install.ts"
       ],
       "rules": {
         "import/no-nodejs-modules": "off",

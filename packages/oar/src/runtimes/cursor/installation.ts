@@ -17,8 +17,10 @@ async function sdkLoads(): Promise<boolean> {
 }
 
 /**
- * Cursor ships inside this package as the `@cursor/sdk` dependency, the way
- * pi does: there is no executable to probe and no version to report (the
+ * Cursor runs in process through `@cursor/sdk`, the way pi does, but the SDK
+ * is an optional peer dependency: the host installs it (it is large, with a
+ * native companion package per platform), and without it cursor is
+ * `not_found`. There is no executable to probe and no version to report (the
  * embedder pins the SDK). The SDK's agent needs its native companion package,
  * which exists only for the platforms in `PLATFORMS`.
  */
