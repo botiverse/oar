@@ -5,6 +5,7 @@ import { codexRuntime } from "./runtimes/codex/index.js";
 import { cursorRuntime } from "./runtimes/cursor/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
+import { morphRuntime } from "./runtimes/morph/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
 
 export type { InventoryScope, InventoryOptions, SkillEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./contracts/inventory.js";
@@ -171,6 +172,10 @@ export { kimiRuntime } from "./runtimes/kimi/index.js";
 export { kimiListModels, projectKimiModels } from "./runtimes/kimi/list-models.js";
 export { kimiSession } from "./runtimes/kimi/session.js";
 export { kimiInstallation } from "./runtimes/kimi/installation.js";
+export { morphRuntime } from "./runtimes/morph/index.js";
+export { morphListModels, projectMorphModels } from "./runtimes/morph/list-models.js";
+export { morphSession } from "./runtimes/morph/session.js";
+export { morphInstallation } from "./runtimes/morph/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 export { piListModels, projectPiModels } from "./runtimes/pi/list-models.js";
 export { piSession } from "./runtimes/pi/session.js";
@@ -183,6 +188,7 @@ export const runtimes = new RuntimeRegistry([
   cursorRuntime,
   grokRuntime,
   kimiRuntime,
+  morphRuntime,
   piRuntime,
 ]);
 

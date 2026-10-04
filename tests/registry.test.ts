@@ -19,6 +19,7 @@ test("built-in registry exposes concrete ACP runtimes, not a generic ACP identit
     "cursor",
     "grok",
     "kimi",
+    "morph",
     "pi",
   ]);
   assert.equal(runtimes.get("acp"), undefined);
