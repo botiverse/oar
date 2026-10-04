@@ -22,7 +22,7 @@ function nowhere(id: string): AvailableInstallation {
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = runtimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "kimi"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "kimi", "morph"]);
   for (const runtime of declaring) {
     const keys = (["systemPrompt", "appendSystemPrompt", "env"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
@@ -44,6 +44,7 @@ test("the declarations say which options each runtime refuses", () => {
     cursor: ["appendSystemPrompt", "env", "systemPrompt"],
     grok: [],
     kimi: ["appendSystemPrompt", "systemPrompt"],
+    morph: ["appendSystemPrompt", "env", "systemPrompt"],
     pi: [],
   });
 });

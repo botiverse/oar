@@ -64,6 +64,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
+      <a href="docs/runtimes/morph.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/morph-on-dark.svg">
+          <img src="packages/oar/assets/brands/morph-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Mister Morph
+      </a>
+    </td>
+    <td align="center" width="112">
       <a href="docs/runtimes/pi.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/pi-on-dark.svg">

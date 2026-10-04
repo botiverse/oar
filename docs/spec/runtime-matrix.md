@@ -22,6 +22,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
 | antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
+| morph (Runtime API) | `opaque` | `spawn` subtasks run inside the parent task; its trace shows only `subtask_start` / `subtask_done`, so everything lands on root ([morph](../runtimes/morph.md)) |
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
@@ -32,6 +33,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | antigravity (ACP) | opaque (#1): child activity flattened onto the parent session | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
+| morph (Runtime API) | opaque (#1): subtasks run inside the parent task | `subtask_start` / `subtask_done` trace entries only | none: the task reports a total only | nothing fabricated | Console topic id | [native/current mapping](../runtimes/morph.md) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
@@ -46,6 +48,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 | codex | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
 | pi | `tool_execution_end.isError` false/true ([src]) | none |
 | grok, kimi (ACP) | `tool_call_update.status` `completed`/`failed` ([src]) | grok: `rawOutput.exit_code` on the closing `tool_call_update` ([src] grok 1.0.25) |
+| morph (Runtime API) | trace `tool_done`: `ok` for status `done`, `failed` for an `error` or a failed status ([env] 2026-10-04) | the leading `exit_code: N` line of a shell tool's `tool_done` text ([env]) |
 | cursor (`@cursor/sdk`) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
@@ -70,6 +73,7 @@ leaves a declared option out instead of naming runtimes.
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
 | kimi, antigravity | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
+| morph | `systemPrompt`, `appendSystemPrompt`, `env` | the Runtime API takes no prompt override, and tools run inside a Console process the session neither starts nor owns ([morph](../runtimes/morph.md)) |
 | claude, codex, grok, pi | nothing | |
 
 Kimi also refuses a `resume` that names another directory than the one

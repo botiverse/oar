@@ -1,6 +1,6 @@
 # @botiverse/oar
 
-Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, Cursor, Grok, Kimi, and Pi.
+Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, Cursor, Grok, Kimi, Mister Morph, and Pi.
 
 ```ts
 import { promptAndWait, runtimes } from "@botiverse/oar";
@@ -69,6 +69,8 @@ Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`.
 
 Antigravity, Grok, and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. Pi and Cursor run in the host process through their SDKs (`@earendil-works/pi-coding-agent`, `@cursor/sdk`), both dependencies of this package; `@cursor/sdk` is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
 
+Mister Morph is driven through its Console Runtime API over loopback HTTP: one session is one Console topic, and `model` names one of the Console's LLM profiles. oar attaches to the Console already running for morph's state directory, or starts `morph console serve` and stops it with the last session it served. Opening a session needs a morph whose Runtime API has `POST /topics`.
+
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
 What a runtime cannot honor is refused, never dropped: `runtime.session()`
@@ -76,8 +78,8 @@ rejects with an `UnsupportedOptionError` (`option` names the refused
 `SessionOptions` key, the message is the reason), so a host can try and fall
 back on it. `runtime.refusedSessionOptions` names the options a runtime
 refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`), each with the
-reason, so a host can leave them out before opening: cursor refuses all
-three, kimi and antigravity the two prompt options. Kimi also refuses a
+reason, so a host can leave them out before opening: cursor and morph refuse
+all three, kimi and antigravity the two prompt options. Kimi also refuses a
 `resume` in another directory than the session's own (`option: "cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
 
@@ -93,7 +95,7 @@ updater would install and where that answer came from;
 judges the result by the version the same executable reports afterwards,
 never by its exit code. oar never upgrades on its own. Claude, Codex, Grok
 and Kimi have both; Antigravity has only the check; Pi and Cursor move with
-oar.
+oar; Mister Morph has neither.
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
 Images go with an input through `InputOptions.images` (`{ path }` entries:
