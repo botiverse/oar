@@ -1,6 +1,6 @@
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { cursorEffortParameter } from "./model.js";
-import { loadCursorSdk, type CursorSdk, type ModelListItem } from "./sdk.js";
+import type { CursorSdk, ModelListItem } from "./sdk.js";
 
 /**
  * Project `Cursor.models.list()` (SDK 1.0.35): `id` is the selector the SDK
@@ -60,4 +60,3 @@ export function cursorListModelsWith(load: () => Promise<CursorSdk>): ModelListe
   };
 }
 
-export const cursorListModels: ModelLister = cursorListModelsWith(loadCursorSdk);

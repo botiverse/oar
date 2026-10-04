@@ -182,7 +182,10 @@ backend's vendor tests.
    identity to `shared/` ([source layout](../packages/oar/src/README.md) has
    the import rules).
 3. **Register it in `src/index.ts`**, the only composition root: import, add
-   to the built-in `runtimes` registry, re-export.
+   to the built-in `runtimes` registry, re-export. A runtime that needs
+   something the host installs (cursor's SDK) is not built in: export its
+   constructor instead, and add it to `sea-trial/harness/runtimes.ts` and
+   the CLI's registry ([capabilities](design/capabilities.md#a-runtimes-own-settings)).
 4. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
    against your real local installation. The cases in `sea-trial/cases/` are
    the contract: make the runtime pass them, don't loosen them to fit. A case

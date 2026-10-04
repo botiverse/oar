@@ -7,9 +7,10 @@
  * Run: pnpm tsx experiments/session-queue.ts <claude|codex>
  */
 import { setTimeout as delay } from "node:timers/promises";
-import { awaitTurnEnd, runtimes, type RawEvent } from "../packages/oar/src/index.js";
+import { awaitTurnEnd, type RawEvent } from "../packages/oar/src/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
-const runtime = runtimes.require(process.argv[2] ?? "claude");
+const runtime = allRuntimes.require(process.argv[2] ?? "claude");
 const model = runtime.id === "claude" ? { model: "haiku" } : {};
 const probed = await runtime.installation?.();
 if (probed?.kind !== "available") {

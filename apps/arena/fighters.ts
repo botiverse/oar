@@ -2,7 +2,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { awaitIdle, promptAndWait, runtimeBrandIcon, runtimes, type Session } from "../../packages/oar/src/index.js";
+import { awaitIdle, promptAndWait, runtimeBrandIcon, type Session } from "../../packages/oar/src/index.js";
+import { allRuntimes } from "../../sea-trial/harness/runtimes.js";
 import { parseMove, type Move } from "./game.js";
 import { parseReply, systemPrompt, type Corner } from "./prompts.js";
 
@@ -44,16 +45,16 @@ export function parseFighterSpec(spec: string): FighterSpec {
 
 export function displayName(spec: FighterSpec): string {
   if (spec.runtimeId !== "mock") {
-    return runtimes.require(spec.runtimeId).brand.name;
+    return allRuntimes.require(spec.runtimeId).brand.name;
   }
-  return spec.model === undefined ? "Mock" : `${runtimes.require(spec.model).brand.name} (mock)`;
+  return spec.model === undefined ? "Mock" : `${allRuntimes.require(spec.model).brand.name} (mock)`;
 }
 
 export async function openFighter(spec: FighterSpec, corner: Corner): Promise<Fighter> {
   if (spec.runtimeId === "mock") {
-    return mockFighter(corner.name, spec.model === undefined ? null : runtimeBrandIcon(runtimes.require(spec.model).brand, "dark"));
+    return mockFighter(corner.name, spec.model === undefined ? null : runtimeBrandIcon(allRuntimes.require(spec.model).brand, "dark"));
   }
-  const runtime = runtimes.require(spec.runtimeId);
+  const runtime = allRuntimes.require(spec.runtimeId);
   const installation = await runtime.installation?.();
   if (installation?.kind !== "available") {
     throw new Error(`${spec.runtimeId} is not available on this machine`);

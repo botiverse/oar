@@ -20,7 +20,8 @@
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { openVoyage, promptAndWait, runtimes, toolResultText, type Session } from "../packages/oar/src/index.js";
+import { openVoyage, promptAndWait, toolResultText, type Session } from "../packages/oar/src/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const MODEL: Readonly<Record<string, string>> = {
   claude: "haiku",
@@ -61,7 +62,7 @@ function toolOutputs(session: Session, seq: number): string[] {
 
 /** Open in A, teach, dispose; resume in B, ask. Facts go into `result`. */
 async function probe(id: string, result: Record<string, unknown>, dirs: { readonly dirA: string; readonly dirB: string }): Promise<void> {
-  const runtime = runtimes.require(id);
+  const runtime = allRuntimes.require(id);
   const model = MODEL[id];
   const installation = await runtime.installation?.();
   if (installation?.kind !== "available") {

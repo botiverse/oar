@@ -41,7 +41,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar`: the host installs it (`@cursor/sdk@1.0.35`), OAR loads it on first use, and the agent runs in the host process. Without it cursor is `not_found`. The `oar` CLI depends on it, so the CLI has cursor out of the box. |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar`: the host installs it (`@cursor/sdk@1.0.35`) and hands it over, `createCursorRuntime({ sdk: () => import("@cursor/sdk") })`; OAR loads it on the first call that needs it, and the agent runs in the host process. Cursor is not in the built-in `runtimes` registry. The `oar` CLI depends on the SDK and adds cursor itself. |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -85,7 +85,7 @@ same agent answered normally (probed). Arbitrating one agent between two
 live processes is the host's, as for every runtime.
 
 ```ts
-const resumed = await cursorRuntime.session(installation, {
+const resumed = await cursor.session(installation, {
   cwd, // The directory the agent was created in.
   resume: previousSessionId, // agent-<uuid>
 });
@@ -243,21 +243,35 @@ afterwards.
 ### Installation and account usage
 
 [Installation](../../packages/oar/src/runtimes/cursor/installation.ts) is
-`bundled`, like pi: available when `@cursor/sdk` resolves, versionless (the
-embedder pins it), and `not_found` when the host did not install it. It is
-`unsupported` on a platform without a native package (the SDK ships darwin
-arm64 and x64, linux arm64 and x64, win32 x64). There is no update check or
-upgrade: the version OAR supports moves with OAR's own version, through the
-peer dependency's range.
+`bundled`, like pi: versionless (the embedder pins the SDK) and available
+wherever the SDK has a native package, `unsupported` elsewhere (the SDK
+ships darwin arm64 and x64, linux arm64 and x64, win32 x64). It does not
+look for the package: the host's compile already did. There is no update
+check or upgrade: the version OAR supports moves with OAR's own version,
+through the peer dependency's range.
 
 The SDK is an optional peer rather than a dependency because it is large
-(about 38 MB with its native package) and most hosts never open cursor. OAR
-imports it only when a cursor call needs it, and its published declarations
-spell out the few SDK types it uses instead of importing them, so a
-TypeScript host without the SDK still type-checks. A bundling host should
-leave `@cursor/sdk` external. A clean install of the packed packages, with
-and without the SDK, checks all of this in CI
-([test](../../tests/clean-install.ts)).
+(about 38 MB with its native package) and most hosts never open cursor. The
+host hands it over instead of OAR looking it up, so forgetting the package
+fails the host's compile rather than surfacing at run time:
+
+```ts
+import { createCursorRuntime, createRuntimeRegistry, runtimes } from "@botiverse/oar";
+
+const cursor = createCursorRuntime({ sdk: () => import("@cursor/sdk") });
+const registry = createRuntimeRegistry([...runtimes.list(), cursor]);
+```
+
+The import sits in the host's own code, so TypeScript reports a missing
+package there (`skipLibCheck` does not hide it), checks the SDK's types
+against `CursorSdk`, the part OAR uses, and a bundler sees the import. The
+loader runs once, on the first call that needs the SDK. OAR's published
+declarations spell out those SDK types instead of importing them, so a host
+without the SDK still type-checks. A clean install of the packed packages
+checks both sides in CI: without the SDK the line above fails to compile and
+everything else works; with it, cursor loads
+([test](../../tests/clean-install.ts)). The rule behind this is in
+[capabilities](../design/capabilities.md#a-runtimes-own-settings).
 
 Account usage is **unexposed**: `agent.getUsage()` answers `feature_unavailable`
 on this account (probed), and each run reports its own tokens.
