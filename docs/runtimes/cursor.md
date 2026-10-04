@@ -145,6 +145,17 @@ closes the agent, and answers the dispose request `accepted`: an in-process
 runtime has no exit to observe (`dispose-mid-turn`). The agent's stored
 conversation is kept.
 
+**Backgrounded shells hold the host process (native):** when a shell call
+moves to the background (a steer, or the call's own `timeout`), the SDK arms
+a 24 hour hard timeout for it that no later path clears, neither the
+command's end nor `agent.close()` (the shell executor's `hardTimeout` in the
+bundled `689.js`). The timer is not unref'd, so after such a turn the host
+process does not exit on its own, even with every session disposed; a host
+meant to end exits explicitly, as `oar run` does. Probed: a `sleep 20` that a
+3 second tool timeout moved to the background left one 86400000 ms timer,
+and `oar run` was still running 150 seconds after `[turn completed]` until it
+exited explicitly.
+
 ### Observation, children, and history
 
 **Mapped:** every update is one frame (`type` is the update's `type`).
