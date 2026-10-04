@@ -1,12 +1,18 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { expect, test } from "vitest";
 
-const exitModule = path.join(import.meta.dirname, "../packages/cli/src/exit.ts");
+// A file URL, not a path: ESM reads a Windows path's drive letter as a URL scheme.
+const exitModule = pathToFileURL(path.join(import.meta.dirname, "../packages/cli/src/exit.ts")).href;
 
 /** Run a script in a fresh process: its exit code, or null when it was still running after 10 s. */
 function exitCodeOf(script: string): number | null {
-  const result = spawnSync(process.execPath, ["--input-type=module", "-e", `import { exitWhenFinished } from ${JSON.stringify(exitModule)};\n${script}`], { timeout: 10_000 });
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", `import { exitWhenFinished } from ${JSON.stringify(exitModule)};\n${script}`], { timeout: 10_000, encoding: "utf8" });
+  if (result.status === 1) {
+    // The script itself failed (an import that did not resolve): show why.
+    throw new Error(`the script failed: ${result.stderr}`);
+  }
   return result.status;
 }
 
