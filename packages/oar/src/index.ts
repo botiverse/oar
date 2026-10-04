@@ -160,7 +160,7 @@ export { antigravityInstallation } from "./runtimes/antigravity/installation.js"
 export { antigravityListModels, projectAntigravityModels } from "./runtimes/antigravity/list-models.js";
 export { createCursorRuntime, projectCursorModels } from "./runtimes/cursor/index.js";
 export type { CursorRuntime, CursorRuntimeOptions } from "./runtimes/cursor/index.js";
-export type { CursorSdk } from "./runtimes/cursor/sdk.js";
+export type { CursorSdk, ModelListItem as CursorModelListItem } from "./runtimes/cursor/sdk.js";
 export { cursorInstallation } from "./runtimes/cursor/installation.js";
 export { grokRuntime } from "./runtimes/grok/index.js";
 export { grokListModels, projectGrokModels } from "./runtimes/grok/list-models.js";
