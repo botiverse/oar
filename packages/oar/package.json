@@ -1,6 +1,6 @@
 {
   "name": "@botiverse/oar",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "A programming interface for all agent harnesses: provider-independent contracts for controlling and observing agent runtimes",
   "type": "module",
   "main": "./dist/index.js",
@@ -56,8 +56,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.4.0",
-    "@earendil-works/pi-ai": "^1.0.0",
-    "@earendil-works/pi-coding-agent": "^1.0.0",
+    "@earendil-works/pi-ai": "^1.0.2",
+    "@earendil-works/pi-coding-agent": "^1.0.2",
     "cross-spawn": "^7.0.6",
     "undici": "8.10.2",
     "which": "^2.0.2"

@@ -32,14 +32,23 @@ function versionOf(value: string): string {
   return version;
 }
 
-const BUNDLED: Readonly<Record<string, string>> = { pi: PI_PACKAGE, cursor: CURSOR_PACKAGE };
+const SDKS: Readonly<Record<string, { packageName: string; from: URL }>> = {
+  // Pi is loaded by the adapter; Cursor is supplied by this repo's host.
+  // Resolve each from its actual importer, since their dependency versions
+  // can differ from another installation of the same package in the workspace.
+  pi: {
+    packageName: PI_PACKAGE,
+    from: new URL("../packages/oar/src/runtimes/pi/installation.ts", import.meta.url),
+  },
+  cursor: {
+    packageName: CURSOR_PACKAGE,
+    from: new URL("../sea-trial/harness/runtimes.ts", import.meta.url),
+  },
+};
 
-async function bundledVersion(id: string, sdk: string): Promise<string> {
-  // Resolve from the adapter, not the workspace: the two dependency ranges
-  // need not resolve to the same installed SDK in a consumer's checkout.
-  const adapter = new URL(`../packages/oar/src/runtimes/${id}/installation.ts`, import.meta.url);
-  const manifest = findPackageJSON(sdk, adapter);
-  assert.ok(manifest !== undefined, `cannot locate the installed ${sdk} manifest`);
+async function sdkVersion(sdk: { packageName: string; from: URL }): Promise<string> {
+  const manifest = findPackageJSON(sdk.packageName, sdk.from);
+  assert.ok(manifest !== undefined, `cannot locate the installed ${sdk.packageName} manifest`);
   const data: unknown = JSON.parse(await readFile(manifest, "utf8"));
   assert.ok(typeof data === "object" && data !== null && "version" in data && typeof data.version === "string");
   return versionOf(data.version);
@@ -59,9 +68,9 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
     }
     const installation = await allRuntimes.require(id).installation?.();
     let installed: string | null = null;
-    const sdk = BUNDLED[id];
+    const sdk = SDKS[id];
     if (sdk !== undefined) {
-      installed = await bundledVersion(id, sdk);
+      installed = await sdkVersion(sdk);
     } else if (installation?.kind === "available" && installation.via === "executable" && installation.version !== undefined) {
       installed = versionOf(installation.version);
     }

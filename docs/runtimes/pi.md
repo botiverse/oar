@@ -6,10 +6,11 @@ unsupported. See the [query contract](../spec/inventory.md) and
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.0.0**. Native source references are
+`@earendil-works/pi-coding-agent` SDK **1.0.2**. Native source references are
 pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
 URLs redirect to `earendil-works/pi`). Live observations below are from SDK
-**0.84.2** unless dated otherwise (the bundled SDK moved to 0.87.1 on 2026-09-29 and to 1.0.0 on 2026-10-02): in-process runs of
+**0.84.2** unless dated otherwise (the bundled SDK moved to 0.87.1 on
+2026-09-29, to 1.0.0 on 2026-10-02 and to 1.0.2 on 2026-10-04): in-process runs of
 [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) and the
 [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
@@ -27,6 +28,13 @@ messages survived, and the new OAR stream started at sequence zero. This
 checks conversation continuity, not unfinished execution recovery. The upgrade
 does not adopt the separate experimental Pi Durable harness. Scope, commands
 and evidence: [version check report](../../experiments/runtime-version-checks/2026-10-02.md).
+
+On **1.0.2** (2026-10-04; the same Linux/Node/provider configuration), all
+11 applicable live cases passed again. The simulated-provider behavior suite
+was 19/19 clean, including withdrawal, and all eight applicable vendor tests
+passed without adapter changes. A separate-process upgrade from 1.0.0 to
+1.0.2 retained the native id, saved model and prior transcript, with a fresh
+OAR stream. See the [October 4 report](../../experiments/runtime-version-checks/2026-10-04.md).
 
 ## Native concepts and calling interfaces
 
