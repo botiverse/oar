@@ -126,6 +126,10 @@ and `session.records()` expose the underlying record stream with every native
 payload verbatim. The [package README](packages/oar/README.md) lists the
 public entry points.
 
+`runtimes` holds every runtime but Cursor, whose SDK you install and hand
+over: `createRuntimeRegistry([...runtimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
+([why](docs/runtimes/cursor.md#installation-and-account-usage)).
+
 ## Handy utilities, no session needed
 
 OAR also offers a set of handy utilities you can use without running an

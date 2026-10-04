@@ -52,13 +52,14 @@
  * keeps the xai provider available).
  */
 import assert from "node:assert/strict";
-import { promptAndWait, runtimes, type Session } from "../packages/oar/src/index.js";
+import { promptAndWait, type Session } from "../packages/oar/src/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const which = process.argv[2] ?? "all";
 const record: Record<string, unknown> = {};
 
 async function open(id: string, options: { model?: string; resume?: string }): Promise<Session> {
-  const runtime = runtimes.require(id);
+  const runtime = allRuntimes.require(id);
   const probed = await runtime.installation?.();
   if (probed?.kind !== "available") {
     throw new Error(`${id} is not available`);

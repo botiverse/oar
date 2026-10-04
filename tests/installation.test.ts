@@ -227,16 +227,10 @@ test("pi installation reports a versionless bundled availability", async () => {
   assert.deepEqual(snapshot, { kind: "available", via: "bundled" });
 });
 
-const resolves = (found: boolean) => async (): Promise<boolean> => {
-  await Promise.resolve();
-  return found;
-};
-
-test("cursor is the bundled SDK, where its native package exists", async () => {
+test("cursor is the host's SDK, where its native package exists", async () => {
   assert.deepEqual(await cursorInstallation(), { kind: "available", via: "bundled" });
-  assert.deepEqual(await cursorInstallationFor("win32", "arm64", resolves(true))(), {
+  assert.deepEqual(await cursorInstallationFor("win32", "arm64")(), {
     kind: "unsupported",
     reason: "@cursor/sdk has no native package for win32-arm64",
   });
-  assert.deepEqual(await cursorInstallationFor("linux", "x64", resolves(false))(), { kind: "not_found" });
 });

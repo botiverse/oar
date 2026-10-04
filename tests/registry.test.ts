@@ -16,7 +16,6 @@ test("built-in registry exposes concrete ACP runtimes, not a generic ACP identit
     "antigravity",
     "claude",
     "codex",
-    "cursor",
     "grok",
     "kimi",
     "pi",

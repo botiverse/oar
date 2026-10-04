@@ -56,6 +56,35 @@ option. It is the same data the refusal reads: one shared check rejects a
 declared option before anything starts, so the declaration and the behavior
 cannot drift, and a test opens every declared refusal against the registry.
 
+## A runtime's own settings
+
+A setting only one runtime has is never a field of the shared contracts.
+Where it goes depends on how long it holds:
+
+- **For the host's lifetime** (where an SDK loads from, an executable path,
+  a data directory): an argument of that runtime's own constructor,
+  `createXxxRuntime(options)`, typed by that runtime alone. Constructors
+  share no shape. Only cursor has one today, because its SDK is a package
+  the host installs: `createCursorRuntime({ sdk: () => import("@cursor/sdk") })`.
+  A runtime gets a constructor when it first needs one; for a built-in
+  runtime, calling it without arguments gives the built-in one. The process environment
+  knobs `OAR_CODEX_BIN`, `OAR_CODEX_SANDBOX` and `OAR_PI_AGENT_DIR` are
+  settings of this kind; they move into constructors when a host first needs
+  them per instance.
+- **For one session** (a native feature switch for one agent): with the
+  session, keyed by the runtime it is for (`SessionOptions.native.codex`),
+  so a host still sends one set of options to every runtime. Not built until
+  a real need arrives; it becomes a shared `SessionOptions` field once a
+  second runtime has the same concept.
+
+A package the host installs is handed over, never looked up. Written in the
+host's own code, `import("@cursor/sdk")` fails the host's compile when the
+package is missing (`skipLibCheck` cannot hide it), checks the SDK's types
+against what OAR uses, and is visible to a bundler; a lookup inside OAR
+would fail only at run time. The built-in `runtimes` registry holds what OAR
+can build without the host, and a host adds the rest to a registry of its
+own, the way Ferry and rowrow already add their test runtimes.
+
 ## Finding it
 
 A developer reaches the capability from the call they are about to make,
@@ -98,3 +127,9 @@ in-process `bundled` installation for the kill case), never by runtime name.
   (#proj-rowrow, 2026-10-03).
 - kimi 2.1.1 resumed in another directory kept running in the old one until
   OAR refused it ([resume in another directory](../runtimes/resume-cwd.md)).
+- OAR 0.19.0 looked `@cursor/sdk` up itself: a host that forgot the package
+  learned it only at run time, and with `skipLibCheck` its compile could not
+  see it (#core, 2026-10-04). The clean install test now shows the host's
+  compile failing instead ([test](../../tests/clean-install.ts)). Kysely
+  takes the same line for database drivers: a dialect is handed the driver
+  (`new PostgresDialect({ pool })`).

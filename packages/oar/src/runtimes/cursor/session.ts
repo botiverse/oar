@@ -22,7 +22,7 @@ import {
   type CursorProjectionState,
 } from "./projection.js";
 import { giveUp, newLaunch, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
-import { loadCursorSdk, type CursorDeltaListener, type CursorRun, type CursorSdk } from "./sdk.js";
+import type { CursorDeltaListener, CursorRun, CursorSdk } from "./sdk.js";
 
 /*
  * Cursor through `@cursor/sdk` (1.0.35), in process (settled 2026-10-03,
@@ -295,4 +295,3 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
   };
 }
 
-export const cursorSession: StartSession = cursorSessionWith(loadCursorSdk);

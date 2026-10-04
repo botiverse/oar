@@ -3,7 +3,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { runtimes, awaitTurnEnd, conversationOf, type ControlResult } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, conversationOf, type ControlResult } from "../../packages/oar/src/index.js";
+import { allRuntimes } from "../harness/runtimes.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 
 async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"): Promise<void> {
@@ -21,7 +22,7 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
   });
   const cwd = await mkdtemp(path.join(tmpdir(), "oar-input-identity-"));
   try {
-    const runtime = runtimes.require(id);
+    const runtime = allRuntimes.require(id);
     const installation = await runtime.installation?.();
     assert.ok(installation?.kind === "available");
     const session = await runtime.session(installation, { cwd, model: id === "codex" ? "gpt-5.1" : "haiku", env: { ...env.env, CLAUDE_CONFIG_DIR: cwd, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" } });

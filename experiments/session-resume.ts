@@ -19,9 +19,10 @@
  * resume replaces the recorded one (createAgentSession: options.model wins;
  * the recorded model is restored only when none is given).
  */
-import { promptAndWait, runtimes } from "../packages/oar/src/index.js";
+import { promptAndWait } from "../packages/oar/src/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
-const runtime = runtimes.require(process.argv[2] ?? "claude");
+const runtime = allRuntimes.require(process.argv[2] ?? "claude");
 if (runtime.id === "pi") {
   delete process.env.PI_PACKAGE_DIR;
 }

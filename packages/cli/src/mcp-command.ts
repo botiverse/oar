@@ -1,9 +1,9 @@
 import path from "node:path";
 import type { Command } from "commander";
-import { runtimes } from "@botiverse/oar";
 import { createSubagents } from "@botiverse/oar/agents";
 import { serveMcp } from "./mcp.js";
 import { subagentTools } from "./mcp-tools.js";
+import { runtimes } from "./runtimes.js";
 
 function nonnegative(program: Command, value: string | undefined, flag: string): number | undefined {
   if (value === undefined) {

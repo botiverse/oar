@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { findPackageJSON } from "node:module";
 import path from "node:path";
-import { runtimes } from "../packages/oar/src/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const PI_PACKAGE = "@earendil-works/pi-coding-agent";
 const CURSOR_PACKAGE = "@cursor/sdk";
@@ -57,7 +57,7 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
       assert.ok(typeof data === "object" && data !== null && "version" in data && typeof data.version === "string");
       latest = versionOf(data.version);
     }
-    const installation = await runtimes.require(id).installation?.();
+    const installation = await allRuntimes.require(id).installation?.();
     let installed: string | null = null;
     const sdk = BUNDLED[id];
     if (sdk !== undefined) {

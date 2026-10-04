@@ -3,7 +3,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { runtimes, awaitTurnEnd, type ControlResult, type RawEvent } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, type ControlResult, type RawEvent } from "../../packages/oar/src/index.js";
+import { allRuntimes } from "../../sea-trial/harness/runtimes.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type LLMock } from "../../sea-trial/harness/aimock.js";
 
 const [id] = process.argv.slice(2);
@@ -23,7 +24,7 @@ function fixtures(mock: LLMock): void {
   });
 }
 const env = await ({ claude: startClaudeAimock, codex: startCodexAimock, pi: startPiAimock }[id])(fixtures);
-const runtime = runtimes.require(id);
+const runtime = allRuntimes.require(id);
 const installation = await runtime.installation?.();
 assert.ok(installation?.kind === "available");
 const session = await runtime.session(installation, {

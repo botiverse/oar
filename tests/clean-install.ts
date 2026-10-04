@@ -7,13 +7,16 @@ import path from "node:path";
 /*
  * The published packages installed the way a host installs them: packed by
  * `pnpm pack`, then `npm install`ed into an empty project. `@cursor/sdk` is
- * an optional peer dependency, so a host without it must still load and
- * type-check OAR and probe every other runtime, with cursor `not_found`.
- * pi once moved to optionalDependencies and the CLI crashed without it
+ * an optional peer dependency the host hands over
+ * (`createCursorRuntime({ sdk: () => import("@cursor/sdk") })`), so a host
+ * without it must still load and type-check OAR and probe every built-in
+ * runtime, and the line that adds cursor must fail the host's compile. pi
+ * once moved to optionalDependencies and the CLI crashed without it
  * (reverted in 026fe2c); no test inside the workspace could see that,
  * because the workspace always has every package. Then the host adds the
- * SDK and cursor is available, and the CLI, which depends on the SDK, runs.
- * Needs the npm registry; the `clean-install` CI job runs it.
+ * SDK: the line compiles, and cursor loads through it. The CLI, which
+ * depends on the SDK, runs with cursor. Needs the npm registry; the
+ * `clean-install` CI job runs it.
  */
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -48,12 +51,13 @@ function cursorPeerVersion(): string {
 }
 
 /**
- * Every entry point, then each runtime's installation probe: prints
- * `{ runtimeId: kind }` and, with `session`, why a cursor session failed to
- * open (only asked without the SDK, where it must fail before any I/O).
+ * Every entry point, then each built-in runtime's installation probe; with
+ * `cursor`, also cursor added the host's way, and whether its model listing
+ * reached the SDK (`unauthenticated` without a key, as in CI). Prints
+ * `{ kinds, models }`.
  */
 const PROBE = `
-import { cursorSession, runtimes } from "@botiverse/oar";
+import { createCursorRuntime, runtimes } from "@botiverse/oar";
 for (const entry of ["observe", "kernel", "brands", "testing", "agents"]) {
   await import("@botiverse/oar/" + entry);
 }
@@ -61,17 +65,17 @@ const kinds = {};
 for (const runtime of runtimes.list()) {
   kinds[runtime.id] = runtime.installation === undefined ? null : (await runtime.installation()).kind;
 }
-let session = null;
-if (process.argv[2] === "session") try {
-  await cursorSession({ kind: "available", via: "bundled" }, { cwd: process.cwd() });
-  session = "opened";
-} catch (error) {
-  session = error.message;
+let models = null;
+if (process.argv[2] === "cursor") {
+  const cursor = createCursorRuntime({ sdk: () => import("@cursor/sdk") });
+  const installation = await cursor.installation();
+  kinds.cursor = installation.kind;
+  models = (await cursor.listModels(installation)).kind;
 }
-console.log(JSON.stringify({ kinds, session }));
+console.log(JSON.stringify({ kinds, models }));
 `;
 
-const CHECK = `
+const ENTRIES = `
 import * as oar from "@botiverse/oar";
 import * as agents from "@botiverse/oar/agents";
 import * as brands from "@botiverse/oar/brands";
@@ -82,24 +86,31 @@ import * as testing from "@botiverse/oar/testing";
 export const entries = [oar, agents, brands, kernel, observe, testing];
 `;
 
-function probe(...args: readonly string[]): { readonly kinds: Record<string, unknown>; readonly session: unknown } {
+const ADD_CURSOR = `
+import { createCursorRuntime, createRuntimeRegistry, runtimes } from "@botiverse/oar";
+
+export const registry = createRuntimeRegistry([...runtimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })]);
+`;
+
+function probe(...args: readonly string[]): { readonly kinds: Record<string, unknown>; readonly models: unknown } {
   const parsed: unknown = JSON.parse(run(process.execPath, ["probe.mjs", ...args], host));
-  assert.ok(typeof parsed === "object" && parsed !== null && "kinds" in parsed && "session" in parsed);
-  const { kinds, session } = parsed;
+  assert.ok(typeof parsed === "object" && parsed !== null && "kinds" in parsed && "models" in parsed);
+  const { kinds, models } = parsed;
   assert.ok(typeof kinds === "object" && kinds !== null);
-  return { kinds: { ...kinds }, session };
+  return { kinds: { ...kinds }, models };
 }
 
-function typecheck(): void {
-  writeFileSync(path.join(host, "check.ts"), CHECK);
+/** tsc over `source` as the host's `check.ts`: the errors in OAR's declarations or in that file. */
+function typecheck(source: string): string[] {
+  writeFileSync(path.join(host, "check.ts"), source);
   writeFileSync(path.join(host, "tsconfig.json"), JSON.stringify({
     compilerOptions: {
       module: "nodenext",
       target: "es2024",
       strict: true,
       noEmit: true,
-      // The point: a host that checks OAR's declarations must not meet an
-      // import of a package it did not install.
+      // A host that checks OAR's declarations must not meet an import of a
+      // package it did not install.
       skipLibCheck: false,
       types: ["node"],
       typeRoots: [path.join(root, "node_modules/@types")],
@@ -113,8 +124,7 @@ function typecheck(): void {
   // With skipLibCheck off tsc also reports other packages' own declaration
   // errors (pi-ai imports JSON without an import attribute); only OAR's
   // declarations and the check file are this test's concern.
-  const ours = tsc.stdout.split("\n").filter((line) => line.includes(" error TS") && (line.startsWith("node_modules/@botiverse/") || !line.startsWith("node_modules/")));
-  assert.deepEqual(ours, []);
+  return tsc.stdout.split("\n").filter((line) => line.includes(" error TS") && (line.startsWith("node_modules/@botiverse/") || !line.startsWith("node_modules/")));
 }
 
 const library = pack("packages/oar", /^botiverse-oar-\d.*\.tgz$/u);
@@ -125,22 +135,30 @@ writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
-const bare = probe("session");
-assert.equal(bare.kinds.cursor, "not_found");
+const bare = probe();
+assert.equal(bare.kinds.cursor, undefined);
 assert.ok(Object.values(bare.kinds).every((kind) => typeof kind === "string"), JSON.stringify(bare.kinds));
-assert.match(String(bare.session), /optional peer dependency/u);
-typecheck();
+assert.deepEqual(typecheck(ENTRIES), []);
+const forgotten = typecheck(ADD_CURSOR);
+assert.equal(forgotten.length, 1, forgotten.join("\n"));
+assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
 
 npmInstall(`@cursor/sdk@${cursorPeerVersion()}`);
-const withSdk = probe();
+assert.deepEqual(typecheck(ENTRIES), []);
+assert.deepEqual(typecheck(ADD_CURSOR), []);
+const withSdk = probe("cursor");
 assert.equal(withSdk.kinds.cursor, "available");
-typecheck();
+assert.ok(withSdk.models === "ok" || withSdk.models === "unauthenticated", String(withSdk.models));
 
+// The CLI brings the SDK itself: take the host's copy away first, then list
+// cursor's models through the CLI's own loader (`unauthenticated` without a key).
+run("npm", ["uninstall", "--no-audit", "--no-fund", "@cursor/sdk"], host);
 npmInstall(cli);
-const help = run(path.join(host, "node_modules/.bin/oar"), ["--help"], host);
-assert.match(help, /Usage: oar/u);
-const cursor: unknown = JSON.parse(run(path.join(host, "node_modules/.bin/oar"), ["installation", "cursor"], host));
-assert.deepEqual(cursor, [{ runtimeId: "cursor", installation: { kind: "available", via: "bundled" } }]);
+const oar = path.join(host, "node_modules/.bin/oar");
+assert.match(run(oar, ["--help"], host), /Usage: oar/u);
+const listed: unknown = JSON.parse(run(oar, ["models", "cursor", "--json"], host));
+assert.ok(Array.isArray(listed) && listed.length === 1, JSON.stringify(listed));
+assert.match(JSON.stringify(listed[0]), /"runtimeId":"cursor","models":\{"kind":"(?:ok|unauthenticated)"/u);
 
 rmSync(work, { recursive: true, force: true });
-process.stdout.write(`clean install ok: without @cursor/sdk ${JSON.stringify(bare.kinds)}\n`);
+process.stdout.write(`clean install ok: built in ${JSON.stringify(bare.kinds)}; forgetting @cursor/sdk fails the host's compile\n`);

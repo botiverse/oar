@@ -31,7 +31,8 @@ import { once } from "node:events";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { openVoyage, promptAndWait, runtimes, type Session } from "../packages/oar/src/index.js";
+import { openVoyage, promptAndWait, type Session } from "../packages/oar/src/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 // claude 2.1.284 refuses a foreground `sleep 45` and runs it in the background; a python sleep stays in the foreground.
 const COMMAND = process.env.CRASH_RESUME_COMMAND ?? "sleep 45 && echo SLEPT > crash-marker.txt";
@@ -60,7 +61,7 @@ function voyageFor(session: Session, run: Run, name: string): void {
 }
 
 async function open(runtimeId: string, cwd: string, resume?: string): Promise<Session> {
-  const runtime = runtimes.require(runtimeId);
+  const runtime = allRuntimes.require(runtimeId);
   const installation = await runtime.installation?.();
   assert.ok(installation?.kind === "available", `${runtimeId} is not available`);
   return runtime.session(installation, resume === undefined ? { cwd } : { cwd, resume });

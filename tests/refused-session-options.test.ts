@@ -4,8 +4,9 @@ import { createSubagents } from "../packages/oar/src/agents/index.js";
 import type { AvailableInstallation } from "../packages/oar/src/contracts/installation.js";
 import type { RefusableSessionOption } from "../packages/oar/src/contracts/runtime.js";
 import type { SessionOptions } from "../packages/oar/src/contracts/session.js";
-import { defineRuntime, runtimes, UnsupportedOptionError } from "../packages/oar/src/index.js";
+import { defineRuntime, UnsupportedOptionError } from "../packages/oar/src/index.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
+import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> = {
   systemPrompt: { systemPrompt: "x" },
@@ -21,7 +22,7 @@ function nowhere(id: string): AvailableInstallation {
 }
 
 test("every declared refusal is what session() rejects with", async () => {
-  const declaring = runtimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
+  const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "kimi"]);
   for (const runtime of declaring) {
     const keys = (["systemPrompt", "appendSystemPrompt", "env"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
@@ -36,7 +37,7 @@ test("every declared refusal is what session() rejects with", async () => {
 });
 
 test("the declarations say which options each runtime refuses", () => {
-  const refused = Object.fromEntries(runtimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
+  const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
     antigravity: ["appendSystemPrompt", "systemPrompt"],
     claude: [],

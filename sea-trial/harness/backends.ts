@@ -6,9 +6,9 @@ import {
   defineRuntime,
   piInstallation,
   piSession,
-  runtimes,
   type Runtime,
 } from "../../packages/oar/src/index.js";
+import { allRuntimes } from "./runtimes.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
@@ -74,6 +74,6 @@ export async function selectBackend(target: string): Promise<Backend> {
       return { runtime: defineRuntime({ id: target, session: piSession, installation: piInstallation }), aimock };
     }
     default:
-      return { runtime: runtimes.require(target), aimock: null };
+      return { runtime: allRuntimes.require(target), aimock: null };
   }
 }
