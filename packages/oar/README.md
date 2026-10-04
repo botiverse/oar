@@ -102,6 +102,8 @@ as the runtime's own image content. `session.capabilities.images` says whether
 the runtime takes them; an input it cannot deliver is rejected whole. See
 [Images](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#images).
 
+TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module: nodenext`, importing `@botiverse/oar` alone reports errors inside the pi SDK's own declarations (`@earendil-works/pi-ai` imports JSON without an import attribute, TS1543); OAR's own declarations check clean. A host that installs `@cursor/sdk` and checks library files also needs the DOM lib for its `@connectrpc/connect` dependency (`HeadersInit`).
+
 ## Native inventories
 
 Every runtime exposes `skills(installation, options?)`,
