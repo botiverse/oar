@@ -14,7 +14,12 @@ export interface ExecutableInstallationOptions {
 
 export type ExecutableFallbacks = readonly string[] | (() => readonly string[]);
 
-function usable(entry: string): string | null {
+/**
+ * Where an installation entry is, found without spawning anything: a pinned
+ * path must exist as given, a bare name resolves on PATH (and PATHEXT on
+ * Windows). Null when it is not there.
+ */
+export function locateExecutable(entry: string): string | null {
   if (entry.includes("/") || entry.includes("\\")) {
     return existsSync(entry) ? entry : null;
   }
@@ -52,7 +57,7 @@ export function executableInstallation(
 
     const found: string[] = [];
     for (const entry of entries) {
-      const candidate = usable(entry);
+      const candidate = locateExecutable(entry);
       if (candidate !== null && !found.includes(candidate)) {
         found.push(candidate);
       }

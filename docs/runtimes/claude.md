@@ -319,11 +319,53 @@ without guessing an authentication cause; unsupported control requests map to
 `unsupported/endpoint_unavailable`. Available replies map native five-hour,
 weekly, model-scoped and enabled extra-usage windows. The new process's
 session totals are not account usage and are not exposed. The native API is
-experimental (verified on 2.1.273); older versions can lack it. Login
-management is **not exposed**.
+experimental (verified on 2.1.273); older versions can lack it. Login is
+mapped [below](#login).
 [Installation](../../packages/oar/src/runtimes/claude/installation.ts),
 [account usage](../../packages/oar/src/runtimes/claude/account-usage.ts),
 [updater](../../packages/oar/src/runtimes/claude/update.ts).
+
+### Login
+
+**Mapped** ([runtime login](../spec/login.md)): `login` runs
+`claude auth login` (the default claude.ai subscription login; `--console`,
+`--email` and `--sso` are not exposed) over pipes, with `CLAUDECODE` cleared
+as for sessions. Native behavior [sym 2.1.288]: it prints
+`If the browser didn't open, visit: <url>` (an OSC 8 hyperlink from 2.1.202)
+and `Paste code here if prompted > ` with no newline on stdout, then races
+two ends: the browser's redirect to its localhost listener, and a
+`code#state` line on stdin, which the page behind the URL shows after the
+sign-in. A line it cannot parse prints `Invalid code. Please make sure the
+full code was copied.` to stderr and reading goes on. Success is
+`Login successful.`, followed by a few seconds of telemetry flushing before
+exit 0. A failure exits 1 with `Login failed: <message>` on stderr, or with a
+message of its own (a suspended account, an organization or provider that
+disallows the login, a managed gateway login).
+
+OAR strips terminal escapes from both streams, relays the URL as `auth_url`,
+asks a `manual_code` prompt when the paste prompt appears and again after a
+stderr line that starts with `Invalid code` (not after
+`Login failed: Invalid code verifier`, which is a failure), and writes the
+answer (whitespace removed) to stdin only; the pasted value and its
+authorization code are redacted from every reported `detail`. A failure is
+`rejected` with the `Login failed:` message, or else claude's last stderr
+line. On a desktop host claude also tries to open a browser, and a sign-in
+finished there ends the login while the prompt is still open. claude has no
+deadline of its own, so OAR stops it after 15 minutes. A successful exit, or a
+deadline or abort after `Login successful.` (while claude flushes), is
+confirmed with `claude auth status --json`, which is also `authStatus`:
+`loggedIn` (exit 0 logged in, 1 logged out) and `email`, `subscriptionType`
+and `authMethod` as the account. `auth login` arrived in
+2.1.41 and reading a pasted code in 2.1.126 [doc changelog], so an older
+claude is `unsupported` / `version_unsupported`. Verified against a fake CLI
+that prints the 2.1.288 strings
+([tests](../../tests/login/claude-login.test.ts)), and on real logins: on
+2026-10-05, on a fresh Linux test machine with claude 2.1.289 and codex
+0.160.0, all five manual checklist steps of [#94](https://github.com/botiverse/oar/pull/94) (commit `f7e6428`) passed.
+For claude: the status read, a login with the code pasted back, and a cancel
+at the paste prompt (`login cancelled`, exit 130, no process left over, the
+previous login unchanged).
+[Login](../../packages/oar/src/runtimes/claude/login.ts).
 
 ## Harness fact matrix
 

@@ -559,7 +559,8 @@ earlier Windows failures.
 its last 8 KiB. When the app-server exits, pending and later RPC calls fail
 with its exit code, signal, any native spawn error and the stderr tail seen
 by then, in the exception's message and cause; the `exited` record keeps its
-shape. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's. A host
+shape. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's (never
+for a [login](#login)'s app-server). A host
 can tell a missing executable from a native crash; OAR makes no automatic
 retry decision
 ([exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
@@ -574,14 +575,67 @@ separate reader on its own app-server process (`initialize`, `account/read`,
 rate-limit buckets merged as the codex TUI does); neither it nor installation
 discovery is inferred from turn token totals. Update checks read the
 `updates.status` row of `codex doctor --json`, and upgrades run `codex update`
-with a version read-back ([runtime updaters](update.md)). Login management is
-**not exposed**. An installation probe that cannot run keeps its native error
+with a version read-back ([runtime updaters](update.md)). Login is mapped
+[below](#login). An installation probe that cannot run keeps its native error
 code, signal, timeout, exit code and bounded stderr tail in the thrown error;
 the probe deadline is unchanged, and an ordinary nonzero readiness exit still
 classifies the installation as unsupported.
 [Installation](../../packages/oar/src/runtimes/codex/installation.ts),
 [account usage](../../packages/oar/src/runtimes/codex/account-usage.ts),
 [update](../../packages/oar/src/runtimes/codex/update.ts).
+
+### Login
+
+**Mapped** ([runtime login](../spec/login.md)): `login` uses the app-server's
+ChatGPT device code flow on its own app-server process: `initialize`, then
+`account/login/start { type: "chatgptDeviceCode" }`, answered
+`{ loginId, verificationUrl, userCode }` [schema 0.160.0], relayed as one
+`device_code` event plus an `info` event on the account setting below. The
+app-server polls by itself and ends with the `account/login/completed`
+notification (`success`, `error`); a completion read before the start reply
+waits for its login id. After a success OAR reads `account/read` for the
+account (`email`, `planType`, `type`): no account is `failed` /
+`not_logged_in`, and a read that fails, or a deadline or abort after the
+success, is `logged_in` without an account, since codex has already stored
+the login. The device code expires after 15 minutes; OAR's deadline is 16, so
+codex reports the expiry itself. Cancelling or the deadline stops the
+app-server with its process group on POSIX and its process tree on Windows
+(an npm install runs it under a `cmd.exe` shim), which ends its polling. The
+login's app-server never forwards its stderr, `OAR_CHILD_STDERR=inherit`
+notwithstanding, and a failure `detail` is codex's one-line error or the exit
+code, never the stderr tail. `chatgptDeviceCode` arrived in 0.118.0, so an
+older codex is `unsupported` / `version_unsupported`.
+
+The app-server writes the credential store only after the new tokens are
+exchanged and the workspace check passes (`complete_device_code_login`, then
+`persist_tokens_async`); a failure, a cancel or the expiry leaves the stored
+login untouched. OAR never runs `codex login`: its browser and device code
+flows call `clear_existing_auth_before_login`, which logs out and revokes
+the current tokens before the new login completes, so a failed or abandoned
+login would leave the user logged out [src `openai/codex` b741e480,
+`app-server/src/request_processors/account_processor.rs`,
+`login/src/device_code_auth.rs`, `cli/src/login.rs`]. Its browser flow also
+listens on `127.0.0.1:1455`, which a phone cannot reach.
+
+Device code sign-in must first be allowed in the ChatGPT account's security
+settings, or by an admin for a workspace account, and is still in beta
+[doc]; when it is not, codex's own error comes back as `failed` /
+`rejected`. `authStatus` runs `codex login status`, which reads the local
+credential store without a request: exit 0 logged in (`Logged in using
+ChatGPT` or `... an API key`, read as the `method`; the masked key is never
+read), exit 1 with `Not logged in` logged out, anything else (an unreadable
+configuration) `unknown`. It names the method, not the account, so the status
+(`oar login codex --status`: `logged in (chatgpt)`) has no email or plan;
+only a login's own result carries the account, from `account/read`. OAR does
+not parse codex's credential file to fill it in. Verified against a fake
+app-server that answers with the 0.160.0 shapes
+([tests](../../tests/login/codex-login.test.ts)), and on real logins: on
+2026-10-05, on a fresh Linux test machine with claude 2.1.289 and codex
+0.160.0, all five manual checklist steps of [#94](https://github.com/botiverse/oar/pull/94) (commit `f7e6428`) passed.
+For codex: the status read, a login with the device code, and a cancel while
+the code was shown (`login cancelled`, exit 130, no process left over, the
+previous login unchanged).
+[Login](../../packages/oar/src/runtimes/codex/login.ts).
 
 ## Harness fact matrix
 
