@@ -47,6 +47,16 @@ never written, and no runtime ran the command again.
 | What the runtime does by itself on reopen | With a stopped background task: the notification and a `result` frame with `num_turns: 0` and `origin: {kind: "task-notification"}`, no model call. Without one: nothing | Runs the queued input as a turn | Nothing |
 | A record of the interrupted turn in the native log | None until the reopen writes the entries above | None: the interrupted turn has no `task_complete` | None: the last assistant message ends with `stopReason: "toolUse"` |
 
+**Cursor** (`@cursor/sdk` 1.0.35) was not in this experiment; its tool,
+steer and message rows are unmeasured. What is known (probed 2026-10-03,
+[cursor](cursor.md#session-creation-and-resume)): the agent's store keeps a
+dead process's run as active, so every `send` on the resumed agent is
+refused `already has active run`; OAR passes the SDK's `local.force` on the
+first send after a resume, which expires that run and takes the agent over,
+and the agent then answered normally. The resumed stream starts at seq 0
+with only the `cursor/agent_opened` frame: no history is replayed. Its queue is adapter
+held (`capabilities.queue.durable: false`).
+
 ## What a host can rely on
 
 - **No runtime replays an interrupted tool.** All three treat it as unsafe
@@ -63,11 +73,12 @@ never written, and no runtime ran the command again.
 - **Queued input follows the declaration.** `queue.durable` is exactly what
   survives: codex keeps it and runs it at once on reopen, so a host must
   subscribe from the open (as the record stream already allows) and expect a
-  turn it did not prompt; claude and pi drop it with the process.
+  turn it did not prompt; claude and pi drop it with the process, and cursor
+  declares the same (unmeasured).
 - **Reopening is not always quiet.** codex may start a turn, and claude may
   close a stopped background task before the host says anything.
 
-## Defect found: claude's reopen result can end the host's turn
+## Open defect: claude's reopen result can end the host's turn
 
 The `result` frame claude emits on reopen for a stopped background task is
 projected as `turn_ended`, like every `result`. When a host prompts right
@@ -79,8 +90,10 @@ the real answer came after it. The frame is distinguishable: a turn claude
 starts by itself carries `origin` (here `task-notification`, with
 `num_turns: 0` when no model ran), and the host's prompt has a
 `command_lifecycle` entry naming its `inputId`. The same race exists without a
-crash whenever a background task ends as the host prompts. Tracked in
-[issue #55](https://github.com/botiverse/oar/issues/55).
+crash whenever a background task ends as the host prompts. Open as
+[issue #55](https://github.com/botiverse/oar/issues/55); the claude
+projection still reads every `result` as `turn_ended`
+([projection.ts](../../packages/oar/src/runtimes/claude/projection.ts)).
 
 ## Evidence
 

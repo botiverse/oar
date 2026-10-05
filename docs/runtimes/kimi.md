@@ -57,7 +57,7 @@ profile declares `capabilities` `{ queue: { durable: false }, attribution:
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | `kimi-code` executable | One `kimi acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when the process died on its own). |
-| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0, no history rebuild). |
+| Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through ACP `session/resume` with a fresh stream (seq 0, no history rebuild), only in the session's own directory. |
 | Handshake answers and opening pushes | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records with `model` and `effort` events where they report one (the `thinking` option's current value is the effort); pushes arriving while opening (`available_commands_update`, `current_mode_update`, `config_option_update`) are recorded in arrival order, so `Session.model()` and `effort()` are folds over the stream. |
 | Native agent and turn | Only ACP's `main` agent reaches this transport; every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). |
 | Prompt, steer, queue, and cancel | `prompt()` is a `toRuntime` request whose `session/prompt` answer carries `turn_ended`. The session has no `steer` (no ACP method); `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback. |
@@ -130,9 +130,12 @@ Unknown IDs return `invalid_params` (`-32602`); missing authentication returns
 
 Because the handlers ignore `cwd`, a resume that names another directory runs
 in the session's own: live (2.1.1, 2026-10-03), a resume naming B ran its
-shell as `cd <A> && pwd`. OAR therefore reads the session's directory from
-`session/list` before resuming and refuses a resume elsewhere, naming both
-directories ([resume in another directory](resume-cwd.md)).
+shell as `cd <A> && pwd`. OAR therefore (profile flag
+`resumeKeepsSessionCwd`) pages through the advertised `session/list` before
+resuming, without recording it, and when the session is listed under another
+directory `session()` rejects with an `UnsupportedOptionError` on `cwd` whose
+message names both directories ([resume in another directory](resume-cwd.md),
+[test](../../tests/acp/acp-resume-cwd.test.ts)).
 
 ```ts
 const resumed = await kimiRuntime.session(installation, {
@@ -161,8 +164,9 @@ for active or identical concurrent resumes inside that harness; ACP uses
 `klient.session(id).restore()` and rebuilds its main-agent wrapper. OAR
 neither exposes the SDK replay options nor inherits its coalescing guarantee
 (source facts, not observed on the 0.38.0 snapshot). Native ACP also
-implements session list, delete, and fork; OAR exposes **none** of those:
-resume is neither a session browser nor a fork API.
+implements session list, delete, and fork; OAR exposes **none** of those (it
+reads `session/list` only for the directory check above): resume is neither a
+session browser nor a fork API.
 
 ### Prompt, steering, queueing, and abort
 
@@ -342,9 +346,12 @@ running session are absent ([native surfaces](live-configure.md)).
 [ACP effort channel](../../packages/oar/src/shared/acp/effort.ts),
 [test](../../tests/acp/acp-session-effort.test.ts).
 
-The OAR profile rejects `systemPrompt` and `appendSystemPrompt` because its
-selected ACP integration exposes no override. This is not a claim that the
-native harness cannot configure instructions.
+`session()` refuses `systemPrompt` and `appendSystemPrompt` with an
+`UnsupportedOptionError`, declared before open in
+`kimiRuntime.refusedSessionOptions`, because the selected ACP integration
+exposes no override
+([refused session options](../spec/runtime-matrix.md#refused-session-options)).
+This is not a claim that the native harness cannot configure instructions.
 
 **Context (partial):** native ACP
 [emits context usage after the prompt response](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L907-L947)
@@ -404,6 +411,11 @@ checks `OAR_KIMI_BIN`, PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,
 `~/.kimi-code/bin/kimi`, and the legacy `kimi-code` name, probing
 `kimi acp --help` with 30-second timeouts; it does not prove compatibility
 with Python kimi-cli.
+
+`checkUpdate` reads the release pointer kimi's own updater installs from, and
+`upgrade` runs `kimi upgrade -y`; a kimi older than 0.43.0 has no
+non-interactive upgrade, so `upgrade` answers `unsupported`
+`requires_terminal` ([runtime updates](update.md)).
 
 [Account usage](../../packages/oar/src/runtimes/kimi/account-usage.ts)
 resolves the managed `kimi-code` provider through `kimi provider list --json`

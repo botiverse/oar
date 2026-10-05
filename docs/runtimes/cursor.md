@@ -41,7 +41,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar`: the host installs it (`@cursor/sdk@1.0.35`) and hands it over, `createCursorRuntime({ sdk: () => import("@cursor/sdk") })`; OAR loads it on the first call that needs it, and the agent runs in the host process. Cursor is not in the built-in `runtimes` registry. The `oar` CLI depends on the SDK and adds cursor itself. |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.35`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in the built-in `runtimes` registry; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -69,8 +69,9 @@ events.
 
 **Resume (mapped):** `Agent.resume(agentId, …)` with the same `cwd`; an
 agent is found only under the directory it was created in (`AgentNotFoundError`
-otherwise, probed). The resumed stream starts at seq 0 with only the
-`cursor/agent_opened` frame: the SDK replays no history. A resumed agent does
+otherwise, probed; [resume in another directory](resume-cwd.md)). The
+resumed stream starts at seq 0 with only the `cursor/agent_opened` frame: the
+SDK replays no history. A resumed agent does
 not restore its own model (a `send` without one is refused, probed), so
 without `SessionOptions.model` OAR reopens with the model of the agent's
 latest run (`Agent.listRuns`), or `default` when it has none. The next prompt
@@ -101,9 +102,9 @@ and cannot be resumed.
 during a turn (`busy-and-late-control`), and `runtime_refused` with the SDK's
 message when `send` throws, or after 60 seconds without a run (a cold start
 took about four seconds). A run the SDK returns after that, or after a
-dispose, is cancelled, and its end is still recorded. `InputOptions.images` go as the SDK's image
-content (`{ data, mimeType }`); asked for the color of a plain red PNG, the
-model answered `Red` (probed).
+dispose, is cancelled, and its end is still recorded. `InputOptions.images`
+go as the SDK's image content (`{ data, mimeType }`); asked for the color of
+a plain red PNG, the model answered `Red` (probed).
 
 **Steer (mapped):** `steer()` is `run.steer(text)`, which settles once the
 agent has taken the text (`complete_delivered`, the `accepted` answer's
@@ -123,7 +124,10 @@ afterwards (probed); the steered text landed in the same turn (`steer`).
 
 **Queue (mapped):** `queue()` is an adapter-held FIFO
 (`capabilities.queue.durable: false`) sent as a new run when the current one
-ends, a spontaneous turn with no prompt request of its own (`queue`).
+ends, a spontaneous turn with no prompt request of its own (`queue`). A
+queued input whose `send` the SDK refuses, or that gets no run within the
+60 second send deadline, is recorded as a `cursor/send_rejected` frame, and
+the queue moves on to the next.
 `withdraw(inputId)` takes an input out of it before it is sent (`accepted`)
 and answers `not_queued` once it was
 ([test](../../tests/cursor/cursor-session-withdraw.test.ts)).
@@ -179,9 +183,9 @@ value}` is `result: "ok"`, `{status: "error", error}` is `"failed"`. A shell
 call's content is its stdout and stderr (one empty text part when it printed
 nothing) and its `exitCode` the shell's, `null` when `signal` names one (a
 failing command is still a successful tool call: `ls` of a missing path ends
-`ok` with exit code 2, probed); a read is the file text, an edit its diff, an
-error its message, and any other result one `other` part. No shell output
-streams while a command runs. With the model reading and editing in one step,
+`ok` with exit code 2, probed); a read is the file text, an edit or write its
+diff, an error its message, and any other result one `other` part. No shell
+output streams while a command runs. With the model reading and editing in one step,
 one read call started and never completed (probed); after a steer moved a
 command to the background, the model's poll of it produced no tool updates.
 
@@ -214,16 +218,18 @@ marks default.
 selection; the other parameters stay as the catalog's default variant sets
 them (or as the resumed run had them), so a `thinking` switch stays on
 beside an `effort` level (`claude-opus-5` at `low` ran with the default
-variant's `thinking: true` and `context: 1m`, probed). The SDK passes an unknown value through and reports it back as
-given (`reasoning: "ludicrous"` ran, probed), so OAR checks the level against
-the model's menu first and rejects the open otherwise, naming the levels.
+variant's `thinking: true` and `context: 1m`, probed). The SDK passes an
+unknown value through and reports it back as given (`reasoning: "ludicrous"`
+ran, probed), so OAR checks the level against the model's menu first and
+rejects the open otherwise, naming the levels.
 The `model` and `effort` events come from the SDK's selection at open and
 from each run's `model` in `run.wait()`; both are the selection the run was
 sent with, not an independent report.
 
 **Instructions (unsupported):** the SDK types a `systemPrompt`, but a local
 agent's run fails with `unknown option '--system-prompt'` (probed), and there
-is no append; OAR rejects `systemPrompt` and `appendSystemPrompt` at open.
+is no append; OAR refuses `systemPrompt` and `appendSystemPrompt` at open
+with an `UnsupportedOptionError` naming the option.
 
 ### Tools, permissions, and environment
 
@@ -235,11 +241,11 @@ one on. The agent loads the user's and project's Cursor settings (rules, MCP
 servers) as the SDK does by default.
 
 **Environment (unsupported):** the SDK has no per-agent environment for
-tools, and the agent shares the host's process, so `SessionOptions.env` is
-rejected at open. `refusedSessionOptions` declares this (and the system
-prompt refusals) before any session opens. The `@botiverse/oar/agents` crew
-passes its depth variable through `env`, so it refuses to spawn a cursor
-child.
+tools, and the agent shares the host's process, so a non-empty
+`SessionOptions.env` is refused at open the same way. `refusedSessionOptions`
+declares all three refusals before any session opens. The
+`@botiverse/oar/agents` crew passes its depth variable through `env`, so it
+refuses to spawn a cursor child.
 
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
@@ -258,22 +264,9 @@ them, 2026-10-04).
 
 ### Installation and account usage
 
-[Installation](../../packages/oar/src/runtimes/cursor/installation.ts) is
-`bundled`, like pi: versionless (the embedder pins the SDK) and available
-wherever the SDK has a native package, `unsupported` elsewhere (the SDK
-ships darwin arm64 and x64, linux arm64 and x64, win32 x64). It does not
-look for the package, which would mean loading the SDK: a TypeScript host's
-compile already found it, and where the package is missing anyway (a plain
-JavaScript host, a deploy that left it out) the first call that needs the
-SDK fails with `cursor could not load @cursor/sdk through the host's sdk
-loader`, carrying the loader's error as its cause. There is no update
-check or upgrade: the version OAR supports moves with OAR's own version,
-through the peer dependency's range.
-
 The SDK is an optional peer rather than a dependency because it is large
 (about 38 MB with its native package) and most hosts never open cursor. The
-host hands it over instead of OAR looking it up, so forgetting the package
-fails the host's compile rather than surfacing at run time:
+host hands it over instead of OAR looking it up:
 
 ```ts
 import { createCursorRuntime, createRuntimeRegistry, runtimes } from "@botiverse/oar";
@@ -282,16 +275,28 @@ const cursor = createCursorRuntime({ sdk: () => import("@cursor/sdk") });
 const registry = createRuntimeRegistry([...runtimes.list(), cursor]);
 ```
 
-The import sits in the host's own code, so TypeScript reports a missing
-package there (`skipLibCheck` does not hide it), checks the SDK's types
-against `CursorSdk`, the part OAR uses, and a bundler sees the import. The
-loader runs once, on the first call that needs the SDK. OAR's published
-declarations spell out those SDK types instead of importing them, so a host
-without the SDK still type-checks. A clean install of the packed packages
-checks both sides in CI: without the SDK the line above fails to compile and
-everything else works; with it, cursor loads
+The import sits in the host's own code, so a missing package fails the
+host's compile rather than surfacing at run time (`skipLibCheck` does not
+hide it), TypeScript checks the SDK's types against the exported `CursorSdk`
+(the part OAR uses), and a bundler sees the import. OAR calls the loader on
+the first call that needs the SDK, and again after a failed load. OAR's
+published declarations spell out those SDK types instead of importing them,
+so a host without the SDK still type-checks. CI checks both sides on a clean
+install of the packed packages: without the SDK the line above fails to
+compile and everything else works; with it, cursor loads
 ([test](../../tests/clean-install.ts)). The rule behind this is in
 [capabilities](../design/capabilities.md#a-runtimes-own-settings).
+
+[Installation](../../packages/oar/src/runtimes/cursor/installation.ts) is
+`bundled`, like pi: versionless (the embedder pins the SDK) and available
+wherever the SDK ships a native package (darwin arm64 and x64, linux arm64
+and x64, win32 x64), `unsupported` elsewhere. It does not look for the
+package, which would mean loading the SDK; where the package is missing
+anyway (a plain JavaScript host, a deploy that left it out) the first call
+that needs the SDK fails with `cursor could not load @cursor/sdk through the
+host's sdk loader`, carrying the loader's error as its cause. There is no
+update check or upgrade: the supported SDK version moves with OAR's own,
+pinned exactly by the peer dependency.
 
 Account usage is **unexposed**: `agent.getUsage()` answers `feature_unavailable`
 on this account (probed), and each run reports its own tokens.
@@ -303,8 +308,9 @@ covers the promises above on a real login: `basic`, `multi-turn`,
 `tool-detail`, `busy-and-late-control`, `steer`, `queue`, `abort`,
 `dispose-mid-turn`, `cursor`, `resume`, `subagent`, `bad-model`.
 [Cursor tests](../../tests/cursor/) drive the session with a stand-in SDK
-(prompt, busy, steer delivered, handed back and outrun, images, queue, abort
-before and after the run exists, dispose, resume, refused options) and fold
+(prompt, busy, steer delivered, handed back and outrun, images, queue,
+withdraw, abort before and after the run exists, dispose, resume, refused
+options, the SDK loader) and fold
 recorded updates (tools, usage, the subagent path, run outcomes). The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Cursor.
 

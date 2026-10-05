@@ -11,8 +11,14 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 [abort](#prompt-steering-queueing-and-abort)), plus direct ACP probes of the
 same binary for cancel timing and the model and mode methods. The server
 ships as a packaged Python archive with no public source, so statements
-beyond the wire are marked as such. Versions are evidence baselines, not a
-support range; see the [runtime index](README.md) for status conventions.
+beyond the wire are marked as such. The registry lists **1.3.0** as of
+2026-10-03; on a host without the server's own login, `basic` and
+`tool-detail` stopped while opening with the native `Authentication
+required`, so nothing below is established for 1.3.0
+([October 3](../../experiments/runtime-version-checks/2026-10-03.md), still
+open [October 4](../../experiments/runtime-version-checks/2026-10-04.md)).
+Versions are evidence baselines, not a support range; see the
+[runtime index](README.md) for status conventions.
 
 ## Native concepts and calling interfaces
 
@@ -221,11 +227,16 @@ levels.
 **Effort (not a separate setting):** effort is folded into the model id, so
 pick `gemini-3.8-flash-high` rather than setting effort. There is no
 `thought_level` option; a `session/set_config_option` on one answers
-`-32602`. `SessionOptions.effort` is not mapped: OAR refuses the open because
-no `thought_level` option is advertised, and no `effort` event appears.
+`-32602`. `SessionOptions.effort` is not mapped: OAR refuses the open with an
+`UnsupportedOptionError` on `effort` because no `thought_level` option is
+advertised, and no `effort` event appears
+([ACP effort channel](../../packages/oar/src/shared/acp/effort.ts)).
 
-The OAR profile rejects `systemPrompt` and `appendSystemPrompt` because
-Antigravity's ACP exposes no override.
+`session()` refuses `systemPrompt` and `appendSystemPrompt` with an
+`UnsupportedOptionError`, declared before open in
+`antigravityRuntime.refusedSessionOptions`, because Antigravity's ACP exposes
+no override
+([refused session options](../spec/runtime-matrix.md#refused-session-options)).
 
 **Context (unexposed by the runtime):** no frame carries context occupancy,
 so `contextUsage()` stays empty. Antigravity advertises no compaction through
@@ -258,7 +269,10 @@ checks `OAR_ANTIGRAVITY_BIN` and PATH `agy_acp_server.par`
 (`agy_acp_server.exe` on Windows), reading `Build label: <version>` from
 `--version` with a 30 second timeout. The ACP registry ships a zip with no
 installer, so there is no fallback path: put the binary on PATH or name it in
-`OAR_ANTIGRAVITY_BIN`.
+`OAR_ANTIGRAVITY_BIN`. `checkUpdate` compares the installed version with that
+registry entry, the only release listing (it can trail Google's downloads),
+and counts only a newer registry version as an update; the server has no
+updater, so there is no `upgrade` ([runtime updates](update.md)).
 
 **Account terms (caveat):** the vendor FAQ warns that using a personal Google
 account from third-party tools may violate the terms of service and can lead
@@ -286,7 +300,8 @@ Antigravity.
 Open gaps: cancelling a running shell command (the vendor waits for the
 command; OAR kills after ten seconds); child attribution (the transport
 carries none); any usage or context report; the permission path through OAR;
-`session/list` and `session/load`; unknown resume ids; concurrent same-id
-controllers; macOS and Windows installation. Keep native API capabilities,
-transport limitations, OAR omissions and unexecuted checks separate when
-designing or claiming support.
+`session/list` and `session/load`; unknown resume ids; a resume naming another
+directory ([not measured](resume-cwd.md)); concurrent same-id controllers;
+macOS and Windows installation; any authenticated run on 1.3.0. Keep native
+API capabilities, transport limitations, OAR omissions and unexecuted checks
+separate when designing or claiming support.

@@ -19,8 +19,10 @@ alternate-transport capabilities below are not implicitly exposed.
 | Kimi 0.42.0 (TypeScript kimi-code) | Native Web API session/workspace skills routes | Native Web API configured servers, auth state, and live server routes | Web API returns names, descriptions, source and active state; `input_schema` was null. These inventory routes are not exposed by the tested ACP surface |
 | Pi SDK 0.84.2 and 0.84.4 | Resource loader `getSkills()`, including source and diagnostics | No dedicated core MCP inventory API found in inspected SDK declarations; extensions may implement MCP | `getAllTools()` returns parameter schemas and provenance; `getActiveToolNames()` separately identifies active tools |
 
-No full-fidelity three-way intersection is verified across all five
-**OAR-selected transports**. Skills are the broadest commonality, but Kimi
+Antigravity and Cursor were not probed; OAR answers all three of their
+inventory queries `unsupported` (`transport_unavailable`), as it does for
+Kimi. No full-fidelity three-way intersection is verified across the five
+probed **OAR-selected transports**. Skills are the broadest commonality, but Kimi
 needs a different transport and Claude's context view is narrower than a
 discovery catalog. A tool list is not necessarily a built-in tool list, a
 schema catalog, or a permission grant.
