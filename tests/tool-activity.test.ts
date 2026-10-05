@@ -43,6 +43,14 @@ test("classifyTool reads cursor's tool types and its shell command", () => {
   assert.equal(classifyTool("cursor", "task").kind, "other");
 });
 
+test("classifyTool reads a grok shell input with what it carries", () => {
+  // The recorded opening input is `{command, description}` (tests/replay); one lacking a key still classifies.
+  assert.deepEqual(classifyTool("grok", "run_terminal_command", JSON.stringify({ description: "List the files" })), {
+    kind: "run_command", description: "List the files",
+  });
+  assert.deepEqual(classifyTool("grok", "run_terminal_command"), { kind: "run_command" });
+});
+
 test("toolActionLabel gives tense-correct labels per state", () => {
   assert.equal(toolActionLabel("run_command", "running"), "Running command");
   assert.equal(toolActionLabel("run_command", "done"), "Ran command");

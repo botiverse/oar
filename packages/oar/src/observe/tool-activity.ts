@@ -27,10 +27,11 @@ export interface ToolAction {
   readonly detail?: string;
   /**
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
-   * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`, cursor `shell`).
+   * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`, cursor `shell`,
+   * grok `run_terminal_command`).
    */
   readonly command?: string;
-  /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`). */
+  /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`, grok `run_terminal_command`). */
   readonly description?: string;
   /**
    * `wait`: how long the agent asked to wait, in ms, as the runtime reported it (codex
@@ -42,7 +43,8 @@ export interface ToolAction {
 }
 
 // Per-runtime tool name → kind. Names are what the tool_call_started event
-// carries (codex uses its item type; claude/pi use the tool name).
+// carries (codex uses its item type; claude/pi use the tool name; the ACP
+// runtimes the opening `tool_call`'s `title`, shared/acp/projection.ts).
 const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   claude: {
     Bash: "run_command",
@@ -71,6 +73,10 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     grep: "search",
     find: "search",
   },
+  // The opening `tool_call` titles recorded in tests/replay/fixtures/<id>-acp-v1.vendor.json
+  // (grok 1.0.5, kimi 0.38.0); ACP's `kind` is no help (grok sends none, kimi a category).
+  grok: { run_terminal_command: "run_command" },
+  kimi: { Bash: "run_command" },
   // The `toolCall.type` of `@cursor/sdk` 1.0.35's tool updates.
   cursor: {
     shell: "run_command",
@@ -126,10 +132,13 @@ function waitFields(inputJson: string): InputFields {
 
 /**
  * Where each runtime's tools keep the fields a host shows, from recorded inputs
- * (tests/replay/fixtures/*-tool-round.raw.jsonl): a shell tool's command (and
- * description), a wait's duration. A runtime with no recorded shape gets none.
- * codex's `commandExecution` input is the bare command line, not JSON
- * (codex/item-detail.ts).
+ * (tests/replay/fixtures/*-tool-round.raw.jsonl, and the input keys of
+ * *-acp-v1.vendor.json): a shell tool's command (and description), a wait's
+ * duration. A runtime with no recorded shape gets none. codex's
+ * `commandExecution` input is the bare command line, not JSON
+ * (codex/item-detail.ts). grok's opening `tool_call` carries `rawInput`
+ * `{command, description}`; kimi's carries none (its arguments arrive on a
+ * later update), so a kimi `Bash` start has no input to read.
  */
 const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   claude: { Bash: (input) => stringFields(input, true) },
@@ -140,6 +149,7 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   },
   pi: { bash: (input) => stringFields(input, false) },
   cursor: { shell: (input) => stringFields(input, false) },
+  grok: { run_terminal_command: (input) => stringFields(input, true) },
 };
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];

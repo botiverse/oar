@@ -414,9 +414,11 @@ and configured MCP integrations execute within the harness. **Mapped:** OAR's
 [terminal host](../../packages/oar/src/shared/acp/terminal.ts) hosts
 terminals, including Grok's full shell-line `command` compatibility. A tool
 turn opens with `tool_call` `title: "run_terminal_command"` and `rawInput`
-(the shell line), runs through `terminal/create|wait_for_exit|output|release`
-reverse requests (four `toApp` records with `answered` responses, terminal
-output payloads verbatim), and closes with a `tool_call_update` whose
+`{command, description}` (the shell line and the agent's account of it;
+`classifyTool` reads it as `run_command` with both), runs through
+`terminal/create|wait_for_exit|output|release` reverse requests (four
+`toApp` records with `answered` responses, terminal output payloads
+verbatim), and closes with a `tool_call_update` whose
 `rawOutput` is `{type: "Bash", output: [<bytes>], output_for_prompt:
 "exit: 0\n…", exit_code: 0, signal: null}` and whose `content` is an ACP
 content block holding the same output as text. The `tool_call_ended` event
