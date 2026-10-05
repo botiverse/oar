@@ -6,7 +6,7 @@ import { afterAll, beforeAll, expect, test } from "vitest";
 import type { UpdateCheck, UpdateChecker } from "../packages/oar/src/contracts/update.js";
 import { codexCheckUpdate } from "../packages/oar/src/runtimes/codex/update.js";
 import { kimiUpgrade, kimiUpgrader } from "../packages/oar/src/runtimes/kimi/update.js";
-import { upgradeExecutable } from "../packages/oar/src/shared/update.js";
+import { comparedCheck, executableUpdate, upgradeExecutable } from "../packages/oar/src/shared/update.js";
 import { fakeRuntime as makeFakeRuntime, printingExecutable, type FakeRuntime, type FakeState } from "./fixtures/update-fixtures.js";
 
 let dir = "";
@@ -88,6 +88,25 @@ test("no updater runs when the check says the installation is current", async ()
   const current: UpdateCheck = { kind: "ok", installed: "1.1.0", latest: "1.1.0", updateAvailable: false, source: "fixture" };
   const result = await upgradeExecutable(executable(fake.command, "fake 1.1.0"), { check: fixedCheck(current), args: ["update"] });
   assert.deepEqual(result, { kind: "current", version: "1.1.0", check: current });
+  assert.equal(fake.read().updateArgs, undefined);
+});
+
+/** A check like the runtimes' own: the installed version from the installation, 1.1.0 released. */
+const checkFromInstallation: UpdateChecker = async (installation) => {
+  await Promise.resolve();
+  const update = executableUpdate(installation);
+  return update.kind === "executable" ? comparedCheck(update.installed, "1.1.0", "fixture") : update.check;
+};
+
+test("an executable that updated itself since its probe is checked and judged by what it says now", async () => {
+  // Probed at 1.0.0; the runtime then updated itself in the background (claude's native install does).
+  const fake = fakeRuntime("self-updated", { version: "1.1.0", target: "1.1.0", mode: "noop" });
+  const result = await upgradeExecutable(executable(fake.command, "fake 1.0.0"), { check: checkFromInstallation, args: ["update"] });
+  assert.deepEqual(result, {
+    kind: "current",
+    version: "1.1.0",
+    check: { kind: "ok", installed: "1.1.0", latest: "1.1.0", updateAvailable: false, source: "fixture" },
+  });
   assert.equal(fake.read().updateArgs, undefined);
 });
 
