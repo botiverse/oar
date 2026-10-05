@@ -12,6 +12,134 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Control objects as the event model (2026-09-03)
+
+**Considered:** the first event model (v1), in which control objects carry
+the facts: `begin()` and `settle()` fan out the turn events, and a fact
+reaches consumers only while its control object is open.
+
+**Refused, because it loses facts in five ways:**
+
+- **Synthesized turn boundaries**: if `begin()` / `settle()` fan out
+  `turn_started` / `turn_ended` themselves, the skeleton of the stream comes
+  from "our API was called", not from the runtime.
+- **A closed control plane swallows facts**: an `if (!isSettled) fanOut(...)`
+  gate silently drops runtime events arriving after settlement.
+- **A mandatory `turnId` loses facts without a turn**: pi's session-level
+  events (compaction, queue, retry) belong to no turn and would have
+  nowhere to go.
+- **One answer split across two paths**: a turn outcome half in a promise
+  and half in an event, or a steer half in a return value and half in the
+  stream, forces every consumer to join the two. kimi-cli leaks the turn
+  outcome into `_handle_prompt`'s return value, while the `TurnEnd`
+  docstring admits it "may be omitted" when interrupted.
+  [src: kimi-cli wire/server.py:644-755; wire/types.py]
+- **Query masquerade**: a `contextUsage()` that caches the latest usage seen
+  carries no seq, so it can neither be aligned with other records nor
+  replayed.
+
+Control and facts are therefore records on one stream, and control never
+decides whether a fact exists ([record stream](../spec/record-stream.md)).
+
+**What would reopen it:** a control-object model shown to keep every fact
+in all five cases.
+
+## Separate channels for control and facts (2026-09-03)
+
+**Considered:** fixing the control-object model by giving control and facts
+a channel each.
+
+**Refused, because every shipped runtime carries both on one channel:**
+
+- kimi-cli's message algebra is one union whose discriminator is "does it
+  expect a reply": `type WireMessage = Event | Request`, the `Request`
+  docstring verbatim "a message that expects a response". On the wire only
+  the shape differs (a request has an id); one `_write_queue` and one
+  `wire.jsonl` hold everything.
+  [src: kimi-cli@cbc15c0 wire/types.py; wire/jsonrpc.py:49-56,174-204;
+  wire/server.py; wire/file.py]
+  KLIP-12 lists "no new transport channel" as a non-goal.
+  [doc: klip-12, Implemented]
+- codex: `OutgoingMessage` carries notification / request / response on
+  one connection. [src: codex-rs/app-server/src/outgoing_message.rs:1-80]
+- kimi-cli routes sub-agent records **by obligation** (request-class records
+  passed through verbatim, the rest wrapped as `SubagentEvent`) on the same
+  channel and send: the split is by obligation, not by channel.
+  [src: subagents/runner.py:393-428]
+
+**And because total order is what channel splitting cannot buy back:** two
+paths share no seq, so "did the abort land before or after that
+tool_result" becomes permanently unanswerable. A transport stream per
+sub-agent loses it the same way, so attribution is a field on the record
+([attribution](../spec/attribution.md)).
+
+**What would reopen it:** a consumer that two channels serve and one ordered
+stream cannot, together with a way to keep one total order across them.
+
+## Concurrent control planes and prompts (2026-09-03)
+
+**Considered:** concurrent control planes, and concurrent prompt queueing:
+a session taking a new prompt while a turn runs.
+
+**Refused, because no shipped runtime needs them:** kimi-cli returns
+`INVALID_STATE` with a TODO in the source, pi has no such form, claude and
+codex do not expose the semantics. [src: kimi-cli wire/server.py:644-755]
+A session has one control plane and at most one active turn: a prompt
+while a turn runs is rejected `busy`, never queued implicitly, and input for
+a later turn is the explicit `queue`
+([record stream](../spec/record-stream.md#record-contracts)).
+
+**What would reopen it:** a runtime that defines concurrent prompts
+natively, and a host that needs them.
+
+## A storage layer (2026-09-03)
+
+**Considered:** oar persisting the records it retains, so a stream can be
+replayed after the adapter process dies.
+
+**Refused, because applications own their data layer**
+([replay boundary](foundations.md#replay-boundary)): a host persists the
+records beside its own product data, indexes and retention policy, and
+replays them through the same projections. The kernel retains records in
+memory for the adapter process's lifetime. A rebuild from the runtime's
+native history was refused separately
+([session history readback](#session-history-readback-2026-09-15)).
+
+**What would reopen it:** oar running as a service that outlives the hosts
+it serves ([placement](hard-problems.md#beyond-a-single-local-process)), so
+that no host process is there to hold the log.
+
+## A usage basis label (2026-09-03)
+
+**Considered:** a usage `origin` or accounting-basis label on usage records
+(per-turn or cumulative, which of a runtime's overlapping views), so a
+consumer can reconstruct how a number was counted.
+
+**Refused, because applications need correct, usable numbers, not a
+reconstruction of provenance.** Which runtime view is authoritative and how
+to deduplicate stay inside each adapter
+([usage](../spec/attribution.md#usage-one-constraint)). Both ACP usage RFDs
+are still Draft with open items verbatim including "Ambiguous totals",
+"Per-turn vs cumulative", "Cost separation", so a basis label would hand
+consumers an unsettled problem.
+[acp, pinned clone bb2ef8f7: session-usage.mdx; end-turn-token-usage.mdx:26,97,101]
+
+**What would reopen it:** ACP settling those items, or a consumer whose
+decision needs the basis and not only the number.
+
+## A per-agent cursor filter (2026-09-03)
+
+**Considered:** a cursor that resumes one sub-agent's records only (a
+`streamId` filter on `Cursor`).
+
+**Refused, because no consumer has demonstrated "resume just one
+sub-agent".** For a single-agent view, resume the whole stream and filter
+client-side by `agentPath`
+([cursor](../spec/session-graph-and-cursor.md#the-resumable-cursor)).
+
+**What would reopen it:** a consumer that must resume one sub-agent and
+cannot read the whole stream to do it.
+
 ## Session history readback (2026-09-15)
 
 **Asked for:** a provider-independent way to read a stored session back

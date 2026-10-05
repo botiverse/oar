@@ -22,10 +22,12 @@ The external promise: everything the runtime said is in the stream, nothing
 oar didn't observe is in it, every record knows whose it is, and the stream
 is resumable from any position.
 
-**Non-goals:** multiple transport channels, multiple control planes,
-concurrent prompt queueing (no shipped runtime needs it; see
-[record-stream.md](record-stream.md)); a storage layer; usage *derivation*
-(cumulative/epoch/boundary views are consumer business).
+**Non-goals:** multiple transport channels
+([decision](../design/decisions.md#separate-channels-for-control-and-facts-2026-09-03));
+multiple control planes and concurrent prompt queueing
+([decision](../design/decisions.md#concurrent-control-planes-and-prompts-2026-09-03));
+a storage layer ([decision](../design/decisions.md#a-storage-layer-2026-09-03));
+usage *derivation* (cumulative/epoch/boundary views are consumer business).
 
 ## Pages
 
@@ -65,12 +67,12 @@ every adapter:
   nothing synthesized; the turn's start is the prompt request, its end the
   runtime's own completion event;
 - the consumer face: `events()` delivers every reading as a flat `Event`
-  (an event body plus the record's envelope): text, reasoning, tool call
-  start / progress / end, turn end, usage, model, effort, compaction start /
-  end and retry as the runtime says them, plus `turn_started`,
-  `input_withdrawn`, `control_rejected`, `app_request`, `app_answered` and
-  `exited` read off request/response records; a pure projection (`eventsOf`)
-  over the stream, never a second source of truth;
+  (an event body plus the record's envelope): native user messages, text,
+  reasoning, tool call start / progress / end, turn end, usage, model,
+  effort, compaction start / end, retry and tasks as the runtime says them,
+  plus `turn_started`, `input_withdrawn`, `control_rejected`, `app_request`,
+  `app_answered` and `exited` read off request/response records; a pure
+  projection (`eventsOf`) over the stream, never a second source of truth;
 - control as records: prompt / steer / queue / withdraw / abort / dispose requests
   answered `accepted` / `rejected` (a rejection carries a typed `code` beside
   its prose `reason`); the `Session` returns those records read, as a
@@ -106,9 +108,12 @@ they appear:
    causal-link field between records (a `causedBy`-style pointer). Adding
    one stays open.
 2. **Capability declaration beyond attribution.** A whole operation a
-   runtime cannot do is a member the session lacks (`steer`); an option it
+   runtime cannot do is a member it lacks (`Session.steer`,
+   `Session.withdraw`, `Runtime.accountUsage`;
+   [capabilities](../design/capabilities.md)); an option it
    cannot honor is refused with an `UnsupportedOptionError`, declared up
-   front in `Runtime.refusedSessionOptions`
+   front in `Runtime.refusedSessionOptions` where it is known before the
+   session opens
    ([refused session options](runtime-matrix.md#refused-session-options));
    `SessionCapabilities` declares queue durability, the attribution tier and
    image input. Which further facts deserve a declaration (a remote

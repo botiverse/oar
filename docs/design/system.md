@@ -17,7 +17,7 @@ policy, storage, scheduling, and presentation.
 flowchart TB
   Discover[Discover<br/>install · auth · models]
   Declare[Declare<br/>capabilities · limits · evidence]
-  Control[Control<br/>session · prompt · steer · queue · abort]
+  Control[Control<br/>session · prompt · steer · queue · withdraw · abort]
   Record[Record<br/>ordered lossless stream]
   Project[Project<br/>status · model · usage · context · graph]
   Continue[Continue<br/>cursor · resume · voyage · handoff]
@@ -27,10 +27,11 @@ flowchart TB
 
 - **Discover** is bounded: installation probing does not perform account I/O,
   and model/usage reads expose their authentication and resource cost.
-- **Declare** is the decision surface. A capability declaration should make
-  support and limits legible without promising more than the selected
-  interface proves. The current session surface is deliberately smaller; see
-  the roadmap before treating richer states as shipped.
+- **Declare** is the decision surface. What a runtime or session can do is in
+  its type: an operation it lacks is an absent member, an option it cannot
+  honor is a typed `UnsupportedOptionError`, and a declaration exists only
+  where a host must decide before acting ([capabilities](capabilities.md)).
+  Nothing promises more than the interface proves.
 - **Control** is explicit. Every action has a typed acceptance result and a
   known landing point; a rejection leaves the input with its caller.
 - **Record** is the evidence boundary. One ordered stream preserves native

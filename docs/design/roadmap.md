@@ -8,14 +8,20 @@ increments, not a promise to add every feature listed.
 - A provider-independent runtime registry with installation, model, account
   usage, native inventory, update check and session entry points.
 - One lossless, attributed, resumable record stream with explicit, typed
-  controls (`prompt`, `steer`, `queue`, `abort`, `deliver`, `dispose`), input
-  identity and origin, images, and task events for runtime background work.
+  controls (`prompt`, `steer`, `queue`, `withdraw`, `abort`, `deliver`,
+  `dispose`), input identity and origin, images, and task events for runtime
+  background work.
 - Read models over that stream: status, conversation, session view, usage,
   context, tasks.
 - `@botiverse/oar/agents` and `oar mcp`: subagents on any runtime, reported
   back through a host-owned hook.
-- Runtime-specific capability declarations (deliberately limited), native
-  payload reachability, read-backs, and typed unsupported outcomes.
+- Capabilities as types ([capabilities](capabilities.md)): absent members for
+  missing operations, `UnsupportedOptionError` for refused options, and
+  declarations only for pre-action decisions; native payload reachability and
+  read-backs.
+- Runtimes whose SDK the host installs and hands over
+  (`createCursorRuntime`), with a clean-install check of the published
+  packages.
 - Mock, aimock, vendor, experiment and live validation layers, with voyage
   logs as durable evidence.
 
@@ -103,16 +109,16 @@ input on every runtime, and no runtime reports a level it does not run.
 Only when a real host needs remote or multi-client operation: remote
 placement is `oar serve` on the agent host with a thin application-side
 client, and adapter-as-client is limited to managed cloud runtimes
-(architecture v4, Raft thread `#all:e1d09817`, message `5b5e279b`). Two
-supporting pages have no draft yet: the transport binding and the capability
-declaration (from message `b95d8f33`; the declaration still needs owner
-endorsement). Preserve ordering, cursors, attribution and native
-reachability; do not create a remote-only contract.
+(architecture v4, Raft thread `#all:e1d09817`, message `5b5e279b`). One
+supporting page has no draft yet: the transport binding (from message
+`b95d8f33`). A remote client cannot read which members a session has, so the
+binding must carry the facts [capabilities](capabilities.md) keeps in types.
+Preserve ordering, cursors, attribution and native reachability; do not
+create a remote-only contract.
 
 **Acceptance:** local and remote hosts pass the same behavior cases and define
-disconnect and reconnect by evidence rather than heartbeat guesses. Remote
-clients choose actions from the capability declaration, so this item lands
-after that page is settled.
+disconnect and reconnect by evidence rather than heartbeat guesses, and a
+remote client chooses actions from the same capability facts as a local one.
 
 ## Decision gates
 

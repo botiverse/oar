@@ -50,7 +50,7 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 | Stream fact | View effect |
 |---|---|
 | `prompt` request | its `ConversationInput` enters `messages`, and its turn opens below it |
-| `steer` / `queue` request | on a stream that has echoed an input id before (codex, claude): the input waits in `pendingInputs` until its echo. On one that never has (pi, grok, kimi): it enters `messages` at the request and seals the open segment |
+| `steer` / `queue` request | on a stream that has echoed an input id before (codex, claude): the input waits in `pendingInputs` until its echo. On one that never has (pi, cursor and the ACP runtimes): it enters `messages` at the request and seals the open segment |
 | `prompt` / `steer` / `queue` response | updates the input in place, with attempts and delivery state (folded by `reduceConversation`). A rejected input enters `messages` there if it was waiting; a retry of it that must wait for its echo takes it back out |
 | `withdraw` request / response | an attempt on the input it names. Accepted: the input is `withdrawn` and leaves `pendingInputs`, and `messages` too where the stream placed it at its request; the segment that request sealed stays sealed. Refused `not_queued`: nothing moves. Queued again, the input enters by the rows above |
 | `text_delta`, `reasoning` | appended to the current section of the lane `(sessionId, agentPath)`; a `text_delta` whose `messageId` differs from the last text part's starts a new part (one per assistant message), one without a `messageId` joins the last; `redacted` and `empty` reasoning render as lifecycle-only parts |
@@ -70,7 +70,7 @@ For an application that renders with assistant-ui:
 | View field | assistant-ui surface |
 |---|---|
 | input text, attempts, observations | user message text, plus metadata for a delivery badge |
-| `pendingInputs` | outside the thread: a tray above the composer until the runtime takes the input. Where `session.withdraw` exists, a queued entry can offer withdraw, edit and send now (see Commands), and a withdrawn one leaves the tray. An entry the adapter already sent but the runtime has not echoed yet answers `not_queued`. On a stream that never echoes (pi, ACP runtimes) a queued input sits in `messages` instead, and the same commands can hang off that bubble while its latest attempt is a queue |
+| `pendingInputs` | outside the thread: a tray above the composer until the runtime takes the input. Where `session.withdraw` exists, a queued entry can offer withdraw, edit and send now (see Commands), and a withdrawn one leaves the tray. An entry the adapter already sent but the runtime has not echoed yet answers `not_queued`. On a stream that never echoes (pi, cursor, ACP runtimes) a queued input sits in `messages` instead, and the same commands can hang off that bubble while its latest attempt is a queue |
 | text, reasoning | standard parts |
 | tool part | tool call part (`argsText` from `input`, `result` from `content` once ended or the streamed `output` while running, `isError` when `result === "failed"`); image parts render as images |
 | sub-agent section | a custom part and renderer: the projection's largest value, since every client otherwise rebuilds it |

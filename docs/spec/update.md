@@ -3,7 +3,8 @@
 `runtime.checkUpdate(installation, options?)` reports the version the
 runtime's own updater would install. `runtime.upgrade(installation, options?)`
 runs that updater. Both are independent of sessions, like
-[account usage](account-usage.md). The
+[account usage](account-usage.md), and both are optional members; the
+[table below](#per-runtime) says which runtime has which. The
 [TypeScript contract](../../packages/oar/src/contracts/update.ts) defines the
 results. The [runtime evidence](../runtimes/update.md) records how each
 updater behaved when probed.
@@ -45,7 +46,7 @@ verdict where it gives one; otherwise `latest !== installed`.
 
 | Reason | Meaning |
 | --- | --- |
-| unsupported_installation | Not a machine installed executable; a bundled runtime (pi, cursor) moves with the oar version. |
+| unsupported_installation | Not a machine installed executable: a `bundled` installation moves with the package that carries it. |
 | package_manager | A package manager (Homebrew, WinGet, mise) owns the copy and its updates. |
 | unmanaged_installation | The runtime's updater does not recognize the copy (codex reports `manual or unknown` for a copied binary). |
 | updates_disabled | The runtime's configuration turns updates off (claude `DISABLE_UPDATES`). |
@@ -75,7 +76,8 @@ instruction to run `brew upgrade`.
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
 | antigravity | The ACP registry entry, which trails Google's downloads; only a newer registry version counts | none: no updater exists |
-| pi, cursor | none: bundled with oar | none |
+| pi | none: bundled with oar | none |
+| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.0.35) | none |
 
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.

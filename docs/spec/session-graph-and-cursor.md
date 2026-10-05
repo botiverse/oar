@@ -27,6 +27,8 @@ information is not stored twice.
   (`subAgentActivity.agentThreadId`, `receiverThreadIds`). [env 0.149.0]
 - claude: `parent_tool_use_id` is agent parent/child and produces no new
   session; carried by `agentPath`, not in the graph. [sym]
+- cursor: a subagent's updates arrive inside the parent's `task` call and
+  produce no new session; carried by `agentPath`, not in the graph. [env]
 
 ```ts
 interface SessionNode { id: string; }
@@ -67,8 +69,9 @@ those records, never the runtime's history: native storage is not isomorphic
 to the wire and cannot reproduce it, so a rebuild from it is not implemented and
 was refused as a readback
 ([decision](../design/decisions.md#session-history-readback-2026-09-15);
-[replay boundary](../design/foundations.md#replay-boundary)). oar does not
-own storage, so it grows no storage layer for this.
+[replay boundary](../design/foundations.md#replay-boundary)). oar has no
+storage layer of its own
+([decision](../design/decisions.md#a-storage-layer-2026-09-03)).
 
 - `SessionOptions.resume` takes a runtime-native id and reopens the
   conversation; the cursor sinks resumable reading to the record level.
@@ -80,15 +83,16 @@ own storage, so it grows no storage layer for this.
 
 ```ts
 interface Cursor { sessionId: string; afterSeq: number; }
-// No per-agent resume filter: no consumer has demonstrated "resume just one
-// sub-agent". For a single-agent view, resume the whole stream and filter
-// client-side by agentPath.
 // Session.rawEvents(observer, cursor) replays every retained record with
 // seq > afterSeq synchronously, then continues live;
 // Session.events(observer, { cursor }) does the same for the flat Events;
 // Session.records() is the retained log. A cursor for another session id
 // throws. Pinned by sea-trial `session.cursor-replays-without-loss-or-duplication`.
 ```
+
+A cursor has no per-agent filter: for a single-agent view, resume the whole
+stream and filter client-side by `agentPath`
+([decision](../design/decisions.md#a-per-agent-cursor-filter-2026-09-03)).
 
 **Scope of the cursor.** The kernel retains every record for the lifetime
 of the adapter process, so a reconnecting subscriber misses nothing and
