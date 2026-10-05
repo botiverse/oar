@@ -115,8 +115,9 @@ arrives as a `ProviderLoginInteraction` event, and a code the person pastes
 back is answered through its `manual_code` prompt and written to the
 runtime's stdin only. It never logs the current account out first, and
 `interaction.signal` cancels it. `runtime.authStatus(installation)` reads the
-runtime's local status query. Claude and Codex have both; Antigravity's login
-is `unsupported` (its terms). See
+runtime's local status query. Claude and Codex have both; Antigravity has
+neither, since its terms do not allow signing in through a third-party tool.
+See
 [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
 
 Images go with an input through `InputOptions.images` (`{ path }` entries:

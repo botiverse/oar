@@ -21,8 +21,7 @@ export type LoginFailureReason =
 /** Why oar cannot drive this runtime's login. */
 export type LoginUnsupportedReason =
   | "unsupported_installation" // not a machine-installed executable
-  | "version_unsupported" // the installed version predates the login path oar drives (`detail` names the floor)
-  | "terms_of_service"; // the runtime's terms do not allow signing in through a third-party tool
+  | "version_unsupported"; // the installed version predates the login path oar drives (`detail` names the floor)
 
 /**
  * How a login ended. `failed.detail` and `unsupported.detail` are for people:

@@ -85,7 +85,7 @@ test("a login reports the runtime's result and maps it to the exit code", async 
     { kind: "logged_in", account: { email: "user@example.com", plan: "pro", method: "claude.ai" } },
     { kind: "cancelled" },
     { kind: "failed", reason: "rejected", detail: "invalid_grant" },
-    { kind: "unsupported", reason: "terms_of_service" },
+    { kind: "unsupported", reason: "version_unsupported", detail: "claude 2.1.126 or later is required; this is 2.1.100" },
   ] as const;
   const reports = await Promise.all(results.map(async (result) => runLogin(runtime("fake", {
     login: async () => {
@@ -108,7 +108,7 @@ test("a login reports the runtime's result and maps it to the exit code", async 
         1,
       ],
       [
-        "fake	login unsupported: terms_of_service",
+        "fake	login unsupported: version_unsupported (claude 2.1.126 or later is required; this is 2.1.100)",
         1,
       ],
     ]

@@ -47,6 +47,11 @@ that pi's provider login already uses.
 - **`login` changes the machine.** oar never calls it on its own; a host
   calls it on a person's request. `authStatus` is read only and cheap: the
   runtime's local status query, no login flow, no secret in the result.
+- **Absent where oar never drives it.** A runtime whose login oar would
+  refuse on every machine has no `login` member
+  ([capabilities](../design/capabilities.md)): antigravity, whose terms do
+  not allow it. `unsupported` is only for what the machine decides, its
+  installation or its version.
 
 ## Interaction
 
@@ -87,7 +92,6 @@ caller closes it. A prompt or event handler that throws stops the login with
 | --- | --- |
 | unsupported_installation | Not a machine-installed executable. |
 | version_unsupported | The installed version predates the login path oar drives; `detail` names the floor. An unreadable version is tried, not refused. |
-| terms_of_service | The runtime's terms do not allow logging in through a third-party tool. |
 
 ## Status results
 
@@ -101,7 +105,7 @@ never a guess either way. `source` names the command that answered.
 | --- | --- | --- | --- | --- |
 | claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | 2.1.126 | 15 min |
 | codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | 0.118.0 | 16 min |
-| antigravity | none: `unsupported` / `terms_of_service` | none | | |
+| antigravity | no `login`: its terms do not allow a sign-in through a third-party tool ([page](../runtimes/antigravity.md)) | none | | |
 | cursor, grok, kimi, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
