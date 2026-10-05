@@ -259,7 +259,8 @@ token totals, only `usage_update` context.
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
 `content` text block, and no `rawInput`, so `tool_call_started` has no
-`input`. The arguments then stream as partial-JSON `content` text over a
+`input` (`classifyTool` reads `Bash` as `run_command`, with no command to
+show). The arguments then stream as partial-JSON `content` text over a
 dozen `tool_call_update` frames with no event (`content` while `in_progress`
 is input, not output, so it is never read as `tool_call_progress`; only an
 update carrying `rawOutput` would be), and one more update carries the full

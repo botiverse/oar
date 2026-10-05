@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { classifyTool, toolActionLabel } from "../../packages/oar/src/observe/tool-activity.js";
+import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 /**
@@ -60,6 +61,35 @@ function toolCallsFromPi(lines: string[]): ToolCall[] {
   return calls;
 }
 
+/**
+ * The ACP vendor snapshots (experiments/acp-vendor-snapshot.ts) keep each tool frame's
+ * `title`, `kind`, `status` and the KEYS of its `rawInput`, not their values; each recorded
+ * one call. The frames run through the ACP projection, so the call starts where
+ * `tool_call_started` really does (the opening `tool_call`), with each recorded key holding
+ * its own name in brackets: what a field is read from, never a value the runtime did not send.
+ */
+function toolCallsFromAcpSnapshot(runtime: "grok" | "kimi"): ToolCall[] {
+  const text = readFileSync(path.join(here, "fixtures", `${runtime}-acp-v1.vendor.json`), "utf8");
+  const snapshot = asRecord(parseJson(text));
+  const frames: unknown = asRecord(snapshot?.prompt)?.tools;
+  const state = createAcpProjectionState();
+  return (Array.isArray(frames) ? frames : []).flatMap((raw: unknown) => {
+    const { sessionUpdate, title, kind, status, rawInputKeys } = asRecord(raw) ?? {};
+    const keys = Array.isArray(rawInputKeys) ? rawInputKeys.filter((key): key is string => typeof key === "string") : [];
+    const events = projectAcpUpdate(state, {
+      toolCallId: "recorded",
+      sessionUpdate,
+      ...(title === undefined ? {} : { title }),
+      ...(kind === undefined ? {} : { kind }),
+      ...(status === undefined ? {} : { status }),
+      ...(keys.length === 0 ? {} : { rawInput: Object.fromEntries(keys.map((key) => [key, `<${key}>`])) }),
+    });
+    return events.flatMap((event): ToolCall[] => (event.kind === "tool_call_started"
+      ? [{ runtime, tool: event.tool, ...(event.input === undefined ? {} : { input: event.input }) }]
+      : []));
+  });
+}
+
 function fixture(name: string): string[] {
   return readFileSync(path.join(here, "fixtures", name), "utf8").split("\n").filter((l) => l.trim());
 }
@@ -101,4 +131,47 @@ test("shell calls carry their command, and claude's its description, as recorded
   expect(shellFields(claude)).toEqual({ command: "echo oar-replay-marker", description: "Echo the marker string" });
   expect(shellFields(codex)).toEqual({ command: "/bin/bash -lc 'echo oar-codex-marker'", description: undefined });
   expect(shellFields(pi)).toEqual({ command: "echo oar-round-one", description: undefined });
+});
+
+test("grok tool calls render as friendly activity", async () => {
+  await expect(render(toolCallsFromAcpSnapshot("grok"))).toMatchFileSnapshot(path.join(here, "fixtures", "grok-acp-v1.activity.txt"));
+});
+
+test("kimi tool calls render as friendly activity", async () => {
+  await expect(render(toolCallsFromAcpSnapshot("kimi"))).toMatchFileSnapshot(path.join(here, "fixtures", "kimi-acp-v1.activity.txt"));
+});
+
+test("ACP shell calls: grok's opening input carries its command and description, kimi's opens with none", () => {
+  const classified = (runtime: "grok" | "kimi") =>
+    toolCallsFromAcpSnapshot(runtime).map((call) => ({ call, action: classifyTool(call.runtime, call.tool, call.input) }));
+  expect({ grok: classified("grok"), kimi: classified("kimi") }).toMatchInlineSnapshot(`
+    {
+      "grok": [
+        {
+          "action": {
+            "command": "<command>",
+            "description": "<description>",
+            "detail": "<command>",
+            "kind": "run_command",
+          },
+          "call": {
+            "input": "{"command":"<command>","description":"<description>"}",
+            "runtime": "grok",
+            "tool": "run_terminal_command",
+          },
+        },
+      ],
+      "kimi": [
+        {
+          "action": {
+            "kind": "run_command",
+          },
+          "call": {
+            "runtime": "kimi",
+            "tool": "Bash",
+          },
+        },
+      ],
+    }
+  `);
 });
