@@ -5,7 +5,7 @@
   "scripts": {
     "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
     "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings --ignore-pattern 'tests/community/**' packages/oar/src packages/cli/src apps/arena experiments sea-trial tests vitest.config.ts",
+    "lint": "oxlint --type-aware --deny-warnings --ignore-pattern \"tests/community/**\" packages/oar/src packages/cli/src apps/arena experiments sea-trial tests vitest.config.ts",
     "test": "vitest run",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run sea-trial",
     "oar": "pnpm run build && node packages/cli/dist/index.js",
