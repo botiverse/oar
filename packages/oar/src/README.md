@@ -12,6 +12,7 @@ src/
   kernel.ts                # @botiverse/oar/kernel: the runtime-author SPI
   contracts/               # provider-independent agreements
   runtimes/<id>/           # one runtime, split by capability
+  community/<id>/          # a contributor-maintained runtime, exported from @botiverse/oar/community, not in the built-in registry
   shared/                  # mechanisms + shared contract implementations
   observe/                 # consumer-side derivations over the record stream (events.ts: eventsOf + coalesceText behind Session.events(); status fold, turn helpers, usage folds, conversation and session view)
   agents/                  # @botiverse/oar/agents: subagents over a runtime registry (built-in by default)
