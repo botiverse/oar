@@ -193,7 +193,7 @@ error, signal, timeout, exit code and stderr tail in their exception too.
    identity to `shared/` ([source layout](../packages/oar/src/README.md) has
    the import rules).
 3. **Register it in `src/index.ts`**, the only composition root: import, add
-   to the built-in `runtimes` registry, re-export. Give it a `runtimeBrands`
+   to the built-in `defaultRuntimes` registry, re-export. Give it a `runtimeBrands`
    entry in `src/brands.ts` with its SVG in `packages/oar/assets/brands/`
    (attribution in `NOTICE.md`). A runtime that needs something the host
    installs (cursor's SDK) is not built in: export its constructor instead,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
-import { RuntimeRegistry, defineRuntime, runtimes } from "../packages/oar/src/index.js";
+import { RuntimeRegistry, defineRuntime, defaultRuntimes } from "../packages/oar/src/index.js";
 
 test("registry preserves one canonical runtime per id", () => {
   const alpha = defineRuntime({ id: "alpha", session: startMockSession });
@@ -12,7 +12,7 @@ test("registry preserves one canonical runtime per id", () => {
 });
 
 test("built-in registry exposes concrete ACP runtimes, not a generic ACP identity", () => {
-  assert.deepEqual(runtimes.list().map((runtime) => runtime.id), [
+  assert.deepEqual(defaultRuntimes.list().map((runtime) => runtime.id), [
     "antigravity",
     "claude",
     "codex",
@@ -20,5 +20,5 @@ test("built-in registry exposes concrete ACP runtimes, not a generic ACP identit
     "kimi",
     "pi",
   ]);
-  assert.equal(runtimes.get("acp"), undefined);
+  assert.equal(defaultRuntimes.get("acp"), undefined);
 });

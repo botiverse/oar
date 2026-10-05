@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { codexSkills, codexTools, codexMcpServers } from "../packages/oar/src/runtimes/codex/inventory.js";
 import { claudeSkills, claudeTools, claudeMcpServers } from "../packages/oar/src/runtimes/claude/inventory.js";
 import { grokSkills, grokMcpServers } from "../packages/oar/src/runtimes/grok/inventory.js";
-import { runtimes } from "../packages/oar/src/index.js";
+import { defaultRuntimes } from "../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-process.js";
 
@@ -183,8 +183,8 @@ test("Grok independent discovery never authenticates or creates a session", asyn
 });
 
 test("unavailable native surfaces return unsupported without starting a runtime", async () => {
-  await expect(runtimes.require("kimi").skills(executable)).resolves.toMatchObject({ kind: "unsupported" });
-  await expect(runtimes.require("grok").tools(executable)).resolves.toMatchObject({ kind: "unsupported" });
-  await expect(runtimes.require("pi").mcpServers({ kind: "available", via: "bundled" })).resolves.toMatchObject({ kind: "unsupported" });
+  await expect(defaultRuntimes.require("kimi").skills(executable)).resolves.toMatchObject({ kind: "unsupported" });
+  await expect(defaultRuntimes.require("grok").tools(executable)).resolves.toMatchObject({ kind: "unsupported" });
+  await expect(defaultRuntimes.require("pi").mcpServers({ kind: "available", via: "bundled" })).resolves.toMatchObject({ kind: "unsupported" });
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });

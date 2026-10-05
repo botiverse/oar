@@ -14,7 +14,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { findPackageJSON } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import type { promptAndWait, runtimes } from "../packages/oar/src/index.js";
+import type { promptAndWait, defaultRuntimes } from "../packages/oar/src/index.js";
 import { startPiAimock } from "../sea-trial/harness/aimock.js";
 
 const currentRepo = fileURLToPath(new URL("..", import.meta.url));
@@ -36,9 +36,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function isOarModule(value: unknown): value is { promptAndWait: typeof promptAndWait; runtimes: typeof runtimes } {
+/** A checkout before 0.21.0 names the default registry `runtimes`. */
+interface OarModule {
+  readonly promptAndWait: typeof promptAndWait;
+  readonly defaultRuntimes?: typeof defaultRuntimes;
+  readonly runtimes?: typeof defaultRuntimes;
+}
+
+function isOarModule(value: unknown): value is OarModule {
   return isRecord(value) && typeof value.promptAndWait === "function"
-    && isRecord(value.runtimes) && typeof value.runtimes.require === "function";
+    && [value.defaultRuntimes, value.runtimes].some((registry) => isRecord(registry) && typeof registry.require === "function");
 }
 
 async function readResult(out: string, stage: string): Promise<Result> {
@@ -62,7 +69,9 @@ async function child(stage: string, repo: string, out: string): Promise<void> {
   const metadata: unknown = JSON.parse(await readFile(sdkPackage, "utf8"));
   assert.ok(isRecord(metadata) && typeof metadata.version === "string");
   const { version } = metadata;
-  const runtime = oar.runtimes.require("pi");
+  const registry = oar.defaultRuntimes ?? oar.runtimes;
+  assert.ok(registry !== undefined, "checkout must expose its default registry");
+  const runtime = registry.require("pi");
   const installation = await runtime.installation?.();
   assert.ok(installation?.kind === "available", "bundled Pi SDK must be available");
   const before = stage === "after" ? await readResult(out, "before") : undefined;

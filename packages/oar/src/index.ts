@@ -160,9 +160,9 @@ export { piInstallation } from "./runtimes/pi/installation.js";
  * The runtimes OAR builds without the host's help. Cursor is not one: its
  * SDK is the host's to install, and a host that wants it adds
  * `createCursorRuntime({ sdk: () => import("@cursor/sdk") })` to a registry
- * of its own (`createRuntimeRegistry([...runtimes.list(), cursor])`).
+ * of its own (`createRuntimeRegistry([...defaultRuntimes.list(), cursor])`).
  */
-export const runtimes = new RuntimeRegistry([
+export const defaultRuntimes = new RuntimeRegistry([
   antigravityRuntime,
   claudeRuntime,
   codexRuntime,

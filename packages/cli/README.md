@@ -13,7 +13,7 @@ oar run claude "What does this repo do?"
 
 ## Commands
 
-The registered runtimes are OAR's built-in `runtimes` plus cursor, which the
+The registered runtimes are OAR's `defaultRuntimes` plus cursor, which the
 CLI adds itself on the `@cursor/sdk` 1.0.35 it depends on
 (`src/runtimes.ts`). Commands that take an optional `[runtime]` cover every
 registered runtime when it is omitted (or `all`).

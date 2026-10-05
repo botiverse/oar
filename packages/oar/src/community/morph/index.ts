@@ -21,7 +21,7 @@ export type MorphRuntime = Runtime & Required<Pick<Runtime, "installation" | "li
  * Mister Morph, driven through its Console Runtime API
  * (docs/runtimes/morph.md). A community runtime: not in the built-in
  * `runtimes` registry; a host adds it with
- * `createRuntimeRegistry([...runtimes.list(), createMorphRuntime()])`.
+ * `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])`.
  */
 export function createMorphRuntime(): MorphRuntime {
   return defineRuntime({

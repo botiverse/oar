@@ -15,12 +15,12 @@ import { createServer, type ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { runtimes, type ControlResult, type RawEvent } from "../packages/oar/src/index.js";
+import { defaultRuntimes, type ControlResult, type RawEvent } from "../packages/oar/src/index.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/codex-instant-interrupt");
 await mkdir(out, { recursive: true });
-const runtime = runtimes.require("codex");
+const runtime = defaultRuntimes.require("codex");
 const detected = await runtime.installation?.();
 assert.ok(detected?.kind === "available", "Codex app-server must be installed");
 const installation = detected;

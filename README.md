@@ -96,9 +96,9 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 ## Library
 
 ```ts
-import { promptAndWait, runtimes } from "@botiverse/oar";
+import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
 
-const grok = runtimes.require("grok");
+const grok = defaultRuntimes.require("grok");
 const installation = await grok.installation?.();
 
 if (installation?.kind === "available") {
@@ -126,8 +126,8 @@ and `session.records()` expose the underlying record stream with every native
 payload verbatim. The [package README](packages/oar/README.md) lists the
 public entry points.
 
-`runtimes` holds every runtime but Cursor, whose SDK you install and hand
-over: `createRuntimeRegistry([...runtimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
+`defaultRuntimes` holds every runtime but Cursor, whose SDK you install and hand
+over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
 ([why](docs/runtimes/cursor.md#installation-and-account-usage)).
 
 ## Handy utilities, no session needed
@@ -139,9 +139,9 @@ and tools it has. One API covers every supported runtime, so a dashboard, a
 setup wizard or a quota monitor needs no per-runtime code.
 
 ```ts
-import { runtimes } from "@botiverse/oar";
+import { defaultRuntimes } from "@botiverse/oar";
 
-for (const runtime of runtimes.list()) {
+for (const runtime of defaultRuntimes.list()) {
   const installation = await runtime.installation?.();
   if (installation?.kind === "available") {
     const [usage, models, update] = await Promise.all([

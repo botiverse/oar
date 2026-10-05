@@ -3,7 +3,7 @@
 OAR exposes three independent native queries on every runtime:
 
 ```ts
-const runtime = runtimes.require("codex");
+const runtime = defaultRuntimes.require("codex");
 const installation = await runtime.installation?.();
 if (installation?.kind === "available") {
   const skills = await runtime.skills(installation, { cwd: "/my/project" });

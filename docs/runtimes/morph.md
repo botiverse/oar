@@ -3,8 +3,8 @@
 **Community runtime**, maintained by [@lyricat](https://github.com/lyricat). Verified against a real Console only by the live probe below (2026-10-04); the shared behavior suite has not run against one.
 
 It lives in `packages/oar/src/community/morph/` and is exported from
-`@botiverse/oar/community`, not the built-in `runtimes` registry; a host adds
-it with `createRuntimeRegistry([...runtimes.list(), createMorphRuntime()])`.
+`@botiverse/oar/community`, not `defaultRuntimes`; a host adds it with
+`createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])`.
 The `oar` CLI includes it. Its tests (`tests/community/morph/`) run only with
 `OAR_COMMUNITY_TESTS=1`.
 

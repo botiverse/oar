@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
-import { createCursorRuntime, runtimes, type CursorSdk } from "../../packages/oar/src/index.js";
+import { createCursorRuntime, defaultRuntimes, type CursorSdk } from "../../packages/oar/src/index.js";
 
 const bundled = { kind: "available", via: "bundled" } as const;
 
@@ -14,7 +14,7 @@ function catalogOnly(): CursorSdk {
 }
 
 test("cursor is not built in: the host hands over its SDK", () => {
-  assert.equal(runtimes.get("cursor"), undefined);
+  assert.equal(defaultRuntimes.get("cursor"), undefined);
   assert.equal(createCursorRuntime({ sdk: async () => catalogOnly() }).id, "cursor");
 });
 

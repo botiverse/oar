@@ -85,7 +85,7 @@ A package the host installs is handed over, never looked up. Written in the
 host's own code, `import("@cursor/sdk")` fails the host's compile when the
 package is missing (`skipLibCheck` cannot hide it), checks the SDK's types
 against what OAR uses, and is visible to a bundler; a lookup inside OAR
-would fail only at run time. The built-in `runtimes` registry holds what OAR
+would fail only at run time. `defaultRuntimes` holds what OAR
 can build without the host, and a host adds the rest to a registry of its
 own, the way Ferry and rowrow already add their test runtimes.
 
