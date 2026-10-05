@@ -113,15 +113,6 @@ conclusion indexed in the experiments README. Not run in CI and not part of
 validating a change; reach for one when the vendor's actual behavior is the
 open question.
 
-Windows Codex behavior jobs forward child stderr to the job log with
-`OAR_CHILD_STDERR=inherit`, including failures before a session trace exists.
-Artifact upload warns when no trace directory was created; the failed test
-or startup step still fails the job. Codex RPC exit errors also retain a
-bounded stderr tail without this setting, so use that evidence before
-changing a timeout or assertion to address an intermittent startup failure.
-Installation readiness and `--version` execution failures retain the native
-error, signal, timeout, exit code and stderr tail in their exception too.
-
 ### Live: does the strong claim hold on the real runtime?
 
 The shared cases assert the minimum every backend must honor. The strong
@@ -141,10 +132,30 @@ runtime's page and the experiments README.
 `pnpm test` but skip unless `OAR_TEST` names their backend, so run them for
 the backend you touched. Rebase on origin/main before pushing.
 
-CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs
-`pnpm run check` and `pnpm run build` on Linux, macOS and Windows, and, per
-aimock backend on the same three systems, `pnpm run sea-trial` plus that
-backend's vendor tests.
+CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
+or pull request whose changes are all Markdown files or under `docs/` or
+`assets/`. Otherwise it runs three jobs:
+
+- `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
+- `behavior`: per aimock backend on the same three systems,
+  `pnpm run sea-trial` plus that backend's vendor tests.
+- `clean-install`: `pnpm run clean-install`
+  ([`tests/clean-install.ts`](../tests/clean-install.ts)) on Linux. Both
+  packages are packed and `npm install`ed into an empty project: without the
+  optional peer `@cursor/sdk`, OAR must load, type-check and probe every
+  built-in runtime, and the line that adds cursor must fail the host's
+  compile; with the SDK added, cursor loads. The CLI, installed after the
+  host's SDK is removed again, lists cursor's models through the SDK it
+  depends on itself. It needs the npm registry.
+
+Windows Codex behavior jobs forward child stderr to the job log with
+`OAR_CHILD_STDERR=inherit`, including failures before a session trace exists.
+Artifact upload warns when no trace directory was created; the failed test
+or startup step still fails the job. Codex RPC exit errors also retain a
+bounded stderr tail without this setting, so use that evidence before
+changing a timeout or assertion to address an intermittent startup failure.
+Installation readiness and `--version` execution failures retain the native
+error, signal, timeout, exit code and stderr tail in their exception too.
 
 ## How to add a new runtime
 
@@ -182,10 +193,13 @@ backend's vendor tests.
    identity to `shared/` ([source layout](../packages/oar/src/README.md) has
    the import rules).
 3. **Register it in `src/index.ts`**, the only composition root: import, add
-   to the built-in `runtimes` registry, re-export. A runtime that needs
-   something the host installs (cursor's SDK) is not built in: export its
-   constructor instead, and add it to `sea-trial/harness/runtimes.ts` and
-   the CLI's registry ([capabilities](design/capabilities.md#a-runtimes-own-settings)).
+   to the built-in `runtimes` registry, re-export. Give it a `runtimeBrands`
+   entry in `src/brands.ts` with its SVG in `packages/oar/assets/brands/`
+   (attribution in `NOTICE.md`). A runtime that needs something the host
+   installs (cursor's SDK) is not built in: export its constructor instead,
+   and add it to `allRuntimes` in `sea-trial/harness/runtimes.ts` and to the
+   CLI's registry in `packages/cli/src/runtimes.ts`
+   ([capabilities](design/capabilities.md#a-runtimes-own-settings)).
 4. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
    against your real local installation. The cases in `sea-trial/cases/` are
    the contract: make the runtime pass them, don't loosen them to fit. A case
@@ -243,3 +257,24 @@ backend's vendor tests.
 - **Failures must self-diagnose.** Include the actual value in the assertion
   message; long-running suites write traces and artifacts under
   `oar-trial-run/`.
+
+## How to release
+
+Both packages carry one version. A release is a pull request
+(`chore: release vX.Y.Z`) that only sets `version` in
+`packages/oar/package.json` and `packages/cli/package.json`. Squash merge
+it, then put an annotated tag on the merged commit and push the tag:
+
+```bash
+git fetch origin
+git tag -a vX.Y.Z -m vX.Y.Z origin/main
+git push origin vX.Y.Z
+```
+
+The tag push starts
+[`.github/workflows/release.yml`](../.github/workflows/release.yml): it
+refuses a tag that differs from either package version, runs
+`pnpm run check` and `pnpm run build`, and publishes both packages with
+`pnpm -r publish`, which rewrites the CLI's `workspace:*` dependency to the
+real version. npm trusted publishing (OIDC) authenticates the job; the repo
+holds no npm token.
