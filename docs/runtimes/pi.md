@@ -6,12 +6,12 @@ unsupported. See the [query contract](../spec/inventory.md) and
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.0.2**. Native source references are
+`@earendil-works/pi-coding-agent` SDK **1.0.3**. Native source references are
 pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
 URLs redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
 on 2026-09-29, 0.99.1 on 2026-09-30, 0.99.2 on 2026-10-01, 1.0.0 on
-2026-10-02 and 1.0.2 on 2026-10-04): in-process runs of
+2026-10-02, 1.0.2 on 2026-10-04 and 1.0.3 on 2026-10-05): in-process runs of
 [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) and the
 [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
@@ -33,6 +33,26 @@ unfinished execution recovery. Neither upgrade adopts the separate
 experimental Pi Durable harness. Scope, commands and evidence: version check
 reports of [October 2](../../experiments/runtime-version-checks/2026-10-02.md)
 and [October 4](../../experiments/runtime-version-checks/2026-10-04.md).
+
+On **1.0.3** (2026-10-05; same Linux/Node/provider as the 1.0.2 run),
+the 11 applicable live cases and eight vendor tests passed again, the
+19-case simulated behavior suite was clean (17 passed, two skipped), and
+ordinary 1.0.2 to 1.0.3 cross-process resume passed.
+The OAR dependency range remains `^1.0.2`; the workspace lock selects 1.0.3.
+See the [October 5 report](../../experiments/runtime-version-checks/2026-10-05.md).
+
+**Azure migration in 1.0.3:** the native provider was renamed from
+`azure-openai-responses` to `azure`. Update the native auth, model and
+settings provider keys and the prefix in `SessionOptions.model`. When
+resuming an old Azure session, explicitly pass `model: "azure/<model>"`:
+without it, Pi can preserve the session id and history while changing to
+an available default model. OAR's opening `model` event and `Session.model()`
+report that effective fallback, not the saved old provider. Explicitly
+requesting the removed provider rejects at open. The
+[`pi-azure-upgrade-resume.ts`](../../experiments/pi-azure-upgrade-resume.ts)
+probe verifies these outcomes with a native 1.0.2 session file containing
+synthetic messages and a scripted fallback provider, not an Azure network
+request. Azure authentication and prompt-cache behavior were not tested.
 
 ## Native concepts and calling interfaces
 
