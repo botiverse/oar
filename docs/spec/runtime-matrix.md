@@ -35,18 +35,36 @@ calls, resume semantics, and what each adapter still does not carry.
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
+## Session controls
+
+`prompt`, `queue` and `abort` are on every session. `steer` and `withdraw`
+are members a session may lack: a control the runtime cannot do is an
+absent member, never a request that is always rejected
+([record stream](record-stream.md#the-rules)). Where `queue.durable` is
+false, the adapter holds queued input in this process.
+
+| runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
+|---|---|---|---|
+| claude | yes: a user message written to stdin mid-turn | yes | no |
+| codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
+| pi | yes: the SDK session's `steer` | yes | no |
+| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`) | yes | no |
+| grok (ACP) | yes: a prompt RPC with `_meta.sendNow` | yes | no |
+| kimi (ACP) | no | yes | no |
+| antigravity (ACP) | no | yes | no |
+
 ## Tool outcomes
 
 Native sources for the `tool_call_ended` fields (the rule that they are
 never derived is in [record-stream.md](record-stream.md#the-rules)):
 
-| runtime | `result` from | `exitCode` from |
-|---|---|---|
-| claude | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
-| codex | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
-| pi | `tool_execution_end.isError` false/true ([src]) | none |
-| grok, kimi (ACP) | `tool_call_update.status` `completed`/`failed` ([src]) | grok: `rawOutput.exit_code` on the closing `tool_call_update` ([src] grok 1.0.25) |
-| cursor (`@cursor/sdk`) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
+| runtime | `content` from | `result` from | `exitCode` from |
+|---|---|---|---|
+| claude | `tool_result.content` (a string or blocks) | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
+| codex | `commandExecution.aggregatedOutput`; an MCP call's result blocks (an error as its message); `webSearch` results as one `other` part; else the item's status word | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
+| pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | none |
+| grok, kimi, antigravity (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
+| cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event.
@@ -77,6 +95,13 @@ its `session/list` says the session lives in (option `cwd`): kimi would run
 the session in its own directory instead. Only the runtime knows the
 session's directory, so this refusal is not declared up front; it is the
 same error ([resume in another directory](../runtimes/resume-cwd.md)).
+
+An ACP runtime whose session advertises no `thought_level` config option
+has no effort channel, so it refuses `effort` with the same error once its
+handshake shows that (antigravity, [env] agy_acp_server 1.2.1;
+`shared/acp/effort.ts`, `tests/acp/acp-session-antigravity.test.ts`). A
+level a runtime does not offer is a plain error naming the level, not this
+one.
 
 ## Adapter red lines
 
@@ -154,7 +179,8 @@ seq=122  ✓ frame  path=["bg-7"]  completed {usage:…}
 ## Boundaries and open evidence points
 
 - Not in this protocol: usage *derivation* (cumulative/epoch/boundary
-  views), storage, and query read-models, all consumer business.
+  views), storage ([decision](../design/decisions.md#a-storage-layer-2026-09-03)),
+  and query read-models, all consumer business.
 - claude's stream-json interleaving under concurrent sub-agents rests on
   [sym]+[doc] evidence; a live `Task` capture would upgrade it and is
   deferred because it costs subscription quota.

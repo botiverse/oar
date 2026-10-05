@@ -46,7 +46,7 @@ control (see the capability and losslessness positions in
 [foundations.md](foundations.md)).
 
 If the bet is wrong, if harnesses diverge rather than converge, the
-lossless producer and per-runtime capability declarations are the hedge:
+lossless producer and the per-runtime capability surface are the hedge:
 nothing a runtime exposes is walled off.
 
 ## Two goals
@@ -82,8 +82,9 @@ system (that layer exists as separate protocols; oar emits, they persist).
   emits is available (unknown events preserved, never dropped), through a
   typed surface where status is a fold over events.
 - **Honesty about differences, not lowest common denominator.** The
-  capability surface declares what each runtime actually supports; strong
-  harnesses aren't dragged down, weak ones return typed `unsupported`, and
+  capability surface shows what each runtime actually supports
+  ([capabilities](capabilities.md)); strong harnesses aren't dragged down,
+  weak ones lack the member or refuse the option with a typed error, and
   oar never fabricates structure a runtime doesn't expose
   (see [foundations.md](foundations.md)).
 - **The hard problems solved once, with evidence.** Session resume,

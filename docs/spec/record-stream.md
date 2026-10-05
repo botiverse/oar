@@ -10,48 +10,16 @@ control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and
 constrain facts, so whether a fact exists depends on whether an object is
 still alive. Attribution, the session graph, and the cursor cannot be built
-on a stream that loses facts.
+on a stream that loses facts. The five ways such a model loses facts are in
+the [decision](../design/decisions.md#control-objects-as-the-event-model-2026-09-03).
 
-## Evidence A: five ways a control-shaped event model loses facts
+## Evidence B: why the fix is not split into two channels
 
-- **Synthesized turn boundaries**: if `begin()` / `settle()` fan out
-  `turn_started` / `turn_ended` themselves, the skeleton of the stream comes
-  from "our API was called", not from the runtime.
-- **A closed control plane swallows facts**: an `if (!isSettled) fanOut(...)`
-  gate silently drops runtime events arriving after settlement.
-- **A mandatory `turnId` loses facts without a turn**: pi's session-level
-  events (compaction, queue, retry) belong to no turn and would have
-  nowhere to go.
-- **One answer split across two paths**: a turn outcome half in a promise
-  and half in an event, or a steer half in a return value and half in the
-  stream, forces every consumer to join the two.
-- **Query masquerade**: a `contextUsage()` that caches the latest usage seen
-  carries no seq, so it can neither be aligned with other records nor
-  replayed.
-
-## Evidence B: why the fix is *not* "split into two channels"
-
-Every shipped runtime does this in a single channel:
-
-- kimi-cli's message algebra is one union whose discriminator is "does it
-  expect a reply": `type WireMessage = Event | Request`, the `Request`
-  docstring verbatim "a message that expects a response". On the wire only
-  the shape differs (a request has an id); one `_write_queue` and one
-  `wire.jsonl` hold everything.
-  [src: kimi-cli@cbc15c0 wire/types.py; wire/jsonrpc.py:49-56,174-204;
-  wire/server.py; wire/file.py]
-  KLIP-12 lists "no new transport channel" as a non-goal.
-  [doc: klip-12, Implemented]
-- codex: `OutgoingMessage` carries notification / request / response on
-  one connection. [src: codex-rs/app-server/src/outgoing_message.rs:1-80]
-- kimi-cli routes sub-agent records **by obligation** (request-class records
-  passed through verbatim, the rest wrapped as `SubagentEvent`) on the same
-  channel and send: the split is by obligation, not by channel.
-  [src: subagents/runner.py:393-428]
-
-Total order is what channel-splitting cannot buy back: two paths share no
-seq, so "did the abort land before or after that tool_result" becomes
-permanently unanswerable.
+Control and facts share one channel because two paths share no seq: "did
+the abort land before or after that tool_result" would become unanswerable.
+Every shipped runtime carries both on one channel as well; the vendor
+evidence is in the
+[decision](../design/decisions.md#separate-channels-for-control-and-facts-2026-09-03).
 
 ## The rules
 
@@ -101,10 +69,7 @@ Further rules:
   images on a cursor steer); a control a runtime cannot do at all is a
   member the session lacks, never a request that is always rejected: a
   session that cannot steer has no `steer`, so its stream holds no steer
-  request. Counterexample: kimi-cli leaks the turn outcome into
-  `_handle_prompt`'s return value, while the `TurnEnd` docstring admits it
-  "may be omitted" when interrupted.
-  [src: wire/server.py:644-755; wire/types.py]
+  request.
 - **A turn is a span on the stream, not a control object.** The envelope's
   optional `spanId` holds only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn
@@ -126,8 +91,8 @@ Further rules:
   outcome; oar never infers it from output, exit codes, or timing.
   `exitCode` follows the same rule for the process status of a command the
   runtime ran: present only when the runtime reported one (codex, grok,
-  cursor), `null` when it reported a signal exit, absent otherwise (claude
-  and pi report none).
+  antigravity, cursor), `null` when it reported a signal exit, absent
+  otherwise (claude and pi report none).
 - **A tool result is its parts.** `tool_call_ended.content` is the result
   as the runtime reported it, in its order: `{type: "text", text}`,
   `{type: "image", mediaType, data}` (base64, normalized from Anthropic
@@ -139,8 +104,9 @@ Further rules:
   text parts for a host that shows only text. Streamed output while a call
   runs stays `tool_call_progress.output`. Records written before 0.14.0
   carry `output` instead; `eventsOf` and the session view read it as
-  `content` (`observe/legacy.ts`), so a persisted log keeps replaying. Per-runtime sources are in
-  [runtime-matrix.md](runtime-matrix.md#tool-outcomes).
+  `content` (`observe/legacy.ts`), so a persisted log keeps replaying.
+  Per-runtime sources, and the cut the ACP adapters apply to long text
+  parts, are in [runtime-matrix.md](runtime-matrix.md#tool-outcomes).
 
 ## Record contracts
 
@@ -211,13 +177,15 @@ interface ResponseRecord extends RecordEnvelope {
 
 The control surface that produces these records (`Session.prompt / steer /
 queue / withdraw / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
-`graph()`, and the folds) is documented on the contract itself. `steer` is
-optional: its presence is the capability (kimi and antigravity sessions have
-none), and `steerOrQueue` and `deliver` queue where it is absent. `queue`
-is on every session; `capabilities.queue.durable` says whether held input
-survives a restart. `withdraw` is optional too: it exists where OAR holds
-the queue itself (claude, pi, cursor and the ACP runtimes; codex holds its
-own and has none). See [withdrawing held input](#withdrawing-held-input).
+`graph()`, and the folds) is documented on the contract itself. A `prompt`
+while a turn runs is rejected `busy`, never queued: a session has one
+control plane and at most one active turn
+([decision](../design/decisions.md#concurrent-control-planes-and-prompts-2026-09-03)).
+`steer` and `withdraw` are optional: their presence is the capability
+([which sessions have them](runtime-matrix.md#session-controls)), and
+`steerOrQueue` and `deliver` queue where `steer` is absent. `queue` is on
+every session; `capabilities.queue.durable` says whether held input
+survives a restart. See [withdrawing held input](#withdrawing-held-input).
 An adapter's `prompt / steer / queue / withdraw / abort` return
 both records they appended (`ControlResult`); the `Session` a consumer holds
 returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
@@ -234,7 +202,7 @@ waits for the running turn, if any, to end.
 ## Withdrawing held input
 
 `Session.withdraw(inputId)` takes back an input a `queue` request left in
-OAR's own held queue, before it is sent. It is a new operation targeting
+OAR's own held queue, before it is sent. It is its own operation targeting
 earlier input ([input cancellation](../runtimes/input-cancellation.md#consequences-for-oar-and-rao)):
 a `toRuntime` request `withdraw {inputId}` recorded through the kernel's
 control path, so a disposed or exited session refuses it like any control.
@@ -294,18 +262,22 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 Which runtimes say which kinds (runtime pages hold the evidence):
 
 - `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
-  `turn_ended`, `usage`, `model`: every shipped adapter.
+  `turn_ended`, `usage`, `model`: every shipped adapter, except that
+  antigravity sent no reasoning and no usage in any probe ([env]
+  agy_acp_server 1.2.1).
 - `tool_call_progress`: partial output of a running tool. pi
   `tool_execution_update` (the partial result as JSON) [src 0.84.2]; codex
   `item/commandExecution/outputDelta` (`callId` is the item id, `output`
   the delta) [env 0.154.0 schema]; ACP (grok, kimi) a non-terminal
   `tool_call_update` for a known call that carries `rawOutput`, never its
   `content` (kimi streams the call's ARGUMENTS as content while
-  `in_progress`). claude streams none.
+  `in_progress`). claude streams none; cursor's `shell-output-delta` is
+  recorded with no event.
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger). Never claude (it reports only the
-  boundary after the fact) or ACP.
+  boundary after the fact), cursor (its SDK drops the `summary` updates) or
+  ACP.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
   above); claude `system/compact_boundary` → completed with `trigger` from
@@ -313,7 +285,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `item/completed` for the `contextCompaction` item → completed, while the
   deprecated `thread/compacted` notification closes an open compaction only
   when the item did not already (the projection dedupes, so codex never ends
-  a compaction twice) [env 0.154.0 schema]. ACP never.
+  a compaction twice) [env 0.154.0 schema]. Cursor and ACP never.
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
   other shipped runtime exposes a retry (claude retries silently).
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
@@ -329,7 +301,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `childSessionId`, its `/root/name` path the description), interacted →
   `task_updated` running, completed → `task_ended` completed, interrupted →
   `task_ended` stopped. A codex command the model detached itself
-  (`nohup … &`) leaves no task. ACP and pi report none. `tasksOf` /
+  (`nohup … &`) leaves no task. ACP, pi and cursor report none. `tasksOf` /
   `reduceTasks` fold them into one row per task.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
@@ -377,8 +349,8 @@ The rules that make this a projection and not a second source of truth:
 - **Text names its message when the runtime does.** `text_delta.messageId`
   is the runtime's id of the assistant message the text is part of (codex:
   the `agentMessage` item id; claude: the API `message.id`), so two messages
-  of one turn stay apart in coalescing and in the session view. pi and the
-  ACP runtimes name none, and older records lack it.
+  of one turn stay apart in coalescing and in the session view. pi, cursor
+  and the ACP runtimes name none, and older records lack it.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 
@@ -419,8 +391,3 @@ seq=57  ◆ request   root  id=rq-30  abort
           was not observed. Writing a guessed response after recovery is
           forbidden
 ```
-
-Non-goal: concurrent control planes and concurrent prompt queueing. No
-shipped runtime needs them: kimi-cli returns `INVALID_STATE` with a TODO in
-the source, pi has no such form, claude/codex do not expose the semantics.
-[src: wire/server.py:644-755]

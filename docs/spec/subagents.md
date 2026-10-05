@@ -2,11 +2,16 @@
 
 `@botiverse/oar/agents` lets a host start child sessions on any runtime that
 takes `SessionOptions.env`, follow them, and feed their results back into a
-parent. A child carries its depth in `env`, so a runtime that declares `env`
-in `refusedSessionOptions` (cursor) is refused at spawn with `open_failed`
-and the reason, and the `runtimes` tool marks it `spawnable: false`. `oar mcp` serves the
-same library to any agent that speaks MCP. The
+parent. `oar mcp` serves the same library to any agent that speaks MCP. The
 [TypeScript contract](../../packages/oar/src/agents/types.ts) is normative.
+
+A child carries its depth in `env`, so a runtime that declares `env` in
+`refusedSessionOptions` cannot be a child: spawn refuses it with
+`open_failed` and the reason before opening anything, and the `oar mcp`
+`runtimes` tool marks it `spawnable: false`. Cursor is such a runtime. The
+crew finds runtimes in the built-in `runtimes` registry by default, which
+does not contain cursor, so there a cursor spawn is refused
+`unknown_runtime`; `oar mcp` offers the CLI's registry, which adds cursor.
 
 ## Model
 
@@ -87,7 +92,9 @@ The library is mechanism; the host chooses the policy.
 - **Concurrency.** `maxRunning` (default 4) counts children whose turn is
   open; a spawn or follow-up past it is refused, with a reason that says to
   wait rather than retry.
-- **Runtimes.** `runtimes` limits which runtimes children may use.
+- **Runtimes.** The `runtimes` option is where a spawn looks a runtime up
+  by id (the built-in registry by default); `oar mcp --runtimes` limits it
+  to the listed ids.
 - **Permissions.** Children run with each adapter's defaults, which grant
   full access in their working directory (claude
   `--dangerously-skip-permissions`, codex `approvalPolicy: never` with

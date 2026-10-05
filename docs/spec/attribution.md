@@ -42,9 +42,8 @@ carried.
 - pi: no native sub-agents; naturally single-stream. [src]
 
 A transport stream per sub-agent would permanently lose total order, which
-is why [record-stream.md](record-stream.md#evidence-b-why-the-fix-is-not-split-into-two-channels)
-rejects dual channels; attribution does not readmit them through the back
-door.
+is why [two channels were refused](../design/decisions.md#separate-channels-for-control-and-facts-2026-09-03);
+attribution does not readmit them through the back door.
 
 ## The record envelope: self-certifying attribution
 
@@ -59,7 +58,7 @@ deletion test:
 |---|---|
 | `sessionId` | grok's child sessions and codex's child threads interleave on one connection ([env] 0.149.0) and cannot be demultiplexed. It has a real referent, not invented by oar: claude's `CLAUDE_CODE_SESSION_ID`, codex's `CODEX_SESSION_ID`. [env][src] |
 | `agentPath` | `[]` = root, `[...]` = sub-agent lineage. The cross-agent ID collision ([runtime-matrix.md](runtime-matrix.md), hard spot 1) has no solution. |
-| `spanId?` | Runtime-native turn id. A mandatory turn id would drop pi's session-scoped facts ([record-stream.md](record-stream.md), evidence A). |
+| `spanId?` | Runtime-native turn id. A mandatory turn id would drop pi's session-scoped facts ([decision](../design/decisions.md#control-objects-as-the-event-model-2026-09-03)). |
 | `seq` | Monotonic cursor basis; replay determinism covers `seq` only ([session-graph-and-cursor.md](session-graph-and-cursor.md)). |
 | `receivedAt` | Best-effort observation time, explicitly outside the determinism guarantee; identity rests on `seq`. |
 
@@ -140,12 +139,8 @@ that is deduplicated and directly summable (sum = total). Which runtime
 view is authoritative and how to deduplicate (grok's multiple overlapping
 views, codex's per-thread cumulative totals, pi's flat usage) sinks entirely
 into each runtime adapter and never crosses the protocol surface. The
-protocol carries no usage `origin` or accounting-basis label: applications
-need correct, usable numbers, not a reconstruction of provenance, and both
-ACP usage RFDs are still Draft with open items verbatim including
-"Ambiguous totals", "Per-turn vs cumulative", "Cost separation", so a basis
-label would hand consumers an unsettled problem.
-[acp: session-usage.mdx; end-turn-token-usage.mdx:26,97,101]
+protocol carries no usage `origin` or accounting-basis label
+([decision](../design/decisions.md#a-usage-basis-label-2026-09-03)).
 
 Usage itself is a seq-carrying `usage` event read from a frame on the
 stream, and `usage()` is a fold returning `{ value, seq }` (the query rule

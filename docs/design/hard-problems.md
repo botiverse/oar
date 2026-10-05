@@ -12,7 +12,7 @@ subject of [foundations.md](foundations.md).
 ## Just reaching the runtime
 
 1. **Access mechanism heterogeneity.** SDK, CLI, subprocess stdio protocol,
-   app-server, ACP variant, in-process library (pi): even figuring out how
+   app-server, ACP variant, in-process library (pi, cursor): even figuring out how
    to drive a harness is per-vendor research, and one vendor often ships
    several mechanisms with different capabilities.
 2. **Detect / install / version catalog.** Finding the binary, installing
@@ -53,14 +53,16 @@ subject of [foundations.md](foundations.md).
    fabricate structure a runtime doesn't expose.
 10. **Token/usage accounting.** Cumulative vs delta, child usage billed to
     parent, and, worst case, multiple overlapping usage views you must not
-    sum (grok). Usage facts need provenance and a canonical marker.
+    sum (grok). Each adapter must pick the authoritative view and
+    deduplicate, so a consumer gets one correct number
+    ([a usage basis label](decisions.md#a-usage-basis-label-2026-09-03) was refused).
 
 ## Behavioral honesty
 
 11. **Capability differences.** Features exist on some harnesses and not
-    others; you need honest per-runtime declaration with typed
-    `unsupported`, not a lowest-common-denominator interface and not faked
-    support.
+    others; you need an honest surface (an absent member, a typed refusal,
+    see [capabilities](capabilities.md)), not a lowest-common-denominator
+    interface and not faked support.
 12. **Vendor quirks that only show up empirically.** claude's silent retry
     on 401, a 400 error arriving with subtype `"success"`, grok's serve mode
     silently discarding notifications when no client is attached. Docs don't
@@ -76,7 +78,7 @@ subject of [foundations.md](foundations.md).
 
 14. **Context management.** Context accounting and native compaction events
     (codex, claude and pi report compaction differently); external compaction continuity is defined by the
-    [record-stream spec](../spec/record-stream.md).
+    [session graph spec](../spec/session-graph-and-cursor.md).
 15. **Placement.** Local co-process vs remote service vs managed cloud:
     session, process, and host lifecycle are three different layers, and
     multi-client attach needs a resumable cursor or you get grok-style

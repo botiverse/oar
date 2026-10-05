@@ -25,7 +25,8 @@ A `prompt` refused `busy` (a turn opened between the status read and the
 prompt) and a `steer` refused because the turn just ended (`no_active_turn`,
 or the runtime's own refusal once the status shows that turn is over, as
 codex answers a steer that reaches it after the turn) are retried as the new
-state requires. `steerOrQueue` stays as the running half
+state requires. A steer refused `unsupported` (images on a cursor steer) is
+queued instead. `steerOrQueue` stays as the running half
 of `now`; unlike it, `deliver` never queues into an idle session, where some
 runtimes would hold the input without starting a turn. Queueing, batching,
 priority and persistence stay with the host's own delivery layer, which
@@ -45,8 +46,9 @@ resubmit an accepted input. OAR generates identity, not delivery evidence.
 
 `InputOptions.images` hands image files (by absolute path) to the runtime with
 the input, as its own image content: claude and ACP get base64 `image` blocks,
-codex `localImage` paths, pi `ImageContent`. The request body records the
-paths verbatim (`images: [{ path }]`), never the bytes, and
+codex `localImage` paths, pi `ImageContent`, cursor the SDK's
+`{ data, mimeType }` images (a cursor steer takes text only). The request
+body records the paths verbatim (`images: [{ path }]`), never the bytes, and
 `ConversationInput.images` carries them from the latest attempt, so a UI can
 show what the user sent next to the text. `capabilities.images` says whether
 the runtime takes images at all (ACP: what `initialize` advertised, unless a
@@ -74,11 +76,12 @@ Native echoes (`user_message.input`) remain text only.
   duplicate text make text-based matching unsafe.
 
 No evidence kind promises model consumption or semantic effect. Request
-acceptance and native observation are independent facts. Grok and Kimi carry
-logical input identity only; no native message correlation has been verified
-for them. Raw payloads remain unmodified on frames. OAR never adds markers to
-a user's input text to correlate it, and never derives a universal "consumed"
-event from turn ends, text matching or native queue changes (pi's
+acceptance and native observation are independent facts. The ACP runtimes
+(grok, kimi, antigravity) carry logical input identity only; no native
+message correlation has been verified for them. Raw payloads remain
+unmodified on frames. OAR never adds markers to a user's input text to
+correlate it, and never derives a universal "consumed" event from turn
+ends, text matching or native queue changes (pi's
 `queue_update`); runtime evidence per runtime is in
 [steer delivery](../runtimes/steer-delivery.md).
 
@@ -173,9 +176,9 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 - Whether a stream echoes is read off the stream itself: once it has carried
   a `user_message` with an `inputId` (the echo of the first prompt, on codex
   and claude), later steers and queues wait for their echo. A stream that
-  never has (grok and kimi echo nothing; pi's echo carries no `inputId`)
-  places them at their request, the best fact it has. No capability flag
-  or runtime name takes part.
+  never has (the ACP runtimes echo nothing; pi's and cursor's echoes carry
+  no `inputId`) places them at their request, the best fact it has. No
+  capability flag or runtime name takes part.
 - A rejected input enters where it was refused. If a retry of the same
   input (`deliver`, `steerOrQueue`) must wait for its echo, it leaves
   `messages` for `pendingInputs` again.
