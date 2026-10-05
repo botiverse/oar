@@ -91,9 +91,10 @@ export interface InputOptions {
  * - Sessions run YOLO by default: adapters disable interactive permission
  *   gates (claude --dangerously-skip-permissions, codex approvalPolicy
  *   never, pi pre-trusted cwd, ACP allow_always) AND default sandboxes off
- *   (codex danger-full-access; claude/pi have none). In embedded use nobody
- *   sits at an approval prompt: a gate is a hang, not safety. A host wanting
- *   isolation opts in (OAR_CODEX_SANDBOX). Runtime→app requests that DO
+ *   (codex danger-full-access, cursor sandboxOptions.enabled false;
+ *   claude/pi have none). In embedded use nobody sits at an approval
+ *   prompt: a gate is a hang, not safety. A host wanting isolation opts in
+ *   (OAR_CODEX_SANDBOX). Runtime→app requests that DO
  *   arrive are recorded verbatim (direction "toApp") and oar's automatic
  *   answer, when it gives one, is the matching response record.
  * - The cursor is honored for the lifetime of the adapter process: a
@@ -124,11 +125,12 @@ export interface SessionOptions {
    * Invariant: a runtime whose `listModels` reports `effortLevels` accepts
    * `effort`, and a runtime that accepts it lists the levels. A requested
    * effort is never ignored: the adapter applies it through the runtime's
-   * native channel and reads the runtime's own report back. When the runtime
-   * refuses the level, or would run another one (drop it for the model, clamp
-   * it, fall back to its default), or has no effort channel at all, starting
-   * the session rejects with an Error naming the requested level and what the
-   * runtime did instead. A runtime that forwards the level unchecked (codex)
+   * native channel and reads the runtime's own report back. A runtime with no
+   * effort channel at all (antigravity) rejects with an
+   * `UnsupportedOptionError` on `effort`. When the runtime refuses the level,
+   * or would run another one (drop it for the model, clamp it, fall back to
+   * its default), starting the session rejects with an Error naming the
+   * requested level and what the runtime did instead. A runtime that forwards the level unchecked (codex)
    * reads it back as given, and its provider's refusal fails the first turn.
    * `Session.effort()` is the runtime's report, where it gives one.
    */

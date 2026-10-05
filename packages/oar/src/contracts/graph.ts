@@ -1,7 +1,7 @@
 // ─── Session graph and cursor ─────────────────────────────────────────────
 // Semantics: docs/spec/session-graph-and-cursor.md. Re-exported by ./records.ts.
 
-/** True sessions only (docs/spec/session-graph-and-cursor.md): derived child sessions and transcript branches. Agent parent/child is `agentPath`, not a node. */
+/** True sessions only (docs/spec/session-graph-and-cursor.md): the root and the derived child sessions. Agent parent/child is `agentPath`, not a node. */
 export interface SessionNode {
   readonly id: string;
 }

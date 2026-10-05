@@ -39,7 +39,7 @@ function spawnOptions(args: Readonly<Record<string, unknown>>): SpawnOptions {
 }
 
 const SPAWN_PROPERTIES = {
-  runtime: { type: "string", description: "Runtime id, from the runtimes tool (claude, codex, grok, kimi, cursor, antigravity, pi)." },
+  runtime: { type: "string", description: "Runtime id, from the runtimes tool (claude, codex, grok, kimi, antigravity, pi; cursor refuses the environment a subagent needs)." },
   task: { type: "string", description: "The task: everything the subagent needs, since it sees nothing of this conversation." },
   name: { type: "string", description: "A short name to refer to it by." },
   cwd: { type: "string", description: "Working directory; the server's by default." },

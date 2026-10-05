@@ -12,7 +12,8 @@ export interface CursorRuntimeOptions {
    * dependency of OAR): `() => import("@cursor/sdk")`. Written in the host's
    * own code, the import fails the host's compile when the package is
    * missing, checks the SDK's types against `CursorSdk`, and is visible to
-   * a bundler. Called once, on the first call that needs the SDK.
+   * a bundler. Called on the first call that needs the SDK; a failed load is
+   * retried by the next call.
    */
   readonly sdk: () => Promise<CursorSdk>;
 }

@@ -5,7 +5,7 @@ import type { AvailableInstallation } from "./installation.js";
  * install. Never a guess that the installation is current.
  */
 export type UpdateCheckUnavailableReason =
-  | "unsupported_installation" // not a machine-installed executable (a bundled runtime moves with oar)
+  | "unsupported_installation" // not a machine-installed executable (a bundled runtime moves with the package that carries it)
   | "package_manager" // a package manager (Homebrew, WinGet, ...) owns this copy and its updates
   | "unmanaged_installation" // the runtime's updater does not recognize this copy (a copied binary, an unknown layout)
   | "updates_disabled" // the runtime's own configuration turns updates off

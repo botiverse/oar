@@ -121,27 +121,8 @@ export {
   recordLine,
 } from "./voyage.js";
 export type { VoyageHeader, VoyageRecorder } from "./voyage.js";
-export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./observe/events.js";
-export type { KnownControl } from "./observe/events.js";
-export {
-  initialStatus,
-  reduceStatus,
-  stallOf,
-  statusOf,
-} from "./observe/agent-status.js";
-export type { AgentStatus, RunningPhase } from "./observe/agent-status.js";
-export { observeStalls } from "./observe/stall-observer.js";
-export type { StallInfo } from "./observe/stall-observer.js";
-export { observeAgent, simpleStateOf } from "./observe/observe-agent.js";
-export { classifyTool, toolActionLabel } from "./observe/tool-activity.js";
-export { toolResultText } from "./observe/tool-output.js";
-export type { ToolAction, ToolActionKind } from "./observe/tool-activity.js";
-export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe/observe-agent.js";
-export { applyTaskEvent, initialTasks, reduceTasks, tasksOf } from "./observe/tasks.js";
-export type { TaskEventOrigin, TaskMap, TaskView } from "./observe/tasks.js";
-export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./observe/turns.js";
-export type { PromptRun, PromptRunOptions } from "./observe/turns.js";
-export { contextUsageOf, effortOf, modelOf, usageOf } from "./observe/usage.js";
+// Everything the browser-safe observe subpath exports, so the root is the full surface.
+export * from "./observe/index.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
 export { claudeListModels, projectClaudeModels } from "./runtimes/claude/list-models.js";
 export { claudeSession } from "./runtimes/claude/session.js";
@@ -193,5 +174,3 @@ export const runtimes = new RuntimeRegistry([
 export { runtimeBrands, runtimeBrandIcon } from "./brands.js";
 export type { RuntimeBrand } from "./brands.js";
 
-export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./observe/conversation.js";
-export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt } from "./observe/conversation.js";

@@ -54,7 +54,7 @@ export function executableUpdate(installation: AvailableInstallation): Executabl
   if (installation.via !== "executable") {
     return {
       kind: "unavailable",
-      check: { kind: "unavailable", reason: "unsupported_installation", detail: "bundled with oar; it moves with the oar version" },
+      check: { kind: "unavailable", reason: "unsupported_installation", detail: "an in-process SDK; it moves with the package that carries it" },
     };
   }
   const installed = installation.version === undefined ? undefined : releaseVersion(installation.version);
@@ -150,7 +150,7 @@ export async function upgradeExecutable(
   options: UpgradeOptions = {},
 ): Promise<UpgradeResult> {
   if (installation.via !== "executable") {
-    return { kind: "unsupported", reason: "unsupported_installation", detail: "bundled with oar; it moves with the oar version" };
+    return { kind: "unsupported", reason: "unsupported_installation", detail: "an in-process SDK; it moves with the package that carries it" };
   }
   const check = await updater.check(installation, options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs });
   if (check.kind === "ok" && !check.updateAvailable) {

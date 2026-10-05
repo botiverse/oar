@@ -62,9 +62,11 @@ test("a model switch goes through the model config option and effort is refused"
   assert.equal(session.model().value, "requested-y");
   await session.dispose();
 
-  await expect(startAntigravity({ effort: "high" })).rejects.toThrow(
-    "session/new advertises no thought_level config option, so effort high cannot be applied",
-  );
+  await expect(startAntigravity({ effort: "high" })).rejects.toMatchObject({
+    name: "UnsupportedOptionError",
+    option: "effort",
+    message: "session/new advertises no thought_level config option, so effort high cannot be applied",
+  });
 });
 
 test("a turn ends on the prompt answer alone, with no usage_update to wait for", async () => {

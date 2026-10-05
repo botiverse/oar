@@ -45,17 +45,6 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
 }
 
 /**
- * The selection a session opens with. A local agent always needs one, and a
- * resumed agent does not restore its own, so on resume without a model the
- * agent's latest recorded run says what it ran. A requested effort is
- * checked against the model's own parameter menu, because the SDK passes an
- * unknown value through unchecked and reports it back as given (probed
- * 2026-10-03: `reasoning: "ludicrous"` ran and came back verbatim). It
- * replaces only that parameter: the other parameters stay as the resumed run
- * had them, or as the catalog's default variant sets them (a `thinking`
- * switch stays on beside an `effort` level).
- */
-/**
  * Options the SDK cannot honor, refused before anything opens. SDK 1.0.35
  * types a `systemPrompt`, but a local agent's run fails with "unknown option
  * '--system-prompt'" (probed 2026-10-03), and there is no append.
@@ -66,6 +55,17 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported",
 };
 
+/**
+ * The selection a session opens with. A local agent always needs one, and a
+ * resumed agent does not restore its own, so on resume without a model the
+ * agent's latest recorded run says what it ran. A requested effort is
+ * checked against the model's own parameter menu, because the SDK passes an
+ * unknown value through unchecked and reports it back as given (probed
+ * 2026-10-03: `reasoning: "ludicrous"` ran and came back verbatim). It
+ * replaces only that parameter: the other parameters stay as the resumed run
+ * had them, or as the catalog's default variant sets them (a `thinking`
+ * switch stays on beside an `effort` level).
+ */
 export async function cursorModelSelection(sdk: CursorSdk, options: SessionOptions): Promise<ModelSelection> {
   const base = options.model === undefined && options.resume !== undefined
     ? await latestRunModel(sdk, options.resume, options.cwd)
