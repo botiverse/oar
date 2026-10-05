@@ -17,7 +17,7 @@
   "devDependencies": {
     "@copilotkit/aimock": "^1.39.0",
     "@cursor/sdk": "1.0.35",
-    "@earendil-works/pi-coding-agent": "1.0.2",
+    "@earendil-works/pi-coding-agent": "1.0.3",
     "@types/node": "^26.2.0",
     "oxlint": "^1.79.0",
     "oxlint-tsgolint": "^7.0.2001",

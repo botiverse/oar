@@ -70,6 +70,15 @@ Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`.
 
 Antigravity, Grok, and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. Pi and Cursor run in the host process through their SDKs. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in the built-in `runtimes` registry: install the SDK (`npm install @cursor/sdk@1.0.35`) and hand it over, `createRuntimeRegistry([...runtimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
 
+**Pi 1.0.3 Azure migration:** Pi renamed its provider from
+`azure-openai-responses` to `azure`. Update that prefix in native provider
+configuration and `SessionOptions.model`. When resuming an old Azure session,
+explicitly pass `model: "azure/<model>"`; without it, Pi can retain the
+conversation while selecting a different default model. The opening `model`
+event and `Session.model()` report the effective selection. OAR's `^1.0.2`
+dependency range already permits this upstream update. See the
+[migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md).
+
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
 What a runtime cannot honor is refused, never dropped: `runtime.session()`
