@@ -123,7 +123,10 @@ selection, not a retry after a failed resume. An optional model is applied
 afterward with `session/set_model`. The `session/resume` answer carries
 `models.currentModelId` (a `model` event), preceded by `background_tasks` and
 `model_changed` vendor pushes; the resumed session keeps the id, opens at
-seq 0, and recalls the earlier transcript (`live-contract/resume`). Native
+seq 0, and recalls the earlier transcript (`live-contract/resume`). Grok
+itself refuses a resume naming another directory than the session's own:
+`session()` rejects with its `Path not found.` (1.0.46, 2026-10-03,
+[resume in another directory](resume-cwd.md)). Native
 persistence errors carry [stable error data](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/session/persistence.rs#L2496-L2516);
 OAR propagates opening failures without a separate resume-error result type.
 The 1.0.5 snapshot establishes advertised resume support, not all
@@ -157,7 +160,8 @@ color fills it?" was answered "Green. The image is a solid bright green
 fill.", and the same prompt without the image "NO IMAGE"; allowed tools, grok
 instead saved the image under `~/.grok/sessions/` and decoded its pixels in
 Python). Hence `capabilities.images: true`; if a later grok refuses image
-blocks, the prompt fails with grok's own error and this override goes.
+blocks, the prompt fails with grok's own error and this override goes
+([test](../../tests/acp/acp-session-images.test.ts)).
 
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
 `accepted` once the `session/prompt` RPC is on the wire (no deadline; cancel
@@ -217,8 +221,9 @@ holds the cancelled answer (`turn_ended: aborted`) before `request dispose`,
 `response exited` (code 143 from OAR's SIGTERM after `session/close`). When
 Grok dies on its own (SIGKILL), the stream gets `response exited` with
 `requestId ""` and code `null` and no turn end from the runtime
-(`runtime_exited` for `awaitTurnEnd`); every later prompt/steer/queue/abort
-is rejected `runtime exited` by the kernel's reachability gate (read off the
+(`runtime_exited` for `awaitTurnEnd`); every later
+prompt/steer/queue/withdraw/abort is rejected `runtime exited` by the
+kernel's reachability gate (read off the
 stream, not an adapter flag) and a later `dispose` is answered `accepted`.
 (`live-contract/dispose-mid-turn`, `live-contract/kill-runtime`;
 [test](../../tests/acp/acp-session.test.ts).)
@@ -452,8 +457,12 @@ Installation checks `OAR_GROK_BIN`, PATH, and the official script/npm layouts
 (`$GROK_BIN_DIR`, `$GROK_HOME/bin`, `~/.grok/bin`), probing with
 `grok agent stdio --help`. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)
 separately opens a connection and queries `_x.ai/billing` (plus
-`_x.ai/auth/info` for the email); account quota, prompt billing, and context
-occupancy are distinct APIs and measurements.
+`_x.ai/auth/info` for the email). No billing `config` is `unsupported`
+`quota_unavailable`; a config that carries none of `creditUsagePercent`,
+`used` and `monthlyLimit` reads as zero usage, as grok's own `/usage` shows it
+(1.0.46, an unused account; [account usage](../spec/account-usage.md),
+[test](../../tests/grok/grok-account-usage-reader.test.ts)). Account quota,
+prompt billing, and context occupancy are distinct APIs and measurements.
 [Installation](../../packages/oar/src/runtimes/grok/installation.ts).
 
 Grok updates itself by default. Launched from `~/.grok/bin`, as the script
@@ -463,7 +472,8 @@ seconds of an idle launch, 2026-10-01), so a grok session can start on a
 different version than `installation()` reported. `GROK_DISABLE_AUTOUPDATER=1`
 or `[cli] auto_update = false` stop it; an explicit `grok update` ignores
 both. **Not mapped:** OAR passes neither, so the user's setting decides.
-`checkUpdate` and `upgrade` use `grok update` ([runtime updates](../spec/update.md)).
+`checkUpdate` reads `grok update --check --json` and `upgrade` runs
+`grok update` ([runtime updates](../spec/update.md)).
 
 ## Verification and open gaps
 

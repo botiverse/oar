@@ -64,8 +64,11 @@ downloads (1.2.1 listed while 1.3.0 was downloadable). The `agy` CLI's own
 `update` does not touch the ACP server.
 
 **pi and cursor.** In process through their SDKs: the pi SDK is a
-dependency of oar, and `@cursor/sdk` an optional peer dependency the host
-installs at the version oar names. Both move with the oar version.
+dependency of oar (`^1.0.2`), and `@cursor/sdk` an optional peer dependency
+(`1.0.35`) that the host installs and hands to `createCursorRuntime` (the oar
+CLI depends on it). Both installations are `via: "bundled"`; neither runtime
+has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
+oar and moving with the oar version.
 
 ## oar runs
 

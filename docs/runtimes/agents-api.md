@@ -249,7 +249,7 @@ What the Agents API confirms, and what it adds, relative to the
 1. **Control as records on one channel.** Messages, cancels, and tool
    results are `agent.session.input.*` events on the same `/events` resource
    the outputs stream from. A fourth independent vendor for
-   [record-stream.md, Evidence B](../spec/record-stream.md).
+   [separate channels for control and facts](../design/decisions.md#separate-channels-for-control-and-facts-2026-09-03).
 2. **Turn end is the runtime's own event; idle is not success.** Matches the
    "no synthesized turn boundaries" rule and status-as-fold.
 3. **No cursor means application-side recovery.** "Streams do not replay
@@ -276,9 +276,11 @@ What the Agents API confirms, and what it adds, relative to the
    ([open decision 2](../spec/README.md#open-decisions), capability
    declaration).
 2. **Release is not termination.** `dispose` bundles "stop observing",
-   "interrupt", and "the runtime is gone" because every shipped adapter owns
-   a process. A remote session splits them, and the `exited` response needs a
-   stated meaning (or an honest absence) for runtimes that never exit.
+   "interrupt", and "the runtime is gone" because most shipped adapters own
+   a process (pi and cursor run in process and answer the dispose `accepted`
+   with no exit). A remote session splits them, and the `exited` response
+   needs a stated meaning (or an honest absence) for runtimes that never
+   exit.
 3. **A lossy live stream inside the adapter's lifetime.** The only other
    in-lifetime loss OAR knows is grok's unattached serve mode. Here a
    reconnect is routine and the server discards. The stream needs a way to

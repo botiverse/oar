@@ -9,8 +9,9 @@ Evidence baseline: OAR source as of 2026-09-11; bundled
 `@earendil-works/pi-coding-agent` SDK **1.0.2**. Native source references are
 pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
 URLs redirect to `earendil-works/pi`). Live observations below are from SDK
-**0.84.2** unless dated otherwise (the bundled SDK moved to 0.87.1 on
-2026-09-29, to 1.0.0 on 2026-10-02 and to 1.0.2 on 2026-10-04): in-process runs of
+**0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
+on 2026-09-29, 0.99.1 on 2026-09-30, 0.99.2 on 2026-10-01, 1.0.0 on
+2026-10-02 and 1.0.2 on 2026-10-04): in-process runs of
 [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) and the
 [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
@@ -18,23 +19,20 @@ frame carries `provider: "openai-codex"`, `api: "openai-codex-responses"`) on
 Node 26.7 / macOS. Versions are evidence baselines, not a support range; see
 the [runtime index](README.md) for conventions.
 
-On **1.0.0** (2026-10-02; Linux x64, Node 24.19.0,
-`exe-dev-openai/gpt-6-luna@llm`) the applicable live battery passed **11/11**
-(subagents and process killing inapplicable), as did Pi's simulated-provider
-behavior and vendor suites. A separate-process probe
+On **1.0.2** (2026-10-04; Linux x64, Node 24.19.0,
+`exe-dev-openai/gpt-6-luna@llm`) all 11 applicable live cases passed
+(subagents and process killing inapplicable), the simulated-provider behavior
+suite was 19/19 clean, withdrawal included, and all eight applicable vendor
+tests passed without adapter changes; the live battery and both suites had
+passed on 1.0.0 too (2026-10-02). A separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
-session created with SDK 0.99.2 using 1.0.0: native id, saved model and prior
-messages survived, and the new OAR stream started at sequence zero. This
-checks conversation continuity, not unfinished execution recovery. The upgrade
-does not adopt the separate experimental Pi Durable harness. Scope, commands
-and evidence: [version check report](../../experiments/runtime-version-checks/2026-10-02.md).
-
-On **1.0.2** (2026-10-04; the same Linux/Node/provider configuration), all
-11 applicable live cases passed again. The simulated-provider behavior suite
-was 19/19 clean, including withdrawal, and all eight applicable vendor tests
-passed without adapter changes. A separate-process upgrade from 1.0.0 to
-1.0.2 retained the native id, saved model and prior transcript, with a fresh
-OAR stream. See the [October 4 report](../../experiments/runtime-version-checks/2026-10-04.md).
+session created by the previous SDK, 0.99.2 under 1.0.0 and 1.0.0 under
+1.0.2: native id, saved model and prior transcript survived, and the new OAR
+stream started at sequence zero. This checks conversation continuity, not
+unfinished execution recovery. Neither upgrade adopts the separate
+experimental Pi Durable harness. Scope, commands and evidence: version check
+reports of [October 2](../../experiments/runtime-version-checks/2026-10-02.md)
+and [October 4](../../experiments/runtime-version-checks/2026-10-04.md).
 
 ## Native concepts and calling interfaces
 
@@ -70,7 +68,7 @@ creates services and one `AgentSession`, not the replacement-oriented
 | History tree and replacement APIs | Resume is mapped; branch navigation, fork, import and history access are not exposed. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
-| Control | `prompt`/`steer`/`queue`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
+| Control | `prompt`/`steer`/`queue`/`withdraw`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
 | Provider HTTP | The adapter sets undici's global dispatcher to an `EnvHttpProxyAgent`: the proxy half of what every pi entry point installs, without pi's global fetch replacement ([details](#http-plane-and-proxies)). |
 
 Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
@@ -109,7 +107,8 @@ mirrored so the agent-dir pin and pi's own CLI land sessions in the same
 place. The adapter calls `SessionManager.list(cwd, sessionDir)`, matches the
 native header ID and opens that path. Search is scoped to that cwd and agent
 directory: a session started elsewhere is not found, and the error names the
-directory searched. A missing match throws; pi writes the file on the first
+directory searched ([resume in another directory](resume-cwd.md)). A missing
+match throws; pi writes the file on the first
 message, so a session that never received one has no file. Live, resume by
 header id finds the file, keeps the id and recalls the earlier transcript
 (`resume` scenario; also [`session-resume.ts`](../../experiments/README.md)).
@@ -285,8 +284,8 @@ reported it at open (pi exposes no later model-change event to OAR). The
 adapter checks the spelling before pi is asked: a bare
 `oar-no-such-model-xyz` fails the `provider/model` check, while
 `openai-codex/oar-no-such-model-xyz` or `no-such-provider/gpt-5.3-codex-spark`
-throws "is not registered" from `ModelRuntime.getModel`: no session, no
-tokens (`bad-model` scenario;
+finds nothing through `ModelRuntime.getModel` and throws "is not registered":
+no session, no tokens (`bad-model` scenario;
 [`tests/pi/pi-session-resume.test.ts`](../../tests/pi/pi-session-resume.test.ts),
 [`tests/pi/pi-session-model.test.ts`](../../tests/pi/pi-session-model.test.ts),
 [resolver](../../packages/oar/src/runtimes/pi/resolve.ts)). Catalog discovery
@@ -424,11 +423,14 @@ untouched env and the untouched global classes are pinned by
 The SDK shares its host process. Global configuration, lazy environment reads
 and the global dispatcher mean the adapter cannot promise independently
 configured embedded Pi runtimes within one process. Releasing a session is SDK
-disposal, not killing a runtime subprocess.
+disposal, not killing a runtime subprocess. With no process to kill, no kill
+fallback backs `abort()` (the ACP runtimes kill after ten seconds).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
 **Mapped:** installation checks that the bundled SDK resolves or imports;
-there is no executable to probe and no version to report. Native providers
+there is no executable to probe and no version to report. The SDK is a
+regular dependency of OAR and moves with the OAR version, so Pi has no
+`checkUpdate` or `upgrade` ([runtime updates](update.md)). Native providers
 support API keys and OAuth; `createPiProviderAuth` exposes per-provider
 status, interactive login (auth-URL / device-code / prompt events bridged from
 pi's `AuthInteraction`), `setApiKey` and logout through `ModelRuntime`,

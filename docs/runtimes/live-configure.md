@@ -24,6 +24,7 @@ runtime starts its MCP servers again.
 | grok 1.0.41 | `session/set_model` or `session/set_config_option {configId: "model"}` | `session/set_config_option {configId: "reasoning_effort"}` | the answer's `configOptions` (current values), a `config_option_update` push, and `_x.ai/session_notification model_changed {model_id, reasoning_effort}` | adapter-held (OAR drains one prompt per turn end) |
 | kimi 2.0.0 | `session/set_model` (also a `model` config option) | `session/set_config_option {configId: "thinking"}` | the answer's `configOptions` and a `config_option_update` push | adapter-held |
 | pi SDK 0.84.2 | `AgentSession.setModel(model)` | `AgentSession.setThinkingLevel(level)` | `thinking_level_changed {level}`; `AgentSession.model` / `thinkingLevel` getters | adapter-held (OAR starts the next held input at `agent_settled`) |
+| cursor `@cursor/sdk` 1.0.35 (SDK types only, not probed) | `agent.send(message, { model })`, per run | the same selection's reasoning parameter (`effort`, `reasoning` or `reasoning_effort` by model family) | `agent.model`, updated after each successful `send({ model })`; each `run.wait()` answers with the run's `model` | adapter-held (OAR sends the next held input as a new run when the current one ends) |
 
 Probed, token-free:
 
@@ -80,7 +81,7 @@ change racing a queued input.
   and claude's `effort()` would stay null.
 - **Turn boundaries and queues.** A change applied while idle must still be
   ordered against queued input. On the adapter-held queues (claude, grok,
-  kimi, pi) the adapter drains the next held input at the turn end, so a
+  kimi, pi, cursor) the adapter drains the next held input at the turn end, so a
   configure accepted before a drain must be sent (and answered) before that
   drain's prompt; a configure issued mid-turn waits for the boundary or is
   refused `busy`. Codex holds its queue natively and `thread/settings/update`
@@ -92,5 +93,7 @@ change racing a queued input.
 - **Resume semantics stay separate.** Asked for nothing, codex, grok and kimi
   restore the level the session last ran with; pi restores the level its
   session file recorded, and an explicit level on resume is not recorded;
-  claude restores none. A configure would change the running session; what the
+  claude restores none; a resumed cursor agent restores no model, so OAR
+  reopens it with its latest run's selection (`Agent.listRuns`,
+  [model.ts](../../packages/oar/src/runtimes/cursor/model.ts)). A configure would change the running session; what the
   next resume restores remains each runtime's rule and belongs in its page.

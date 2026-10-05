@@ -4,7 +4,7 @@ Evidence baseline: native source pinned to [`4f39251a`][native-source]
 (2026-08-22) unless a claim cites the newer upstream tree
 [`2151d3a5`][upstream-tree] (2026-09-12); the [app-server guide][guide] is
 rolling documentation. The OAR mapping was checked against source on
-2026-10-02. Live observations come from **codex-cli 0.154.0**
+2026-10-05. Live observations come from **codex-cli 0.154.0**
 (`gpt-5.3-codex-spark`, ChatGPT login, darwin) through
 [`experiments/live-contract.ts codex`](../../experiments/live-contract.ts)
 (13 scenarios, 2026-09-11), from
@@ -49,13 +49,14 @@ protocol version 2 over stdio, and exposes it as the
 (params verbatim in `native`, OAR's reading in `events`), every control call is
 a request record answered by the RPC reply, and codex's own `turn/completed`
 ends the turn. The adapter declares `capabilities: { queue: { durable: true
-}, attribution: "nested", images: true }`, and the session has `steer`.
+}, attribution: "nested", images: true }`; the session has `steer` and no
+`withdraw` ([queue](#prompt-steering-queueing-and-abort)).
 
 | Native concept or boundary | Current OAR mapping |
 |---|---|
-| Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames sent before that reply (notifications and server requests alike) are held in one queue and recorded ahead of it in wire order; the open frame sits at the reply's own wire position, so frames written after the reply (`thread/started`) follow it whatever the chunking. |
+| Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames codex sends before that reply (notifications and server requests alike) are recorded ahead of it in wire order, and frames written after it (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` (`turn_ended`: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer and interrupt. |
-| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, and a steer can end it early); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()` and `effort()` fold the `model` / `effort` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. |
@@ -86,10 +87,9 @@ The app-server talks before the thread exists ([env] 0.154.0):
 installationId, environmentId: null }` follows the `initialize` reply in every
 run and is seq 0, the open event is seq 1, and `thread/started` (root
 `parentThreadId: null`) follows
-([pre-open tests](../../tests/codex/codex-pre-open.test.ts)). `thread/start`
-accepts an unknown model slug and reads it back (`model:
-"oar-no-such-model-xyz"`, plus a `warning` "Model metadata … not found"); the
-failure surfaces only at the first turn ([models](#models-instructions-and-context)).
+([pre-open tests](../../tests/codex/codex-pre-open.test.ts)). An unknown model
+slug opens and fails only at the first turn
+([models](#models-instructions-and-context)).
 [Adapter][oar-session], [transport][oar-transport],
 [handshake probe](../../experiments/codex-handshake.ts).
 
@@ -113,31 +113,33 @@ approvalPolicy: "never", …instructions }`, requires a thread id, checks an
 explicit `model` against the readback, and sets a differing effort afterwards
 ([effort](#models-instructions-and-context)). The token is a native thread id
 resolved against the selected executable's runtime storage and configuration
-(`CODEX_HOME`), not a portable transcript. The resumed session keeps the id
-and gets a fresh stream at seq 0 whose open event is the `thread/resume`
-reply, preceded by what the app-server said while loading ([env] 0.154.0:
-`remoteControl/status/changed`, `warning`, four
-`mcpServer/startupStatus/updated`, `thread/status/changed idle`; the open
-event lands at seq 7); the model recalls the earlier transcript
-(live-contract `resume`). With `excludeTurns`, history is not replayed into
-the stream; no cursor from the previous process is valid, and nothing restores
-observer positions or a controller lease. The first `turn/start` after resume
-is preceded by a `thread/tokenUsage/updated` carrying the previous turn's id
-and the thread's cumulative total, then `thread/goal/cleared` ([env]
-0.154.0); totals accumulate across processes, so `usage()` on a resumed
-session includes earlier turns. Resume sends no `experimentalRawEvents`, and
-sending it is inert ([reasoning](#observation-children-and-history)).
+(`CODEX_HOME`), not a portable transcript; a resume naming another `cwd` kept
+the conversation and ran its shell there (0.160.0,
+[resume in another directory](resume-cwd.md)). The resumed session keeps the
+id and gets a fresh stream at seq 0: what the app-server said while loading
+comes first ([env] 0.154.0: `remoteControl/status/changed`, `warning`, four
+`mcpServer/startupStatus/updated`, `thread/status/changed idle`), then the
+`thread/resume` reply as the open event at seq 7, and the model recalls the
+earlier transcript (live-contract `resume`). With `excludeTurns` no history
+is replayed into the stream; no cursor from the previous process is valid,
+and nothing restores observer positions or a controller lease. The first
+`turn/start` after resume is preceded by a `thread/tokenUsage/updated`
+carrying the previous turn's id and the thread's cumulative total, then
+`thread/goal/cleared` ([env] 0.154.0); totals accumulate across processes, so
+`usage()` on a resumed session includes earlier turns. Resume sends no
+`experimentalRawEvents`, which would be inert there
+([reasoning](#observation-children-and-history)).
 
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
-Missing or unloadable threads reject through RPC as `codex thread/resume
-failed: <message>`; structured RPC error data is dropped. A `thread/resume`
-on a connection already subscribed to the loaded thread drops the `model`
-override and reports the old model, so the adapter rejects a readback mismatch
-(killing the app-server it started) rather than run silently on another model;
-the override applies on a cold load, the normal case since every Session owns
-its process. OAR does not arbitrate independent controllers resuming the same
-persisted identity.
+Missing or unloadable threads reject as `codex thread/resume failed:
+<message>`; structured RPC error data is dropped. A `thread/resume` on a
+connection already subscribed to the loaded thread drops the `model` override
+and reports the old model, so the adapter refuses a readback mismatch
+(killing the app-server it started) rather than run silently on another
+model; the override applies on a cold load, the normal case since every
+Session owns its process. OAR does not arbitrate independent controllers
+resuming the same persisted identity.
 [Resume/model probe](../../experiments/session-resume-model.ts),
 [resume probe](../../experiments/session-resume.ts),
 [resume tests](../../tests/codex/codex-session-resume-model.test.ts),
@@ -147,11 +149,12 @@ persisted identity.
 
 **Prompt (mapped):** native `turn/start { threadId, input }` returns
 `{ turn: { id } }`; later notifications establish completion. `prompt(string)`
-records a `prompt` request, sends one text input, and records the RPC reply as
-the `accepted` response, or `rejected` with the RPC error message, `rejected:
-codex turn/start returned no turn id`, or `rejected: busy` while a root turn
-is active (including a queued turn codex started on its own). Completion is
-codex's `turn/completed`, exactly one `turn_ended` per prompt (live-contract
+records a `prompt` request, sends the text input, and records the RPC reply
+as the `accepted` response. It is `rejected` with the RPC error message, with
+`codex turn/start returned no turn id` when the reply names none, or `busy`
+while a root turn is active (a queued turn codex started on its own
+included). Completion is codex's
+`turn/completed`, exactly one `turn_ended` per prompt (live-contract
 `multi-turn`). A basic one-word turn was 33 records with event kinds `model,
 reasoning, text_delta, usage, turn_ended`, one `spanId`, dense seqs, every
 frame carrying `native`, and `dispose` answered `exited { code: null }`
@@ -177,27 +180,29 @@ the steer → queue fallback, and the limits of acknowledgement evidence; the
 [steer delivery probes](steer-delivery.md) hold the native observations.
 
 **Steer (mapped, landing observed):** native `turn/steer { threadId,
-expectedTurnId, input }` binds input to the expected active turn; OAR supplies
-the retained native turn id. The `{ turnId }` reply is the `accepted` response
-(delivery ownership, not model attention); every RPC error is `rejected` with
-a reason prefixed `not_steerable:` (operational failures included), and with
-no active turn the gate answers `not_steerable: no active turn`. A steer
-accepted while the turn's first tool ran appeared as a `userMessage` item
-inside the same turn and shaped its final text (`ALPHA BRAVO MANGO`), with one
-`turn_ended` (live-contract `steer`;
+expectedTurnId, input, clientUserMessageId }` binds input to the expected
+active turn, so codex adjudicates the race; OAR supplies the native turn id
+it retained from the `turn/start` reply or the latest root `turn/started`.
+The `{ turnId }` reply is the `accepted` response (delivery ownership, not
+model attention); every RPC error is `rejected runtime_refused` with a reason
+prefixed `not_steerable:` (operational failures included), and with no
+active turn the gate answers `no_active_turn` (`not_steerable: no active
+turn`). A steer accepted while the turn's first tool ran appeared as a
+`userMessage` item inside the same turn and shaped its final text (`ALPHA
+BRAVO MANGO`), with one `turn_ended` (live-contract `steer`;
 [adapter probe](../../experiments/codex-session-adapter.ts)).
 
 **Instant interrupt (opt-in, observed on 0.159.0):** native `[features]
-instant_interrupt = true`, off by default and under development upstream,
-makes `turn/steer` preempt an unfinished model response or yield a running
-code-mode cell early. OAR inherits the configuration and keeps its mapping and
-default. The same native turn continues, the cell is not stopped, and direct
-tool calls still finish before new input is sampled; queue stays a next-turn
+instant_interrupt = true` (off by default, under development upstream) makes
+`turn/steer` preempt an unfinished model response or yield a running
+code-mode cell early. OAR inherits the configuration and keeps its mapping
+and default. The same native turn continues, the cell is not stopped, direct
+tool calls still finish before new input is sampled, queue stays a next-turn
 operation and abort still ends the turn. Partial deltas of the interrupted
-assistant item can remain without an `item/completed`, although Codex excludes
-them from replacement model context; OAR preserves them as observations, not
-committed transcript evidence. See the
-[seven-case probe, opt-in instructions and limits](../../experiments/codex-instant-interrupt.md).
+assistant item can remain without an `item/completed`; Codex excludes them
+from the replacement model context, and OAR keeps them as observations, not
+committed transcript evidence
+([seven-case probe, opt-in instructions and limits](../../experiments/codex-instant-interrupt.md)).
 
 **Queue (mapped, `durable: true`):** native queue operations have submission
 identities and inspection/editing methods. `queue()` calls `thread/queue/add
@@ -209,15 +214,17 @@ spontaneous: `turn/started` … `turn/completed` with no prompt request of its
 own, its `userMessage` item carrying `clientId` = the submitted
 `clientUserMessageId` (live-contract `queue`,
 [queue probe](../../experiments/session-queue.ts)). The adapter adopts such a
-turn as busy. A queued submission survived a SIGKILL of the whole process tree
-and ran by itself as a new turn on resume, before any prompt (codex 0.158.0,
-one run, [crash and resume](crash-resume.md)), so a prompt sent right after
-such a resume is rejected `busy` until that turn ends. A steer accepted but
-not yet read when the process died was lost in the same run. [Thread schema][thread-schema].
-The session has no `withdraw` yet: the queue is codex's own, and its
-`thread/queue/delete` is experimental and not live-verified (its `deleted:
-false` cannot tell "already dispatched" from "never there"), so OAR does not
-claim it ([input cancellation](input-cancellation.md)).
+turn as busy. A queued submission survived a SIGKILL of the whole process
+tree and ran by itself as a new turn on resume, before any prompt (codex
+0.158.0, one run, [crash and resume](crash-resume.md)), so a prompt sent
+right after such a resume is rejected `busy` until that turn ends; a steer
+accepted but not yet read when the process died was lost in the same run.
+[Thread schema][thread-schema].
+
+**Withdraw (not exposed):** the session has no `withdraw`. The queue is codex's
+own, and its `thread/queue/delete` is experimental and not live-verified (its
+`deleted: false` cannot tell "already dispatched" from "never there"), so OAR
+does not claim it ([input cancellation](input-cancellation.md)).
 
 **Abort (mapped):** native `turn/interrupt { threadId, turnId }` targets an
 execution; `turn/completed` reports whether the interrupt won the race.
@@ -230,10 +237,11 @@ raw `function_call_output` `"Wall time: 2.2 seconds\naborted by user"`, a
 usage update, rate limits), then `turn/completed { status: "interrupted",
 items: [] }`; the interrupted `commandExecution` item gets no
 `item/completed`, so its `tool_call_started` has no `tool_call_ended`
-(live-contract `abort`). With nothing active, `abort()` is `rejected: no
-active turn`. A second prompt during a turn is `rejected: busy`; after the
-turn, a late abort is `rejected: no active turn` and a late steer `rejected:
-not_steerable: no active turn` (live-contract `busy-and-late-control`). [Stream tests](../../tests/codex/codex-session-stream.test.ts).
+(live-contract `abort`). A second prompt during a turn is `rejected: busy`;
+with nothing active, including after the turn, an abort is `rejected: no
+active turn` and a steer `rejected: not_steerable: no active turn`
+(live-contract `busy-and-late-control`;
+[stream tests](../../tests/codex/codex-session-stream.test.ts)).
 
 **Dispose and unreachable runtime:** `dispose()` records a `dispose` request,
 kills the app-server and awaits its exit, recorded as the `exited` response
@@ -246,10 +254,9 @@ history. When the app-server dies on its own (SIGKILL mid-tool) the stream
 gets `exited { code: null }` with `requestId: ""`; every later
 prompt/steer/queue/abort is `rejected: runtime exited`, and a later
 `dispose()` is answered `accepted`, nothing being left to release
-(live-contract `kill-runtime`). Both reachability answers (`runtime exited` /
+(live-contract `kill-runtime`). Both reachability answers (`runtime exited`,
 `session disposed`) are the shared kernel's, read off the stream before the
-adapter's own gates (busy, no active turn); the adapter keeps no liveness
-flag. [Kernel][oar-kernel].
+adapter's own gates; the adapter keeps no liveness flag. [Kernel][oar-kernel].
 
 ### Observation, children, and history
 
@@ -278,16 +285,16 @@ read as `tool_call_progress`
 protocol schema (`codex app-server generate-json-schema`, [env] 0.154.0)
 lists the flag on neither `ThreadStartParams` nor `ThreadResumeParams`, yet on
 `thread/start` it yields raw frames: each turn opens with the raw `message`
-items codex sent (developer skills/plugin instructions, the user prompt), then
-reasoning / `function_call` / `function_call_output` / assistant message
-items. On `thread/resume` the flag is inert: a resumed stream has only
-`item/started|completed` reasoning with empty summary and content, so no
-`reasoning` events. On `gpt-5.3-codex-spark` every reasoning step is
-`item/started` + `item/completed { type: "reasoning", summary: [], content:
-[] }` plus one raw reasoning item with empty `summary` and an
-`encrypted_content` → `reasoning { kind: "redacted" }`; no plaintext
-reasoning appeared in any live run (`reasoningEffort: "medium"`,
-`reasoningOutputTokens` > 0). [Reasoning tests](../../tests/codex/codex-reasoning.test.ts),
+items codex sent (developer skills/plugin instructions, the user prompt),
+then reasoning, `function_call`, `function_call_output` and assistant message
+items. On `thread/resume` the flag is inert, so a resumed stream has no
+`reasoning` events (its reasoning items have empty summary and content). On
+`gpt-5.3-codex-spark` every reasoning step is an `item/started` +
+`item/completed { type: "reasoning", summary: [], content: [] }` pair plus
+one raw reasoning item with empty `summary` and an `encrypted_content`, read
+as `reasoning { kind: "redacted" }`; no plaintext reasoning appeared in any
+live run (`reasoningEffort: "medium"`, `reasoningOutputTokens` > 0).
+[Reasoning tests](../../tests/codex/codex-reasoning.test.ts),
 [projection][oar-projection].
 
 **Native children (nested):** the pinned `collabAgentToolCall` schema carries
@@ -298,10 +305,9 @@ linkage. OAR records notifications of other thread ids as child-session
 records (`sessionId` is the child thread, a `graph()` node) and adds a
 `tool_call` edge from the sender (`senderThreadId`, else the thread that
 reported the item) to each `receiverThreadIds` / `agentThreadId` entry that
-is not the sender. Lineage
-(an edge) stays distinct from observation (a node), and no edge is
-fabricated. `agentPath` stays `[]` on every record: attribution is `nested`
-(child session ids), not agent paths. Collaboration items carry no events,
+is not the sender. Lineage (an edge) stays distinct from observation (a
+node), and no edge is fabricated. `agentPath` stays `[]` on every record:
+attribution is `nested` (child session ids). Collaboration items carry no events,
 except that `item/completed` for a `subAgentActivity` about the reporting
 thread's own child is a task event with the child thread as task id (and as
 `childSessionId` on `task_started`): `started` → `task_started` (the
@@ -369,8 +375,9 @@ by build):
 `thread/resume`; `model()` folds the open reply's `model` event (the runtime's
 readback, available at open), and a readback differing from an explicit
 request fails the open (`codex <method> kept model <readback> although
-<requested> was requested`). An unknown model opens (the slug is read back,
-with a `warning`); the first `turn/start` is accepted, then
+<requested> was requested`). An unknown model opens: `thread/start` reads the
+slug back (`model: "oar-no-such-model-xyz"`) with a `warning` "Model metadata
+… not found"; the first `turn/start` is accepted, then
 `thread/status/changed { type: "systemError" }`, an `error` notification and
 `turn/completed { status: "failed" }` give `turn_ended` failed with reason
 `failed: {"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The
@@ -381,16 +388,17 @@ ChatGPT account."}}`, class `invalid_request` (live-contract `bad-model`;
 **Effort (mapped):** `SessionOptions.effort` governs every turn of the
 thread, a turn codex starts from its own queue included ([env] 0.155.1). A
 new thread takes it as the config override `config: {model_reasoning_effort}`
-on `thread/start`, and each Responses request then carries `reasoning:
-{effort}`; the reply's `reasoningEffort` is codex's word, read as the open
-frame's `effort` event. A resume takes no config override: any `config` on `thread/resume`
-rebuilds the thread's settings from `config.toml`, and the rebuild stays with the thread
-(live: a `gpt-6-luna` thread resumed without `model` came back as
-`gpt-6-astra`, and a later plain resume with no turn between still answered
-the config's model; [experiment](../../experiments/effort-channels.ts); the
+on `thread/start`; each Responses request then carries `reasoning: {effort}`,
+and the reply's `reasoningEffort`, codex's word, is the open frame's `effort`
+event. A resume takes no config override, because any `config` on
+`thread/resume` rebuilds the thread's settings from `config.toml` and the
+rebuild stays with the thread (live: a `gpt-6-luna` thread resumed without
+`model` came back as `gpt-6-astra`, and a later plain resume with no turn
+between still answered the config's model;
+[experiment](../../experiments/effort-channels.ts); the
 [vendor test](../../sea-trial/vendor/effort.vendor.test.ts) pins it with a
 thread opened off the aimock default). A resume instead reads the level off
-its reply and, when that is not the requested one, sends
+its reply and, when it is not the requested one, sends
 `thread/settings/update {threadId, effort}` (experimental API, which OAR
 enables); codex answers `{}` and pushes `thread/settings/updated
 {threadSettings: {model, effort, ...}}`, read as `model` and `effort` events.
@@ -406,9 +414,9 @@ level. Without an effort, `thread/start` answers `reasoningEffort: null` (the
 model default applies) and yields no `effort` event, and a resume runs and
 reports the level and model the thread last ran with (live: `medium`,
 although `config.toml` says `model_reasoning_effort = "low"`). codex validates
-no level: an unknown one is echoed as `reasoningEffort` and forwarded, so the
-open succeeds and the provider refuses the first turn (`turn_ended` failed,
-`invalid_request`: "[ReasoningEffortParam] [reasoning.effort]
+no level: it echoes an unknown one as `reasoningEffort` and forwards it, so
+the open succeeds and the provider refuses the first turn (`turn_ended`
+failed, `invalid_request`: "[ReasoningEffortParam] [reasoning.effort]
 [invalid_enum_value] Invalid value: 'oar-no-such-effort'. Supported values
 are: 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', and 'max'."). The
 per-turn `turn/start {effort}` ("for this turn and subsequent turns") is not
@@ -444,8 +452,8 @@ codex's own occupancy reading (`TokenUsage::tokens_in_context_window` returns
 `protocol/src/protocol.rs` at [`4f39251a`][native-source]); codex's displayed
 percent also subtracts a 12k `BASELINE_TOKENS`, which OAR does not. Without
 `last` (older builds) occupancy is unknown: the cumulative input stands in as
-`tokens` and window and percent are null, so the cumulative total is never
-read against the window; when only the window is absent, `tokens` is `last`'s and
+`tokens` with window and percent null, so the cumulative total is never read
+against the window; when only the window is absent, `tokens` is `last`'s and
 window and percent are null. `contextUsage()` and `usage()` fold these
 events, scoped to the root session.
 
@@ -486,8 +494,8 @@ dangling request is the honest record
 ([stream tests](../../tests/codex/codex-session-stream.test.ts)); none arrived
 in any live run.
 
-OAR projects command execution, file changes, MCP calls, and web search
-([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
+OAR projects command execution, file changes, MCP calls, web search and
+sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
 dynamic-tool execution callback, MCP management, or elicitation API.
 Runtime-owned tools (MCP servers, skills, plugins) come from native
 configuration. The inventories read them on their own app-server process:
@@ -498,67 +506,64 @@ MCP-only (2026-09-16; [query contract](../spec/inventory.md),
 
 ### Process ownership, installation, and account usage
 
-Native 0.160.0 can fail SQLite initialization when several processes first
-open a fresh shared `CODEX_HOME`: a direct Linux probe failed 21/24 starts,
-while independent homes, a completed prior initialization, and serial starts
-each initialized 24/24. This does not establish the cause of similar Windows
-CI failures. [Reproduction and limits](../../experiments/codex-concurrent-startup.md),
-[upstream issue](https://github.com/openai/codex/issues/50290).
-
-OAR coordinates the first app-server initialization for each home within one
-loaded adapter module. Sessions, account usage and inventories share this
-entry point: one process starts, and other clients wait until its
-`initialize` succeeds and `initialized` is sent. Later starts on that home
-can run concurrently. A failed initializer releases the next waiting client
-after exit; its own caller still receives the original failure. Cancelling
-a waiting client prevents its process from spawning, and query deadlines
-include the wait. There is no added warmup process, delay or retry.
-
-The key uses the child's effective environment and working directory,
-resolves relative paths and symlinks, and ignores trailing separators.
-Readiness comes from the observed handshake, not the presence of a database
-file; replacing the home directory invalidates it. This coordination does
-not cover other host processes, separately loaded copies of OAR, or the
-separate `codex debug models` command. It is not a native migration lock or
-an arbitration mechanism for concurrent controllers of the same thread.
-[Implementation](../../packages/oar/src/runtimes/codex/home-initialization.ts),
-[cancellation and concurrency tests](../../tests/codex/codex-home-initialization.test.ts).
-
-Model listing was separately verified not to initialize the SQLite state
-database on 0.160.0/Linux with the probe's custom provider and no login:
-24 standalone readers and 21 readers alongside three app-servers succeeded;
-models-only homes contained just their input config, and file-system tracing
-observed no SQLite paths. The native implementation uses a separate model
-catalog/cache. This evidence supports leaving that command outside the
-coordination; it is not a guarantee for other versions or environments.
-[Reproducible models control and source](../../experiments/codex-concurrent-startup.md#model-listing-alongside-startup).
-
-A [vendor regression](../../sea-trial/vendor/codex.vendor.test.ts) bypasses
-test-home warmup and opens eight real sessions concurrently in a fresh
-home. All eight opened on 0.160.0/Linux (2026-10-02); the same test runs in
-the existing cross-platform Codex CI jobs. This adapter result does not
-establish the root cause of the earlier Windows failures.
-
 **Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
 the exit because the process may hold state (codex's sqlite runtime in
 `CODEX_HOME`) that the next session needs released. On POSIX the app-server
 leads its own process group, so the kill (SIGTERM, then SIGKILL after a grace
-period: 10 s, or `OAR_KILL_GRACE_MS`) also reaches the commands and MCP servers
-it started, and disposal settles even when it ignores SIGTERM
+period: 10 s, or `OAR_KILL_GRACE_MS`) also reaches the commands and MCP
+servers it started, and disposal settles even when it ignores SIGTERM
 ([test](../../tests/session-dispose.test.ts)). This supplies resource
 release, not detached execution or a lease against other controllers of the
 persisted thread. The environment overlay applies to the child process.
 
-The process layer continuously drains stderr and retains its last 8 KiB.
-When the app-server exits, pending and subsequent RPC calls fail with its
-exit code, signal, any native spawn error, and the stderr tail observed by
-that point. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's
-stderr while retaining the tail. These details live in the exception's
-message and cause; the `exited` record keeps its existing shape. They help
-the host distinguish a missing executable from a native crash when deciding
-whether to repair configuration or retry. OAR makes no automatic retry
-decision. [Exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
-[spawn failure test](../../tests/codex/codex-startup-diagnostics.test.ts).
+**First open per `CODEX_HOME` (coordinated):** native 0.160.0 can fail SQLite
+initialization when several processes first open a fresh shared home: a direct
+Linux probe failed 21/24 starts, while independent homes, a completed prior
+initialization, and serial starts each initialized 24/24; this does not
+establish the cause of similar Windows CI failures
+([reproduction and limits](../../experiments/codex-concurrent-startup.md),
+[upstream issue](https://github.com/openai/codex/issues/50290)). OAR
+therefore coordinates the first app-server initialization of each home
+within one loaded adapter module. Sessions, account usage and inventories
+share this entry point: one process starts, and the others wait until its
+`initialize` succeeds and `initialized` is sent; later starts on that home
+can run concurrently. A failed initializer releases the next waiting client
+after its exit, and its own caller still receives the original failure. Cancelling
+a waiting client keeps its process from spawning, and query deadlines include
+the wait. There is no added warmup process, delay or retry. The home is keyed
+from the child's effective environment and working directory, with relative
+paths and symlinks resolved and trailing separators ignored; readiness comes
+from the observed handshake, not from a database file, and replacing the home
+directory invalidates it. The coordination does not cover other host
+processes, separately loaded copies of OAR, or `codex debug models`, and it
+is neither a native migration lock nor arbitration between controllers of
+one thread
+([implementation](../../packages/oar/src/runtimes/codex/home-initialization.ts),
+[cancellation and concurrency tests](../../tests/codex/codex-home-initialization.test.ts)).
+
+`codex debug models` stays outside because it did not initialize the SQLite
+state database on 0.160.0/Linux (the probe's custom provider, no login): 24
+standalone readers and 21 readers alongside three app-servers succeeded,
+models-only homes held just their input config, and file-system tracing saw
+no SQLite paths; the native implementation uses a separate model
+catalog/cache. This is evidence for that version and environment, not a
+guarantee
+([models control and source](../../experiments/codex-concurrent-startup.md#model-listing-alongside-startup)).
+A [vendor regression](../../sea-trial/vendor/codex.vendor.test.ts) bypasses
+test-home warmup and opens eight real sessions concurrently in a fresh home:
+all eight opened on 0.160.0/Linux (2026-10-02), and the test runs in the
+cross-platform Codex CI jobs. It does not establish the root cause of the
+earlier Windows failures.
+
+**Exit diagnostics:** the process layer drains stderr continuously and keeps
+its last 8 KiB. When the app-server exits, pending and later RPC calls fail
+with its exit code, signal, any native spawn error and the stderr tail seen
+by then, in the exception's message and cause; the `exited` record keeps its
+shape. `OAR_CHILD_STDERR=inherit` also forwards stderr to the host's. A host
+can tell a missing executable from a native crash; OAR makes no automatic
+retry decision
+([exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
+[spawn failure test](../../tests/codex/codex-startup-diagnostics.test.ts)).
 
 Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
 desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
@@ -605,7 +610,7 @@ material" row describes the former only.
 | Connection identity | Implicit (of none, implicit, explicit id): the subscription relation is the identity. No frame carries a connection id, request ids are per client integers from 1, and over websocket neither the upgrade response nor the `initialize` reply carries one (observed by @Faye). The server keeps a `ConnectionId` per transport connection (`thread_state.rs`: `live_connections` and a per thread subscriber set that `thread/start` and `thread/resume` join and `thread/unsubscribe` leaves; a closed connection drops its pending request contexts) and a persistent `connection_id` column in `logs_2.sqlite` (0.153.4); neither reaches the wire. A client death leaves the subscriber set without any frame to the others. | source [transport][oar-transport]; source upstream [thread state][upstream-thread-state], [outgoing messages][upstream-outgoing]; observed by @Faye |
 | Transport cursor | **Live stream cursor** (a position a reconnecting client hands back to get missed frames): none. No notification carries a sequence field, `turnId` is a span label and a `thread/items/list` filter, and `thread/resume` on a running thread delivers history plus a fresh full copy of every later frame, not a continuation (upstream comment "sends the thread's history to the client and atomically subscribes for new updates"; observed by @Faye: after B resumes, A and B receive frame for frame identical method sequences). **History pagination cursor:** `thread/resume` returns `itemsBackwardsCursor` and `turnsBackwardsCursor`, documented as opaque but observed as plaintext JSON `{ requestedThreadId, rolloutOrdinal, includeAnchor, scope }`; `rolloutOrdinal` is the `ordinal` every rollout line carries, monotonic from 0; a hand built cursor is accepted by `thread/items/list` and pages in both `sortDirection` values. It cannot reach a delta, because deltas are not persisted (question 2). OAR's process local `seq` is the only live cursor on this path. | source [kernel][oar-kernel]; source upstream [thread schema][upstream-thread-rs]; observed by @Faye |
 | Event stream scope | One event record per notification on this stdio connection, child threads included, which arrive on the parent's connection (observed 0.149.0 and 0.154.0). As the sole subscriber OAR receives both [tiers](#broadcast-tier-and-subscription-tier) merged. | source [projection][oar-projection]; observed [child thread probe](../../experiments/codex-child-threads.ts); source upstream [outgoing messages][upstream-outgoing]; observed by @Faye |
-| Runtime side resume material | `rollout-<timestamp>-<threadId>.jsonl` under `CODEX_HOME/sessions`, indexed by a sqlite state database in the same home. It holds what `should_persist_response_item` and `should_persist_event_msg` admit: messages, reasoning, tool calls with outputs, compaction markers, turn started, completed, aborted, token counts; not app-server notifications as sent, deltas, server requests, or anything OAR appended. `thread/resume` with `excludeTurns: true` feeds it to the model and replays nothing to OAR. Diagnostic reference only: OAR never replays observers from it. | source upstream [persistence policy][upstream-policy]; source adapter; observed [resume](#connection-session-creation-and-resume) |
+| Runtime side resume material | `rollout-<timestamp>-<threadId>.jsonl` under `CODEX_HOME/sessions`, indexed by a sqlite state database in the same home: what `should_persist_response_item` and `should_persist_event_msg` admit (messages, reasoning, tool calls with outputs, compaction markers, turn started, completed, aborted, token counts), nothing OAR appended ([question 2](#six-questions)). `thread/resume` with `excludeTurns: true` feeds it to the model and replays nothing to OAR. Diagnostic reference only: OAR never replays observers from it. | source upstream [persistence policy][upstream-policy]; source adapter; observed [resume](#connection-session-creation-and-resume) |
 | Vendor claim versus evidence | Observed on 0.154.0: resume continuity with `excludeTurns`, steer, queue, interrupt, dispose mid turn, child notifications on the parent connection, `exited` after kill; on 0.158.0, one run: a queued submission surviving process tree death. Probed outside OAR: websocket and unix socket transports. Vendor only: `codex app-server proxy`, the app-server daemon, Codex Cloud `history` resume, `ephemeral` threads, ingress overload error `-32001`. Unverified either way: arbitration between competing controllers, resumed reasoning content, compaction frames, what happens when a recorded server request is never answered. | this page, [open gaps](#verification-and-open-gaps), [crash and resume](crash-resume.md); vendor [app-server README][upstream-readme] |
 
 ### Eight dimensions
@@ -620,7 +625,7 @@ material" row describes the former only.
    stream is process memory behind `records()`, gone with the process
    ([kernel][oar-kernel]; source upstream rollout crate).
 3. **Event model.** One record per JSON-RPC notification (`type` = method,
-   `native` = params verbatim, `turnId` kept); server requests (frames with
+   `native` = params verbatim, the turn id as `spanId`); server requests (frames with
    both `id` and `method`) become `toApp` requests nobody answers; pre-open
    frames precede the open event; `turn/completed`'s `turn.status`
    (`completed`, `interrupted`, `failed`, `inProgress`) settles the outcome
@@ -636,8 +641,8 @@ material" row describes the former only.
 5. **Capability honesty.** Declared as in the [mapping](#high-level-mapping-to-oar).
    Steer (`turn/steer { expectedTurnId }`) and queue (`thread/queue/add
    { clientUserMessageId }`) are held by codex, which is why queue is
-   declared durable; survival of process tree death was observed once
-   ([queue](#prompt-steering-queueing-and-abort)).
+   declared durable and the session has no `withdraw`; survival of process
+   tree death was observed once ([queue](#prompt-steering-queueing-and-abort)).
 6. **Deployment and lifecycle.** Local subprocess only. Process exit is an
    `exited` response answering `dispose`, or with `requestId ""` when codex
    died on its own (a live SIGKILL reads `code: null`; the fake-process test
@@ -662,7 +667,8 @@ material" row describes the former only.
 1. **Is the native session id stable across a host restart, and can it be
    reopened?** Yes ([resume](#connection-session-creation-and-resume)): a
    new process keeps the id and the model recalls earlier turns (observed,
-   live contract), given the rollout under the active `CODEX_HOME`; a
+   live contract; in another `cwd` too, 0.160.0), given the rollout under
+   the active `CODEX_HOME`; a
    completed turn is not required once the rollout is written, but a newly
    allocated id without one is not enough ([floors](#resumability-floors)).
    An already subscribed connection silently drops the model override
@@ -722,11 +728,13 @@ Codex reports status on tool items (source upstream [item schema][upstream-item]
 `inProgress`) and `exitCode`; `fileChange` carries `status` (same set);
 `mcpToolCall`, `dynamicToolCall`, and `collabAgentToolCall` carry `status`
 (`completed`, `failed`, `inProgress`), and `mcpToolCall` adds `error
-{ message }`; `webSearch` and `sleep` have no status. OAR maps explicit `completed` to
-`tool_call_ended.result: "ok"` and explicit `failed` to `"failed"`; any other
-status, `declined` included, or none leaves `result` absent, the native status
-remaining on the frame. OAR does not infer a result from an exit code or
-output. A `commandExecution` item's `exitCode` is carried as
+{ message }`; `webSearch` and `sleep` have no status. OAR maps explicit
+`completed` to `tool_call_ended.result: "ok"` and explicit `failed` to
+`"failed"`; any other status, `declined` included, or none leaves `result`
+absent, the native status remaining on the frame (a `sleep` ends with neither
+`result` nor `content`,
+[item-detail tests](../../tests/codex/codex-item-detail.test.ts)). OAR does
+not infer a result from an exit code or output. A `commandExecution` item's `exitCode` is carried as
 `tool_call_ended.exitCode` (`null` when codex reports a signal exit, absent
 when the item has none), and its `aggregatedOutput` is the event's text
 `content` as-is (the status when the output is empty), the exit status not
@@ -736,22 +744,21 @@ image part); other items' `content` comes from [`item-detail.ts`][oar-item-detai
 ## Native storage and listing, probed live
 
 Evidence baseline for this section: **codex-cli 0.153.4**, Linux x86_64,
-probed 2026-09-12 through the app-server control socket (a WebSocket carried
-over AF_UNIX) against an isolated `CODEX_HOME`, so the shared `~/.codex`
-socket was never created or touched. Statements are observations unless
-labelled a vendor declaration or an inference; a claim that holds only on this
-binary is marked [env]. Nothing here describes OAR behaviour: it is what the
-runtime does underneath the adapter, including two capability-honesty
-failures a client cannot detect from the response it gets.
+probed 2026-09-12 through the app-server control socket (a WebSocket over
+AF_UNIX) against an isolated `CODEX_HOME`, so the shared `~/.codex` socket was
+never created or touched. Statements are observations unless labelled a vendor
+declaration or an inference; [env] marks a claim that holds only on this
+binary. Nothing here is OAR behaviour: it is what the runtime does underneath
+the adapter, including two capability-honesty failures a client cannot detect
+from the response it gets.
 
 ### `thread/list` can return a well-formed empty page over a populated database
 
-Against a state database holding 8 `threads` rows and 7 rollout files, with
-threads that resume and load, `thread/list` returned
-`{"data": [], "nextCursor": null, "backwardsCursor": null}` on every call.
-The cause is the `modelProviders` parameter: when the client omits it, the
-server composes a `threads.model_provider IN (...)` clause that no row can
-satisfy. Varying only the wire parameter, database and daemon untouched:
+With 8 `threads` rows and 7 rollout files whose threads resume and load,
+`thread/list` returned `{"data": [], "nextCursor": null, "backwardsCursor":
+null}` on every call. When the client omits `modelProviders`, the server adds
+a `threads.model_provider IN (...)` clause that no row can satisfy. Varying only
+that parameter, database and daemon untouched:
 
 | `modelProviders` sent | Rows returned |
 |---|---|
@@ -761,80 +768,71 @@ satisfy. Varying only the wire parameter, database and daemon untouched:
 | `["mockr"]` | 4 |
 | all four providers | 7 |
 
-`None` and `Some(vec![])` take different paths with inverted semantics:
 `Some(vec![])` omits the clause and `None` adds it, so **the absent parameter
-is strictly more restrictive than the explicit empty one**, and a client that
-means "do not filter" has to send `[]` explicitly. [env]
+is strictly more restrictive than the explicit empty one**: a client that
+means "do not filter" has to send `[]`. [env] The default query evaluates four
+columns only (all 38 swept): `archived`, `preview`, `source` and
+`model_provider`; rows pass `source`, so it is not the excluder. What the
+`None` branch binds is **not established**. The best reading is SQL `NULL`
+(`x IN (NULL)` is NULL for every row, so not empty, never satisfied, never
+an error, matching all three observations), but **that is an inference, not
+an observation**, and value probing cannot settle it: inside a pure
+conjunction NULL and false are observationally identical. Excluded by probing: 13
+non-`threads` tables renamed one at a time (only `thread_sections` fired, a
+different join) and 66 candidate values spanning all five SQLite storage
+classes.
 
-The default query evaluates four columns only (all 38 swept): `archived`,
-`preview`, `source` and `model_provider`; rows pass `source`, so it is not the
-excluder. What the `None` branch binds on the right-hand side is **not
-established**. The best reading is SQL `NULL`: `x IN (NULL)` is NULL for every
-row, so not empty, never satisfied, never an error, matching all three
-observations. **That is an inference, not an observation**, and value probing
-cannot settle it, because inside a pure conjunction NULL and false are
-observationally identical. Excluded by probing: 13 non-`threads` tables
-renamed one at a time (only `thread_sections` fired, a different join), and
-66 candidate values spanning all five SQLite storage classes.
+### Empty pages have at least four causes
 
-### Listability is a separate and deliberate state face
-
-Rows with an empty `preview` are invisible by design, independent of the
-defect above. `threads` carries three partial indexes,
-`idx_threads_visible_created_at_ms`, `_updated_at_ms` and `_recency_at_ms`,
-all conditioned `WHERE preview <> ''`; "visible" is the runtime's own word. A
-local row with an empty `preview` never appears even when `modelProviders` is
-`[]`, and that same row resumes: listability and resumability are independent
-properties. An empty page therefore has at least four distinct causes, which
-must not be collapsed into one:
+Rows with an empty `preview` are invisible by design: `threads` carries three
+partial indexes, `idx_threads_visible_created_at_ms`, `_updated_at_ms` and
+`_recency_at_ms`, all `WHERE preview <> ''` ("visible" is the runtime's own
+word). Such a row never appears even with `modelProviders: []`, yet it
+resumes: listability and resumability are independent. The list path also
+swallows database errors: with the whole `threads` table renamed away, the
+wire still carries a well-formed `{"data": [], "nextCursor": null}`, and the
+only trace is one daemon log line, `WARN codex_rollout::state_db: state db
+list_threads failed: ...` (the list path is `codex_rollout::state_db`;
+`codex_state` has zero hits in trace-level logs). **On the wire, "the
+database is broken" and "there are no threads" are indistinguishable.** The
+causes must not be collapsed into one:
 
 | Real cause of an empty page | Character |
 |---|---|
 | the database genuinely holds no thread | normal |
 | rows exist but `preview` is empty, so they are filtered by design | legitimate, listability is its own state face |
 | `modelProviders` omitted, injecting an unsatisfiable condition | defect |
-| a database error was swallowed | defect, see below |
-
-### The list path swallows database errors
-
-Renaming the whole `threads` table away still produces a well-formed
-`{"data": [], "nextCursor": null}` on the wire; the only trace is one daemon
-log line, `WARN codex_rollout::state_db: state db list_threads failed: ...`.
-**On the wire, "the database is broken" and "there are no threads" are
-indistinguishable.** The list path belongs to `codex_rollout::state_db`, not
-to `codex_state`, which has zero hits in trace-level logs.
+| a database error was swallowed | defect |
 
 ### Probe method and its limits
 
-The method works against any closed-source SQLite reader. `sqlx`,
-`codex_state` and `threads.rs` have zero hits in the daemon log even at trace
-level while third-party crates (`tokio_tungstenite`, `mio::poll`,
-`notify::inotify`) appear, so the EnvFilter is global and sqlx either logs
-through the `log` crate with no `tracing-log` bridge or has statement logging
-off at `ConnectOptions`; neither is reachable from outside the process. The
-probe instead breaks the schema and lets the failure name the identifier:
-`ALTER TABLE threads RENAME TO threads_real`, then a same-named view with all
-38 columns, exactly one replaced by an expression that must fail at runtime.
-SQLite evaluates it only for rows that reach it, so a WARN proves the column
-was evaluated. Working poisons: `abs(-9223372036854775808)` (integer
-overflow), `zeroblob(2000000000)` and `randomblob(2000000000)` (string or blob
-too big), and `load_extension('nope')`; `9223372036854775807+1` returns a real
-and does not error. `CASE id WHEN '<id1>' THEN <cand1> ... END AS
-model_provider` tests N candidates in one query, the returned id naming the
-match; renaming each table in turn shows which tables a closed query touches.
+The method works against any closed-source SQLite reader. sqlx statements
+never reach the daemon log, even at trace level (`sqlx`, `codex_state` and
+`threads.rs` have zero hits while `tokio_tungstenite`, `mio::poll` and
+`notify::inotify` appear: the EnvFilter is global, and sqlx either logs
+through `log` without a `tracing-log` bridge or has statement logging off at
+`ConnectOptions`, neither reachable from outside the process). So the probe
+breaks the schema and lets the failure name the identifier: `ALTER TABLE
+threads RENAME TO threads_real`, then a same-named view of all 38 columns
+with exactly one replaced by an expression that fails at runtime. SQLite evaluates it only
+for rows that reach it, so a WARN proves the column was evaluated. Working
+poisons: `abs(-9223372036854775808)` (integer overflow),
+`zeroblob(2000000000)` and `randomblob(2000000000)` (string or blob too big),
+`load_extension('nope')`; `9223372036854775807+1` returns a real and does not
+error. `CASE id WHEN '<id1>' THEN <cand1> ... END AS model_provider` tests N
+candidates in one query, the returned id naming the match, and renaming each
+table in turn shows which tables a closed query touches. Limits:
 
-1. **A poison firing and a row count cannot be read from the same run:** once
-   the poison fires the query errors and the count is forced to 0 (one
-   combined run read the self-contradictory `passWHERE=YES n=4`). Measure
-   evaluated columns and returned rows in separate runs.
+1. **A poison firing and a row count cannot be read from the same run:** a
+   firing poison forces the count to 0 (one combined run read the
+   self-contradictory `passWHERE=YES n=4`).
 2. **An empty literal `IN ()` does not evaluate its left-hand side; an empty
    subquery `IN (SELECT 1 WHERE 0)` does.** A firing poison proves the clause
    exists, **not** that the bound list is non-empty.
 3. **An absent syscall does not prove a path was not taken.** `thread/list`
-   does read the state database (under an isolated control: 0 `pread64` in
-   the control run, 6 in the treatment run), yet SQLite's in-process page
-   cache served a small fully cached database with no syscall at all. This
-   holds for every use of strace to decide whether a code path ran.
+   reads the state database (0 `pread64` in the control run, 6 in the
+   treatment run), yet SQLite's in-process page cache served a small, fully
+   cached database with no syscall at all.
 
 ### Four persistence surfaces, and what each is worth at death
 
@@ -847,20 +845,18 @@ Log completeness can only be answered per surface.
 | `logs_2.sqlite` | a buffered, periodically flushed sink that does not flush at death; a short-lived process can lose all of it | no |
 | `session_index.jsonl` | appends thread name changes only, 3 rows locally, all for zero-turn threads | no, it is not a session table |
 
-- **A tool-call result may be recorded as `unknown` or `in-flight` and must not
-  be coerced to `failed`.** A SIGKILL leaves a `function_call` with neither an
-  output nor a failure; writing it down as failed manufactures a fact. A
-  graceful drain is the opposite case: the rollout already holds `failed` and
-  `-1` while the wire has carried nothing.
-- **Append-before-deliver needs an ordering condition and a granularity
-  condition together.** Ordering: append to your own stream before delivering
-  to subscribers, so replay-from-log is a superset of what any connection
-  received and a reconnect only fetches the difference; a system that
-  delivers first loses "delivered but not persisted" at the death point, and
-  no contract can repair that. Granularity: **the append granularity must not
-  be coarser than the delivery granularity.** Codex satisfies both at event
-  granularity and fails the second at delta granularity: deltas are delivered
-  and never persisted.
+- **A tool-call result may be `unknown` or `in-flight` and must not be coerced
+  to `failed`.** A SIGKILL leaves a `function_call` with neither an output nor
+  a failure; writing it down as failed manufactures a fact. A graceful drain
+  is the opposite case: the rollout already holds `failed` and `-1` while the
+  wire has carried nothing.
+- **Append-before-deliver needs ordering and granularity together.** Appending
+  before delivering makes replay-from-log a superset of what any connection
+  received, so a reconnect only fetches the difference (delivering first loses
+  "delivered but not persisted" at the death point, and no contract can repair
+  that), and **the append granularity must not be coarser than the delivery
+  granularity**. Codex satisfies both at event granularity and fails the
+  second at delta granularity: deltas are delivered and never persisted.
 
 The ordinal has three spellings that should not be mixed: the rollout JSONL
 line key `ordinal`, the wire cursor payload field `rolloutOrdinal`, and the
@@ -877,9 +873,9 @@ a caller needs the floor.
   mid-item resumes reporting `itemsBackwardsCursor.rolloutOrdinal` 7 where a
   cleanly ended twin reports 17.
 - Resume returns a cursor, not content: `initialTurnsPage` is `null`.
-- An empty `thread/list` page is not evidence that nothing is resumable,
-  because of the `modelProviders` defect and because listability is
-  independent. Turn-less threads do not enter `thread/list` at all.
+- An empty `thread/list` page is not evidence that nothing is resumable
+  (the `modelProviders` defect, independent listability). Turn-less threads
+  do not enter `thread/list` at all.
 
 ### Broadcast tier and subscription tier
 
@@ -904,17 +900,13 @@ runtime; persisted items remain available through history APIs.
 
 ### Acknowledgement, persisted preference, and runtime state can disagree
 
-Every capability has to be asked which face carries its real state; three
-faces routinely answer differently.
-
-| Capability | Command acknowledgement | Persisted preference | Runtime state |
-|---|---|---|---|
-| remote-control enable | the CLI reports `enabled` | `persistence_preference: None`, nothing written | a `Connecting -> Errored` notification |
-
-One log line carries `desired_state=Enabled { persistence_preference: None }`
-immediately followed by `Connecting -> Errored`: all three faces at the same
-instant, disagreeing. **Reading only the CLI's `enabled` yields an entirely
-wrong conclusion.**
+Each capability has to be asked which face carries its real state; the three
+faces routinely answer differently. Enabling remote control, the CLI reports
+`enabled`, nothing is persisted (`persistence_preference: None`), and the
+runtime reports `Connecting -> Errored`: one log line carries
+`desired_state=Enabled { persistence_preference: None }` immediately followed
+by `Connecting -> Errored`, all three faces at the same instant, disagreeing.
+**Reading only the CLI's `enabled` yields an entirely wrong conclusion.**
 
 ## Verification and open gaps
 
@@ -936,7 +928,9 @@ replies, a refused interrupt, an unanswered server request, an unrequested
 exit ([stream](../../tests/codex/codex-session-stream.test.ts)); pre-open
 ordering, the open event ahead of a same-chunk `thread/started`, and control
 after an unrequested death ([pre-open](../../tests/codex/codex-pre-open.test.ts));
-item detail and reasoning classification. [Vendor
+item detail (the `sleep` item included), reasoning classification, the
+effort read-back, first-open coordination per home and exit diagnostics
+([codex tests](../../tests/codex/)). [Vendor
 tests](../../sea-trial/vendor/codex.vendor.test.ts) use the real app-server
 with a scripted provider for tools, errors, instructions, usage shape and
 verbatim stream order. [CI](../../.github/workflows/ci.yml) runs that backend

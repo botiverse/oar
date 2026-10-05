@@ -28,8 +28,8 @@ safety. OAR projects these native observations as `user_message` events
 
 ## Native shapes
 
-`native` on the steer response is Codex-specific; Claude and Pi answer
-`{kind: "accepted"}` without it. OAR `request.id` / `response.requestId` are
+Codex (`{turnId}`) and Cursor (`{ack}`) carry `native` on the steer response;
+Claude, Pi and Grok answer `{kind: "accepted"}` without it. OAR `request.id` / `response.requestId` are
 operation identity, not native message identity.
 
 Codex (JSON-RPC transport ID omitted):
