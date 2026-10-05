@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
@@ -37,7 +38,9 @@ export async function applyAcpEffort(
 ): Promise<void> {
   const configId = acpThoughtLevelOption(opened.response)?.id;
   if (typeof configId !== "string" || configId.length === 0) {
-    throw new Error(`${opened.openMethod} advertises no thought_level config option, so effort ${effort} cannot be applied`);
+    // No effort channel at all: the option, not the level, is what this
+    // runtime cannot honor (docs/design/capabilities.md).
+    throw new UnsupportedOptionError("effort", `${opened.openMethod} advertises no thought_level config option, so effort ${effort} cannot be applied`);
   }
   const method = "session/set_config_option";
   let answer: unknown = undefined;

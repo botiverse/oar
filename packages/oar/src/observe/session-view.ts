@@ -43,7 +43,7 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   echo (`user_message` with its `inputId`) when the stream echoes input
  *   ids at all, which it shows by having echoed one before (codex, claude);
  *   until then it waits in `pendingInputs`. On a stream that never echoed
- *   one (pi, ACP runtimes) it enters at its request, the best fact known. A
+ *   one (pi, cursor, ACP runtimes) it enters at its request, the best fact known. A
  *   refused input enters where it was refused; a retry of it that must wait
  *   for its echo takes it back out. A withdrawn input leaves `pendingInputs`
  *   and `messages`; the segment its request sealed stays sealed.

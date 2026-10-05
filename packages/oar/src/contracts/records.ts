@@ -124,7 +124,7 @@ export interface UserMessage {
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody = UserMessage
-  /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, ACP) and in older records. */
+  /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
   | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. */
   | { readonly kind: "reasoning"; readonly content: ReasoningContent }
@@ -142,10 +142,10 @@ export type RuntimeEventBody = UserMessage
       readonly content?: readonly ToolOutputPart[];
       /** The runtime's explicit tool outcome; absent when it reported none. */
       readonly result?: "ok" | "failed";
-      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok `rawOutput.exit_code`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, pi), never derived from `result` or output. */
+      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, pi), never derived from `result` or output. */
       readonly exitCode?: number | null;
     }
-  /** Partial output of a running tool call, when the runtime streams it (pi `tool_execution_update`, codex `item/commandExecution/outputDelta`, an ACP `tool_call_update` carrying `rawOutput`). claude streams none. */
+  /** Partial output of a running tool call, when the runtime streams it (pi `tool_execution_update`, codex `item/commandExecution/outputDelta`, an ACP `tool_call_update` carrying `rawOutput`). claude streams none; cursor's shell output deltas are recorded with no event. */
   | { readonly kind: "tool_call_progress"; readonly callId: string; readonly output?: string }
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_end`, an ACP prompt answer). The turn's start is the prompt request record itself; if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
@@ -164,7 +164,7 @@ export type RuntimeEventBody = UserMessage
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
   | { readonly kind: "model"; readonly model: string }
   | TaskEventBody
-  /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`): its own report, never the request echoed. claude's stream carries none. */
+  /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`, cursor's reasoning parameter): its own report, never the request echoed. claude's stream carries none. */
   | { readonly kind: "effort"; readonly effort: string };
 
 /** The toRuntime control actions a Session issues. */
