@@ -13,8 +13,10 @@ oar run claude "What does this repo do?"
 
 ## Commands
 
-Commands that take an optional `[runtime]` cover every registered runtime when
-it is omitted.
+The registered runtimes are OAR's built-in `runtimes` plus cursor, which the
+CLI adds itself on the `@cursor/sdk` 1.0.35 it depends on
+(`src/runtimes.ts`). Commands that take an optional `[runtime]` cover every
+registered runtime when it is omitted (or `all`).
 
 - `oar list`: registered runtimes and their capabilities.
 - `oar installation [runtime]` (alias `detect`): probe local installation
@@ -51,10 +53,12 @@ By default `run` prints one opening line naming the session (the id
 effort the runtime reported while opening, when it did (the `model()` /
 `effort()` folds, never the flags echoed). Then it prints readable progress
 from the session's `events()`: assistant text verbatim (coalesced into blocks
-via `coalesceText`), and everything else as a bracketed meta line
+via `coalesceText`), and other facts as bracketed meta lines
 (`[compacting: threshold]`, `[compacted]` or `[compaction failed] reason`,
-`[retry 2/3] reason`, `[waiting for app: type]`; tool progress deltas and
-oar's own answers to app requests print nothing):
+`[retry 2/3] reason`, `[waiting for app: type]`, `[task shell started]`).
+Turn starts, usage, model and effort reports, native user message echoes,
+task updates, withdrawn inputs, tool progress deltas and oar's own answers
+to app requests print nothing:
 
 ```
 [session 01a0e982-… · model gpt-6-luna · effort low]
@@ -66,7 +70,10 @@ The repo is a pnpm workspace...
 ```
 
 The exit code is 0 only when the turn completed. The first Ctrl-C interrupts
-the turn and exits 130; a second one disposes the session at once.
+the turn and exits 130; a second one disposes the session at once. The
+process ends at most a second after the session is disposed, even when a
+runtime left a handle behind (`@cursor/sdk` 1.0.35 keeps a 24 hour timer
+for each shell call it moves to the background; `src/exit.ts`).
 
 Flags:
 

@@ -49,7 +49,7 @@ The warm control stops immediately after the `initialize` reply and the
 `initialized` notification: it closes stdin, sends SIGTERM, and waits for exit.
 It does not wait for a background-setup notification or add a sleep. Across
 the two runs, all 48 subsequent concurrent starts initialized. Reply to
-warmup exit took 12–69 ms; exit to the next spawn took 1–3 ms. This directly
+warmup exit took 12 to 69 ms; exit to the next spawn took 1 to 3 ms. This directly
 tests immediate termination after the handshake for this binary and platform;
 it does not establish that every background task has finished, or invalidate
 the older cold-runner failures recorded in commit `0f49bd2`.
@@ -110,7 +110,7 @@ Test setup now uses the selected binary, requires initialization to succeed,
 and waits for that process to exit before returning the environment. The
 old 2.5-second sleep is removed; it was not an initialization deadline.
 Converting it into one caused premature termination during concurrent local
-suite startup, even though isolated handshakes completed in 0.4–1.5 seconds.
+suite startup, even though isolated handshakes completed in 0.4 to 1.5 seconds.
 The tests retain their existing overall deadlines and assertions.
 Whether this resolves the Windows failures needs subsequent CI evidence; the
 original jobs lack a native-process timeline proving or excluding overlap.

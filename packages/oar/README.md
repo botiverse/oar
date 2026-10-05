@@ -28,13 +28,14 @@ if (installation?.kind === "available") {
 echoes, text, reasoning, tool call start / progress / end, turn start and end,
 usage, model, effort, compaction start / end, retry, background tasks and
 subagents started, updated and ended, runtime→app requests and oar's answers,
-control rejections, the process exit), each carrying the `seq` and
-`agentPath` of the record it was read from. Kinds a runtime never says (claude
-has no compaction start, ACP runtimes no compaction, only pi says retry) never
-appear; the runtime pages say which. It is a projection over the record
-stream, which `session.rawEvents()` and `session.records()` expose
-(`RawEvent`: `Frame` with the native payload verbatim, `RequestRecord`,
-`ResponseRecord`) for consumers who need the runtime's own frames.
+control rejections, withdrawn inputs, the process exit), each carrying the
+`seq` and `agentPath` of the record it was read from. Kinds a runtime never
+says (claude has no compaction start, ACP runtimes and cursor no compaction,
+only pi says retry) never appear; the runtime pages say which. It is a
+projection over the record stream, which `session.rawEvents()` and
+`session.records()` expose (`RawEvent`: `Frame` with the native payload
+verbatim, `RequestRecord`, `ResponseRecord`) for consumers who need the
+runtime's own frames.
 
 `session.deliver(input, { when, origin })` sends input the host produces (a
 subagent's result, a finished job) at the right moment: a new turn when the
@@ -58,11 +59,11 @@ echoes by identity, including steer → queue fallback. See the
 
 The package has six public entry points:
 
-- `@botiverse/oar`: the full surface (runtime registry, adapters, `UnsupportedOptionError`, and everything below). Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar`: the runtime registry and adapters, `defineRuntime`, `UnsupportedOptionError`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
-- `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports the same utilities.
+- `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
 - `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse. `withdrawHeld` is the decision behind `withdraw` for a runtime that holds its own queue.
-- `@botiverse/oar/agents`: subagents. `createSubagents()` starts child sessions on any runtime, returns a report for every turn they end, takes follow-ups, enforces depth and concurrency limits, and reports each child as a task. The host takes reports with `wait` / `next` or receives them through an `onReport` hook; with `formatReport` and `reportOrigin` it can `deliver` one into a parent session so it wakes. See [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md). Node-only.
+- `@botiverse/oar/agents`: subagents. `createSubagents()` starts child sessions on any runtime that takes `SessionOptions.env` (not cursor), returns a report for every turn they end, takes follow-ups, enforces depth and concurrency limits, and reports each child as a task. The host takes reports with `wait` / `next` or receives them through an `onReport` hook; with `formatReport` and `reportOrigin` it can `deliver` one into a parent session so it wakes. See [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md). Node-only.
 - `@botiverse/oar/testing`: `scriptedRuntime({ turn })`, a ready-made runtime on the kernel SPI whose model is a script. It yields a real `Session` (same records, folds and control semantics) with no binary, login or provider, for hosts' tests and demos. A script can also start tasks (`turn.task`) that end after the turn, like a background command. Node-only.
 
 Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`. Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
@@ -92,8 +93,9 @@ updater would install and where that answer came from;
 `runtime.upgrade(installation)` runs that updater without a terminal and
 judges the result by the version the same executable reports afterwards,
 never by its exit code. oar never upgrades on its own. Claude, Codex, Grok
-and Kimi have both; Antigravity has only the check; Pi and Cursor move with
-oar.
+and Kimi have both; Antigravity has only the check; Pi and Cursor have
+neither, their SDK versions following oar's (Pi's SDK is a dependency,
+Cursor's an exact peer dependency).
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
 Images go with an input through `InputOptions.images` (`{ path }` entries:
