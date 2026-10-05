@@ -16,6 +16,8 @@ export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe-ag
 export { classifyTool, toolActionLabel } from "./tool-activity.js";
 export { groupToolActivity, toolGroupSummary } from "./tool-groups.js";
 export { toolResultText } from "./tool-output.js";
+export { appRequestKind } from "./app-requests.js";
+export type { AppRequestKind } from "./app-requests.js";
 export type { ToolAction, ToolActionKind } from "./tool-activity.js";
 export type { ReasoningPart, ToolGroup, ToolGroupSegment, ToolPart } from "./tool-groups.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
