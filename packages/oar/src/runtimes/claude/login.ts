@@ -245,7 +245,7 @@ export async function claudeLogin(
   options: LoginOptions = {},
 ): Promise<LoginResult> {
   const target = loginExecutable(installation, "claude", PASTE_FLOOR);
-  if (target.kind === "unsupported") {
+  if (target.kind === "settled") {
     return target.result;
   }
   if (interaction.signal?.aborted === true) {

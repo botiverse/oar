@@ -16,7 +16,7 @@ export type LoginFailureReason =
   | "rejected" // the runtime reported that the sign-in failed (`detail` carries its words)
   | "not_logged_in" // the runtime reported success, yet its own status query says logged out
   | "interaction_failed" // the caller's `prompt` or `onEvent` threw; the login process was stopped
-  | "process_failed"; // the login process could not start, or ended without a result
+  | "process_failed"; // the executable is no longer there (checked before anything is spawned), the login process could not start, or it ended without a result
 
 /** Why oar cannot drive this runtime's login. */
 export type LoginUnsupportedReason =

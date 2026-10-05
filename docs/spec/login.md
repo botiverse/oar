@@ -86,7 +86,7 @@ caller closes it. A prompt or event handler that throws stops the login with
 | rejected | The runtime reported that the login failed. |
 | not_logged_in | The runtime reported success, yet its status says logged out. |
 | interaction_failed | The caller's `prompt` or `onEvent` threw. |
-| process_failed | The login process could not start, or ended without a result. |
+| process_failed | The executable is no longer there (looked up as the installation probe does, before anything is spawned, so alike on every platform; `detail` names the command), the login process could not start, or it ended without a result. |
 
 | Unsupported reason | Meaning |
 | --- | --- |

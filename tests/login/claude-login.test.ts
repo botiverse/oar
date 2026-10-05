@@ -184,6 +184,17 @@ test("an abort after `Login successful.` is not a cancel: the login is stored, w
   assert.deepEqual(result, { kind: "logged_in" });
 });
 
+test("a claude that is no longer there fails before anything is spawned, alike on every platform", async () => {
+  // The probe's own lookup decides (a pinned path must exist, a bare name must be on PATH), not a spawn.
+  const pinned = path.join(dir, "removed", "claude");
+  const results = await Promise.all([pinned, "no-such-claude-for-oar-tests"].map(async (command) =>
+    claudeLogin({ kind: "available", via: "executable", command, version: "2.1.288 (Claude Code)" }, recordedInteraction([]))));
+  assert.deepEqual(results, [
+    { kind: "failed", reason: "process_failed", detail: `claude executable not found: ${pinned}` },
+    { kind: "failed", reason: "process_failed", detail: "claude executable not found: no-such-claude-for-oar-tests" },
+  ]);
+});
+
 test("a command that cannot be spawned fails at once", async () => {
   const result = await claudeLogin({ kind: "available", via: "executable", command: "invalid\0binary", version: "2.1.288" }, recordedInteraction([]));
   assert.equal(result.kind === "failed" ? result.reason : result.kind, "process_failed");

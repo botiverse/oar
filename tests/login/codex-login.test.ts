@@ -164,10 +164,15 @@ test("a success before the start reply shows nothing more: a caller that cannot 
   assert.equal(result.kind, "logged_in");
 });
 
-test("a missing codex says the executable wasn't found", async () => {
-  const result = await codexLogin({ kind: "available", via: "executable", command: path.join(tmpdir(), "no-such-codex"), version: "codex-cli 0.160.0" }, recordedInteraction([]));
-  assert.equal(result.kind === "failed" ? result.reason : result.kind, "process_failed");
-  expect(result.kind === "failed" ? result.detail : "").toMatch(/ENOENT/u);
+test("a codex that is no longer there fails before anything is spawned, alike on every platform", async () => {
+  // The probe's own lookup decides (a pinned path must exist, a bare name must be on PATH), not a spawn.
+  const pinned = path.join(dir, "removed", "codex");
+  const results = await Promise.all([pinned, "no-such-codex-for-oar-tests"].map(async (command) =>
+    codexLogin({ kind: "available", via: "executable", command, version: "codex-cli 0.160.0" }, recordedInteraction([]))));
+  assert.deepEqual(results, [
+    { kind: "failed", reason: "process_failed", detail: `codex executable not found: ${pinned}` },
+    { kind: "failed", reason: "process_failed", detail: "codex executable not found: no-such-codex-for-oar-tests" },
+  ]);
 });
 
 test("a command that cannot be spawned fails at once", async () => {

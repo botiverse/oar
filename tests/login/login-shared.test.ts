@@ -30,9 +30,11 @@ test("redaction removes pasted values and token shapes, longest first, and bound
 
 test("a bundled runtime has no login to drive, and an unreadable version is tried", () => {
   assert.deepEqual(loginExecutable({ kind: "available", via: "bundled" }, "pi", "1.0.0"), {
-    kind: "unsupported",
+    kind: "settled",
     result: { kind: "unsupported", reason: "unsupported_installation", detail: "not a machine-installed executable" },
   });
-  assert.equal(loginExecutable({ kind: "available", via: "executable", command: "/bin/fake" }, "fake", "1.0.0").kind, "executable");
-  assert.equal(loginExecutable({ kind: "available", via: "executable", command: "/bin/fake", version: "fake 1.0.0" }, "fake", "1.0.0").kind, "executable");
+  // An executable that is there, on every platform: this Node.
+  const command = process.execPath;
+  assert.equal(loginExecutable({ kind: "available", via: "executable", command }, "fake", "1.0.0").kind, "executable");
+  assert.equal(loginExecutable({ kind: "available", via: "executable", command, version: "fake 1.0.0" }, "fake", "1.0.0").kind, "executable");
 });

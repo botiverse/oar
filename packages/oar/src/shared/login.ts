@@ -4,6 +4,7 @@ import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult } from "../contracts/login.js";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./executable/index.js";
+import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
 
 /*
@@ -252,23 +253,31 @@ export function stoppedResult(stop: LoginStop, timeoutMs: number): LoginResult {
 
 export type LoginExecutable =
   | { readonly kind: "executable"; readonly installation: ExecutableInstallation }
-  | { readonly kind: "unsupported"; readonly result: LoginResult };
+  /** The login ends before anything runs. */
+  | { readonly kind: "settled"; readonly result: LoginResult };
 
 /**
- * The executable to sign in, or why its login is unsupported: a bundled
- * runtime, or a version known to predate `floor`. An unreadable version is
- * tried, not refused: the login command itself then answers.
+ * The executable to sign in, or the result that ends the login before
+ * anything runs: a bundled runtime or a version known to predate `floor` is
+ * unsupported, and an executable that is no longer there (found as the
+ * installation probe finds it, without spawning) fails alike on every
+ * platform, since a missing command started through a Windows shell would
+ * only exit. An unreadable version is tried, not refused: the login command
+ * itself then answers.
  */
 export function loginExecutable(installation: AvailableInstallation, name: string, floor?: string): LoginExecutable {
   if (installation.via !== "executable") {
-    return { kind: "unsupported", result: { kind: "unsupported", reason: "unsupported_installation", detail: "not a machine-installed executable" } };
+    return { kind: "settled", result: { kind: "unsupported", reason: "unsupported_installation", detail: "not a machine-installed executable" } };
   }
   const version = installation.version === undefined ? undefined : releaseVersion(installation.version);
   if (floor !== undefined && version !== undefined && !versionAtLeast(version, floor)) {
     return {
-      kind: "unsupported",
+      kind: "settled",
       result: { kind: "unsupported", reason: "version_unsupported", detail: `${name} ${floor} or later is required; this is ${version}` },
     };
+  }
+  if (locateExecutable(installation.command) === null) {
+    return { kind: "settled", result: { kind: "failed", reason: "process_failed", detail: `${name} executable not found: ${installation.command}` } };
   }
   return { kind: "executable", installation };
 }

@@ -190,7 +190,7 @@ async function runCodexLogin(command: string, interaction: ProviderLoginInteract
     try {
       await app.spawned;
     } catch (error) {
-      // A missing executable says so ("spawn codex ENOENT"), as claude's driver does.
+      // An executable that cannot run (found, yet not startable) says so in Node's words.
       return { kind: "failed", reason: "process_failed", detail: secrets.line(errorMessage(error)) };
     }
     try {
@@ -270,7 +270,7 @@ export async function codexLogin(
   options: LoginOptions = {},
 ): Promise<LoginResult> {
   const target = loginExecutable(installation, "codex", DEVICE_CODE_FLOOR);
-  if (target.kind === "unsupported") {
+  if (target.kind === "settled") {
     return target.result;
   }
   if (interaction.signal?.aborted === true) {
