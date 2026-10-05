@@ -10,5 +10,8 @@
     "experiments",
     "tests",
     "vitest.config.ts"
+  ],
+  "exclude": [
+    "tests/community"
   ]
 }

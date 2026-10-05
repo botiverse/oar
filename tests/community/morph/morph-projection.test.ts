@@ -1,13 +1,13 @@
 import { expect, test } from "vitest";
-import type { RuntimeEventBody } from "../../packages/oar/src/contracts/session.js";
+import type { RuntimeEventBody } from "../../../packages/oar/src/contracts/session.js";
 import {
   foldMorphStream,
   foldMorphTask,
   initialMorphProjection,
   morphContextEvents,
   type MorphProjection,
-} from "../../packages/oar/src/runtimes/morph/projection.js";
-import { projectMorphModels } from "../../packages/oar/src/runtimes/morph/list-models.js";
+} from "../../../packages/oar/src/community/morph/projection.js";
+import { projectMorphModels } from "../../../packages/oar/src/community/morph/list-models.js";
 
 // Shapes as morph Console answered experiments/morph-runtime-probe.ts on
 // 2026-10-04 (profile codex), trimmed to the fields OAR reads.
@@ -138,6 +138,19 @@ test("turn outcomes: canceled is aborted, failed carries morph's error classifie
   });
   expect(foldMorphTask(initialMorphProjection, { id: TASK, status: "running" }).events).toEqual([]);
   expect(foldMorphTask(initialMorphProjection, { id: TASK, status: "pending" }).events).toEqual([]);
+});
+
+test("a canceled or failed task's error text is never the agent's reply", () => {
+  // As observed 2026-10-04: the stopped task's last snapshots and its answer carry the error as text.
+  const streamed = replay([
+    { task_id: TASK, seq: 7, status: "failed", text: "stopped by user", error: "stopped by user", done: true },
+    { task_id: TASK, seq: 8, status: "canceled", text: "stopped by user" },
+  ]);
+  expect(streamed.events).toEqual([]);
+  const ended = foldMorphTask(streamed.state, { id: TASK, status: "canceled", error: "stopped by user", result: { final: { output: "stopped by user" } } });
+  expect(ended.events).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
+  const failed = foldMorphTask(initialMorphProjection, { id: TASK, status: "failed", error: "llm call failed", result: { final: { output: "llm call failed" } } });
+  expect(failed.events.map((event) => event.kind)).toEqual(["turn_ended"]);
 });
 
 test("steer, retry and compaction entries", () => {

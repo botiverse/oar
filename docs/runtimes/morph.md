@@ -1,5 +1,13 @@
 # Mister Morph
 
+**Community runtime**, maintained by [@lyricat](https://github.com/lyricat). Verified against a real Console only by the live probe below (2026-10-04); the shared behavior suite has not run against one.
+
+It lives in `packages/oar/src/community/morph/` and is exported from
+`@botiverse/oar/community`, not the built-in `runtimes` registry; a host adds
+it with `createRuntimeRegistry([...runtimes.list(), createMorphRuntime()])`.
+The `oar` CLI includes it. Its tests (`tests/community/morph/`) run only with
+`OAR_COMMUNITY_TESTS=1`.
+
 Evidence baseline: native source
 [`quailyquaily/mistermorph`](https://github.com/quailyquaily/mistermorph)
 at `319fa4b8`, the commit that added the `POST /topics` this adapter needs
@@ -7,9 +15,8 @@ at `319fa4b8`, the commit that added the `POST /topics` this adapter needs
 and the Control OpenAPI document beside it. Live observations come from a
 `morph dev` build's Console, profile `codex` (`gpt-5.6-luna`), 2026-10-04,
 through [`experiments/morph-runtime-probe.ts`](../../experiments/morph-runtime-probe.ts).
-The shared behavior suite (`OAR_TEST=morph`) and `live-contract.ts` have
-**not** been run against a real Console yet; see
-[evidence](#evidence-and-verification). Versions are evidence baselines, not a
+The shared behavior suite and `live-contract.ts` have **not** been run
+against a real Console; see [evidence](#evidence-and-verification). Versions are evidence baselines, not a
 support range.
 
 ## Native concepts and calling interfaces
@@ -49,7 +56,7 @@ whole Runtime API without the user configuring `server.auth_token`.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| Console process | Not the session's process. The adapter attaches to the Console published for the state directory, or starts `morph console serve --console-listen 127.0.0.1:0` in that directory when none answers; a started Console is shared by every session of this OAR process on the same directory and stopped with the last one ([console.ts](../../packages/oar/src/runtimes/morph/console.ts)). A Console the user started is never stopped by OAR. |
+| Console process | Not the session's process. The adapter attaches to the Console published for the state directory, or starts `morph console serve --console-listen 127.0.0.1:0` in that directory when none answers; a started Console is shared by every session of this OAR process on the same directory and stopped with the last one ([console.ts](../../packages/oar/src/community/morph/console.ts)). A Console the user started is never stopped by OAR. |
 | State directory | `MISTER_MORPH_FILE_STATE_DIR`, else a top-level `file_state_dir` in `MISTER_MORPH_CONFIG` or `~/.morph/config.yaml`, else `~/.morph`. |
 | Topic | `Session.id`. A new session creates an empty topic (`POST /topics`); `resume` checks it (`GET /topics/{id}`). Both attach the session's `cwd` as the topic workspace (`PUT /workspace`). |
 | Task | One turn. Its `/stream/ws` snapshots are frames (`stream/<status>`), its `GET /tasks/{id}` answers are frames when they report a new status (`task/<status>`), and the terminal one ends the turn. |
@@ -124,7 +131,7 @@ the probe) is the `turn_ended` `aborted`.
 accumulated so far, and `trace.entries` is a bounded window of agent events,
 each with a per-task `seq`. A slow reader may miss snapshots, and the stream's
 `seq` is global to Console's hub, so the fold reads what is new in each
-([projection.ts](../../packages/oar/src/runtimes/morph/projection.ts)):
+([projection.ts](../../packages/oar/src/community/morph/projection.ts)):
 
 | Native | OAR event |
 | --- | --- |
@@ -137,12 +144,14 @@ each with a per-task `seq`. A slow reader may miss snapshots, and the stream's
 | `model` on trace entries and the task | `model` (on change) |
 | non-preview `text` growth | `text_delta` (`messageId` `<task>:<n>`; a snapshot that does not extend the last one starts message n+1) |
 | `reasoning` growth | `reasoning` |
-| terminal `GET /tasks/{id}` | the trace, reasoning and `result.final.output` the stream missed, then `turn_ended` (`done` completed, `canceled` aborted, `failed` with `error` classified) |
+| terminal `GET /tasks/{id}` | the trace, reasoning and (for a `done` task only) `result.final.output` the stream missed, then `turn_ended` (`done` completed, `canceled` aborted, `failed` with `error` classified) |
 | `GET /topic/{id}/metadata` before the end | `usage.context` from `used_input_tokens`, `context_window_tokens`, `usage_ratio` |
 
 `text` with `preview: true` is Console's tool status line ("[bash]
 running\n\nstdout: ..."), not model output; it stays in the native frame
-only. The stream's `done` is a hint: Console's guide makes the task query
+only. So does the `text` of a failed or canceled snapshot, and the
+`final.output` of a failed or canceled task: there they carry the error
+("stopped by user", [env]), which the turn end already reports. The stream's `done` is a hint: Console's guide makes the task query
 authoritative, and the turn ends only there. Snapshots and status changes are
 the only frames; unchanged poll answers are not recorded.
 
@@ -171,6 +180,34 @@ path is not used.
 A Console OAR starts runs the user's whole Console configuration, including
 any channel runtimes it is set up to start.
 
+### Connection
+
+Every Runtime API request carries the Console's bearer token, so the HTTP
+calls and the task WebSocket go through an undici `Agent` of the adapter's
+own: a process-wide dispatcher (a host's HTTP proxy, or the
+`EnvHttpProxyAgent` the pi runtime installs) never sees them.
+
+## Known gaps
+
+Not handled yet, each a candidate for a test and a fix:
+
+- **Memory**: every snapshot frame keeps its whole native body, including the
+  bounded trace window it repeats, so a long turn's records grow with
+  frames × window.
+- **Console lifecycle races**: sessions sharing a Console this process
+  started can race its start and its release (a session acquiring while the
+  last holder releases may get a Console that is stopping), and a user
+  starting their own Console meanwhile is only detected at the next start.
+- **Held queue while draining**: the next held input is taken off the queue
+  before its `POST /tasks` succeeds; a failed send loses it without a record.
+- **Abort before the task exists**: an abort between the prompt's submission
+  and the adapter following its task finds no active task and is rejected,
+  though the task then runs.
+- **Child runs**: `spawn` subtasks are not attributed (`opaque`); their work
+  lands on the root.
+- **Final answer twice**: when the streamed text was rewritten rather than
+  extended, the terminal answer can start a new message that repeats it.
+
 ## Evidence and verification
 
 - [env] 2026-10-04, `experiments/morph-runtime-probe.ts --profile codex`
@@ -179,15 +216,15 @@ any channel runtimes it is set up to start.
   `OBSERVED` header. A first run on the default profile (a local proxy that
   was down) showed `llm_retry` entries and `failed` tasks with
   `llm call failed at step 0: ... connection refused`.
-- Unit tests: [projection](../../tests/morph/morph-projection.test.ts) over
-  the probe's shapes; [session](../../tests/morph/morph-session.test.ts)
+- Unit tests: [projection](../../tests/community/morph/morph-projection.test.ts) over
+  the probe's shapes; [session](../../tests/community/morph/morph-session.test.ts)
   against a scripted Runtime API (busy, steer answers, abort, held queue,
   approval, dispose, resume, refusals, profiles);
-  [Console](../../tests/morph/morph-console.test.ts) discovery, state
+  [Console](../../tests/community/morph/morph-console.test.ts) discovery, state
   directory resolution, and start/share/stop with a fake `morph` executable.
-- Not yet run: `OAR_TEST=morph OAR_TEST_MODEL=<profile> pnpm sea-trial` and
-  `experiments/live-contract.ts morph`. Both need a Console with
-  `POST /topics`.
+- Not yet run: the shared behavior suite and `experiments/live-contract.ts`
+  (both select built-in runtimes; running them on morph needs a backend that
+  adds `createMorphRuntime()`, and a Console with `POST /topics`).
 
 Open questions: whether a prompt racing the end of a run can be lost (Console
 found the run but its steer queue had closed); how subtasks' tool activity

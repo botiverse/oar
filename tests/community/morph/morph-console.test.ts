@@ -3,10 +3,12 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileS
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createServer } from "node:http";
+import { ProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from "undici";
 import { test } from "vitest";
-import { acquireConsole, discoverConsole, morphStateDir } from "../../packages/oar/src/runtimes/morph/console.js";
+import { ConsoleClient, acquireConsole, discoverConsole, morphStateDir } from "../../../packages/oar/src/community/morph/console.js";
 
-const fixture = fileURLToPath(new URL("../fixtures/fake-morph-console.mjs", import.meta.url));
+const fixture = fileURLToPath(new URL("./fake-morph-console.mjs", import.meta.url));
 
 /** A `morph` executable that runs the fake Console, and an empty state directory. */
 function scratch(): { command: string; stateDir: string } {
@@ -62,4 +64,33 @@ test.skipIf(process.platform === "win32")("a Console already running is attached
   assert.ok(running !== null);
   assert.equal(running.endpoint.token, "fake-token");
   await owner.release();
+});
+
+test("the Console's token-bearing requests never take the process-wide proxy", async () => {
+  let proxied = 0;
+  const proxy = createServer((_request, response) => {
+    proxied += 1;
+    response.writeHead(502).end();
+  });
+  const console = createServer((request, response) => {
+    response.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ mode: "console", auth: request.headers.authorization }));
+  });
+  await Promise.all([proxy, console].map(async (server) => new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  })));
+  const port = (server: typeof proxy): number => {
+    const address = server.address();
+    return typeof address === "object" && address !== null ? address.port : 0;
+  };
+  const previous = getGlobalDispatcher();
+  setGlobalDispatcher(new ProxyAgent(`http://127.0.0.1:${String(port(proxy))}`));
+  try {
+    const reply = await new ConsoleClient({ url: `http://127.0.0.1:${String(port(console))}/runtime`, token: "secret" }).call("GET", "/health");
+    assert.deepEqual(reply, { status: 200, body: { mode: "console", auth: "Bearer secret" } });
+    assert.equal(proxied, 0);
+  } finally {
+    setGlobalDispatcher(previous);
+    proxy.close();
+    console.close();
+  }
 });

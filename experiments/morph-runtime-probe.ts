@@ -33,7 +33,9 @@
  *   then steer_queued and, at the next step, steer_applied in the run's trace;
  *   the model honored it.
  * - Stop: `{status: "stopping", found: true}`, the task ends `canceled` with
- *   error "stopped by user" ~2 s later.
+ *   error "stopped by user" ~2 s later. Its last snapshots (status `failed`
+ *   with `error`, then `canceled`) carry that error as `text`, and so can the
+ *   task's `final.output`: not model output.
  * - `GET /topic/{id}/metadata` reports `context.used_input_tokens`,
  *   `context_window_tokens`, `usage_ratio` once a turn has run.
  */

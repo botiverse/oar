@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
-import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
-import type { ControlOutcome, Event, Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { ConsoleClient, type ConsoleLease, type ConsoleReply } from "../../packages/oar/src/runtimes/morph/console.js";
-import { morphSessionWith } from "../../packages/oar/src/runtimes/morph/session.js";
+import { UnsupportedOptionError } from "../../../packages/oar/src/contracts/errors.js";
+import type { ControlOutcome, Event, Session, SessionOptions } from "../../../packages/oar/src/contracts/session.js";
+import { ConsoleClient, type ConsoleLease, type ConsoleReply } from "../../../packages/oar/src/community/morph/console.js";
+import { morphSessionWith } from "../../../packages/oar/src/community/morph/session.js";
 
 type Route = (body: unknown, match: Record<string, string>) => ConsoleReply;
 

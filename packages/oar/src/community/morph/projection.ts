@@ -14,8 +14,8 @@ import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/
  * - `text` with `preview: true` is Console's tool status line ("[bash]
  *   running\n\nstdout: ..."), not model output; it stays in the native frame.
  * - `GET /tasks/{id}` is authoritative: its terminal status ends the turn,
- *   and its `result` repeats the trace and the final answer, which fills any
- *   snapshot the stream skipped.
+ *   and its `result` repeats the trace and, for a `done` task, the final
+ *   answer, which fills any snapshot the stream skipped.
  */
 
 export interface MorphTaskProjection {
@@ -193,7 +193,10 @@ export function foldMorphStream(state: MorphProjection, frame: unknown): MorphFo
   }
   const trace = readTrace(state, taskId, state.tasks[taskId] ?? initialTask, record.trace);
   const reasoning = readReasoning(trace.task, text(record.reasoning) ?? "");
-  const said = record.preview === true ? { task: reasoning.task, events: [] } : readText(reasoning.task, taskId, text(record.text) ?? "");
+  // A preview is Console's tool status line; a failed or canceled snapshot
+  // carries the error as its text ("stopped by user", observed 2026-10-04).
+  const errored = record.status === "failed" || record.status === "canceled" || text(record.error) !== undefined;
+  const said = record.preview === true || errored ? { task: reasoning.task, events: [] } : readText(reasoning.task, taskId, text(record.text) ?? "");
   return {
     state: withTask(trace.state, taskId, said.task),
     events: [...trace.events, ...reasoning.events, ...said.events],
@@ -234,7 +237,9 @@ export function foldMorphTask(state: MorphProjection, info: unknown): MorphFold 
   const model = modelEvents(state, record.model);
   const trace = readTrace(model.state, taskId, state.tasks[taskId] ?? initialTask, result?.trace);
   const reasoning = readReasoning(trace.task, text(result?.reasoning) ?? "");
-  const answer = finalOutput(result);
+  // Only a finished task's output is the agent's answer: a canceled or failed
+  // one carries the error there ("stopped by user"), which the turn end reports.
+  const answer = record.status === "done" ? finalOutput(result) : undefined;
   const said = answer === undefined ? { task: reasoning.task, events: [] } : readText(reasoning.task, taskId, answer);
   const tasks = { ...trace.state.tasks };
   delete tasks[taskId];

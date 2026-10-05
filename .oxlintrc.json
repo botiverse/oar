@@ -75,6 +75,7 @@
         "packages/oar/src/installation.ts",
         "packages/oar/src/voyage.ts",
         "packages/oar/src/runtimes/**",
+        "packages/oar/src/community/**",
         "packages/oar/src/shared/**",
         "packages/oar/src/testing/**",
         "packages/cli/src/**",
@@ -136,6 +137,7 @@
     {
       "files": [
         "packages/oar/src/runtimes/**",
+        "packages/oar/src/community/**",
         "packages/oar/src/observe/**",
         "packages/oar/src/contracts/**"
       ],

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { WebSocket } from "undici";
+import { Agent, WebSocket, fetch } from "undici";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
@@ -37,6 +37,12 @@ export interface ConsoleReply {
 
 export class ConsoleClient {
   readonly endpoint: ConsoleEndpoint;
+  /**
+   * The Console's own connection: every request carries its bearer token, so
+   * none may follow a process-wide dispatcher (an HTTP proxy from the host,
+   * or the `EnvHttpProxyAgent` the pi runtime installs) off the loopback.
+   */
+  private readonly dispatcher = new Agent();
 
   constructor(endpoint: ConsoleEndpoint) {
     this.endpoint = endpoint;
@@ -51,6 +57,7 @@ export class ConsoleClient {
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      dispatcher: this.dispatcher,
     });
     const text = await response.text();
     const parsed = (response.headers.get("content-type") ?? "").includes("json") ? parseJson(text) : undefined;
@@ -70,7 +77,7 @@ export class ConsoleClient {
   stream(taskId: string, onFrame: (frame: unknown) => void, onClose: () => void): () => void {
     const socket = new WebSocket(
       `${this.endpoint.url.replace(/^http/u, "ws")}/stream/ws?task_id=${encodeURIComponent(taskId)}`,
-      { headers: { Authorization: `Bearer ${this.endpoint.token}` } },
+      { headers: { Authorization: `Bearer ${this.endpoint.token}` }, dispatcher: this.dispatcher },
     );
     socket.addEventListener("message", (event) => {
       const frame = parseJson(String(event.data));

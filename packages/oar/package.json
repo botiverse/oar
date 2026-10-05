@@ -30,6 +30,10 @@
       "types": "./dist/agents/index.d.ts",
       "import": "./dist/agents/index.js"
     },
+    "./community": {
+      "types": "./dist/community/index.d.ts",
+      "import": "./dist/community/index.js"
+    },
     "./assets/brands/*": "./assets/brands/*"
   },
   "files": [
