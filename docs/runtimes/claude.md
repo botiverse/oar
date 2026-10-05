@@ -359,8 +359,12 @@ and `authMethod` as the account. `auth login` arrived in
 2.1.41 and reading a pasted code in 2.1.126 [doc changelog], so an older
 claude is `unsupported` / `version_unsupported`. Verified against a fake CLI
 that prints the 2.1.288 strings
-([tests](../../tests/login/claude-login.test.ts)); a real login through OAR
-is not yet recorded.
+([tests](../../tests/login/claude-login.test.ts)), and on real logins: on
+2026-10-05, on a fresh Linux test machine with claude 2.1.289 and codex
+0.160.0, all five manual checklist steps of [#94](https://github.com/botiverse/oar/pull/94) (commit `f7e6428`) passed.
+For claude: the status read, a login with the code pasted back, and a cancel
+at the paste prompt (`login cancelled`, exit 130, no process left over, the
+previous login unchanged).
 [Login](../../packages/oar/src/runtimes/claude/login.ts).
 
 ## Harness fact matrix

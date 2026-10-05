@@ -627,9 +627,14 @@ read), exit 1 with `Not logged in` logged out, anything else (an unreadable
 configuration) `unknown`. It names the method, not the account, so the status
 (`oar login codex --status`: `logged in (chatgpt)`) has no email or plan;
 only a login's own result carries the account, from `account/read`. OAR does
-not parse codex's credential file to fill it in. Verified against a fake app-server that answers
-with the 0.160.0 shapes ([tests](../../tests/login/codex-login.test.ts)); a
-real login through OAR is not yet recorded.
+not parse codex's credential file to fill it in. Verified against a fake
+app-server that answers with the 0.160.0 shapes
+([tests](../../tests/login/codex-login.test.ts)), and on real logins: on
+2026-10-05, on a fresh Linux test machine with claude 2.1.289 and codex
+0.160.0, all five manual checklist steps of [#94](https://github.com/botiverse/oar/pull/94) (commit `f7e6428`) passed.
+For codex: the status read, a login with the device code, and a cancel while
+the code was shown (`login cancelled`, exit 130, no process left over, the
+previous login unchanged).
 [Login](../../packages/oar/src/runtimes/codex/login.ts).
 
 ## Harness fact matrix
