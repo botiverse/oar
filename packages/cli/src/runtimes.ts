@@ -1,4 +1,4 @@
-import { createCursorRuntime, createRuntimeRegistry, runtimes as builtInRuntimes } from "@botiverse/oar";
+import { createCursorRuntime, createRuntimeRegistry, defaultRuntimes as builtInRuntimes } from "@botiverse/oar";
 import { createMorphRuntime } from "@botiverse/oar/community";
 
 /** OAR's built-in runtimes, plus cursor on the `@cursor/sdk` this CLI depends on, plus the community runtimes. */

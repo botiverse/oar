@@ -30,7 +30,7 @@ that cannot steer has no `session.steer`, and its fighter ignores the crowd.
 
 | Piece | oar surface |
 | --- | --- |
-| One fighter, any vendor | `runtimes.require(id)` → `installation()` → `session()` |
+| One fighter, any vendor | `allRuntimes.require(id)` → `installation()` → `session()` |
 | Rules survive compaction | `SessionOptions.systemPrompt` |
 | A move | `promptAndWait()`: the turn's outcome and its text in one call |
 | Thinking aloud, live | `session.events()`: `text_delta`, `reasoning`, `tool_call_started` |

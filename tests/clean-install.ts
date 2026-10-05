@@ -57,12 +57,12 @@ function cursorPeerVersion(): string {
  * `{ kinds, models }`.
  */
 const PROBE = `
-import { createCursorRuntime, runtimes } from "@botiverse/oar";
+import { createCursorRuntime, defaultRuntimes } from "@botiverse/oar";
 for (const entry of ["observe", "kernel", "brands", "testing", "agents"]) {
   await import("@botiverse/oar/" + entry);
 }
 const kinds = {};
-for (const runtime of runtimes.list()) {
+for (const runtime of defaultRuntimes.list()) {
   kinds[runtime.id] = runtime.installation === undefined ? null : (await runtime.installation()).kind;
 }
 let models = null;
@@ -87,9 +87,9 @@ export const entries = [oar, agents, brands, kernel, observe, testing];
 `;
 
 const ADD_CURSOR = `
-import { createCursorRuntime, createRuntimeRegistry, runtimes } from "@botiverse/oar";
+import { createCursorRuntime, createRuntimeRegistry, defaultRuntimes } from "@botiverse/oar";
 
-export const registry = createRuntimeRegistry([...runtimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })]);
+export const registry = createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })]);
 `;
 
 function probe(...args: readonly string[]): { readonly kinds: Record<string, unknown>; readonly models: unknown } {

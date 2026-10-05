@@ -3,7 +3,7 @@ import type { AvailableInstallation } from "../contracts/installation.js";
 import type { Runtime } from "../contracts/runtime.js";
 import type { Session, TaskEventBody, Unsubscribe } from "../contracts/session.js";
 import { applyTaskEvent, initialTasks, type TaskMap, type TaskView } from "../observe/tasks.js";
-import { runtimes as builtInRuntimes } from "../index.js";
+import { defaultRuntimes as builtInRuntimes } from "../index.js";
 import { attachLog, DEFAULT_WAIT_MS, hostDepth, installationOf, logName, readerOrTimeout, sessionOf, SUBAGENT_DEPTH_ENV } from "./helpers.js";
 import { createSubagent } from "./subagent.js";
 import type {

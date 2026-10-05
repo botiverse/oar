@@ -5,13 +5,13 @@ import { codexListModels, projectCodexModels } from "../packages/oar/src/runtime
 import { grokListModels, grokModelState, projectGrokModels } from "../packages/oar/src/runtimes/grok/list-models.js";
 import { kimiListModels } from "../packages/oar/src/runtimes/kimi/list-models.js";
 import { createPiListModels, piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
-import { runtimes } from "../packages/oar/src/index.js";
+import { defaultRuntimes } from "../packages/oar/src/index.js";
 
 const executable = { kind: "available", via: "executable", command: "x", version: "1" } as const;
 const bundled = { kind: "available", via: "bundled", version: "1" } as const;
 
 test("every registered runtime exposes listModels", () => {
-  for (const runtime of runtimes.list()) {
+  for (const runtime of defaultRuntimes.list()) {
     expect(typeof runtime.listModels, runtime.id).toBe("function");
   }
 });

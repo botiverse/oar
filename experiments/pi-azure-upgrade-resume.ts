@@ -14,7 +14,7 @@ import { findPackageJSON } from "node:module";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { ModelRuntime, SessionManager } from "@earendil-works/pi-coding-agent";
-import type { promptAndWait, runtimes } from "../packages/oar/src/index.js";
+import type { promptAndWait, defaultRuntimes } from "../packages/oar/src/index.js";
 import { piSessionDir } from "../packages/oar/src/runtimes/pi/resolve.js";
 import { startPiAimock } from "../sea-trial/harness/aimock.js";
 
@@ -44,9 +44,16 @@ function isPiSdk(value: unknown): value is { ModelRuntime: typeof ModelRuntime; 
   return isRecord(value) && typeof value.ModelRuntime === "function" && typeof value.SessionManager === "function";
 }
 
-function isOarModule(value: unknown): value is { promptAndWait: typeof promptAndWait; runtimes: typeof runtimes } {
+/** A checkout before 0.21.0 names the default registry `runtimes`. */
+interface OarModule {
+  readonly promptAndWait: typeof promptAndWait;
+  readonly defaultRuntimes?: typeof defaultRuntimes;
+  readonly runtimes?: typeof defaultRuntimes;
+}
+
+function isOarModule(value: unknown): value is OarModule {
   return isRecord(value) && typeof value.promptAndWait === "function"
-    && isRecord(value.runtimes) && typeof value.runtimes.require === "function";
+    && [value.defaultRuntimes, value.runtimes].some((registry) => isRecord(registry) && typeof registry.require === "function");
 }
 
 async function readSeed(out: string): Promise<Seed> {
@@ -102,7 +109,9 @@ async function child(stage: string, repo: string, out: string): Promise<void> {
   const seed = await readSeed(out);
   const oar: unknown = await import(pathToFileURL(path.join(repo, "packages/oar/src/index.ts")).href);
   assert.ok(isOarModule(oar), "checkout must expose runtimes and promptAndWait");
-  const runtime = oar.runtimes.require("pi");
+  const registry = oar.defaultRuntimes ?? oar.runtimes;
+  assert.ok(registry !== undefined, "checkout must expose its default registry");
+  const runtime = registry.require("pi");
   const installation = await runtime.installation?.();
   assert.ok(installation?.kind === "available");
   assert.ok(stage === "implicit" || stage === "old-explicit" || stage === "new-explicit");

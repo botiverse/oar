@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { awaitTurnEnd, defineRuntime, piInstallation, piSession, runtimes, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, defineRuntime, piInstallation, piSession, defaultRuntimes, type Session } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
@@ -52,7 +52,7 @@ async function sendImage(open: (cwd: string) => Promise<Session>, env: AimockEnv
 test.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude sends an input image as an image block", async () => {
   const env = await startClaudeAimock(undefined, { captureRaw: true });
   try {
-    const runtime = runtimes.require("claude");
+    const runtime = defaultRuntimes.require("claude");
     const installation = await runtime.installation?.();
     assert.ok(installation?.kind === "available");
     const part = await sendImage(async (cwd) => {
@@ -78,7 +78,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude sends an input ima
 test.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex sends an input image as a localImage it reads itself", async () => {
   const env = await startCodexAimock(undefined, { captureRaw: true });
   try {
-    const runtime = runtimes.require("codex");
+    const runtime = defaultRuntimes.require("codex");
     const installation = await runtime.installation?.();
     assert.ok(installation?.kind === "available");
     const part = await sendImage(async (cwd) => {

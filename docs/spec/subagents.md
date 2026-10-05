@@ -9,7 +9,7 @@ A child carries its depth in `env`, so a runtime that declares `env` in
 `refusedSessionOptions` cannot be a child: spawn refuses it with
 `open_failed` and the reason before opening anything, and the `oar mcp`
 `runtimes` tool marks it `spawnable: false`. Cursor is such a runtime. The
-crew finds runtimes in the built-in `runtimes` registry by default, which
+crew finds runtimes in `defaultRuntimes` by default, which
 does not contain cursor, so there a cursor spawn is refused
 `unknown_runtime`; `oar mcp` offers the CLI's registry, which adds cursor.
 

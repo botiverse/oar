@@ -47,7 +47,7 @@
  * id …" (rollout is created on the first turn).
  */
 import assert from "node:assert/strict";
-import { promptAndWait, runtimes } from "../packages/oar/src/index.js";
+import { promptAndWait, defaultRuntimes } from "../packages/oar/src/index.js";
 import { startAppServerClient } from "../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 
@@ -55,7 +55,7 @@ const modelX = process.argv[2] ?? "gpt-5.4-mini";
 const modelY = process.argv[3] ?? "gpt-5.5";
 assert.notEqual(modelX, modelY, "X and Y must differ");
 
-const runtime = runtimes.require("codex");
+const runtime = defaultRuntimes.require("codex");
 const probed = await runtime.installation?.();
 if (probed?.kind !== "available" || probed.via !== "executable") {
   throw new Error("codex is not available as an executable");

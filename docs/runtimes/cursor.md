@@ -41,7 +41,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.35`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in the built-in `runtimes` registry; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.35`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -269,10 +269,10 @@ The SDK is an optional peer rather than a dependency because it is large
 host hands it over instead of OAR looking it up:
 
 ```ts
-import { createCursorRuntime, createRuntimeRegistry, runtimes } from "@botiverse/oar";
+import { createCursorRuntime, createRuntimeRegistry, defaultRuntimes } from "@botiverse/oar";
 
 const cursor = createCursorRuntime({ sdk: () => import("@cursor/sdk") });
-const registry = createRuntimeRegistry([...runtimes.list(), cursor]);
+const registry = createRuntimeRegistry([...defaultRuntimes.list(), cursor]);
 ```
 
 The import sits in the host's own code, so a missing package fails the
