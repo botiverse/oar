@@ -57,7 +57,7 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 | `tool_call_started` / `progress` / `ended` | one tool part per lane and call id, settled where its start landed even after the turn ended; an end without a start still renders. `startedAt` / `endedAt` are the `receivedAt` of the start and end records (epoch ms): when OAR observed them, not a time the runtime reported, and only those it saw (a running call has no `endedAt`; an end without a start has no `startedAt`), as `tasksOf` does |
 | `turn_ended` of the root session | seals the turn segment and stamps its outcome; a child session's `turn_ended` is a notice and never closes the root turn |
 | `compaction_started` / `ended`, `retry` | notice parts inside the running turn |
-| `app_request` / `app_answered` | a `pendingRequests` entry and an actionable part, then settled |
+| `app_request` / `app_answered` | a `pendingRequests` entry and an actionable part, then settled; `appRequestKind(type)` tells an approval, a question and a call the adapter serves itself apart (`unknown` otherwise) |
 | `control_rejected` | a rejected prompt removes its empty turn; a rejected steer, queue or abort adds a notice, as does a refused withdraw of an input the view never held |
 | `exited` | `exited` set, a notice, and the open turn sealed without a fabricated outcome |
 | `user_message` | folds into the input's observations, never a second bubble. The first echo of a waiting steer or queue moves it from `pendingInputs` into `messages` there and seals the open segment: the input sits where the runtime took it, so replies to earlier input come before it. An unechoed input stays pending; neither a turn end nor text matching places it |
