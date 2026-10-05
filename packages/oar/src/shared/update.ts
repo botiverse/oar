@@ -140,9 +140,13 @@ function runOutput(run: IsolatedResult, timeoutMs: number): string {
 }
 
 /**
- * Check, then run the runtime's own updater on the same executable and judge
- * the outcome by the version it reports afterwards. The updater runs only
- * when the check does not already say the installation is current.
+ * Read the executable's version, check, then run the runtime's own updater
+ * on the same executable and judge the outcome by the version it reports
+ * afterwards. The updater runs only when the check does not already say the
+ * installation is current. The installation's own version is what its probe
+ * read, and the runtime may have updated itself since (claude's native
+ * install does in the background), so the check and the comparison start
+ * from what the executable says now.
  */
 export async function upgradeExecutable(
   installation: AvailableInstallation,
@@ -152,11 +156,13 @@ export async function upgradeExecutable(
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation", detail: "an in-process SDK; it moves with the package that carries it" };
   }
-  const check = await updater.check(installation, options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs });
+  const now = await versionNow(installation.command);
+  const current = now === undefined ? installation : { ...installation, version: now };
+  const check = await updater.check(current, options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs });
   if (check.kind === "ok" && !check.updateAvailable) {
     return { kind: "current", version: check.installed, check };
   }
-  const before = check.kind === "ok" ? check.installed : await versionNow(installation.command);
+  const before = now ?? (check.kind === "ok" ? check.installed : undefined);
   const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
   const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(), timeoutMs });
   const output = runOutput(run, timeoutMs);
