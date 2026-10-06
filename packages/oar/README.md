@@ -72,11 +72,6 @@ Antigravity, Grok, Kimi, and OpenCode share an internal ACP v1 transport and ses
 
 Community runtimes are contributed and maintained outside the core team (each maintainer is named on its runtime page). They ship in this package from a separate entry point, `@botiverse/oar/community`, and are not in `defaultRuntimes`: `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])` adds [Mister Morph](https://github.com/botiverse/oar/blob/main/docs/runtimes/morph.md), driven through its Console Runtime API. The `oar` CLI includes them.
 
-**Cursor SDK migration in OAR 0.25.0:** hosts that use Cursor must also
-upgrade their `@cursor/sdk` dependency to exactly `1.0.36`. OAR's optional
-peer is pinned to that tested version; leaving it at `1.0.35` causes a peer
-dependency conflict. The OAR CLI installs the matching SDK itself.
-
 **Pi 1.0.3 Azure migration:** Pi renamed its provider from
 `azure-openai-responses` to `azure`. Update that prefix in native provider
 configuration and `SessionOptions.model`. When resuming an old Azure session,
