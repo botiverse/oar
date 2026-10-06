@@ -13,7 +13,7 @@ import { ToolInputError, type McpTool } from "./mcp-tools.js";
 const PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCTIONS = [
-  "Delegate tasks to subagents running on other agent runtimes (claude, codex, grok, kimi, antigravity, pi).",
+  "Delegate tasks to subagents running on other agent runtimes (claude, codex, grok, kimi, opencode, antigravity, pi).",
   "run starts one and waits until its turn ends. For parallel work, spawn several and collect them with wait.",
   "A subagent sees nothing of this conversation: put everything it needs in the task.",
   "Continue one with send, or later with run and resume set to its sessionId.",

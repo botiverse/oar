@@ -4,6 +4,7 @@ import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
+import { opencodeRuntime } from "./runtimes/opencode/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
 
 export type { InventoryScope, InventoryOptions, SkillEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./contracts/inventory.js";
@@ -162,6 +163,10 @@ export { kimiRuntime } from "./runtimes/kimi/index.js";
 export { kimiListModels, projectKimiModels } from "./runtimes/kimi/list-models.js";
 export { kimiSession } from "./runtimes/kimi/session.js";
 export { kimiInstallation } from "./runtimes/kimi/installation.js";
+export { opencodeRuntime } from "./runtimes/opencode/index.js";
+export { opencodeListModels, projectOpencodeModels } from "./runtimes/opencode/list-models.js";
+export { opencodeSession } from "./runtimes/opencode/session.js";
+export { opencodeInstallation } from "./runtimes/opencode/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 export { piListModels, projectPiModels } from "./runtimes/pi/list-models.js";
 export { piSession } from "./runtimes/pi/session.js";
@@ -179,6 +184,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   codexRuntime,
   grokRuntime,
   kimiRuntime,
+  opencodeRuntime,
   piRuntime,
 ]);
 

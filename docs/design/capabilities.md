@@ -2,9 +2,10 @@
 
 A host picks the runtime at run time, from a user's choice or its own
 configuration, so its code cannot know which runtime it holds. Runtimes
-differ: cursor takes no environment for its tools, kimi resumes a session
-only in the directory it was created in, cursor, kimi and antigravity take
-no system prompt, kimi and antigravity cannot steer. The design question is
+differ: cursor takes no environment for its tools, kimi and opencode resume
+a session only in the directory it was created in, cursor, kimi,
+antigravity and opencode take no system prompt, kimi and antigravity cannot
+steer. The design question is
 how a host learns what it may ask for, and what happens when it asks for
 more.
 

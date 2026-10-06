@@ -10,6 +10,7 @@ import {
   selectKimiAuthMethod,
   supportsKimiYolo,
 } from "../../packages/oar/src/runtimes/kimi/session.js";
+import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
 function record(value: unknown): JsonRecord {
@@ -23,7 +24,7 @@ function strings(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
-function loadSnapshot(name: "grok" | "kimi"): JsonRecord {
+function loadSnapshot(name: "grok" | "kimi" | "opencode"): JsonRecord {
   const text = readFileSync(new URL(`../replay/fixtures/${name}-acp-v1.vendor.json`, import.meta.url), "utf8");
   return record(parseJson(text));
 }
@@ -121,6 +122,44 @@ test("Kimi ACP v1 snapshot remains compatible with login and YOLO selection", ()
       ],
       "version": "0.38.0",
       "yolo": true,
+    }
+  `);
+});
+
+test("opencode ACP v1 snapshot runs its own shell and lists sessions for the resume check", () => {
+  const snapshot = loadSnapshot("opencode");
+  const prompt = record(snapshot.prompt);
+  expect({
+    runtime: snapshot.runtime,
+    version: snapshot.version,
+    auth: opencodeAcpProfile.selectAuthMethod?.(initializeResponse(snapshot)),
+    sessionCapabilities: strings(record(snapshot.initialize).sessionCapabilities),
+    configOptionIds: strings(record(snapshot.sessionNew).configOptionIds),
+    resumeKeepsSessionCwd: opencodeAcpProfile.resumeKeepsSessionCwd,
+    permissionRequests: prompt.permissionRequests,
+    stopReason: prompt.stopReason,
+    terminalMethods: (Array.isArray(prompt.terminalRequests) ? prompt.terminalRequests : []).map((item) => record(item).method),
+    finalToolStatus: record((Array.isArray(prompt.tools) ? prompt.tools : []).at(-1)).status,
+  }).toMatchInlineSnapshot(`
+    {
+      "auth": undefined,
+      "configOptionIds": [
+        "model",
+        "mode",
+      ],
+      "finalToolStatus": "completed",
+      "permissionRequests": [],
+      "resumeKeepsSessionCwd": true,
+      "runtime": "opencode",
+      "sessionCapabilities": [
+        "close",
+        "fork",
+        "list",
+        "resume",
+      ],
+      "stopReason": "end_turn",
+      "terminalMethods": [],
+      "version": "1.18.30",
     }
   `);
 });

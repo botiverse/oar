@@ -224,8 +224,8 @@ own. A withdrawn input can be queued again under the same `inputId` (edit)
 or sent with `deliver` (send now): a new attempt, read by the ordinary
 rules ([conversation](conversation.md#withdrawing-held-input)).
 
-`withdraw` exists where OAR holds the queue: claude, pi, cursor, kimi, grok
-and antigravity. codex holds its queue natively, and its
+`withdraw` exists where OAR holds the queue: claude, pi, cursor, kimi, grok,
+antigravity and opencode. codex holds its queue natively, and its
 `thread/queue/delete` is experimental and not live-verified, so a codex
 session has no `withdraw`.
 

@@ -22,6 +22,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
 | antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
+| opencode (ACP) | `opaque` | `opencode acp` forwards only its own sessions' parts; a `task` subagent runs in a child session whose frames never reach the transport, so only the parent's tool call shows ([src] opencode 1.18.34 `acp/event.ts`) |
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
@@ -32,6 +33,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | antigravity (ACP) | opaque (#1): child activity flattened onto the parent session | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
+| opencode (ACP) | opaque (#1): child sessions not forwarded | root `task` tool card only | no child usage exposed | nothing fabricated | ACP `sessionId` (opencode `ses_` id) | [native/current mapping](../runtimes/opencode.md) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
@@ -52,6 +54,7 @@ false, the adapter holds queued input in this process.
 | grok (ACP) | yes: a prompt RPC with `_meta.sendNow` | yes | no |
 | kimi (ACP) | no | yes | no |
 | antigravity (ACP) | no | yes | no |
+| opencode (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
 
 ## Tool outcomes
 
@@ -63,7 +66,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 | claude | `tool_result.content` (a string or blocks) | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
 | codex | `commandExecution.aggregatedOutput`; an MCP call's result blocks (an error as its message); `webSearch` results as one `other` part; else the item's status word | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
 | pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | none |
-| grok, kimi, antigravity (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
+| grok, kimi, antigravity, opencode (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
 | cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
@@ -87,19 +90,22 @@ leaves a declared option out instead of naming runtimes.
 | runtime | refuses | why |
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
-| kimi, antigravity | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
+| kimi, antigravity, opencode | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
 | claude, codex, grok, pi | nothing | |
 
-Kimi also refuses a `resume` that names another directory than the one
-its `session/list` says the session lives in (option `cwd`): kimi would run
-the session in its own directory instead. Only the runtime knows the
+Kimi and opencode also refuse a `resume` that names another directory than
+the one their `session/list` says the session lives in (option `cwd`): they
+would run the session in its own directory instead. Only the runtime knows the
 session's directory, so this refusal is not declared up front; it is the
 same error ([resume in another directory](../runtimes/resume-cwd.md)).
 
 An ACP runtime whose session advertises no `thought_level` config option
 has no effort channel, so it refuses `effort` with the same error once its
 handshake shows that (antigravity, [env] agy_acp_server 1.2.1;
-`shared/acp/effort.ts`, `tests/acp/acp-session-antigravity.test.ts`). A
+`shared/acp/effort.ts`, `tests/acp/acp-session-antigravity.test.ts`). The
+menu belongs to the model in effect: opencode offers one only for a model
+with variants, so after a requested model switch the switch's answer is
+read, not the open's ([env] opencode 1.18.30). A
 level a runtime does not offer is a plain error naming the level, not this
 one.
 

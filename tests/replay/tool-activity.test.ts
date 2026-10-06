@@ -68,7 +68,7 @@ function toolCallsFromPi(lines: string[]): ToolCall[] {
  * `tool_call_started` really does (the opening `tool_call`), with each recorded key holding
  * its own name in brackets: what a field is read from, never a value the runtime did not send.
  */
-function toolCallsFromAcpSnapshot(runtime: "grok" | "kimi"): ToolCall[] {
+function toolCallsFromAcpSnapshot(runtime: "grok" | "kimi" | "opencode"): ToolCall[] {
   const text = readFileSync(path.join(here, "fixtures", `${runtime}-acp-v1.vendor.json`), "utf8");
   const snapshot = asRecord(parseJson(text));
   const frames: unknown = asRecord(snapshot?.prompt)?.tools;
@@ -139,6 +139,16 @@ test("grok tool calls render as friendly activity", async () => {
 
 test("kimi tool calls render as friendly activity", async () => {
   await expect(render(toolCallsFromAcpSnapshot("kimi"))).toMatchFileSnapshot(path.join(here, "fixtures", "kimi-acp-v1.activity.txt"));
+});
+
+test("opencode tool calls render as friendly activity", async () => {
+  await expect(render(toolCallsFromAcpSnapshot("opencode"))).toMatchFileSnapshot(path.join(here, "fixtures", "opencode-acp-v1.activity.txt"));
+});
+
+test("an opencode bash call opens with only its cwd, so it carries no command", () => {
+  const [call] = toolCallsFromAcpSnapshot("opencode");
+  expect(call).toEqual({ runtime: "opencode", tool: "bash", input: JSON.stringify({ cwd: "<cwd>" }) });
+  expect(classifyTool(call?.runtime ?? "", call?.tool ?? "", call?.input)).toEqual({ kind: "run_command" });
 });
 
 test("ACP shell calls: grok's opening input carries its command and description, kimi's opens with none", () => {

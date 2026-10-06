@@ -2,7 +2,7 @@
 
 `runtime.accountUsage(installation, options?)` reads account quota independently
 of session token usage. It is an optional member: claude, codex, grok and
-kimi have it; pi, cursor and antigravity do not. The [TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
+kimi have it; pi, cursor, antigravity and opencode do not. The [TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
 defines the snapshot and reader options.
 A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
 `resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid

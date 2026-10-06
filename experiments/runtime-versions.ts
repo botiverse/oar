@@ -23,6 +23,8 @@ const sources = [
   // The stable pointer used by the official https://x.ai/cli/install.sh.
   { id: "grok", url: "https://x.ai/cli/stable" },
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },
+  // The npm package the install script and `opencode upgrade` track alike.
+  { id: "opencode", url: "https://registry.npmjs.org/opencode-ai/latest" },
   { id: "pi", url: `https://registry.npmjs.org/${PI_PACKAGE}/latest` },
 ] as const;
 
