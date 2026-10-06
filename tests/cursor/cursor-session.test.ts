@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setImmediate as settle } from "node:timers/promises";
-import { expect, test } from "vitest";
+import { expect, onTestFinished, test } from "vitest";
 import type { RequestRecord } from "../../packages/oar/src/contracts/session.js";
 import { UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
@@ -11,9 +11,9 @@ import { codeOf, openFakeCursor, reasonOf } from "../fixtures/fake-cursor-sdk.js
 
 function imageFile(name: string, bytes: string): string {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-cursor-"));
-  const file = path.join(dir, name);
-  writeFileSync(file, bytes);
-  return file;
+  onTestFinished(() => { rmSync(dir, { recursive: true, force: true }); });
+  writeFileSync(path.join(dir, name), bytes);
+  return path.join(dir, name);
 }
 
 test("a session is one SDK agent, opened without a sandbox, reporting the model the SDK holds", async () => {
