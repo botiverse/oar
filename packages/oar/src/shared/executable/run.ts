@@ -24,7 +24,7 @@ export type ExecutableRunner = (
 ) => Promise<ExecutableResult>;
 
 export const runExecutable: ExecutableRunner = async (executable, args, options = {}) => {
-  const timeoutMs = options.timeoutMs ?? 5000;
+  const timeoutMs = options.timeoutMs ?? 15_000;
   const result = await new Promise<ExecutableResult>((resolve) => {
     const complete = (error: (Error & Pick<ExecException, "code" | "signal" | "killed">) | null, stdout: string, stderr: string): void => {
       const exitCode = error !== null && typeof error.code === "number" ? error.code : null;
