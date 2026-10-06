@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { runExecutable } from "../../shared/executable/index.js";
 import { assertRan } from "../../shared/executable/diagnostics.js";
+import { remainingMs } from "../../shared/deadline.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 
 const MANAGED_PROVIDER = "managed:kimi-code";
@@ -53,13 +54,7 @@ function storageName(key: string): string {
   return candidate;
 }
 
-export function kimiRemainingMs(deadline: number): number {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) {
-    throw new Error("Kimi account usage timed out");
-  }
-  return remaining;
-}
+export const KIMI_USAGE = "Kimi account usage";
 
 /**
  * Resolve Kimi's own managed provider, environment, and credential slot. Null
@@ -73,7 +68,7 @@ export async function resolveKimiAuth(
   // shape without importing private packages or teaching OAR a TOML dialect.
   const result = await runExecutable(command, ["provider", "list", "--json"], {
     env: process.env,
-    timeoutMs: kimiRemainingMs(deadline),
+    timeoutMs: remainingMs(deadline, KIMI_USAGE),
   });
   assertRan(result, `Failed to run ${command} provider list --json`);
   if (!result.ok) {

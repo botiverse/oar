@@ -11,6 +11,7 @@ import type {
   UtcInstant,
 } from "../../contracts/account-usage.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
+import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { grokInitializeMeta, selectGrokAuthMethod } from "./session.js";
@@ -109,14 +110,7 @@ interface GrokAccountPayload {
   readonly email?: string;
 }
 
-/** What is left of the read's budget; none left is a timeout, which rejects. */
-function remainingMs(deadline: number): number {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) {
-    throw new Error("Grok account usage timed out");
-  }
-  return remaining;
-}
+const USAGE = "Grok account usage";
 
 async function readBilling(command: string, timeoutMs: number): Promise<GrokAccountPayload> {
   // One budget for the whole read, shared by every request.
@@ -132,7 +126,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
     const response = await withAcpDeadline(
       runtime,
       initialize,
-      remainingMs(deadline),
+      remainingMs(deadline, USAGE),
       (requestOptions) => runtime.connection.agent.request(initialize, {
         protocolVersion: PROTOCOL_VERSION,
         clientCapabilities: {
@@ -150,7 +144,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
       await withAcpDeadline(
         runtime,
         authenticate,
-        remainingMs(deadline),
+        remainingMs(deadline, USAGE),
         (requestOptions) => runtime.connection.agent.request(
           authenticate,
           { methodId: method },
@@ -161,7 +155,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
     const billing = await withAcpDeadline(
       runtime,
       "_x.ai/billing",
-      remainingMs(deadline),
+      remainingMs(deadline, USAGE),
       (requestOptions) => runtime.connection.agent.request<JsonRecord>(
         "_x.ai/billing",
         {},
@@ -173,7 +167,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
       const authInfo = await withAcpDeadline(
         runtime,
         "_x.ai/auth/info",
-        remainingMs(deadline),
+        remainingMs(deadline, USAGE),
         (requestOptions) => runtime.connection.agent.request<JsonRecord>(
           "_x.ai/auth/info",
           {},
@@ -198,7 +192,8 @@ export const grokAccountUsage: AccountUsageReader = async (installation, options
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
   try {
-    const payload = await readBilling(installation.command, options.timeoutMs ?? 10_000);
+    // One grok start and up to four requests, which a slow launcher stretches.
+    const payload = await readBilling(installation.command, options.timeoutMs ?? 30_000);
     return projectGrokUsage(payload.billing, payload.email);
   } catch (error) {
     if (error instanceof RequestError) {

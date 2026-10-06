@@ -5,8 +5,9 @@ import type {
   UtcInstant,
 } from "../../contracts/account-usage.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
+import { remainingMs } from "../../shared/deadline.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
-import { kimiRemainingMs, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
+import { KIMI_USAGE, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
 import { KimiReauthError, storedKimiAccessToken } from "./oauth-token.js";
 import { fetchKimiAccountIdentity } from "./profile.js";
 
@@ -211,7 +212,7 @@ async function fetchUsage(
         "Authorization": `Bearer ${accessToken}`,
         "Accept": "application/json",
       },
-      signal: AbortSignal.timeout(kimiRemainingMs(deadline)),
+      signal: AbortSignal.timeout(remainingMs(deadline, KIMI_USAGE)),
     });
   } catch (error) {
     throw new Error("Failed to reach Kimi usage endpoint", { cause: error });

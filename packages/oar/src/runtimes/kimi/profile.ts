@@ -1,6 +1,7 @@
 // Kimi's authenticated `/me` profile: the best-effort identity half of account usage.
+import { remainingMs } from "../../shared/deadline.js";
 import { asRecord, parseJson } from "../../shared/json.js";
-import { kimiRemainingMs, type KimiAuthContext } from "./auth-config.js";
+import { KIMI_USAGE, type KimiAuthContext } from "./auth-config.js";
 
 export interface KimiAccountIdentity {
   readonly email?: string;
@@ -48,7 +49,7 @@ export async function fetchKimiAccountIdentity(
         "Authorization": `Bearer ${accessToken}`,
         "Accept": "application/json",
       },
-      signal: AbortSignal.timeout(kimiRemainingMs(deadline)),
+      signal: AbortSignal.timeout(remainingMs(deadline, KIMI_USAGE)),
     });
     if (!response.ok) {
       return {};

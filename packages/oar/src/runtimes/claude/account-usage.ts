@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
 import { runExecutable, spawnLineProcess } from "../../shared/executable/index.js";
 import { assertRan } from "../../shared/executable/diagnostics.js";
+import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 
@@ -96,15 +97,6 @@ function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
   throw new Error(`Claude usage control request failed: ${detail}`);
 }
 
-/** What is left of the read's budget; none left is a timeout, which rejects. */
-function remainingMs(deadline: number): number {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) {
-    throw new Error("Claude account usage timed out");
-  }
-  return remaining;
-}
-
 /**
  * A usage read must not run the user's hooks or start their MCP servers, so the
  * query process runs with --safe-mode. A CLI that lacks the flag is reported as
@@ -113,6 +105,7 @@ function remainingMs(deadline: number): number {
  * timeout. Only a successful help probe is cached, so a failed one is retried
  * on the next read.
  */
+const USAGE = "Claude account usage";
 const safeModeSupport = new Map<string, boolean>();
 async function supportsSafeMode(command: string, version: string | undefined, deadline: number): Promise<boolean> {
   const key = `${command}\0${version ?? ""}`;
@@ -122,7 +115,7 @@ async function supportsSafeMode(command: string, version: string | undefined, de
   }
   const help = await runExecutable(command, ["--help"], {
     env: { ...process.env, CLAUDECODE: undefined },
-    timeoutMs: remainingMs(deadline),
+    timeoutMs: remainingMs(deadline, USAGE),
   });
   assertRan(help, `Failed to run ${command} --help`);
   if (!help.ok) {
@@ -148,7 +141,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (!await supportsSafeMode(installation.command, installation.version, deadline)) {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  const queryMs = remainingMs(deadline);
+  const queryMs = remainingMs(deadline, USAGE);
   const child = spawnLineProcess(installation.command, [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json",
     "--verbose", "--no-session-persistence", "--safe-mode",
