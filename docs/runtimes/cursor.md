@@ -164,10 +164,11 @@ a 24 hour hard timeout for it that no later path clears, neither the
 command's end nor `agent.close()` (the shell executor's `hardTimeout` in the
 bundled `689.js`). The timer is not unref'd, so after such a turn the host
 process does not exit on its own, even with every session disposed; a host
-meant to end exits explicitly, as `oar run` does. Probed: a `sleep 20` that a
-3 second tool timeout moved to the background left one 86400000 ms timer,
-and `oar run` was still running 150 seconds after `[turn completed]` until it
-exited explicitly.
+meant to end exits explicitly, as `oar run` does. Probed on SDK 1.0.35
+(2026-10-04): a `sleep 20` that a 3 second tool timeout moved to the
+background left one 86400000 ms timer, and `oar run` was still running 150
+seconds after `[turn completed]` until it exited explicitly. SDK 1.0.36
+(checked 2026-10-06) has the same code, in a bundle file renamed `867.js`.
 
 ### Observation, children, and history
 
