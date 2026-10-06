@@ -382,9 +382,18 @@ polling and while minting, the deadline, a stop while the key is saved, the
 SDK's failures, an unconfirmed success, a failing `onEvent`,
 `CURSOR_API_KEY`, and the status
 ([login tests](../../tests/login/cursor-login.test.ts),
-[status tests](../../tests/login/cursor-auth-status.test.ts)), and on a real
-login: on 2026-10-06 and 2026-10-07, on a fresh Linux test machine with
-`@cursor/sdk` 1.0.36, the four manual checklist steps of
+[status tests](../../tests/login/cursor-auth-status.test.ts)), and with the
+real SDK against a local mock of the backend
+([`experiments/cursor-login/probe.ts`](../../experiments/cursor-login/README.md),
+2026-10-06, 1.0.35: a success, and a cancel and a deadline both while it
+polls and while it mints, each in an empty home and over a previous login;
+the SDK stopped polling on its signal, minted and asked `GetMe` after a
+cancel, then saved only through OAR's store, which refused it, so
+`auth.json` stayed absent or byte for byte as it was). **Run that experiment
+on every `@cursor/sdk` upgrade**: it needs no account and fails if the SDK
+writes `auth.json` outside the store it is given. On a real login, on
+2026-10-06 and 2026-10-07, on a fresh Linux test machine with `@cursor/sdk`
+1.0.36, the four manual checklist steps of
 [#146](https://github.com/botiverse/oar/pull/146) (commit `d6ece22`) passed:
 the status read (logged out, no `auth.json`); a cancel while it polled
 (`login cancelled`) and the deadline (`timed_out`), neither writing
