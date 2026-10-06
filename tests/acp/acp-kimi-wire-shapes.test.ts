@@ -22,7 +22,7 @@ function opening(state: AcpProjectionState, toolCallId: string, tool: { readonly
   return projectAcpUpdate(state, { toolCallId, ...tool, status: "pending", content: textContent(""), sessionUpdate: "tool_call" });
 }
 
-test("kimi tool frames: the tool label is the opening title, not the ACP kind, and the input is not known at the start", () => {
+test("kimi tool frames: the tool label is the opening title, not the ACP kind, and the input arrives on a later update", () => {
   const state = createAcpProjectionState();
   assert.deepEqual(opening(state, BASH_ID, { title: "Bash", kind: "execute" }), [{ kind: "tool_call_started", callId: BASH_ID, tool: "Bash" }]);
   // The arguments stream as `content` text and land as `rawInput` on a later update.
@@ -35,7 +35,11 @@ test("kimi tool frames: the tool label is the opening title, not the ACP kind, a
     rawInput: { command: "echo TOOL-MARK-4412" },
     sessionUpdate: "tool_call_update",
   });
-  assert.deepEqual(later, [], "a later rawInput cannot reopen the started view");
+  assert.deepEqual(
+    later,
+    [{ kind: "tool_call_input", callId: BASH_ID, input: "{\"command\":\"echo TOOL-MARK-4412\"}" }],
+    "a later rawInput is the call's input; the started record stays as it was",
+  );
   assert.deepEqual(opening(state, AGENT_ID, { title: "Agent", kind: "other" }), [{ kind: "tool_call_started", callId: AGENT_ID, tool: "Agent" }]);
 });
 

@@ -43,6 +43,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "model":
           case "effort":
           case "tool_call_progress":
+          case "tool_call_input":
           case "compaction_started":
           case "compaction_ended":
           case "retry":

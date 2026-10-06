@@ -12,7 +12,10 @@ import {
 // `coalesceText` so text arrives in whole blocks.
 
 interface StartedCall {
+  readonly tool: string;
   readonly kind: ToolActionKind;
+  /** The detail last printed for the call, so a later input prints only what is new. */
+  readonly detail: string | undefined;
   readonly receivedAt: number;
 }
 
@@ -64,9 +67,23 @@ export function createProgressRenderer(
           : [];
       case "tool_call_started": {
         const action = classifyTool(runtimeId, event.tool, event.input);
-        started.set(`${event.agentPath.join("/")}|${event.callId}`, { kind: action.kind, receivedAt: event.receivedAt });
+        started.set(`${event.agentPath.join("/")}|${event.callId}`, { tool: event.tool, kind: action.kind, detail: action.detail, receivedAt: event.receivedAt });
         const label = toolActionLabel(action.kind, "running");
         return [action.detail === undefined ? `${agent}[${label}]` : `${agent}[${label}] ${action.detail}`];
+      }
+      case "tool_call_input": {
+        // Arguments that arrived after the start (an ACP runtime's later update): print the detail they add.
+        const key = `${event.agentPath.join("/")}|${event.callId}`;
+        const call = started.get(key);
+        if (call === undefined) {
+          return [];
+        }
+        const action = classifyTool(runtimeId, call.tool, event.input);
+        if (action.detail === undefined || action.detail === call.detail) {
+          return [];
+        }
+        started.set(key, { ...call, detail: action.detail });
+        return [`${agent}[${toolActionLabel(action.kind, "running")}] ${action.detail}`];
       }
       case "tool_call_ended": {
         const key = `${event.agentPath.join("/")}|${event.callId}`;

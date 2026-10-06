@@ -25,11 +25,11 @@ if (installation?.kind === "available") {
 ```
 
 `session.events()` delivers flat, attributed `Event`s (native user message
-echoes, text, reasoning, tool call start / progress / end, turn start and end,
-usage, model, effort, compaction start / end, retry, background tasks and
-subagents started, updated and ended, runtime→app requests and oar's answers,
-control rejections, withdrawn inputs, the process exit), each carrying the
-`seq` and `agentPath` of the record it was read from. Kinds a runtime never
+echoes, text, reasoning, tool call start / later input / progress / end, turn
+start and end, usage, model, effort, compaction start / end, retry, background
+tasks and subagents started, updated and ended, runtime→app requests and oar's
+answers, control rejections, withdrawn inputs, the process exit), each carrying
+the `seq` and `agentPath` of the record it was read from. Kinds a runtime never
 says (claude has no compaction start, ACP runtimes and cursor no compaction,
 only pi says retry) never appear; the runtime pages say which. It is a
 projection over the record stream, which `session.rawEvents()` and

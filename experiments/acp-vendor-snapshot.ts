@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/promise-function-async -- SDK handlers deliberately return terminal promises directly. */
+/* oxlint-disable import/max-dependencies -- the `files` scenario's scratch directory (fs, os, path) sits beside the ACP plumbing. */
 /**
  * REAL ACP WIRE SNAPSHOT RECORDER.
  *
@@ -12,8 +13,17 @@
  *
  * kimi re-checked live 2026-09-18 at 2.0.0: identical in structure to the
  * checked-in 0.38.0 fixture; the fixture was not refreshed.
+ *
+ * A second argument `files` asks for the file tools instead of one shell call
+ * (write, read, edit, grep, glob, then a shell `cat`), run in a fresh scratch
+ * directory whose path is replaced by `<cwd>` in the titles:
+ *
+ *   pnpm tsx experiments/acp-vendor-snapshot.ts opencode files > tests/replay/fixtures/opencode-acp-files.vendor.json
  */
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { grokInstallation, kimiInstallation, opencodeInstallation } from "../packages/oar/src/index.js";
 import { grokAcpProfile } from "../packages/oar/src/runtimes/grok/session.js";
 import { kimiAcpProfile } from "../packages/oar/src/runtimes/kimi/session.js";
@@ -39,7 +49,28 @@ interface Target {
   readonly observedAt: string;
 }
 
-const options = { cwd: process.cwd() };
+const SCENARIOS = {
+  shell: { prompt: "Use the shell tool to run `printf OAR_ACP_SNAPSHOT_OK`, then reply done.", observedAt: null },
+  files: {
+    prompt: [
+      "In the current directory, one tool call per step:",
+      "use the write tool to create note.txt containing `hi`;",
+      "use the read tool to read note.txt;",
+      "use the edit tool to change `hi` to `hello` in note.txt;",
+      "use the grep tool to search for `hello`;",
+      "use the glob tool to find `*.txt`;",
+      "use the shell tool to run `cat note.txt`;",
+      "then reply done.",
+    ].join(" "),
+    observedAt: "2026-10-06",
+  },
+} as const;
+
+const [runtimeName, scenarioName = "shell"] = process.argv.slice(2);
+assert.ok(scenarioName === "shell" || scenarioName === "files", "usage: tsx experiments/acp-vendor-snapshot.ts <grok|kimi|opencode> [shell|files]");
+const scenario = SCENARIOS[scenarioName];
+const scratch = scenarioName === "files" ? mkdtempSync(path.join(tmpdir(), "oar-snapshot-")) : null;
+const options = { cwd: scratch ?? process.cwd() };
 
 function selectTarget(name: string | undefined): Target {
   if (name === "grok") {
@@ -60,6 +91,11 @@ function ids(value: unknown, key: string): string[] {
     .filter((item): item is string => typeof item === "string");
 }
 
+/** A title with the scratch directory (opencode titles a finished file call with its path, leading slash dropped) as `<cwd>`. */
+function scrubbed(title: string): string {
+  return scratch === null ? title : title.replaceAll(scratch, "<cwd>").replaceAll(scratch.replace(/^\//u, ""), "<cwd>");
+}
+
 function summarizeTool(update: JsonRecord): JsonRecord | null {
   if (update.sessionUpdate !== "tool_call" && update.sessionUpdate !== "tool_call_update") {
     return null;
@@ -71,7 +107,7 @@ function summarizeTool(update: JsonRecord): JsonRecord | null {
     .filter((item): item is string => typeof item === "string");
   return {
     sessionUpdate: update.sessionUpdate,
-    ...(typeof update.title === "string" ? { title: update.title } : {}),
+    ...(typeof update.title === "string" ? { title: scrubbed(update.title) } : {}),
     ...(typeof update.toolName === "string" ? { toolName: update.toolName } : {}),
     ...(typeof update.kind === "string" ? { kind: update.kind } : {}),
     ...(typeof update.status === "string" ? { status: update.status } : {}),
@@ -82,8 +118,7 @@ function summarizeTool(update: JsonRecord): JsonRecord | null {
   };
 }
 
-const [name] = process.argv.slice(2);
-const target = selectTarget(name);
+const target = selectTarget(runtimeName);
 const installation = await target.installation();
 assert.ok(installation.kind === "available" && installation.via === "executable");
 const args = typeof target.profile.args === "function"
@@ -152,7 +187,7 @@ try {
   const result = await promptAcp(
     runtime,
     opened.sessionId,
-    [{ type: "text", text: "Use the shell tool to run `printf OAR_ACP_SNAPSHOT_OK`, then reply done." }],
+    [{ type: "text", text: scenario.prompt }],
   );
   const capabilities = asRecord(opened.initialized.agentCapabilities);
   const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);
@@ -164,7 +199,8 @@ try {
   const promptMeta = asRecord(result._meta);
   process.stdout.write(`${JSON.stringify({
     runtime: target.id,
-    observedAt: target.observedAt,
+    ...(scenarioName === "shell" ? {} : { scenario: scenarioName }),
+    observedAt: scenario.observedAt ?? target.observedAt,
     version: installation.version ?? null,
     initialize: {
       protocolVersion: opened.initialized.protocolVersion,
@@ -195,4 +231,7 @@ try {
   runtime.kill();
   await runtime.exited;
   await terminalHost.dispose();
+  if (scratch !== null) {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 }

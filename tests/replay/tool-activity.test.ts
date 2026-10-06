@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "vitest";
+import type { Frame } from "../../packages/oar/src/contracts/session.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { classifyTool, toolActionLabel } from "../../packages/oar/src/observe/tool-activity.js";
 import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
@@ -61,33 +63,64 @@ function toolCallsFromPi(lines: string[]): ToolCall[] {
   return calls;
 }
 
+/** A call's tool part in the session view (its `input` the latest reported), with the input it started with. */
+interface AcpCall extends ToolCall { started?: string }
+
 /**
  * The ACP vendor snapshots (experiments/acp-vendor-snapshot.ts) keep each tool frame's
- * `title`, `kind`, `status` and the KEYS of its `rawInput`, not their values; each recorded
- * one call. The frames run through the ACP projection, so the call starts where
- * `tool_call_started` really does (the opening `tool_call`), with each recorded key holding
- * its own name in brackets: what a field is read from, never a value the runtime did not send.
+ * `title`, `kind`, `status` and the KEYS of its `rawInput`, not their values. The frames run
+ * through the ACP projection, each opening `tool_call` starting the next call, so a call starts
+ * where `tool_call_started` really does, and the records fold into the session view, whose
+ * tool part takes each later `tool_call_input`. Each recorded key holds its own name in
+ * brackets: what a field is read from, never a value the runtime did not send. An empty key
+ * list is an empty `rawInput`; no list, no `rawInput`.
  */
-function toolCallsFromAcpSnapshot(runtime: "grok" | "kimi" | "opencode"): ToolCall[] {
-  const text = readFileSync(path.join(here, "fixtures", `${runtime}-acp-v1.vendor.json`), "utf8");
+function acpCallsFromSnapshot(runtime: "grok" | "kimi" | "opencode", name = `${runtime}-acp-v1`): AcpCall[] {
+  const text = readFileSync(path.join(here, "fixtures", `${name}.vendor.json`), "utf8");
   const snapshot = asRecord(parseJson(text));
   const frames: unknown = asRecord(snapshot?.prompt)?.tools;
   const state = createAcpProjectionState();
-  return (Array.isArray(frames) ? frames : []).flatMap((raw: unknown) => {
+  const started = new Map<string, string | undefined>();
+  let opened = 0;
+  const records = (Array.isArray(frames) ? frames : []).map((raw: unknown, seq): Frame => {
     const { sessionUpdate, title, kind, status, rawInputKeys } = asRecord(raw) ?? {};
-    const keys = Array.isArray(rawInputKeys) ? rawInputKeys.filter((key): key is string => typeof key === "string") : [];
+    if (sessionUpdate === "tool_call") {
+      opened += 1;
+    }
+    const keys = Array.isArray(rawInputKeys) ? rawInputKeys.filter((key): key is string => typeof key === "string") : null;
     const events = projectAcpUpdate(state, {
-      toolCallId: "recorded",
+      toolCallId: `recorded-${String(opened)}`,
       sessionUpdate,
       ...(title === undefined ? {} : { title }),
       ...(kind === undefined ? {} : { kind }),
       ...(status === undefined ? {} : { status }),
-      ...(keys.length === 0 ? {} : { rawInput: Object.fromEntries(keys.map((key) => [key, `<${key}>`])) }),
+      ...(keys === null ? {} : { rawInput: Object.fromEntries(keys.map((key) => [key, `<${key}>`])) }),
     });
-    return events.flatMap((event): ToolCall[] => (event.kind === "tool_call_started"
-      ? [{ runtime, tool: event.tool, ...(event.input === undefined ? {} : { input: event.input }) }]
-      : []));
+    for (const event of events) {
+      if (event.kind === "tool_call_started") {
+        started.set(event.callId, event.input);
+      }
+    }
+    return { sessionId: "recorded", agentPath: [], seq, receivedAt: 0, kind: "frame", body: { type: String(sessionUpdate), native: raw, events } };
   });
+  return viewOf(records).messages
+    .flatMap((message) => (message.kind === "turn" ? message.sections.flatMap((section) => section.parts) : []))
+    .flatMap((part): AcpCall[] => {
+      if (part.kind !== "tool") {
+        return [];
+      }
+      const input = started.get(part.callId);
+      return [{
+        runtime,
+        tool: part.tool,
+        ...(input === undefined ? {} : { started: input }),
+        ...(part.input === undefined ? {} : { input: part.input }),
+      }];
+    });
+}
+
+function toolCallsFromAcpSnapshot(runtime: "grok" | "kimi" | "opencode", name?: string): ToolCall[] {
+  return acpCallsFromSnapshot(runtime, name).map(({ started: _started, ...call }) => call);
 }
 
 function fixture(name: string): string[] {
@@ -145,15 +178,20 @@ test("opencode tool calls render as friendly activity", async () => {
   await expect(render(toolCallsFromAcpSnapshot("opencode"))).toMatchFileSnapshot(path.join(here, "fixtures", "opencode-acp-v1.activity.txt"));
 });
 
-test("an opencode bash call opens with only its cwd, so it carries no command", () => {
-  const [call] = toolCallsFromAcpSnapshot("opencode");
-  expect(call).toEqual({ runtime: "opencode", tool: "bash", input: JSON.stringify({ cwd: "<cwd>" }) });
-  expect(classifyTool(call?.runtime ?? "", call?.tool ?? "", call?.input)).toEqual({ kind: "run_command" });
+test("opencode file tools render as friendly activity", async () => {
+  await expect(render(toolCallsFromAcpSnapshot("opencode", "opencode-acp-v1-files"))).toMatchFileSnapshot(path.join(here, "fixtures", "opencode-acp-v1-files.activity.txt"));
 });
 
-test("ACP shell calls: grok's opening input carries its command and description, kimi's opens with none", () => {
+test("an opencode bash call opens with only its cwd; its command arrives as the call's input", () => {
+  const [call] = acpCallsFromSnapshot("opencode");
+  expect(call).toEqual({ runtime: "opencode", tool: "bash", started: JSON.stringify({ cwd: "<cwd>" }), input: JSON.stringify({ command: "<command>", cwd: "<cwd>" }) });
+  expect(classifyTool(call?.runtime ?? "", call?.tool ?? "", call?.started)).toEqual({ kind: "run_command" });
+  expect(classifyTool(call?.runtime ?? "", call?.tool ?? "", call?.input)).toEqual({ kind: "run_command", detail: "<command>", command: "<command>" });
+});
+
+test("ACP shell calls: grok's opening input carries its command and description, kimi's command arrives later", () => {
   const classified = (runtime: "grok" | "kimi") =>
-    toolCallsFromAcpSnapshot(runtime).map((call) => ({ call, action: classifyTool(call.runtime, call.tool, call.input) }));
+    acpCallsFromSnapshot(runtime).map((call) => ({ call, action: classifyTool(call.runtime, call.tool, call.input) }));
   expect({ grok: classified("grok"), kimi: classified("kimi") }).toMatchInlineSnapshot(`
     {
       "grok": [
@@ -165,8 +203,9 @@ test("ACP shell calls: grok's opening input carries its command and description,
             "kind": "run_command",
           },
           "call": {
-            "input": "{"command":"<command>","description":"<description>"}",
+            "input": "{"command":"<command>","description":"<description>","is_background":"<is_background>","variant":"<variant>"}",
             "runtime": "grok",
+            "started": "{"command":"<command>","description":"<description>"}",
             "tool": "run_terminal_command",
           },
         },
@@ -174,14 +213,32 @@ test("ACP shell calls: grok's opening input carries its command and description,
       "kimi": [
         {
           "action": {
+            "command": "<command>",
+            "detail": "<command>",
             "kind": "run_command",
           },
           "call": {
+            "input": "{"command":"<command>"}",
             "runtime": "kimi",
             "tool": "Bash",
           },
         },
       ],
     }
+  `);
+});
+
+test("opencode file tools: each opens with an empty input, and the latest names the file or the search", () => {
+  const lines = acpCallsFromSnapshot("opencode", "opencode-acp-v1-files")
+    .map((call) => `${call.tool} ${call.started ?? "-"} → ${call.input ?? "-"} ⇒ ${JSON.stringify(classifyTool(call.runtime, call.tool, call.input))}`);
+  expect(lines).toMatchInlineSnapshot(`
+    [
+      "write {} → {"content":"<content>","filePath":"<filePath>"} ⇒ {"kind":"edit_file","detail":"<filePath>"}",
+      "read {} → {"filePath":"<filePath>"} ⇒ {"kind":"read_file","detail":"<filePath>"}",
+      "edit {} → {"filePath":"<filePath>","newString":"<newString>","oldString":"<oldString>"} ⇒ {"kind":"edit_file","detail":"<filePath>"}",
+      "grep {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<path>"}",
+      "glob {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<path>"}",
+      "bash {"cwd":"<cwd>"} → {"command":"<command>","workdir":"<workdir>"} ⇒ {"kind":"run_command","detail":"<command>","command":"<command>"}",
+    ]
   `);
 });

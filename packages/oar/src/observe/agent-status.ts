@@ -25,6 +25,7 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *   event tool_call_started           → running/{tool, callId}
  *   event tool_call_ended             → running/waiting_model   (the model consumes the result next)
  *   event tool_call_progress          → running, phase unchanged (the clock moves)
+ *   event tool_call_input             → running, phase unchanged (the clock moves)
  *   event compaction_started          → running/compacting
  *   event compaction_ended, retry     → running/waiting_model
  *   event turn_ended                  → idle{lastTurnOutcome}   (the runtime's own completion)
@@ -108,6 +109,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "compaction_started":
       return running(previous, record, "compacting");
     case "tool_call_progress":
+    case "tool_call_input":
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
       return { kind: "idle", lastTurnOutcome: event.outcome };

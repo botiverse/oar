@@ -415,7 +415,9 @@ and configured MCP integrations execute within the harness. **Mapped:** OAR's
 terminals, including Grok's full shell-line `command` compatibility. A tool
 turn opens with `tool_call` `title: "run_terminal_command"` and `rawInput`
 `{command, description}` (the shell line and the agent's account of it;
-`classifyTool` reads it as `run_command` with both), runs through
+`classifyTool` reads it as `run_command` with both; the next update's
+`rawInput` adds `is_background` and `variant`, a `tool_call_input` with the
+whole input), runs through
 `terminal/create|wait_for_exit|output|release` reverse requests (four
 `toApp` records with `answered` responses, terminal output payloads
 verbatim), and closes with a `tool_call_update` whose

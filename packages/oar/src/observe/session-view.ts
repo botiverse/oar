@@ -84,6 +84,7 @@ export type ViewPart =
       readonly kind: "tool";
       readonly callId: string;
       readonly tool: string;
+      /** The latest input the runtime reported: `tool_call_started.input`, replaced by each `tool_call_input`. */
       readonly input?: string;
       /** Streamed output while the call runs (`tool_call_progress`). */
       readonly output?: string;

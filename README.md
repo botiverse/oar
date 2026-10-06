@@ -128,9 +128,9 @@ if (installation?.kind === "available") {
 
 `events()` is the flat, attributed reading of the session: one `Event` per
 fact (native user message echoes, text, reasoning, background tasks, tool call
-start / progress / end, turn start and end, usage, model, effort, compaction,
-retry, app requests, control rejections, withdrawn inputs, the process exit),
-with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to get text in blocks
+start / later input / progress / end, turn start and end, usage, model, effort,
+compaction, retry, app requests, control rejections, withdrawn inputs, the
+process exit), with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to get text in blocks
 instead of pieces. When the runtime's own frame matters, `session.rawEvents()`
 and `session.records()` expose the underlying record stream with every native
 payload verbatim. The [package README](packages/oar/README.md) lists the

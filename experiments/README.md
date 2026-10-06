@@ -24,7 +24,7 @@ the linked findings.
 | `codex-session-adapter.ts` | Adapter path on codex: steer fold, abort, busy. | [codex] | 2026-08-21, codex 0.148.0 |
 | `codex-instant-interrupt.ts` | The native opt-in preempts sampling or yields code-mode cells through the existing OAR steer; queue, abort, direct tools and unfinished assistant items stay distinct. | [findings](codex-instant-interrupt.md) | 2026-09-29, codex 0.159.0: seven controlled cases with a local provider |
 | `acp-runtime.ts <grok\|kimi>` | Public adapter path: ACP handshake, shell-tool event lifecycle, text framing, and both account-usage readers. | [grok], [kimi] | grok 1.0.5 (2026-08-27); kimi 2.0.0 (2026-09-18) |
-| `acp-vendor-snapshot.ts <grok\|kimi>` | Scrubbed real ACP wire schema used to refresh the checked-in vendor fixtures. | [grok], [kimi] | grok 1.0.5 (2026-08-26); kimi 2.0.0 re-check (2026-09-18): same structure as the 0.38.0 fixture, not refreshed |
+| `acp-vendor-snapshot.ts <grok\|kimi\|opencode> [shell\|files]` | Scrubbed real ACP wire schema used to refresh the checked-in vendor fixtures; `files` asks for the file tools instead of one shell call, in a scratch directory. | [grok], [kimi], [opencode] | grok 1.0.5 (2026-08-26); kimi 2.0.0 re-check (2026-09-18): same structure as the 0.38.0 fixture, not refreshed; opencode 1.18.30 (2026-10-05), `files` (2026-10-06): every file tool opens with an empty `rawInput` and gets its arguments on the next update |
 | `pi-sdk-import.ts` | The bundled SDK loads in-process; `createAgentSession` is callable. | | 2026-08-21, pi SDK 0.84.2 |
 | `pi-aimock.ts` | Pi's model plane can point at a local scripted provider (aimock) through a temporary agentDir `models.json`; success is a completed turn with the scripted reply. The `pi-aimock` behavior backend uses this recipe. | | No dated observation recorded |
 | `session-resume.ts <runtime> [modelA] [modelB]` | `Session.id` is runtime-native and resume keeps the transcript. Pi: the id is the session file's header id under `<agentDir>/sessions/--<cwd slug>--`, `SessionManager.list` + `open` resumes it, and an explicit `provider/model` on resume replaces the recorded model (read back via `Session.model()`). | [codex], [pi] | claude, codex (2026-08-21); pi SDK 0.84.2, pi-mono v0.84.2 914cf1472 (2026-09-05) |
@@ -63,6 +63,7 @@ the linked findings.
 [kimi]: ../docs/runtimes/kimi.md
 [live-configure]: ../docs/runtimes/live-configure.md
 [morph]: ../docs/runtimes/morph.md
+[opencode]: ../docs/runtimes/opencode.md
 [pi]: ../docs/runtimes/pi.md
 [resume-cwd]: ../docs/runtimes/resume-cwd.md
 [runtimes]: ../docs/runtimes/README.md
