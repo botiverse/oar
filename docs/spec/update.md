@@ -78,7 +78,7 @@ instruction to run `brew upgrade`.
 | antigravity | The ACP registry entry, which trails Google's downloads; only a newer registry version counts | none: no updater exists |
 | opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |
 | pi | none: bundled with oar | none |
-| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.0.35) | none |
+| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.0.36) | none |
 
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.

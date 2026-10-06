@@ -18,6 +18,12 @@ earlier investigation of the same version through `opencode serve`.
 Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
+The same 13 live scenarios passed on **1.18.34** later on 2026-10-06
+(Linux x64, Node 24.19.0, `opencode/big-pickle`), without adapter changes.
+This adds current ACP session evidence; it does not repeat the separate
+HTTP-server investigation or the direct model-switching probes. See the
+[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md).
+
 ## Native concepts and calling interfaces
 
 | Shape | Command | Protocol |
