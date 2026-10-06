@@ -52,13 +52,14 @@ function flag(name: string): string | undefined {
   return index === -1 ? undefined : argv[index + 1];
 }
 const runtimeId = backendId.replace(/-aimock$/u, "");
+// Defaults reflect the live test account; use --model for another provider or login.
 const DEFAULT_MODEL: Record<string, string> = {
   antigravity: "gemini-3.8-flash-low",
   claude: "haiku",
-  codex: "gpt-5.3-codex-spark",
+  codex: "gpt-6-luna",
   cursor: "gpt-5.4-nano",
   opencode: "opencode/big-pickle",
-  pi: "openai-codex/gpt-5.3-codex-spark",
+  pi: "exe-dev-openai/gpt-6-luna@llm",
 };
 const model = flag("--model") ?? (backendId.endsWith("-aimock") || backendId === "mock" ? undefined : DEFAULT_MODEL[runtimeId]);
 const only = flag("--only")?.split(",").map((part) => part.trim()).filter((part) => part.length > 0);

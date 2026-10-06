@@ -13,7 +13,7 @@
  * codeword. Supported means: the resume opens, the codeword comes back, and
  * the shell call runs in B.
  *
- * Run: pnpm tsx experiments/resume-other-cwd.ts <runtime...> [--out <dir>]
+ * Run: pnpm tsx experiments/resume-other-cwd.ts <runtime...> [--model <id>] [--out <dir>]
  * Burns two short turns per runtime; writes an oar-voyage/3 log per phase and
  * a facts.json.
  */
@@ -23,19 +23,28 @@ import path from "node:path";
 import { openVoyage, promptAndWait, toolResultText, type Session } from "../packages/oar/src/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
+// Defaults reflect the live test account; --model overrides a single runtime.
 const MODEL: Readonly<Record<string, string>> = {
   claude: "haiku",
+  codex: "gpt-6-luna",
   cursor: "gpt-5.4-nano",
-  pi: "openai-codex/gpt-5.3-codex-spark",
+  pi: "exe-dev-openai/gpt-6-luna@llm",
 };
 const CODEWORD = "HERON-58";
 
 const args = process.argv.slice(2);
 const outFlag = args.indexOf("--out");
+const modelFlag = args.indexOf("--model");
+const modelOverride = modelFlag === -1 ? undefined : args[modelFlag + 1];
 const out = outFlag === -1
   ? path.join(process.cwd(), "oar-trial-run", `resume-other-cwd-${new Date().toISOString().replaceAll(":", "-")}`)
   : args[outFlag + 1] ?? "";
-const ids = args.filter((arg, index) => !arg.startsWith("--") && (outFlag === -1 || index !== outFlag + 1));
+const ids = args.filter((arg, index) => !arg.startsWith("--")
+  && (outFlag === -1 || index !== outFlag + 1)
+  && (modelFlag === -1 || index !== modelFlag + 1));
+if (modelFlag !== -1 && (modelOverride === undefined || modelOverride.startsWith("--") || ids.length !== 1)) {
+  throw new Error("--model requires a model id and exactly one runtime");
+}
 mkdirSync(out, { recursive: true });
 
 function record(session: Session, name: string, header: { readonly runtime: string; readonly cwd: string }): void {
@@ -63,7 +72,7 @@ function toolOutputs(session: Session, seq: number): string[] {
 /** Open in A, teach, dispose; resume in B, ask. Facts go into `result`. */
 async function probe(id: string, result: Record<string, unknown>, dirs: { readonly dirA: string; readonly dirB: string }): Promise<void> {
   const runtime = allRuntimes.require(id);
-  const model = MODEL[id];
+  const model = modelOverride ?? MODEL[id];
   const installation = await runtime.installation?.();
   if (installation?.kind !== "available") {
     result.skipped = installation?.kind ?? "no installation probe";
@@ -107,7 +116,7 @@ for (const id of ids) {
   mkdirSync(dirs.dirA);
   mkdirSync(dirs.dirB);
   writeFileSync(path.join(dirs.dirB, "marker-b.txt"), "B\n");
-  const result: Record<string, unknown> = { ...dirs, model: MODEL[id] ?? null };
+  const result: Record<string, unknown> = { ...dirs, model: modelOverride ?? MODEL[id] ?? null };
   facts[id] = result;
   try {
     // oxlint-disable-next-line no-await-in-loop -- runtimes run one after another.
