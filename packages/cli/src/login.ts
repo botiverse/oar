@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import type {
   AuthStatus,
   InstallationSnapshot,
+  LoginAccount,
   LoginResult,
   ProviderLoginInteraction,
   Runtime,
@@ -71,11 +72,12 @@ export async function runLogin(runtime: Runtime, interaction: ProviderLoginInter
   }
 }
 
-function accountLabel(account: { readonly email?: string; readonly plan?: string; readonly method?: string } | undefined): string {
+function accountLabel(account: LoginAccount | undefined): string {
   if (account === undefined) {
     return "";
   }
-  const notes = [account.method, account.plan].filter((note) => note !== undefined);
+  const notes = [account.method, account.plan, account.expiresAt === undefined ? undefined : `expires ${account.expiresAt}`]
+    .filter((note) => note !== undefined);
   return `${account.email === undefined ? "" : ` as ${account.email}`}${notes.length === 0 ? "" : ` (${notes.join(", ")})`}`;
 }
 

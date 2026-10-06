@@ -1,5 +1,6 @@
 import type { AvailableInstallation } from "./installation.js";
 import type { ProviderLoginInteraction } from "./provider-auth.js";
+import type { UtcInstant } from "./account-usage.js";
 
 /** What the runtime says about the account it is signed in to. Every field is the runtime's own word, absent when it gives none. */
 export interface LoginAccount {
@@ -8,6 +9,12 @@ export interface LoginAccount {
   readonly plan?: string;
   /** The runtime's name for how it is signed in (`claude.ai`, `chatgpt`, `apiKey`, ...). */
   readonly method?: string;
+  /**
+   * When the stored sign-in stops working, as the runtime reports it: a
+   * credential the runtime does not renew by itself (cursor's minted API
+   * key), after which it is logged out until the next login.
+   */
+  readonly expiresAt?: UtcInstant;
 }
 
 /** Why a login ended without a logged-in runtime. */
@@ -20,7 +27,7 @@ export type LoginFailureReason =
 
 /** Why oar cannot drive this runtime's login. */
 export type LoginUnsupportedReason =
-  | "unsupported_installation" // not a machine-installed executable
+  | "unsupported_installation" // not the installation the runtime's login runs on (claude, codex: a machine-installed executable; cursor: the bundled SDK)
   | "version_unsupported"; // the installed version predates the login path oar drives (`detail` names the floor)
 
 /**
@@ -53,7 +60,8 @@ export interface LoginOptions {
  * - Never logs the current account out first: a login that fails, times out
  *   or is cancelled leaves the previous login as it was.
  * - Aborting `interaction.signal` stops the login process with everything it
- *   started and resolves `cancelled`. A prompt still open when the login
+ *   started (an in-process SDK's login: its wait, and any write after it)
+ *   and resolves `cancelled`. A prompt still open when the login
  *   settles is moot; the caller closes it.
  * - Once the runtime reports success it has stored the new login: a deadline
  *   or abort after that never yields `timed_out` or `cancelled`. The status
@@ -70,7 +78,7 @@ export type RuntimeLogin = (
 
 /**
  * Whether the runtime is logged in, from its own local status query.
- * `source` names the command that answered.
+ * `source` names the command (or SDK call) that answered.
  */
 export type AuthStatus =
   | { readonly kind: "logged_in"; readonly account?: LoginAccount; readonly source: string }
