@@ -19,9 +19,11 @@ import { acpReportedEffort, acpReportedModel } from "./model.js";
 interface ToolState {
   readonly callId: string;
   ended: boolean;
+  /** The input last reported for the call (`tool_call_started` or `tool_call_input`); absent while none was. */
+  input: string | undefined;
 }
 
-/** Per-session tool lifecycle memory: a terminal status ends a call once. */
+/** Per-session tool lifecycle memory: a terminal status ends a call once; an input is reported once per change. */
 export interface AcpProjectionState {
   readonly tools: Map<string, ToolState>;
 }
@@ -98,21 +100,32 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
   }
   const events: RuntimeEventBody[] = [];
   let tool = state.tools.get(callId);
+  const opening = tool === undefined;
   if (tool === undefined) {
-    tool = { callId, ended: false };
-    state.tools.set(callId, tool);
     const input = detail(update.rawInput);
+    tool = { callId, ended: false, input };
+    state.tools.set(callId, tool);
     events.push({
       kind: "tool_call_started",
       callId,
       tool: toolName(update),
       ...(input === undefined ? {} : { input }),
     });
+  } else if (!tool.ended) {
+    // A runtime may send the arguments only on a later update (opencode's
+    // opening `tool_call` has `rawInput` `{cwd}`, the next update `{command,
+    // cwd}`; kimi's has none, and one update carries it whole). Read in the
+    // started input's form, so an unchanged repeat says nothing new.
+    const input = detail(update.rawInput);
+    if (input !== undefined && input !== tool.input) {
+      tool.input = input;
+      events.push({ kind: "tool_call_input", callId, input });
+    }
   }
   const terminal = update.status === "completed"
     || update.status === "failed"
     || update.status === "cancelled";
-  if (!tool.ended && !terminal && events.length === 0 && update.rawOutput !== undefined) {
+  if (!tool.ended && !terminal && !opening && update.rawOutput !== undefined) {
     // A later non-terminal update with rawOutput is streamed output. `content`
     // is NOT used here: kimi streams the call's ARGUMENTS as content while
     // in_progress (wire-shapes test), which is input, not output.

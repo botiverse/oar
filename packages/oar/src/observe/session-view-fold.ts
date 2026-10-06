@@ -215,7 +215,9 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
 }
 
 type ToolUpdate = Extract<Event, { kind: "tool_call_progress" | "tool_call_ended" }>;
-type ToolResult = Extract<ViewPart, { kind: "tool" }>["result"];
+type ToolInput = Extract<Event, { kind: "tool_call_input" }>;
+type ToolPart = Extract<ViewPart, { kind: "tool" }>;
+type ToolResult = ToolPart["result"];
 
 /**
  * Settle a call's tool part in place, in whichever turn its start landed
@@ -224,6 +226,22 @@ type ToolResult = Extract<ViewPart, { kind: "tool" }>["result"];
  * `turn/completed`). False when no part holds the callId.
  */
 export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResult): boolean {
+  return replaceToolPart(draft, event, (part) => {
+    if (event.kind === "tool_call_ended") {
+      // The streamed preview gives way to the result.
+      const { output: _streamed, ...settled } = part;
+      return { ...settled, ...(event.content === undefined ? {} : { content: event.content }), result, endedAt: event.receivedAt };
+    }
+    return { ...part, ...(event.output === undefined ? {} : { output: event.output }), result };
+  });
+}
+
+/** The latest input the runtime reported replaces the call's earlier one; its state is untouched. False when no part holds the callId. */
+export function updateToolInput(draft: Draft, event: ToolInput): boolean {
+  return replaceToolPart(draft, event, (part) => ({ ...part, input: event.input }));
+}
+
+function replaceToolPart(draft: Draft, event: ToolUpdate | ToolInput, next: (part: ToolPart) => ToolPart): boolean {
   for (let m = draft.messages.length - 1; m >= 0; m -= 1) {
     const message = draft.messages[m];
     if (message?.kind !== "turn") {
@@ -240,13 +258,7 @@ export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResu
         continue;
       }
       const parts = [...section.parts];
-      if (event.kind === "tool_call_ended") {
-        // The streamed preview gives way to the result.
-        const { output: _streamed, ...settled } = part;
-        parts[partIndex] = { ...settled, ...(event.content === undefined ? {} : { content: event.content }), result, endedAt: event.receivedAt };
-      } else {
-        parts[partIndex] = { ...part, ...(event.output === undefined ? {} : { output: event.output }), result };
-      }
+      parts[partIndex] = next(part);
       const sections = [...message.sections];
       sections[s] = { ...section, parts };
       draft.messages[m] = { ...message, sections };

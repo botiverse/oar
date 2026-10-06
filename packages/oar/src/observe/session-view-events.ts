@@ -7,6 +7,7 @@ import {
   removeEmptyTurn,
   sealTurn,
   turnForWrite,
+  updateToolInput,
   updateToolPart,
   type Draft,
 } from "./session-view-fold.js";
@@ -62,6 +63,13 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         result: "running",
         startedAt: event.receivedAt,
       });
+      return;
+    case "tool_call_input":
+      if (updateToolInput(draft, event)) {
+        return;
+      }
+      // An input without a start is still a fact (mid-turn subscriber).
+      laneFor(draft, event, streamId)?.parts.push({ kind: "tool", callId: event.callId, tool: "?", input: event.input, result: "running" });
       return;
     case "tool_call_progress":
     case "tool_call_ended": {

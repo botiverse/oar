@@ -135,6 +135,8 @@ export type RuntimeEventBody = UserMessage
       /** Best-effort human-readable invocation detail when the runtime exposes it. */
       readonly input?: string;
     }
+  /** Arguments the runtime reported after the call started (an ACP `tool_call_update` carrying a `rawInput` that differs from the last one read for the call). The WHOLE input in `tool_call_started.input`'s form, replacing it and any earlier `tool_call_input` of the call, never a delta; the started record stays as the runtime first said it. */
+  | { readonly kind: "tool_call_input"; readonly callId: string; readonly input: string }
   | {
       readonly kind: "tool_call_ended";
       readonly callId: string;

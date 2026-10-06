@@ -86,6 +86,16 @@ Further rules:
   arriving before the root's ([env] 0.149.0), and the child's cumulative
   usage would otherwise overwrite the root's under `agentPath []`. Scope a
   fold to a child by passing its `sessionId` (`usageOf(records, sessionId)`).
+- **A tool's input is the latest one the runtime reported.**
+  `tool_call_started.input` is what the opening frame said, and stays so. A
+  runtime that sends the arguments later (an ACP `tool_call_update` whose
+  `rawInput` differs from the input last read for the call: opencode's
+  opening `tool_call` carries only `cwd` or nothing, kimi's no `rawInput`)
+  adds a `tool_call_input` holding the whole input in the same form,
+  replacing the earlier one, never a delta. An unchanged repeat adds none;
+  on the frame that ends the call it comes before `tool_call_ended`, and
+  none follows the end. The session view's tool part keeps the latest, and
+  `classifyTool` is handed that one.
 - **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.
@@ -140,6 +150,7 @@ interface FrameBody {
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
 //   text_delta {text, messageId?} | reasoning {content} |
 //   tool_call_started {callId, tool, input?} |
+//   tool_call_input {callId, input} |
 //   tool_call_progress {callId, output?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
 //   turn_ended {outcome} | usage {usage: {context?, tokens?}} | model {model} |
@@ -273,6 +284,13 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `content` (kimi streams the call's ARGUMENTS as content while
   `in_progress`). claude streams none; cursor's `shell-output-delta` is
   recorded with no event.
+- `tool_call_input`: arguments reported after the call started. ACP (grok,
+  kimi, opencode, antigravity) a `tool_call_update` for a call that has not
+  ended, carrying a `rawInput` that differs from the input last read for
+  it: opencode's arguments (the opening frame has `{cwd}` or `{}`), kimi's
+  full `rawInput` after its streamed `content` chunks, grok's update adding
+  `is_background` and `variant` to `{command, description}`. No other
+  shipped adapter emits it.
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger). Never claude (it reports only the

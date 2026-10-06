@@ -59,6 +59,18 @@ test("renderer handles a tool call without detail and an unknown callId", () => 
   assert.deepEqual(render(at(100, [{ kind: "tool_call_ended", callId: "never-started" }])), ["[Done]"]);
 });
 
+// An ACP runtime can send a call's arguments only after it started (opencode, kimi; issue #147).
+test("renderer prints the detail a later tool input adds, once, and nothing for an unknown call", () => {
+  const render = renderAll(createProgressRenderer("claude"));
+  const command = JSON.stringify({ command: "echo hi" });
+  const described = JSON.stringify({ command: "echo hi", description: "Say hi" });
+  assert.deepEqual(render(at(0, [{ kind: "tool_call_started", callId: "c1", tool: "Bash" }])), ["[Running command]"]);
+  assert.deepEqual(render(at(10, [{ kind: "tool_call_input", callId: "c1", input: command }])), ["[Running command] echo hi"]);
+  assert.deepEqual(render(at(20, [{ kind: "tool_call_input", callId: "c1", input: described }])), []);
+  assert.deepEqual(render(at(30, [{ kind: "tool_call_input", callId: "c9", input: command }])), []);
+  assert.deepEqual(render(at(1000, [{ kind: "tool_call_ended", callId: "c1" }])), ["[Ran command] (1.0s)"]);
+});
+
 test("renderer prefixes sub-agent records with their agent path and keys tool calls per agent", () => {
   const render = renderAll(createProgressRenderer("claude"));
   assert.deepEqual(render(at(0, [{ kind: "tool_call_started", callId: "c1", tool: "Read" }], ["task-1"])), ["[task-1] [Reading file]"]);
