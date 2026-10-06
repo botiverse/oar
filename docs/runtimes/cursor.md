@@ -372,7 +372,7 @@ warning when a backend has no `POST /auth/poll` (it falls back to `GET`) goes
 to the host's stderr, out of OAR's reach; it names the backend, not the
 verifier.
 
-The floor is `@cursor/sdk` 1.0.35, the exact peer dependency. An SDK handed
+The floor is `@cursor/sdk` 1.0.36, the exact peer dependency. An SDK handed
 over without `Cursor.auth` and `FileCredentialStore` makes the login
 `unsupported` / `version_unsupported` and the status `unknown`; an
 installation other than `bundled` is `unsupported_installation`, and an SDK

@@ -231,7 +231,7 @@ test("nothing runs for an aborted signal; another installation, an SDK without C
         "reason": "unsupported_installation",
       },
       {
-        "detail": "@cursor/sdk 1.0.35 is required; this one has no Cursor.auth",
+        "detail": "@cursor/sdk 1.0.36 is required; this one has no Cursor.auth",
         "kind": "unsupported",
         "reason": "version_unsupported",
       },
