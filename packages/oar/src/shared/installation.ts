@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import type { InstallationProbe, InstallationSnapshot } from "../contracts/installation.js";
 import { readExecutableVersion, resolveExecutable, runExecutable, type VersionReader } from "./executable/index.js";
-import { processFailure, stderrTail } from "./executable/diagnostics.js";
+import { assertRan } from "./executable/diagnostics.js";
 
 // An entry with a path separator is a pinned path: it must exist as given and
 // never silently falls back to a different binary. A bare name resolves on PATH.
@@ -79,11 +79,7 @@ export function executableInstallation(
           timeoutMs: options.readinessTimeoutMs,
         },
       );
-      if (!result.ok && (result.exitCode === null || result.diagnostics?.timeoutMs !== undefined)) {
-        throw processFailure(`Failed to run ${candidate} ${readiness.join(" ")}`, result.diagnostics ?? {
-          exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
-        });
-      }
+      assertRan(result, `Failed to run ${candidate} ${readiness.join(" ")}`);
       if (result.ok) {
         return versionSnapshot(candidate, options);
       }

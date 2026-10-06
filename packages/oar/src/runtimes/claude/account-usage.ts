@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
 import { runExecutable, spawnLineProcess } from "../../shared/executable/index.js";
-import { processFailure, stderrTail } from "../../shared/executable/diagnostics.js";
+import { assertRan } from "../../shared/executable/diagnostics.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
 
@@ -96,6 +96,15 @@ function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
   throw new Error(`Claude usage control request failed: ${detail}`);
 }
 
+/** What is left of the read's budget; none left is a timeout, which rejects. */
+function remainingMs(deadline: number): number {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    throw new Error("Claude account usage timed out");
+  }
+  return remaining;
+}
+
 /**
  * A usage read must not run the user's hooks or start their MCP servers, so the
  * query process runs with --safe-mode. A CLI that lacks the flag is reported as
@@ -105,7 +114,7 @@ function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
  * on the next read.
  */
 const safeModeSupport = new Map<string, boolean>();
-async function supportsSafeMode(command: string, version: string | undefined, timeoutMs: number | undefined): Promise<boolean> {
+async function supportsSafeMode(command: string, version: string | undefined, deadline: number): Promise<boolean> {
   const key = `${command}\0${version ?? ""}`;
   const known = safeModeSupport.get(key);
   if (known !== undefined) {
@@ -113,13 +122,9 @@ async function supportsSafeMode(command: string, version: string | undefined, ti
   }
   const help = await runExecutable(command, ["--help"], {
     env: { ...process.env, CLAUDECODE: undefined },
-    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+    timeoutMs: remainingMs(deadline),
   });
-  if (!help.ok && (help.exitCode === null || help.diagnostics?.timeoutMs !== undefined)) {
-    throw processFailure(`Failed to run ${command} --help`, help.diagnostics ?? {
-      exitCode: help.exitCode, signal: null, stderr: stderrTail(help.stderr),
-    });
-  }
+  assertRan(help, `Failed to run ${command} --help`);
   if (!help.ok) {
     return false;
   }
@@ -137,9 +142,13 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  if (!await supportsSafeMode(installation.command, installation.version, options.timeoutMs)) {
+  // One budget for the whole read, shared by the help probe and the query:
+  // two claude starts, each of which a slow launcher can stretch.
+  const deadline = Date.now() + (options.timeoutMs ?? 30_000);
+  if (!await supportsSafeMode(installation.command, installation.version, deadline)) {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
+  const queryMs = remainingMs(deadline);
   const child = spawnLineProcess(installation.command, [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json",
     "--verbose", "--no-session-persistence", "--safe-mode",
@@ -166,7 +175,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
     timedOut = true;
     pending?.resolve(null);
     child.kill();
-  }, options.timeoutMs ?? 15_000);
+  }, queryMs);
   const query = async (request: JsonRecord): Promise<JsonRecord> => {
     if (ended || timedOut) {
       throw new Error("Claude exited or timed out before answering usage queries");

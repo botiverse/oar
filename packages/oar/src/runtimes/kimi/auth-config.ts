@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { runExecutable } from "../../shared/executable/index.js";
-import { processFailure, stderrTail } from "../../shared/executable/diagnostics.js";
+import { assertRan } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 
 const MANAGED_PROVIDER = "managed:kimi-code";
@@ -75,11 +75,7 @@ export async function resolveKimiAuth(
     env: process.env,
     timeoutMs: kimiRemainingMs(deadline),
   });
-  if (!result.ok && (result.exitCode === null || result.diagnostics?.timeoutMs !== undefined)) {
-    throw processFailure(`Failed to run ${command} provider list --json`, result.diagnostics ?? {
-      exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
-    });
-  }
+  assertRan(result, `Failed to run ${command} provider list --json`);
   if (!result.ok) {
     return null;
   }

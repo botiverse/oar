@@ -1,3 +1,5 @@
+import type { ExecutableResult } from "./run.js";
+
 /** A bounded observation of native process failure, not a retry policy. */
 export interface ProcessDiagnostics {
   readonly exitCode: number | null;
@@ -60,4 +62,18 @@ export function processFailure(context: string, diagnostics: ProcessDiagnostics)
   }
   const stderr = diagnostics.stderr === "" ? "" : `\nstderr (tail):\n${diagnostics.stderr}`;
   return new Error(`${context}: ${reasons.join("; ")}${stderr}`, { cause: diagnostics });
+}
+
+/**
+ * Throws when a command timed out or never ran to an exit code of its own (a
+ * failed spawn, a signal): an operational failure, carrying the native reason
+ * and a bounded stderr tail. A command that exited with a code returns; that
+ * answer is the caller's to read.
+ */
+export function assertRan(result: ExecutableResult, context: string): void {
+  if (!result.ok && (result.exitCode === null || result.diagnostics?.timeoutMs !== undefined)) {
+    throw processFailure(context, result.diagnostics ?? {
+      exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
+    });
+  }
 }

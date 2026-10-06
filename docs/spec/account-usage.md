@@ -46,7 +46,8 @@ reasons must be presented as unknown rather than guessed.
 | reauth_required | credentials_rejected | The usage endpoint rejected the credential (401/403). |
 
 Operational failures (network errors, timeouts, malformed responses) still reject
-the promise. Reasons do not include tokens, credential values, or raw provider
+the promise. `options.timeoutMs` bounds the whole read, every process and
+request in it included. Reasons do not include tokens, credential values, or raw provider
 responses.
 
 Grok can return a valid billing configuration and subscription tier without

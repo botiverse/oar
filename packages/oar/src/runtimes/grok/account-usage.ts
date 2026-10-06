@@ -109,7 +109,18 @@ interface GrokAccountPayload {
   readonly email?: string;
 }
 
+/** What is left of the read's budget; none left is a timeout, which rejects. */
+function remainingMs(deadline: number): number {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    throw new Error("Grok account usage timed out");
+  }
+  return remaining;
+}
+
 async function readBilling(command: string, timeoutMs: number): Promise<GrokAccountPayload> {
+  // One budget for the whole read, shared by every request.
+  const deadline = Date.now() + timeoutMs;
   const runtime = startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
@@ -121,7 +132,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
     const response = await withAcpDeadline(
       runtime,
       initialize,
-      timeoutMs,
+      remainingMs(deadline),
       (requestOptions) => runtime.connection.agent.request(initialize, {
         protocolVersion: PROTOCOL_VERSION,
         clientCapabilities: {
@@ -139,7 +150,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
       await withAcpDeadline(
         runtime,
         authenticate,
-        timeoutMs,
+        remainingMs(deadline),
         (requestOptions) => runtime.connection.agent.request(
           authenticate,
           { methodId: method },
@@ -150,7 +161,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
     const billing = await withAcpDeadline(
       runtime,
       "_x.ai/billing",
-      timeoutMs,
+      remainingMs(deadline),
       (requestOptions) => runtime.connection.agent.request<JsonRecord>(
         "_x.ai/billing",
         {},
@@ -162,7 +173,7 @@ async function readBilling(command: string, timeoutMs: number): Promise<GrokAcco
       const authInfo = await withAcpDeadline(
         runtime,
         "_x.ai/auth/info",
-        timeoutMs,
+        remainingMs(deadline),
         (requestOptions) => runtime.connection.agent.request<JsonRecord>(
           "_x.ai/auth/info",
           {},

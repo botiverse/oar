@@ -89,11 +89,33 @@ test("a help probe that timed out rejects within the caller's timeout and is not
     diagnostics: { exitCode: null, signal: "SIGTERM", stderr: "", timeoutMs: 2000 },
   });
   await expect(claudeAccountUsage(slow, { timeoutMs: 2000 })).rejects.toThrow(/claude-slow --help.*timeout after 2000 ms/u);
-  expect(runExecutable.mock.calls[0]?.[2]).toMatchObject({ timeoutMs: 2000 });
+  expect(runExecutable.mock.calls[0]?.[2]?.timeoutMs).toBeLessThanOrEqual(2000);
   expect(spawnLineProcess).not.toHaveBeenCalled();
   spawnLineProcess.mockReturnValue(serving(available));
   await expect(claudeAccountUsage(slow)).resolves.toMatchObject({ kind: "available" });
   expect(runExecutable).toHaveBeenCalledTimes(2);
+});
+
+// `timeoutMs` bounds the whole read: the help probe and the query share it.
+test("with the help probe uncached, the whole read rejects within timeoutMs", async () => {
+  vi.useFakeTimers();
+  const fresh = { ...installation, command: "claude-fresh", version: "2.1.291" };
+  runExecutable.mockImplementationOnce(async () => {
+    vi.advanceTimersByTime(1500);
+    return helpWithSafeMode;
+  });
+  spawnLineProcess.mockReturnValue(fakeLineProcess());
+  const outcome = (async () => {
+    try {
+      await claudeAccountUsage(fresh, { timeoutMs: 2000 });
+      return "resolved";
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  })();
+  await vi.advanceTimersByTimeAsync(500);
+  vi.useRealTimers();
+  await expect(Promise.race([outcome, Promise.resolve("still pending")])).resolves.toMatch(/timed out/u);
 });
 
 test("native unavailable quota is not guessed to mean invalid credentials or auth mode", async () => {
