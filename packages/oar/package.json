@@ -67,7 +67,7 @@
     "which": "^2.0.2"
   },
   "peerDependencies": {
-    "@cursor/sdk": "1.0.35"
+    "@cursor/sdk": "1.0.36"
   },
   "peerDependenciesMeta": {
     "@cursor/sdk": {
@@ -75,7 +75,7 @@
     }
   },
   "devDependencies": {
-    "@cursor/sdk": "1.0.35",
+    "@cursor/sdk": "1.0.36",
     "@types/cross-spawn": "^6.0.6",
     "@types/which": "^2.0.2"
   }

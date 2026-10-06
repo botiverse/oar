@@ -3,7 +3,7 @@
 Independent inventories: not implemented for Cursor yet.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
-Evidence baseline: **`@cursor/sdk` 1.0.35** (Cursor's official TypeScript
+Initial evidence baseline: **`@cursor/sdk` 1.0.35** (Cursor's official TypeScript
 SDK, linux x64, model `gpt-5.4-nano`) on 2026-10-03 through
 [`experiments/live-contract.ts cursor`](../../experiments/live-contract.ts):
 12 of 12 run scenarios pass, `kill-runtime` is skipped (no process of its
@@ -13,6 +13,15 @@ come from direct SDK probes the same day (models `composer-2.5` and
 beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
+
+Current tested and required SDK: **1.0.36**. On 2026-10-06 (Linux x64,
+Node 24.19.0, `gpt-5.4-nano`), all 12 applicable live scenarios passed again;
+`kill-runtime` remains inapplicable. No session adapter changes were needed.
+OAR 0.25.0 pins its optional peer to exactly 1.0.36: hosts using Cursor must
+upgrade their own SDK from 1.0.35 alongside OAR. The CLI installs 1.0.36
+itself. The precise pin matches the version installed by CI; it does not
+promise continuing support for older SDKs. See the
+[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md).
 
 ## Native concepts and calling interfaces
 
@@ -41,7 +50,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.35`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.36`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
