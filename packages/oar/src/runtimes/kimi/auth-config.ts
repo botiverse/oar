@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { runExecutable } from "../../shared/executable/index.js";
+import { processFailure, stderrTail } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 
 const MANAGED_PROVIDER = "managed:kimi-code";
@@ -60,7 +61,10 @@ export function kimiRemainingMs(deadline: number): number {
   return remaining;
 }
 
-/** Resolve Kimi's own managed provider, environment, and credential slot. */
+/**
+ * Resolve Kimi's own managed provider, environment, and credential slot. Null
+ * when kimi answers without one; a run that timed out or never ran rejects.
+ */
 export async function resolveKimiAuth(
   command: string,
   deadline: number,
@@ -71,6 +75,11 @@ export async function resolveKimiAuth(
     env: process.env,
     timeoutMs: kimiRemainingMs(deadline),
   });
+  if (!result.ok && (result.exitCode === null || result.diagnostics?.timeoutMs !== undefined)) {
+    throw processFailure(`Failed to run ${command} provider list --json`, result.diagnostics ?? {
+      exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
+    });
+  }
   if (!result.ok) {
     return null;
   }

@@ -17,7 +17,9 @@ oar run claude "What does this repo do?"
 The registered runtimes are OAR's `defaultRuntimes` plus cursor, which the
 CLI adds itself on the `@cursor/sdk` 1.0.36 it depends on
 (`src/runtimes.ts`). Commands that take an optional `[runtime]` cover every
-registered runtime when it is omitted (or `all`).
+registered runtime when it is omitted (or `all`). A runtime whose probe or
+read fails (a timeout, a network error) reports its `error` in place of a
+result, the others still report, and the exit code is 1.
 
 - `oar list`: registered runtimes and their capabilities.
 - `oar installation [runtime]` (alias `detect`): probe local installation

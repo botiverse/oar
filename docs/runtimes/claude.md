@@ -310,7 +310,8 @@ overlay. [Adapter](../../packages/oar/src/runtimes/claude/session.ts).
 Installation checks `OAR_CLAUDE_BIN`/PATH; update checks and upgrades are
 covered in [runtime updaters](update.md). Account usage is separate from
 session context: the reader runs claude with `--safe-mode` (no user hooks or
-MCP servers; a CLI without the flag is `unsupported/unsupported_installation`)
+MCP servers; a CLI without the flag is `unsupported/unsupported_installation`,
+and a `--help` probe that times out rejects)
 and sends native stream-json `initialize` and `get_usage`
 (`skip_behaviors: true`) control requests without a prompt. It reads neither
 credential files nor Keychain and makes no direct provider HTTP requests.
