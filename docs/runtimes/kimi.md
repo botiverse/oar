@@ -259,12 +259,15 @@ token totals, only `usage_update` context.
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
 `content` text block, and no `rawInput`, so `tool_call_started` has no
-`input` (`classifyTool` reads `Bash` as `run_command`, with no command to
-show). The arguments then stream as partial-JSON `content` text over a
-dozen `tool_call_update` frames with no event (`content` while `in_progress`
-is input, not output, so it is never read as `tool_call_progress`; only an
-update carrying `rawOutput` would be), and one more update carries the full
-`rawInput` (`{"command": …}`) with `title` "Running: …". The command runs
+`input`. The arguments then stream as partial-JSON `content` text over a
+dozen `tool_call_update` frames with no event (OAR does not read those
+chunks: `content` while `in_progress` is input, not output, so it is never
+`tool_call_progress`; only an update carrying `rawOutput` would be), and one
+more update carries the full `rawInput` (`{"command": …}`) with `title`
+"Running: …", read as a `tool_call_input` holding that whole input. The
+session view's tool part takes it, so `classifyTool` reads `Bash` as
+`run_command` with its `command`
+([test](../../tests/replay/tool-activity.test.ts)). The command runs
 through `terminal/create` (`/bin/bash -c "cd '<cwd>' && …"`, env `NO_COLOR`,
 `TERM=dumb`, …), `wait_for_exit`, `output`, `release`, each a `toApp` request
 with OAR's answer; the captured output is in the `terminal/output` answer.
@@ -457,7 +460,7 @@ executable for the record skeleton, control accept/reject, early model
 updates, and late/missing usage updates (the usage record is deliberately
 held before the turn end).
 [Wire-shape tests](../../tests/acp/acp-kimi-wire-shapes.test.ts) pin the
-0.42.0 tool frames (title-only opening, late `rawInput`, terminal-reference
+0.42.0 tool frames (title-only opening, late `rawInput` as `tool_call_input`, terminal-reference
 completion, the Agent report) and the dispose-after-death answer.
 [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
 yolo selection to the recorded 0.38.0 schema. The

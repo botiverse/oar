@@ -116,12 +116,25 @@ latest assistant message, which the abort left empty.
 ### Observation, children, and history
 
 Text, reasoning (`agent_thought_chunk`), tool calls and `usage_update` arrive
-as `session/update`. The opening `tool_call` of a shell call has `title`
-`bash`, `kind` `execute` and `rawInput` `{cwd}` only; the command arrives on
-the next `tool_call_update`, which retitles the call with it (tool-detail),
-so `classifyTool` reads `bash` as `run_command` with no command field. The
-closing update carries the output in `content` and `rawOutput`
-`{metadata, output}`.
+as `session/update`. A tool call's opening `tool_call` carries its name as
+`title` and no arguments: a shell call has `title` `bash`, `kind` `execute`
+and `rawInput` `{cwd}` only, and the file tools (`write`, `read`, `edit`,
+`grep`, `glob`) an empty `rawInput`. The arguments arrive on the next
+`tool_call_update` (tool-detail): `bash` `{command, cwd}` or
+`{command, workdir}`, retitled with the command; `read` `{filePath}`;
+`write` `{content, filePath}`; `edit` `{filePath, oldString, newString}`;
+`grep` and `glob` `{path, pattern}`. OAR reads that update as a
+`tool_call_input` with the whole input (a further update repeating them
+adds none), and the session view's tool part takes it, so
+`classifyTool` reads `bash` as `run_command` with its `command`, `read` as
+`read_file`, `write` and `edit` as `edit_file` and `grep` and `glob` as
+`search`, each file tool with its `filePath` or `path` as the detail
+([recordings](../../tests/replay/fixtures/opencode-acp-v1-files.vendor.json),
+[test](../../tests/replay/tool-activity.test.ts)). No recorded `bash` input
+has a `description`. The closing update carries the output in `content` and
+`rawOutput` `{metadata, output}`, and retitles the call (`write`, `read`
+and `edit` with the file path, `grep` with the pattern, `glob` with the
+directory).
 
 The prompt answer's `usage` field is the last assistant message's tokens
 only, not the turn's, so OAR does not report token totals; context usage

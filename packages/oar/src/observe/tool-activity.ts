@@ -28,7 +28,7 @@ export interface ToolAction {
   /**
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
    * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`, cursor `shell`,
-   * grok `run_terminal_command`).
+   * grok `run_terminal_command`, kimi `Bash`, opencode `bash`).
    */
   readonly command?: string;
   /** The agent's own one-line account of the call, where the runtime sends one (claude `Bash`, grok `run_terminal_command`). */
@@ -44,7 +44,9 @@ export interface ToolAction {
 
 // Per-runtime tool name → kind. Names are what the tool_call_started event
 // carries (codex uses its item type; claude/pi use the tool name; the ACP
-// runtimes the opening `tool_call`'s `title`, shared/acp/projection.ts).
+// runtimes the opening `tool_call`'s `title`, shared/acp/projection.ts). The
+// input is the latest one reported for the call (`tool_call_started.input`,
+// replaced by each `tool_call_input`; the view's tool part keeps it).
 const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   claude: {
     Bash: "run_command",
@@ -74,11 +76,19 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     find: "search",
   },
   // The opening `tool_call` titles recorded in tests/replay/fixtures/<id>-acp-v1.vendor.json
-  // (grok 1.0.5, kimi 0.38.0, opencode 1.18.30); ACP's `kind` is no help (grok sends none,
-  // kimi and opencode a category).
+  // (grok 1.0.5, kimi 0.38.0, opencode 1.18.30) and opencode-acp-v1-files.vendor.json
+  // (opencode 1.18.30's file tools); ACP's `kind` is no help (grok sends none, kimi and
+  // opencode a category, opencode's `write` the same `edit` as its `edit`).
   grok: { run_terminal_command: "run_command" },
   kimi: { Bash: "run_command" },
-  opencode: { bash: "run_command" },
+  opencode: {
+    bash: "run_command",
+    read: "read_file",
+    write: "edit_file",
+    edit: "edit_file",
+    grep: "search",
+    glob: "search",
+  },
   // The `toolCall.type` of `@cursor/sdk` 1.0.35's tool updates.
   cursor: {
     shell: "run_command",
@@ -135,13 +145,15 @@ function waitFields(inputJson: string): InputFields {
 /**
  * Where each runtime's tools keep the fields a host shows, from recorded inputs
  * (tests/replay/fixtures/*-tool-round.raw.jsonl, and the input keys of
- * *-acp-v1.vendor.json): a shell tool's command (and description), a wait's
+ * *-acp-v1*.vendor.json): a shell tool's command (and description), a wait's
  * duration. A runtime with no recorded shape gets none. codex's
  * `commandExecution` input is the bare command line, not JSON
  * (codex/item-detail.ts). grok's opening `tool_call` carries `rawInput`
- * `{command, description}`; kimi's carries none and opencode's only `cwd`
- * (their arguments arrive on a later update), so a kimi `Bash` or opencode
- * `bash` start has no command to read.
+ * `{command, description}`. kimi's opening frame carries none and opencode's
+ * only `cwd`: their arguments arrive on a later update, read as
+ * `tool_call_input` (kimi `{command}`; opencode `{command, cwd}` or
+ * `{command, workdir}`, no description in any recording), so the command is
+ * there once the call's latest input is passed in.
  */
 const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   claude: { Bash: (input) => stringFields(input, true) },
@@ -153,6 +165,8 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   pi: { bash: (input) => stringFields(input, false) },
   cursor: { shell: (input) => stringFields(input, false) },
   grok: { run_terminal_command: (input) => stringFields(input, true) },
+  kimi: { Bash: (input) => stringFields(input, false) },
+  opencode: { bash: (input) => stringFields(input, false) },
 };
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];
