@@ -99,6 +99,10 @@ already show the degeneration (adapter red lines in
 - kimi (ACP): opaque; an internal graph exists, but the default ACP server
   subscribes only to the main agent. The protocol honestly marks root only;
   fabricating a child graph from display text is forbidden. [src]
+- opencode (ACP): opaque; a `task` subagent runs in a child session of its
+  own, but `opencode acp` forwards only its own sessions' parts, so the
+  parent's `task` tool call is all that arrives. [src] opencode 1.18.34
+  `acp/event.ts`
 - kimi-cli (native wire): full attribution, recursively unbounded
   (`SubagentEvent(event=SubagentEvent(...))`). Both of its offline
   consumers flatten the wrappers and lose attribution, which is

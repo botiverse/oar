@@ -91,7 +91,7 @@ runtimes may legitimately differ.
   by default mock plus the three aimock backends. Use it before pushing a
   change to shared runtime machinery.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codex`, `cursor`, `grok`,
-  `kimi`, `pi`): your local installation and login. The final word when
+  `kimi`, `opencode`, `pi`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 
 ### Vendor: is the runtime-specific integration right?

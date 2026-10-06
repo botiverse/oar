@@ -25,6 +25,7 @@ selecting live probes.
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Prompt delivery, independent child sessions, client execution, context versus billing |
 | [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
+| [OpenCode](opencode.md) | `opencode acp`, ACP | Upstream's own ACP layer over its HTTP server, mid-turn prompts joining the running loop, effort menus per model, why not the SDK |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
@@ -42,7 +43,7 @@ Cross-runtime investigations:
 
 Live-probe investigations of runtimes without an adapter live under
 [`investigations/`](investigations/README.md): currently
-[opencode](investigations/opencode.md) and [goose](investigations/goose.md).
+[goose](investigations/goose.md).
 They are reference only and follow the same evidence conventions.
 
 Each page records its own native source, documentation and observed binary

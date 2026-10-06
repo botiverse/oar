@@ -74,9 +74,11 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     find: "search",
   },
   // The opening `tool_call` titles recorded in tests/replay/fixtures/<id>-acp-v1.vendor.json
-  // (grok 1.0.5, kimi 0.38.0); ACP's `kind` is no help (grok sends none, kimi a category).
+  // (grok 1.0.5, kimi 0.38.0, opencode 1.18.30); ACP's `kind` is no help (grok sends none,
+  // kimi and opencode a category).
   grok: { run_terminal_command: "run_command" },
   kimi: { Bash: "run_command" },
+  opencode: { bash: "run_command" },
   // The `toolCall.type` of `@cursor/sdk` 1.0.35's tool updates.
   cursor: {
     shell: "run_command",
@@ -137,8 +139,9 @@ function waitFields(inputJson: string): InputFields {
  * duration. A runtime with no recorded shape gets none. codex's
  * `commandExecution` input is the bare command line, not JSON
  * (codex/item-detail.ts). grok's opening `tool_call` carries `rawInput`
- * `{command, description}`; kimi's carries none (its arguments arrive on a
- * later update), so a kimi `Bash` start has no input to read.
+ * `{command, description}`; kimi's carries none and opencode's only `cwd`
+ * (their arguments arrive on a later update), so a kimi `Bash` or opencode
+ * `bash` start has no command to read.
  */
 const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   claude: { Bash: (input) => stringFields(input, true) },

@@ -263,7 +263,14 @@ export async function openAcpSession(
       observe,
     });
   if (options.effort !== undefined) {
-    await applyAcpEffort(process, opened, options.effort, {
+    // The effort menu belongs to the model in effect: a model switch whose
+    // answer lists the options (`set_config_option`, opencode 1.18.30 where
+    // the open model has no effort option and the requested one does) is
+    // read instead of the open's.
+    const menu = setModelResponse !== undefined && Array.isArray(setModelResponse.configOptions)
+      ? { ...opened, response: setModelResponse, openMethod: "session/set_config_option" }
+      : opened;
+    await applyAcpEffort(process, menu, options.effort, {
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
     });

@@ -8,15 +8,16 @@
  *
  *   OAR_GROK_BIN=/path/to/grok GROK_HOME=/isolated/home pnpm tsx experiments/acp-vendor-snapshot.ts grok
  *   OAR_KIMI_BIN=/path/to/kimi KIMI_CODE_HOME=/isolated/home pnpm tsx experiments/acp-vendor-snapshot.ts kimi
+ *   OAR_OPENCODE_BIN=/path/to/opencode pnpm tsx experiments/acp-vendor-snapshot.ts opencode
  *
  * kimi re-checked live 2026-09-18 at 2.0.0: identical in structure to the
  * checked-in 0.38.0 fixture; the fixture was not refreshed.
  */
 import assert from "node:assert/strict";
-import { grokInstallation } from "../packages/oar/src/runtimes/grok/installation.js";
+import { grokInstallation, kimiInstallation, opencodeInstallation } from "../packages/oar/src/index.js";
 import { grokAcpProfile } from "../packages/oar/src/runtimes/grok/session.js";
-import { kimiInstallation } from "../packages/oar/src/runtimes/kimi/installation.js";
 import { kimiAcpProfile } from "../packages/oar/src/runtimes/kimi/session.js";
+import { opencodeAcpProfile } from "../packages/oar/src/runtimes/opencode/session.js";
 import {
   closeAcpSession,
   openAcpSession,
@@ -32,21 +33,25 @@ import { createAcpTerminalHost } from "../packages/oar/src/shared/acp/terminal.j
 import { asRecord, type JsonRecord } from "../packages/oar/src/shared/json.js";
 
 interface Target {
-  readonly id: "grok" | "kimi";
+  readonly id: "grok" | "kimi" | "opencode";
   readonly installation: typeof grokInstallation;
   readonly profile: AcpSessionProfile;
+  readonly observedAt: string;
 }
 
 const options = { cwd: process.cwd() };
 
 function selectTarget(name: string | undefined): Target {
   if (name === "grok") {
-    return { id: name, installation: grokInstallation, profile: grokAcpProfile };
+    return { id: name, installation: grokInstallation, profile: grokAcpProfile, observedAt: "2026-08-26" };
   }
   if (name === "kimi") {
-    return { id: name, installation: kimiInstallation, profile: kimiAcpProfile };
+    return { id: name, installation: kimiInstallation, profile: kimiAcpProfile, observedAt: "2026-08-26" };
   }
-  throw new Error("usage: tsx experiments/acp-vendor-snapshot.ts <grok|kimi>");
+  if (name === "opencode") {
+    return { id: name, installation: opencodeInstallation, profile: opencodeAcpProfile, observedAt: "2026-10-05" };
+  }
+  throw new Error("usage: tsx experiments/acp-vendor-snapshot.ts <grok|kimi|opencode>");
 }
 
 function ids(value: unknown, key: string): string[] {
@@ -159,7 +164,7 @@ try {
   const promptMeta = asRecord(result._meta);
   process.stdout.write(`${JSON.stringify({
     runtime: target.id,
-    observedAt: "2026-08-26",
+    observedAt: target.observedAt,
     version: installation.version ?? null,
     initialize: {
       protocolVersion: opened.initialized.protocolVersion,

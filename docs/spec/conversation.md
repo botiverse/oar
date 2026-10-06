@@ -77,7 +77,7 @@ Native echoes (`user_message.input`) remain text only.
 
 No evidence kind promises model consumption or semantic effect. Request
 acceptance and native observation are independent facts. The ACP runtimes
-(grok, kimi, antigravity) carry logical input identity only; no native
+(grok, kimi, antigravity, opencode) carry logical input identity only; no native
 message correlation has been verified for them. Raw payloads remain
 unmodified on frames. OAR never adds markers to a user's input text to
 correlate it, and never derives a universal "consumed" event from turn

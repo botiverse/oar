@@ -7,9 +7,9 @@ a missing match in a binary is never proof of absence. Reproduction and
 sanitized observations: [experiments/cancellation](../../experiments/cancellation/README.md).
 
 **Current OAR:** `Session.withdraw(inputId)` exists for the queues OAR holds
-itself (claude, pi, cursor, and the ACP runtimes kimi, grok and antigravity),
-built as the [consequences](#consequences-for-oar-and-rao) below ask: a
-`withdraw` request of its own targeting the earlier input by `inputId`,
+itself (claude, pi, cursor, and the ACP runtimes kimi, grok, antigravity and
+opencode), built as the [consequences](#consequences-for-oar-and-rao) below
+ask: a `withdraw` request of its own targeting the earlier input by `inputId`,
 answered `accepted` only when the held entry was removed before dispatch and
 `not_queued` otherwise, with the queue request and its response left as they
 were ([record stream](../spec/record-stream.md#withdrawing-held-input)). It

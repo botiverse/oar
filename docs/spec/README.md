@@ -53,7 +53,7 @@ follow the TypeScript contracts.
 
 ## What the contract covers
 
-Implemented by every adapter (claude, codex, pi, grok, kimi, cursor,
+Implemented by every adapter (claude, codex, pi, grok, kimi, opencode, cursor,
 antigravity), pinned by the shared behavior suite
 (`sea-trial/cases/session.ts`, which CI runs on the mock and the claude,
 codex and pi aimock backends, and which runs on any installed runtime with

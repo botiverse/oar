@@ -1,8 +1,8 @@
 # Runtime icons
 
-Claude Code, Codex, Kimi, Grok, Cursor and Antigravity SVGs are from LobeHub lobe-icons, commit a94750e3f5f8fc33757b839d85030e742284e43a, packages/static-svg/icons.
+Claude Code, Codex, Kimi, Grok, Cursor, OpenCode and Antigravity SVGs are from LobeHub lobe-icons, commit a94750e3f5f8fc33757b839d85030e742284e43a, packages/static-svg/icons.
 Source: https://github.com/lobehub/lobe-icons/tree/a94750e3f5f8fc33757b839d85030e742284e43a/packages/static-svg/icons
-Files: claudecode-color.svg, codex.svg, kimi-color.svg, grok.svg, cursor.svg, antigravity-color.svg.
+Files: claudecode-color.svg, codex.svg, kimi-color.svg, grok.svg, cursor.svg, opencode.svg, antigravity-color.svg.
 Brand names and marks belong to their respective owners.
 
 Mister Morph: `app_logo_dark.svg` from the Mister Morph website (quailyquaily/mistermorph-website, `public/`), the project's own mark. `morph-on-dark.svg` swaps its two colors (#1F1F1F and white) for dark backgrounds.
@@ -14,7 +14,7 @@ Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official 
 `light` and `dark` refer to the destination background. Claude Code and
 Antigravity retain their single color assets and use the default fallback on
 both backgrounds.
-Codex, Grok and Cursor variants replace the upstream `currentColor` with explicit black
+Codex, Grok, Cursor and OpenCode variants replace the upstream `currentColor` with explicit black
 or white so they work in external `<img>` elements. Kimi's light variant changes
 its white foreground to black; its dark variant is unchanged. These are local
 color adaptations of the MIT-licensed LobeHub paths, not separately sourced

@@ -11,7 +11,10 @@ let reverseId = 0;
 // and every open starts at mode `default`, which a "mode" prompt reports.
 const antigravity = mode === "antigravity";
 // Mode "listed" answers `session/list` with one session that lives in FAKE_ACP_SESSION_CWD.
-const listed = mode === "listed";
+// Mode "opencode" replays `opencode acp` 1.18.30: a prompt sent while one runs joins the running
+// loop, and every pending prompt is answered when that loop goes idle. Lists sessions like "listed".
+const opencode = mode === "opencode";
+const sessionCapabilities = { opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
 
 function send(message) {
@@ -95,6 +98,15 @@ function handleRpcRequest(message) {
 
 function handleSessionPrompt(message) {
   const text = promptText(message.params);
+  if (opencode && pendingPrompts.size > 0) {
+    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `merged:${[...pendingPrompts.values(), text].join("+")}` } });
+    for (const id of [...pendingPrompts.keys(), message.id]) {
+      update({ sessionUpdate: "usage_update", used: 300, size: 1000 });
+      result(id, { stopReason: "end_turn" });
+    }
+    pendingPrompts.clear();
+    return;
+  }
   if (text === "hold" || text === "steer-base" || text === "grok-steer-base") {
     pendingPrompts.set(message.id, text);
     return;
@@ -185,7 +197,7 @@ function handleSessionRequest(message) {
         protocolVersion: 1,
         agentCapabilities: {
           loadSession: true,
-          sessionCapabilities: antigravity || listed ? { list: {}, resume: {} } : { resume: {}, close: {} },
+          sessionCapabilities: sessionCapabilities[mode] ?? { resume: {}, close: {} },
           promptCapabilities: { image: mode !== "no-images" },
         },
         authMethods: [{ id: "cached", name: "Cached login" }],
@@ -222,7 +234,7 @@ function handleSessionRequest(message) {
       break;
     case "session/set_model":
     case "session/set_config_option":
-      answerConfigRequest(message, { update, result, error });
+      answerConfigRequest(message, { update, result, error }, mode);
       break;
     case "session/set_mode":
       currentMode = message.params?.modeId ?? currentMode;

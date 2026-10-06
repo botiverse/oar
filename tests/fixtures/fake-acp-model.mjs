@@ -42,7 +42,8 @@ function effortOption(currentValue) {
  * Mode "antigravity" replays agy_acp_server 1.2.1, whose effort is part of the model id.
  */
 export function modelReport(mode) {
-  const effort = mode !== "no-thought-level" && mode !== "antigravity";
+  // "opencode": the open model has no variants, so no effort selector (opencode/big-pickle).
+  const effort = mode !== "no-thought-level" && mode !== "antigravity" && mode !== "opencode";
   return {
     configOptions: [modelOption(EFFECTIVE_MODEL), ...(effort ? [effortOption("medium")] : [])],
     models: {
@@ -83,13 +84,16 @@ export function setModelResponse(modelId) {
  * What `session/set_config_option {configId: "model", value}` does, the way
  * agy_acp_server 1.2.1 answers it: a known model is applied and answered with
  * the model option, no `config_option_update` is pushed, and there is no
- * effort selector to report. An unknown model is refused `-32602`.
+ * effort selector to report. An unknown model is refused `-32602`. In mode
+ * "opencode" (1.18.30) `requested-y` has variants, so the answer also lists
+ * the effort selector the open model lacked.
  */
-function setModelOption(value) {
+function setModelOption(value, mode) {
   if (value !== EFFECTIVE_MODEL && value !== "requested-y") {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
   }
-  return { response: { configOptions: [modelOption(value)] } };
+  const effort = mode === "opencode" && value === "requested-y" ? [effortOption("medium")] : [];
+  return { response: { configOptions: [modelOption(value), ...effort] } };
 }
 
 /**
@@ -100,9 +104,9 @@ function setModelOption(value) {
  * `-32602 Invalid params`. `sticky` is a level the fixture accepts but does
  * not apply (answered at `medium`), the silent substitution oar must refuse.
  */
-export function setConfigOption(params) {
+export function setConfigOption(params, mode) {
   if (params?.configId === "model") {
-    return setModelOption(params.value);
+    return setModelOption(params.value, mode);
   }
   if (params?.configId !== EFFORT_ID) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
@@ -122,10 +126,10 @@ export function setConfigOption(params) {
  * any push first (kimi pushes before it answers), then the answer, or the
  * refusal as a JSON-RPC error.
  */
-export function answerConfigRequest(message, wire) {
+export function answerConfigRequest(message, wire, mode) {
   const outcome = message.method === "session/set_model"
     ? setModelResponse(message.params?.modelId)
-    : setConfigOption(message.params);
+    : setConfigOption(message.params, mode);
   if (outcome.error !== undefined) {
     wire.error(message.id, outcome.error.code, outcome.error.message, outcome.error.data);
     return;

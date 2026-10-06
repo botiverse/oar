@@ -14,7 +14,7 @@
  * pass/fail, so a surprising runtime behavior is evidence, not a red test.
  *
  * Run: pnpm tsx experiments/live-contract.ts <backend> [--model <id>] [--only a,b,c] [--out <dir>]
- *   backend: a real runtime id (antigravity|claude|codex|cursor|grok|kimi|pi, logged in, BURNS
+ *   backend: a real runtime id (antigravity|claude|codex|cursor|grok|kimi|opencode|pi, logged in, BURNS
  *   TOKENS) or a sea-trial backend (mock|claude-aimock|codex-aimock|pi-aimock,
  *   zero tokens, for shaking the battery itself, not for evidence).
  * Output: <out>/<scenario>.voyage.jsonl per scenario + <out>/report.json;
@@ -57,6 +57,7 @@ const DEFAULT_MODEL: Record<string, string> = {
   claude: "haiku",
   codex: "gpt-5.3-codex-spark",
   cursor: "gpt-5.4-nano",
+  opencode: "opencode/big-pickle",
   pi: "openai-codex/gpt-5.3-codex-spark",
 };
 const model = flag("--model") ?? (backendId.endsWith("-aimock") || backendId === "mock" ? undefined : DEFAULT_MODEL[runtimeId]);
@@ -537,6 +538,7 @@ const scenarios: Scenario[] = [
         cursor: "Use the Task tool to launch exactly one subagent whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
         grok: "Use your task tool (spawn_subagent) with subagent_type general-purpose and run_in_background false to launch exactly one sub-agent whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
         kimi: "Use the Agent tool to delegate to exactly one sub-agent whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
+        opencode: "Use the task tool to launch exactly one subagent (subagent_type general) whose only job is to run the shell command `echo CHILD-OK-7731` and report the printed line back to you. Do not run the command yourself. When it reports back, reply with exactly the line it reported.",
       };
       const prompt = ask[runtimeId] ?? ask.claude ?? "";
       const result = accepted(await session.prompt(prompt), "prompt");

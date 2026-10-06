@@ -12,7 +12,6 @@ source, and versions as evidence baselines rather than a support range.
 
 | Investigation | Probed interface | Read for |
 |---|---|---|
-| [opencode](opencode.md) | `opencode serve` REST + OpenAPI 3.1, `opencode.db` | Event sourcing beside mutable projections, client-declared session identity, `/sync/steal` and `/sync/replay` semantics, workspace as movable attribution |
 | [goose](goose.md) | `goose acp` stdio and `goose serve` HTTP + WS, `sessions.db` | ACP capability negotiation and its honesty gaps, mutable rows as the only truth, per-connection event streams with no broadcast, no cursor of any kind |
 
 These are archived investigation reports from PR #19. Probe scripts and raw
@@ -23,15 +22,15 @@ comparisons drawn from these pages do not imply an implementation plan.
 
 ## Reading the hosted and remote evidence across samples
 
-Four runtimes were probed live on this machine. Codex and Claude Code have OAR
-adapters, so their observations live on the adapter pages; this index points at
-all four rather than restating them.
+Four runtimes were probed live on this machine. Codex, Claude Code and opencode
+have OAR adapters, so their observations live on the adapter pages; this index
+points at all four rather than restating them.
 
 | Sample | Where the live-probe evidence lives | Probed surface |
 |---|---|---|
 | Codex CLI 0.153.4 | [runtimes/codex.md](../codex.md), section "Native storage and listing, probed live" | app-server control socket, a WebSocket over AF_UNIX, against an isolated `CODEX_HOME` |
 | Claude Code 2.1.237 and 2.1.261 | [runtimes/claude.md](../claude.md), section "Native identity, the peer registry, and declared capability, probed live" | `~/.claude` on-disk state and the per-process peer sockets |
-| opencode 1.18.30 | [opencode.md](opencode.md), section "Addressability, resumability floor, and resume material" | `opencode serve` REST and SSE, `opencode.db` |
+| opencode 1.18.30 | [runtimes/opencode.md](../opencode.md), section "Addressability, resumability floor, and resume material" | `opencode serve` REST and SSE, `opencode.db` |
 | goose 1.50.0 | [goose.md](goose.md), section "Identity and multiple observers" | `goose acp` stdio and `goose serve` HTTP and WS, `sessions.db` |
 
 Three rules govern how those sections are read together. They are rules for

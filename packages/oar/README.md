@@ -1,6 +1,6 @@
 # @botiverse/oar
 
-Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, Cursor, Grok, Kimi, and Pi.
+Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, Cursor, Grok, Kimi, OpenCode, and Pi.
 
 ```ts
 import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
@@ -68,7 +68,7 @@ The package has six public entry points:
 
 Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`. Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 
-Antigravity, Grok, and Kimi share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. Pi and Cursor run in the host process through their SDKs. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in `defaultRuntimes`: install the SDK (`npm install @cursor/sdk@1.0.35`) and hand it over, `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
+Antigravity, Grok, Kimi, and OpenCode share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. Pi and Cursor run in the host process through their SDKs. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in `defaultRuntimes`: install the SDK (`npm install @cursor/sdk@1.0.35`) and hand it over, `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
 
 Community runtimes are contributed and maintained outside the core team (each maintainer is named on its runtime page). They ship in this package from a separate entry point, `@botiverse/oar/community`, and are not in `defaultRuntimes`: `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])` adds [Mister Morph](https://github.com/botiverse/oar/blob/main/docs/runtimes/morph.md), driven through its Console Runtime API. The `oar` CLI includes them.
 
@@ -89,8 +89,9 @@ rejects with an `UnsupportedOptionError` (`option` names the refused
 back on it. `runtime.refusedSessionOptions` names the options a runtime
 refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`), each with the
 reason, so a host can leave them out before opening: cursor refuses all
-three, kimi and antigravity the two prompt options. Kimi also refuses a
-`resume` in another directory than the session's own (`option: "cwd"`). See
+three, kimi, antigravity and opencode the two prompt options. Kimi and
+opencode also refuse a `resume` in another directory than the session's own
+(`option: "cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
 
 `runtime.listModels(installation, options?)` lists the models an installation
@@ -104,9 +105,9 @@ updater would install and where that answer came from;
 `runtime.upgrade(installation)` runs that updater without a terminal and
 judges the result by the version the same executable reports afterwards,
 never by its exit code. oar never upgrades on its own. Claude, Codex, Grok
-and Kimi have both; Antigravity has only the check; Pi and Cursor have
-neither, their SDK versions following oar's (Pi's SDK is a dependency,
-Cursor's an exact peer dependency).
+and Kimi have both; Antigravity has only the check; OpenCode has neither
+yet; Pi and Cursor have neither, their SDK versions following oar's (Pi's
+SDK is a dependency, Cursor's an exact peer dependency).
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
 `runtime.login(installation, interaction)` logs an installation in through
@@ -144,8 +145,8 @@ absent, and an unsupported query never pretends to be an empty catalog.
 
 Codex and Claude expose skills and MCP discovery (tools are MCP-only); Grok
 exposes independent skills and MCP configuration discovery; Pi exposes skills
-and registered tools with active membership. Antigravity, Cursor and Kimi
-inventory queries are unsupported.
+and registered tools with active membership. Antigravity, Cursor, Kimi and
+OpenCode inventory queries are unsupported.
 
 Custom runtimes should use `defineRuntime`, which fills missing inventory
 methods with explicit unsupported results. A manually constructed `Runtime`
