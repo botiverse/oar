@@ -11,9 +11,7 @@ the linked findings.
 current test account: Codex `gpt-6-luna`, Pi
 `exe-dev-openai/gpt-6-luna@llm`. For another login or provider, pass
 `--model <id>`; the resume probe accepts that override for one runtime at a
-time. On 2026-10-06, both defaults completed a real basic turn; Codex 0.160.1
-also recalled its conversation in the new directory, while Pi SDK 1.0.3
-completed its first turn and refused the different-directory resume as before.
+time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
@@ -36,7 +34,7 @@ completed its first turn and refused the different-directory resume as before.
 | `pi-sdk-import.ts` | The bundled SDK loads in-process; `createAgentSession` is callable. | | 2026-08-21, pi SDK 0.84.2 |
 | `pi-aimock.ts` | Pi's model plane can point at a local scripted provider (aimock) through a temporary agentDir `models.json`; success is a completed turn with the scripted reply. The `pi-aimock` behavior backend uses this recipe. | | No dated observation recorded |
 | `session-resume.ts <runtime> [modelA] [modelB]` | `Session.id` is runtime-native and resume keeps the transcript. Pi: the id is the session file's header id under `<agentDir>/sessions/--<cwd slug>--`, `SessionManager.list` + `open` resumes it, and an explicit `provider/model` on resume replaces the recorded model (read back via `Session.model()`). | [codex], [pi] | claude, codex (2026-08-21); pi SDK 0.84.2, pi-mono v0.84.2 914cf1472 (2026-09-05) |
-| `resume-other-cwd.ts <runtime...> [--model <id>] [--out <dir>]` | Resume by native id with another `cwd` (`--model` overrides one runtime): claude and codex keep the context and run in the new directory; cursor, pi and grok refuse at open; kimi natively stays in the old directory, so OAR refuses at open. | [resume-cwd] | 2026-10-03, claude 2.1.288, codex 0.160.0, `@cursor/sdk` 1.0.35, pi SDK 1.0.0, grok 1.0.46, kimi 2.1.1 |
+| `resume-other-cwd.ts <runtime...> [--model <id>] [--out <dir>]` | Resume by native id with another `cwd` (`--model` overrides one runtime): claude and codex keep the context and run in the new directory; cursor, pi and grok refuse at open; kimi natively stays in the old directory, so OAR refuses at open. | [resume-cwd] | 2026-10-03, claude 2.1.288, codex 0.160.0, `@cursor/sdk` 1.0.35, pi SDK 1.0.0, grok 1.0.46, kimi 2.1.1; 2026-10-06 recheck: codex 0.160.1 recalls context and runs in the new directory; pi SDK 1.0.3 still refuses the different-directory resume |
 | `session-resume-model.ts [X] [Y]` | codex: `thread/resume {model}` switches the model on a cold load and the response `model` is the effective one; on a connection already subscribed to the loaded thread the override is dropped and the old model reported (why the adapter checks the response). An unused thread has no rollout to resume. | [codex] | 2026-09-05, codex 0.153.4 (tag rust-v0.153.4, 3d2ee51c) |
 | [`crash-resume.ts <claude\|codex\|pi>`](crash-resume.ts) | SIGKILL of the whole tree mid tool call, then `resume`: the prompt and pre-tool text survive and no runtime reruns the tool; an unechoed steer is lost everywhere, and queued input survives only on codex, which runs it by itself on reopen. Claude closes a stopped background task on reopen with a `result` that can end a just-sent prompt's turn. | [crash-resume] | 2026-10-02, claude 2.1.284 (3 runs), codex 0.158.0, pi SDK 0.99.2 (2 runs) |
 | `session-queue.ts <runtime>` | Queued input runs as an attributable spontaneous next turn. | [claude], [codex] | 2026-08-21, claude, codex |
