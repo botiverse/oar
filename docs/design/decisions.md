@@ -211,3 +211,35 @@ successful open is the confirmation that claude runs the requested level;
 stream (`system/init` or the `assistant` frame; the transcript file already
 records `effort` per assistant message, but oar never reads transcripts),
 or a `get_settings` that can be narrowed to `applied`.
+
+## Reaching a runtime through another host's adapter (2026-10-05)
+
+**Considered:** driving a runtime through an adapter someone else wrote
+for it, rather than through the runtime's own interface. Lody publishes
+ACP adapters for devin, DeepSeek Harness, codex, claude and others
+(`acp-extension-*`), and Zed publishes `codex-acp` and `claude-agent-acp`.
+With OAR's shared ACP kernel, each of those would be one launch command
+instead of an adapter of our own.
+
+**Refused, because the adapter becomes a second owner of the facts OAR
+exists to keep.** OAR's record stream holds what the runtime said on its
+own wire, and each event is read out of that frame
+([record stream](../spec/record-stream.md)). An adapter in between has
+already chosen what to forward and how: it merges text pieces, drops or
+reshapes tool results, decides what a steer, a usage report or a subagent
+looks like, and answers approvals by its own policy. OAR would then record
+the adapter's projection as if it were the runtime's words, and every fix
+would wait on a project whose goals are its own host's. This is the choice
+OpenDAL makes for Google Cloud Storage: it talks to the GCS API, not to its
+S3 compatible endpoint, though an S3 service already exists.
+
+**What counts as native:** the interface the runtime's own vendor ships
+and maintains. A first party ACP server is native (`opencode acp`,
+`kimi acp`, `grok agent stdio`, a future `dim acp`), and so is an SDK or a
+CLI protocol from the vendor (`codex app-server`, claude's stream-json,
+`@cursor/sdk`). A runtime without one waits for one, or OAR writes its
+adapter against whatever the vendor does publish.
+
+**What would reopen it:** a runtime whose vendor names a third party
+adapter as its supported interface, or adopts one into its own
+organization.

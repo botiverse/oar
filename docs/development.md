@@ -163,7 +163,9 @@ error, signal, timeout, exit code and stderr tail in their exception too.
 1. **Probe reality first.** Write an experiment that answers how the vendor
    actually behaves (session lifecycle, event stream, error shapes) and index
    its conclusion in the experiments README. Build the adapter on that
-   evidence, not on the vendor's docs.
+   evidence, not on the vendor's docs, and against the runtime's own
+   interface, never another host's adapter for it
+   ([decision](design/decisions.md#reaching-a-runtime-through-another-hosts-adapter-2026-10-05)).
 2. **Implement it in `packages/oar/src/runtimes/<id>/`.** `index.ts` declares
    the runtime with `defineRuntime({ id, ... })`, listing only the
    capabilities the runtime honestly supports: an absent capability is
