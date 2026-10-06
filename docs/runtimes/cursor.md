@@ -385,7 +385,7 @@ SDK's failures, an unconfirmed success, a failing `onEvent`,
 [status tests](../../tests/login/cursor-auth-status.test.ts)), and with the
 real SDK against a local mock of the backend
 ([`experiments/cursor-login/probe.ts`](../../experiments/cursor-login/README.md),
-2026-10-06, 1.0.35: a success, and a cancel and a deadline both while it
+2026-10-06, 1.0.35 and 1.0.36: a success, and a cancel and a deadline both while it
 polls and while it mints, each in an empty home and over a previous login;
 the SDK stopped polling on its signal, minted and asked `GetMe` after a
 cancel, then saved only through OAR's store, which refused it, so

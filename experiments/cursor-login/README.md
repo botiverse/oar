@@ -15,7 +15,7 @@ The real `@cursor/sdk`, loaded the way a host loads it, signs in through
 OAR's cursor `login` and `authStatus`
 ([login](../../packages/oar/src/runtimes/cursor/login.ts)). The backend it
 talks to is [`mock-backend.ts`](mock-backend.ts), which serves only the
-endpoints the 1.0.35 bundle calls: the browser page
+endpoints the 1.0.35 and 1.0.36 bundles call: the browser page
 `/loginDeepControl?challenge=…&uuid=…`, `POST /auth/poll` (it checks the
 PKCE verifier against the page's challenge), and the Connect RPCs
 `DashboardService/CreateUserApiKey` and `GetMe` (binary protobuf over
@@ -94,3 +94,7 @@ with `onLoginUrl` set. The refusal reaches the SDK's own rejection wrapped as
 written`. The key's name is `Cursor SDK login (<hostname>)`, and its
 `expires_at` is the `apiKeyExpiresAtMs` the SDK stores and `status()` reads
 back.
+
+2026-10-06, `@cursor/sdk` 1.0.36, same machine, with OAR's peer moved to
+1.0.36 ([#152](https://github.com/botiverse/oar/pull/152)): the guard check
+and 9/9 scenarios passed again, with the same order and messages.
