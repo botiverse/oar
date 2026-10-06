@@ -66,6 +66,7 @@ export type AccountUsageSnapshot =
     };
 
 export interface AccountUsageReadOptions {
+  /** Bounds the whole read, every process it starts and request it sends included; each reader has its own default. Past it the read rejects. */
   readonly timeoutMs?: number;
 }
 

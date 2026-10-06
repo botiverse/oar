@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { grokAccountUsage } from "../../packages/oar/src/runtimes/grok/account-usage.js";
+import { withAcpDeadline } from "../../packages/oar/src/shared/acp/process.js";
 
 const acp = vi.hoisted(() => ({
   kill: vi.fn<() => void>(),
@@ -45,6 +46,7 @@ function billing(): unknown {
 afterEach(() => {
   acp.kill.mockReset();
   acp.request.mockReset();
+  vi.mocked(withAcpDeadline).mockClear();
 });
 
 test("grok reader matches native zero usage for billing without usage metrics", async () => {
@@ -139,4 +141,40 @@ test("grok reader keeps billing when the optional auth-info extension fails", as
     rateLimited: false,
     windows: [{ label: "Included usage", usedRatio: 0.25 }],
   });
+});
+
+// `timeoutMs` bounds the whole read: each request gets what is left of it.
+test("grok reader gives each request only what is left of timeoutMs", async () => {
+  vi.useFakeTimers();
+  acp.request.mockImplementation(async (method) => {
+    vi.advanceTimersByTime(1500);
+    switch (method) {
+      case "initialize":
+        return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
+      case "_x.ai/billing":
+        return billing();
+      default:
+        throw new Error(`Unexpected method: ${method}`);
+    }
+  });
+  const read = grokAccountUsage(installation, { timeoutMs: 4000 });
+  await expect(read).resolves.toMatchObject({ kind: "available" });
+  vi.useRealTimers();
+  expect(vi.mocked(withAcpDeadline).mock.calls.map(([, method, timeoutMs]) => [method, timeoutMs])).toEqual([
+    ["initialize", 4000],
+    ["_x.ai/billing", 2500],
+    ["_x.ai/auth/info", 1000],
+  ]);
+});
+
+test("grok reader rejects once timeoutMs is spent", async () => {
+  vi.useFakeTimers();
+  acp.request.mockImplementation(async () => {
+    vi.advanceTimersByTime(2500);
+    return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
+  });
+  const read = grokAccountUsage(installation, { timeoutMs: 2000 });
+  await expect(read).rejects.toThrow("Failed to read Grok account usage");
+  vi.useRealTimers();
+  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize"]);
 });

@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { claudeAccountUsage, projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
+import type { ExecutableRunner } from "../packages/oar/src/shared/executable/index.js";
 import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-process.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(
   command: string, args: readonly string[], options: { env?: NodeJS.ProcessEnv },
 ) => FakeLineProcess>());
-const runExecutable = vi.hoisted(() => vi.fn<(
-  command: string, args: readonly string[], options?: { env?: NodeJS.ProcessEnv },
-) => Promise<{ ok: boolean; stdout: string; stderr: string; exitCode: number | null }>>());
+const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess, runExecutable }));
 
 const helpWithSafeMode = { ok: true, stdout: "  --safe-mode   Start with all customizations disabled\n", stderr: "", exitCode: 0 };
@@ -74,11 +73,49 @@ test("a CLI without --safe-mode is unsupported and never launched unisolated", a
 
 test("a failed help probe is not cached as unsupported", async () => {
   const flaky = { ...installation, command: "claude-flaky", version: "2.1.283" };
-  runExecutable.mockResolvedValueOnce({ ok: false, stdout: "", stderr: "", exitCode: null });
+  runExecutable.mockResolvedValueOnce({ ok: false, stdout: "", stderr: "", exitCode: 2 });
   await expect(claudeAccountUsage(flaky)).resolves.toEqual({ kind: "unsupported", reason: "unsupported_installation" });
   spawnLineProcess.mockReturnValue(serving(available));
   await expect(claudeAccountUsage(flaky)).resolves.toMatchObject({ kind: "available" });
   expect(runExecutable).toHaveBeenCalledTimes(2);
+});
+
+// A timeout is an operational failure, which rejects (docs/spec/account-usage.md);
+// an answer of unsupported_installation would tell the host this CLI cannot be read.
+test("a help probe that timed out rejects within the caller's timeout and is not cached", async () => {
+  const slow = { ...installation, command: "claude-slow", version: "2.1.291" };
+  runExecutable.mockResolvedValueOnce({
+    ok: false, stdout: "", stderr: "", exitCode: null,
+    diagnostics: { exitCode: null, signal: "SIGTERM", stderr: "", timeoutMs: 2000 },
+  });
+  await expect(claudeAccountUsage(slow, { timeoutMs: 2000 })).rejects.toThrow(/claude-slow --help.*timeout after 2000 ms/u);
+  expect(runExecutable.mock.calls[0]?.[2]?.timeoutMs).toBeLessThanOrEqual(2000);
+  expect(spawnLineProcess).not.toHaveBeenCalled();
+  spawnLineProcess.mockReturnValue(serving(available));
+  await expect(claudeAccountUsage(slow)).resolves.toMatchObject({ kind: "available" });
+  expect(runExecutable).toHaveBeenCalledTimes(2);
+});
+
+// `timeoutMs` bounds the whole read: the help probe and the query share it.
+test("with the help probe uncached, the whole read rejects within timeoutMs", async () => {
+  vi.useFakeTimers();
+  const fresh = { ...installation, command: "claude-fresh", version: "2.1.291" };
+  runExecutable.mockImplementationOnce(async () => {
+    vi.advanceTimersByTime(1500);
+    return helpWithSafeMode;
+  });
+  spawnLineProcess.mockReturnValue(fakeLineProcess());
+  const outcome = (async () => {
+    try {
+      await claudeAccountUsage(fresh, { timeoutMs: 2000 });
+      return "resolved";
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  })();
+  await vi.advanceTimersByTimeAsync(500);
+  vi.useRealTimers();
+  await expect(Promise.race([outcome, Promise.resolve("still pending")])).resolves.toMatch(/timed out/u);
 });
 
 test("native unavailable quota is not guessed to mean invalid credentials or auth mode", async () => {

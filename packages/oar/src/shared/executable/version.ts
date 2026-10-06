@@ -1,5 +1,5 @@
 import { runExecutable } from "./run.js";
-import { processFailure, stderrTail } from "./diagnostics.js";
+import { assertRan } from "./diagnostics.js";
 
 /** Picks the version out of `--version` stdout; the default takes the first line. */
 export type VersionReader = (stdout: string) => string | undefined;
@@ -23,11 +23,7 @@ export async function readExecutableVersion(
     ["--version"],
     timeoutMs === undefined ? {} : { timeoutMs },
   );
-  if (!result.ok && (result.exitCode === null || result.diagnostics?.timeoutMs !== undefined)) {
-    throw processFailure(`Failed to run ${executable} --version`, result.diagnostics ?? {
-      exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),
-    });
-  }
+  assertRan(result, `Failed to run ${executable} --version`);
   if (!result.ok) {
     return undefined;
   }

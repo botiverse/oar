@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import type { Runtime } from "@botiverse/oar";
+import { isRuntimeFailure, readEach, type RuntimeFailure } from "./each-runtime.js";
 import { readModels, renderModels } from "./models.js";
 import { registerUpgradeCommand } from "./upgrade.js";
 import { registerLoginCommand } from "./login.js";
@@ -31,6 +32,22 @@ function selected(id: string | undefined): readonly Runtime[] {
   return id === undefined || id === "all" ? runtimes.list() : [runtimes.require(id)];
 }
 
+function renderFailure(report: RuntimeFailure): string[] {
+  return [`${report.runtimeId}: error: ${report.error}`];
+}
+
+/** A runtime that could not be read makes the exit code 1. */
+function exitOnFailure(reports: readonly object[]): void {
+  if (reports.some((report) => isRuntimeFailure(report))) {
+    process.exitCode = 1;
+  }
+}
+
+function printEach(reports: readonly object[]): void {
+  exitOnFailure(reports);
+  process.stdout.write(`${JSON.stringify(reports, null, 2)}\n`);
+}
+
 program
   .command("list")
   .description("List registered runtimes and their capabilities")
@@ -54,18 +71,17 @@ program
   .alias("detect")
   .description("Probe local runtime installation without account or usage I/O")
   .action(async (id: string | undefined) => {
-    const result = await Promise.all(selected(id).map(async (runtime) => ({
+    printEach(await readEach(selected(id), async (runtime) => ({
       runtimeId: runtime.id,
       installation: runtime.installation === undefined ? null : await runtime.installation(),
     })));
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 
 program
   .command("usage [runtime]")
   .description("Read account usage for each available installation")
   .action(async (id: string | undefined) => {
-    const result = await Promise.all(selected(id).map(async (runtime) => {
+    printEach(await readEach(selected(id), async (runtime) => {
       if (runtime.accountUsage === undefined || runtime.installation === undefined) {
         return { runtimeId: runtime.id, accountUsage: { kind: "unsupported" as const, reason: "capability_unavailable" as const } };
       }
@@ -76,7 +92,6 @@ program
       const accountUsage = await runtime.accountUsage(installation);
       return { runtimeId: runtime.id, accountUsage };
     }));
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   });
 
 for (const [command, method] of [["skills", "skills"], ["mcps", "mcpServers"], ["tools", "tools"]] as const) {
@@ -93,14 +108,13 @@ for (const [command, method] of [["skills", "skills"], ["mcps", "mcpServers"], [
         ...(flags.cwd === undefined ? {} : { cwd: flags.cwd }),
         ...(timeoutMs === undefined ? {} : { timeoutMs }),
       };
-      const results = await Promise.all(selected(id).map(async (runtime) => {
+      printEach(await readEach(selected(id), async (runtime) => {
         const installation = await runtime.installation?.();
         if (installation?.kind !== "available") {
           return { runtimeId: runtime.id, installation: installation ?? null, inventory: null };
         }
         return { runtimeId: runtime.id, inventory: await runtime[method](installation, options) };
       }));
-      process.stdout.write(`${JSON.stringify(results, null, 2)  }\n`);
     });
 }
 
@@ -116,16 +130,17 @@ program
       process.exitCode = 1;
       return;
     }
-    const reports = await Promise.all(selected(id).map(async (runtime) => {
+    const reports = await readEach(selected(id), async (runtime) => {
       const report = await readModels(runtime, timeoutMs === undefined ? undefined : { timeoutMs });
       return report;
-    }));
+    });
     if (flags.json === true) {
-      process.stdout.write(`${JSON.stringify(reports, null, 2)}\n`);
+      printEach(reports);
       return;
     }
+    exitOnFailure(reports);
     for (const report of reports) {
-      for (const line of renderModels(report)) {
+      for (const line of isRuntimeFailure(report) ? renderFailure(report) : renderModels(report)) {
         process.stdout.write(`${line}\n`);
       }
     }

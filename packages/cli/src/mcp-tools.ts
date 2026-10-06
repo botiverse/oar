@@ -1,5 +1,6 @@
 import type { Runtime } from "@botiverse/oar";
 import type { SendMode, SpawnOptions, Subagents } from "@botiverse/oar/agents";
+import { isRuntimeFailure, readEach } from "./each-runtime.js";
 
 /** One MCP tool: its listing and its handler over the subagent crew. */
 export interface McpTool {
@@ -49,7 +50,7 @@ const SPAWN_PROPERTIES = {
 };
 
 async function installed(runtimes: readonly Runtime[]): Promise<unknown[]> {
-  const rows = await Promise.all(runtimes.map(async (runtime) => {
+  const rows = await readEach(runtimes, async (runtime) => {
     const installation = await runtime.installation?.();
     // A child carries its depth in `env`, so a runtime that refuses `env` cannot be spawned.
     const envRefused = runtime.refusedSessionOptions?.env;
@@ -59,8 +60,8 @@ async function installed(runtimes: readonly Runtime[]): Promise<unknown[]> {
       ...(installation?.kind === "available" && installation.via === "executable" && installation.version !== undefined ? { version: installation.version } : {}),
       ...(envRefused === undefined ? {} : { spawnable: false, reason: envRefused }),
     };
-  }));
-  return rows;
+  });
+  return rows.map((row) => isRuntimeFailure(row) ? { runtime: row.runtimeId, installation: "unknown", error: row.error } : row);
 }
 
 /** The tools `oar mcp` serves: a blocking `run`, and spawn/send/wait/list/interrupt/close for parallel work. */

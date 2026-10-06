@@ -423,7 +423,9 @@ non-interactive upgrade, so `upgrade` answers `unsupported`
 
 [Account usage](../../packages/oar/src/runtimes/kimi/account-usage.ts)
 resolves the managed `kimi-code` provider through `kimi provider list --json`
-(honouring `KIMI_CODE_BASE_URL`, `KIMI_CODE_OAUTH_HOST`, `KIMI_CODE_HOME`),
+(honouring `KIMI_CODE_BASE_URL`, `KIMI_CODE_OAUTH_HOST`, `KIMI_CODE_HOME`;
+no such provider is `unsupported/auth_configuration_unavailable`, a run that
+times out rejects),
 reads the stored OAuth token as-is (never refreshed), and calls the `/usages`
 and `/me` endpoints; 401/403 or a missing token read `reauth_required`, 404
 `unsupported`. [`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a

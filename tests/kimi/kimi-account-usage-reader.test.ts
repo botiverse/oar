@@ -205,3 +205,30 @@ test("kimi reader reports reauth without any request when no token is stored", a
   })).resolves.toEqual({ kind: "reauth_required", reason: "credentials_missing" });
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+const kimiInstallation = { kind: "available", via: "executable", command: "kimi", version: "0.38.0" } as const;
+
+test("kimi reader reports an unresolved provider when `kimi provider list` answers without one", async () => {
+  runExecutable.mockResolvedValue({ ok: false, stdout: "", stderr: "no such command", exitCode: 2 });
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(kimiAccountUsage(kimiInstallation))
+    .resolves.toEqual({ kind: "unsupported", reason: "auth_configuration_unavailable" });
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+// A timeout is an operational failure, which rejects (docs/spec/account-usage.md),
+// not an auth configuration kimi lacks.
+test("kimi reader rejects when `kimi provider list` timed out", async () => {
+  runExecutable.mockResolvedValue({
+    ok: false, stdout: "", stderr: "", exitCode: null,
+    diagnostics: { exitCode: null, signal: "SIGTERM", stderr: "", timeoutMs: 2000 },
+  });
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+
+  await expect(kimiAccountUsage(kimiInstallation, { timeoutMs: 2000 }))
+    .rejects.toThrow(/kimi provider list --json.*timeout after 2000 ms/u);
+  expect(fetchMock).not.toHaveBeenCalled();
+});
