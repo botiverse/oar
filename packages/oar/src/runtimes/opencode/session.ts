@@ -1,12 +1,7 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { StartSession, Session } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
-import { refuseSessionOptions } from "../../shared/session-options.js";
+import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "./prompt-config.js";
-
-export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
-  mcpServers: "OAR does not attach MCP servers to opencode yet: ACP session/new and session/resume mcpServers is not yet verified to reach its agent",
-};
 
 /**
  * `opencode acp` (1.18.30, live 2026-10-05; source packages/opencode/src/acp
@@ -28,9 +23,6 @@ export const opencodeAcpProfile: AcpSessionProfile = {
   // switch applies; `set_config_option` on `model` answers every option with
   // its current value, the new model's effort menu included.
   modelViaConfigOption: true,
-  validateOptions: (options) => {
-    refuseSessionOptions(opencodeRefusedSessionOptions, options);
-  },
   // A prompt sent while one runs is admitted as a user message and the
   // running loop reads it at its next step (session/prompt.ts runLoop); both
   // prompt RPCs are answered when the session goes idle. Live: a steer sent
@@ -76,7 +68,10 @@ export const opencodeSession: StartSession = async (installation, options) => {
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
     return directSession(installation, options);
   }
-  refuseSessionOptions(opencodeRefusedSessionOptions, options);
+  // The prompts travel in OPENCODE_CONFIG_CONTENT, the session's MCP servers
+  // in the ACP open as on the direct path; a list no runtime can attach fails
+  // before the prompts are prepared.
+  checkMcpServerNames(options.mcpServers ?? []);
   validateOpenCodePrompts(options);
   if (installation.via !== "executable") {
     throw new Error("opencode requires an executable installation");

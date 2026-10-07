@@ -302,8 +302,10 @@ events for the replay fixture. [Session format][native-format].
 
 Subagents and MCP integration can be implemented through extensions/tools.
 That does not establish a universal built-in child protocol. OAR exposes no
-child graph, child control handles or MCP configuration; individual extension
-behavior through the adapter remains **unverified**.
+child graph or child control handles; its only MCP configuration is the
+session's own servers, through pi's MCP extension
+([session MCP servers](#session-mcp-servers)). Other extension behavior
+through the adapter remains **unverified**.
 [Package overview][native-overview].
 
 ### Models, instructions, and context
@@ -407,11 +409,68 @@ configuration-dependent.
 OAR pre-trusts cwd in native `trust.json`, an observable persistent write.
 Extensions can still implement permission gates and interactive flows; OAR has
 no general approval/user-input bridge for them. `SessionOptions.env` affects
-subprocesses spawned by the replacement bash tool, not provider keys/base
+subprocesses spawned by the replacement bash tool and the session's stdio
+MCP servers ([below](#session-mcp-servers)), not provider keys/base
 URLs. Provider configuration uses native model/agent-dir channels;
 `OAR_PI_AGENT_DIR` is process-level.
 [Opener](../../packages/oar/src/runtimes/pi/open.ts),
 [native extensions][native-extensions].
+
+### Session MCP servers
+
+`SessionOptions.mcpServers` uses pi's own MCP support as the pi CLI runs it
+([mapping](../../packages/oar/src/runtimes/pi/mcp.ts),
+[test](../../tests/pi/pi-mcp-servers.test.ts)): the built-in MCP extension
+(`createMcpExtension`, on `@earendil-works/pi-mcp`), which the CLI loads by
+default and the SDK path OAR opens does not, plus one inline extension calling
+`pi.registerMcpServer(name, config)` ("Register an MCP server for this
+session, with the same config as an mcpServers entry",
+`core/extensions/types.d.ts`). Unlike wrapping pi-mcp's client as custom
+tools, this keeps pi's own tool naming, result rendering, reconnects and
+lifecycle, and adds no dependency. Measured on the bundled pi-coding-agent
+1.0.4 against a scripted provider
+([vendor test](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts),
+[recording](../../tests/replay/fixtures/pi-mcp-echo.raw.jsonl)):
+
+- Both transports attach and each tool is declared to the model directly as
+  `mcp__<server>__<tool>` (`exposure: "direct"`; pi's default, `codemode`,
+  needs the codemode extension, which OAR does not load). The tool result
+  reached the provider as the server wrote it, so the server ran with the
+  entry's `env` (stdio) or `headers` (http).
+- The MCP extension connects on `session_start` and closes on
+  `session_shutdown`, which pi's CLI session host emits and OAR's opener
+  otherwise does not. A session given servers calls `bindExtensions({})`
+  once created (so the user's extensions see `session_start` too, in such
+  sessions only) and emits `session_shutdown` before dispose: the stdio
+  servers exit. The first prompt waits up to 10 s for the servers.
+- A resume remembers none: OAR registers them again on every open; resumed
+  without the option, no `mcp__` tool is offered.
+- OAR loads the MCP extension with no `mcp.json` of its own (`loadConfig`
+  returns nothing); OAR's pi never loaded the user's `mcp.json` (the SDK path
+  loads no built-in extensions), with or without this option. In pi an
+  `mcp.json` server would win a clash; here, with `echo` and `userecho` in
+  the agent dir's `mcp.json`, the session's `echo` answered and `userecho`
+  was not offered.
+- pi takes names matching `^[A-Za-z0-9_-]+$` and folds `-` into `_` for the
+  tool namespace, so OAR refuses any other name, and two names pi would fold
+  together, with a plain error before opening. A name another extension (the
+  user's) already registered fails the open ("pi did not register the
+  session's MCP servers: ... already registered") rather than run without
+  the server.
+- pi resolves `env` and header values (`!cmd` runs a shell command, `$NAME`
+  and `${NAME}` interpolate); OAR escapes every `$` and `!` (`$$`, `$!`) so
+  each value reaches the server literally (the unit test round-trips pi's
+  resolver). pi expands a leading `~` in `command` and `args`.
+- A stdio server gets the host's environment, then `SessionOptions.env`, then
+  the entry's `env` (pi-mcp's `StdioTransport` inherits `process.env`).
+
+pi's MCP server log goes to `<agentDir>/mcp.log`. Nothing written under the
+agent dir held a credential (measured: the session file; no `mcp.log` was
+written), the
+vendor test asserts no record holds one, and a registration failure's
+message is redacted. The recording comes from
+`pnpm sea-trial:record pi-aimock mcp-echo -`, system prompt messages
+scrubbed.
 
 ### HTTP plane and proxies
 
@@ -500,7 +559,10 @@ eleven scenarios on a real login (`basic`, `multi-turn`, `tool-detail`,
 with a scripted model (pi-aimock) for the 400 error edge, a two-round tool
 conversation, prompt configuration through threshold compaction with
 `compaction_*` in the stream, abort answered ahead of the aborted turn end,
-and context at turn end with every SDK event one record. The
+and context at turn end with every SDK event one record;
+[MCP vendor tests](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)
+cover [session MCP servers](#session-mcp-servers) and run in CI's pi-aimock
+job. The
 [replay test](../../tests/replay/pi-projection.test.ts) pins the fold over the
 recorded tool-round fixture and the settled/abort/error classification; the
 unit tests under [`tests/pi/`](../../tests/pi/) pin the session-directory
@@ -510,7 +572,9 @@ text and the HTTP plane.
 Open gaps: accepted steering through retry/compaction; distinct queued turns
 under races; extension-generated activity (children, permission gates,
 commands); unavailable saved-model fallback on resume; threshold compaction
-with a real provider; and corrupt session files and concurrent writers.
+with a real provider; session MCP servers on a real login and model
+(measured against a scripted provider only); and corrupt session files and
+concurrent writers.
 
 [native-sdk]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/sdk.md
 [native-format]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/docs/session-format.md

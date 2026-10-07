@@ -14,6 +14,7 @@ import { sealSession } from "../seal-session.js";
 import { createSessionKernel } from "../session-kernel.js";
 import { createAcpClientApp } from "./client-app.js";
 import {
+  acpMcpOpenGuard,
   closeAcpSession,
   createUsageUpdateGate,
   openAcpSession,
@@ -44,6 +45,10 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       throw new Error("ACP runtimes require an executable installation");
     }
     profile.validateOptions?.(options);
+    // SessionOptions.mcpServers go out in the open request (mcp-servers.ts):
+    // a list with an empty or repeated name fails before anything starts,
+    // and an open that fails reports no credential they carry.
+    const withoutCredentials = acpMcpOpenGuard(options.mcpServers);
     const args = typeof profile.args === "function" ? profile.args(options) : profile.args;
     const environment = { ...process.env, ...options.env };
     const terminalHost = createAcpTerminalHost(options.cwd, environment, {
@@ -75,7 +80,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       runtime.kill();
       await runtime.exited;
       await terminalHost.dispose();
-      throw error;
+      throw withoutCredentials(error);
     });
     const kernel = createSessionKernel(opened.sessionId);
     recorder.bind(kernel);

@@ -5,7 +5,7 @@ import { grokAccountUsage } from "./account-usage.js";
 import { grokInstallation } from "./installation.js";
 import { grokListModels } from "./list-models.js";
 import { grokCheckUpdate, grokUpgrade } from "./update.js";
-import { grokRefusedSessionOptions, grokSession } from "./session.js";
+import { grokSession } from "./session.js";
 
 export const grokRuntime = defineRuntime({
   id: "grok",
@@ -18,7 +18,6 @@ export const grokRuntime = defineRuntime({
   listModels: grokListModels,
   checkUpdate: grokCheckUpdate,
   upgrade: grokUpgrade,
-  refusedSessionOptions: grokRefusedSessionOptions,
   session: grokSession,
 });
 

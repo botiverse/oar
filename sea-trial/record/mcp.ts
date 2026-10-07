@@ -1,8 +1,8 @@
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
 import type { McpServer } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, piInstallation, piSession } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type AimockEnv } from "../harness/aimock.js";
+import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { echoFixtures, startHttpEcho, stdioEcho } from "../vendor/support/echo-mcp.js";
 import { structuralToolRound } from "../vendor/support/tool-round.js";
@@ -10,8 +10,8 @@ import { scrub as scrubClaude, type RecordRequest } from "./claude.js";
 import { scrub as scrubCodex } from "./codex.js";
 
 /*
- * `mcp-echo`: the real claude or codex against a scripted provider (no
- * login, no tokens), opened through oar's OWN session with
+ * `mcp-echo`: the real claude or codex, or the bundled pi SDK, against a
+ * scripted provider (no login, no tokens), opened through oar's OWN session with
  * SessionOptions.mcpServers: a stdio and an http echo server
  * (tests/fixtures/echo-mcp-server.mjs), whose `echo` tool the model calls
  * once each. The recording is the native frames of the session's records,
@@ -62,4 +62,29 @@ export async function startCodexMcpRecording(_request: RecordRequest): Promise<R
     const params = asRecord(native) ?? {};
     return type === "rawResponseItem/completed" && asRecord(params.item)?.type !== "reasoning" ? null : scrubCodex(type, params);
   });
+}
+
+export async function startPiMcpRecording(_request: RecordRequest): Promise<Record<string, unknown>[]> {
+  const env = await startPiAimock((mock) => {
+    echoFixtures(mock, /call both echo tools/u, STEPS);
+  });
+  const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
+  // pi's SDK events verbatim, the shape pi.ts records too (not oar's open
+  // frame), but for the system prompt pi 1.0.4 streams as `role: "system"`
+  // messages: this machine's paths, which the projection does not read.
+  return recordThrough(runtime, env, (_type, native) => (typeof asRecord(native)?.type === "string" ? asRecord(withoutSystemPrompt(native)) : null));
+}
+
+function withoutSystemPrompt(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry: unknown) => withoutSystemPrompt(entry));
+  }
+  const record = asRecord(value);
+  if (record === null) {
+    return value;
+  }
+  if (record.role === "system") {
+    return { role: "system", content: "[system prompt not recorded]", timestamp: record.timestamp };
+  }
+  return Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, withoutSystemPrompt(entry)]));
 }

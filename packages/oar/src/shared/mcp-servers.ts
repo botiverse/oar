@@ -15,6 +15,11 @@ export function isHttpMcpServer(server: McpServer): server is McpHttpServer {
   return "type" in server;
 }
 
+/** Whether the entry carries a credential: a non-empty `env` (stdio) or `headers` (http). */
+export function hasMcpCredentials(server: McpServer): boolean {
+  return Object.keys((isHttpMcpServer(server) ? server.headers : server.env) ?? {}).length > 0;
+}
+
 /** The given list, or nothing when there is none to attach (absent or empty). */
 export function givenMcpServers(servers: readonly McpServer[] | undefined): readonly McpServer[] | null {
   return servers === undefined || servers.length === 0 ? null : servers;
@@ -59,4 +64,15 @@ export function mcpCredentialRedactor(servers: readonly McpServer[] | undefined)
     return (text) => text;
   }
   return (text) => values.reduce((redacted, value) => redacted.replaceAll(value, "[redacted]"), text);
+}
+
+/** `error` with its message and stack passed through `redact` (in place, so its class and fields stay); anything else as it is. */
+export function redactError(error: unknown, redact: (text: string) => string): unknown {
+  if (error instanceof Error) {
+    error.message = redact(error.message);
+    if (error.stack !== undefined) {
+      error.stack = redact(error.stack);
+    }
+  }
+  return error;
 }

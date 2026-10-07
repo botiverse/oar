@@ -18,6 +18,9 @@ export interface RawCapture {
 /** Rewrites a whole response body on its way back to the runtime. */
 export type ResponseRewrite = (body: string) => string;
 
+/** Rewrites a parsed request body on its way to aimock; the capture keeps it as the runtime sent it. */
+export type RequestRewrite = (body: unknown) => unknown;
+
 /**
  * A pass-through proxy in front of aimock that keeps each request body as
  * sent. aimock's own journal normalizes a request to its chat shape and drops
@@ -26,8 +29,10 @@ export type ResponseRewrite = (body: string) => string;
  * what reached the provider opts into this. Responses stream back untouched,
  * unless `rewrite` is given: then each response is read whole, rewritten and
  * sent at once (for a reply shape aimock cannot script, `namespaceMcpToolCalls`).
+ * `forward` rewrites a JSON request aimock would misread before it is passed
+ * on (`geminiToolResultsAsUser`).
  */
-export async function startRawCapture(target: string, rewrite?: ResponseRewrite): Promise<RawCapture> {
+export async function startRawCapture(target: string, rewrite?: ResponseRewrite, forward?: RequestRewrite): Promise<RawCapture> {
   const upstream = new URL(target);
   const requests: RawProviderRequest[] = [];
   const server = http.createServer((request, response) => {
@@ -44,12 +49,14 @@ export async function startRawCapture(target: string, rewrite?: ResponseRewrite)
         // Not JSON: recorded as null, still forwarded.
       }
       requests.push({ path: request.url ?? "", body });
-      const forward = http.request({
+      const rewritten = forward === undefined || body === null ? null : Buffer.from(JSON.stringify(forward(body)));
+      const { "content-length": _sentLength, "transfer-encoding": _sentEncoding, ...rest } = request.headers;
+      const proxied = http.request({
         hostname: upstream.hostname,
         port: upstream.port,
         path: request.url,
         method: request.method,
-        headers: { ...request.headers, host: upstream.host },
+        headers: rewritten === null ? { ...request.headers, host: upstream.host } : { ...rest, "content-length": String(rewritten.length), host: upstream.host },
       }, (reply) => {
         if (rewrite === undefined) {
           response.writeHead(reply.statusCode ?? 502, reply.headers);
@@ -66,10 +73,10 @@ export async function startRawCapture(target: string, rewrite?: ResponseRewrite)
           response.end(rewrite(Buffer.concat(parts).toString("utf8")));
         });
       });
-      forward.on("error", () => {
+      proxied.on("error", () => {
         response.destroy();
       });
-      forward.end(raw);
+      proxied.end(rewritten ?? raw);
     });
   });
   await new Promise<void>((resolve) => {
@@ -117,4 +124,24 @@ export function namespaceMcpToolCalls(body: string): string {
     const output = Array.isArray(response?.output) ? { response: { ...response, output: response.output.map(namespacedCall) } } : {};
     return `data: ${JSON.stringify({ ...event, ...("item" in event ? { item: namespacedCall(event.item) } : {}), ...output })}`;
   }).join("\n");
+}
+
+/**
+ * Antigravity's harness (agy_acp_server 1.3.0) sends a Gemini request's
+ * `functionResponse` parts under role `model`; aimock reads a tool result
+ * only under role `user`, so this hands aimock those contents as `user`.
+ */
+export function geminiToolResultsAsUser(body: unknown): unknown {
+  const request = asRecord(body);
+  if (request === null || !Array.isArray(request.contents)) {
+    return body;
+  }
+  const contents: unknown[] = [];
+  for (const value of request.contents) {
+    const content = asRecord(value);
+    const parts: unknown[] = Array.isArray(content?.parts) ? content.parts : [];
+    const toolResults = content?.role === "model" && parts.length > 0 && parts.every((part) => asRecord(part)?.functionResponse !== undefined);
+    contents.push(toolResults ? { ...content, role: "user" } : value);
+  }
+  return { ...request, contents };
 }

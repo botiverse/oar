@@ -242,6 +242,60 @@ script's `~/.opencode/bin/opencode`, pinned with `OAR_OPENCODE_BIN`.
 `opencode upgrade` exists but OAR does not drive it yet, and there is no
 account usage query.
 
+### Session MCP servers
+
+`SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new`,
+`session/load` and `session/resume`, in ACP's `McpServer` shape (stdio
+`{name, command, args, env}`, http `{type: "http", name, url, headers}`,
+`env` and `headers` as `{name, value}` lists; `args`, `env` and `headers`
+always sent, empty when absent;
+[mapping](../../packages/oar/src/shared/acp/mcp-servers.ts),
+[test](../../tests/acp/acp-session-mcp-servers.test.ts)). opencode declares
+`mcpCapabilities` http and sse, so http entries are sent (to an agent that
+declares no http, OAR refuses one with `UnsupportedOptionError`). An empty
+or repeated name fails the open before opencode starts. Measured on
+opencode 1.18.30 against a scripted provider: an isolated `HOME` and XDG
+dirs, provider
+`aimock` on opencode's bundled `@ai-sdk/anthropic` in
+`$XDG_CONFIG_HOME/opencode/opencode.json`
+([vendor test](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts),
+[harness](../../sea-trial/harness/aimock-acp.ts)):
+
+- Both transports attach and the model is offered each tool as
+  `<server>_<tool>` (`echo_echo`, `remote_echo`), which is also the ACP
+  `tool_call` title. The tool result reached the provider as the server
+  wrote it, so the server ran with the entry's `env` (stdio) or `headers`
+  (http).
+- [src] at v1.18.30, `acp/service.ts` hands every entry on new, load, resume
+  and fork to `sdk.mcp.add({directory, name, config})`: stdio becomes
+  `{type: "local", command: [command, ...args], environment}`, http
+  `{type: "remote", url, headers}` (streamable HTTP, then SSE). Errors are
+  ignored, so a server that fails to attach fails silently. The servers are
+  held in memory by that opencode process, which OAR starts once per session.
+- A resume remembers none: resumed with the option, the servers attach
+  again; resumed without it, neither tool is offered.
+- On a name clash the session's `echo` replaces the user's `mcp.echo` for
+  that process, and the user's `userecho` is still called (answering with
+  the user's credential). Probed, not in
+  the test: a session `echo` whose command is broken still opens, and removes
+  the user's working `echo` too (opencode closes and deletes the same-name
+  client on failure).
+
+- With `systemPrompt` or `appendSystemPrompt` the session opens through the
+  prompt path ([prompts](#models-effort-instructions-and-context)): the
+  prompts travel in `OPENCODE_CONFIG_CONTENT` and the servers in the same
+  ACP open as above. Measured with both prompts and both servers in one
+  session: every agent request carried both prompts and both echoes arrived
+  ([vendor test](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts);
+  the open's wiring in
+  [prompt-cleanup](../../tests/opencode/prompt-cleanup.test.ts)).
+
+The credentials reach opencode only in the open request's params, which OAR
+does not record (it records the answers and every `session/update`). A probe
+found none in any ACP answer, notification or stderr line, nor under
+opencode's directories; the vendor test asserts no record holds one. A failed
+open's error message and stack are redacted (`[redacted]`).
+
 ## Verification and open gaps
 
 - Only free `opencode/*` models were run; a logged-in provider and its
@@ -251,6 +305,10 @@ account usage query.
 - The HTTP server would carry child sessions and a replayable event cursor;
   not integrated.
 - No update check or upgrade, no inventories.
+- [Session MCP servers](#session-mcp-servers) ran against a scripted
+  provider only, not a logged-in provider or a free `opencode/*` model. The
+  vendor test runs locally (`OAR_TEST=opencode-aimock`), not in CI, which has
+  no ACP aimock backend. The broken-command clash was probed, not tested.
 
 ## The HTTP server, investigated 2026-09-12
 

@@ -254,13 +254,18 @@ Cursor runs its own tools in the host process tree; no request reaches the
 application, and none of the scenarios asked for permission. OAR opens every
 agent with the SDK's sandbox off (`sandboxOptions.enabled: false`), as every
 OAR session runs by default; otherwise a `~/.cursor/sandbox.json` would turn
-one on. The agent loads the user's and project's Cursor settings (rules, MCP
-servers) as the SDK does by default.
+one on. OAR sets no `settingSources`, so the SDK's default decides which of
+the user's and project's Cursor settings the agent loads. Measured only
+against a hand-scripted stand-in for Cursor's backend, that default read
+neither `~/.cursor/mcp.json` nor the project's `.cursor/mcp.json`
+([session MCP servers](#session-mcp-servers)); rules were not part of that
+measurement.
 
 **Environment (unsupported):** the SDK has no per-agent environment for
 tools, and the agent shares the host's process, so a non-empty
 `SessionOptions.env` is refused at open the same way. `refusedSessionOptions`
-declares all three refusals before any session opens. The
+declares these refusals, and the `mcpServers` one
+([below](#session-mcp-servers)), before any session opens. The
 `@botiverse/oar/agents` crew passes its depth variable through `env`, so it
 refuses to spawn a cursor child.
 
@@ -278,6 +283,42 @@ either (a single executable with no `node_modules`), the host ships the
 platform's package and sets both variables itself, as absolute paths: the
 SDK ignores relative ones (Ferry CLI 0.1.35, a real turn with and without
 them, 2026-10-04).
+
+### Session MCP servers
+
+**Refused:** a non-empty `SessionOptions.mcpServers` fails the open with an
+`UnsupportedOptionError`
+([model selection](../../packages/oar/src/runtimes/cursor/model.ts)): "OAR
+does not attach MCP servers to cursor yet: Cursor's agent runs on Cursor's
+servers, and no run without a login or paid tokens shows it calling a tool
+of the SDK's Agent.create mcpServers".
+
+The SDK has the channel. Its 1.0.36 bundle (`dist/esm/options.d.ts`) types
+`AgentOptions.mcpServers` as `Record<string, McpServerConfig>`: stdio
+`{type?: "stdio", command, args?, env?, cwd?}`, remote `{type?: "http" |
+"sse", url, headers?, auth?: {CLIENT_ID, CLIENT_SECRET?, scopes?}}`.
+`Agent.resume` takes it too, and a per-send `mcpServers` replaces the whole
+set. Measured only against a hand-scripted stand-in for Cursor's backend
+(`CURSOR_BACKEND_URL`, Connect/protobuf; not in the repo, and aimock cannot
+serve it), network-isolated, with no key:
+
+- The SDK starts nothing at `Agent.create`. It spawns a stdio server at the
+  first `send` and runs a `tools/call` when the backend asks for one
+  (`echo-echo`); the echo it returned showed the entry's `env` credential
+  had reached the server. An http server worked too, and both did after
+  `Agent.resume`.
+- A server with a bad command is dropped silently.
+- Under the SDK's default `settingSources` the agent read neither
+  `~/.cursor/mcp.json` nor `.cursor/mcp.json`; with `["project", "user"]`
+  the inline entry won a name clash.
+
+That stand-in is not Cursor: the agent loop and the model run on Cursor's
+servers, so only a live run (a login, paid tokens) can show Cursor's agent
+choosing the tool, and what `tool_call` deltas OAR records for it (the
+stand-in sent none). Before the option is enabled, a live run must show a
+`tool_call` delta naming the MCP tool with the echo string in its result, on
+open and again after `Agent.resume`, and no `env` or header value in any
+delta or option record.
 
 ### Installation and account usage
 
@@ -423,6 +464,8 @@ recorded updates (tools, usage, the subagent path, run outcomes). The
 
 Open gaps: a crew child (no environment); tool calls the SDK runs without
 updates; the cloud runtime; Windows and macOS live runs, the login's
-included.
+included; `mcpServers`, refused until a live run shows what
+[session MCP servers](#session-mcp-servers) lists (the stand-in backend
+measurement is not in the repo and not repeatable from it).
 Keep native API capabilities, SDK limitations, OAR omissions and unexecuted
 checks separate when designing or claiming support.

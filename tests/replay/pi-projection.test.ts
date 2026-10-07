@@ -24,7 +24,7 @@ import { parseJson } from "../../packages/oar/src/shared/json.js";
  */
 
 const here = import.meta.dirname;
-const scenarios = ["tool-round"];
+const scenarios = ["tool-round", "mcp-echo"];
 
 function describeUsage(tokens: TokenTotals | undefined): string {
   if (tokens === undefined) {

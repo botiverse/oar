@@ -103,7 +103,8 @@ catalog and `thinking` values are under
 
 **Mapped:** OAR launches `kimi acp` (initialize declares `fs` read/write
 `false`, `terminal: true`, `clientInfo` `oar`), selects the advertised `login`
-method, passes `mcpServers: []`, applies a requested model through
+method, passes the session's `mcpServers` (`[]` without them; see
+[session MCP servers](#session-mcp-servers)), applies a requested model through
 `session/set_model`, then selects yolo through `session/set_mode` when the
 answer advertises it (in `modes` or the `mode` config option). Every opening
 request has a 30-second deadline; spawn, auth, and creation failures reject
@@ -378,6 +379,7 @@ sessions; OAR does not use that as a prompt override or modify user config.
 | `model` | ACP `session/set_model`, with config-update readback. |
 | `effort` | ACP `session/set_config_option` on `thinking`, with readback. |
 | `env` | Environment of this session's subprocess and tool subprocesses. |
+| `mcpServers` | ACP `mcpServers` on `session/new` and `session/resume` ([session MCP servers](#session-mcp-servers)). |
 | `systemPrompt`, `appendSystemPrompt` | Refused: the selected native launcher does not carry them. |
 
 The existing ACP probes above establish model, effort and resume behavior;
@@ -412,9 +414,9 @@ interaction reverse calls; its permission channel handles tool approvals and
 question fallback. OAR's [client](../../packages/oar/src/shared/acp/terminal.ts)
 hosts terminals (`create`, `output`, `wait_for_exit`, `kill`, `release`, run
 in the session `cwd` with the env overlay, output capped at 4 MiB by
-default), disables client filesystem methods, and passes no MCP servers.
-Vendor-configured tools can still run, but OAR has no per-session MCP
-configuration or generic client-tool callback.
+default), disables client filesystem methods, and passes the session's own
+MCP servers ([below](#session-mcp-servers)). Vendor-configured tools can
+still run; OAR has no generic client-tool callback.
 
 OAR uses yolo when available and answers `session/request_permission` with
 `allow_always`, then `allow_once`, otherwise `cancelled`. With yolo selected
@@ -425,6 +427,53 @@ a `toApp` request/answer pair, terminal output included
 exists, so approval and question semantics cannot be represented as
 application interactions; the stream shows what was asked and what OAR
 answered.
+
+### Session MCP servers
+
+`SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new` and
+`session/resume`, in ACP's `McpServer` shape (stdio `{name, command, args,
+env}`, http `{type: "http", name, url, headers}`, `env` and `headers` as
+`{name, value}` lists; `args`, `env` and `headers` always sent;
+[mapping](../../packages/oar/src/shared/acp/mcp-servers.ts),
+[test](../../tests/acp/acp-session-mcp-servers.test.ts)). kimi declares
+`mcpCapabilities` http and sse, so http entries are sent (to an agent that
+declares no http, OAR refuses one with `UnsupportedOptionError`). An empty
+or repeated name fails the open before kimi starts. Measured on kimi 2.1.1
+against a scripted provider: a fresh `KIMI_CODE_HOME`, an OpenAI
+chat-completions model through
+`KIMI_MODEL_NAME`, `KIMI_MODEL_API_KEY`, `KIMI_MODEL_BASE_URL` and
+`KIMI_MODEL_PROVIDER_TYPE=openai`, and `authenticate {methodId: "login"}`
+answering `{}` for that API-key model, with no OAuth
+([vendor test](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts),
+[harness](../../sea-trial/harness/aimock-acp.ts)):
+
+- Both transports attach and the model is offered each tool as
+  `mcp__<server>__<tool>` (`mcp__echo__echo`, `mcp__remote__echo`), also the
+  ACP `tool_call` title. kimi's source (`mcpCore/tool-naming.ts`) sanitises
+  the name parts to `[a-zA-Z0-9_-]` and caps the name at 64 characters with a
+  hash suffix. The tool result reached the provider as the server wrote it,
+  so the server ran with the entry's `env` (stdio) or `headers` (http).
+- kimi's source converts the entries in `acp-server/src/convert.ts` and holds
+  them in memory only (`session/mcp/ephemeralMcpServers.ts`); a probe found no
+  temporary session config file on disk. `session/fork` ignores
+  `mcpServers`; OAR does not fork.
+- A resume remembers none: `session/resume` given them attaches them again;
+  resumed with none, no `mcp__` tool is offered.
+- On a name clash the session's `echo` wins over `$KIMI_CODE_HOME/mcp.json`'s
+  `echo`, the user's `userecho` is still called (answering with the user's
+  credential), and `mcp.json` is
+  unchanged. Probed: resuming that session without the option brings the
+  user's `echo` back. kimi's source (`mergedConnectionView.ts`) suggests the
+  user's same-name server is still started, only hidden; not measured.
+- kimi appends a `<system-reminder>` user message (the date) after the
+  prompt, so the scripted fixtures match the current turn's user messages,
+  not only the last one.
+
+The credentials reach kimi only in the open request's params, which OAR does
+not record (it records the answers, every `session/update` and vendor
+notification). A probe found none in the ACP traffic, kimi's stderr or kimi's
+files; the vendor test asserts no record holds one. A failed open's error
+message and stack are redacted (`[redacted]`).
 
 ### Process ownership, installation, and account usage
 
@@ -500,6 +549,10 @@ Open gaps: questions and approvals (no `request_permission` arrives under
 yolo), post-turn compaction, whether every kimi tool opens with its name as
 `title`, abort effects on background children, concurrent same-ID
 controllers and in-flight work across OAR subprocesses, and any child usage
-(the transport carries none). Keep native API capabilities, transport
+(the transport carries none). [Session MCP servers](#session-mcp-servers)
+ran against a scripted provider only, not on the real login and model, and
+their vendor test runs locally (`OAR_TEST=kimi-aimock`), not in CI; whether
+a hidden same-name user server still starts is unmeasured. Keep native API
+capabilities, transport
 limitations, OAR omissions, and unexecuted checks separate when designing or
 claiming support.

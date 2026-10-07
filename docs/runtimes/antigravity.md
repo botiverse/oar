@@ -90,7 +90,8 @@ Initialize declares `fs` read/write `false`, `terminal: true` and
 `auth.type` its own login persisted in
 `$GEMINI_HOME/antigravity-acp/settings.json` with the cached token, or from
 `GEMINI_API_KEY`; with neither, `session/new` fails with `-32000` and session
-construction rejects. OAR passes `mcpServers: []`, then selects `yolo` with
+construction rejects. OAR passes the session's `mcpServers` (`[]` without
+them; see [session MCP servers](#session-mcp-servers)), then selects `yolo` with
 `session/set_mode` (answered `{}`) whenever the answer lists it, as a mode or
 as a `mode` config value. A requested model goes through
 `session/set_config_option {configId: "model"}`: the `session/set_model`
@@ -262,6 +263,7 @@ contains `agy_acp_server.par`, readable as a ZIP archive. Under
 | `model` | ACP `session/set_config_option` on `model`, with readback. |
 | `effort` | Refused when no `thought_level` is advertised; choose a native model variant instead. |
 | `env` | Environment of this session's subprocess and tool subprocesses. |
+| `mcpServers` | ACP `mcpServers` on `session/new`, `session/resume` and `session/load` ([session MCP servers](#session-mcp-servers)). |
 | `systemPrompt`, `appendSystemPrompt` | Refused: no prompt input in the selected server's protocol, launcher or configuration. |
 
 This is a help and distributed-source audit, separate from the 1.2.1 live
@@ -276,8 +278,9 @@ ACP.
 ### Tools, permissions, and extensions
 
 Antigravity runs shell, file and search tools itself: no `terminal/*` or `fs/*`
-request arrived in any scenario, so OAR's terminal host is never called. OAR passes no MCP servers; vendor-configured tools can still
-run.
+request arrived in any scenario, so OAR's terminal host is never called. OAR
+passes the session's own MCP servers ([below](#session-mcp-servers));
+vendor-configured tools can still run.
 
 In `yolo` no `session/request_permission` arrived in any scenario. If a
 session cannot be put in `yolo` (the mode is missing from the answer), the
@@ -285,6 +288,70 @@ agent asks through `session/request_permission`, which OAR answers with
 `allow_always`, then `allow_once`, otherwise `cancelled`; in a direct probe in
 `default` mode the request offered allow-once options and the call ran after
 the answer. That path is **unverified** through OAR.
+
+### Session MCP servers
+
+`SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new`,
+`session/resume` and `session/load`, in ACP's `McpServer` shape (stdio
+`{name, command, args, env}`, http `{type: "http", name, url, headers}`,
+`env` and `headers` as `{name, value}` lists; `args`, `env` and `headers`
+always sent;
+[mapping](../../packages/oar/src/shared/acp/mcp-servers.ts),
+[test](../../tests/acp/acp-session-mcp-servers.test.ts)). An empty or
+repeated name fails the open before the server starts. The 1.3.0 source in
+the `.par` declares `mcpCapabilities` http and sse (`server.py:2537`), so
+http entries are sent, and passes the list from `session/new` (`:3258`),
+`session/resume` (`:3674`) and `session/load` (`:3765`) into
+`_create_agent_config` (`:3804`): servers are per session.
+`mcp_servers.py:16-55` converts `env` and `headers` to maps and an sse entry
+to streamable HTTP. Measured on agy_acp_server 1.3.0 (1.2.1 not run) against
+a scripted provider: fresh `HOME` and `GEMINI_HOME`, `{auth: {type:
+"gemini-api-key"}}` in `$GEMINI_HOME/antigravity-acp/settings.json` plus a
+dummy `GEMINI_API_KEY` (on 1.3.0 the variable alone selects no auth method),
+and the model harness `localharness_external` beside the `.par` sending
+`streamGenerateContent` to `GOOGLE_GEMINI_BASE_URL`
+([vendor test](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts),
+[harness](../../sea-trial/harness/aimock-acp.ts); `OAR_ANTIGRAVITY_BIN`
+names that `.par`):
+
+- Servers start lazily: nothing is spawned at `session/new` or
+  `session/resume`; the first prompt spawns them, initializes them and lists
+  their tools, and they live until the agent process exits. A broken server
+  shows only as an error during a prompt (`server.py:5247`).
+- A lazily loaded server is listed in a `<mcp_servers>` block of the system
+  prompt, and the model calls its tools through `call_mcp_tool {ServerName,
+  ToolName, Arguments, toolSummary, toolAction}` (an eager server's tools
+  would be `mcp_<server>_<tool>`); the ACP `tool_call` title is `Running
+  echo`. The tool result reached the provider as the server wrote it (with
+  no credential: see below). The harness sends tool
+  results under role `model`; the test proxy hands them to aimock as role
+  `user` (`geminiToolResultsAsUser` in
+  [raw-capture](../../sea-trial/harness/raw-capture.ts)).
+- A resume remembers none: given again, the servers attach; probed, resumed
+  with none, nothing is listed and a call answers `unknown tool name:
+  call_mcp_tool`.
+- On a name clash the session's entry replaces the user's of the same name
+  in `$GEMINI_HOME/config/mcp_config.json` (read at `mcp_servers.py:120-129`,
+  replaced at `:132-149`; measured: the session's server answered). The
+  user's non-clashing server still attaches; a probe found the user config
+  unchanged.
+
+**Entries carrying credentials are refused.** Antigravity stores a session's
+`mcpServers`, `env` and header values included, in plain text in its
+conversation database `$GEMINI_HOME/antigravity-acp/conversations/<sessionId>.db`
+(mode 0600; measured: a stdio entry's `env` token in the `-wal` file). The
+file outlives the session, a resume does not reuse what it stored, and a
+host can neither see nor clear it through ACP, while credentials may reach a
+runtime only through its native channel, never its disk. So an entry with a
+non-empty `env` or `headers` fails the open with an `UnsupportedOptionError`
+on `mcpServers` before the server starts
+([`refuseAntigravityMcpCredentials`](../../packages/oar/src/runtimes/antigravity/session.ts));
+an entry without them attaches as above (the vendor test's servers carry
+none, and it checks the refusal). A server that needs a secret has to get it
+some other way than the entry, for example from a file it reads itself. No
+ACP answer, notification or stderr line carried an entry's values
+(measured and probed), and a failed open's error is redacted
+(`[redacted]`).
 
 ### Process ownership, installation, and account usage
 
@@ -340,6 +407,11 @@ command; OAR kills after ten seconds); child attribution (the transport
 carries none); any usage or context report; the permission path through OAR;
 `session/list` and `session/load`; unknown resume ids; a resume naming another
 directory ([not measured](resume-cwd.md)); concurrent same-id controllers;
-macOS and Windows installation; any authenticated run on 1.3.0. Keep native
+macOS and Windows installation; any authenticated run on 1.3.0;
+[session MCP servers](#session-mcp-servers) on a real login and model and on
+1.2.1 (measured on 1.3.0 against a scripted provider only; their vendor test
+runs locally, `OAR_TEST=antigravity-aimock`, not in CI); whether a later
+server stops storing the entries' values, until which entries with `env` or
+`headers` are refused. Keep native
 API capabilities, transport limitations, OAR omissions and unexecuted checks
 separate when designing or claiming support.

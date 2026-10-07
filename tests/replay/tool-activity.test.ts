@@ -169,10 +169,12 @@ test("a codex fileChange names each changed path and a rename's target, as recor
   `);
 });
 
-test("pi tool calls render as friendly activity", async () => {
-  const lines = render(toolCallsFromPi(fixture("pi-tool-round.raw.jsonl")));
-  await expect(lines).toMatchFileSnapshot(path.join(here, "fixtures", "pi-tool-round.activity.txt"));
-});
+for (const scenario of ["tool-round", "mcp-echo"]) {
+  test(`pi ${scenario} tool calls render as friendly activity`, async () => {
+    const lines = render(toolCallsFromPi(fixture(`pi-${scenario}.raw.jsonl`)));
+    await expect(lines).toMatchFileSnapshot(path.join(here, "fixtures", `pi-${scenario}.activity.txt`));
+  });
+}
 
 function shellFields(call: ToolCall | undefined): { command: string | undefined; description: string | undefined } {
   if (call === undefined) {

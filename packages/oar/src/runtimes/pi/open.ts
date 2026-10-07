@@ -1,6 +1,7 @@
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
 import { configurePiHttp } from "./http.js";
+import { piMcpExtensions, releasePiMcp } from "./mcp.js";
 import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
 
 /*
@@ -115,6 +116,10 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   // http.ts).
   const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir);
   await configurePiHttp(settingsManager);
+  // SessionOptions.mcpServers: pi's MCP extension plus one registering the
+  // session's servers (mcp.ts); it refuses a name pi cannot take before
+  // anything loads.
+  const mcp = await piMcpExtensions(options, agentDir);
   const services = await sdk.createAgentSessionServices({
     cwd: options.cwd,
     agentDir,
@@ -132,8 +137,10 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
     resourceLoaderOptions: {
       ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
       ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),
+      ...(mcp === null ? {} : { extensionFactories: [...mcp.extensions] }),
     },
   });
+  mcp?.check(services.resourceLoader.getExtensions().errors);
   // pi persists sessions per cwd under <agentDir>/sessions; the same
   // directory is used to create (so a later resume finds the file) and to
   // look a resumed id up.
@@ -179,6 +186,13 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   if (refusal !== null) {
     session.dispose();
     throw new Error(refusal);
+  }
+  if (mcp !== null) {
+    await mcp.start(session).catch(async (error: unknown) => {
+      await releasePiMcp(session);
+      session.dispose();
+      throw error;
+    });
   }
   return session;
 }

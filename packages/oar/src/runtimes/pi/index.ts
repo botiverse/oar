@@ -3,7 +3,7 @@ import { piSkills, piTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { piInstallation } from "./installation.js";
 import { piListModels } from "./list-models.js";
-import { piRefusedSessionOptions, piSession } from "./session.js";
+import { piSession } from "./session.js";
 
 /**
  * The bundled Pi runtime, embedded through the Pi SDK dependency. Account
@@ -17,7 +17,6 @@ export const piRuntime = defineRuntime({
   tools: piTools,
   installation: piInstallation,
   listModels: piListModels,
-  refusedSessionOptions: piRefusedSessionOptions,
   session: piSession,
 });
 
