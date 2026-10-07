@@ -156,8 +156,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   });
   child.onExit((code) => {
     abortFallback.clear();
-    // The exit is an outcome only oar observes: it answers our dispose when
-    // we caused it, and stands alone when claude died on its own.
+    // An exit before fallback still precedes the rejected pending controls.
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
     state.active = null;
     state.spontaneous = false;
@@ -257,7 +256,14 @@ export const claudeSession: StartSession = async (installation, options) => {
           resolve({ request, response: record });
         }
       });
-      pendingInterrupts.set(requestId, abortFallback.arm());
+      // A repeated abort during termination is taken over synchronously too.
+      pendingInterrupts.set(requestId, () => {});
+      const refuse = abortFallback.arm(() => {
+        if (pendingInterrupts.delete(requestId)) {
+          kernel.respond(requestId, { kind: "accepted" });
+        }
+      });
+      if (pendingInterrupts.has(requestId)) { pendingInterrupts.set(requestId, refuse); }
       child.write(`${JSON.stringify({
         type: "control_request",
         request_id: requestId,

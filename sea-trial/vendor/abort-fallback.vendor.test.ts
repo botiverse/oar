@@ -64,14 +64,28 @@ for (const runtime of runtimes) {
           expect(prompt.response.body.kind).toBe("accepted");
           await vi.waitFor(() => { expect(env.mock.getRequests().length).toBeGreaterThan(0); }, { timeout: 30_000 });
           record({ kind: "abort_probe_phase", phase: "abort", requests: env.mock.getRequests().length });
+          const ended = awaitTurnEnd(session, prompt.request.seq);
           const abort = await session.abort();
           record({ kind: "abort_probe_phase", phase: "abort_settled" });
+          expect(await ended).toMatchInlineSnapshot(`
+            {
+              "kind": "aborted",
+            }
+          `);
           expect(fault.interrupts).toBe(1);
-          expect(abort.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });
+          expect(abort.response.body).toMatchInlineSnapshot(`
+              {
+                "kind": "accepted",
+              }
+            `);
           expect(session.records().filter((entry) => entry.kind === "response" && entry.requestId === abort.request.id))
             .toEqual([abort.response]);
           expect(session.records().filter((entry) => entry.kind === "response" && entry.body.kind === "exited")).toHaveLength(1);
-          expect(await awaitTurnEnd(session, prompt.request.seq)).toEqual({ kind: "failed", failure: "runtime_exited", reason: "runtime exited" });
+          expect(await awaitTurnEnd(session, prompt.request.seq)).toMatchInlineSnapshot(`
+              {
+                "kind": "aborted",
+              }
+            `);
         } finally {
           record({ kind: "abort_probe_phase", phase: "dispose" });
           await session.dispose();

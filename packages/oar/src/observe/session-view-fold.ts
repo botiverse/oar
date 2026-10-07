@@ -141,6 +141,13 @@ export function beginTurn(draft: Draft, id: string, openedBy?: string): void {
   draft.turn = turn;
 }
 
+/** A lone end still gets an outcome-only segment when input sealed the last one. */
+export function stampTurnOutcome(draft: Draft, id: string, outcome: TurnOutcome): void {
+  if (draft.openTurn === -1) { beginTurn(draft, id); }
+  const turn = turnForWrite(draft);
+  if (turn !== null) { turn.outcome = outcome; }
+}
+
 /** Seal the current segment without an outcome; later content opens a new one. */
 export function sealTurn(draft: Draft): void {
   draft.openTurn = -1;
@@ -207,63 +214,6 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
       return;
     }
   }
-}
-
-type ToolUpdate = Extract<Event, { kind: "tool_call_progress" | "tool_call_ended" }>;
-type ToolInput = Extract<Event, { kind: "tool_call_input" }>;
-type ToolPart = Extract<ViewPart, { kind: "tool" }>;
-type ToolResult = ToolPart["result"];
-
-/**
- * Settle a call's tool part in place, in whichever turn its start landed
- * (one part per lane and callId): a runtime may report a call's last output
- * after its turn ended (codex `commandExecution/outputDelta` after
- * `turn/completed`). False when no part holds the callId.
- */
-export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResult): boolean {
-  return replaceToolPart(draft, event, (part) => {
-    if (event.kind === "tool_call_ended") {
-      // The streamed preview gives way to the result.
-      const { output: _streamed, ...settled } = part;
-      return { ...settled, ...(event.content === undefined ? {} : { content: event.content }), result, endedAt: event.receivedAt };
-    }
-    return { ...part, ...(event.output === undefined ? {} : { output: event.output }), result };
-  });
-}
-
-/** The latest input the runtime reported replaces the call's earlier one; its state is untouched. False when no part holds the callId. */
-export function updateToolInput(draft: Draft, event: ToolInput): boolean {
-  return replaceToolPart(draft, event, (part) => ({ ...part, input: event.input }));
-}
-
-function replaceToolPart(draft: Draft, event: ToolUpdate | ToolInput, next: (part: ToolPart) => ToolPart): boolean {
-  for (let m = draft.messages.length - 1; m >= 0; m -= 1) {
-    const message = draft.messages[m];
-    if (message?.kind !== "turn") {
-      continue;
-    }
-    for (let s = message.sections.length - 1; s >= 0; s -= 1) {
-      const section = message.sections[s];
-      const partIndex =
-        section === undefined || !sameLane(section, event.sessionId, event.agentPath)
-          ? -1
-          : section.parts.findIndex((part) => part.kind === "tool" && part.callId === event.callId);
-      const part = partIndex === -1 ? undefined : section?.parts[partIndex];
-      if (section === undefined || part?.kind !== "tool") {
-        continue;
-      }
-      const parts = [...section.parts];
-      parts[partIndex] = next(part);
-      const sections = [...message.sections];
-      sections[s] = { ...section, parts };
-      draft.messages[m] = { ...message, sections };
-      if (m === draft.openTurn) {
-        draft.turn = null;
-      }
-      return true;
-    }
-  }
-  return false;
 }
 
 /** Drop a turn the runtime says never began (rejected prompt), when still empty. */

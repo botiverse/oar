@@ -150,19 +150,23 @@ response, and the turn ends on claude's own `result/error_during_execution`,
 which the fold classifies `aborted` because OAR's interrupt was outstanding.
 A late abort is rejected `no active turn`.
 
-If claude exits before replying, every pending interrupt is answered once
-with `rejected: runtime_exited`. A `control_response` draining from stdout
-after that is kept as a frame only. If the turn is still running ten seconds
-after the first abort, OAR terminates the runtime using the platform's
-process cleanup described below. The timer follows the turn, even after an
-interrupt acknowledgement, and is cleared when the turn ends. A native
-refusal cancels only that abort attempt. The observed exit ends the turn as `failed: runtime_exited`; continue by resuming the
+If claude exits before replying and before OAR's fallback, each pending
+interrupt is answered once with `rejected: runtime_exited`. If the turn is
+still running ten seconds after the first abort, OAR accepts its pending
+interrupts before terminating the process using the cleanup described below.
+A late `control_response` remains a frame only. The timer follows the turn,
+even after an interrupt acknowledgement, and is cleared when the turn ends;
+a native refusal cancels only that attempt. The folds read exit after an
+accepted abort as `aborted`, and an unrequested exit as `failed:
+runtime_exited`. A native `result` arriving first keeps its own outcome.
+Continue after forced termination by resuming the
 session. [Exit and deadline tests](../../tests/claude/claude-session-death.test.ts),
 [real-binary transport-fault test](../../sea-trial/vendor/abort-fallback.vendor.test.ts).
 
 **Unreachable runtime:** a `dispose` mid-turn ends with `request dispose`,
 `response exited` (code 143) and no `result` frame, so the turn end for
-observers is the exit itself. When claude dies on its own (SIGKILL), the
+observers is the exit itself, read as `aborted` from the dispose request.
+The exit code remains unchanged. When claude dies on its own (SIGKILL), the
 stream gets `response exited` with `requestId ""` and code `null`; the kernel
 then rejects every prompt/steer/queue/abort `runtime exited` and answers a
 later `dispose` `accepted`

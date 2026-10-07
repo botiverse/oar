@@ -279,21 +279,26 @@ active turn` and a steer `rejected: not_steerable: no active turn`
 (live-contract `busy-and-late-control`;
 [stream tests](../../tests/codex/codex-session-stream.test.ts)).
 
-If the app-server exits with RPCs still pending, their control responses
-are `rejected: runtime_exited`, carrying the process diagnostics; a native
-RPC refusal remains `runtime_refused`. If the interrupted turn has not ended
-ten seconds after the first abort, OAR terminates the runtime using the
-platform's process cleanup described below. An interrupt acknowledgement alone
-does not clear the deadline; `turn/completed` does. A native refusal cancels
-only that abort attempt. The observed exit ends the turn as `failed: runtime_exited`, and the host must resume to continue.
+If the app-server exits before OAR's fallback with RPCs still pending, their
+responses are `rejected: runtime_exited`, with the process diagnostics; a
+native RPC refusal remains `runtime_refused`. If the interrupted turn has
+not ended ten seconds after the first abort, OAR accepts its still-pending
+abort requests before terminating the runtime using the cleanup below.
+A late RPC reply remains a frame with its result or error payload, never a
+second response. An acknowledgement alone does not clear the deadline;
+`turn/completed` does. A native refusal cancels only that attempt.
+The folds read exit after an accepted abort as `aborted`; an unrequested exit
+remains `failed: runtime_exited`. A native turn end arriving first keeps its
+outcome. The host must resume after forced termination to continue.
 [Real-binary transport-fault test](../../sea-trial/vendor/abort-fallback.vendor.test.ts).
 
 **Dispose and unreachable runtime:** `dispose()` records a `dispose` request,
 kills the app-server and awaits its exit, recorded as the `exited` response
-(signal death: `code: null`). OAR does not settle active work: a dispose
+(signal death: `code: null`). OAR does not fabricate a native turn end: a dispose
 mid-tool ends with `tool_call_started`, `dispose`, `exited { code: null }` and
 no `turn_ended`, so the exit is the turn end for observers and `turnEndAfter`
-reads `failed: runtime exited` (live-contract `dispose-mid-turn`). Dispose
+reads `aborted` from the dispose request; the native exit code is unchanged
+(live-contract `dispose-mid-turn`). Dispose
 releases the process; it establishes no exclusive control over persisted
 history. When the app-server dies on its own (SIGKILL mid-tool) the stream
 gets `exited { code: null }` with `requestId: ""`; every later

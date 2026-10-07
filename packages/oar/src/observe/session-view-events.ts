@@ -6,11 +6,10 @@ import {
   noticePart,
   removeEmptyTurn,
   sealTurn,
-  turnForWrite,
-  updateToolInput,
-  updateToolPart,
+  stampTurnOutcome,
   type Draft,
 } from "./session-view-fold.js";
+import { endRootTools, updateToolInput, updateToolPart } from "./session-view-tools.js";
 import type { PendingRequest } from "./session-view.js";
 
 /**
@@ -90,16 +89,9 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       return;
     }
     case "turn_ended":
-      if (event.sessionId === scope) {
-        let turn = turnForWrite(draft);
-        if (turn === null) {
-          // A lone end is a fact too: a segment holding only the outcome.
-          beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`);
-          turn = turnForWrite(draft);
-        }
-        if (turn !== null) {
-          turn.outcome = event.outcome;
-        }
+      if (event.sessionId === scope && event.agentPath.length === 0) {
+        endRootTools(draft, scope);
+        stampTurnOutcome(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`, event.outcome);
         sealTurn(draft);
       } else {
         noticePart(draft, event, streamId, { cause: "child_turn_ended", outcome: event.outcome });
@@ -167,6 +159,11 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       }
       return;
     case "exited":
+      if (event.sessionId !== scope || event.agentPath.length > 0) {
+        noticePart(draft, event, streamId, { cause: "exited", code: event.code });
+        return;
+      }
+      endRootTools(draft, scope);
       draft.exited = { code: event.code };
       draft.messages.push({
         kind: "notice",

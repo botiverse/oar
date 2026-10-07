@@ -87,21 +87,35 @@ Further rules:
   session that cannot steer has no `steer`, so its stream holds no steer
   request.
 - **An interrupted process can still exit before replying.** Claude and
-  Codex answer pending aborts `rejected: runtime_exited` when that happens,
-  once per request. Claude's late `control_response` bytes remain a frame,
-  not a second response. If the interrupted turn has not ended within ten
-  seconds, OAR terminates the process. On POSIX this sends SIGTERM to its
-  process group, then SIGKILL after the normal kill grace period (another
-  ten seconds by default, `OAR_KILL_GRACE_MS`), which also reaches its
-  descendants that left the group (claude's Bash tool commands); on Windows
-  it force-terminates the process tree with `taskkill /T /F`, including any
-  launcher and the runtime behind it.
+  Codex answer pending aborts `rejected: runtime_exited` if the process dies
+  before OAR takes over. If the interrupted turn has not ended within ten
+  seconds, OAR accepts its still-pending abort requests, then terminates the
+  process. Acceptance records that OAR took over the stop; it does not say the
+  process has exited yet. A late native reply remains a frame, never a second
+  response. On POSIX this sends SIGTERM to its process group, then SIGKILL
+  after the normal kill grace period (another ten seconds by default,
+  `OAR_KILL_GRACE_MS`), which also reaches its descendants that left the group
+  (claude's Bash tool commands); on Windows it force-terminates the process
+  tree with `taskkill /T /F`, including any launcher and the runtime behind it.
   An interrupt acknowledgement does not cancel this fallback; a turn end
   does. A native refusal cancels only that abort attempt; it must not kill
-  work the runtime refused to interrupt. Process exit is the observer's
-  `failed: runtime_exited` turn end;
-  OAR invents neither a `turn_ended` frame nor a `timeout` rejection. Hosts
-  resume the native session to continue after this fallback.
+  work the runtime refused to interrupt. Hosts resume the native session to
+  continue after this fallback.
+- **An exit after a host stop ends the running turn as aborted.** `status()`,
+  `turnEndAfter` / `awaitTurnEnd`, and the record-based session view read an
+  exit after that turn's accepted abort (by the runtime or OAR), or its
+  `dispose` request, as `{ kind: "aborted" }`. An unanswered or rejected
+  abort, or no stop request, leaves the exit `failed: runtime_exited`.
+  Stop evidence is scoped to the root session and current turn and cleared
+  at its boundary. A native turn end that arrives first keeps its outcome.
+  `promptAndWait` reports `interrupted` with outcome `aborted` when its own
+  timeout or signal caused the accepted abort and the turn ended by exit.
+  `TurnOutcome` has no extra fields; the exit code remains on `exited`.
+  OAR synthesizes neither a `turn_ended` frame nor a `timeout` rejection.
+  The incremental `reduceStatus` keeps optional `stop` evidence in a running
+  status (pending abort ids and `abortedOnExit`) so checkpoints preserve the
+  same result as replay. Flat events alone omit accepted controls; feed
+  records to the session view for this classification.
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
   `exit` hook kills OAR's still-running sessions, probes (inventory and
   account usage), updaters, logins and ACP terminals. POSIX sends SIGKILL to
@@ -144,6 +158,11 @@ Further rules:
 - **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.
+  The session view marks a root turn's unresolved tools `ended` when that
+  turn ends or its process exits, without result content or a tool end time.
+  This is an unknown result in the view, not a synthesized `tool_call_ended`
+  event. Later native tool results still replace it; child tools and
+  background tasks retain their own lifecycles.
   `exitCode` follows the same rule for the process status of a command the
   runtime ran: present only when the runtime reported one (codex, grok,
   antigravity, cursor), `null` when it reported a signal exit, absent

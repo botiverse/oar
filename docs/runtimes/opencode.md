@@ -121,7 +121,11 @@ later, the running shell call is closed, and the turn ends `aborted` (abort).
 After an abort the `usage_update` reports `used: 0`, since it reads the
 latest assistant message, which the abort left empty.
 
-OAR owns the ACP process. Disposal and the ten-second abort fallback end its
+OAR owns the ACP process. An exit ending a running turn after its accepted
+abort or dispose request is read as `aborted` by the folds; an unrequested
+exit is `failed: runtime_exited`. A native turn end that arrives first keeps
+its outcome, and the exit code stays on `exited`.
+Disposal and the ten-second abort fallback end its
 process group on POSIX (SIGTERM, then SIGKILL after the configured grace;
 the SIGKILL, or the runtime's exit if that comes first, also takes its
 descendants that left the group, as for
