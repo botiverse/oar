@@ -5,7 +5,7 @@ import type { Runtime } from "@botiverse/oar";
 import { isRuntimeFailure, readEach, type RuntimeFailure } from "./each-runtime.js";
 import { readModels, renderModels } from "./models.js";
 import { registerUpgradeCommand } from "./upgrade.js";
-import { registerLoginCommand } from "./login.js";
+import { registerLoginCommand, registerLogoutCommand } from "./login.js";
 import { registerMcpCommand } from "./mcp-command.js";
 import { registerRunCommand } from "./run.js";
 import { runtimes } from "./runtimes.js";
@@ -61,6 +61,7 @@ program
       checkUpdate: runtime.checkUpdate !== undefined,
       upgrade: runtime.upgrade !== undefined,
       login: runtime.login !== undefined,
+      logout: runtime.logout !== undefined,
       authStatus: runtime.authStatus !== undefined,
     }));
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -148,6 +149,7 @@ program
 
 registerUpgradeCommand(program, selected);
 registerLoginCommand(program, selected);
+registerLogoutCommand(program, selected);
 registerMcpCommand(program, packageVersion());
 registerRunCommand(program, packageVersion());
 

@@ -1,4 +1,4 @@
-import type { AuthStatusReader, RuntimeLogin } from "./login.js";
+import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
 import type { AccountUsageReader } from "./account-usage.js";
@@ -41,6 +41,8 @@ export interface Runtime extends RuntimeInventories {
   readonly upgrade?: Upgrader;
   /** Signs the runtime in through its own login; changes the machine's credentials, so only on the host's explicit call. */
   readonly login?: RuntimeLogin;
+  /** Signs the runtime out through its own logout, confirmed by its status query; changes the machine's credentials, so only on the host's explicit call. */
+  readonly logout?: RuntimeLogout;
   /** Read only: whether the runtime is signed in, from its local status query. */
   readonly authStatus?: AuthStatusReader;
 }

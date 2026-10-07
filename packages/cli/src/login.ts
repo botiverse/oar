@@ -9,6 +9,9 @@ import type {
 } from "@botiverse/oar";
 import { terminalInteraction } from "./login-terminal.js";
 
+// Beside the login, so the CLI entry stays within its import limit.
+export { registerLogoutCommand } from "./logout.js";
+
 // Pure shapes of `oar login` output, so the action stays a print loop and the
 // mapping can be pinned by tests without running any login.
 export interface AuthStatusReport {

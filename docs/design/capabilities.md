@@ -17,9 +17,10 @@ tools, each used only where the one before does not fit.
 
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
-`listModels`, `checkUpdate`, `upgrade`, `login` and `authStatus` already work
-this way (antigravity, whose terms rule out a sign-in through OAR, has no
-`login`); `Session` `steer` and `withdraw` do too: a session that cannot
+`listModels`, `checkUpdate`, `upgrade`, `login`, `logout` and `authStatus`
+already work this way (antigravity, whose terms rule out a sign-in through
+OAR, has no `login`, and only the runtimes OAR signs in have a `logout`);
+`Session` `steer` and `withdraw` do too: a session that cannot
 steer has no `steer`, and one whose queue OAR does not hold (codex) has no
 `withdraw`.
 TypeScript makes every caller handle the absence, and the check works the

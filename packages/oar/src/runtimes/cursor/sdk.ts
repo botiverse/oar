@@ -109,6 +109,14 @@ export type CursorAuthStatus =
 export interface CursorAuth {
   /** Resolves once the minted key is saved to `store`; OAR never reads what it resolves with (the key among it). */
   login(options: CursorLoginOptions): Promise<unknown>;
+  /**
+   * Forgets the stored login: with no `store`, the SDK's own
+   * `FileCredentialStore().clear()` (`~/.cursor/sdk/auth.json` removed).
+   * Local only: the minted key stays valid until it expires or is revoked
+   * in the dashboard. Optional, so a host's own stand-in without it keeps
+   * compiling; without it `logout` answers `version_unsupported`.
+   */
+  logout?(): Promise<void>;
   status(): Promise<CursorAuthStatus>;
 }
 

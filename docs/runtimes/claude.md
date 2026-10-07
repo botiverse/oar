@@ -411,6 +411,34 @@ at the paste prompt (`login cancelled`, exit 130, no process left over, the
 previous login unchanged).
 [Login](../../packages/oar/src/runtimes/claude/login.ts).
 
+### Logout
+
+**Mapped** ([runtime logout](../spec/login.md#logout)): `logout` runs
+`claude auth logout` over pipes with its stdin closed and `CLAUDECODE`
+cleared, and `claude auth status --json` decides. Native behavior [bundle
+2.1.292: `authLogout`, then `performLogout`]: claude first revokes the stored
+claude.ai OAuth refresh token on Anthropic's side (`POST <token URL>/revoke`,
+5 s); a revoke that fails is only logged and the local logout goes on, so
+the token can then stay valid on the server until it expires. It then
+deletes its stored credentials (`~/.claude/.credentials.json`, or the macOS
+Keychain) and the account in `~/.claude.json`, and prints `Successfully
+logged out from your Anthropic account.` with exit 0. A failure is `Logout
+failed: <message>` on stderr with exit 1, which is `rejected` with the
+message. Observed in a temporary home with no network [run 2.1.292]: logged
+out already, claude prints the same success line and exits 0, and the result
+is `logged_out`. With `ANTHROPIC_API_KEY` in its environment the status reads
+`loggedIn: true`, `authMethod: "api_key"`, `apiKeySource:
+"ANTHROPIC_API_KEY"` before and after the logout, so the result is `failed` /
+`still_logged_in` (`claude auth logout succeeded, yet claude auth status
+--json still reads logged in (api_key, from ANTHROPIC_API_KEY)`);
+`CLAUDE_CODE_OAUTH_TOKEN` reads `oauth_token` the same way. OAR never touches
+either variable. The deadline is 60 s. `auth logout` arrived in 2.1.41 with
+`auth login` and `auth status` [doc changelog], so an older claude is
+`unsupported` / `version_unsupported`. Verified against the fake CLI
+([tests](../../tests/login/claude-logout.test.ts)); the real-login checklist
+of [#192](https://github.com/botiverse/oar/issues/192) is not run yet.
+[Logout](../../packages/oar/src/runtimes/claude/logout.ts).
+
 ## Harness fact matrix
 
 The harness investigation questions, answered for the one interface OAR

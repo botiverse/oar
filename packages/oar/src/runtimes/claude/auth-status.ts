@@ -35,13 +35,19 @@ export function projectClaudeAuthStatus(stdout: string): AuthStatus {
   return { kind: "logged_in", ...(Object.keys(account).length === 0 ? {} : { account }), source: STATUS_SOURCE };
 }
 
+/** A status read, with what claude names as an API key's source (`ANTHROPIC_API_KEY`, `apiKeyHelper`), which `AuthStatus` has no field for. */
+export interface ClaudeAuthRead {
+  readonly status: AuthStatus;
+  readonly apiKeySource?: string;
+}
+
 /** `signal` (internal: the login's own) stops the query; the answer is then `unknown`. */
-export async function claudeAuthStatus(
+export async function readClaudeAuthStatus(
   installation: AvailableInstallation,
   options: AuthStatusOptions & { readonly signal?: AbortSignal } = {},
-): Promise<AuthStatus> {
+): Promise<ClaudeAuthRead> {
   if (installation.via !== "executable") {
-    return { kind: "unknown", detail: "not a machine-installed executable" };
+    return { status: { kind: "unknown", detail: "not a machine-installed executable" } };
   }
   const result = await runExecutable(installation.command, ["auth", "status", "--json"], {
     env: claudeEnv(),
@@ -50,7 +56,17 @@ export async function claudeAuthStatus(
   });
   // Exit 0 logged in, 1 logged out; anything else (a timeout, a crash, an abort) is no answer.
   if (!result.ok && result.exitCode !== 1) {
-    return { kind: "unknown", detail: `claude auth status ended without an answer (exit ${String(result.exitCode)})`, source: STATUS_SOURCE };
+    return { status: { kind: "unknown", detail: `claude auth status ended without an answer (exit ${String(result.exitCode)})`, source: STATUS_SOURCE } };
   }
-  return projectClaudeAuthStatus(result.stdout);
+  const status = projectClaudeAuthStatus(result.stdout);
+  const apiKeySource = status.kind === "logged_in" ? text(asRecord(parseJson(result.stdout))?.apiKeySource) : undefined;
+  return { status, ...(apiKeySource === undefined ? {} : { apiKeySource }) };
+}
+
+export async function claudeAuthStatus(
+  installation: AvailableInstallation,
+  options: AuthStatusOptions & { readonly signal?: AbortSignal } = {},
+): Promise<AuthStatus> {
+  const { status } = await readClaudeAuthStatus(installation, options);
+  return status;
 }

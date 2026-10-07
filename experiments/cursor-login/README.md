@@ -11,9 +11,10 @@ It takes about 40 seconds and exits 0 only when every line is `PASS`.
 
 ## What it runs
 
-The real `@cursor/sdk`, loaded the way a host loads it, signs in through
-OAR's cursor `login` and `authStatus`
-([login](../../packages/oar/src/runtimes/cursor/login.ts)). The backend it
+The real `@cursor/sdk`, loaded the way a host loads it, signs in and out
+through OAR's cursor `login`, `logout` and `authStatus`
+([login](../../packages/oar/src/runtimes/cursor/login.ts),
+[logout](../../packages/oar/src/runtimes/cursor/logout.ts)). The backend it
 talks to is [`mock-backend.ts`](mock-backend.ts), which serves only the
 endpoints the 1.0.35 and 1.0.36 bundles call: the browser page
 `/loginDeepControl?challenge=…&uuid=…`, `POST /auth/poll` (it checks the
@@ -52,8 +53,10 @@ event, which signs that uuid in. No account and no network are needed.
 | cancel while minting (empty home, previous login) | the mock holds `CreateUserApiKey`; the cancel is `cancelled`; once released, the SDK goes on to `GetMe` and tries to save, and OAR's store refuses it; `auth.json` as before |
 | timeout while polling (both homes) | `timed_out` (2.5 s deadline); the SDK polls no more; `auth.json` as before |
 | timeout while minting (both homes) | `timed_out` (4 s deadline) while the mint is held; the late save is refused; `auth.json` as before |
+| logout (previous login) | `logged_out`; `auth.json` removed; the status reads logged out; a second logout, already out, is `logged_out` too; no request to the mock, nothing printed |
+| logout with `CURSOR_API_KEY` set (previous login) | `logged_out` (the status ignores the variable); `auth.json` removed; the variable left as it was; no request |
 
-Every scenario also checks that the only event is one `auth_url` pointing at
+Every login scenario also checks that the only event is one `auth_url` pointing at
 the mock, that no prompt was asked, and that the SDK neither fell back to
 `GET /auth/poll` nor called an endpoint the mock does not serve.
 
@@ -74,6 +77,11 @@ the mock, that no prompt was asked, and that the SDK neither fell back to
   then rerun.
 - `refused a connection to …`: the SDK tried to reach a host other than the
   mock (it ignored `CURSOR_BACKEND_URL`, or something new phones home).
+- `auth.json is still there after the logout` or `a logout called the
+  backend`: `Cursor.auth.logout` changed (it no longer clears the default
+  store, or it now revokes the key or reports to the backend). Read its
+  bundle and update the [runtime page](../../docs/runtimes/cursor.md#logout),
+  which says the key is not revoked.
 
 Not covered: the real backend's behavior beyond these endpoints, a stop
 while the file save itself runs (a local write; the
@@ -98,3 +106,10 @@ back.
 2026-10-06, `@cursor/sdk` 1.0.36, same machine, with OAR's peer moved to
 1.0.36 ([#152](https://github.com/botiverse/oar/pull/152)): the guard check
 and 9/9 scenarios passed again, with the same order and messages.
+
+2026-10-07, `@cursor/sdk` 1.0.36, Linux x64, Node 24, with OAR's cursor
+`logout` ([#192](https://github.com/botiverse/oar/issues/192)), run inside an
+empty network namespace with only loopback up and a temporary `HOME`: the
+guard check and 11/11 scenarios passed. `Cursor.auth.logout()` removed
+`auth.json` and made no request, a second call over the missing file
+resolved as well, and `CURSOR_API_KEY` was left as it was.
