@@ -1,4 +1,5 @@
 import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/session.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts } from "../../shared/token-totals.js";
@@ -21,6 +22,11 @@ export function selectGrokAuthMethod(initialized: JsonRecord): string | undefine
 }
 
 export function grokInitializeMeta(options: SessionOptions): JsonRecord {
+  // Grok 1.0.46 chooses override OR rules. Carry both in the override so
+  // native creation and resume each receive the complete requested prompt.
+  const override = options.systemPrompt === undefined || options.appendSystemPrompt === undefined
+    ? options.systemPrompt
+    : `${options.systemPrompt}\n\n${options.appendSystemPrompt}`;
   return {
     clientIdentifier: "oar",
     clientType: "generic",
@@ -29,8 +35,8 @@ export function grokInitializeMeta(options: SessionOptions): JsonRecord {
       skipGitStatus: true,
       skipProjectLayout: true,
     },
-    ...(options.systemPrompt === undefined ? {} : { systemPromptOverride: options.systemPrompt }),
-    ...(options.appendSystemPrompt === undefined ? {} : { rules: options.appendSystemPrompt }),
+    ...(override === undefined ? {} : { systemPromptOverride: override }),
+    ...(override !== undefined || options.appendSystemPrompt === undefined ? {} : { rules: options.appendSystemPrompt }),
   };
 }
 
@@ -141,6 +147,11 @@ export const grokAcpProfile: AcpSessionProfile = {
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,
+  validateOptions: (options) => {
+    if (options.resume !== undefined && options.appendSystemPrompt !== undefined && options.systemPrompt === undefined) {
+      throw new UnsupportedOptionError("appendSystemPrompt", "grok does not reapply rules when resuming a session (observed on 1.0.46)");
+    }
+  },
   sessionMeta: () => ({ yoloMode: true }),
   selectAuthMethod: selectGrokAuthMethod,
   // `_meta.sendNow` is not an injection: grok answers the running prompt

@@ -4,7 +4,10 @@
  *
  * Compare with the last probe report, then run live-contract.ts for changed
  * versions; for a changed Cursor SDK, also cursor-login/probe.ts (no
- * account needed). A version match is not a compatibility result. Pi and Cursor are
+ * account needed). For a changed Grok binary, also grok-prompt-options.ts
+ * (local provider, no login): recheck native prompt precedence and resume
+ * rules so an upstream fix can retire the conditional refusal.
+ * A version match is not a compatibility result. Pi and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH.
  */
