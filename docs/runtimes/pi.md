@@ -555,7 +555,8 @@ The SDK shares its host process. Global configuration, lazy environment reads
 and the global dispatcher mean the adapter cannot promise independently
 configured embedded Pi runtimes within one process. Releasing a session is SDK
 disposal, not killing a runtime subprocess. With no process to kill, no kill
-fallback backs `abort()` (the ACP runtimes kill after ten seconds).
+fallback backs `abort()` (Claude, Codex and the ACP runtimes begin process
+termination after ten seconds without a turn end).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
 **Mapped:** installation checks that the bundled SDK resolves or imports;

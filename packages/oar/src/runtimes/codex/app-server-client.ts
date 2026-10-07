@@ -11,7 +11,8 @@ import { coordinateHomeInitialization } from "./home-initialization.js";
 /** How a request settled, delivered synchronously as the reply line is read. */
 export type RpcOutcome =
   | { readonly kind: "result"; readonly result: JsonRecord }
-  | { readonly kind: "error"; readonly error: Error };
+  | { readonly kind: "error"; readonly error: Error }
+  | { readonly kind: "exited"; readonly error: Error };
 
 export interface AppServerHandlers {
   readonly onNotification: (method: string, params: JsonRecord) => void;
@@ -89,7 +90,7 @@ function createAppServerClient(
   const child = spawnLineProcess(
     command,
     ["app-server", ...overrideArgs, "--listen", "stdio://"],
-    { cwd, env, ...processOptions },
+    { cwd, env, killTree: true, ...processOptions },
   );
   // Session initialization observes spawn failures through its pending RPC.
   // Mark this parallel promise handled while preserving its rejection for
@@ -157,7 +158,7 @@ function createAppServerClient(
     });
     for (const waiter of pending.values()) {
       const error = exitFailure;
-      waiter.settled({ kind: "error", error });
+      waiter.settled({ kind: "exited", error });
       waiter.reject(error);
     }
     pending.clear();
@@ -170,7 +171,7 @@ function createAppServerClient(
       const settled = onSettled ?? ((): void => {});
       if (exitFailure !== null) {
         const error = exitFailure;
-        settled({ kind: "error", error });
+        settled({ kind: "exited", error });
         throw error;
       }
       const id = nextId;

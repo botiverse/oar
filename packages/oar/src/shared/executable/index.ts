@@ -12,4 +12,5 @@ export {
   requiresShell,
   signalProcessGroup,
   spawnLineProcess,
+  trackOwnedProcess,
 } from "./process.js";

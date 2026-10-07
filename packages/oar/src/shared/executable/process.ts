@@ -3,6 +3,9 @@ import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
+import { trackOwnedProcess } from "./ownership.js";
+
+export { trackOwnedProcess } from "./ownership.js";
 
 export interface LineProcessOptions {
   readonly cwd?: string;
@@ -114,11 +117,12 @@ export function killProcessTree(child: ChildProcess): void {
     child.kill();
     return;
   }
-  execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], (error) => {
+  const killer = execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], (error) => {
     if (error !== null) {
       child.kill();
     }
   });
+  trackOwnedProcess(killer);
 }
 
 /** Windows npm shims need a shell for one-shot execFile calls. */
@@ -141,6 +145,7 @@ export function spawnLineProcess(
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
   });
+  trackOwnedProcess(child);
   const { stdin, stdout } = child;
   const stderr = new StderrTail();
   const inheritStderr = options.inheritStderr ?? process.env.OAR_CHILD_STDERR === "inherit";

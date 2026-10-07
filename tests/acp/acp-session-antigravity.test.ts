@@ -13,15 +13,16 @@ import {
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { describe, fixture } from "../fixtures/acp-session-support.js";
+import { agentTreeModule, gone, withTreeProbe } from "../fixtures/process-tree.js";
 
 // The fixture's "antigravity" mode replays agy_acp_server 1.2.1: no `close`
 // capability, no usage_update, no effort selector, and a session mode that
 // every open (new or resume) starts back at `default`. The real profile runs
 // against it, with only the launch line swapped for the fixture's.
-async function startAntigravity(options: Omit<SessionOptions, "cwd"> = {}): Promise<Session> {
+async function startAntigravity(options: Omit<SessionOptions, "cwd"> = {}, keepAlive = false): Promise<Session> {
   return acpSession({
     ...antigravityAcpProfile,
-    args: [fixture, "antigravity"],
+    args: [...(keepAlive ? ["--import", agentTreeModule] : []), fixture, "antigravity"],
   })({ kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), ...options });
 }
 
@@ -44,15 +45,29 @@ test("the session opens without authenticate and runs in yolo, again after a res
   await resumed.dispose();
 });
 
-test("dispose ends the process without the session/close the agent does not advertise", async () => {
-  const session = await startAntigravity();
-  await session.dispose();
-  const tail = session.records().map((record) => describe(record));
-  assert.deepEqual(tail.slice(-2), ["request dispose", "response exited"]);
-  // The fixture exits 3 on any session/close, so a null code means oar killed it without one.
-  const exit = session.records().findLast((record) => record.kind === "response" && record.body.kind === "exited");
-  assert.ok(exit?.kind === "response" && exit.body.kind === "exited");
-  assert.equal(exit.body.code, null);
+test.each([false, true])("dispose ends the process without unadvertised session/close; held open by a tool: %s", async (keepAlive) => {
+  // oxlint-disable-next-line eslint/max-statements -- Observe the same disposal's stream, native exit and descendant liveness together.
+  await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
+    const session = await startAntigravity({ env: keepAlive ? probe.env : {} }, keepAlive);
+    const tree = keepAlive ? await probe.tree() : null;
+    await session.dispose();
+    const tail = session.records().map((record) => describe(record));
+    assert.deepEqual(tail.slice(-2), ["request dispose", "response exited"]);
+    const exit = session.records().findLast((entry) => entry.kind === "response" && entry.body.kind === "exited");
+    assert.ok(exit?.kind === "response" && exit.body.kind === "exited");
+    // The fixture exits 3 on session/close. On Windows stdin EOF can end it
+    // normally before taskkill starts; an open tool keeps it alive for the
+    // forced tree termination. Neither is a POSIX signal exit.
+    assert.notEqual(exit.body.code, 3, "session/close must not be sent");
+    if (process.platform === "win32") {
+      process.stdout.write(`antigravity dispose: keepAlive=${String(keepAlive)} code=${String(exit.body.code)}\n`);
+    } else {
+      assert.equal(exit.body.code, null);
+    }
+    if (tree !== null) {
+      assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild)], [true, true], JSON.stringify(tree));
+    }
+  });
 });
 
 test("a model switch goes through the model config option and effort is refused", async () => {

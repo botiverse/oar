@@ -16,8 +16,8 @@ type Open = (dir: string, options: SessionOptions) => Promise<Session>;
 const runtimes: readonly (readonly [string, Open])[] = [
   ["claude", async (dir, options) => claudeSession({ kind: "available", via: "executable", command: fakeAgentBinary(dir) }, options)],
   ["codex", async (dir, options) => codexSession({ kind: "available", via: "executable", command: fakeAgentBinary(dir) }, options)],
-  ["acp", async (_dir, options) => acpSession(profile({ args: ["--import", agentTreeModule, acpAgent, "session"] }))(
-    { kind: "available", via: "executable", command: process.execPath },
+  ["acp", async (dir, options) => acpSession(profile({ args: [] }))(
+    { kind: "available", via: "executable", command: fakeAgentBinary(dir, ["--import", agentTreeModule, acpAgent, "session"]) },
     options,
   )],
 ];
@@ -45,3 +45,24 @@ describe.skipIf(process.platform === "win32").concurrent("dispose takes down the
     });
   });
 });
+
+// Windows has no process groups. Each command above is a .cmd wrapper, so
+// the reported agent and grandchild are both descendants of OAR's child.
+test.skipIf(process.platform !== "win32").each(runtimes)(
+  "%s: Windows dispose kills the runtime behind its launcher and its tool",
+  async (_runtime, open) => {
+    await withTreeProbe({ ignoreSigterm: true }, async (probe) => {
+      const session = await open(probe.dir, { cwd: probe.dir, env: probe.env });
+      const tree = await probe.tree();
+      try {
+        await session.dispose();
+        const exit = session.records().at(-1);
+        assert.ok(exit?.kind === "response" && exit.body.kind === "exited", JSON.stringify(exit));
+        assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild)], [true, true],
+          `dispose must end native processes, not just their launcher: ${JSON.stringify(tree)}`);
+      } finally {
+        await session.dispose();
+      }
+    });
+  },
+);

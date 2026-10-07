@@ -362,6 +362,11 @@ further work. On POSIX the process leads its own process group, and a runtime
 still running a grace period after SIGTERM (10 s, or `OAR_KILL_GRACE_MS`) is
 SIGKILLed with its group. Persisted native sessions are not deleted.
 
+On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
+the abort fallback, including the runtime's descendants
+([test](../../tests/session-dispose.test.ts)). See
+[host-exit cleanup and limits](../spec/record-stream.md#the-rules).
+
 [Installation detection](../../packages/oar/src/runtimes/antigravity/installation.ts)
 checks `OAR_ANTIGRAVITY_BIN` and PATH `agy_acp_server.par`
 (`agy_acp_server.exe` on Windows), reading `Build label: <version>` from

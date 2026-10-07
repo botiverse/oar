@@ -59,6 +59,7 @@ test("maxBuffer failure is not classified as a timeout", async () => {
   expect(result.ok).toBe(false);
   expect(result.diagnostics?.timeoutMs).toBeUndefined();
   expect(result.diagnostics?.error?.code).toBe("ERR_CHILD_PROCESS_STDIO_MAXBUFFER");
+  expect(result.exitCode).toBeNull();
   expect(Buffer.byteLength(result.diagnostics?.stderr ?? "")).toBe(8192);
 });
 
@@ -119,4 +120,17 @@ test("stderr truncation preserves whole UTF-8 characters at the byte boundary", 
   await child.exited;
   expect(child.diagnostics().stderr).toBe(`${"🌊".repeat(2047)}END`);
   expect(Buffer.byteLength(child.diagnostics().stderr)).toBeLessThanOrEqual(8192);
+});
+
+
+test.each([-1, Number.NaN, Number.POSITIVE_INFINITY, 1.5])("invalid probe timeout %s fails before spawning", async (timeoutMs) => {
+  const result = await runExecutable(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { timeoutMs });
+  expect(result.ok).toBe(false);
+  expect(result.diagnostics?.error?.code).toBe("ERR_OUT_OF_RANGE");
+});
+
+test("a cancelled probe retains ABORT_ERR rather than timeout or native refusal", async () => {
+  const result = await runExecutable(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { signal: AbortSignal.abort() });
+  expect(result).toMatchObject({ ok: false, exitCode: null, diagnostics: { error: { code: "ABORT_ERR" } } });
+  expect(result.diagnostics?.timeoutMs).toBeUndefined();
 });

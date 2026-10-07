@@ -7,7 +7,7 @@ import { renameSync, writeFileSync } from "node:fs";
  * run on import, so any fixture can carry it (`import "./agent-tree.mjs"`, or
  * `node --import <this file> <fixture>`):
  * - OAR_FIXTURE_PIDS=<file>: start a grandchild (a tool the agent runs, here
- *   `sleep 60`) and, once it runs, write {"agent", "grandchild"} to <file>.
+ *   a Node process sleeping for 60 s) and write {"agent", "grandchild"} to <file>.
  * - OAR_FIXTURE_IGNORE_SIGTERM=1: ignore SIGTERM and stay alive past stdin
  *   EOF, so only SIGKILL ends the agent.
  * Everything it starts ends on its own within a minute, so a failed test
@@ -21,7 +21,7 @@ if (process.env.OAR_FIXTURE_IGNORE_SIGTERM === "1") {
 }
 const pidFile = process.env.OAR_FIXTURE_PIDS;
 if (pidFile !== undefined) {
-  const grandchild = spawn("sleep", ["60"], { stdio: "ignore" });
+  const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
   grandchild.once("spawn", () => {
     writeFileSync(`${pidFile}.tmp`, JSON.stringify({ agent: process.pid, grandchild: grandchild.pid }));
     renameSync(`${pidFile}.tmp`, pidFile);

@@ -91,7 +91,7 @@ export function startAcpProcess(
   app: ClientApp,
   options: AcpProcessOptions = {},
 ): AcpProcess {
-  const child = spawnLineProcess(command, args, options);
+  const child = spawnLineProcess(command, args, { ...options, killTree: true });
   // Node and TypeScript model the same WHATWG byte streams with incompatible
   // generic constraints.
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
