@@ -31,10 +31,11 @@ export interface ToolAction {
   /**
    * `read_file` / `edit_file`: every file path the call involves, in the runtime's order,
    * each once; absent when the input names none. A file tool's one path (claude `Read` /
-   * `Edit` / `Write`, the pi, opencode and cursor read and write tools), or each change of
-   * a codex `fileChange` with a rename's target after its source. How to show several is
-   * the host's call: `detail` stays the first, and `kind` stays `edit_file` for a
-   * `fileChange` that adds, updates and deletes at once.
+   * `Edit` / `Write` / `NotebookEdit`, the pi, opencode and cursor read and write tools), or
+   * each change of a codex `fileChange` with a rename's target after its source. For `ls`
+   * tools (pi, cursor) it is the listed directory; whether to list it is the host's call.
+   * How to show several is the host's call too: `detail` stays the first, and `kind` stays
+   * `edit_file` for a `fileChange` that adds, updates and deletes at once.
    */
   readonly paths?: readonly string[];
   /**
@@ -220,8 +221,18 @@ function fileChangePaths(inputJson: string): readonly string[] {
   return paths;
 }
 
+/** A tool whose one path is under `key`, a key `PATH_KEYS` does not list. */
+function pathUnder(key: string): (inputJson: string) => readonly string[] {
+  return (inputJson) => {
+    const value = asRecord(parseJson(inputJson))?.[key];
+    return typeof value === "string" && value.length > 0 ? [value] : [];
+  };
+}
+
 /** Where a runtime's file tool keeps its paths, when not under one of `PATH_KEYS`. */
 const PATHS: Record<string, Record<string, (input: string) => readonly string[]>> = {
+  // The notebook it edits; never a `detail` before `paths`, now the first of them.
+  claude: { NotebookEdit: pathUnder("notebook_path") },
   codex: { fileChange: fileChangePaths },
 };
 

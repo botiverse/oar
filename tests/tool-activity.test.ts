@@ -81,6 +81,7 @@ test("classifyTool gives each runtime's file tools their one path as paths, the 
     ["claude", "Edit", { file_path: "/w/a.ts", old_string: "x", new_string: "y" }, "/w/a.ts"],
     ["claude", "Write", { file_path: "/w/a.ts", content: "x" }, "/w/a.ts"],
     ["pi", "read", { path: "src/a.ts", offset: 1 }, "src/a.ts"],
+    // An `ls` call's one path is the directory it lists.
     ["pi", "ls", { path: "src" }, "src"],
     ["pi", "edit", { path: "src/a.ts", edits: [{ oldText: "x", newText: "y" }] }, "src/a.ts"],
     ["pi", "write", { path: "src/a.ts", content: "x" }, "src/a.ts"],
@@ -97,13 +98,18 @@ test("classifyTool gives each runtime's file tools their one path as paths, the 
   }
 });
 
+test("classifyTool gives claude NotebookEdit the notebook it edits as paths and detail", () => {
+  // `notebook_path` was never a detail; as the file the call edits it is both now.
+  const input = JSON.stringify({ notebook_path: "/w/n.ipynb", cell_id: "c1", new_source: "x" });
+  assert.deepEqual(classifyTool("claude", "NotebookEdit", input), { kind: "edit_file", detail: "/w/n.ipynb", paths: ["/w/n.ipynb"] });
+});
+
 test("classifyTool leaves paths out when a call names no file, and off other kinds", () => {
   assert.deepEqual(classifyTool("claude", "Read"), { kind: "read_file" });
   assert.deepEqual(classifyTool("opencode", "write", "{}"), { kind: "edit_file" });
   assert.deepEqual(classifyTool("codex", "fileChange"), { kind: "edit_file" });
   assert.deepEqual(classifyTool("codex", "fileChange", "[]"), { kind: "edit_file" });
-  // NotebookEdit's notebook_path was never a detail, so it is no path either.
-  assert.deepEqual(classifyTool("claude", "NotebookEdit", JSON.stringify({ notebook_path: "/w/n.ipynb" })), { kind: "edit_file" });
+  assert.deepEqual(classifyTool("claude", "NotebookEdit", JSON.stringify({ cell_id: "c1", new_source: "x" })), { kind: "edit_file" });
   assert.deepEqual(classifyTool("pi", "grep", JSON.stringify({ pattern: "x", path: "src" })), { kind: "search", detail: "src" });
   assert.deepEqual(classifyTool("claude", "Bash", JSON.stringify({ command: "cat a.ts" })), { kind: "run_command", detail: "cat a.ts", command: "cat a.ts" });
 });
