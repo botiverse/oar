@@ -93,7 +93,7 @@ out instead of naming runtimes.
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)); `Agent.create`'s `mcpServers` is not yet verified |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)); ACP `mcpServers` is not yet verified |
 | antigravity | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); ACP `mcpServers` is not yet verified |
-| opencode | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | its ACP surface exposes no system prompt override; ACP `mcpServers` is not yet verified |
+| opencode | `mcpServers` | ACP `mcpServers` is not yet verified |
 | grok | `mcpServers` | ACP `session/new` / `session/resume` `mcpServers` is not yet verified to reach the agent |
 | pi | `mcpServers` | its MCP extension (`@earendil-works/pi-mcp`) is not yet verified as a per-session channel |
 | claude, codex | nothing | |
@@ -116,6 +116,12 @@ server twice, or with an empty name, is a plain error before anything
 starts, as is a name codex would not start (`^[\w:@/.-]+$`). A transport a
 runtime cannot attach is an `UnsupportedOptionError` on `mcpServers` once
 the runtime says so; claude and codex attach both.
+
+OpenCode carries prompt options through native inline configuration. An
+already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
+an empty replacement is refused because native OpenCode selects its built-in
+prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instructions-and-context)).
+These are conditional refusals, not always-refused option declarations.
 
 Grok refuses an append-only prompt change on resume: native `rules` is not
 reapplied. A `systemPrompt`, with or without `appendSystemPrompt`, is supported
