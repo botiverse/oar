@@ -41,7 +41,7 @@ test("codex logout signs out and codex login status reads logged out; again when
   assert.deepEqual(fake.read().invocations, ["logout", "login status", "logout", "login status"]);
 });
 
-test("codex's failure is rejected in its words; a status still logged in is still_logged_in; no answer is never logged_out", async () => {
+test("codex's failure is rejected in its words; a status still logged in is still_logged_in; a status that cannot tell leaves codex's success", async () => {
   const codexes = [fakeCodex({ logoutMode: "error" }), fakeCodex({ logoutMode: "keeps" }), fakeCodex({ status: "broken" })];
   const results = await Promise.all(codexes.map(async (fake) => codexLogout(installation(fake))));
   expect(results).toMatchInlineSnapshot(`
@@ -57,9 +57,7 @@ test("codex's failure is rejected in its words; a status still logged in is stil
         "reason": "still_logged_in",
       },
       {
-        "detail": "codex logout succeeded, yet codex login status gave no answer: Error loading configuration: invalid TOML",
-        "kind": "failed",
-        "reason": "process_failed",
+        "kind": "logged_out",
       },
     ]
   `);

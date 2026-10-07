@@ -121,9 +121,11 @@ function readsAs(status: Extract<AuthStatus, { kind: "logged_in" }>, notes: read
 /**
  * The status read after the runtime's logout ran decides: logged out is
  * `logged_out`, whatever the logout answered. Otherwise a failed logout is
- * its own failure, and one that succeeded is `still_logged_in` (the status
- * reads logged in: credentials from the environment or another source) or
- * `process_failed` (the status gave no answer); never `logged_out`.
+ * its own failure, and one that succeeded is `still_logged_in` when the
+ * status reads logged in (credentials from the environment or another
+ * source), never `logged_out`. When the status cannot tell (it failed or
+ * gave an answer oar cannot read), a logout that succeeded is `logged_out`
+ * on the runtime's own report, as a login's success is `logged_in`.
  */
 export function confirmedLogout(native: NativeLogout, status: AuthStatus, command: string, notes: readonly string[] = []): LogoutResult {
   if (status.kind === "logged_out") {
@@ -132,17 +134,12 @@ export function confirmedLogout(native: NativeLogout, status: AuthStatus, comman
   if (native.kind === "failed") {
     return { kind: "failed", reason: native.reason, detail: native.detail };
   }
-  const secrets = new LoginSecrets();
-  if (status.kind === "logged_in") {
-    return {
-      kind: "failed",
-      reason: "still_logged_in",
-      detail: secrets.redact(`${command} succeeded, yet ${status.source} still reads logged in${readsAs(status, notes)}`),
-    };
+  if (status.kind === "unknown") {
+    return { kind: "logged_out" };
   }
   return {
     kind: "failed",
-    reason: "process_failed",
-    detail: secrets.redact(`${command} succeeded, yet ${status.source ?? "its status query"} gave no answer${status.detail === undefined ? "" : `: ${status.detail}`}`),
+    reason: "still_logged_in",
+    detail: new LoginSecrets().redact(`${command} succeeded, yet ${status.source} still reads logged in${readsAs(status, notes)}`),
   };
 }

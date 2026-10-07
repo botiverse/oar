@@ -80,7 +80,7 @@ export type RuntimeLogin = (
 export type LogoutFailureReason =
   | "timed_out" // oar's deadline passed before the runtime's logout finished; the logout process and everything it started were stopped
   | "rejected" // the runtime reported that the logout failed (`detail` carries its words)
-  | "process_failed" // the executable is no longer there (checked before anything is spawned), the logout process could not start, it ended without a result, or the status query after it gave no answer
+  | "process_failed" // the executable is no longer there (checked before anything is spawned), the logout process could not start, or it ended without a result
   | "still_logged_in"; // the runtime's logout succeeded, yet its own status query still reads logged in: credentials from the environment or another source (`detail` says what it read)
 
 /**
@@ -88,7 +88,11 @@ export type LogoutFailureReason =
  * people, redacted as a login's are.
  */
 export type LogoutResult =
-  /** The runtime's own status query reads logged out after its logout ran (also when it was logged out already). */
+  /**
+   * The runtime's own status query confirms it reads logged out after its
+   * logout ran (also when it was logged out already), or, when the status
+   * cannot tell, the runtime reported that its logout succeeded.
+   */
   | { readonly kind: "logged_out" }
   | { readonly kind: "failed"; readonly reason: LogoutFailureReason; readonly detail?: string }
   | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail?: string };
@@ -103,11 +107,13 @@ export interface LogoutOptions {
  * or SDK call), never by deleting its credential files. Changes the
  * machine's credentials: oar never calls it on its own.
  *
- * - The status query decides: `logged_out` only when `authStatus` reads
- *   logged out after the logout ran, whatever the logout itself answered
- *   (one that was logged out already is `logged_out` too). A logout that
- *   succeeded while the status still reads logged in is `failed` /
- *   `still_logged_in`; never `logged_out`.
+ * - The status query decides: `logged_out` when `authStatus` reads logged
+ *   out after the logout ran, whatever the logout itself answered (one that
+ *   was logged out already is `logged_out` too). A logout that succeeded
+ *   while the status still reads logged in is `failed` / `still_logged_in`;
+ *   never `logged_out`. When the status cannot tell (`unknown`), the
+ *   runtime's own report decides: a logout that succeeded is `logged_out`,
+ *   one that failed is its failure.
  * - Credentials outside the runtime's own store (an API key in the
  *   environment, such as `ANTHROPIC_API_KEY` or `CURSOR_API_KEY`) are not
  *   touched.

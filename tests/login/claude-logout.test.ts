@@ -81,15 +81,16 @@ test("a failure in claude's words is rejected; one that still signed out is logg
   `);
 });
 
-test("a status that gives no answer after the logout is never logged_out", async () => {
+test("a status that cannot tell leaves claude's own report: a logout that succeeded is logged_out, one that failed is its failure", async () => {
   const fake = fakeClaude({ statusBroken: true });
-  expect(await claudeLogout(installation(fake))).toMatchInlineSnapshot(`
-    {
-      "detail": "claude auth logout succeeded, yet claude auth status --json gave no answer: claude auth status ended without an answer (exit 2)",
-      "kind": "failed",
-      "reason": "process_failed",
-    }
-  `);
+  assert.deepEqual(await claudeLogout(installation(fake)), { kind: "logged_out" });
+  assert.equal(fake.read().loggedIn, false);
+  const failing = fakeClaude({ statusBroken: true, logoutMode: "fail" });
+  assert.deepEqual(await claudeLogout(installation(failing)), {
+    kind: "failed",
+    reason: "rejected",
+    detail: "EACCES: permission denied, unlink '/home/user/.claude/.credentials.json'",
+  });
 });
 
 test("past the deadline the logout is stopped with everything it started, and the status decides", async () => {

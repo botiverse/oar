@@ -771,7 +771,9 @@ stored (fake) API key answers `Successfully logged out`, `auth.json` is gone,
 and the status reads `Not logged in`. `OPENAI_API_KEY` and `CODEX_API_KEY`
 are invisible to `codex login status` (it loads the store with the API-key
 variable turned off), so a logout with either set is `logged_out` and leaves
-the variable as it was. The deadline is 60 s. `codex logout` arrived in
+the variable as it was, while codex goes on using it wherever it reads it
+(`codex exec` reads `CODEX_API_KEY` [src `exec/src/lib.rs`]): a host must not
+take `logged_out` to mean codex can no longer run. The deadline is 60 s. `codex logout` arrived in
 0.15.0 ([openai/codex#1932](https://github.com/openai/codex/pull/1932)), so
 an older codex is `unsupported` / `version_unsupported`. Verified against the
 fake CLI ([tests](../../tests/login/codex-logout.test.ts)); the real-login

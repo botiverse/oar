@@ -135,12 +135,15 @@ runtime oar does not sign in.
   behind its back. What a logout removes, and whether it also revokes the
   credential on the vendor's side, is the runtime's own behaviour; each
   runtime page says what it does.
-- **The status decides.** After the logout ran, oar reads `authStatus`:
-  `logged_out` only when it reads logged out, whatever the logout itself
+- **The status decides.** After the logout ran, oar reads `authStatus`: when
+  it reads logged out the result is `logged_out`, whatever the logout itself
   answered. A runtime that was logged out already answers in its own words
   (`Not logged in`), and the result is `logged_out`. A logout that succeeded
   while the status still reads logged in is `failed` / `still_logged_in`,
-  with a `detail` saying what the status read; never `logged_out`.
+  with a `detail` saying what the status read; never `logged_out`. When the
+  status cannot tell (`unknown`), the runtime's own report decides, as for a
+  login: a logout that succeeded is `logged_out`, one that failed is its
+  failure.
 - **The environment is not touched.** A credential outside the runtime's
   own store, such as `ANTHROPIC_API_KEY` or `CURSOR_API_KEY`, stays. Where
   the runtime's status reads it (claude's does), the result is
@@ -160,8 +163,8 @@ runtime oar does not sign in.
 
 | Kind | Meaning |
 | --- | --- |
-| logged_out | The runtime's status reads logged out after its logout ran. |
-| failed | The status does not read logged out; `reason` below, `detail` one line with secrets redacted. |
+| logged_out | The runtime's status reads logged out after its logout ran, or, when the status cannot tell, the runtime reported that its logout succeeded. |
+| failed | The logout failed, or it succeeded and the status still reads logged in; `reason` below, `detail` one line with secrets redacted. |
 | unsupported | oar cannot drive this runtime's logout: `unsupported_installation` or `version_unsupported`, as for a login. |
 
 | Failure reason | Meaning |
@@ -169,7 +172,7 @@ runtime oar does not sign in.
 | still_logged_in | The runtime's logout succeeded, yet its status still reads logged in: credentials from the environment or another source. |
 | rejected | The runtime reported that the logout failed. |
 | timed_out | The deadline passed before the logout finished; it was stopped. |
-| process_failed | The executable is no longer there (looked up before anything is spawned), the logout could not start or ended without a result, or the status after a successful logout gave no answer. |
+| process_failed | The executable is no longer there (looked up before anything is spawned), or the logout could not start or ended without a result. |
 
 | Runtime | logout drives | Server side | Floor | Deadline |
 | --- | --- | --- | --- | --- |

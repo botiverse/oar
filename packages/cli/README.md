@@ -46,8 +46,8 @@ result, the others still report, and the exit code is 1.
   prints events, prompts and the result as JSON, `--timeout <ms>` bounds the
   login. The exit code is 0 when logged in, 130 when cancelled, 1 otherwise. See [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
 - `oar logout <runtime>`: log a runtime out through its own logout. It
-  prints `logged out` only when the runtime's status then reads logged out;
-  an API key in the environment that the status still reads is
+  prints `logged out` when the runtime's status then reads logged out (or,
+  when the status cannot tell, the runtime reported success); an API key in the environment that the status still reads is
   `still_logged_in`. `--json` prints the result as JSON, `--timeout <ms>`
   bounds the logout. The exit code is 0 when logged out, 1 otherwise.
 - `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,

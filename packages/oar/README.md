@@ -132,8 +132,9 @@ runtime's local status query. Claude, Codex and Cursor (through its SDK's
 own `Cursor.auth`) have both; Antigravity has neither, since its terms do not
 allow signing in through a third-party tool. `runtime.logout(installation)`
 signs those three out through their own logout (`claude auth logout`,
-`codex logout`, `Cursor.auth.logout`) and resolves `logged_out` only when
-`authStatus` then reads logged out; an API key in the environment is not
+`codex logout`, `Cursor.auth.logout`) and resolves `logged_out` when
+`authStatus` then reads logged out (or, when it cannot tell, on the
+runtime's own report of success); an API key in the environment is not
 touched, and one the status still reads is `failed` / `still_logged_in`.
 See
 [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
