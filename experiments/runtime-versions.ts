@@ -3,7 +3,8 @@
  * Run: pnpm tsx experiments/runtime-versions.ts > versions.json
  *
  * Compare with the last probe report, then run live-contract.ts for changed
- * versions. A version match is not a compatibility result. Pi and Cursor are
+ * versions; for a changed Cursor SDK, also cursor-login/probe.ts (no
+ * account needed). A version match is not a compatibility result. Pi and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH.
  */

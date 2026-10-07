@@ -18,6 +18,7 @@ time.
 | `runtime-versions.ts` | Read-only stable release inventory of the eight core runtimes against the detected CLIs, OAR's Pi SDK and the host-supplied Cursor SDK; a version match is not a live compatibility result. | [daily reports][version-checks] | [2026-10-06] |
 | `pi-upgrade-resume.ts <older-oar-checkout>` | A Pi session created in an older checkout resumes in a fresh process with this checkout; a scripted provider verifies the earlier user and assistant messages reach the new request, without login or model quota. | [report][2026-10-06] | 2026-10-06, SDK 1.0.3 to 1.0.4: same native id and saved model, prior transcript sent, new stream starts at seq 0 |
 | `pi-azure-upgrade-resume.ts <pi-1.0.2-checkout>` | Old native Azure-provider session file resumed through OAR with SDK 1.0.3; synthetic transcript, scripted fallback, no Azure request. | [report][2026-10-05] | 2026-10-05: implicit resume picks the configured default, old explicit provider rejects, new explicit provider opens; model event and readback report the effective selection |
+| [`cursor-login/probe.ts`](cursor-login/README.md) | The real `@cursor/sdk` login through OAR's cursor `login` and `authStatus` against a local mock backend, in temporary homes with every other connection refused: the SDK saves its key only through the store it is given, after the mint, and stops polling on its signal, so a cancel or deadline while it polls or mints leaves `auth.json` absent or as it was. No account. **Run on every `@cursor/sdk` upgrade.** | [cursor] | 2026-10-06, SDK 1.0.35 and 1.0.36: guard check and 9/9 scenarios |
 | [`inventory/probe.py`](inventory/README.md) | Native skills, MCP and tools across five runtimes; query scopes, schemas and startup state. | [inventory] | 2026-09-16 |
 | [`native-read-survey.ts`](native-read-survey.ts) `[all\|codex\|claude] [cwd]` | Native config, MCP, skills/hooks/permissions, context, usage and inventory queries without model turns; field-only output. | [findings and limits](native-read-survey.md) | 2026-09-16, codex 0.154.0, claude 2.1.273 |
 | [`cancellation/`](cancellation/README.md) | Offline native schema and marker survey plus installed Pi SDK method probes; distinguishes withdrawal from abort. | [input-cancellation] | 2026-09-16 |
@@ -64,6 +65,7 @@ time.
 [claude]: ../docs/runtimes/claude.md
 [codex]: ../docs/runtimes/codex.md
 [crash-resume]: ../docs/runtimes/crash-resume.md
+[cursor]: ../docs/runtimes/cursor.md#login
 [grok]: ../docs/runtimes/grok.md
 [input-cancellation]: ../docs/runtimes/input-cancellation.md
 [inventory]: ../docs/runtimes/inventory.md
