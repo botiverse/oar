@@ -23,8 +23,20 @@ export type ToolActionKind =
 
 export interface ToolAction {
   readonly kind: ToolActionKind;
-  /** A short target extracted from the tool input: the command text, a file path, a query. */
+  /**
+   * A short target extracted from the tool input: the command text, a file path, a query.
+   * On `read_file` and `edit_file` it is the first of `paths` when there are any.
+   */
   readonly detail?: string;
+  /**
+   * `read_file` / `edit_file`: every file path the call involves, in the runtime's order,
+   * each once; absent when the input names none. A file tool's one path (claude `Read` /
+   * `Edit` / `Write`, the pi, opencode and cursor read and write tools), or each change of
+   * a codex `fileChange` with a rename's target after its source. How to show several is
+   * the host's call: `detail` stays the first, and `kind` stays `edit_file` for a
+   * `fileChange` that adds, updates and deletes at once.
+   */
+  readonly paths?: readonly string[];
   /**
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
    * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`, cursor `shell`,
@@ -171,6 +183,56 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];
 
+/** The keys of `FIRST_STRING_KEYS` that name a file, in the same order. */
+const PATH_KEYS = ["path", "file_path", "filePath", "file"];
+
+/** A file tool's one path: the first non-empty `PATH_KEYS` string, as `detail` reads it. */
+function inputPath(inputJson: string): readonly string[] {
+  const input = asRecord(parseJson(inputJson));
+  for (const key of PATH_KEYS) {
+    const value = input?.[key];
+    if (typeof value === "string" && value.length > 0) {
+      return [value];
+    }
+  }
+  return [];
+}
+
+/**
+ * A codex `fileChange`'s paths. Its input is the item's `changes` array
+ * (codex/item-detail.ts), recorded on 0.160.1
+ * (tests/replay/fixtures/codex-file-change.raw.jsonl) as
+ * `[{path, kind: {type: "add" | "delete" | "update", move_path?}, diff}]`:
+ * absolute paths, sorted by path whatever the patch's order, and `move_path`
+ * (snake case, `null` on an update that does not rename) the rename's target.
+ */
+function fileChangePaths(inputJson: string): readonly string[] {
+  const changes = parseJson(inputJson);
+  const paths: string[] = [];
+  for (const raw of Array.isArray(changes) ? changes : []) {
+    const change = asRecord(raw);
+    for (const value of [change?.path, asRecord(change?.kind)?.move_path]) {
+      if (typeof value === "string" && value.length > 0) {
+        paths.push(value);
+      }
+    }
+  }
+  return paths;
+}
+
+/** Where a runtime's file tool keeps its paths, when not under one of `PATH_KEYS`. */
+const PATHS: Record<string, Record<string, (input: string) => readonly string[]>> = {
+  codex: { fileChange: fileChangePaths },
+};
+
+/** The file paths a `read_file` / `edit_file` call involves, each once, in the runtime's order. */
+function pathsOf(runtime: string, tool: string, kind: ToolActionKind, inputJson: string | undefined): readonly string[] {
+  if (inputJson === undefined || (kind !== "read_file" && kind !== "edit_file")) {
+    return [];
+  }
+  return [...new Set((PATHS[runtime]?.[tool] ?? inputPath)(inputJson))];
+}
+
 function detailOf(inputJson: string | undefined): string | undefined {
   if (inputJson === undefined) {
     return undefined;
@@ -195,13 +257,14 @@ function detailOf(inputJson: string | undefined): string | undefined {
   return undefined;
 }
 
-/** Classify one tool call into a cross-runtime semantic action plus an extracted detail. */
+/** Classify one tool call into a cross-runtime semantic action plus an extracted detail (and, for a file tool, its paths). */
 export function classifyTool(runtimeId: string, tool: string, inputJson?: string): ToolAction {
   const kind = kindOf(runtimeId, tool);
   const runtime = runtimeId.replace(/-aimock$/u, "");
   const fields = inputJson === undefined ? {} : (FIELDS[runtime]?.[tool]?.(inputJson) ?? {});
-  const detail = detailOf(inputJson) ?? fields.command ?? (kind === "other" ? tool : undefined);
-  return { kind, ...(detail === undefined ? {} : { detail }), ...fields };
+  const paths = pathsOf(runtime, tool, kind, inputJson);
+  const detail = paths[0] ?? detailOf(inputJson) ?? fields.command ?? (kind === "other" ? tool : undefined);
+  return { kind, ...(detail === undefined ? {} : { detail }), ...(paths.length === 0 ? {} : { paths }), ...fields };
 }
 
 const LABELS: Record<ToolActionKind, { running: string; done: string; failed: string }> = {

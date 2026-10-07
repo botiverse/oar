@@ -135,6 +135,7 @@ adds none), and the session view's tool part takes it, so
 `classifyTool` reads `bash` as `run_command` with its `command`, `read` as
 `read_file`, `write` and `edit` as `edit_file` and `grep` and `glob` as
 `search`, each file tool with its `filePath` or `path` as the detail
+(`read`, `write` and `edit` also give that one path as `paths`)
 ([recordings](../../tests/replay/fixtures/opencode-acp-v1-files.vendor.json),
 [test](../../tests/replay/tool-activity.test.ts)). No recorded `bash` input
 has a `description`. The closing update carries the output in `content` and

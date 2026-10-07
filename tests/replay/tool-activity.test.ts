@@ -4,6 +4,7 @@ import { expect, test } from "vitest";
 import type { Frame } from "../../packages/oar/src/contracts/session.js";
 import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { classifyTool, toolActionLabel } from "../../packages/oar/src/observe/tool-activity.js";
+import { codexItemInput } from "../../packages/oar/src/runtimes/codex/item-detail.js";
 import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
@@ -43,10 +44,10 @@ function toolCallsFromCodex(lines: string[]): ToolCall[] {
     const frame = asRecord(parseJson(line));
     const item = frame?.method === "item/started" ? asRecord(frame.item) : null;
     if (item !== null && typeof item.type === "string" && CODEX_TOOL_TYPES.has(item.type)) {
-      // As the projection hands it on (codex/item-detail.ts): commandExecution's input is the bare command line.
-      calls.push(typeof item.command === "string"
-        ? { runtime: "codex", tool: item.type, input: item.command }
-        : { runtime: "codex", tool: item.type });
+      // As the projection hands it on (codex/item-detail.ts): commandExecution's input is the
+      // bare command line, fileChange's its `changes` array as JSON.
+      const input = codexItemInput(item);
+      calls.push(input === undefined ? { runtime: "codex", tool: item.type } : { runtime: "codex", tool: item.type, input });
     }
   }
   return calls;
@@ -139,9 +140,31 @@ test("claude tool calls render as friendly activity", async () => {
   await expect(render(toolCallsFromClaude(lines))).toMatchFileSnapshot(path.join(here, "fixtures", "claude-tool-round.activity.txt"));
 });
 
-test("codex tool calls render as friendly activity", async () => {
-  const lines = readFileSync(path.join(here, "fixtures", "codex-tool-round.raw.jsonl"), "utf8").split("\n").filter((l) => l.trim());
-  await expect(render(toolCallsFromCodex(lines))).toMatchFileSnapshot(path.join(here, "fixtures", "codex-tool-round.activity.txt"));
+for (const scenario of ["tool-round", "file-change"]) {
+  test(`codex ${scenario} tool calls render as friendly activity`, async () => {
+    const lines = fixture(`codex-${scenario}.raw.jsonl`);
+    await expect(render(toolCallsFromCodex(lines))).toMatchFileSnapshot(path.join(here, "fixtures", `codex-${scenario}.activity.txt`));
+  });
+}
+
+test("a codex fileChange names each changed path and a rename's target, as recorded", () => {
+  // codex 0.160.1 against aimock (`pnpm sea-trial:record codex-aimock file-change`): one patch
+  // updating notes.txt, adding added.txt, deleting gone.txt and moving old-name.txt to new-name.txt.
+  const [call, ...rest] = toolCallsFromCodex(fixture("codex-file-change.raw.jsonl"));
+  expect(rest).toEqual([]);
+  expect(classifyTool(call?.runtime ?? "", call?.tool ?? "", call?.input)).toMatchInlineSnapshot(`
+    {
+      "detail": "<cwd>/added.txt",
+      "kind": "edit_file",
+      "paths": [
+        "<cwd>/added.txt",
+        "<cwd>/gone.txt",
+        "<cwd>/notes.txt",
+        "<cwd>/old-name.txt",
+        "<cwd>/new-name.txt",
+      ],
+    }
+  `);
 });
 
 test("pi tool calls render as friendly activity", async () => {
@@ -233,9 +256,9 @@ test("opencode file tools: each opens with an empty input, and the latest names 
     .map((call) => `${call.tool} ${call.started ?? "-"} → ${call.input ?? "-"} ⇒ ${JSON.stringify(classifyTool(call.runtime, call.tool, call.input))}`);
   expect(lines).toMatchInlineSnapshot(`
     [
-      "write {} → {"content":"<content>","filePath":"<filePath>"} ⇒ {"kind":"edit_file","detail":"<filePath>"}",
-      "read {} → {"filePath":"<filePath>"} ⇒ {"kind":"read_file","detail":"<filePath>"}",
-      "edit {} → {"filePath":"<filePath>","newString":"<newString>","oldString":"<oldString>"} ⇒ {"kind":"edit_file","detail":"<filePath>"}",
+      "write {} → {"content":"<content>","filePath":"<filePath>"} ⇒ {"kind":"edit_file","detail":"<filePath>","paths":["<filePath>"]}",
+      "read {} → {"filePath":"<filePath>"} ⇒ {"kind":"read_file","detail":"<filePath>","paths":["<filePath>"]}",
+      "edit {} → {"filePath":"<filePath>","newString":"<newString>","oldString":"<oldString>"} ⇒ {"kind":"edit_file","detail":"<filePath>","paths":["<filePath>"]}",
       "grep {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<path>"}",
       "glob {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<path>"}",
       "bash {"cwd":"<cwd>"} → {"command":"<command>","workdir":"<workdir>"} ⇒ {"kind":"run_command","detail":"<command>","command":"<command>"}",
