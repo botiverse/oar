@@ -18,11 +18,13 @@ earlier investigation of the same version through `opencode serve`.
 Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-The same 13 live scenarios passed on **1.18.34** later on 2026-10-06
+The same 13 live scenarios passed on **1.18.35** on 2026-10-07
 (Linux x64, Node 24.19.0, `opencode/big-pickle`), without adapter changes.
-This adds current ACP session evidence; it does not repeat the separate
-HTTP-server investigation or the direct model-switching probes. See the
-[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md).
+The native prompt-options probe and all three MCP vendor tests also passed,
+including both prompts combined with session MCP servers. This adds current
+ACP session evidence; it does not repeat the separate HTTP-server
+investigation or the direct model-switching probes. See the
+[October 7 report](../../experiments/runtime-version-checks/2026-10-07.md).
 
 ## Native concepts and calling interfaces
 

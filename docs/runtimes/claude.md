@@ -6,8 +6,9 @@ ran on **claude 2.1.268** (darwin arm64, haiku, 2026-09-11); the probes on
 **2.1.237** and **2.1.261** (linux x64) are listed in the
 [experiments index](../../experiments/README.md); later observations carry
 their version inline. The latest daily check re-ran `basic`, `tool-detail` and
-`resume` on **2.1.289** (2026-10-04,
-[report](../../experiments/runtime-version-checks/2026-10-04.md)). Versions
+`resume` on **2.1.292** (2026-10-07,
+[report](../../experiments/runtime-version-checks/2026-10-07.md)), along with
+14 native vendor tests, including MCP attachment and resume. Versions
 are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
