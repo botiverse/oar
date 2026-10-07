@@ -1,7 +1,8 @@
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
 import { configurePiHttp } from "./http.js";
-import { piMcpExtensions, releasePiMcp } from "./mcp.js";
+import { disposePiAgentSession } from "./lifecycle.js";
+import { piMcpExtensions } from "./mcp.js";
 import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
 
 /*
@@ -187,12 +188,14 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
     session.dispose();
     throw new Error(refusal);
   }
-  if (mcp !== null) {
-    await mcp.start(session).catch(async (error: unknown) => {
-      await releasePiMcp(session);
-      session.dispose();
-      throw error;
-    });
+  // Like each CLI startup (including --resume/--continue), keep the SDK
+  // default session_start reason: startup. bindExtensions emits it and
+  // awaits resource discovery, whether or not MCP was requested.
+  try {
+    await session.bindExtensions({});
+  } catch (error) {
+    await disposePiAgentSession(session);
+    throw error;
   }
   return session;
 }

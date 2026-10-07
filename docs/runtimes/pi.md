@@ -147,6 +147,46 @@ The directory formula, lookup and error are pinned by
 [`tests/pi/pi-session-resume.test.ts`](../../tests/pi/pi-session-resume.test.ts).
 [Resolver](../../packages/oar/src/runtimes/pi/resolve.ts).
 
+**Extension lifecycle (SDK 1.0.4):** every OAR session, new or resumed,
+awaits `session.bindExtensions({})` after construction and option readback,
+before returning it to the host. Pi emits `{ type: "session_start", reason:
+"startup" }` from that call and awaits extension resource discovery. This
+matches CLI startup, including `--resume` and `--continue`: `dist/main.js`
+selects the session manager but passes no `sessionStartEvent` to the initial
+runtime; `dist/core/agent-session.js` defaults it to `startup`. The native
+`new` / `resume` reasons belong to in-process session replacement through
+`AgentSessionRuntime`, which OAR does not expose. No previous-session file
+is supplied for startup.
+
+On dispose, OAR first settles an active turn with Pi's abort, then awaits
+`{ type: "session_shutdown", reason: "quit" }` before calling native
+`session.dispose()`, while extension APIs are still usable. Unlike
+`AgentSessionRuntime.dispose()` in Pi 1.0.4, which waits indefinitely, OAR
+allows **10 seconds total** for the shutdown hooks. After that it releases
+the native session and completes dispose normally. Node emits warning code
+`OAR_PI_SHUTDOWN_TIMEOUT`, naming the session ID, `session_shutdown` and the
+10000 ms limit; hosts can capture Node's `warning` event, and Node prints it
+to stderr by default. Pi's public runner does not identify the currently
+executing extension, so the warning does not attribute the timeout to a
+particular extension. The deadline stops waiting and invalidates the native
+session context; it cannot cancel arbitrary in-process extension code.
+
+Repeated disposal does not emit the event again. A failure while binding
+also uses this bounded shutdown before native disposal. This lifecycle applies with or without
+`mcpServers`; MCP connections are one consumer, alongside user extensions.
+These are native extension hooks, not `AgentSessionEvent` stream frames;
+OAR does not synthesize lifecycle records.
+
+The [lifecycle vendor test](../../sea-trial/vendor/pi-extension-lifecycle.vendor.test.ts)
+loads a real user extension that asynchronously appends a session entry and
+records both hooks. It covers new sessions and same-ID resumes with and
+without MCP, checks the event payloads before open/dispose resolve, and
+checks repeated disposal does not duplicate shutdown. The
+[shutdown deadline vendor test](../../sea-trial/vendor/pi-extension-shutdown.vendor.test.ts)
+loads a user extension whose shutdown hook never settles, then verifies
+that native disposal runs, the diagnostic names the hook and timeout, and
+OAR acknowledges dispose after the 10-second limit.
+
 Native construction restores active-branch context, the saved model when
 available, and the thinking level subject to current model capabilities. An
 explicit OAR `model` overrides the saved one and is checked by readback;
@@ -438,11 +478,9 @@ lifecycle, and adds no dependency. Measured on the bundled pi-coding-agent
   reached the provider as the server wrote it, so the server ran with the
   entry's `env` (stdio) or `headers` (http).
 - The MCP extension connects on `session_start` and closes on
-  `session_shutdown`, which pi's CLI session host emits and OAR's opener
-  otherwise does not. A session given servers calls `bindExtensions({})`
-  once created (so the user's extensions see `session_start` too, in such
-  sessions only) and emits `session_shutdown` before dispose: the stdio
-  servers exit. The first prompt waits up to 10 s for the servers.
+  `session_shutdown`, the [lifecycle OAR drives for every Pi session](#session-creation-and-resume),
+  including sessions without MCP. The stdio servers exit on shutdown.
+  The first prompt waits up to 10 s for the servers.
 - A resume remembers none: OAR registers them again on every open; resumed
   without the option, no `mcp__` tool is offered.
 - OAR loads the MCP extension with no `mcp.json` of its own (`loadConfig`

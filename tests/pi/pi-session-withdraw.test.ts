@@ -14,6 +14,7 @@ class FakePiSession {
   readonly sessionId = "pi-session-1";
   readonly thinkingLevel = "off";
   readonly model = undefined;
+  readonly extensionRunner = { emit: async (): Promise<void> => {} };
   readonly prompts: string[] = [];
   isStreaming = false;
   readonly agent = {

@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { AgentSession as PiAgentSession, InlineExtension, McpServerConfig } from "@earendil-works/pi-coding-agent";
+import type { InlineExtension, McpServerConfig } from "@earendil-works/pi-coding-agent";
 import type { McpServer, SessionOptions } from "../../contracts/session.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer, mcpCredentialRedactor } from "../../shared/mcp-servers.js";
 
@@ -13,11 +13,9 @@ import { checkMcpServerNames, givenMcpServers, isHttpMcpServer, mcpCredentialRed
  * given servers gets two inline extensions: the MCP extension with no
  * `mcp.json` of its own (oar's pi never loaded the user's, with or without
  * this option), and one registering the entries. The MCP extension connects
- * them on `session_start` and closes them on `session_shutdown`, events the
- * pi CLI's session host emits and oar's opener otherwise does not: such a
- * session binds its extensions after it is created (`bindExtensions`, so
- * the user's extensions see `session_start` too) and emits
- * `session_shutdown` before it is disposed. The first prompt waits up to
+ * them on `session_start` and closes them on `session_shutdown`, the same
+ * lifecycle oar drives for every pi session (open.ts and lifecycle.ts).
+ * The first prompt waits up to
  * 10 s for the servers to connect. Tools are `mcp__<name>__<tool>` declared to the model
  * directly (`exposure: "direct"`): pi's default, `codemode`, reaches them
  * only from the codemode extension, which oar does not load either.
@@ -89,22 +87,6 @@ export interface PiMcpExtensions {
    * errors of pi's extension load: the session would run without the server.
    */
   check(loadErrors: readonly { readonly path: string; readonly error: string }[]): void;
-  /** Start the created session's extensions (`session_start`), which connects the servers; `releasePiMcp` stops them. */
-  start(session: PiAgentSession): Promise<void>;
-}
-
-/** Sessions whose MCP extension was started, so their dispose emits `session_shutdown` first. */
-const started = new WeakSet<PiAgentSession>();
-
-/**
- * Close the session's MCP connections (stdio servers exit) before it is
- * disposed: pi's `session_shutdown`, emitted only for a session `start`
- * bound; a no-op for any other.
- */
-export async function releasePiMcp(session: PiAgentSession): Promise<void> {
-  if (started.delete(session)) {
-    await session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" });
-  }
 }
 
 const MCP_EXTENSION = "oar-mcp";
@@ -144,10 +126,6 @@ export async function piMcpExtensions(options: SessionOptions, agentDir: string)
       if (failures.length > 0) {
         throw new Error(`pi did not register the session's MCP servers: ${failures.join("; ")}`);
       }
-    },
-    start: async (session) => {
-      started.add(session);
-      await session.bindExtensions({});
     },
   };
 }

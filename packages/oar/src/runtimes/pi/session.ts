@@ -12,7 +12,7 @@ import {
   piPrompted,
   type PiProjectionState,
 } from "./projection.js";
-import { releasePiMcp } from "./mcp.js";
+import { disposePiAgentSession } from "./lifecycle.js";
 import { openPiAgentSession, piEffectiveModel } from "./open.js";
 
 /** pi's ImageContent: base64 data and its type. */
@@ -254,9 +254,8 @@ export const piSession: StartSession = async (installation, options) => {
         projection = piAbortRequested(projection);
         await piAgentSession.abort();
       }
-      // The session's MCP servers close first (mcp.ts), as pi's own host does.
-      await releasePiMcp(piAgentSession);
-      piAgentSession.dispose();
+      // Every extension shuts down before its native context is invalidated.
+      await disposePiAgentSession(piAgentSession);
       // pi runs in this process: there is no process exit to observe, so the
       // dispose is answered as taken over rather than with an exit code.
       kernel.respond(request.id, { kind: "accepted" });
