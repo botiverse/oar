@@ -1,11 +1,11 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { runExecutable, type ExecutableRunner } from "../../shared/executable/run.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { privateTempDir } from "../../shared/private-temp.js";
 
 export interface OpenCodePromptConfig {
   readonly options: SessionOptions;
@@ -88,16 +88,19 @@ async function activeAgent(command: string, options: SessionOptions, run: Execut
 export async function prepareOpenCodePrompts(command: string, options: SessionOptions, run: ExecutableRunner = runExecutable): Promise<OpenCodePromptConfig> {
   validateOpenCodePrompts(options);
   const agent = options.systemPrompt === undefined ? undefined : await activeAgent(command, options, run);
-  const directory = options.appendSystemPrompt === undefined ? undefined : await mkdtemp(path.join(tmpdir(), "oar-opencode-prompt-"));
+  // privateTempDir: a host that ends without disposing leaves it to the backstops there.
+  const directory = options.appendSystemPrompt === undefined ? undefined : await privateTempDir("oar-opencode-prompt-");
   let removal: Promise<void> | undefined = undefined;
   const cleanup = async (): Promise<void> => {
     if (directory !== undefined) {
-      removal ??= rm(directory, { recursive: true, force: true });
+      removal ??= rm(directory.path, { recursive: true, force: true });
       await removal;
+      // Already gone; this only takes it off the exit backstop.
+      directory.remove();
     }
   };
   try {
-    const instructions = directory === undefined ? undefined : path.join(directory, "instructions.md");
+    const instructions = directory === undefined ? undefined : path.join(directory.path, "instructions.md");
     if (instructions !== undefined) {
       await writeFile(instructions, options.appendSystemPrompt ?? "", { mode: 0o600 });
     }

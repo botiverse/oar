@@ -62,11 +62,12 @@ export interface SessionOptions {
   /**
    * MCP servers attached to THIS session, on top of the servers the runtime
    * is configured with: oar never edits the runtime's configuration or
-   * drops the user's servers (claude reads the session's from a 0600
-   * temporary file oar deletes when the session ends; codex from its
-   * `thread/start` / `thread/resume` config overrides; grok, kimi, opencode
-   * and antigravity from ACP `session/new` / `session/resume` `mcpServers`;
-   * pi from an extension that registers them). Not remembered: give them
+   * drops the user's servers (claude reads the session's from a 0600 FIFO
+   * oar removes once read, on Windows a temporary file removed when claude
+   * exits; codex from its `thread/start` / `thread/resume` config
+   * overrides; grok, kimi, opencode and antigravity from ACP `session/new` /
+   * `session/resume` `mcpServers`; pi from an extension that registers
+   * them). Not remembered: give them
    * again on `resume`, where oar attaches them to the resumed session too. A
    * server named like one the user configured meets it the runtime's way for
    * this session (codex: merged into it field by field; pi: the open fails
