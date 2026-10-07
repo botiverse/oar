@@ -1,10 +1,12 @@
 import type {
   ContextUsage,
   RuntimeEventBody,
+  TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
 import { classifyFailure } from "../failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../json.js";
+import { addTokens } from "../token-totals.js";
 import { toolContent } from "../tool-output.js";
 import { AcpError } from "./errors.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
@@ -189,6 +191,24 @@ export function acpContextUsage(update: JsonRecord): ContextUsage | null {
     ? null
     : Math.round((tokens / contextWindow) * 100);
   return { tokens, contextWindow, percent };
+}
+
+/**
+ * A prompt answer's `usage` event, from the profile's readings of it: the
+ * context, and the prompt's own ledger added to the session's `billed`
+ * total (cache parts included) and stamped cumulative. No event when the
+ * answer carried neither.
+ */
+export function acpPromptUsage(
+  context: ContextUsage | null,
+  prompted: TokenTotals | null,
+  billed: TokenTotals,
+): { readonly event: RuntimeEventBody | null; readonly billed: TokenTotals } {
+  const next = prompted === null ? billed : addTokens(billed, prompted);
+  if (context === null && prompted === null) {
+    return { event: null, billed: next };
+  }
+  return { event: { kind: "usage", usage: { ...(context === null ? {} : { context }), ...(prompted === null ? {} : { tokens: next }) } }, billed: next };
 }
 
 function reasoningView(value: unknown): RuntimeEventBody {

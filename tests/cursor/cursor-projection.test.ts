@@ -90,14 +90,17 @@ test("a delivered steer's echo is a user message without an input id", () => {
   assert.deepEqual(one(update).events, [{ kind: "user_message", input: "Also include the word PELICAN in your final reply.", evidence: "conversation" }]);
 });
 
-test("each turn's usage adds to a running total, cache reads and writes counted as input", () => {
+// #161: cacheReadTokens / cacheWriteTokens (required in SDK 1.0.36's
+// TurnEndedUpdateSchema) are parts of input, accumulated across turns like
+// it; a reported 0 stays 0.
+test("each turn's usage adds to a running total, cache reads and writes counted as input and as its parts", () => {
   const { frames } = fold([
     { type: "turn-ended", usage: { inputTokens: 11_703, outputTokens: 60, cacheReadTokens: 8224, cacheWriteTokens: 0 } },
     { type: "turn-ended", usage: { inputTokens: 100, outputTokens: 5, cacheReadTokens: 10, cacheWriteTokens: 1 } },
   ]);
   assert.deepEqual(frames.map((frame) => frame.events), [
-    [{ kind: "usage", usage: { tokens: { input: 19_927, output: 60 } } }],
-    [{ kind: "usage", usage: { tokens: { input: 20_038, output: 65 } } }],
+    [{ kind: "usage", usage: { tokens: { input: 19_927, output: 60, cacheRead: 8224, cacheWrite: 0 } } }],
+    [{ kind: "usage", usage: { tokens: { input: 20_038, output: 65, cacheRead: 8234, cacheWrite: 1 } } }],
   ]);
 });
 
@@ -122,7 +125,7 @@ test("a subagent's update arrives inside its task call and is attributed to that
   assert.deepEqual(frames[1]?.events, [{ kind: "tool_call_started", callId: child, tool: "shell", input: JSON.stringify({ command: "ls -la" }) }]);
   assert.deepEqual(frames[3]?.events, [{ kind: "text_delta", text: "deep" }]);
   // The run's own usage is recorded on the root.
-  assert.deepEqual(frames[4]?.events, [{ kind: "usage", usage: { tokens: { input: 7, output: 2 } } }]);
+  assert.deepEqual(frames[4]?.events, [{ kind: "usage", usage: { tokens: { input: 7, output: 2, cacheRead: 0, cacheWrite: 0 } } }]);
 });
 
 test("a run's status is the turn's outcome, and its model and effort what the SDK records it ran", () => {

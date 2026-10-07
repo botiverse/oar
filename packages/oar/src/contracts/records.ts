@@ -89,10 +89,21 @@ export type ReasoningContent =
   | { readonly kind: "redacted" }
   | { readonly kind: "empty" };
 
-/** Token totals; always cumulative for the agent the record is attributed to. */
+/**
+ * Token totals; always cumulative for the agent the record is attributed to.
+ * `cacheRead` / `cacheWrite` are parts of `input`, accumulated like it and
+ * each present only when the runtime reports it: a reported 0 is 0, an
+ * unreported part is absent (never derived), a report without a part adds
+ * nothing to it, and a part once present stays (docs/spec/attribution.md).
+ */
 export interface TokenTotals {
+  /** All input, cache reads and writes included. */
   readonly input: number;
   readonly output: number;
+  /** The part of `input` read from the prompt cache. */
+  readonly cacheRead?: number;
+  /** The part of `input` written to the prompt cache. */
+  readonly cacheWrite?: number;
 }
 
 /**

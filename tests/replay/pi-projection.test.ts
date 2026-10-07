@@ -10,6 +10,7 @@ import {
   type PiProjectionState,
   type ProjectionCommand,
 } from "../../packages/oar/src/runtimes/pi/projection.js";
+import type { TokenTotals } from "../../packages/oar/src/contracts/session.js";
 import { parseJson } from "../../packages/oar/src/shared/json.js";
 
 /**
@@ -25,6 +26,17 @@ import { parseJson } from "../../packages/oar/src/shared/json.js";
 const here = import.meta.dirname;
 const scenarios = ["tool-round"];
 
+function describeUsage(tokens: TokenTotals | undefined): string {
+  if (tokens === undefined) {
+    return "usage";
+  }
+  const parts = [
+    ...(tokens.cacheRead === undefined ? [] : [` cacheRead=${String(tokens.cacheRead)}`]),
+    ...(tokens.cacheWrite === undefined ? [] : [` cacheWrite=${String(tokens.cacheWrite)}`]),
+  ];
+  return `usage in=${String(tokens.input)} out=${String(tokens.output)}${parts.join("")}`;
+}
+
 function describeCommand(command: ProjectionCommand): string {
   const events = command.body.events.map((view) => {
     if (view.kind === "tool_call_started") {
@@ -37,7 +49,7 @@ function describeCommand(command: ProjectionCommand): string {
       return `turn_ended ${view.outcome.kind}`;
     }
     if (view.kind === "usage") {
-      return view.usage.tokens === undefined ? "usage" : `usage in=${String(view.usage.tokens.input)} out=${String(view.usage.tokens.output)}`;
+      return describeUsage(view.usage.tokens);
     }
     return view.kind;
   });
@@ -104,6 +116,36 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
     kind: "turn_ended",
     outcome: { kind: "failed", reason: "400 bad request", failure: "invalid_request" },
   });
+});
+
+/**
+ * An assistant `message_end` with pi-ai 1.0.4's `Usage` (types.d.ts: `input`
+ * excludes `cacheRead` and `cacheWrite`; `cacheWrite1h` is a subset of
+ * `cacheWrite`), the shape recorded in fixtures/pi-tool-round.raw.jsonl.
+ */
+function assistantEnd(usage: { input: number; output: number; cacheRead: number; cacheWrite: number; cacheWrite1h?: number }): AgentSessionEvent {
+  // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- only the fields the fold reads matter here
+  return { type: "message_end", message: { role: "assistant", usage: { ...usage, totalTokens: usage.input + usage.output + usage.cacheRead + usage.cacheWrite } } } as never;
+}
+
+// #161: pi's cacheRead / cacheWrite are parts of input, accumulated like it
+// across turns (agent_settled ends one; the running total stays).
+test("pi cache reads and writes accumulate across turns as parts of input", () => {
+  let state = piPrompted(initialPiProjection);
+  const totals: unknown[] = [];
+  for (const event of [
+    assistantEnd({ input: 1381, output: 39, cacheRead: 0, cacheWrite: 5120, cacheWrite1h: 5120 }),
+    { type: "agent_settled" } satisfies AgentSessionEvent,
+    assistantEnd({ input: 12, output: 40, cacheRead: 5120, cacheWrite: 1395 }),
+  ]) {
+    const { state: next, commands } = foldPiEvent(state, event);
+    state = next;
+    totals.push(...commands.flatMap((command) => command.body.events.flatMap((view) => (view.kind === "usage" && view.usage.tokens !== undefined ? [view.usage.tokens] : []))));
+  }
+  expect(totals).toEqual([
+    { input: 6501, output: 39, cacheRead: 0, cacheWrite: 5120 },
+    { input: 13_028, output: 79, cacheRead: 5120, cacheWrite: 6515 },
+  ]);
 });
 
 test("pi tool_execution_end maps the explicit isError flag", () => {

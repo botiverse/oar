@@ -237,7 +237,7 @@ test("codex context fullness is the last model call's total against modelContext
     },
   });
   expect(record?.kind === "frame" ? record.body.events : null).toEqual([
-    { kind: "usage", usage: { context: { tokens: 15_774, contextWindow: 121_600, percent: 13 }, tokens: { input: 44_166, output: 35 } } },
+    { kind: "usage", usage: { context: { tokens: 15_774, contextWindow: 121_600, percent: 13 }, tokens: { input: 44_166, output: 35, cacheRead: 32_512 } } },
   ]);
   const nullWindow = foldCodexNotification(state, "thread/tokenUsage/updated", {
     threadId: ROOT,

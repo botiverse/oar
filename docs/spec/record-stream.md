@@ -153,7 +153,7 @@ interface FrameBody {
 //   tool_call_input {callId, input} |
 //   tool_call_progress {callId, output?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
-//   turn_ended {outcome} | usage {usage: {context?, tokens?}} | model {model} |
+//   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}}} | model {model} |
 //   effort {effort} |
 //   compaction_started {trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |

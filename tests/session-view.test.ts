@@ -194,17 +194,18 @@ test("model, effort, context and token usage fold into view fields", () => {
     frame(2, [
       { kind: "model", model: "test-model" },
       { kind: "effort", effort: "high" },
-      { kind: "usage", usage: { context: { tokens: 1000, contextWindow: 2000, percent: 50 }, tokens: { input: 10, output: 5 } } },
+      { kind: "usage", usage: { context: { tokens: 1000, contextWindow: 2000, percent: 50 }, tokens: { input: 10, output: 5, cacheRead: 6, cacheWrite: 0 } } },
     ]),
     frame(3, [{ kind: "usage", usage: { tokens: { input: 3, output: 1 } } }], { agentPath: ["child"] }),
   ]);
   expect(view.model).toBe("test-model");
   expect(view.effort).toBe("high");
   expect(view.context).toEqual({ tokens: 1000, contextWindow: 2000, percent: 50 });
+  // A cache part sums over the agents that reported it (#161); the child reported none.
   expect(view.usage).toEqual({
-    total: { input: 13, output: 6 },
+    total: { input: 13, output: 6, cacheRead: 6, cacheWrite: 0 },
     byAgent: [
-      { agentPath: [], tokens: { input: 10, output: 5 } },
+      { agentPath: [], tokens: { input: 10, output: 5, cacheRead: 6, cacheWrite: 0 } },
       { agentPath: ["child"], tokens: { input: 3, output: 1 } },
     ],
   });

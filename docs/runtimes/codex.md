@@ -446,7 +446,13 @@ appear. [Model listing][oar-models],
 `usage` event: `context` = `last.totalTokens` (the last model call's input,
 cached tokens included, plus its output: what the context holds once the
 reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
-= `total` input/output, cumulative for the thread. `last.totalTokens` is
+= `total` input/output, cumulative for the thread, with
+`total.cachedInputTokens` as `cacheRead` (already part of `inputTokens`, a
+required field so every snapshot carries it; live 0.154.0: 32512 of 44166).
+No `cacheWrite`: the schema's
+`cacheWriteInputTokens` (`#[serde(default)]` at the pinned commit) is not
+mapped while no recording shows it nonzero or inside `inputTokens`
+([spec](../spec/attribution.md#cache-reads-and-writes)). `last.totalTokens` is
 codex's own occupancy reading (`TokenUsage::tokens_in_context_window` returns
 `total_tokens`, and the TUI status card reads it off `last_token_usage`;
 `protocol/src/protocol.rs` at [`4f39251a`][native-source]); codex's displayed

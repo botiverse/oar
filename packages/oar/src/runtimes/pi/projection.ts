@@ -8,6 +8,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord } from "../../shared/json.js";
+import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 
 /**
@@ -40,7 +41,7 @@ export const initialPiProjection: PiProjectionState = {
   abortRequested: false,
   reasoningHadText: false,
   providerError: undefined,
-  tokens: { input: 0, output: 0 },
+  tokens: noTokens,
 };
 
 /** Control plane → state: a prompt (or a drained queue input) resets the per-run accumulators; the running token total stays. */
@@ -124,10 +125,15 @@ function accumulate(state: PiProjectionState, message: unknown): Step {
   if (record?.role !== "assistant" || usage === null) {
     return { state, events: [] };
   }
-  const tokens: TokenTotals = {
-    input: state.tokens.input + (asNumber(usage.input) ?? 0) + (asNumber(usage.cacheRead) ?? 0) + (asNumber(usage.cacheWrite) ?? 0),
-    output: state.tokens.output + (asNumber(usage.output) ?? 0),
-  };
+  // pi's `input` excludes the cache reads and writes, so input counts them
+  // back in; each also stands as its own part (`cacheWrite1h` is a subset of
+  // `cacheWrite`, pi-ai types.d.ts, so it adds nothing).
+  const cache = cacheParts(usage, { read: "cacheRead", write: "cacheWrite" });
+  const tokens = addTokens(state.tokens, {
+    input: (asNumber(usage.input) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
+    output: asNumber(usage.output) ?? 0,
+    ...cache,
+  });
   return { state: { ...state, tokens }, events: [{ kind: "usage", usage: { tokens } }] };
 }
 

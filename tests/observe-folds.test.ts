@@ -130,3 +130,30 @@ test("model, usage and contextUsage fold only the root session's records", () =>
     ],
   }, "sub-agents of this session (agentPath) still aggregate");
 });
+
+function tokens(body: { input: number; output: number; cacheRead?: number; cacheWrite?: number }): FrameBody {
+  return { type: "result", native: {}, events: [{ kind: "usage", usage: { tokens: body } }] };
+}
+
+// #161: cacheRead / cacheWrite sum over the agents the way input does, each
+// part over the agents that reported it; an agent that reported none adds
+// nothing, and a part no agent reported is absent from the total.
+test("usage totals sum each cache part over the agents that reported it", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  kernel.frame(tokens({ input: 100, output: 10, cacheRead: 60, cacheWrite: 30 }));
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10, cacheRead: 60, cacheWrite: 30 } });
+  kernel.frame(tokens({ input: 40, output: 4, cacheRead: 25 }), { agentPath: ["worker"] });
+  kernel.frame(tokens({ input: 9, output: 1 }), { agentPath: ["reader"] });
+  assert.deepEqual(session.usage().value, {
+    total: { input: 149, output: 15, cacheRead: 85, cacheWrite: 30 },
+    byAgent: [
+      { agentPath: [], tokens: { input: 100, output: 10, cacheRead: 60, cacheWrite: 30 } },
+      { agentPath: ["worker"], tokens: { input: 40, output: 4, cacheRead: 25 } },
+      { agentPath: ["reader"], tokens: { input: 9, output: 1 } },
+    ],
+  });
+  const plain = createSessionKernel(ROOT);
+  plain.frame(tokens({ input: 9, output: 1 }));
+  assert.deepEqual(usageOf(plain.records()).value, { total: { input: 9, output: 1 } }, "no agent reported a cache part: none in the total");
+});

@@ -381,7 +381,11 @@ configures no post-answer wait (`usageUpdateAfterPrompt` unset).
 
 **Billing (mapped):** `Session.usage()` is the sum of the per-prompt
 `_meta.usage` ledgers (`inputTokens` including cached reads, `outputTokens`;
-a ledger missing either side is ignored rather than half-counted). Each
+a ledger missing either side is ignored rather than half-counted). The
+ledger's `cachedReadTokens` sums as `cacheRead` and its `cacheCreationTokens`
+as `cacheWrite`, each only from ledgers that carry it (live 1.0.25 basic
+answer: 1280 and 0; whether `inputTokens` holds a nonzero cache write is
+unverified; [spec](../spec/attribution.md#cache-reads-and-writes)). Each
 ledger is what THAT prompt billed, summed over every model call the prompt
 caused, not a session total: repeated one-word turns bill about 16.8k input
 each; a send-now steer's two answers carry two disjoint ledgers (the

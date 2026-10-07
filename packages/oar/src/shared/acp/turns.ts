@@ -18,6 +18,7 @@ import { methods, type AcpProcess } from "./process.js";
 import {
   acpErrorNative,
   acpFailureOutcome,
+  acpPromptUsage,
   defaultAcpPromptOutcome,
 } from "./projection.js";
 
@@ -130,18 +131,12 @@ export function createAcpTurns(deps: {
         // precedes the turn end and contextUsage() at turn_ended is this
         // turn's own value.
         await usageGate.settleAfterPrompt(profile, state.abortRequested);
-        const context = profile.promptContextUsage?.(result) ?? null;
-        const prompted = profile.promptTokenUsage?.(result) ?? null;
-        if (prompted !== null) {
-          billed = { input: billed.input + prompted.input, output: billed.output + prompted.output };
-        }
+        const usage = acpPromptUsage(profile.promptContextUsage?.(result) ?? null, profile.promptTokenUsage?.(result) ?? null, billed);
+        ({ billed } = usage);
         finishRequest(state, requestNumber, {
           type: methods.agent.session.prompt,
           native: result,
-          context: context === null && prompted === null ? null : {
-            kind: "usage",
-            usage: { ...(context === null ? {} : { context }), ...(prompted === null ? {} : { tokens: billed }) },
-          },
+          context: usage.event,
         }, profile.promptOutcome?.(result) ?? defaultAcpPromptOutcome(result));
       } catch (error) {
         if (error instanceof AcpError && error.kind === "process_exited") {

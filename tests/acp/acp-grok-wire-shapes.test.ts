@@ -75,12 +75,16 @@ test("grok prompt answer: `_meta.usage` is the prompt's ledger, `_meta.totalToke
       usage: { inputTokens: 16_791, outputTokens: 34, totalTokens: 16_825, cachedReadTokens: 1280, cacheCreationTokens: 0, reasoningTokens: 28, modelCalls: 1 },
     },
   };
-  assert.deepEqual(grokPromptTokens(answer), { input: 16_791, output: 34 });
+  // #161: the ledger's cachedReadTokens / cacheCreationTokens are the cache parts of its input.
+  assert.deepEqual(grokPromptTokens(answer), { input: 16_791, output: 34, cacheRead: 1280, cacheWrite: 0 });
   assert.deepEqual(grokContextUsage(answer), { tokens: 16_825, contextWindow: null, percent: null });
   assert.equal(grokPromptTokens({ stopReason: "end_turn" }), null);
   assert.equal(grokPromptTokens({ stopReason: "cancelled", _meta: { totalTokens: 5 } }), null);
   // A half ledger is no ledger: the missing side is never invented as 0.
   assert.equal(grokPromptTokens({ stopReason: "end_turn", _meta: { usage: { inputTokens: 12 } } }), null);
+  // A ledger without a cache field has no such part, never a 0 for it.
+  assert.deepEqual(grokPromptTokens({ stopReason: "end_turn", _meta: { usage: { inputTokens: 12, outputTokens: 3, cachedReadTokens: 8 } } }), { input: 12, output: 3, cacheRead: 8 });
+  assert.deepEqual(grokPromptTokens({ stopReason: "end_turn", _meta: { usage: { inputTokens: 12, outputTokens: 3 } } }), { input: 12, output: 3 });
   assert.equal(grokPromptTokens({ stopReason: "end_turn", _meta: { usage: { outputTokens: 3, modelCalls: 1 } } }), null);
 });
 
@@ -164,19 +168,19 @@ test("a grok child session gets its graph edge from the vendor session_notificat
 });
 
 // oxlint-disable-next-line eslint/max-statements -- two turns, the fold after each, and both stamped events.
-test("grok per-prompt ledgers accumulate into the session total, stamped cumulative on each answer", async () => {
+test("grok per-prompt ledgers accumulate into the session total, cache parts included, stamped cumulative on each answer", async () => {
   const session = await start(grokProfile);
   const first = await promptAndWait(session, "grok-usage");
   assert.equal(first.kind, "ended");
-  assert.deepEqual(session.usage().value, { total: { input: 100, output: 7 } });
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 7, cacheRead: 64, cacheWrite: 0 } });
   const second = await promptAndWait(session, "grok-usage");
   assert.equal(second.kind, "ended");
-  assert.deepEqual(session.usage().value, { total: { input: 200, output: 14 } });
+  assert.deepEqual(session.usage().value, { total: { input: 200, output: 14, cacheRead: 128, cacheWrite: 0 } });
   assert.deepEqual(session.contextUsage().value, { tokens: 1002, contextWindow: null, percent: null });
   const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));
   assert.deepEqual(answers, [
-    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1001, contextWindow: null, percent: null }, tokens: { input: 100, output: 7 } } }],
-    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1002, contextWindow: null, percent: null }, tokens: { input: 200, output: 14 } } }],
+    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1001, contextWindow: null, percent: null }, tokens: { input: 100, output: 7, cacheRead: 64, cacheWrite: 0 } } }],
+    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 1002, contextWindow: null, percent: null }, tokens: { input: 200, output: 14, cacheRead: 128, cacheWrite: 0 } } }],
   ]);
   await session.dispose();
 });
@@ -205,7 +209,9 @@ test("the same push on an unlisted method is a frame oar never sees (the SDK dis
 // live-grok-b/steer.voyage.jsonl: the cancelled answer (seq 63) bills its one
 // model call (16776/222), the closing answer (seq 158) ITS OWN two calls
 // (34420/279, `modelCalls: 2`): two per-prompt ledgers, so the session sum
-// is 51196/501 and neither call is counted twice.
+// is 51196/501 and neither call is counted twice. Their cache reads
+// (640, 19968) sum the same way; neither ledger names a cache write, so the
+// total has no `cacheWrite`.
 test("a send-now steer's two answers are two per-prompt ledgers: summed once, stamped cumulative", async () => {
   const session = await start({ ...grokProfile, steerParams: () => ({ _meta: { sendNow: true } }) });
   const base = await session.prompt("grok-steer-base");
@@ -215,9 +221,9 @@ test("a send-now steer's two answers are two per-prompt ledgers: summed once, st
   assert.deepEqual(await awaitTurnEnd(session, base.request.seq), { kind: "completed" });
   const answers = session.records().flatMap((record) => (record.kind === "frame" && record.body.type === "session/prompt" ? [record.body.events] : []));
   assert.deepEqual(answers, [
-    [{ kind: "usage", usage: { context: { tokens: 16_998, contextWindow: null, percent: null }, tokens: { input: 16_776, output: 222 } } }],
-    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 17_405, contextWindow: null, percent: null }, tokens: { input: 51_196, output: 501 } } }],
+    [{ kind: "usage", usage: { context: { tokens: 16_998, contextWindow: null, percent: null }, tokens: { input: 16_776, output: 222, cacheRead: 640 } } }],
+    [{ kind: "turn_ended", outcome: { kind: "completed" } }, { kind: "usage", usage: { context: { tokens: 17_405, contextWindow: null, percent: null }, tokens: { input: 51_196, output: 501, cacheRead: 20_608 } } }],
   ]);
-  assert.deepEqual(session.usage().value, { total: { input: 51_196, output: 501 } });
+  assert.deepEqual(session.usage().value, { total: { input: 51_196, output: 501, cacheRead: 20_608 } });
   await session.dispose();
 });

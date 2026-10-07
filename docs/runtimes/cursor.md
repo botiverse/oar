@@ -180,7 +180,10 @@ Reported upstream on 2026-10-07
 `text-delta` is a `text_delta`, `thinking-delta` a `reasoning` text, and
 `turn-ended` a `usage` event: its `inputTokens` exclude cache reads and
 writes, so OAR adds `cacheReadTokens` and `cacheWriteTokens` to the input,
-and the totals accumulate. It is the run's usage, recorded on the root; no
+and the totals accumulate; the two also accumulate as `cacheRead` and
+`cacheWrite` (required numbers in SDK 1.0.36's `TurnEndedUpdateSchema`, so
+both are present once a turn reported usage;
+[spec](../spec/attribution.md#cache-reads-and-writes)). It is the run's usage, recorded on the root; no
 update reports a child's own tokens, and whether the run's figure includes a
 child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),

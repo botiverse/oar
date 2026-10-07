@@ -6,6 +6,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { cacheParts } from "../../shared/token-totals.js";
 import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-detail.js";
 import { codexReasoningContent } from "./reasoning.js";
 import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
@@ -144,7 +145,11 @@ function usageViews(params: JsonRecord): RuntimeEventBody[] {
   }
   const input = asNumber(total.inputTokens);
   const output = asNumber(total.outputTokens);
-  const tokens = input === null || output === null ? {} : { tokens: { input, output } };
+  // `inputTokens` already counts the cached reads; `cachedInputTokens` is
+  // that part. `cacheWrite` stays absent: #161 maps codex's cache reads only,
+  // and the schema's `cacheWriteInputTokens` (pinned 4f39251a, serde default
+  // 0) stays in `native` until a recording shows it nonzero and inside input.
+  const tokens = input === null || output === null ? {} : { tokens: { input, output, ...cacheParts(total, { read: "cachedInputTokens" }) } };
   const last = asRecord(tokenUsage?.last);
   if (last === null) {
     return [{ kind: "usage", usage: { context: { tokens: input, contextWindow: null, percent: null }, ...tokens } }];

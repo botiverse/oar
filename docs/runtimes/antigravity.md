@@ -184,7 +184,8 @@ later `prompt()` is rejected and a later `dispose()` is answered `accepted`
 `agent_thought_chunk` arrived in any scenario, so no reasoning events appear.
 Detail strings truncate at 10,000 characters (`native` does not).
 `Session.usage()` totals and `contextUsage()` stay empty: Antigravity sends no
-`usage_update` and no token totals on any answer.
+`usage_update` and no token totals on any answer, so no `cacheRead` or
+`cacheWrite` either.
 
 **Tool frames:** Antigravity executes tools itself. In `yolo` a shell call
 opens with a `tool_call` whose `title` is the command, `kind: "execute"`,

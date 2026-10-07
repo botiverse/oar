@@ -7,6 +7,7 @@ import {
   initialClaudeProjection,
   type ProjectionCommand,
 } from "../../packages/oar/src/runtimes/claude/projection.js";
+import type { TokenTotals } from "../../packages/oar/src/contracts/session.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 /**
@@ -22,6 +23,17 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 const here = import.meta.dirname;
 const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks"];
+
+function describeUsage(tokens: TokenTotals | undefined): string {
+  if (tokens === undefined) {
+    return "usage";
+  }
+  const parts = [
+    ...(tokens.cacheRead === undefined ? [] : [` cacheRead=${String(tokens.cacheRead)}`]),
+    ...(tokens.cacheWrite === undefined ? [] : [` cacheWrite=${String(tokens.cacheWrite)}`]),
+  ];
+  return `usage in=${String(tokens.input)} out=${String(tokens.output)}${parts.join("")}`;
+}
 
 function describeCommand(command: ProjectionCommand): string {
   switch (command.kind) {
@@ -39,10 +51,11 @@ function describeCommand(command: ProjectionCommand): string {
             return `reasoning ${view.content.kind}`;
           case "turn_ended":
             return `turn_ended ${view.outcome.kind}`;
+          case "usage":
+            return describeUsage(view.usage.tokens);
           case "text_delta":
           case "tool_call_ended":
           case "user_message":
-      case "usage":
           case "model":
           case "effort":
           case "tool_call_progress":
@@ -144,9 +157,34 @@ function usageTotals(frames: readonly Record<string, unknown>[]): string[] {
 
 test("claude result usage accumulates per agent into cumulative totals", () => {
   expect(usageTotals([resultFrame(null, 10, 1), resultFrame(null, 20, 2), resultFrame("task-9", 5, 5)])).toEqual([
-    'root:{"input":10,"output":1}',
-    'root:{"input":30,"output":3}',
-    'task-9:{"input":5,"output":5}',
+    'root:{"input":10,"output":1,"cacheRead":0,"cacheWrite":0}',
+    'root:{"input":30,"output":3,"cacheRead":0,"cacheWrite":0}',
+    'task-9:{"input":5,"output":5,"cacheRead":0,"cacheWrite":0}',
+  ]);
+});
+
+/** The `result` frame of the recorded background-tasks turn (fixtures/claude-background-tasks.raw.jsonl, a live login). */
+function recordedResult(): Record<string, unknown> {
+  const line = readFileSync(path.join(here, "fixtures", "claude-background-tasks.raw.jsonl"), "utf8")
+    .split("\n")
+    .find((candidate) => asRecord(parseJson(candidate))?.type === "result");
+  const frame = asRecord(parseJson(line ?? ""));
+  expect(frame?.usage).toEqual({ input_tokens: 4, output_tokens: 359, cache_read_input_tokens: 29_198, cache_creation_input_tokens: 9807 });
+  return frame ?? {};
+}
+
+// #161: `cache_read_input_tokens` and `cache_creation_input_tokens` are parts
+// of input (input_tokens excludes them), each accumulated like input. A
+// result without them adds nothing to the parts, which stay; an agent whose
+// results never carried them has neither.
+test("claude cache reads and writes accumulate per agent across turns as parts of input", () => {
+  const recorded = recordedResult();
+  const bare = { type: "result", subtype: "success", usage: { input_tokens: 7, output_tokens: 3 } };
+  expect(usageTotals([recorded, recorded, bare, { ...bare, parent_tool_use_id: "task-9" }])).toEqual([
+    'root:{"input":39009,"output":359,"cacheRead":29198,"cacheWrite":9807}',
+    'root:{"input":78018,"output":718,"cacheRead":58396,"cacheWrite":19614}',
+    'root:{"input":78025,"output":721,"cacheRead":58396,"cacheWrite":19614}',
+    'task-9:{"input":7,"output":3}',
   ]);
 });
 

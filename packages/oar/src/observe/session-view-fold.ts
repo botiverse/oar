@@ -5,6 +5,7 @@ import type {
   TokenTotals,
   TurnOutcome,
 } from "../contracts/session.js";
+import { addTokens, noTokens } from "../shared/token-totals.js";
 import type { AgentStatus } from "./agent-status.js";
 import type { ConversationInput, ConversationState } from "./conversation.js";
 import type {
@@ -65,13 +66,7 @@ export function assemble(
   const total =
     byAgent.length === 0
       ? null
-      : byAgent.reduce<TokenTotals>(
-          (sum, entry) => ({
-            input: sum.input + entry.tokens.input,
-            output: sum.output + entry.tokens.output,
-          }),
-          { input: 0, output: 0 },
-        );
+      : byAgent.reduce<TokenTotals>((sum, entry) => addTokens(sum, entry.tokens), noTokens);
   const onlyRoot = byAgent.every((entry) => entry.agentPath.length === 0);
   const usage: SessionUsage =
     total === null ? { total: null } : (byAgent.length <= 1 && onlyRoot ? { total } : { total, byAgent });

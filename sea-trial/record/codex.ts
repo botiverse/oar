@@ -21,6 +21,8 @@ function scrub(method: string, params: Record<string, unknown>): Record<string, 
     }
     case "error":
       return { method, error: { message: asRecord(params.error)?.message, additionalDetails: asRecord(params.error)?.additionalDetails } };
+    case "thread/tokenUsage/updated":
+      return { method, tokenUsage: params.tokenUsage };
     default:
       return null;
   }
