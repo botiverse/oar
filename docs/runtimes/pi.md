@@ -381,7 +381,10 @@ per machine.
 native `getContextUsage()` read at that moment (post-compaction; tokens null
 when unknown), so `Session.contextUsage()` (a fold) is current at turn end.
 `usage()` is the cumulative per-session total; its input counts pi's
-`input + cacheRead + cacheWrite`. Live on the baseline model: a one-shot turn
+`input + cacheRead + cacheWrite`, and pi's `cacheRead` and `cacheWrite`
+accumulate as the total's own `cacheRead` and `cacheWrite` (`cacheWrite1h`, a
+subset of `cacheWrite`, is not added again;
+[spec](../spec/attribution.md#cache-reads-and-writes)). Live on the baseline model: a one-shot turn
 `{input: 1381, output: 39}` with `contextUsage().value` `{tokens: 1420,
 contextWindow: 128000}`; three turns 1377 → 2772 → 4186 input, one
 `turn_ended` per prompt (`basic`/`multi-turn` scenarios). The compaction

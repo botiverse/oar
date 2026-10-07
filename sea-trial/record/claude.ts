@@ -23,8 +23,18 @@ function scrub(line: string): Record<string, unknown> | null {
       return { type: "assistant", message: { content: scrubBlocks(content) } };
     case "user":
       return { type: "user", message: { content: scrubBlocks(content).filter((block) => block.type === "tool_result") } };
-    case "result":
-      return { type: "result", subtype: frame.subtype, is_error: frame.is_error };
+    case "result": {
+      const usage = asRecord(frame.usage);
+      return {
+        type: "result", subtype: frame.subtype, is_error: frame.is_error,
+        ...(usage === null ? {} : { usage: {
+          input_tokens: usage.input_tokens,
+          output_tokens: usage.output_tokens,
+          cache_read_input_tokens: usage.cache_read_input_tokens,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens,
+        } }),
+      };
+    }
     default:
       return { type: frame.type };
   }

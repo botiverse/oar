@@ -446,7 +446,15 @@ appear. [Model listing][oar-models],
 `usage` event: `context` = `last.totalTokens` (the last model call's input,
 cached tokens included, plus its output: what the context holds once the
 reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
-= `total` input/output, cumulative for the thread. `last.totalTokens` is
+= `total` input/output, cumulative for the thread, with
+`total.cachedInputTokens` as `cacheRead` and `total.cacheWriteInputTokens` as
+`cacheWrite`. Both are already part of `inputTokens`: codex-api
+`sse/responses.rs` at the pinned commit fills them from the Responses API's
+`input_tokens_details.cached_tokens` / `cache_write_tokens` (its test: input
+100 = read 40 + write 60). Live 0.154.0 read 32512 of 44166; codex-aimock on
+0.160.0 reports both as 0, kept as 0. A codex without the write field
+(before openai/codex#33454) yields `cacheRead` only
+([spec](../spec/attribution.md#cache-reads-and-writes)). `last.totalTokens` is
 codex's own occupancy reading (`TokenUsage::tokens_in_context_window` returns
 `total_tokens`, and the TUI status card reads it off `last_token_usage`;
 `protocol/src/protocol.rs` at [`4f39251a`][native-source]); codex's displayed

@@ -7,7 +7,7 @@ message_update:toolcall_start  │ event
 message_update:toolcall_delta  │ event
 message_update:toolcall_delta  │ event
 message_update:toolcall_end    │ event
-message_end                    │ event → usage in=0 out=0
+message_end                    │ event → usage in=0 out=0 cacheRead=0 cacheWrite=0
 tool_execution_start           │ event → tool_call_started bash
 tool_execution_update          │ event → tool_call_progress
 tool_execution_update          │ event → tool_call_progress
@@ -21,7 +21,7 @@ message_update:toolcall_start  │ event
 message_update:toolcall_delta  │ event
 message_update:toolcall_delta  │ event
 message_update:toolcall_end    │ event
-message_end                    │ event → usage in=0 out=0
+message_end                    │ event → usage in=0 out=0 cacheRead=0 cacheWrite=0
 tool_execution_start           │ event → tool_call_started bash
 tool_execution_update          │ event → tool_call_progress
 tool_execution_update          │ event → tool_call_progress
@@ -34,7 +34,7 @@ message_start                  │ event
 message_update:text_start      │ event
 message_update:text_delta      │ event → text_delta
 message_update:text_end        │ event
-message_end                    │ event → usage in=0 out=0
+message_end                    │ event → usage in=0 out=0 cacheRead=0 cacheWrite=0
 turn_end                       │ event
 agent_end                      │ event
 agent_settled                  │ event → turn_ended completed

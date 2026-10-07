@@ -35,7 +35,9 @@ let ledgers = 0;
 /**
  * A grok prompt answer: `_meta.totalTokens` is the context count (grows by
  * one per answer here), `_meta.usage` THIS prompt's own ledger (turn 1 and
- * turn 2 bill alike, not a running sum). Streams one text chunk first.
+ * turn 2 bill alike, not a running sum), with the cache fields of the live
+ * basic answer (`cachedReadTokens`, `cacheCreationTokens`). Streams one text
+ * chunk first.
  */
 export function grokUsageAnswer(send, update) {
   ledgers += 1;
@@ -43,7 +45,7 @@ export function grokUsageAnswer(send, update) {
   // the delivery queue, pushed as the prompt is accepted.
   send({ jsonrpc: "2.0", method: "_x.ai/queue/changed", params: { sessionId: "fake-session", entries: [{ id: `queue-${String(ledgers)}`, version: 0, kind: "prompt", text: "grok-usage", position: 0 }] } });
   update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: "billed" } });
-  return { stopReason: "end_turn", _meta: { totalTokens: 1000 + ledgers, modelId: "fixture-model-x", usage: { inputTokens: 100, outputTokens: 7, totalTokens: 107, modelCalls: 1 } } };
+  return { stopReason: "end_turn", _meta: { totalTokens: 1000 + ledgers, modelId: "fixture-model-x", usage: { inputTokens: 100, outputTokens: 7, totalTokens: 107, cachedReadTokens: 64, cacheCreationTokens: 0, modelCalls: 1 } } };
 }
 
 /**

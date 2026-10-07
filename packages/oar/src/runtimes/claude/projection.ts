@@ -7,6 +7,7 @@ import type {
 } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
 import { claudeTaskViews } from "./tasks.js";
@@ -190,12 +191,14 @@ function accumulate(state: ClaudeProjectionState, agentPath: readonly string[], 
   if (usage === null) {
     return null;
   }
-  const previous = state.tokens.get(pathKey(agentPath)) ?? { input: 0, output: 0 };
-  const tokens: TokenTotals = {
-    input: previous.input + (asNumber(usage.input_tokens) ?? 0)
-      + (asNumber(usage.cache_read_input_tokens) ?? 0) + (asNumber(usage.cache_creation_input_tokens) ?? 0),
-    output: previous.output + (asNumber(usage.output_tokens) ?? 0),
-  };
+  // `input_tokens` excludes the cache reads and writes, so input counts them
+  // back in; each also stands as its own part when the frame reports it.
+  const cache = cacheParts(usage, { read: "cache_read_input_tokens", write: "cache_creation_input_tokens" });
+  const tokens = addTokens(state.tokens.get(pathKey(agentPath)) ?? noTokens, {
+    input: (asNumber(usage.input_tokens) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
+    output: asNumber(usage.output_tokens) ?? 0,
+    ...cache,
+  });
   const next = new Map([...state.tokens, [pathKey(agentPath), tokens]]);
   return { state: { ...state, tokens: next }, tokens };
 }

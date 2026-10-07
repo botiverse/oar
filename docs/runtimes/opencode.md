@@ -143,8 +143,9 @@ and `edit` with the file path, `grep` with the pattern, `glob` with the
 directory).
 
 The prompt answer's `usage` field is the last assistant message's tokens
-only, not the turn's, so OAR does not report token totals; context usage
-comes from `usage_update` (`used`, `size`, `cost`).
+only, not the turn's, so OAR does not report token totals (and so no
+`cacheRead` or `cacheWrite`); context usage comes from `usage_update`
+(`used`, `size`, `cost`).
 
 A `task` subagent completed and its result reached the parent (subagent:
 `CHILD-OK-7731`), but no frame of the child session arrived: opencode's ACP

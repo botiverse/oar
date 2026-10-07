@@ -1,6 +1,7 @@
 import type { RuntimeEventBody, TokenTotals, ToolOutputPart, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { cursorSelectionEffort } from "./model.js";
 import type { ModelSelection } from "./sdk.js";
@@ -169,13 +170,15 @@ function eventsOf(
       if (usage === null) {
         return { state, events: [] };
       }
-      const previous = state.tokens.get(pathKey(path)) ?? { input: 0, output: 0 };
       // `inputTokens` excludes cache reads and writes (totalTokens is the sum
-      // of all four), so input counts them back in, as claude's and pi's do.
-      const tokens: TokenTotals = {
-        input: previous.input + (asNumber(usage.inputTokens) ?? 0) + (asNumber(usage.cacheReadTokens) ?? 0) + (asNumber(usage.cacheWriteTokens) ?? 0),
-        output: previous.output + (asNumber(usage.outputTokens) ?? 0),
-      };
+      // of all four), so input counts them back in, as claude's and pi's do;
+      // each also stands as its own part.
+      const cache = cacheParts(usage, { read: "cacheReadTokens", write: "cacheWriteTokens" });
+      const tokens = addTokens(state.tokens.get(pathKey(path)) ?? noTokens, {
+        input: (asNumber(usage.inputTokens) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
+        output: asNumber(usage.outputTokens) ?? 0,
+        ...cache,
+      });
       return { state: { tokens: new Map([...state.tokens, [pathKey(path), tokens]]) }, events: [{ kind: "usage", usage: { tokens } }] };
     }
     default:

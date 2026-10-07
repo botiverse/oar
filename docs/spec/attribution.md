@@ -167,3 +167,40 @@ Adapter-internal (never crosses the protocol surface):
   codex   per-thread cumulative usage → one child session per thread
   pi      flat usage                 → session total only; no fabricated breakdown
 ```
+
+### Cache reads and writes
+
+`TokenTotals` carries two optional parts of `input`: `cacheRead` (input read
+from the runtime's prompt cache) and `cacheWrite` (input written to it).
+`input` keeps its meaning, all input with cache reads and writes included,
+so a host can tell a wake that read the cache from one that rewrote it
+without `input` changing under existing consumers
+([#161](https://github.com/botiverse/oar/issues/161)).
+
+- Each part is the runtime's own number, present only when the runtime
+  reports it; the two are independent. A reported 0 is 0; an unreported part
+  is absent, never derived from the other numbers.
+- Both accumulate the way `input` does: per `agentPath` in the adapter, and
+  summed over agents for the session total, so `usage()` stays directly
+  usable and its breakdown still sums to the total. A report without a part
+  adds nothing to it; a part that has appeared stays.
+
+| Runtime | `cacheRead` | `cacheWrite` | Evidence |
+| --- | --- | --- | --- |
+| claude | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input` (`input_tokens` excludes them); recorded `result` in the background-tasks replay fixture [env] |
+| cursor | `turn-ended.usage.cacheReadTokens` | `turn-ended.usage.cacheWriteTokens` | both added into `input`; `@cursor/sdk` 1.0.36 `TurnEndedUpdateSchema` [src], probe 2026-10-03 [env] |
+| pi | assistant `usage.cacheRead` | assistant `usage.cacheWrite` | both added into `input`; pi-ai 1.0.4 `Usage` [src], pi-aimock replay fixture [env] |
+| codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own cumulative total [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |
+| grok | `_meta.usage.cachedReadTokens` | `_meta.usage.cacheCreationTokens` | per-prompt ledger, summed per session like its input; live 1.0.25 answer: 1280 / 0 [env] |
+| kimi, opencode, antigravity | absent | absent | no token totals reported, `usage().total` stays null |
+
+Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the
+Responses API's `input_tokens_details.cached_tokens` and
+`cache_write_tokens`, both parts of `input_tokens` (codex-api
+`sse/responses.rs` at 4f39251a; its test: input 100 = cache read 40 + cache
+write 60) [src]. A codex built before the write field (openai/codex#33454)
+reports `cacheRead` only.
+
+Grok's `cacheCreationTokens` was 0 in the one recorded ledger that carried
+it, so whether grok's `inputTokens` includes a nonzero cache write is
+unverified.

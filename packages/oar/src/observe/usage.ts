@@ -5,6 +5,7 @@ import type {
   SessionUsage,
   TokenTotals,
 } from "../contracts/session.js";
+import { addTokens, noTokens } from "../shared/token-totals.js";
 
 /**
  * Query = projection over the stream. Model, token usage and context
@@ -105,10 +106,8 @@ export function usageOf(records: readonly RawEvent[], sessionId?: string): Query
     // totals): null, never a guessed zero.
     return { value: { total: null }, seq };
   }
-  const total = byAgent.reduce<TokenTotals>(
-    (sum, entry) => ({ input: sum.input + entry.tokens.input, output: sum.output + entry.tokens.output }),
-    { input: 0, output: 0 },
-  );
+  // A cache part is in the total once any agent reported it, summed over those that did.
+  const total = byAgent.reduce<TokenTotals>((sum, entry) => addTokens(sum, entry.tokens), noTokens);
   const onlyRoot = byAgent.length <= 1 && byAgent.every((entry) => entry.agentPath.length === 0);
   return { value: onlyRoot ? { total } : { total, byAgent }, seq };
 }

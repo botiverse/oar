@@ -254,7 +254,8 @@ call IDs. Detail strings truncate at 10,000 characters (`native` does not);
 tool progress/status distinctions are in `native` only; a tool the runtime
 never ended gets no synthetic end. Kimi reports no retry through ACP, so
 `retry` never appears. `Session.usage().total` stays `null`: no frame carries
-token totals, only `usage_update` context.
+token totals, only `usage_update` context, so there is no `cacheRead` or
+`cacheWrite` either.
 
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty

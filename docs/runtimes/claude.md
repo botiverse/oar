@@ -258,7 +258,13 @@ Context reporting is **partial**. The `result` frame's `usage` event carries
 input/cache counts as context fullness and the running per-agent token total
 (`Session.contextUsage()` and `usage()` fold these events): across three
 one-word turns `usage().value.total.input` grew by about 22k per turn (cache
-reads included) while `contextUsage().value.tokens` stayed near 22k. Official
+reads included) while `contextUsage().value.tokens` stayed near 22k. The
+total's `input` is `input_tokens + cache_read_input_tokens +
+cache_creation_input_tokens`; the last two also accumulate per agent as
+`cacheRead` and `cacheWrite`, each present once a `result` reported it
+(recorded: input 39009 = 4 + 29198 read + 9807 written,
+[replay](../../tests/replay/fixtures/claude-background-tasks.projected.txt);
+[spec](../spec/attribution.md#cache-reads-and-writes)). Official
 documentation describes result usage as aggregate main-loop usage for the
 user turn, so the context figure is **unverified as current fullness** across
 multiple model steps. Native compaction still runs and is reported after the

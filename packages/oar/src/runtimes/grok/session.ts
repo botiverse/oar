@@ -1,6 +1,7 @@
 import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
+import { cacheParts } from "../../shared/token-totals.js";
 
 function authMethodIds(initialized: JsonRecord): string[] {
   return (Array.isArray(initialized.authMethods) ? initialized.authMethods : [])
@@ -68,7 +69,10 @@ export function grokContextUsage(response: JsonRecord): ContextUsage | null {
  * reads (`cachedReadTokens` ≤ it) and, for a prompt that spawned children,
  * the children's model calls too (live-grok-c/subagent seq 159 = the four
  * `response_completed` frames 48+78+119+155, two of them the child's). The
- * turn machinery sums these per session.
+ * turn machinery sums these per session. The same ledger's `cachedReadTokens`
+ * is the cache-read part of that input and `cacheCreationTokens` the
+ * cache-write part (live 1.0.25 basic answer: 1280 and 0); each is read only
+ * when the ledger carries it.
  */
 export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the ACP extension envelope.
@@ -76,10 +80,10 @@ export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
   const input = firstNumber(usage, ["inputTokens", "input_tokens"]);
   const output = firstNumber(usage, ["outputTokens", "output_tokens"]);
   // Both or nothing: a half ledger would invent a 0 for the missing side.
-  if (input === null || output === null) {
+  if (usage === null || input === null || output === null) {
     return null;
   }
-  return { input, output };
+  return { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }) };
 }
 
 /**

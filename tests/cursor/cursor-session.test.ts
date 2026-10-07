@@ -38,7 +38,7 @@ test("a prompt is one run: its updates are frames, its result ends the turn", as
   assert.deepEqual(await awaitTurnEnd(session, prompt.seq), { kind: "completed" });
   const frames = session.records().flatMap((record) => (record.kind === "frame" ? [record.body.type] : []));
   assert.deepEqual(frames, ["cursor/agent_opened", "text-delta", "turn-ended", "cursor/run_result"]);
-  assert.deepEqual(session.usage().value.total, { input: 15, output: 2 });
+  assert.deepEqual(session.usage().value.total, { input: 15, output: 2, cacheRead: 5, cacheWrite: 0 });
   assert.equal(session.model().value, "composer-2.5");
   assert.equal(session.status().value.kind, "idle");
   await session.dispose();
