@@ -19,14 +19,14 @@ export function fingerprint(secret: string): string {
   return createHash("sha256").update(secret).digest("hex").slice(0, 12);
 }
 
-/** A stdio entry for the echo server, holding `token` as its env credential (none when absent). */
-export function stdioEcho(name: string, token?: string): McpServer {
-  return { name, command: process.execPath, args: [ECHO_SERVER], ...(token === undefined ? {} : { env: { OAR_ECHO_TOKEN: token } }) };
+/** A stdio entry for the echo server, holding `token` as its env credential (none when absent); `flags` such as `--once` follow the script. */
+export function stdioEcho(name: string, token?: string, flags: readonly string[] = []): McpServer {
+  return { name, command: process.execPath, args: [ECHO_SERVER, ...flags], ...(token === undefined ? {} : { env: { OAR_ECHO_TOKEN: token } }) };
 }
 
-/** The echo server on streamable HTTP, until `stop`. */
-export async function startHttpEcho(): Promise<{ readonly url: string; stop(): void }> {
-  const child = spawn(process.execPath, [ECHO_SERVER, "--http"], { stdio: ["ignore", "pipe", "inherit"] });
+/** The echo server on streamable HTTP, until `stop`; `flags` such as `--once` follow `--http`. */
+export async function startHttpEcho(flags: readonly string[] = []): Promise<{ readonly url: string; stop(): void }> {
+  const child = spawn(process.execPath, [ECHO_SERVER, "--http", ...flags], { stdio: ["ignore", "pipe", "inherit"] });
   const lines = createInterface({ input: child.stdout });
   const url = await new Promise<string>((resolve, reject) => {
     lines.once("line", (line) => {

@@ -10,6 +10,10 @@ import { createInterface } from "node:readline";
  *   node echo-mcp-server.mjs          stdio transport (newline-delimited JSON-RPC)
  *   node echo-mcp-server.mjs --http   streamable HTTP on 127.0.0.1, an ephemeral
  *                                     port; prints `listening <url>` on stdout
+ *   --once                            one tools/call per connection: over stdio
+ *                                     the process exits after answering it, over
+ *                                     HTTP that session then answers 404 (MCP:
+ *                                     the client must initialize a new one)
  *
  * `echo {text}` answers `echo:<text> via=<transport> token=<fingerprint>`.
  * Nothing but this process writes that string, so a provider request carrying
@@ -21,6 +25,7 @@ import { createInterface } from "node:readline";
  */
 
 const overHttp = process.argv.includes("--http") === true;
+const once = process.argv.includes("--once") === true;
 
 function fingerprint(secret) {
   return typeof secret === "string" && secret.length > 0 ? createHash("sha256").update(secret).digest("hex").slice(0, 12) : "none";
@@ -56,7 +61,14 @@ function answer(message, credential, via) {
 }
 
 if (overHttp) {
+  let sessions = 0;
+  const ended = new Set();
   const server = http.createServer((request, response) => {
+    const sessionId = request.headers["mcp-session-id"];
+    if (once && ended.has(sessionId)) {
+      response.writeHead(404).end();
+      return;
+    }
     if (request.method !== "POST") {
       response.writeHead(405).end();
       return;
@@ -76,7 +88,16 @@ if (overHttp) {
         response.writeHead(202).end();
         return;
       }
-      response.writeHead(200, { "content-type": "application/json", "mcp-session-id": "oar-echo-session" });
+      // --once: a session per initialize, ended by its tools/call.
+      let session = once ? sessionId : "oar-echo-session";
+      if (once && message.method === "initialize") {
+        sessions += 1;
+        session = `oar-echo-session-${String(sessions)}`;
+      }
+      if (once && message.method === "tools/call") {
+        ended.add(session);
+      }
+      response.writeHead(200, { "content-type": "application/json", ...(typeof session === "string" ? { "mcp-session-id": session } : {}) });
       response.end(JSON.stringify(reply));
     });
   });
@@ -86,8 +107,10 @@ if (overHttp) {
   });
 } else {
   const lines = createInterface({ input: process.stdin });
+  // --once: nothing after the call is answered, so a later echo proves a new process.
+  let called = false;
   lines.on("line", (line) => {
-    if (line.trim() === "") {
+    if (line.trim() === "" || called) {
       return;
     }
     let message = null;
@@ -97,8 +120,13 @@ if (overHttp) {
       return;
     }
     const reply = answer(message, process.env.OAR_ECHO_TOKEN, "stdio");
+    called = once && message.method === "tools/call";
     if (reply !== null) {
-      process.stdout.write(`${JSON.stringify(reply)}\n`);
+      process.stdout.write(`${JSON.stringify(reply)}\n`, () => {
+        if (called) {
+          process.exit(0);
+        }
+      });
     }
   });
   lines.on("close", () => process.exit(0));

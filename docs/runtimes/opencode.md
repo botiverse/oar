@@ -231,7 +231,7 @@ selection; `session/llm/request.ts` chooses the agent prompt; and
 | `model` | ACP model config option with native read-back. |
 | `effort` | ACP `thought_level` config option when the selected model has variants; otherwise refused. |
 | `systemPrompt` | Fresh inline `agent.<selected>.prompt`, verified against the ACP mode on new/resumed sessions. |
-| `appendSystemPrompt` | Fresh inline `instructions` entry for a session-owned temporary file, on new/resumed sessions. |
+| `appendSystemPrompt` | Fresh inline `instructions` entry for a session-owned temporary file, on new/resumed sessions. The file goes when the session ends; a host that ends without disposing leaves it to its `exit` event or the next opencode session's sweep ([private-temp](../../packages/oar/src/shared/private-temp.ts)). |
 | `env` | Child-process environment, shared by native queries, the ACP process and its tools. |
 
 ### Tools, permissions, and process

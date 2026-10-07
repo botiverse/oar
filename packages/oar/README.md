@@ -97,10 +97,10 @@ opencode also refuse a `resume` in another directory than the session's own
 `SessionOptions.mcpServers` attaches MCP servers (stdio `{name, command,
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
 one session, on top of the runtime's own: claude reads them from a 0600
-temporary file deleted when the session ends, codex from its thread config
-overrides, grok, kimi, opencode and antigravity from ACP `session/new` /
-`session/resume`, pi from an extension that registers them; cursor refuses
-them. Give them again on `resume`. Their `env` and `headers` values never
+FIFO that never puts them on a disk (a temporary file on Windows), codex
+from its thread config overrides, grok, kimi, opencode and antigravity from
+ACP `session/new` / `session/resume`, pi from an extension that registers
+them; cursor refuses them. Give them again on `resume`. Their `env` and `headers` values never
 appear in a record or an error; antigravity, which would store them in its
 conversation database, refuses an entry carrying them. See the
 [channels](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options)

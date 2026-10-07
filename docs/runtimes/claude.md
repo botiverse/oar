@@ -296,8 +296,8 @@ MCP servers from `mcp_status` with bounded startup polling (view
 
 ### Session MCP servers
 
-`SessionOptions.mcpServers` is claude's `--mcp-config <file>`
-([launch](../../packages/oar/src/runtimes/claude/launch.ts)). Each entry
+`SessionOptions.mcpServers` is claude's `--mcp-config <path>`
+([handoff](../../packages/oar/src/runtimes/claude/mcp-config.ts)). Each entry
 becomes one `mcpServers` member of that JSON document: stdio
 `{type: "stdio", command, args, env}`, http `{type: "http", url, headers}`.
 Measured on claude 2.1.292 against a scripted provider
@@ -321,13 +321,37 @@ Measured on claude 2.1.292 against a scripted provider
 - A stdio server inherits claude's whole environment (`SessionOptions.env`
   included) with the entry's `env` on top.
 
-The document is written to `oar-claude-mcp-*/mcp.json` in the system
-temporary directory: a fresh 0700 directory, the file 0600, removed when the
-claude process exits however it ends (dispose, a crash, a refused effort),
-never inline on argv where `ps` would show the credentials
-([test](../../tests/claude/claude-session-mcp-servers.test.ts)). claude's
-frames name servers and their status only, never an `env` or `headers`
-value; the vendor test asserts no record holds one. A clash with a
+The path is never inline JSON on argv, where `ps` would show the
+credentials. It is `oar-claude-mcp-<host pid>-*/mcp.json` in the system
+temporary directory, a fresh 0700 directory
+([test](../../tests/claude/claude-session-mcp-servers.test.ts)):
+
+- **POSIX: a FIFO, so the values never reach a disk.** It is mode 0600.
+  oar opens its write end once claude has opened the read end, polling
+  without blocking, writes the document, closes, and removes the directory
+  at once. Measured on 2.1.292: claude opens the path once, about 0.3 to
+  1.3 s after it starts and before any prompt, and waits for the writer
+  when it gets there first (a writer opened only once claude waited, and
+  writing a second later, delivered the whole document). It keeps the
+  config in memory: a stdio server it restarts and an http server it
+  initializes again after a 404 both got their credentials with the path
+  gone. A [vendor test](../../sea-trial/vendor/claude-mcp-config.vendor.test.ts)
+  checks all three on every claude CI installs.
+- **Windows, or no `mkfifo` to run: a 0600 file**, removed when claude
+  exits however it ends (dispose, a crash, a refused effort).
+- **A host that ends without disposing.** On its `exit` event
+  (`process.exit()`, an uncaught exception) oar removes what is left. A
+  signal or SIGKILL fires none: a file stays until the next claude session
+  on the machine starts, which removes the directories of hosts no longer
+  running ([test](../../tests/private-temp.test.ts)). A FIFO holds nothing,
+  so nothing is on disk, but a host killed in claude's startup window
+  leaves that claude waiting on the FIFO. The next claude session started
+  with or without servers releases it: it reads an empty document, reports
+  `MCP config is not a valid JSON` and exits
+  ([test](../../tests/claude/claude-mcp-config-host-death.test.ts)).
+
+claude's frames name servers and their status only, never an `env` or
+`headers` value; the vendor test asserts no record holds one. A clash with a
 project-scope (`.mcp.json`) or local-scope server was not measured.
 
 ### Process ownership, environment, installation, and account usage
