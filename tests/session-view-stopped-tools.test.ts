@@ -30,7 +30,7 @@ function toolsIn(view: SessionView) {
 }
 
 // oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- One turn boundary, its untouched checkpoint and the full tool snapshot.
-test.each(endings)("%s ends unresolved root tools across display segments, leaving child tools and tasks alone", (ending) => {
+test.each(endings)("%s ends unresolved root tools across display segments, leaving child tools alone", (ending) => {
   const kernel = createSessionKernel("root");
   begin(kernel);
   kernel.frame({ type: "tools", native: {}, events: [
@@ -47,7 +47,6 @@ test.each(endings)("%s ends unresolved root tools across display segments, leavi
   kernel.frame({ type: "tool", native: {}, events: [{ kind: "tool_call_started", callId: "after", tool: "Bash" }] });
   const before = viewOf(kernel.records());
   const cursor = kernel.records().length;
-  const tasksBefore = tasksOf(kernel.records());
   finish(kernel, ending);
   const after = kernel.records().slice(cursor).reduce((view, record) => reduceSessionView(view, record), structuredClone(before));
   expect(after).toEqual(viewOf(kernel.records()));
@@ -104,7 +103,7 @@ test.each(endings)("%s ends unresolved root tools across display segments, leavi
     ]
   `);
   expect(toolsIn(after).filter((part) => part.result === "ended").every((part) => part.endedAt === undefined)).toBe(true);
-  expect(tasksOf(kernel.records()).value).toEqual(tasksBefore.value);
+  expect(tasksOf(kernel.records()).value[0]?.status).toBe(ending === "turn_ended" ? "running" : "stopped");
 });
 
 // oxlint-disable-next-line eslint/max-statements -- Keep the boundary and late native records in one sequence.
