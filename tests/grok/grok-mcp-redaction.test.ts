@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import type { RawEvent, Session } from "../../packages/oar/src/contracts/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
-import { redactGrokNotification } from "../../packages/oar/src/runtimes/grok/redaction.js";
+import { redactGrokNotification } from "../../packages/oar/src/shared/credential-redaction.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { fixture, start } from "../fixtures/acp-session-support.js";
 

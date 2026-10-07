@@ -1,4 +1,4 @@
-import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "./json.js";
 
 /** Keep credential names and the native array/map shape, never their values. */
 function redactNamedValues(value: unknown): unknown {

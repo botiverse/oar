@@ -3,7 +3,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts } from "../../shared/token-totals.js";
-import { redactGrokNotification } from "./redaction.js";
+import { redactGrokNotification } from "../../shared/credential-redaction.js";
 
 function authMethodIds(initialized: JsonRecord): string[] {
   return (Array.isArray(initialized.authMethods) ? initialized.authMethods : [])

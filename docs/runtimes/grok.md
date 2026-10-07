@@ -542,6 +542,9 @@ and kernel recording, so `records()`, live `rawEvents()` and replay all see
 the redacted form. Grok's configuration and the credentials its servers
 receive are unchanged. This credential exception is the only change to
 verbatim notification recording; free-form text and fields with other names are unchanged.
+Before 0.32.1 OAR recorded these values in plain text; a host that kept such
+records rewrites them with `redactRecord`, which applies the same rule
+([record stream](../spec/record-stream.md)).
 
 Audit of the public source at `2bdd1d6a`: the
 [MCP catalog](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/extensions/mcp.rs)
