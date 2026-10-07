@@ -149,7 +149,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   initializeMeta: grokInitializeMeta,
   validateOptions: (options) => {
     if (options.resume !== undefined && options.appendSystemPrompt !== undefined && options.systemPrompt === undefined) {
-      throw new UnsupportedOptionError("appendSystemPrompt", "grok 1.0.46 does not reapply rules when resuming a session");
+      throw new UnsupportedOptionError("appendSystemPrompt", "grok does not reapply rules when resuming a session (observed on 1.0.46)");
     }
   },
   sessionMeta: () => ({ yoloMode: true }),

@@ -22,7 +22,7 @@ test.each([undefined, "saved-session"])("both instructions reach one override, r
 
 test("append alone is refused before launch on resume, naming the unsupported option", async () => {
   await expect(grokSession(unavailable, { cwd: "/", resume: "saved-session", appendSystemPrompt: "extra" }))
-    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "appendSystemPrompt", message: "grok 1.0.46 does not reapply rules when resuming a session" });
+    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "appendSystemPrompt", message: "grok does not reapply rules when resuming a session (observed on 1.0.46)" });
 });
 
 test("individual new-session instruction channels stay distinct", () => {
