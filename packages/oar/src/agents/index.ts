@@ -4,7 +4,8 @@
  * docs/spec/subagents.md.
  */
 export { createSubagents } from "./crew.js";
-export { formatReport, reportOrigin, SUBAGENT_DEPTH_ENV } from "./helpers.js";
+export { SUBAGENT_DEPTH_ENV } from "./helpers.js";
+export { formatReport, reportOrigin } from "./report.js";
 export type {
   SendMode,
   SendResult,
