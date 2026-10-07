@@ -125,7 +125,10 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
       expect(echoesReceived(env.raw)).toEqual([CLASH_ECHO]);
     } finally {
       await env.stop();
-      await rm(configDir, { recursive: true, force: true });
+      // On Windows, claude and the user-scope servers it started can still be
+      // writing under CLAUDE_CONFIG_DIR as they exit (ENOTEMPTY on rmdir, CI
+      // 2026-10-07); retry like the other vendor tests' scratch directories.
+      await rm(configDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     }
   }, 120_000);
 });
