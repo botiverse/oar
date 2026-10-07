@@ -172,7 +172,9 @@ background left one 86400000 ms timer, and `oar run` was still running 150
 seconds after `[turn completed]` until it exited explicitly. SDK 1.0.36
 (checked 2026-10-06) has the same code, in a bundle file renamed `867.js`.
 Reported upstream on 2026-10-07
-([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928)).
+([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928));
+Cursor reproduced it the same day, called it unintended, and named exiting
+explicitly after `agent.close()` as the workaround until a fix.
 
 ### Observation, children, and history
 
