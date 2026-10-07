@@ -84,58 +84,84 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
   </tr>
 </table>
 
-## Docs
-
-| Read                                         | To answer                                                                |
-| -------------------------------------------- | ------------------------------------------------------------------------ |
-| [docs/design/](docs/design/README.md)        | Why oar exists and which design problems it treats as load-bearing       |
-| [docs/spec/](docs/spec/README.md)            | Record-stream and query contracts |
-| [Conversation projection](docs/spec/conversation.md) | Build a conversation UI from requests, responses and native messages |
-| [docs/spec/inventory.md](docs/spec/inventory.md) | Independent native skills, MCP server and tool queries |
-| [docs/spec/subagents.md](docs/spec/subagents.md) | Subagents on any runtime that takes `env` (not cursor), from a host or over `oar mcp` |
-| [docs/spec/update.md](docs/spec/update.md)   | Update checks and upgrades through each runtime's own updater |
-| [docs/spec/login.md](docs/spec/login.md)     | Signing a runtime in (and out) through its own login and logout, and its sign-in status |
-| [docs/runtimes/](docs/runtimes/README.md)    | What each runtime says natively and how oar maps it |
-| [docs/development.md](docs/development.md)   | Working in this repo: validate changes, add a runtime, conventions       |
-| [packages/cli/](packages/cli/README.md)      | The `oar` executable, published separately as `@botiverse/oar-cli`       |
-| [docs/design/system.md](docs/design/system.md) | How the library, evidence layer, projections, and continuation form one agent-facing system |
-| [docs/prior-arts/feature-comparison.md](docs/prior-arts/feature-comparison.md) | Surveyed projects compared by concrete features and evidence |
-| [docs/design/decisions.md](docs/design/decisions.md) | Design decisions, their evidence, and conditions for reconsideration |
-| [docs/design/roadmap.md](docs/design/roadmap.md) | Which system improvements are next, and what evidence gates them |
-
 ## Library
+
+One API drives every runtime: swap `"claude"` for `"codex"`, `"grok"` or
+`"pi"` (with a model it has) and the code stays the same. An option a
+runtime cannot honor is refused before anything opens, never silently
+dropped.
 
 ```ts
 import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
 
-const grok = defaultRuntimes.require("grok");
-const installation = await grok.installation?.();
+const claude = defaultRuntimes.require("claude");
+const installation = await claude.installation?.();
+if (installation?.kind !== "available") throw new Error("claude is not installed");
 
-if (installation?.kind === "available") {
-  const session = await grok.session(installation, { cwd: process.cwd() });
-  session.events((event) => {
-    switch (event.kind) {
-      case "text_delta": process.stdout.write(event.text); break;
-      case "tool_call_started": console.log(`[${event.tool}]`); break;
-      case "turn_ended": console.log(event.outcome.kind); break;
-    }
-  });
-  const run = await promptAndWait(session, "Inspect this repository", { timeoutMs: 120_000 });
-  console.log(run.kind === "rejected" ? run.code : run.outcome);
-  await session.dispose();
-}
+const session = await claude.session(installation, {
+  cwd: process.cwd(),
+  model: "sonnet",
+  effort: "high",
+  appendSystemPrompt: "Run the tests before you say you are done.",
+  mcpServers: [{ name: "fs", command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", "."] }],
+});
+
+session.events((event) => {
+  // Every event says which agent it came from: [] is the root, a subagent has its own path.
+  const who = event.agentPath.length === 0 ? "" : `[${event.agentPath.join(" > ")}] `;
+  switch (event.kind) {
+    case "text_delta": if (who === "") process.stdout.write(event.text); break;
+    case "tool_call_started": console.log(`${who}${event.tool}`); break;
+    case "turn_ended": console.log(`${who}${event.outcome.kind}`); break;
+  }
+});
+
+const run = promptAndWait(session, "Find and fix the flaky test", { timeoutMs: 600_000 });
+// Meanwhile, from your UI: steers the running turn, or queues it where the runtime cannot steer.
+await session.deliver("Leave the snapshots alone.");
+console.log(await run);
+console.log(session.status().value, session.usage().value.total, session.contextUsage().value);
+await session.dispose();
+
+// Later, even from another process: the same conversation, picked up where it stopped.
+const resumed = await claude.session(installation, { cwd: process.cwd(), resume: session.id });
 ```
 
-`events()` is the flat, attributed reading of the session: one `Event` per
-fact (native user message echoes, text, reasoning, background tasks, tool call
-start / later input / progress / end, turn start and end, usage, model, effort,
-compaction, retry, app requests, control rejections, withdrawn inputs, the
-process exit), with `seq` and `agentPath` on each. Pass `{ coalesceText: true }` to get text in blocks
-instead of pieces. When the runtime's own frame matters, `session.rawEvents()`
-and `session.records()` expose the underlying record stream with every native
-payload verbatim. The [package README](packages/oar/README.md) lists the
-public entry points.
+Hand work to other runtimes as subagents; each report wakes the session
+that is waiting for it:
 
+```ts
+import { createSubagents, formatReport, reportOrigin } from "@botiverse/oar/agents";
+
+const crew = createSubagents({ maxRunning: 4 });
+crew.onReport((report) => {
+  void resumed.deliver(formatReport(report), { origin: reportOrigin(report) });
+});
+await crew.spawn({ runtime: "codex", task: "Review the diff on this branch for race conditions" });
+await crew.spawn({ runtime: "pi", task: "Write the changelog entry for this branch" });
+```
+
+What else a session gives you:
+
+- **Every fact, attributed.** `events()` is one `Event` per fact (native user
+  message echoes, text, reasoning, tool calls with their later input,
+  progress and end, background tasks, turns, usage, model, effort,
+  compaction, retries, app requests, control rejections, the process exit),
+  each with `seq` and `agentPath`. `{ coalesceText: true }` gives text in
+  blocks. `rawEvents()` and `records()` keep every native payload verbatim.
+- **Control with honest answers.** `prompt`, `steer`, `queue`, `withdraw`
+  and `abort` each answer accepted or rejected with a typed code (`busy`,
+  `no_active_turn`, `runtime_exited`, …); where input landed is read from
+  the events, never guessed.
+- **Projections for UIs.** `@botiverse/oar/observe` folds records into a
+  conversation (`reduceConversation`, `viewOf`), status, tasks and stalls,
+  with no Node imports, so it runs in a browser.
+- **Recording and tests.** `openVoyage` writes a session's records to a
+  JSONL log as they happen, so the same folds can read it back later, and
+  `@botiverse/oar/testing` gives a scripted runtime with real `Session`
+  semantics and no binary or login.
+
+The [package README](packages/oar/README.md) lists the public entry points.
 `defaultRuntimes` holds every runtime but Cursor, whose SDK you install and hand
 over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
 ([why](docs/runtimes/cursor.md#installation-and-account-usage)).
@@ -195,5 +221,15 @@ The CLI exposes the same queries: `oar installation`, `oar usage`,
 npx @botiverse/oar-cli list
 oar run claude "What does this repo do?" --record run.jsonl
 ```
+
+Every command: [packages/cli](packages/cli/README.md) (published as `@botiverse/oar-cli`).
+
+## Docs
+
+- [Design](docs/design/README.md): why oar exists, its decisions and what comes next.
+- [Spec](docs/spec/README.md): the record stream and every contract built on it.
+- [Runtimes](docs/runtimes/README.md): what each runtime says natively and how oar maps it.
+- [Prior art](docs/prior-arts/README.md): related projects compared feature by feature.
+- [Development](docs/development.md): working in this repo.
 
 ESM-only, requires Node.js 24+, Apache-2.0.
