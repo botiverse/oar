@@ -59,7 +59,7 @@ verdict where it gives one; otherwise `latest !== installed`.
 | --- | --- |
 | upgraded | The executable reports a different version afterwards (`from`, `to`). |
 | current | The check found nothing newer; no updater ran. |
-| unchanged | The updater ran and exited 0, yet the executable reports the same version. `output` says why in the runtime's words; the installation's `shadowed` lists the other copies on PATH, one of which the updater may have updated. |
+| unchanged | The updater ran and exited 0, yet the executable reports the same version. `output` says why in the runtime's words; the installation's `shadowed` lists the other copies on PATH; a copy the updater installed off PATH is not among them. |
 | failed | The updater exited non-zero or timed out, and the version did not move. |
 | unsupported | This installation cannot be upgraded without a person: `requires_terminal` (kimi before 0.43.0) or `unsupported_installation`. |
 
