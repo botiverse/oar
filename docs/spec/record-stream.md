@@ -444,6 +444,14 @@ exit does not end the stream's tasks; a turn ending while the runtime stays
 alive does not end background work either. Already terminal tasks stay as
 reported. The inferred `endedAt` is the exit record's `receivedAt`.
 
+Background work does not outlive the session. A task the runtime started
+(a dev server, a build, a claude Bash command run in the background) is a
+process in the runtime's tree, so ending the runtime ends it: `dispose()`,
+the abort fallback and host exit all do, since 0.36.1 also for processes
+that left the runtime's process group. A host that stops idle sessions and
+wants background work to keep running must not dispose a session whose
+tasks are still running; `tasksOf` says which are.
+
 The inferred status is `stopped` if the root received a `dispose` request
 before exit (including while idle), or this exit ends the running root turn
 as `aborted` under the accepted-abort rule. Otherwise it is `failed`, with
