@@ -15,6 +15,11 @@ export function isHttpMcpServer(server: McpServer): server is McpHttpServer {
   return "type" in server;
 }
 
+/** Whether the entry carries a credential: a non-empty `env` (stdio) or `headers` (http). */
+export function hasMcpCredentials(server: McpServer): boolean {
+  return Object.keys((isHttpMcpServer(server) ? server.headers : server.env) ?? {}).length > 0;
+}
+
 /** The given list, or nothing when there is none to attach (absent or empty). */
 export function givenMcpServers(servers: readonly McpServer[] | undefined): readonly McpServer[] | null {
   return servers === undefined || servers.length === 0 ? null : servers;

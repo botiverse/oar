@@ -106,7 +106,7 @@ call an attached server's tool, with the evidence on its runtime page
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
 | kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
 | opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
-| antigravity | ACP `mcpServers` on `session/new` and `session/resume`, started at the first prompt; the model calls them through `call_mcp_tool` | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay. The server stores the entries, values included, in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| antigravity | ACP `mcpServers` on `session/new` and `session/resume`, started at the first prompt; the model calls them through `call_mcp_tool`. An entry with `env` or `headers` is refused: the server would store their values in plain text in its conversation database | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
 Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
@@ -126,7 +126,9 @@ as is a name codex (`^[\w:@/.-]+$`) or pi (`^[\w-]+$`, and two names pi folds
 into one tool namespace) would not take. A transport a runtime cannot attach
 is an `UnsupportedOptionError` on `mcpServers`: an http entry on an ACP agent
 whose `initialize` declares no `mcpCapabilities.http`; every runtime above
-attaches both.
+attaches both. So is an entry with a non-empty `env` or `headers` on
+antigravity, which would write them to its disk: a conditional refusal, not
+an always-refused option declaration.
 
 OpenCode carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and

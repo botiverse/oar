@@ -1,5 +1,6 @@
 import type { StartSession, Session } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
+import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "./prompt-config.js";
 
 /**
@@ -67,6 +68,10 @@ export const opencodeSession: StartSession = async (installation, options) => {
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
     return directSession(installation, options);
   }
+  // The prompts travel in OPENCODE_CONFIG_CONTENT, the session's MCP servers
+  // in the ACP open as on the direct path; a list no runtime can attach fails
+  // before the prompts are prepared.
+  checkMcpServerNames(options.mcpServers ?? []);
   validateOpenCodePrompts(options);
   if (installation.via !== "executable") {
     throw new Error("opencode requires an executable installation");

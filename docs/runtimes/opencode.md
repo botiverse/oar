@@ -281,6 +281,15 @@ dirs, provider
   the user's working `echo` too (opencode closes and deletes the same-name
   client on failure).
 
+- With `systemPrompt` or `appendSystemPrompt` the session opens through the
+  prompt path ([prompts](#models-effort-instructions-and-context)): the
+  prompts travel in `OPENCODE_CONFIG_CONTENT` and the servers in the same
+  ACP open as above. Measured with both prompts and both servers in one
+  session: every agent request carried both prompts and both echoes arrived
+  ([vendor test](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts);
+  the open's wiring in
+  [prompt-cleanup](../../tests/opencode/prompt-cleanup.test.ts)).
+
 The credentials reach opencode only in the open request's params, which OAR
 does not record (it records the answers and every `session/update`). A probe
 found none in any ACP answer, notification or stderr line, nor under

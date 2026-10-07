@@ -19,9 +19,9 @@ export function fingerprint(secret: string): string {
   return createHash("sha256").update(secret).digest("hex").slice(0, 12);
 }
 
-/** A stdio entry for the echo server, holding `token` as its env credential. */
-export function stdioEcho(name: string, token: string): McpServer {
-  return { name, command: process.execPath, args: [ECHO_SERVER], env: { OAR_ECHO_TOKEN: token } };
+/** A stdio entry for the echo server, holding `token` as its env credential (none when absent). */
+export function stdioEcho(name: string, token?: string): McpServer {
+  return { name, command: process.execPath, args: [ECHO_SERVER], ...(token === undefined ? {} : { env: { OAR_ECHO_TOKEN: token } }) };
 }
 
 /** The echo server on streamable HTTP, until `stop`. */
@@ -121,9 +121,11 @@ export function leakedCredentials(...sessions: readonly Session[]): readonly str
   return [STDIO_TOKEN, HTTP_AUTHORIZATION, "oar-http-credential"].filter((secret) => records.includes(secret));
 }
 
-/** The stdio echo server `echo` and the http one at `url`, `remote`. */
-export function echoServers(url: string): readonly McpServer[] {
-  return [stdioEcho("echo", STDIO_TOKEN), { name: "remote", type: "http", url, headers: { Authorization: HTTP_AUTHORIZATION } }];
+/** The stdio echo server `echo` and the http one at `url`, `remote`; with no credentials when `credentials` is false. */
+export function echoServers(url: string, credentials = true): readonly McpServer[] {
+  return credentials
+    ? [stdioEcho("echo", STDIO_TOKEN), { name: "remote", type: "http", url, headers: { Authorization: HTTP_AUTHORIZATION } }]
+    : [stdioEcho("echo"), { name: "remote", type: "http", url }];
 }
 
 /** The three scripted conversations: both servers on open, the stdio one on resume, the stdio one on a clash. */
@@ -133,12 +135,13 @@ export function scriptEchoes(mock: LLMock, shape: EchoCall = mcpToolCall): void 
   echoFixtures(mock, /call the clashing echo/u, [{ server: "echo", text: "clash-call" }], shape);
 }
 
-/** What the open and the resume each received: one echo per call, carrying the credential each server was given. */
-export const EXPECTED_ECHOES: readonly string[] = [
-  `echo:stdio-call via=stdio token=${fingerprint(STDIO_TOKEN)}`,
-  `echo:http-call via=http token=${fingerprint(HTTP_AUTHORIZATION)}`,
-  `echo:resumed-call via=stdio token=${fingerprint(STDIO_TOKEN)}`,
-];
+/** What the open and the resume each received: one echo per call, carrying the credential each server was given (`none` without). */
+export function expectedEchoes(credentials = true): readonly string[] {
+  const [stdio, http] = credentials ? [fingerprint(STDIO_TOKEN), fingerprint(HTTP_AUTHORIZATION)] : ["none", "none"];
+  return [`echo:stdio-call via=stdio token=${stdio}`, `echo:http-call via=http token=${http}`, `echo:resumed-call via=stdio token=${stdio}`];
+}
+
+export const EXPECTED_ECHOES: readonly string[] = expectedEchoes();
 
 /** The echo a clash call returns from the session's own server. */
 export const CLASH_ECHO = `echo:clash-call via=stdio token=${fingerprint(STDIO_TOKEN)}`;

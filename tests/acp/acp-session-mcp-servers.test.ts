@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
 import type { McpServer, SessionOptions } from "../../packages/oar/src/contracts/session.js";
+import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
-import { profile } from "../fixtures/acp-session-support.js";
+import { fixture, profile } from "../fixtures/acp-session-support.js";
 
 /**
  * SessionOptions.mcpServers on the wire of an ACP open
@@ -101,4 +102,29 @@ test("an open that fails reports no credential its servers carry", async () => {
   await expect(opening).rejects.toThrow(/cannot start .*"value":"\[redacted\]"/u);
   const failure: unknown = await opening.catch((error: unknown) => error);
   expect(String(failure instanceof Error ? failure.stack : failure)).not.toMatch(/stdio-secret-value|http-secret-value/u);
+});
+
+const antigravity = acpSession({ ...antigravityAcpProfile, args: [fixture, "antigravity"] });
+
+test.each(servers)("antigravity refuses an entry carrying a credential before it starts: $name", async (server) => {
+  const log = openLog();
+  const opening = antigravity(installation, { cwd: process.cwd(), mcpServers: [server], env: { FAKE_ACP_MCP_LOG: log.file, FAKE_ACP_MCP_HTTP: "1" } });
+  await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+  await expect(opening).rejects.toThrow(`stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers (${JSON.stringify(server.name)})`);
+  expect(log.read()).toEqual([]);
+});
+
+test("antigravity attaches entries without credentials", async () => {
+  const log = openLog();
+  const env = { FAKE_ACP_MCP_LOG: log.file, FAKE_ACP_MCP_HTTP: "1" };
+  const bare: readonly McpServer[] = [{ name: "echo", command: "/bin/echo-server", env: {} }, { name: "remote", type: "http", url: "http://127.0.0.1:9/mcp" }];
+  const session = await antigravity(installation, { cwd: process.cwd(), mcpServers: bare, env });
+  await session.dispose();
+  expect(log.read()).toEqual([{
+    method: "session/new",
+    mcpServers: [
+      { name: "echo", command: "/bin/echo-server", args: [], env: [] },
+      { type: "http", name: "remote", url: "http://127.0.0.1:9/mcp", headers: [] },
+    ],
+  }]);
 });

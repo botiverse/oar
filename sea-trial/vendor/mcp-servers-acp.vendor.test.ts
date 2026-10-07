@@ -6,7 +6,7 @@ import { asRecord } from "../../packages/oar/src/shared/json.js";
 import type { LLMock, RawProviderRequest } from "../harness/aimock.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, echoServers, EXPECTED_ECHOES, fingerprint, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN, type EchoCall } from "./support/echo-mcp.js";
+import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, echoServers, EXPECTED_ECHOES, expectedEchoes, fingerprint, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 
 /**
@@ -35,6 +35,8 @@ interface AcpCase {
   start(configure: (mock: LLMock) => void, withUserServers: boolean): Promise<AcpAimockEnv>;
   /** The MCP tools one provider request offers, where the runtime declares them as tools of their own. */
   readonly offered?: (request: RawProviderRequest) => readonly string[];
+  /** False where the runtime refuses entries carrying `env` or `headers` (antigravity stores them on disk): its servers get none. */
+  readonly credentials?: false;
 }
 
 const userServer = { command: process.execPath, args: [ECHO_SERVER], env: { OAR_ECHO_TOKEN: USER_TOKEN } };
@@ -89,6 +91,7 @@ const cases: readonly AcpCase[] = [
     // Its tool_call title is "Running <tool>".
     reported: ["Running echo", "Running echo"],
     start: async (configure, withUserServers) => startAntigravityAimock(configure, withUserServers ? { mcpServers: { echo: userServer, userecho: userServer } } : undefined),
+    credentials: false,
   },
 ];
 
@@ -106,7 +109,11 @@ for (const acp of cases) {
       const env = await acp.start(script, false);
       try {
         const subject = runtimeUnderTest(runtime, env.env);
-        const mcpServers: readonly McpServer[] = echoServers(http.url);
+        const credentials = acp.credentials !== false;
+        if (!credentials) {
+          await expect(subject.startSession({ mcpServers: echoServers(http.url) })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+        }
+        const mcpServers: readonly McpServer[] = echoServers(http.url, credentials);
         const session = await subject.startSession({ mcpServers });
         const opened = await structuralToolRound(session, env.mock, "please call both echo tools");
         await session.dispose();
@@ -121,7 +128,7 @@ for (const acp of cases) {
           opened: ["request:prompt", "response:accepted", `tool_call_started:${echo}`, "tool_call_ended", `tool_call_started:${remote}`, "tool_call_ended", "turn_ended:completed"],
           again: ["request:prompt", "response:accepted", `tool_call_started:${echo}`, "tool_call_ended", "turn_ended:completed"],
         });
-        expect(echoesReceived(env.raw)).toEqual(EXPECTED_ECHOES);
+        expect(echoesReceived(env.raw)).toEqual(expectedEchoes(credentials));
         if (acp.offered !== undefined) {
           const { offered: tools } = acp;
           const offered = (text: string): readonly string[] => [...new Set(env.raw.filter((request) => JSON.stringify(request.body).includes(text)).flatMap((request) => tools(request)))].toSorted();
@@ -137,11 +144,12 @@ for (const acp of cases) {
     test("a server named like one of the user's runs as the session's; the user's other servers stay", async () => {
       const env = await acp.start(script, true);
       try {
-        const session = await runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", STDIO_TOKEN)] });
+        const credentials = acp.credentials !== false;
+        const session = await runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", credentials ? STDIO_TOKEN : undefined)] });
         await structuralToolRound(session, env.mock, "please call echo over the user's own");
         await session.dispose();
         expect(echoesReceived(env.raw)).toEqual([
-          `echo:clash-own via=stdio token=${fingerprint(STDIO_TOKEN)}`,
+          `echo:clash-own via=stdio token=${credentials ? fingerprint(STDIO_TOKEN) : "none"}`,
           `echo:clash-user via=stdio token=${fingerprint(USER_TOKEN)}`,
         ]);
         expect(leakedCredentials(session)).toEqual([]);
@@ -151,3 +159,32 @@ for (const acp of cases) {
     }, 180_000);
   });
 }
+
+describe.skipIf(process.env.OAR_TEST !== "opencode-aimock")("opencode prompts with mcpServers", () => {
+  // The prompts travel in OPENCODE_CONFIG_CONTENT (runtimes/opencode/prompt-config.ts), the servers in the ACP open.
+  test("a replaced and an appended system prompt and the session's MCP servers all take effect", async () => {
+    const http = await startHttpEcho();
+    const env = await startOpencodeAimock((mock) => {
+      scriptEchoes(mock, (server, text) => ({ name: `${server}_echo`, arguments: { text } }));
+    });
+    try {
+      const runtime = defineRuntime({ id: "opencode-aimock", session: opencodeSession, installation: opencodeInstallation });
+      const session = await runtimeUnderTest(runtime, env.env).startSession({
+        systemPrompt: "OAR-REPLACED-PROMPT you are the echo checker",
+        appendSystemPrompt: "OAR-APPENDED-PROMPT always echo",
+        mcpServers: echoServers(http.url),
+      });
+      await structuralToolRound(session, env.mock, "please call both echo tools");
+      await session.dispose();
+      expect(echoesReceived(env.raw)).toEqual(EXPECTED_ECHOES.slice(0, 2));
+      // The agent's requests, not the title one (which offers no tools).
+      const system = env.raw.filter((request) => toolNames(request).length > 0).map((request) => JSON.stringify(asRecord(request.body)?.system));
+      expect(system.every((text) => text.includes("OAR-REPLACED-PROMPT") && text.includes("OAR-APPENDED-PROMPT"))).toBe(true);
+      expect(system.length).toBeGreaterThan(0);
+      expect(leakedCredentials(session)).toEqual([]);
+    } finally {
+      await env.stop();
+      http.stop();
+    }
+  }, 180_000);
+});

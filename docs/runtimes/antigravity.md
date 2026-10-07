@@ -322,8 +322,8 @@ names that `.par`):
   prompt, and the model calls its tools through `call_mcp_tool {ServerName,
   ToolName, Arguments, toolSummary, toolAction}` (an eager server's tools
   would be `mcp_<server>_<tool>`); the ACP `tool_call` title is `Running
-  echo`. The tool result reached the provider as the server wrote it, so the
-  server ran with the entry's `env` or `headers`. The harness sends tool
+  echo`. The tool result reached the provider as the server wrote it (with
+  no credential: see below). The harness sends tool
   results under role `model`; the test proxy hands them to aimock as role
   `user` (`geminiToolResultsAsUser` in
   [raw-capture](../../sea-trial/harness/raw-capture.ts)).
@@ -332,20 +332,26 @@ names that `.par`):
   call_mcp_tool`.
 - On a name clash the session's entry replaces the user's of the same name
   in `$GEMINI_HOME/config/mcp_config.json` (read at `mcp_servers.py:120-129`,
-  replaced at `:132-149`; measured: the session's credential answered). The
+  replaced at `:132-149`; measured: the session's server answered). The
   user's non-clashing server still attaches; a probe found the user config
   unchanged.
 
-No ACP answer, notification or stderr line carried a credential (measured
-and probed); OAR does not record the open request's params, which carry
-them, and redacts a failed open's error (`[redacted]`). **Antigravity itself
-writes them to disk:** it stores the session's `mcpServers`, `env` and header
-values included, in plain text in its conversation database
-`$GEMINI_HOME/antigravity-acp/conversations/<sessionId>.db` (mode 0600;
-measured: the stdio token in the `-wal` file). The file outlives the
-session; a resume does not reuse what it stored. OAR cannot prevent this: a
-host that must not leave credentials on disk should not pass them to
-antigravity.
+**Entries carrying credentials are refused.** Antigravity stores a session's
+`mcpServers`, `env` and header values included, in plain text in its
+conversation database `$GEMINI_HOME/antigravity-acp/conversations/<sessionId>.db`
+(mode 0600; measured: a stdio entry's `env` token in the `-wal` file). The
+file outlives the session, a resume does not reuse what it stored, and a
+host can neither see nor clear it through ACP, while credentials may reach a
+runtime only through its native channel, never its disk. So an entry with a
+non-empty `env` or `headers` fails the open with an `UnsupportedOptionError`
+on `mcpServers` before the server starts
+([`refuseAntigravityMcpCredentials`](../../packages/oar/src/runtimes/antigravity/session.ts));
+an entry without them attaches as above (the vendor test's servers carry
+none, and it checks the refusal). A server that needs a secret has to get it
+some other way than the entry, for example from a file it reads itself. No
+ACP answer, notification or stderr line carried an entry's values
+(measured and probed), and a failed open's error is redacted
+(`[redacted]`).
 
 ### Process ownership, installation, and account usage
 
@@ -404,7 +410,8 @@ directory ([not measured](resume-cwd.md)); concurrent same-id controllers;
 macOS and Windows installation; any authenticated run on 1.3.0;
 [session MCP servers](#session-mcp-servers) on a real login and model and on
 1.2.1 (measured on 1.3.0 against a scripted provider only; their vendor test
-runs locally, `OAR_TEST=antigravity-aimock`, not in CI); the credentials
-antigravity keeps in its conversation database. Keep native
+runs locally, `OAR_TEST=antigravity-aimock`, not in CI); whether a later
+server stops storing the entries' values, until which entries with `env` or
+`headers` are refused. Keep native
 API capabilities, transport limitations, OAR omissions and unexecuted checks
 separate when designing or claiming support.

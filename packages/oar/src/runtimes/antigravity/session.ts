@@ -1,6 +1,9 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import type { SessionOptions } from "../../contracts/session.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { hasMcpCredentials } from "../../shared/mcp-servers.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 
 /**
@@ -34,6 +37,22 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   appendSystemPrompt: "The Antigravity ACP server has no system prompt append input in its protocol, launch options, or configuration",
 };
 
+/**
+ * SessionOptions.mcpServers entries antigravity can take: none carrying a
+ * credential. agy_acp_server 1.3.0 writes a session's `mcpServers`, `env`
+ * and `headers` values included, in plain text into its conversation
+ * database (`$GEMINI_HOME/antigravity-acp/conversations/<id>.db`, 0600),
+ * which outlives the session and which a host cannot see or clear through
+ * ACP; credentials reach a runtime only through its native channel, never
+ * its disk. An entry without `env` or `headers` attaches as usual.
+ */
+export function refuseAntigravityMcpCredentials(options: SessionOptions): void {
+  const carrying = (options.mcpServers ?? []).find((server) => hasMcpCredentials(server));
+  if (carrying !== undefined) {
+    throw new UnsupportedOptionError("mcpServers", `antigravity stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers (${JSON.stringify(carrying.name)})`);
+  }
+}
+
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
   // Subagents run inside the harness and never reach ACP under their own
@@ -47,6 +66,7 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   // login persisted plus the cached token, or from GEMINI_API_KEY.
   validateOptions: (options) => {
     refuseSessionOptions(antigravityRefusedSessionOptions, options);
+    refuseAntigravityMcpCredentials(options);
   },
   // `session/set_model` answers `{}` and no `config_option_update` is ever
   // pushed, so only `set_config_option` reports the switch. Effort is part

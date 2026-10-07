@@ -79,7 +79,8 @@ export interface SessionOptions {
    * (`Runtime.refusedSessionOptions`,
    * docs/spec/runtime-matrix.md#refused-session-options), as it does for a
    * transport a runtime cannot attach (http on an ACP agent whose
-   * `initialize` declares no `mcpCapabilities.http`).
+   * `initialize` declares no `mcpCapabilities.http`) and for an entry with
+   * `env` or `headers` on antigravity, which would write them to its disk.
    */
   readonly mcpServers?: readonly McpServer[];
 }

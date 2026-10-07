@@ -8,6 +8,11 @@ import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 
 const { opening } = vi.hoisted(() => ({ opening: vi.fn<StartSession>() }));
 vi.mock("../../packages/oar/src/shared/acp/session.js", () => ({ acpSession: () => opening }));
+// `opencode debug config` for a systemPrompt: no default_agent, so `build`.
+vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({
+  // oxlint-disable-next-line typescript/promise-function-async -- a resolved runner stand-in.
+  runExecutable: () => Promise.resolve({ ok: true, stdout: "{}", stderr: "", exitCode: 0 }),
+}));
 const installation = { kind: "available", via: "executable", command: "not-spawned" } as const;
 const sessions: Session[] = [];
 afterEach(async () => {
@@ -80,13 +85,20 @@ test("failed ACP open cleans up the file it received", async () => {
 });
 
 test.each([
-  { systemPrompt: "replacement" },
-  { appendSystemPrompt: "extra" },
-])("MCP refusal precedes prompt preparation and ACP opening: %j", async (prompt) => {
-  await expect(opencodeSession(installation, {
-    cwd: process.cwd(),
-    ...prompt,
-    mcpServers: [{ name: "probe", command: "not-spawned" }],
-  })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
+  { prompt: { systemPrompt: "replacement" }, overlay: { agent: { build: { prompt: "replacement" } } } },
+  { prompt: { appendSystemPrompt: "extra" }, overlay: { instructions: [expect.any(String)] } },
+])("a prompt and MCP servers together both reach the ACP open: $prompt", async ({ prompt, overlay }) => {
+  await setup();
+  const mcpServers = [{ name: "probe", command: "not-spawned", env: { TOKEN: "value" } }];
+  const session = await opencodeSession(installation, { cwd: process.cwd(), ...prompt, mcpServers });
+  sessions.push(session);
+  const options = openOptions();
+  expect(options.mcpServers).toEqual(mcpServers);
+  expect(asRecord(JSON.parse(options.env?.OPENCODE_CONFIG_CONTENT ?? "{}"))).toMatchObject(overlay);
+});
+
+test("an MCP list with a repeated name fails before prompt preparation and ACP opening", async () => {
+  const probe = { name: "probe", command: "not-spawned" };
+  await expect(opencodeSession(installation, { cwd: process.cwd(), appendSystemPrompt: "extra", mcpServers: [probe, probe] })).rejects.toThrow('mcpServers names "probe" twice');
   expect(opening).not.toHaveBeenCalled();
 });
