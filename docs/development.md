@@ -150,7 +150,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 
 Windows Codex behavior jobs forward child stderr to the job log with
 `OAR_CHILD_STDERR=inherit`, including failures before a session trace exists
-(a login's process is never forwarded: its output may carry secrets).
+(a login's or logout's process is never forwarded: its output may carry secrets).
 Artifact upload warns when no trace directory was created; the failed test
 or startup step still fails the job. Codex RPC exit errors also retain a
 bounded stderr tail without this setting, so use that evidence before

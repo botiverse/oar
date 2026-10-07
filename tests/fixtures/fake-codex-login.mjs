@@ -1,7 +1,8 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone untyped fixture executable. */
 // `codex login status` and the app-server's device code login as codex
-// 0.160.0 answers them, for the login driver. The first argument is a JSON
-// state file: { version, email, loggedIn, status, mode }. Every invocation is
+// 0.160.0 answers them, for the login driver, and `codex logout` as 0.160.1
+// does, for the logout driver. The first argument is a JSON state file:
+// { version, email, loggedIn, status, mode, logoutMode }. Every invocation is
 // appended to `invocations`, so a test can tell `codex login` never ran.
 // Modes for account/login/start: "success", "failure" (codex reports the
 // code expired), "start_error" (the start request is refused), "crash" (the
@@ -9,6 +10,11 @@
 // then no account), "read_error" (success, then account/read fails), "early"
 // (the completion arrives before the start reply), "hang" (starts a worker in
 // its process group and never completes). `readDelayMs` delays account/read.
+// Modes for `codex logout`: "ok" (the default: `Successfully logged out`, or
+// `Not logged in` when signed out already), "error" (`Error logging out:`,
+// still signed in), "keeps" (succeeds, yet the status still reads logged in,
+// as from a source it does not remove), "hang" (starts a worker in its
+// process group and never finishes).
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -100,6 +106,20 @@ if (command === "--version") {
       send({ id: message.id, error: { code: -32_601, message: `method not found: ${message.method}` } });
     }
   });
+} else if (command === "logout") {
+  if (state.logoutMode === "hang") {
+    const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+    save({ workerPid: worker.pid, pid: process.pid });
+    setInterval(() => {}, 1000);
+  } else if (state.logoutMode === "error") {
+    process.stderr.write("Error logging out: failed to delete /home/user/.codex/auth.json: Permission denied (os error 13)\n");
+    process.exitCode = 1;
+  } else if (state.logoutMode === "keeps") {
+    process.stderr.write("Successfully logged out\n");
+  } else {
+    process.stderr.write(state.loggedIn === true ? "Successfully logged out\n" : "Not logged in\n");
+    save({ loggedIn: false });
+  }
 } else {
   process.stderr.write(`unexpected arguments: ${command}\n`);
   process.exitCode = 64;

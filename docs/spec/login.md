@@ -2,8 +2,10 @@
 
 `runtime.login(installation, interaction, options?)` logs an installation in
 through the runtime's own login, without a terminal.
+`runtime.logout(installation, options?)` logs it out through the runtime's
+own logout ([below](#logout)).
 `runtime.authStatus(installation, options?)` says whether it is logged in.
-Both are independent of sessions, like [account usage](account-usage.md) and
+All three are independent of sessions, like [account usage](account-usage.md) and
 [updates](update.md). The
 [TypeScript contract](../../packages/oar/src/contracts/login.ts) defines the
 results; the interaction is the existing
@@ -121,6 +123,64 @@ answered.
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
 Pi's provider logins are on `createPiProviderAuth`.
 
+## Logout
+
+`runtime.logout(installation, options?)` signs the installation out the way
+the runtime itself does, and resolves a `LogoutResult`. It is absent on a
+runtime oar does not sign in.
+
+- **The runtime's own logout, never a file.** oar runs the runtime's logout
+  command or SDK call (`claude auth logout`, `codex logout`,
+  `Cursor.auth.logout`) and never deletes a credential file or Keychain entry
+  behind its back. What a logout removes, and whether it also revokes the
+  credential on the vendor's side, is the runtime's own behaviour; each
+  runtime page says what it does.
+- **The status decides.** After the logout ran, oar reads `authStatus`: when
+  it reads logged out the result is `logged_out`, whatever the logout itself
+  answered. A runtime that was logged out already answers in its own words
+  (`Not logged in`), and the result is `logged_out`. A logout that succeeded
+  while the status still reads logged in is `failed` / `still_logged_in`,
+  with a `detail` saying what the status read; never `logged_out`. When the
+  status cannot tell (`unknown`), the runtime's own report decides, as for a
+  login: a logout that succeeded is `logged_out`, one that failed is its
+  failure.
+- **The environment is not touched.** A credential outside the runtime's
+  own store, such as `ANTHROPIC_API_KEY` or `CURSOR_API_KEY`, stays. Where
+  the runtime's status reads it (claude's does), the result is
+  `still_logged_in`; where it does not (codex's and cursor's), the result is
+  `logged_out` while the runtime may still use the variable.
+- **No secret leaves a logout,** as for a login: nothing the logout process
+  prints reaches the host's output (its stdin is closed, and
+  `OAR_CHILD_STDERR=inherit` does not apply to it), and a `detail` is one
+  line in the runtime's own words, redacted.
+- **Bounded.** Each runtime has a deadline for its logout;
+  `options.timeoutMs` overrides it. Past it the logout process and everything
+  it started are stopped (its process group on POSIX, its tree on Windows),
+  and the status still decides. The status query after it has its own
+  deadline (20 s). There is no abort signal: a logout is short.
+- **`logout` changes the machine.** oar never calls it on its own, and does
+  not serialize it against a login; that is the host's policy.
+
+| Kind | Meaning |
+| --- | --- |
+| logged_out | The runtime's status reads logged out after its logout ran, or, when the status cannot tell, the runtime reported that its logout succeeded. |
+| failed | The logout failed, or it succeeded and the status still reads logged in; `reason` below, `detail` one line with secrets redacted. |
+| unsupported | oar cannot drive this runtime's logout: `unsupported_installation` or `version_unsupported`, as for a login. |
+
+| Failure reason | Meaning |
+| --- | --- |
+| still_logged_in | The runtime's logout succeeded, yet its status still reads logged in: credentials from the environment or another source. |
+| rejected | The runtime reported that the logout failed. |
+| timed_out | The deadline passed before the logout finished; it was stopped. |
+| process_failed | The executable is no longer there (looked up before anything is spawned), or the logout could not start or ended without a result. |
+
+| Runtime | logout drives | Server side | Floor | Deadline |
+| --- | --- | --- | --- | --- |
+| claude | `claude auth logout`, stdin closed | revokes the stored claude.ai OAuth refresh token, best effort | 2.1.41 | 60 s |
+| codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
+| cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.0.36 | 20 s |
+| antigravity, grok, kimi, opencode, pi | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+
 ## CLI
 
 `oar login <runtime>` runs the login in the terminal: it prints the URL or the
@@ -130,3 +190,7 @@ when cancelled, 1 otherwise. `oar login [runtime] --status` only reports the
 status of one or every runtime. `--json` prints events, prompts and the result
 (or the status reports) as JSON; `--timeout <ms>` bounds the login or each
 status query.
+
+`oar logout <runtime>` runs the runtime's logout and prints the result; the
+exit code is 0 when logged out and 1 otherwise, as for `oar login`. `--json`
+prints the result as JSON; `--timeout <ms>` bounds the logout.

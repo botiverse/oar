@@ -1,7 +1,8 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument -- Standalone untyped fixture executable. */
 // `claude auth login` and `claude auth status --json` as claude 2.1.288
-// prints them, for the login driver. The first argument is a JSON state file:
-// { version, code, email, loggedIn, mode }. `auth login` prints the URL as an
+// prints them, for the login driver, and `claude auth logout` as 2.1.292
+// does, for the logout driver. The first argument is a JSON state file:
+// { version, code, email, loggedIn, envKey, mode, logoutMode }. `auth login` prints the URL as an
 // OSC 8 hyperlink and the paste prompt with no newline, then reads stdin
 // lines: a line without `#` is an invalid code (retryable), `code` signs in.
 // Modes for a pasted line: "paste" (the default), "reject" (fails, echoing the
@@ -12,6 +13,13 @@
 // it flushes telemetry). Without a pasted line: "browser" (the localhost
 // callback signs in by itself), "hang" (starts a worker in its process group
 // and never finishes).
+// `envKey` is `ANTHROPIC_API_KEY` in claude's environment: the status reads
+// logged in through it, and a logout leaves it. Modes for `auth logout`: "ok"
+// (the default: signs out, also when signed out already), "stdin" (the same,
+// once its stdin has ended), "fail" (`Logout failed:`, still signed in),
+// "fail_after_clear" (signs out, then fails writing its config), "crash"
+// (exit 3 with a token in its last words), "hang" (starts a worker in its
+// process group and never finishes).
 import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
@@ -36,6 +44,8 @@ if (command === "--version") {
     process.exitCode = 2;
   } else if (state.loggedIn === true) {
     process.stdout.write(`${JSON.stringify({ loggedIn: true, authMethod: "claude.ai", apiProvider: "firstParty", email: state.email, subscriptionType: "pro" }, null, 2)}\n`);
+  } else if (state.envKey === true) {
+    process.stdout.write(`${JSON.stringify({ loggedIn: true, authMethod: "api_key", apiProvider: "firstParty", apiKeySource: "ANTHROPIC_API_KEY" }, null, 2)}\n`);
   } else {
     process.stdout.write(`${JSON.stringify({ loggedIn: false, authMethod: "none", apiProvider: "firstParty" }, null, 2)}\n`);
     process.exitCode = 1;
@@ -94,6 +104,33 @@ if (command === "--version") {
     }
     process.exit(0);
   });
+} else if (command === "auth logout") {
+  save({ logoutStarted: true, sawClaudeCode: process.env.CLAUDECODE !== undefined });
+  const signedOut = () => {
+    save({ loggedIn: false });
+    process.stdout.write("Successfully logged out from your Anthropic account.\n");
+  };
+  if (state.logoutMode === "hang") {
+    const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
+    save({ workerPid: worker.pid, pid: process.pid });
+    setInterval(() => {}, 1000);
+  } else if (state.logoutMode === "stdin") {
+    process.stdin.resume();
+    process.stdin.on("end", signedOut);
+  } else if (state.logoutMode === "fail") {
+    process.stderr.write("Logout failed: EACCES: permission denied, unlink '/home/user/.claude/.credentials.json'\n");
+    process.exitCode = 1;
+  } else if (state.logoutMode === "fail_after_clear") {
+    save({ loggedIn: false });
+    process.stderr.write("Logout failed: EPERM: operation not permitted, open '/home/user/.claude.json'\n");
+    process.exitCode = 1;
+  } else if (state.logoutMode === "crash") {
+    process.stderr.write("Unexpected error\n");
+    process.stderr.write("TypeError: cannot read token sk-ant-oat01-abcdefghijklmnopqrstuvwxyz\n");
+    process.exitCode = 3;
+  } else {
+    signedOut();
+  }
 } else {
   process.stderr.write(`unexpected arguments: ${command}\n`);
   process.exitCode = 64;

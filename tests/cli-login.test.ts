@@ -9,6 +9,7 @@ import {
   runLogin,
 } from "../packages/cli/src/login.js";
 import { EchoGate, hidesInput, renderLoginEvent, selectAnswer } from "../packages/cli/src/login-terminal.js";
+import { logoutExitCode, renderLogoutReport, runLogout } from "../packages/cli/src/logout.js";
 
 // The CLI resolves `@botiverse/oar` to the built package, so fixtures take
 // their shapes from the CLI functions under test.
@@ -134,6 +135,76 @@ test("a runtime without a login, or whose login throws, fails the command", asyn
   assert.equal(renderLoginReport(broken), "broken\terror: spawn EACCES");
   assert.equal(loginExitCode(none), 1);
   assert.equal(loginExitCode(broken), 1);
+});
+
+test("a logout reports the runtime's result and maps it to the exit code; 0 only when logged out", async () => {
+  const results = [
+    { kind: "logged_out" },
+    { kind: "failed", reason: "still_logged_in", detail: "claude auth logout succeeded, yet claude auth status --json still reads logged in (api_key, from ANTHROPIC_API_KEY)" },
+    { kind: "failed", reason: "timed_out", detail: "codex logout did not finish within 60000 ms" },
+    { kind: "unsupported", reason: "version_unsupported", detail: "claude 2.1.41 or later is required; this is 2.1.40" },
+  ] as const;
+  const timeouts: (number | undefined)[] = [];
+  const reports = await Promise.all(results.map(async (result) => runLogout(runtime("fake", {
+    logout: async (_installation, options) => {
+      await Promise.resolve();
+      timeouts.push(options?.timeoutMs);
+      return result;
+    },
+  }), 5000)));
+  expect(reports.map((report) => [renderLogoutReport(report), logoutExitCode(report)])).toMatchInlineSnapshot(`
+    [
+      [
+        "fake	logged out",
+        0,
+      ],
+      [
+        "fake	logout failed: still_logged_in (claude auth logout succeeded, yet claude auth status --json still reads logged in (api_key, from ANTHROPIC_API_KEY))",
+        1,
+      ],
+      [
+        "fake	logout failed: timed_out (codex logout did not finish within 60000 ms)",
+        1,
+      ],
+      [
+        "fake	logout unsupported: version_unsupported (claude 2.1.41 or later is required; this is 2.1.40)",
+        1,
+      ],
+    ]
+  `);
+  assert.deepEqual(timeouts, [5000, 5000, 5000, 5000]);
+});
+
+test("a runtime without a logout, whose logout throws, or that is not installed fails the command", async () => {
+  const none = await runLogout(runtime("pi", {}));
+  const broken = await runLogout(runtime("broken", {
+    logout: async () => {
+      await Promise.resolve();
+      throw new Error("spawn EACCES");
+    },
+  }));
+  const missing = await runLogout(runtime("codex", {
+    installation: async () => {
+      await Promise.resolve();
+      return { kind: "not_found" };
+    },
+  }));
+  expect([none, broken, missing].map((report) => [renderLogoutReport(report), logoutExitCode(report)])).toMatchInlineSnapshot(`
+    [
+      [
+        "pi	pi has no logout oar can drive",
+        1,
+      ],
+      [
+        "broken	error: spawn EACCES",
+        1,
+      ],
+      [
+        "codex	not available (not_found)",
+        1,
+      ],
+    ]
+  `);
 });
 
 test("--status reports each runtime's own status query", async () => {

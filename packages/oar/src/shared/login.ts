@@ -2,7 +2,7 @@ import type { ChildProcess } from "node:child_process";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
-import type { LoginResult } from "../contracts/login.js";
+import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./executable/index.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
@@ -93,6 +93,8 @@ export interface LoginProcess {
   readonly exited: Promise<LoginProcessExit>;
   /** Write to the command's stdin; a no-op once it has exited. */
   write(text: string): void;
+  /** End the command's stdin: it reads nothing more (a logout command reads nothing at all). */
+  closeInput(): void;
   /**
    * Stop the command and everything it started: SIGTERM to its process
    * group, SIGKILL to the group after the grace period (the tree on
@@ -199,6 +201,9 @@ export function spawnLoginProcess(
         child.stdin.write(text);
       }
     },
+    closeInput() {
+      child.stdin?.end();
+    },
     stop() {
       if (stopped) {
         return;
@@ -251,14 +256,19 @@ export function stoppedResult(stop: LoginStop, timeoutMs: number): LoginResult {
     : { kind: "failed", reason: "timed_out", detail: `no sign-in within ${String(timeoutMs)} ms` };
 }
 
+/** What ends a login or a logout before anything runs: both results take it as it is. */
+export type ExecutableRefusal =
+  | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail: string }
+  | { readonly kind: "failed"; readonly reason: "process_failed"; readonly detail: string };
+
 export type LoginExecutable =
   | { readonly kind: "executable"; readonly installation: ExecutableInstallation }
-  /** The login ends before anything runs. */
-  | { readonly kind: "settled"; readonly result: LoginResult };
+  /** The login (or logout) ends before anything runs. */
+  | { readonly kind: "settled"; readonly result: ExecutableRefusal };
 
 /**
- * The executable to sign in, or the result that ends the login before
- * anything runs: a bundled runtime or a version known to predate `floor` is
+ * The executable to sign in (or out), or the result that ends the login
+ * before anything runs: a bundled runtime or a version known to predate `floor` is
  * unsupported, and an executable that is no longer there (found as the
  * installation probe finds it, without spawning) fails alike on every
  * platform, since a missing command started through a Windows shell would

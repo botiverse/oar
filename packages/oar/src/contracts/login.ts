@@ -76,6 +76,59 @@ export type RuntimeLogin = (
   options?: LoginOptions,
 ) => Promise<LoginResult>;
 
+/** Why a logout ended without a runtime that reads logged out. */
+export type LogoutFailureReason =
+  | "timed_out" // oar's deadline passed before the runtime's logout finished; the logout process and everything it started were stopped
+  | "rejected" // the runtime reported that the logout failed (`detail` carries its words)
+  | "process_failed" // the executable is no longer there (checked before anything is spawned), the logout process could not start, or it ended without a result
+  | "still_logged_in"; // the runtime's logout succeeded, yet its own status query still reads logged in: credentials from the environment or another source (`detail` says what it read)
+
+/**
+ * How a logout ended. `failed.detail` and `unsupported.detail` are for
+ * people, redacted as a login's are.
+ */
+export type LogoutResult =
+  /**
+   * The runtime's own status query confirms it reads logged out after its
+   * logout ran (also when it was logged out already), or, when the status
+   * cannot tell, the runtime reported that its logout succeeded.
+   */
+  | { readonly kind: "logged_out" }
+  | { readonly kind: "failed"; readonly reason: LogoutFailureReason; readonly detail?: string }
+  | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail?: string };
+
+export interface LogoutOptions {
+  /** Bound for the runtime's logout; each runtime has its own default. The status query after it has its own. */
+  readonly timeoutMs?: number;
+}
+
+/**
+ * Signs the installation out through the runtime's own logout (its command
+ * or SDK call), never by deleting its credential files. Changes the
+ * machine's credentials: oar never calls it on its own.
+ *
+ * - The status query decides: `logged_out` when `authStatus` reads logged
+ *   out after the logout ran, whatever the logout itself answered (one that
+ *   was logged out already is `logged_out` too). A logout that succeeded
+ *   while the status still reads logged in is `failed` / `still_logged_in`;
+ *   never `logged_out`. When the status cannot tell (`unknown`), the
+ *   runtime's own report decides: a logout that succeeded is `logged_out`,
+ *   one that failed is its failure.
+ * - Credentials outside the runtime's own store (an API key in the
+ *   environment, such as `ANTHROPIC_API_KEY` or `CURSOR_API_KEY`) are not
+ *   touched.
+ * - Whether the credential is also revoked on the vendor's side is the
+ *   runtime's own behaviour; each runtime's page says what it does.
+ * - Never: a token in a result, an error or a log; nothing the logout
+ *   process prints reaches the host's output.
+ * - Logouts are not serialized: whether one may run beside a login is the
+ *   host's policy.
+ */
+export type RuntimeLogout = (
+  installation: AvailableInstallation,
+  options?: LogoutOptions,
+) => Promise<LogoutResult>;
+
 /**
  * Whether the runtime is logged in, from its own local status query.
  * `source` names the command (or SDK call) that answered.

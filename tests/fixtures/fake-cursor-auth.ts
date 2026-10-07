@@ -30,6 +30,12 @@ export interface FakeCursorOptions {
   readonly afterSave?: CursorAuthStatus | Error;
   /** The SDK's own file store fails to write. */
   readonly saveError?: Error;
+  /** `Cursor.auth.logout` throws this, or never settles. */
+  readonly logoutError?: Error | "never";
+  /** What `status()` reads after a logout (logged out unless given: another store, say). */
+  readonly afterLogout?: CursorAuthStatus;
+  /** An SDK whose `Cursor.auth` has no `logout`. */
+  readonly noLogout?: boolean;
 }
 
 /**
@@ -38,12 +44,15 @@ export interface FakeCursorOptions {
  * signs in, or on the signal with `Login was cancelled.`), then the key
  * minting, which takes no signal, then `store.save` and resolve. Its
  * `FileCredentialStore` writes what `status()` reads, as
- * `~/.cursor/sdk/auth.json` does.
+ * `~/.cursor/sdk/auth.json` does, and its `logout` clears it, as 1.0.36's
+ * does with no store given.
  */
 export class FakeCursor {
   /** What reached the SDK's own file store. */
   readonly writes: object[] = [];
   readonly logins: CursorLoginOptions[] = [];
+  /** The arguments of each `Cursor.auth.logout` call. */
+  readonly logouts: unknown[][] = [];
   /** Settles with how the SDK's own login ended: `resolved` or its error's message. */
   readonly sdkOutcome = Promise.withResolvers<string>();
   readonly sdk: CursorSdk;
@@ -63,7 +72,7 @@ export class FakeCursor {
     };
     this.sdk = {
       Agent: { create: unused, resume: unused, listRuns: unused },
-      Cursor: { models: { list: unused }, auth: this.auth },
+      Cursor: { models: { list: unused }, auth: options.noLogout === true ? this.authWithoutLogout() : this.auth },
       FileCredentialStore: class {
         async save(credentials: object): Promise<void> {
           await save(credentials);
@@ -88,6 +97,18 @@ export class FakeCursor {
         throw error;
       }
     },
+    logout: async (...args: unknown[]) => {
+      this.logouts.push(args);
+      const failure = this.options.logoutError;
+      if (failure === "never") {
+        await Promise.withResolvers<never>().promise;
+      }
+      if (failure instanceof Error) {
+        throw failure;
+      }
+      // The SDK's own file store, cleared: what `status()` reads from then on.
+      this.stored = this.options.afterLogout ?? { status: "logged-out" };
+    },
     status: async () => {
       const { stored } = this;
       if (stored === "never") {
@@ -100,6 +121,15 @@ export class FakeCursor {
       return stored;
     },
   };
+
+  /** `Cursor.auth` as an SDK without `logout` has it. */
+  private authWithoutLogout(): CursorAuth {
+    const { auth } = this;
+    return {
+      login: async (options) => auth.login(options),
+      status: async () => auth.status(),
+    };
+  }
 
   /** The person finished the sign-in in the browser; the SDK's poll then fails with `error`, if given. */
   signIn(error?: Error): this {

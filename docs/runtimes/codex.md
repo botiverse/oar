@@ -749,6 +749,37 @@ the code was shown (`login cancelled`, exit 130, no process left over, the
 previous login unchanged).
 [Login](../../packages/oar/src/runtimes/codex/login.ts).
 
+### Logout
+
+**Mapped** ([runtime logout](../spec/login.md#logout)): `logout` runs
+`codex logout` over pipes with its stdin closed, and `codex login status`
+decides. Native behavior [src `openai/codex` `rust-v0.160.1`:
+`cli/src/login.rs` `run_logout`, `login/src/auth/manager.rs`
+`logout_with_revoke`, `login/src/auth/revoke.rs`]: for a ChatGPT login codex
+first revokes its refresh token (or, without one, its access token) at
+`https://auth.openai.com/oauth/revoke` (10 s); a revoke that fails is only
+logged and the local logout goes on. The revoke arrived in 0.122.0
+([openai/codex#17825](https://github.com/openai/codex/pull/17825)); an older
+codex only deletes. It then deletes the credential store,
+`$CODEX_HOME/auth.json` and its keyring entry. An API key stored with
+`codex login --with-api-key` is only deleted: it stays valid on the OpenAI
+platform. codex prints `Successfully logged out` (exit 0), `Not logged in`
+when nothing was stored (exit 0), or `Error logging out: <error>` (exit 1,
+`rejected`). Observed in a temporary `CODEX_HOME` with no network [run
+0.160.1]: an empty home answers `Not logged in` with exit 0 (`logged_out`); a
+stored (fake) API key answers `Successfully logged out`, `auth.json` is gone,
+and the status reads `Not logged in`. `OPENAI_API_KEY` and `CODEX_API_KEY`
+are invisible to `codex login status` (it loads the store with the API-key
+variable turned off), so a logout with either set is `logged_out` and leaves
+the variable as it was, while codex goes on using it wherever it reads it
+(`codex exec` reads `CODEX_API_KEY` [src `exec/src/lib.rs`]): a host must not
+take `logged_out` to mean codex can no longer run. The deadline is 60 s. `codex logout` arrived in
+0.15.0 ([openai/codex#1932](https://github.com/openai/codex/pull/1932)), so
+an older codex is `unsupported` / `version_unsupported`. Verified against the
+fake CLI ([tests](../../tests/login/codex-logout.test.ts)); the real-login
+checklist of [#192](https://github.com/botiverse/oar/issues/192) is not run
+yet. [Logout](../../packages/oar/src/runtimes/codex/logout.ts).
+
 ## Harness fact matrix
 
 Answers to the harness investigation questions for the one interface OAR

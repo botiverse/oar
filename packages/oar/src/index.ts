@@ -64,7 +64,11 @@ export type {
   LoginOptions,
   LoginResult,
   LoginUnsupportedReason,
+  LogoutFailureReason,
+  LogoutOptions,
+  LogoutResult,
   RuntimeLogin,
+  RuntimeLogout,
 } from "./contracts/login.js";
 export type { RefusableSessionOption, RefusedSessionOptions, Runtime } from "./contracts/runtime.js";
 export type {

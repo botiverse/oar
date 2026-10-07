@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAuthStatus, codexLogin } from "./login.js";
+import { codexLogout } from "./logout.js";
 import { codexAccountUsage } from "./account-usage.js";
 import { codexInstallation } from "./installation.js";
 import { codexListModels } from "./list-models.js";
@@ -20,6 +21,7 @@ export const codexRuntime = defineRuntime({
   checkUpdate: codexCheckUpdate,
   upgrade: codexUpgrade,
   login: codexLogin,
+  logout: codexLogout,
   authStatus: codexAuthStatus,
   session: codexSession,
 });

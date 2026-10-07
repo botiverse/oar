@@ -57,7 +57,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
 | Updates | One frame per update; a subagent's updates arrive inside its `task` call and are attributed to it (`agentPath`, tier `attributed`). |
 | Steer, queue, abort | `run.steer`; an adapter-held queue sent as the next run; `run.cancel`. |
-| `Cursor.auth` | `login` is `Cursor.auth.login` (the URL relayed, the SDK polls), `authStatus` is `Cursor.auth.status` ([login](#login)). |
+| `Cursor.auth` | `login` is `Cursor.auth.login` (the URL relayed, the SDK polls), `logout` is `Cursor.auth.logout` (local only: the minted key is not revoked), `authStatus` is `Cursor.auth.status` ([login](#login), [logout](#logout)). |
 
 Sources: [session](../../packages/oar/src/runtimes/cursor/session.ts),
 [projection](../../packages/oar/src/runtimes/cursor/projection.ts),
@@ -448,6 +448,41 @@ another device, which ended on its own once signed in (exit 0, the account's
 email and a key expiring 90 days later).
 [Login](../../packages/oar/src/runtimes/cursor/login.ts),
 [status](../../packages/oar/src/runtimes/cursor/auth-status.ts).
+
+### Logout
+
+**Mapped** ([runtime logout](../spec/login.md#logout)): `logout` is the SDK's
+own `Cursor.auth.logout()`, called with no options so that it clears the
+SDK's own default store, and `Cursor.auth.status` decides. Its signature
+[`dist/esm/stubs.d.ts` and `dist/esm/auth/login.d.ts`, 1.0.36; 1.0.35 has
+the same] is `logout(options?: SdkLogoutOptions): Promise<void>`, with
+`SdkLogoutOptions { store?: SdkCredentialStore }`. Native behavior [bundle
+1.0.36]: `(options.store ?? new FileCredentialStore()).clear()`, which is
+`rm(~/.cursor/sdk/auth.json, { force: true })` (a missing file is no error),
+then it drops its in-process cache of the stored key. It makes no request.
+
+**The minted key is not revoked.** It stays valid, listed among the
+dashboard's API keys as `Cursor SDK login (<hostname>)`, until it expires
+(90 days after the login) or someone revokes it there. The SDK has no call
+that revokes it; its own declaration says "Local-only: the minted key stays
+valid until its expiry unless revoked from the dashboard's API-keys page." A
+host that wants the key dead must send the person to the dashboard.
+
+`CURSOR_API_KEY` is not touched, and since `Cursor.auth.status` ignores it,
+a logout with it set is `logged_out` while every SDK call goes on using the
+variable. A throw is `rejected` with its first line, redacted. The deadline
+is 20 s; the removal is local and OAR cannot stop it, so past the deadline
+OAR stops waiting (`timed_out`, unless the status already reads logged out).
+An SDK handed over without `Cursor.auth.logout` makes the logout
+`unsupported` / `version_unsupported`. Verified against the stand-in SDK
+([tests](../../tests/login/cursor-logout.test.ts)), and with the real SDK in
+temporary homes
+([`experiments/cursor-login/probe.ts`](../../experiments/cursor-login/README.md),
+2026-10-07, 1.0.36): a logout over a previous login removed `auth.json` and
+read logged out, a second one was `logged_out` too, `CURSOR_API_KEY` was
+left as it was, nothing was printed and no request was made. The real-login
+checklist of [#192](https://github.com/botiverse/oar/issues/192) is not run
+yet. [Logout](../../packages/oar/src/runtimes/cursor/logout.ts).
 
 ## Verification and open gaps
 

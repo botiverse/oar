@@ -163,6 +163,9 @@ const sdk: CursorSdk = {
         const result = await login;
         return result;
       },
+      async logout() {
+        await realAuth.logout();
+      },
       async status() {
         const status = await realAuth.status();
         return status;
@@ -456,6 +459,45 @@ async function timeoutWhileMinting(previous: boolean): Promise<string> {
   return `timed_out while CreateUserApiKey was held; ${untouched}; the SDK's late save was refused`;
 }
 
+/** A logout makes no request: not to the mock, and (the guard) not elsewhere. */
+function assertNoRequest(): void {
+  const { polls, getPolls, mints, getMes, unexpected } = mock.seen;
+  assert.deepEqual({ polls, getPolls, mints: mints.length, getMes, unexpected }, { polls: 0, getPolls: 0, mints: 0, getMes: 0, unexpected: [] }, "a logout called the backend");
+}
+
+/** OAR's logout over a previous login: auth.json gone, the status logged out; a second logout, already out, is logged_out too. */
+async function logout(): Promise<string> {
+  const home = await scenarioHome("logout", true);
+  assert.equal(home.statusBefore.kind, "logged_in");
+  mock.reset();
+  const { value: results, output } = await capturedOutput(async () => [await runtime.logout(bundled), await runtime.logout(bundled)]);
+  assert.deepEqual(results, [{ kind: "logged_out" }, { kind: "logged_out" }]);
+  assert.ok(!existsSync(home.authFile), "auth.json is still there after the logout");
+  assert.deepEqual(await runtime.authStatus(bundled), { kind: "logged_out", source: "Cursor.auth.status" });
+  assertNoRequest();
+  assert.equal(output, "", `the SDK printed: ${JSON.stringify(output)}`);
+  return "logged_out, auth.json removed, status logged_out; again when already out: logged_out; no request, nothing printed";
+}
+
+/** With `CURSOR_API_KEY` set the logout still clears the stored login and leaves the variable; the status, which ignores it, reads logged out. */
+async function logoutWithEnvKey(): Promise<string> {
+  const home = await scenarioHome("logout-env-key", true);
+  mock.reset();
+  const envKey = "crsr_mock_env_key_not_a_secret";
+  process.env.CURSOR_API_KEY = envKey;
+  try {
+    const result = await runtime.logout(bundled);
+    assert.deepEqual(result, { kind: "logged_out" });
+    assert.equal(process.env.CURSOR_API_KEY, envKey, "the logout touched CURSOR_API_KEY");
+    assert.ok(!existsSync(home.authFile), "auth.json is still there after the logout");
+    assert.ok(!JSON.stringify(result).includes(envKey));
+  } finally {
+    Reflect.deleteProperty(process.env, "CURSOR_API_KEY");
+  }
+  assertNoRequest();
+  return "logged_out (the status ignores the variable), auth.json removed, CURSOR_API_KEY left as it was";
+}
+
 /** Name, scenario, and whether its home starts with a previous login. */
 const scenarios: readonly (readonly [string, (previous: boolean) => Promise<string>, boolean])[] = [
   ["success", success, false],
@@ -467,6 +509,8 @@ const scenarios: readonly (readonly [string, (previous: boolean) => Promise<stri
   ["timeout while polling, previous login", timeoutWhilePolling, true],
   ["timeout while minting, empty home", timeoutWhileMinting, false],
   ["timeout while minting, previous login", timeoutWhileMinting, true],
+  ["logout, previous login", logout, true],
+  ["logout with CURSOR_API_KEY set, previous login", logoutWithEnvKey, true],
 ];
 
 const sdkVersion: unknown = JSON.parse(readFileSync(new URL("../../node_modules/@cursor/sdk/package.json", import.meta.url), "utf8"));

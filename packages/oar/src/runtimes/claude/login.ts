@@ -14,6 +14,8 @@ import {
 } from "../../shared/login.js";
 import { claudeAuthStatus, claudeEnv } from "./auth-status.js";
 
+export { claudeAuthStatus } from "./auth-status.js";
+
 /*
  * `claude auth login` over pipes (2.1.288). It prints, on stdout:
  *
