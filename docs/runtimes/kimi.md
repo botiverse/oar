@@ -487,6 +487,11 @@ what they started, and a runtime still running a grace period after SIGTERM
 ([test](../../tests/session-dispose.test.ts)). It does not delete persisted
 native sessions.
 
+On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
+the abort fallback, including the runtime behind its launcher and its
+descendants ([test](../../tests/session-dispose.test.ts)). See
+[host-exit cleanup and limits](../spec/record-stream.md#the-rules).
+
 [Installation detection](../../packages/oar/src/runtimes/kimi/installation.ts)
 checks `OAR_KIMI_BIN`, PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,
 `~/.kimi-code/bin/kimi`, and the legacy `kimi-code` name, probing

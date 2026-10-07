@@ -90,8 +90,10 @@ Further rules:
   Codex answer pending aborts `rejected: runtime_exited` when that happens,
   once per request. Claude's late `control_response` bytes remain a frame,
   not a second response. If the interrupted turn has not ended within ten
-  seconds, OAR terminates the process: SIGTERM, then SIGKILL after the normal
-  kill grace period (another ten seconds by default, `OAR_KILL_GRACE_MS`).
+  seconds, OAR terminates the process. On POSIX this sends SIGTERM, then
+  SIGKILL after the normal kill grace period (another ten seconds by default,
+  `OAR_KILL_GRACE_MS`); on Windows it force-terminates the process tree with
+  `taskkill /T /F`, including any launcher and the runtime behind it.
   An interrupt acknowledgement does not cancel this fallback; a turn end
   does. A native refusal cancels only that abort attempt; it must not kill
   work the runtime refused to interrupt. Process exit is the observer's
@@ -101,7 +103,10 @@ Further rules:
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
   `exit` hook kills OAR's still-running sessions, probes (inventory and
   account usage), updaters, logins and ACP terminals. POSIX sends SIGKILL to
-  their process groups; Windows kills the direct children. This is a final
+  their process groups; Windows synchronously runs `taskkill /T /F` for each
+  live child to include its descendants (bounded to ten seconds per call,
+  falling back to the direct child on failure). Windows cannot reclaim a
+  tree through a launcher that already exited: its pid may be reused. This is a final
   fallback, not a substitute for disposal: no graceful hooks run. Node
   does not emit `exit` for an unhandled terminating signal, including
   SIGKILL, so hosts must handle ordinary termination signals themselves.

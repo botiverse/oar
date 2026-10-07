@@ -95,13 +95,15 @@ export async function withTreeProbe<Result>(
 }
 
 /**
- * A POSIX executable that runs the fake agent whatever arguments it gets: an
- * adapter's `installation.command`, so the real adapter spawns it as-is. `exec`
- * keeps the pid, so the agent the fixture reports is the adapter's child.
+ * An adapter's installation.command. POSIX exec keeps the agent's pid;
+ * Windows deliberately keeps a .cmd launcher, so killing only that wrapper
+ * cannot pass the agent/descendant liveness assertions.
  */
-export function fakeAgentBinary(dir: string): string {
-  const binary = path.join(dir, "fake-agent");
-  writeFileSync(binary, `#!/bin/sh\nexec "${process.execPath}" "${fakeAgent}" "$@"\n`);
+export function fakeAgentBinary(dir: string, entry: readonly string[] = [fakeAgent]): string {
+  const windows = process.platform === "win32";
+  const binary = path.join(dir, windows ? "fake-agent.cmd" : "fake-agent");
+  const command = [process.execPath, ...entry].map((arg) => `"${arg}"`).join(" ");
+  writeFileSync(binary, windows ? `@echo off\r\n${command} %*\r\n` : `#!/bin/sh\nexec ${command} "$@"\n`);
   chmodSync(binary, 0o755);
   return binary;
 }

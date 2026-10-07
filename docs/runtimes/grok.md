@@ -578,6 +578,11 @@ resource release, not detached execution or a lease against other
 controllers. The environment overlay applies to the child process and to
 hosted terminals.
 
+On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
+the abort fallback, so termination reaches the runtime behind its launcher
+and its descendants ([test](../../tests/session-dispose.test.ts)).
+See [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
+
 Installation checks `OAR_GROK_BIN`, PATH, and the official script/npm layouts
 (`$GROK_BIN_DIR`, `$GROK_HOME/bin`, `~/.grok/bin`), probing with
 `grok agent stdio --help`. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)

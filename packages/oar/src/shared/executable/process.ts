@@ -3,6 +3,9 @@ import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
+import { trackOwnedProcess } from "./ownership.js";
+
+export { trackOwnedProcess } from "./ownership.js";
 
 export interface LineProcessOptions {
   readonly cwd?: string;
@@ -74,42 +77,6 @@ export function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals):
     }
   }
   child.kill(signal);
-}
-
-const ownedChildren = new Set<ChildProcess>();
-let exitHookInstalled = false;
-
-/**
- * Own a detached POSIX process group (or a Windows child) until its output
- * pipes close: descendants may hold them after the group leader exits.
- * One synchronous hook covers sessions, probes, updaters, logins and ACP
- * terminals even when a host calls process.exit without disposing them.
- * Node does not emit `exit` for an unhandled terminating signal or SIGKILL;
- * hosts must arrange graceful signal handling themselves.
- */
-export function trackOwnedProcess(child: ChildProcess): void {
-  ownedChildren.add(child);
-  const forget = (): void => { ownedChildren.delete(child); };
-  child.once("close", forget);
-  child.once("error", () => {
-    // A failed spawn has no group. Other errors (e.g. a failed kill) do not
-    // prove the process is gone.
-    if (child.pid === undefined) { forget(); }
-  });
-  if (!exitHookInstalled) {
-    exitHookInstalled = true;
-    process.once("exit", () => {
-      for (const owned of ownedChildren) {
-        try {
-          if (OWN_PROCESS_GROUP) { signalProcessGroup(owned, "SIGKILL"); }
-          else { owned.kill(); }
-        } catch {
-          // Best effort during synchronous exit: one failed signal must not
-          // prevent cleanup of the remaining children.
-        }
-      }
-    });
-  }
 }
 
 /** A long-lived child whose raw streams can also be observed line-by-line. */

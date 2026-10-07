@@ -282,8 +282,8 @@ active turn` and a steer `rejected: not_steerable: no active turn`
 If the app-server exits with RPCs still pending, their control responses
 are `rejected: runtime_exited`, carrying the process diagnostics; a native
 RPC refusal remains `runtime_refused`. If the interrupted turn has not ended
-ten seconds after the first abort, OAR kills the process with the normal
-SIGTERM then SIGKILL grace period below. An interrupt acknowledgement alone
+ten seconds after the first abort, OAR terminates the runtime using the
+platform's process cleanup described below. An interrupt acknowledgement alone
 does not clear the deadline; `turn/completed` does. A native refusal cancels
 only that abort attempt. The observed exit ends the turn as `failed: runtime_exited`, and the host must resume to continue.
 [Real-binary transport-fault test](../../sea-trial/vendor/abort-fallback.vendor.test.ts).
@@ -639,6 +639,13 @@ servers it started, and disposal settles even when it ignores SIGTERM
 ([test](../../tests/session-dispose.test.ts)). This supplies resource
 release, not detached execution or a lease against other controllers of the
 persisted thread. The environment overlay applies to the child process.
+
+On Windows, app-server disposal and the abort fallback force-terminate the
+whole process tree with `taskkill /T /F`, including any launcher, with a
+direct-child fallback if the tree walk fails. The host-exit hook runs this
+synchronously; see the [lifetime limits](../spec/record-stream.md#the-rules).
+The [dispose regression](../../tests/session-dispose.test.ts) checks both
+the runtime behind a `.cmd` launcher and the tool it started are gone.
 
 **First open per `CODEX_HOME` (coordinated):** native 0.160.0 can fail SQLite
 initialization when several processes first open a fresh shared home: a direct

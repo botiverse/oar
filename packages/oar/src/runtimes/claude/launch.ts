@@ -37,6 +37,9 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
   ], {
     cwd: options.cwd,
     env: { ...process.env, CLAUDECODE: undefined, ...options.env },
+    // On Windows an npm .cmd wrapper can exit while native claude keeps
+    // the provider request and stdio alive. Teardown must reach both.
+    killTree: true,
   });
 }
 

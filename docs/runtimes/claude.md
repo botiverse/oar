@@ -153,8 +153,8 @@ A late abort is rejected `no active turn`.
 If claude exits before replying, every pending interrupt is answered once
 with `rejected: runtime_exited`. A `control_response` draining from stdout
 after that is kept as a frame only. If the turn is still running ten seconds
-after the first abort, OAR kills the process using its normal SIGTERM then
-SIGKILL grace period below. The timer follows the turn, even after an
+after the first abort, OAR terminates the runtime using the platform's
+process cleanup described below. The timer follows the turn, even after an
 interrupt acknowledgement, and is cleared when the turn ends. A native
 refusal cancels only that abort attempt. The observed exit ends the turn as `failed: runtime_exited`; continue by resuming the
 session. [Exit and deadline tests](../../tests/claude/claude-session-death.test.ts),
@@ -387,6 +387,15 @@ wants it stopped disposes the session. This supplies resource release, not
 detached execution or a lease against other controllers. The environment
 overlay applies to the child process; `CLAUDECODE` is cleared before the
 overlay. [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
+
+On Windows, disposal and the abort fallback use `taskkill /T /F` to terminate
+the entire process tree, including a `.cmd` launcher and native claude. There
+is no POSIX-style graceful signal phase; if the tree walk fails, OAR falls
+back to terminating the direct child. Killing only the launcher left a live
+provider request and further Claude output after the recorded exit in the
+[native abort regression](../../sea-trial/vendor/abort-fallback.vendor.test.ts)
+(Claude 2.1.292). The host-exit hook runs the same tree cleanup synchronously;
+see the [lifetime limits](../spec/record-stream.md#the-rules).
 
 Installation checks `OAR_CLAUDE_BIN`/PATH; update checks and upgrades are
 covered in [runtime updaters](update.md). Account usage is separate from

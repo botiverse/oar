@@ -80,6 +80,8 @@ for (const runtime of runtimes) {
       });
     } finally {
       record({ kind: "abort_probe_phase", phase: "provider_stop" });
+      // This must settle too: a Windows launcher exit alone leaves native
+      // claude's provider socket alive, despite abort/dispose having settled.
       await env.stop();
       record({ kind: "abort_probe_phase", phase: "finished" });
     }

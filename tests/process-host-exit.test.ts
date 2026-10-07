@@ -14,7 +14,7 @@ const terminalModule = new URL("../packages/oar/src/shared/acp/terminal.ts", imp
 
 // No dispose/finally in the host: this tests the synchronous process exit
 // hook, including tools in both groups, independently of session shutdown.
-test.skipIf(process.platform === "win32").each(["probe", "probe-after-exit", "isolated", "login", "terminal"])(
+test.each(["probe", "isolated", "login", "terminal", ...(process.platform === "win32" ? [] : ["probe-after-exit"])])(
   "host exit kills a live session and a hung %s process group",
   async (kind) => {
     await withTreeProbe({ ignoreSigterm: true }, async (sessionProbe) => {
@@ -69,7 +69,7 @@ test.skipIf(process.platform === "win32").each(["probe", "probe-after-exit", "is
 );
 
 
-// Includes Windows: its exit hook promises direct-child termination only.
+// Direct native children must be reclaimed too, without needing a launcher.
 // oxlint-disable-next-line eslint/max-statements -- Spawn, observe and reclaim the same host and its two children.
 test("host exit kills its live transport and one-shot child on every platform", async () => {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-host-exit-"));

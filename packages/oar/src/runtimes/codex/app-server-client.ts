@@ -90,7 +90,7 @@ function createAppServerClient(
   const child = spawnLineProcess(
     command,
     ["app-server", ...overrideArgs, "--listen", "stdio://"],
-    { cwd, env, ...processOptions },
+    { cwd, env, killTree: true, ...processOptions },
   );
   // Session initialization observes spawn failures through its pending RPC.
   // Mark this parallel promise handled while preserving its rejection for
