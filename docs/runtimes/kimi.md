@@ -353,10 +353,37 @@ running session are absent ([native surfaces](live-configure.md)).
 
 `session()` refuses `systemPrompt` and `appendSystemPrompt` with an
 `UnsupportedOptionError`, declared before open in
-`kimiRuntime.refusedSessionOptions`, because the selected ACP integration
-exposes no override
+`kimiRuntime.refusedSessionOptions`, because `kimi acp` has no per-session
+instruction input through its protocol or launcher
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
-This is not a claim that the native harness cannot configure instructions.
+The first-party **2.1.1** launch audit on **2026-10-07** checked `kimi --help`,
+`kimi acp --help` and the matching release source. The top-level CLI accepts
+`--agent-file` and `--agent`, but the
+[`acp` command](https://github.com/MoonshotAI/kimi-code/blob/f67e6398fb3210ad8ace970e2dfd5bcc984ed61f/apps/kimi-code/src/cli/sub/acp.ts)
+passes neither to `runAcpServer`: it supplies only the data root, agent
+identity and terminal-auth metadata. The
+[`session/new` handler](https://github.com/MoonshotAI/kimi-code/blob/f67e6398fb3210ad8ace970e2dfd5bcc984ed61f/packages/acp-server/src/server.ts)
+also supplies no agent-profile or prompt input to the engine.
+
+The native harness can load agent profiles. Its
+[`extraAgentDirs` configuration section](https://github.com/MoonshotAI/kimi-code/blob/f67e6398fb3210ad8ace970e2dfd5bcc984ed61f/packages/agent-core-v2/src/workspace/workspaceAgentProfileLoader/configSection.ts)
+has no environment binding, and the ACP launcher exposes no separate config
+path. Redirecting `KIMI_CODE_HOME` would also redirect credentials and saved
+sessions; OAR does not use that as a prompt override or modify user config.
+
+| Session option | Channel used by OAR |
+| --- | --- |
+| `cwd` | ACP `session/new`; resume in another directory is refused. |
+| `resume` | ACP `session/resume`, or `session/load` when resume is not advertised. |
+| `model` | ACP `session/set_model`, with config-update readback. |
+| `effort` | ACP `session/set_config_option` on `thinking`, with readback. |
+| `env` | Environment of this session's subprocess and tool subprocesses. |
+| `systemPrompt`, `appendSystemPrompt` | Refused: the selected native launcher does not carry them. |
+
+The existing ACP probes above establish model, effort and resume behavior;
+the launch audit establishes why the CLI profile flags cannot fill the
+instruction gap. It does not add steer or child-agent attribution: those
+still require native control messages and identifying events.
 
 **Context (partial):** native ACP
 [emits context usage after the prompt response](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L907-L947)
