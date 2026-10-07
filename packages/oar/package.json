@@ -30,6 +30,10 @@
       "types": "./dist/agents/index.d.ts",
       "import": "./dist/agents/index.js"
     },
+    "./agents/report": {
+      "types": "./dist/agents/report.d.ts",
+      "import": "./dist/agents/report.js"
+    },
     "./community": {
       "types": "./dist/community/index.d.ts",
       "import": "./dist/community/index.js"

@@ -58,7 +58,7 @@ function cursorPeerVersion(): string {
  */
 const PROBE = `
 import { createCursorRuntime, defaultRuntimes } from "@botiverse/oar";
-for (const entry of ["observe", "kernel", "brands", "testing", "agents"]) {
+for (const entry of ["observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
   await import("@botiverse/oar/" + entry);
 }
 const kinds = {};
@@ -75,15 +75,43 @@ if (process.argv[2] === "cursor") {
 console.log(JSON.stringify({ kinds, models }));
 `;
 
+/**
+ * `@botiverse/oar/agents/report` alone, in a fresh process: a host that only
+ * forwards subagent reports loads that one module of OAR and no runtime
+ * (#177; `@botiverse/oar/agents` loads all of them).
+ */
+const REPORT_PROBE = `
+import assert from "node:assert/strict";
+import { registerHooks } from "node:module";
+const loaded = [];
+registerHooks({
+  load(url, context, nextLoad) {
+    const at = url.indexOf("/node_modules/@botiverse/oar/");
+    if (at !== -1) {
+      loaded.push(url.slice(at + "/node_modules/@botiverse/oar/".length));
+    }
+    return nextLoad(url, context);
+  },
+});
+const { formatReport, reportOrigin } = await import("@botiverse/oar/agents/report");
+assert.deepEqual(loaded, ["dist/agents/report.js"]);
+const report = { id: "scout", name: "scout", runtime: "codex", sessionId: "s-1", turn: 2, outcome: { kind: "completed" }, text: "found it", endedAt: 0 };
+assert.equal(formatReport(report), "[subagent scout on codex, turn 2: completed; session s-1]\\nfound it");
+assert.deepEqual(reportOrigin(report), { kind: "notification", source: "subagent:scout" });
+`;
+
 const ENTRIES = `
 import * as oar from "@botiverse/oar";
 import * as agents from "@botiverse/oar/agents";
+import * as report from "@botiverse/oar/agents/report";
+import type { SubagentReport } from "@botiverse/oar/agents/report";
 import * as brands from "@botiverse/oar/brands";
 import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
-export const entries = [oar, agents, brands, kernel, observe, testing];
+export const entries = [oar, agents, report, brands, kernel, observe, testing];
+export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r) });
 `;
 
 const ADD_CURSOR = `
@@ -134,6 +162,7 @@ writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", pr
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
+run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
 const bare = probe();
 assert.equal(bare.kinds.cursor, undefined);
