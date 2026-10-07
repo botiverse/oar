@@ -57,3 +57,119 @@ test("an older codex total without cacheWriteInputTokens yields only cacheRead",
   const bare = tokenUsage(initialCodexProjection(ROOT), { tokenUsage: { total: { inputTokens: 200, outputTokens: 5 } } });
   expect(bare.tokens).toEqual([{ input: 200, output: 5 }]);
 });
+
+/** The root token totals a Session's projection reads out of `frames`, opened by `opened`. */
+function sessionTokens(opened: "thread/start" | "thread/resume", frames: readonly (readonly [string, Record<string, unknown>])[]): unknown[] {
+  let state = initialCodexProjection(ROOT, opened);
+  return frames.flatMap(([method, params]) => {
+    const folded = foldCodexNotification(state, method, { threadId: ROOT, ...params });
+    ({ state } = folded);
+    return usageTokens(folded.commands);
+  });
+}
+
+const total = (input: number, output: number, cache?: { readonly read: number; readonly write: number }): Record<string, unknown> => ({
+  tokenUsage: { total: { inputTokens: input, outputTokens: output, ...(cache === undefined ? {} : { cachedInputTokens: cache.read, cacheWriteInputTokens: cache.write }) } },
+});
+
+// #169, from a real codex-cli 0.155.1 login (botiverse/ferry fixture
+// packages/core/test/fixtures/codex-resume.jsonl): run 1 ended at
+// 18,185 / 5. The resumed run re-reported 18,185 / 5 under run 1's turn id
+// right after the prompt, before turn/started, then 38,557 / 10.
+test("a resumed codex Session counts its tokens from the total re-reported before its first turn", () => {
+  expect(sessionTokens("thread/resume", [
+    ["thread/tokenUsage/updated", { turnId: "run-1-turn", ...total(18_185, 5) }],
+    ["turn/started", { turn: { id: "run-2-turn" } }],
+    ["thread/tokenUsage/updated", { turnId: "run-2-turn", ...total(38_557, 10) }],
+  ])).toEqual([{ input: 0, output: 0 }, { input: 20_372, output: 5 }]);
+});
+
+// Numbers made up: the cache parts are subtracted like input.
+test("the resume baseline is subtracted from cacheRead and cacheWrite too", () => {
+  expect(sessionTokens("thread/resume", [
+    ["thread/tokenUsage/updated", total(30_000, 40, { read: 20_000, write: 9000 })],
+    ["turn/started", { turn: { id: "t2" } }],
+    ["thread/tokenUsage/updated", total(42_000, 70, { read: 31_000, write: 9500 })],
+  ])).toEqual([{ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, { input: 12_000, output: 30, cacheRead: 11_000, cacheWrite: 500 }]);
+});
+
+/** Every usage event a resumed Session's projection reads out of `frames`, as recorded. */
+function resumedUsage(frames: readonly (readonly [string, Record<string, unknown>])[]): unknown[] {
+  let state = initialCodexProjection(ROOT, "thread/resume");
+  return frames.flatMap(([method, params]) => {
+    const folded = foldCodexNotification(state, method, { threadId: ROOT, ...params });
+    ({ state } = folded);
+    return folded.commands.flatMap((command) => (command.kind === "frame" ? command.body.events : []));
+  });
+}
+
+/** A root report of the resumed Session's turn `t2`, with a context reading. */
+const report = (input: number, output: number, lastTotal: number): Record<string, unknown> => ({
+  turnId: "t2",
+  tokenUsage: { total: { inputTokens: input, outputTokens: output }, last: { totalTokens: lastTotal }, modelContextWindow: 258_400 },
+});
+
+// Don't know, don't report: a resumed Session whose first turn starts
+// without a re-report has no known start, so its usage events carry the
+// context reading and no `tokens`, and usage().total stays null. codex
+// 0.131.0 to 0.150.1 send no re-report, and 0.118.0 to 0.130.0 send it
+// inside the first turn, under its own id (codex-aimock probes,
+// experiments/codex-resume-usage.ts); the numbers are 0.118.0's.
+test("a resumed Session without a re-report before its first turn reports no tokens", () => {
+  const events = resumedUsage([
+    ["turn/started", { turn: { id: "t2" } }],
+    ["thread/tokenUsage/updated", report(1000, 5, 1005)],
+    ["thread/tokenUsage/updated", report(2200, 12, 1207)],
+  ]);
+  expect(events).toMatchInlineSnapshot(`
+    [
+      {
+        "kind": "usage",
+        "usage": {
+          "context": {
+            "contextWindow": 258400,
+            "percent": 0,
+            "tokens": 1005,
+          },
+        },
+      },
+      {
+        "kind": "usage",
+        "usage": {
+          "context": {
+            "contextWindow": 258400,
+            "percent": 0,
+            "tokens": 1207,
+          },
+        },
+      },
+    ]
+  `);
+});
+
+// A new thread counts from zero whatever arrives before its first turn.
+test("a new codex thread is never baselined", () => {
+  expect(sessionTokens("thread/start", [
+    ["thread/tokenUsage/updated", total(0, 0)],
+    ["turn/started", { turn: { id: "t1" } }],
+    ["thread/tokenUsage/updated", total(1000, 5)],
+  ])).toEqual([{ input: 0, output: 0 }, { input: 1000, output: 5 }]);
+});
+
+// Only the root thread is baselined: a child thread's total is its own, and
+// it neither sets nor meets the root's baseline.
+test("a child thread's total before the root's first turn is not the root's baseline", () => {
+  let state = initialCodexProjection(ROOT, "thread/resume");
+  const fold = (threadId: string, method: string, params: Record<string, unknown>): unknown[] => {
+    const folded = foldCodexNotification(state, method, { threadId, ...params });
+    ({ state } = folded);
+    return usageTokens(folded.commands);
+  };
+  expect([
+    ...fold("thread-child", "thread/tokenUsage/updated", total(500, 2)),
+    ...fold(ROOT, "thread/tokenUsage/updated", total(1000, 5)),
+    ...fold(ROOT, "turn/started", { turn: { id: "t2" } }),
+    ...fold("thread-child", "thread/tokenUsage/updated", total(900, 4)),
+    ...fold(ROOT, "thread/tokenUsage/updated", total(2200, 12)),
+  ]).toEqual([{ input: 500, output: 2 }, { input: 0, output: 0 }, { input: 900, output: 4 }, { input: 1200, output: 7 }]);
+});

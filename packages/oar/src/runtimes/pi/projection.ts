@@ -21,8 +21,9 @@ import { toolContent } from "../../shared/tool-output.js";
  * (agentPath is always root).
  *
  * `abortRequested` / `providerError` are control-plane and error inputs the
- * provider stream alone does not carry; `tokens` is the running per-session
- * total so usage events are cumulative, as the contract requires.
+ * provider stream alone does not carry; `tokens` is the running total of
+ * this Session's assistant messages, so usage events count from when this
+ * Session opened, as the contract requires.
  */
 
 export interface ProjectionCommand {

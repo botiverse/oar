@@ -30,6 +30,8 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
  *   accepted/rejected response, the outcome is turn/completed.
  * - every notification is one frame (verbatim params); notifications
  *   of other threads are child-session records; collab items link them.
+ * - token totals count from when this Session opened: after a resume, the
+ *   thread total codex re-reports before the first turn is subtracted.
  * - server-initiated requests are recorded as toApp requests, unanswered.
  * - reachability (exited / disposed) is the kernel's, read off the stream;
  *   the adapter holds no liveness flag (record-stream.md, "Reachability").
@@ -106,7 +108,9 @@ export const codexSession: StartSession = async (installation, options) => {
     active: null,
     spontaneous: false,
     codexTurnId: null,
-    projection: initialCodexProjection(threadId),
+    // A resume awaits codex's re-report of the thread's total so far: the
+    // baseline this Session's token totals count from (projection.ts, #169).
+    projection: initialCodexProjection(threadId, openMethod),
   };
   const busy = (): boolean => state.active !== null || state.spontaneous;
   let disposeRequest: RequestRecord | null = null;

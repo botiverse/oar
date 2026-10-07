@@ -27,6 +27,23 @@ export function addTokens(previous: TokenTotals, report: TokenTotals): TokenTota
 }
 
 /**
+ * `total` counted from `baseline` on: a runtime's own running total less
+ * the total it had already reported when this Session opened, so the
+ * numbers count from when this Session opened (TokenTotals in
+ * contracts/records.ts). Each part is the runtime's own number minus the
+ * baseline's; a part `total` lacks stays absent, and a part the baseline
+ * lacks subtracts nothing.
+ */
+export function subtractTokens(total: TokenTotals, baseline: TokenTotals): TokenTotals {
+  return {
+    input: total.input - baseline.input,
+    output: total.output - baseline.output,
+    ...(total.cacheRead === undefined ? {} : { cacheRead: total.cacheRead - (baseline.cacheRead ?? 0) }),
+    ...(total.cacheWrite === undefined ? {} : { cacheWrite: total.cacheWrite - (baseline.cacheWrite ?? 0) }),
+  };
+}
+
+/**
  * The cache parts a native usage record reports, read from the runtime's own
  * field names: a field the record lacks (or that is not a number) stays
  * absent, never a guessed 0.

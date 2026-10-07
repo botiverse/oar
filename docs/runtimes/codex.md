@@ -122,13 +122,49 @@ comes first ([env] 0.154.0: `remoteControl/status/changed`, `warning`, four
 `thread/resume` reply as the open event at seq 7, and the model recalls the
 earlier transcript (live-contract `resume`). With `excludeTurns` no history
 is replayed into the stream; no cursor from the previous process is valid,
-and nothing restores observer positions or a controller lease. The first
-`turn/start` after resume is preceded by a `thread/tokenUsage/updated`
-carrying the previous turn's id and the thread's cumulative total, then
-`thread/goal/cleared` ([env] 0.154.0); totals accumulate across processes, so
-`usage()` on a resumed session includes earlier turns. Resume sends no
-`experimentalRawEvents`, which would be inert there
+and nothing restores observer positions or a controller lease. Resume sends
+no `experimentalRawEvents`, which would be inert there
 ([reasoning](#observation-children-and-history)).
+
+**Token totals after a resume (mapped,
+[#169](https://github.com/botiverse/oar/issues/169)).** codex's
+`tokenUsage.total` spans the thread's life, across processes. Right after
+the `thread/resume` reply codex re-reports it: one
+`thread/tokenUsage/updated { threadId, turnId: <the previous turn's id>,
+tokenUsage: { total, last, modelContextWindow } }`, then
+`thread/goal/cleared` ([env] 0.154.0). It races the first prompt request
+but comes ahead of that prompt's reply and of the turn's `turn/started`.
+The adapter takes the first root report before the first root
+`turn/started` of a resumed Session as its baseline and subtracts it from
+every later root total, `cacheRead` and `cacheWrite` included, so `tokens`
+and `usage()` count from when this Session opened
+([spec](../spec/attribution.md#usage-one-constraint)). The re-report itself
+reads `tokens` 0 and keeps its `context` reading, which is what the resumed
+context holds. If the first root turn starts with no report yet, the
+baseline is unknown: don't know, don't report, so the Session's root
+`usage` events carry `context` only and `usage().total` stays null. On a
+real 0.155.1 login (Ferry's recording, botiverse/ferry
+`packages/core/test/fixtures/codex-resume.jsonl`) the first run ended at
+18,185 in / 5 out; the resumed run re-reported 18,185 / 5, then
+38,557 / 10, which the resumed Session reports as 20,372 / 5. Which codex
+sends the re-report
+([resume usage probe](../../experiments/codex-resume-usage.ts),
+codex-aimock, Linux, one run per release, 2026-10-07):
+
+| codex releases run | Re-report of the earlier total | Resumed Session's token totals |
+|---|---|---|
+| 0.151.0, 0.153.0, 0.154.0, 0.155.1, 0.160.1 | one frame before the first `turn/started`, under the previous turn's id | this Session's own: `usage()` counts from when it opened |
+| 0.131.0 to 0.137.0, 0.141.0, 0.144.6, 0.149.0, 0.149.1, 0.150.0, 0.150.1 | none | none: no `tokens`, `usage().total` null |
+| 0.118.0, 0.130.0 | inside the first turn, after its `userMessage` item and under that turn's own id | none: no `tokens`, `usage().total` null |
+
+So from 0.151.0 a resumed Session reports this Session's numbers; earlier
+releases, down to the [login](#login) floor 0.118.0 (the oldest codex OAR
+names), report no token totals after a resume. A new (not resumed) Session
+counts from zero on every release. Only the root thread is baselined:
+whether codex re-reports a child thread's total when a child started before
+the resume runs again is unobserved. [Baseline][oar-token-usage],
+[tests](../../tests/codex/codex-token-usage.test.ts),
+[recorded resume](../../tests/replay/codex-resume.test.ts).
 
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
@@ -446,9 +482,10 @@ appear. [Model listing][oar-models],
 `usage` event: `context` = `last.totalTokens` (the last model call's input,
 cached tokens included, plus its output: what the context holds once the
 reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
-= `total` input/output, cumulative for the thread, with
-`total.cachedInputTokens` as `cacheRead` and `total.cacheWriteInputTokens` as
-`cacheWrite`. Both are already part of `inputTokens`: codex-api
+= `total` input/output, with `total.cachedInputTokens` as `cacheRead` and
+`total.cacheWriteInputTokens` as `cacheWrite`, less a resume's baseline so
+they count from when this Session opened
+([resume](#connection-session-creation-and-resume)). Both are already part of `inputTokens`: codex-api
 `sse/responses.rs` at the pinned commit fills them from the Responses API's
 `input_tokens_details.cached_tokens` / `cache_write_tokens` (its test: input
 100 = read 40 + write 60). Live 0.154.0 read 32512 of 44166; codex-aimock on
@@ -476,7 +513,7 @@ arrives per model call, so a tool turn reports twice.
 0.154.0: `limitId: "codex"`, `planType: "pro"`, primary 300-min and secondary
 10080-min windows, reflecting the thread model's own windows: a Spark thread
 reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
-88 %). [Thread schema][thread-schema], [usage projection][oar-projection].
+88 %). [Thread schema][thread-schema], [usage projection][oar-token-usage].
 
 **Compaction:** a `contextCompaction` item yields `compaction_started` on
 `item/started` and `compaction_ended` (completed, no trigger) on
@@ -1007,10 +1044,14 @@ after an unrequested death ([pre-open](../../tests/codex/codex-pre-open.test.ts)
 item detail (the `sleep` item included), a recorded `fileChange`'s paths
 ([activity](../../tests/replay/tool-activity.test.ts)), reasoning classification, the
 effort read-back, first-open coordination per home and exit diagnostics
-([codex tests](../../tests/codex/)). [Vendor
+([codex tests](../../tests/codex/)); the resume token baseline, from a
+recorded codex-aimock resume, Ferry's real-login numbers and a resumed
+Session's `usage()` ([replay](../../tests/replay/codex-resume.test.ts),
+[usage](../../tests/codex/codex-token-usage.test.ts),
+[resume](../../tests/codex/codex-session-resume-model.test.ts)). [Vendor
 tests](../../sea-trial/vendor/codex.vendor.test.ts) use the real app-server
-with a scripted provider for tools, errors, instructions, usage shape and
-verbatim stream order. [CI](../../.github/workflows/ci.yml) runs that backend
+with a scripted provider for tools, errors, instructions, usage shape, a
+resumed Session's `usage()` and verbatim stream order. [CI](../../.github/workflows/ci.yml) runs that backend
 on three operating systems with an unpinned CLI; configuration does not prove
 a release passed.
 
@@ -1021,6 +1062,10 @@ Open gaps:
   not, and `thread/compact/start` is unreachable through the Session API.
 - Resumed reasoning: raw events cannot be enabled on `thread/resume`, so a
   resumed session has no `reasoning` events.
+- Resumed token totals: before 0.151.0 codex sends no re-report ahead of the
+  first turn, so a resumed Session reports no token totals there; child
+  threads are never baselined
+  ([resume](#connection-session-creation-and-resume)).
 - Queue durability across process death: one whole-tree SIGKILL run on
   0.158.0 ([crash and resume](crash-resume.md)), not repeated.
 - Server requests are recorded, never answered; no configuration requiring
@@ -1057,6 +1102,7 @@ Open gaps:
 [oar-session]: ../../packages/oar/src/runtimes/codex/session.ts
 [oar-open]: ../../packages/oar/src/runtimes/codex/open.ts
 [oar-projection]: ../../packages/oar/src/runtimes/codex/projection.ts
+[oar-token-usage]: ../../packages/oar/src/runtimes/codex/token-usage.ts
 [oar-tasks]: ../../packages/oar/src/runtimes/codex/tasks.ts
 [oar-item-detail]: ../../packages/oar/src/runtimes/codex/item-detail.ts
 [oar-kernel]: ../../packages/oar/src/shared/session-kernel.ts

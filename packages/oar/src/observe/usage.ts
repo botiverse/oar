@@ -79,10 +79,10 @@ export function contextUsageOf(records: readonly RawEvent[], sessionId?: string)
 
 /**
  * Session total plus a per-agent breakdown. Each agent's totals are the
- * LATEST cumulative figure its records reported (adapters resolve their
- * runtime's accounting into cumulative-per-agent before the record is
- * stamped), so the breakdown is deduplicated by construction and sums to the
- * total. Agents are the `agentPath`s of THIS session; derived child sessions
+ * LATEST figure its records reported (adapters resolve their runtime's
+ * accounting into a running total per agent, counted from when this Session
+ * opened, before the record is stamped), so the breakdown is deduplicated by
+ * construction and sums to the total. Agents are the `agentPath`s of THIS session; derived child sessions
  * are not agents of it.
  */
 export function usageOf(records: readonly RawEvent[], sessionId?: string): QueryResult<SessionUsage> {

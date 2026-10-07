@@ -83,8 +83,8 @@ Further rules:
 - **Folds scope to the root session.** A derived child session's records
   (own `sessionId`, a node in `graph()`) never satisfy the folds or
   `awaitTurnEnd`. On codex the child's `turn/completed` was observed
-  arriving before the root's ([env] 0.149.0), and the child's cumulative
-  usage would otherwise overwrite the root's under `agentPath []`. Scope a
+  arriving before the root's ([env] 0.149.0), and the child's usage total
+  would otherwise overwrite the root's under `agentPath []`. Scope a
   fold to a child by passing its `sessionId` (`usageOf(records, sessionId)`).
 - **A tool's input is the latest one the runtime reported.**
   `tool_call_started.input` is what the opening frame said, and stays so. A
