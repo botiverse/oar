@@ -80,7 +80,8 @@ const ownedChildren = new Set<ChildProcess>();
 let exitHookInstalled = false;
 
 /**
- * Own a detached POSIX process group (or a Windows child) until it exits.
+ * Own a detached POSIX process group (or a Windows child) until its output
+ * pipes close: descendants may hold them after the group leader exits.
  * One synchronous hook covers sessions, probes, updaters, logins and ACP
  * terminals even when a host calls process.exit without disposing them.
  * Node does not emit `exit` for an unhandled terminating signal or SIGKILL;
@@ -89,7 +90,7 @@ let exitHookInstalled = false;
 export function trackOwnedProcess(child: ChildProcess): void {
   ownedChildren.add(child);
   const forget = (): void => { ownedChildren.delete(child); };
-  child.once("exit", forget);
+  child.once("close", forget);
   child.once("error", () => {
     // A failed spawn has no group. Other errors (e.g. a failed kill) do not
     // prove the process is gone.

@@ -2,23 +2,25 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import { agentTreeModule, fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
 
 const claudeModule = new URL("../packages/oar/src/runtimes/claude/session.ts", import.meta.url).href;
 const executableModule = new URL("../packages/oar/src/shared/executable/index.ts", import.meta.url).href;
 const loginModule = new URL("../packages/oar/src/shared/login.ts", import.meta.url).href;
+const backgroundProbe = fileURLToPath(new URL("fixtures/probe-background-child.mjs", import.meta.url));
 const terminalModule = new URL("../packages/oar/src/shared/acp/terminal.ts", import.meta.url).href;
 
 // No dispose/finally in the host: this tests the synchronous process exit
 // hook, including tools in both groups, independently of session shutdown.
-test.skipIf(process.platform === "win32").each(["probe", "isolated", "login", "terminal"])(
+test.skipIf(process.platform === "win32").each(["probe", "probe-after-exit", "isolated", "login", "terminal"])(
   "host exit kills a live session and a hung %s process group",
   async (kind) => {
     await withTreeProbe({ ignoreSigterm: true }, async (sessionProbe) => {
       await withTreeProbe({ ignoreSigterm: true }, async (otherProbe) => {
         const source = `
-          import { existsSync } from "node:fs";
+          import { existsSync, readFileSync } from "node:fs";
           import { setTimeout as delay } from "node:timers/promises";
           import { claudeSession } from ${JSON.stringify(claudeModule)};
           import { runExecutable, runIsolated } from ${JSON.stringify(executableModule)};
@@ -31,6 +33,7 @@ test.skipIf(process.platform === "win32").each(["probe", "isolated", "login", "t
           const args = ["--import", ${JSON.stringify(agentTreeModule)}, "-e", "setInterval(() => {}, 1000)"];
           switch (${JSON.stringify(kind)}) {
             case "probe": void runExecutable(process.execPath, args, { env, timeoutMs: 60_000 }); break;
+            case "probe-after-exit": void runExecutable(process.execPath, [${JSON.stringify(backgroundProbe)}], { env: { ...env, OAR_FIXTURE_EARLY_EXIT: "1" }, timeoutMs: 60_000 }); break;
             case "isolated": void runIsolated(process.execPath, args, { env, timeoutMs: 60_000 }); break;
             case "login": spawnLoginProcess(process.execPath, args, env, { onLine() {} }); break;
             case "terminal": await createAcpTerminalHost(process.cwd(), env).create({ sessionId: "host-exit", command: process.execPath, args }); break;
@@ -39,6 +42,14 @@ test.skipIf(process.platform === "win32").each(["probe", "isolated", "login", "t
           while (!${JSON.stringify([sessionProbe.env.OAR_FIXTURE_PIDS, otherProbe.env.OAR_FIXTURE_PIDS])}.every(existsSync)) {
             if (Date.now() > deadline) throw new Error("children did not start");
             await delay(20);
+          }
+          if (${JSON.stringify(kind)} === "probe-after-exit") {
+            const pid = JSON.parse(readFileSync(${JSON.stringify(otherProbe.env.OAR_FIXTURE_PIDS)}, "utf8")).agent;
+            while (true) {
+              try { process.kill(pid, 0); } catch { break; }
+              if (Date.now() > deadline) throw new Error("probe leader did not exit");
+              await delay(20);
+            }
           }
           process.exit(23);
         `;

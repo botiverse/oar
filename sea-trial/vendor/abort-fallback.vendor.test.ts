@@ -4,6 +4,7 @@ import { expect, test, vi } from "vitest";
 import { awaitTurnEnd, claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
+import { openTrace, record } from "../harness/trace.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { withProcessEnv } from "./support/asserts.js";
 
@@ -19,6 +20,7 @@ vi.mock("../../packages/oar/src/shared/executable/index.js", async (importOrigin
     ...actual,
     spawnLineProcess: (...args: Parameters<typeof actual.spawnLineProcess>) => {
       const child = actual.spawnLineProcess(...args);
+      child.onExit((code) => { record({ kind: "abort_probe_exit", code, diagnostics: child.diagnostics() }); });
       return {
         ...child,
         write(text: string) {
@@ -46,26 +48,40 @@ const runtimes = [
 
 for (const runtime of runtimes) {
   test.skipIf(process.env.OAR_TEST !== runtime.id)(`${runtime.id}: unanswered interrupt kills the stuck turn and settles exactly once`, async () => {
+    openTrace(`${runtime.id}-abort-fallback`);
+    record({ kind: "abort_probe_phase", phase: "provider_start" });
     fault.interrupts = 0;
     const env = await runtime.environment((mock) => {
       mock.onMessage(/[\s\S]*/u, { content: "too late" }, { latency: 10_000 });
     });
     try {
       await withProcessEnv({ OAR_KILL_GRACE_MS: "200" }, async () => {
+        record({ kind: "abort_probe_phase", phase: "session_open" });
         const session = await runtimeUnderTest(defineRuntime(runtime), env.env).startSession();
         try {
+          record({ kind: "abort_probe_phase", phase: "prompt" });
           const prompt = await session.prompt("hold this turn");
           expect(prompt.response.body.kind).toBe("accepted");
           await vi.waitFor(() => { expect(env.mock.getRequests().length).toBeGreaterThan(0); }, { timeout: 30_000 });
+          record({ kind: "abort_probe_phase", phase: "abort", requests: env.mock.getRequests().length });
           const abort = await session.abort();
+          record({ kind: "abort_probe_phase", phase: "abort_settled" });
           expect(fault.interrupts).toBe(1);
           expect(abort.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });
-          expect(session.records().filter((record) => record.kind === "response" && record.requestId === abort.request.id))
+          expect(session.records().filter((entry) => entry.kind === "response" && entry.requestId === abort.request.id))
             .toEqual([abort.response]);
-          expect(session.records().filter((record) => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
+          expect(session.records().filter((entry) => entry.kind === "response" && entry.body.kind === "exited")).toHaveLength(1);
           expect(await awaitTurnEnd(session, prompt.request.seq)).toEqual({ kind: "failed", failure: "runtime_exited", reason: "runtime exited" });
-        } finally { await session.dispose(); }
+        } finally {
+          record({ kind: "abort_probe_phase", phase: "dispose" });
+          await session.dispose();
+          record({ kind: "abort_probe_phase", phase: "disposed" });
+        }
       });
-    } finally { await env.stop(); }
+    } finally {
+      record({ kind: "abort_probe_phase", phase: "provider_stop" });
+      await env.stop();
+      record({ kind: "abort_probe_phase", phase: "finished" });
+    }
   }, 60_000);
 }

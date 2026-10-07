@@ -36,7 +36,6 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
     let failure: ReturnType<typeof nativeError> | null = null;
     let timedOut = false;
     let stopped = false;
-    let exited = false;
     let timer: NodeJS.Timeout | null = null;
     let escalation: NodeJS.Timeout | null = null;
     const complete = (code: number | null, signal: NodeJS.Signals | null): void => {
@@ -71,8 +70,10 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         shell: requiresShell(executable, process.platform),
       });
       trackOwnedProcess(child);
+      // An exited group leader can leave descendants holding the pipes.
+      // Signal the group until close, and retain escalation until then.
       stop = (): void => {
-        if (stopped || exited) { return; }
+        if (stopped) { return; }
         stopped = true;
         clearTimeout(timer ?? undefined);
         signalProcessGroup(child, "SIGTERM");
@@ -91,10 +92,6 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
       child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
       child.once("error", (error) => { failure ??= nativeError(error); });
-      child.once("exit", () => {
-        exited = true;
-        clearTimeout(escalation ?? undefined);
-      });
       child.once("close", complete);
       if (timeoutMs > 0) {
         timer = setTimeout(() => { timedOut = true; stop?.(); }, timeoutMs);
