@@ -65,6 +65,12 @@ and steers or queues into a running one ([conversation](conversation.md#deliveri
 the report's text; `reportOrigin` marks the input as a notification from that
 subagent.
 
+Hosts that only forward reports can import `formatReport`, `reportOrigin`
+and the `SubagentReport` type from `@botiverse/oar/agents/report` without
+loading the runtime registry or its adapters. These are the same helpers
+exported by `@botiverse/oar/agents`; report contents and delivery semantics
+are unchanged.
+
 ## Tasks
 
 The crew reports each subagent as a task, in the same shape runtimes report

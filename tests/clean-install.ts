@@ -75,15 +75,35 @@ if (process.argv[2] === "cursor") {
 console.log(JSON.stringify({ kinds, models }));
 `;
 
+// A report-only host has no reason to load a runtime. Check in its own
+// process, before the other probes can populate Node's module cache.
+const REPORT_PROBE = `
+import assert from "node:assert/strict";
+import { registerHooks } from "node:module";
+registerHooks({
+  load(url, context, nextLoad) {
+    assert.ok(!url.includes("/dist/runtimes/"), "report helpers loaded a runtime: " + url);
+    return nextLoad(url, context);
+  },
+});
+const { formatReport, reportOrigin } = await import("@botiverse/oar/agents/report");
+const report = { id: "helper", runtime: "fake", sessionId: "session-1", turn: 1,
+  outcome: { kind: "completed" }, text: "done", endedAt: 0 };
+assert.equal(formatReport(report), "[subagent helper on fake, turn 1: completed; session session-1]\\ndone");
+assert.deepEqual(reportOrigin(report), { kind: "notification", source: "subagent:helper" });
+`;
+
 const ENTRIES = `
 import * as oar from "@botiverse/oar";
 import * as agents from "@botiverse/oar/agents";
+import { formatReport, reportOrigin, type SubagentReport } from "@botiverse/oar/agents/report";
 import * as brands from "@botiverse/oar/brands";
 import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
 export const entries = [oar, agents, brands, kernel, observe, testing];
+export const reportInput = (report: SubagentReport) => ({ text: formatReport(report), origin: reportOrigin(report) });
 `;
 
 const ADD_CURSOR = `
@@ -134,6 +154,7 @@ writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", pr
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
+run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
 const bare = probe();
 assert.equal(bare.kinds.cursor, undefined);
