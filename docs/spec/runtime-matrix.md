@@ -91,7 +91,8 @@ leaves a declared option out instead of naming runtimes.
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
 | kimi | `systemPrompt`, `appendSystemPrompt` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
-| antigravity, opencode | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
+| antigravity | `systemPrompt`, `appendSystemPrompt` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)) |
+| opencode | `systemPrompt`, `appendSystemPrompt` | its ACP surface exposes no system prompt override |
 | claude, codex, grok, pi | nothing | |
 
 Kimi and opencode also refuse a `resume` that names another directory than

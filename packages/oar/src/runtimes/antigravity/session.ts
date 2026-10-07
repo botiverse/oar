@@ -30,8 +30,8 @@ export function supportsAntigravityYolo(response: JsonRecord): boolean {
 }
 
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
-  systemPrompt: "Antigravity ACP does not expose a system prompt override",
-  appendSystemPrompt: "Antigravity ACP does not expose a system prompt override",
+  systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
+  appendSystemPrompt: "The Antigravity ACP server has no system prompt append input in its protocol, launch options, or configuration",
 };
 
 export const antigravityAcpProfile: AcpSessionProfile = {

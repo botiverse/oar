@@ -10,11 +10,12 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 (12/13, scenario names in parentheses below; `abort` fails, see
 [abort](#prompt-steering-queueing-and-abort)), plus direct ACP probes of the
 same binary for cancel timing and the model and mode methods. The server
-ships as a packaged Python archive with no public source, so statements
-beyond the wire are marked as such. The registry lists **1.3.0** as of
+ships as a packaged Python archive without a public source repository;
+the 1.3.0 archive includes its ACP Python source, inspected in the
+[launch audit](#models-instructions-and-context) below. The registry lists **1.3.0** as of
 2026-10-03; on a host without the server's own login, `basic` and
 `tool-detail` stopped while opening with the native `Authentication
-required`, so nothing below is established for 1.3.0
+required`, so the live session behavior below is not established for 1.3.0
 ([October 3](../../experiments/runtime-version-checks/2026-10-03.md), still
 open [October 4](../../experiments/runtime-version-checks/2026-10-04.md)).
 Versions are evidence baselines, not a support range; see the
@@ -235,9 +236,38 @@ advertised, and no `effort` event appears
 
 `session()` refuses `systemPrompt` and `appendSystemPrompt` with an
 `UnsupportedOptionError`, declared before open in
-`antigravityRuntime.refusedSessionOptions`, because Antigravity's ACP exposes
-no override
+`antigravityRuntime.refusedSessionOptions`, because the selected server has
+no instruction input through its protocol, launch options or configuration
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
+
+**Native launch audit (1.3.0, 2026-10-07).** The
+[official Linux distribution](https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.3.0-linux-x86_64.zip)
+contains `agy_acp_server.par`, readable as a ZIP archive. Under
+`google3/cloud/developer_experience/antigravity_extensions/acp_server/`:
+
+- `main.py`, consistent with `--help` and `--helpfull`, defines only `debug`
+  and `notices` as application flags; the remaining flags are library flags.
+- `settings.py` accepts only `auth` and `gcp` sections and warns on unknown
+  keys. `server.py` builds the harness configuration without a system-prompt
+  or append input. No supported per-session instruction channel was found.
+- `model_selection.py` reads `AGY_ACP_DEFAULT_MODEL`, but thinking levels are
+  associated with model ids; `server.py` translates that metadata into the
+  model endpoint's thinking setting. This supplies no independent effort
+  input. OAR keeps the existing ACP model selection and readback.
+
+| Session option | Channel used by OAR |
+| --- | --- |
+| `cwd` | ACP session creation or resume, and the subprocess working directory. |
+| `resume` | ACP `session/resume`, or `session/load` when resume is not advertised. |
+| `model` | ACP `session/set_config_option` on `model`, with readback. |
+| `effort` | Refused when no `thought_level` is advertised; choose a native model variant instead. |
+| `env` | Environment of this session's subprocess and tool subprocesses. |
+| `systemPrompt`, `appendSystemPrompt` | Refused: no prompt input in the selected server's protocol, launcher or configuration. |
+
+This is a help and distributed-source audit, separate from the 1.2.1 live
+probes above. It does not resolve the 1.3.0 authentication gap or establish
+new steer, usage or child-attribution behavior. OAR does not change
+`GEMINI_HOME`, write user settings or use the private SDK to fill these gaps.
 
 **Context (unexposed by the runtime):** no frame carries context occupancy,
 so `contextUsage()` stays empty. Antigravity advertises no compaction through
