@@ -90,7 +90,8 @@ leaves a declared option out instead of naming runtimes.
 | runtime | refuses | why |
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
-| kimi, antigravity, opencode | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
+| kimi | `systemPrompt`, `appendSystemPrompt` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| antigravity, opencode | `systemPrompt`, `appendSystemPrompt` | their ACP surfaces expose no system prompt override |
 | claude, codex, grok, pi | nothing | |
 
 Kimi and opencode also refuse a `resume` that names another directory than

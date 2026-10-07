@@ -25,8 +25,8 @@ export function supportsKimiYolo(response: JsonRecord): boolean {
 }
 
 export const kimiRefusedSessionOptions: RefusedSessionOptions = {
-  systemPrompt: "Kimi ACP does not expose a system prompt override",
-  appendSystemPrompt: "Kimi ACP does not expose a system prompt override",
+  systemPrompt: "kimi acp has no per-session system prompt input; its launcher does not forward --agent-file or --agent",
+  appendSystemPrompt: "kimi acp has no per-session system prompt append input; its launcher does not forward --agent-file or --agent",
 };
 
 export const kimiAcpProfile: AcpSessionProfile = {
