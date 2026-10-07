@@ -143,14 +143,14 @@ interface Answer {
 /**
  * An app-server resuming a thread that ran one turn before (thread total
  * 1000 / 5): right after the reply it re-reports that total under the old
- * turn's id ([env] codex 0.151.0 to 0.160.1), and a prompt's turn adds
- * 1200 / 7.
+ * turn's id ([env] codex 0.151.0 and later; `rereport` false: as before
+ * 0.151.0, it does not), and a prompt's turn adds 1200 / 7.
  */
-const RESUMED_THREAD = new Map<string, Answer>([
+const resumedThread = (rereport: boolean): ReadonlyMap<string, Answer> => new Map<string, Answer>([
   ["initialize", { result: {}, notifications: [] }],
   ["thread/resume", {
     result: { thread: { id: threadId }, model: "gpt-5.5" },
-    notifications: [["thread/tokenUsage/updated", { turnId: "turn-1", tokenUsage: usage(1000, 5) }]],
+    notifications: rereport ? [["thread/tokenUsage/updated", { turnId: "turn-1", tokenUsage: usage(1000, 5) }]] : [],
   }],
   ["turn/start", {
     result: { turn: { id: "turn-2" } },
@@ -162,10 +162,11 @@ const RESUMED_THREAD = new Map<string, Answer>([
   }],
 ]);
 
-function resumedThreadWithHistory(): void {
+function resumedThreadWithHistory(rereport: boolean): void {
+  const answers = resumedThread(rereport);
   const fake = fakeLineProcess((text, process) => {
     const message = asRecord(JSON.parse(text));
-    const answer = typeof message?.method === "string" ? RESUMED_THREAD.get(message.method) : undefined;
+    const answer = typeof message?.method === "string" ? answers.get(message.method) : undefined;
     if (typeof message?.id !== "number" || answer === undefined) {
       return;
     }
@@ -180,9 +181,19 @@ function resumedThreadWithHistory(): void {
 // #169: usage() is THIS Session's, so a resumed Session subtracts the total
 // codex re-reported before its first turn.
 test("a resumed Session's usage counts from when it opened", async () => {
-  resumedThreadWithHistory();
+  resumedThreadWithHistory(true);
   const session = await codexSession(installation, { cwd: "/work", resume: threadId });
   await promptAndWait(session, "again");
   expect(session.usage().value).toEqual({ total: { input: 1200, output: 7 } });
+  await session.dispose();
+});
+
+// Without the re-report this Session's share is unknown: no total, never
+// the thread's lifetime figure.
+test("a resumed Session without codex's re-report has no usage total", async () => {
+  resumedThreadWithHistory(false);
+  const session = await codexSession(installation, { cwd: "/work", resume: threadId });
+  await promptAndWait(session, "again");
+  expect(session.usage().value).toEqual({ total: null });
   await session.dispose();
 });

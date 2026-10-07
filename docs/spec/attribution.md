@@ -153,11 +153,14 @@ that resumed a native session never includes what earlier Sessions on it
 spent, so a host adds a conversation's Sessions up by summing their totals.
 Native scopes differ and stay in the adapter. For claude, pi, cursor and
 grok the adapter adds up what this process reports, so their totals start at
-zero. codex's thread total spans the thread's life; after a resume codex re-reports it once, before this
-Session's first turn starts, and the adapter subtracts that report from every
-later root total, `cacheRead` and `cacheWrite` included. It subtracts
-codex's own number and never estimates one: a codex that sends no such
-report (before 0.151.0) leaves its resumed totals counting the thread's life
+zero. codex's thread total spans the thread's life; after a resume codex
+re-reports it once, before this Session's first turn starts, and the adapter
+subtracts that report from every later root total, `cacheRead` and
+`cacheWrite` included. It subtracts codex's own number and never estimates
+one. Don't know, don't report: a resumed codex Session whose first turn
+starts without that report (codex before 0.151.0) cannot tell its share, so
+its `usage` events carry `context` only and `usage().total` stays null,
+never the thread's lifetime figure
 ([codex](../runtimes/codex.md#connection-session-creation-and-resume)).
 
 Usage itself is a seq-carrying `usage` event read from a frame on the

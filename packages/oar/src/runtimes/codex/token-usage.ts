@@ -11,18 +11,29 @@ import { cacheParts, noTokens, subtractTokens } from "../../shared/token-totals.
 /**
  * Where the root thread's token count starts. codex's `total` spans the
  * thread's life: after a resume, before this Session's first turn starts,
- * codex re-reports it once, under the previous turn's id ([env] 0.151.0 to
- * 0.160.1). That report is `tokens`, subtracted from every root total; until
- * one arrives (a new thread, or a codex that sends none) `tokens` is zero.
+ * codex re-reports it once, under the previous turn's id ([env] 0.151.0 and
+ * later). A new thread counts from zero; a resumed one from that re-report.
+ * A resumed thread whose first turn starts without one (codex before
+ * 0.151.0) has no known start: don't know, don't report, so its totals are
+ * left out of every later root usage event.
  */
-export interface CodexTokenBaseline {
-  readonly tokens: TokenTotals;
+export type CodexTokenBaseline =
   /** A resumed thread whose re-report may still come: none yet and no root turn started. */
-  readonly awaiting: boolean;
-}
+  | { readonly kind: "awaiting" }
+  /** Root totals count from `tokens`. */
+  | { readonly kind: "known"; readonly tokens: TokenTotals }
+  /** A resumed thread whose first turn started without a re-report. */
+  | { readonly kind: "unknown" };
+
+const fromZero: CodexTokenBaseline = { kind: "known", tokens: noTokens };
 
 export function initialTokenBaseline(resumed: boolean): CodexTokenBaseline {
-  return { tokens: noTokens, awaiting: resumed };
+  return resumed ? { kind: "awaiting" } : fromZero;
+}
+
+/** What root totals count from; null when unknown (no `tokens` then). */
+export function baselineTokens(baseline: CodexTokenBaseline): TokenTotals | null {
+  return baseline.kind === "known" ? baseline.tokens : null;
 }
 
 /** codex's own running total in a `thread/tokenUsage/updated`; null when it carries none. */
@@ -44,18 +55,18 @@ function reportedTotal(params: JsonRecord): TokenTotals | null {
 /**
  * The baseline after one root-thread notification: while a resume awaits it,
  * the first root total is the re-report and becomes the baseline, and a root
- * `turn/started` arriving first closes the wait with none. Unchanged
- * otherwise (the same object).
+ * `turn/started` arriving first leaves it unknown. Unchanged otherwise (the
+ * same object).
  */
 export function nextTokenBaseline(baseline: CodexTokenBaseline, method: string, params: JsonRecord): CodexTokenBaseline {
-  if (!baseline.awaiting) {
+  if (baseline.kind !== "awaiting") {
     return baseline;
   }
   if (method === "turn/started") {
-    return { ...baseline, awaiting: false };
+    return { kind: "unknown" };
   }
   const reported = method === "thread/tokenUsage/updated" ? reportedTotal(params) : null;
-  return reported === null ? baseline : { tokens: reported, awaiting: false };
+  return reported === null ? baseline : { kind: "known", tokens: reported };
 }
 
 /**
@@ -63,7 +74,8 @@ export function nextTokenBaseline(baseline: CodexTokenBaseline, method: string, 
  * (input 12.6k → 28.4k → 44.2k across three one-word turns, codex 0.154.0),
  * so it is the running spend, not what the context holds; less `baseline`
  * (the thread's total before this Session opened) it is this Session's
- * `tokens`, so the re-report itself reads zero. `tokenUsage.last` is the
+ * `tokens`, so the re-report itself reads zero, and with no known baseline
+ * (null) there are no `tokens`. `tokenUsage.last` is the
  * most recent model call, and `modelContextWindow` the window it fit in;
  * those two are the context reading, whatever the baseline. Codex's own
  * occupancy figure is `last.total_tokens`
@@ -77,7 +89,7 @@ export function nextTokenBaseline(baseline: CodexTokenBaseline, method: string, 
  * stands in as `tokens` and the window and percent are null: the cumulative
  * total is never read against the window.
  */
-export function codexUsageViews(params: JsonRecord, baseline: TokenTotals): RuntimeEventBody[] {
+export function codexUsageViews(params: JsonRecord, baseline: TokenTotals | null): RuntimeEventBody[] {
   const tokenUsage = asRecord(params.tokenUsage);
   const total = asRecord(tokenUsage?.total);
   if (total === null) {
@@ -85,7 +97,7 @@ export function codexUsageViews(params: JsonRecord, baseline: TokenTotals): Runt
   }
   const input = asNumber(total.inputTokens);
   const reported = reportedTotal(params);
-  const tokens = reported === null ? {} : { tokens: subtractTokens(reported, baseline) };
+  const tokens = reported === null || baseline === null ? {} : { tokens: subtractTokens(reported, baseline) };
   const last = asRecord(tokenUsage?.last);
   if (last === null) {
     return [{ kind: "usage", usage: { context: { tokens: input, contextWindow: null, percent: null }, ...tokens } }];

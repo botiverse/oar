@@ -11,7 +11,7 @@ import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-deta
 import type { CodexOpenMethod } from "./open.js";
 import { codexReasoningContent } from "./reasoning.js";
 import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
-import { codexUsageViews, initialTokenBaseline, nextTokenBaseline, type CodexTokenBaseline } from "./token-usage.js";
+import { baselineTokens, codexUsageViews, initialTokenBaseline, nextTokenBaseline, type CodexTokenBaseline } from "./token-usage.js";
 
 /**
  * The codex notification → record projection as a PURE FOLD (see
@@ -211,7 +211,7 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
     case "turn/completed":
       return [{ kind: "turn_ended", outcome: settleOutcome(state, asRecord(params.turn)?.status) }];
     case "thread/tokenUsage/updated":
-      return codexUsageViews(params, reporter === state.rootThreadId ? state.tokenBaseline.tokens : noTokens);
+      return codexUsageViews(params, reporter === state.rootThreadId ? baselineTokens(state.tokenBaseline) : noTokens);
     case "thread/settings/updated":
       return settingsViews(params);
     default:

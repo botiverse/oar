@@ -27,12 +27,15 @@
  *   reply and B's `turn/started`. After B's turn the total is 2200 / 12;
  *   with the baseline B's `usage()` is 1200 / 7.
  * - 0.131.0 to 0.150.1 (0.131-0.137, 0.141, 0.144.6, 0.149.0, 0.149.1,
- *   0.150.0, 0.150.1 run): `none`. B's only report is 2200 / 12, so
- *   `usage()` stays the thread's total.
+ *   0.150.0, 0.150.1 run): `none`. B's only report is the thread's
+ *   2200 / 12.
  * - 0.118.0, 0.130.0: `inside-first-turn`. After B's `turn/started` and its
  *   userMessage item, before the model call, codex reports A's 1000 / 5
- *   under B's own turn id; the adapter takes no baseline from it, so
- *   `usage()` stays the thread's 2200 / 12.
+ *   under B's own turn id, then 2200 / 12.
+ * Without a re-report before the first turn the adapter cannot tell B's
+ * share, so on these releases B's usage events carry `context` only and
+ * `usage().total` is null (rechecked on 0.118.0, 0.130.0 and 0.149.0 after
+ * that rule, and 1200 / 7 on 0.151.0 and 0.160.1).
  */
 import { codexInstallation, codexSession, promptAndWait } from "../packages/oar/src/index.js";
 import type { Frame, RawEvent, Session, TokenTotals } from "../packages/oar/src/contracts/session.js";

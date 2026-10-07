@@ -126,37 +126,43 @@ and nothing restores observer positions or a controller lease. Resume sends
 no `experimentalRawEvents`, which would be inert there
 ([reasoning](#observation-children-and-history)).
 
-**Token totals after a resume (mapped, [#169](https://github.com/botiverse/oar/issues/169)).** codex's `tokenUsage.total`
-spans the thread's life, across processes. Right after the `thread/resume`
-reply codex re-reports it: one `thread/tokenUsage/updated { threadId,
-turnId: <the previous turn's id>, tokenUsage: { total, last,
-modelContextWindow } }`, then `thread/goal/cleared` ([env] 0.154.0). It
-races the first prompt request but comes ahead of that prompt's reply and
-of the turn's `turn/started`. The adapter takes the first root report before
-the first root `turn/started` of a resumed Session as its baseline and
-subtracts it from every later root total, `cacheRead` and `cacheWrite`
-included, so `tokens` and `usage()` count from when this Session opened
+**Token totals after a resume (mapped,
+[#169](https://github.com/botiverse/oar/issues/169)).** codex's
+`tokenUsage.total` spans the thread's life, across processes. Right after
+the `thread/resume` reply codex re-reports it: one
+`thread/tokenUsage/updated { threadId, turnId: <the previous turn's id>,
+tokenUsage: { total, last, modelContextWindow } }`, then
+`thread/goal/cleared` ([env] 0.154.0). It races the first prompt request
+but comes ahead of that prompt's reply and of the turn's `turn/started`.
+The adapter takes the first root report before the first root
+`turn/started` of a resumed Session as its baseline and subtracts it from
+every later root total, `cacheRead` and `cacheWrite` included, so `tokens`
+and `usage()` count from when this Session opened
 ([spec](../spec/attribution.md#usage-one-constraint)). The re-report itself
 reads `tokens` 0 and keeps its `context` reading, which is what the resumed
-context holds. On a real 0.155.1 login (Ferry's recording,
-botiverse/ferry `packages/core/test/fixtures/codex-resume.jsonl`) the first
-run ended at 18,185 in / 5 out; the resumed run re-reported 18,185 / 5, then
+context holds. If the first root turn starts with no report yet, the
+baseline is unknown: don't know, don't report, so the Session's root
+`usage` events carry `context` only and `usage().total` stays null. On a
+real 0.155.1 login (Ferry's recording, botiverse/ferry
+`packages/core/test/fixtures/codex-resume.jsonl`) the first run ended at
+18,185 in / 5 out; the resumed run re-reported 18,185 / 5, then
 38,557 / 10, which the resumed Session reports as 20,372 / 5. Which codex
-sends the re-report ([resume usage probe](../../experiments/codex-resume-usage.ts),
+sends the re-report
+([resume usage probe](../../experiments/codex-resume-usage.ts),
 codex-aimock, Linux, one run per release, 2026-10-07):
 
-| codex releases run | Re-report of the earlier total | Resumed `usage()` |
+| codex releases run | Re-report of the earlier total | Resumed Session's token totals |
 |---|---|---|
-| 0.151.0, 0.153.0, 0.154.0, 0.155.1, 0.160.1 | one frame before the first `turn/started`, under the previous turn's id | counts from when the Session opened |
-| 0.131.0 to 0.137.0, 0.141.0, 0.144.6, 0.149.0, 0.149.1, 0.150.0, 0.150.1 | none | the thread's whole life: no codex number to subtract |
-| 0.118.0, 0.130.0 | inside the first turn, after its `userMessage` item and under that turn's own id | the thread's whole life: nothing before the turn to take as the baseline |
+| 0.151.0, 0.153.0, 0.154.0, 0.155.1, 0.160.1 | one frame before the first `turn/started`, under the previous turn's id | this Session's own: `usage()` counts from when it opened |
+| 0.131.0 to 0.137.0, 0.141.0, 0.144.6, 0.149.0, 0.149.1, 0.150.0, 0.150.1 | none | none: no `tokens`, `usage().total` null |
+| 0.118.0, 0.130.0 | inside the first turn, after its `userMessage` item and under that turn's own id | none: no `tokens`, `usage().total` null |
 
-The adapter subtracts only codex's own re-report and never estimates one, so
-on the older releases, down to the [login](#login) floor 0.118.0 (the
-oldest codex OAR names), a resumed Session's totals still include the
-earlier turns. Only the root thread is baselined: whether codex re-reports a child
-thread's total when a child started before the resume runs again is
-unobserved. [Baseline][oar-token-usage],
+So from 0.151.0 a resumed Session reports this Session's numbers; earlier
+releases, down to the [login](#login) floor 0.118.0 (the oldest codex OAR
+names), report no token totals after a resume. A new (not resumed) Session
+counts from zero on every release. Only the root thread is baselined:
+whether codex re-reports a child thread's total when a child started before
+the resume runs again is unobserved. [Baseline][oar-token-usage],
 [tests](../../tests/codex/codex-token-usage.test.ts),
 [recorded resume](../../tests/replay/codex-resume.test.ts).
 
@@ -1057,8 +1063,8 @@ Open gaps:
 - Resumed reasoning: raw events cannot be enabled on `thread/resume`, so a
   resumed session has no `reasoning` events.
 - Resumed token totals: before 0.151.0 codex sends no re-report ahead of the
-  first turn, so a resumed Session's totals count the thread's whole life;
-  child threads are never baselined
+  first turn, so a resumed Session reports no token totals there; child
+  threads are never baselined
   ([resume](#connection-session-creation-and-resume)).
 - Queue durability across process death: one whole-tree SIGKILL run on
   0.158.0 ([crash and resume](crash-resume.md)), not repeated.

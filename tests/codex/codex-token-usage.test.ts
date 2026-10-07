@@ -93,16 +93,62 @@ test("the resume baseline is subtracted from cacheRead and cacheWrite too", () =
   ])).toEqual([{ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, { input: 12_000, output: 30, cacheRead: 11_000, cacheWrite: 500 }]);
 });
 
-// No re-report, no baseline: codex 0.131.0 to 0.150.1 send none, and 0.118.0
-// to 0.130.0 re-report inside the first turn, under its own id (codex-aimock
-// probes, experiments/codex-resume-usage.ts). Neither is subtracted, so the
-// totals stay the thread's; a new thread is never baselined.
-test("a codex total that arrives after the first turn started is never a baseline", () => {
-  expect(sessionTokens("thread/resume", [
+/** Every usage event a resumed Session's projection reads out of `frames`, as recorded. */
+function resumedUsage(frames: readonly (readonly [string, Record<string, unknown>])[]): unknown[] {
+  let state = initialCodexProjection(ROOT, "thread/resume");
+  return frames.flatMap(([method, params]) => {
+    const folded = foldCodexNotification(state, method, { threadId: ROOT, ...params });
+    ({ state } = folded);
+    return folded.commands.flatMap((command) => (command.kind === "frame" ? command.body.events : []));
+  });
+}
+
+/** A root report of the resumed Session's turn `t2`, with a context reading. */
+const report = (input: number, output: number, lastTotal: number): Record<string, unknown> => ({
+  turnId: "t2",
+  tokenUsage: { total: { inputTokens: input, outputTokens: output }, last: { totalTokens: lastTotal }, modelContextWindow: 258_400 },
+});
+
+// Don't know, don't report: a resumed Session whose first turn starts
+// without a re-report has no known start, so its usage events carry the
+// context reading and no `tokens`, and usage().total stays null. codex
+// 0.131.0 to 0.150.1 send no re-report, and 0.118.0 to 0.130.0 send it
+// inside the first turn, under its own id (codex-aimock probes,
+// experiments/codex-resume-usage.ts); the numbers are 0.118.0's.
+test("a resumed Session without a re-report before its first turn reports no tokens", () => {
+  const events = resumedUsage([
     ["turn/started", { turn: { id: "t2" } }],
-    ["thread/tokenUsage/updated", { turnId: "t2", ...total(1000, 5) }],
-    ["thread/tokenUsage/updated", { turnId: "t2", ...total(2200, 12) }],
-  ])).toEqual([{ input: 1000, output: 5 }, { input: 2200, output: 12 }]);
+    ["thread/tokenUsage/updated", report(1000, 5, 1005)],
+    ["thread/tokenUsage/updated", report(2200, 12, 1207)],
+  ]);
+  expect(events).toMatchInlineSnapshot(`
+    [
+      {
+        "kind": "usage",
+        "usage": {
+          "context": {
+            "contextWindow": 258400,
+            "percent": 0,
+            "tokens": 1005,
+          },
+        },
+      },
+      {
+        "kind": "usage",
+        "usage": {
+          "context": {
+            "contextWindow": 258400,
+            "percent": 0,
+            "tokens": 1207,
+          },
+        },
+      },
+    ]
+  `);
+});
+
+// A new thread counts from zero whatever arrives before its first turn.
+test("a new codex thread is never baselined", () => {
   expect(sessionTokens("thread/start", [
     ["thread/tokenUsage/updated", total(0, 0)],
     ["turn/started", { turn: { id: "t1" } }],
