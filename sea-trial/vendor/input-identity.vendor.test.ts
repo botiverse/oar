@@ -4,22 +4,23 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
 import { awaitTurnEnd, conversationOf, type ControlResult } from "../../packages/oar/src/index.js";
+import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 
 async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"): Promise<void> {
   const inputId = "11111111-2222-4333-8444-555555555555";
   const marker = "input-identity-probe";
-  const provider: boolean[] = [];
+  let providerCalls = 0;
   const env = await (id === "codex" ? startCodexAimock : startClaudeAimock)((mock) => {
-    mock.onMessage(/[\s\S]*/u, (request: { messages?: unknown }) => {
-      provider.push(JSON.stringify(request.messages).includes(marker));
+    mock.onMessage(/[\s\S]*/u, () => {
+      providerCalls += 1;
       const command = 'node -e "setTimeout(()=>console.log(123),500)"';
-      return provider.length === 1
+      return providerCalls === 1
         ? { toolCalls: [{ name: id === "codex" ? "exec_command" : "Bash", arguments: JSON.stringify(id === "codex" ? { cmd: command } : { command }) }] }
         : { content: "done" };
     });
-  });
+  }, { captureRaw: true });
   const cwd = await mkdtemp(path.join(tmpdir(), "oar-input-identity-"));
   try {
     const runtime = allRuntimes.require(id);
@@ -43,7 +44,10 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
       assert.equal(input?.attempts.length, mode === "steer" ? 1 : 2);
       assert.equal(input.observations.length, 1);
       assert.equal(input.observations[0]?.evidence, id === "codex" ? "turn_item" : "acknowledged");
-      assert.ok(provider.includes(true));
+      // Haiku 5.5 carries mid-turn input in a messages[] system entry, which
+      // aimock's normalized chat view omits. Assert the actual provider wire.
+      const providerInputs = env.raw.map((request) => asRecord(request.body)?.[id === "claude" ? "messages" : "input"]);
+      assert.ok(providerInputs.some((providerInput) => JSON.stringify(providerInput ?? null).includes(marker)), "steer absent from raw provider input");
     } finally { clearTimeout(timer); await session.dispose(); }
   } finally { await env.stop(); await rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
 }

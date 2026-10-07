@@ -8,8 +8,11 @@ ran on **claude 2.1.268** (darwin arm64, haiku, 2026-09-11); the probes on
 their version inline. The latest daily check re-ran `basic`, `tool-detail` and
 `resume` on **2.1.292** (2026-10-07,
 [report](../../experiments/runtime-version-checks/2026-10-07.md)), along with
-14 native vendor tests, including MCP attachment and resume. Versions
-are evidence baselines, not a support range.
+14 native vendor tests, including MCP attachment and resume. An evening
+follow-up on **2.1.293** compared the Haiku alias, effort and steer requests
+against 2.1.292 using a scripted provider
+([probe](../../experiments/claude-293-compatibility.ts)); findings appear
+below. Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
 for status labels.
@@ -119,6 +122,14 @@ receipt. In multi-step turns claude absorbs the input at the next model step:
 a steer issued after the first `tool_call_started` of a two-tool turn landed
 in the same turn's final text with one `turn_ended`. Input arriving after the
 last step becomes a subsequent turn.
+
+On 2.1.293, `haiku` selects Haiku 5.5. In the scripted two-step probe,
+the mid-turn input reached the next Messages API request as a `role:
+"system"` entry in `messages`, before the same turn ended. Haiku 4.5 on
+2.1.292 and 2.1.293 carried it in a user entry. The replay echo and its UUID
+were unchanged. aimock's normalized chat messages omit that system entry;
+provider-inclusion tests inspect the original request body, separately from
+the native acknowledgement.
 
 **Input identity:** the input's `inputId` is the stream-json message `uuid`,
 and OAR passes `--replay-user-messages`; the echo becomes a `user_message`
@@ -242,7 +253,7 @@ but OAR never reads transcripts.
 
 Three cases drop a level without a word on stdout: an unknown value only
 warns on stderr (`Unknown --effort value 'bogus'`, ignoring it for the
-default effort); a model without effort (haiku) sends none; and a
+default effort); a model without effort (Haiku 4.5) sends none; and a
 `maxEffortLevel` setting or `CLAUDE_CODE_EFFORT_LEVEL` can clamp or override
 the flag ([sym] 2.1.284 setting docs; not exercised). So the adapter asks
 claude before the session opens with the token-free `get_settings` control
@@ -261,6 +272,14 @@ exposed** ([native surfaces](live-configure.md)).
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [read-back](../../packages/oar/src/runtimes/claude/effort.ts),
 [unit test](../../tests/claude/claude-session-effort.test.ts).
+
+The `haiku` alias changed in 2.1.293 from
+`claude-haiku-4-5-20251001` to `claude-haiku-5-5`. The new model reports the
+requested `low` in `get_settings` and sends `output_config.effort: "low"`
+with adaptive thinking. Explicit Haiku 4.5 still reports null and sends no
+effort on both binaries. The refusal test therefore selects that concrete
+model rather than assuming a moving alias lacks effort. OAR's effort
+validation follows the native read-back and requires no change.
 
 Replace/append instructions map to `--system-prompt` and
 `--append-system-prompt`; native harness metadata may remain alongside

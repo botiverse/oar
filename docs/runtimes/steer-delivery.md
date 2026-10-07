@@ -26,6 +26,15 @@ request for those runs, not universal timing, semantic influence, or race
 safety. OAR projects these native observations as `user_message` events
 ([native observations](../spec/conversation.md#native-observations)).
 
+An October 7 comparison of Claude 2.1.292 and 2.1.293 found that the newer
+`haiku` alias selects Haiku 5.5, which carries the mid-turn input in a
+`role: "system"` entry within the outgoing `messages` array. It still
+arrives before that turn's end, and the replay UUID is unchanged. aimock's
+normalized chat view drops that entry, so the vendor test inspects the
+original request body. The older probes' normalized view alone is
+insufficient for this model; the [comparison probe and report](../../experiments/runtime-version-checks/2026-10-07.md#claude-code-21293-evening-follow-up)
+retain both views.
+
 ## Native shapes
 
 Codex (`{turnId}`) and Cursor (`{ack}`) carry `native` on the steer response;
