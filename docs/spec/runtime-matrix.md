@@ -95,6 +95,11 @@ leaves a declared option out instead of naming runtimes.
 | opencode | `systemPrompt`, `appendSystemPrompt` | its ACP surface exposes no system prompt override |
 | claude, codex, grok, pi | nothing | |
 
+Grok refuses an append-only prompt change on resume: native `rules` is not
+reapplied. A `systemPrompt`, with or without `appendSystemPrompt`, is supported
+on resume ([request evidence](../runtimes/grok.md#models-and-instructions)).
+This conditional refusal is not an always-refused option declaration.
+
 Kimi and opencode also refuse a `resume` that names another directory than
 the one their `session/list` says the session lives in (option `cwd`): they
 would run the session in its own directory instead. Only the runtime knows the
