@@ -628,17 +628,29 @@ with `[redacted]` ([test](../../tests/codex/codex-session-mcp-servers.test.ts)).
 ### Process ownership, installation, and account usage
 
 A synchronous host `exit` also kills OAR-owned process groups, including
-live sessions and probes. See [host lifetime and signal limits](../spec/record-stream.md#the-rules).
+live sessions and probes, and the descendants of each that left its group.
+See [host lifetime and signal limits](../spec/record-stream.md#the-rules).
 
 **Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
 the exit because the process may hold state (codex's sqlite runtime in
 `CODEX_HOME`) that the next session needs released. On POSIX the app-server
-leads its own process group, so the kill (SIGTERM, then SIGKILL after a grace
-period: 10 s, or `OAR_KILL_GRACE_MS`) also reaches the commands and MCP
-servers it started, and disposal settles even when it ignores SIGTERM
-([test](../../tests/session-dispose.test.ts)). This supplies resource
-release, not detached execution or a lease against other controllers of the
-persisted thread. The environment overlay applies to the child process.
+leads its own process group, and the kill (SIGTERM to the group, then SIGKILL
+after a grace period: 10 s, or `OAR_KILL_GRACE_MS`) settles disposal even
+when it ignores SIGTERM ([test](../../tests/session-dispose.test.ts)). The
+group does not hold every command: codex 0.160.1 runs an `exec_command` in a
+session of its own (observed on Linux). So OAR also reads the app-server's
+descendants from the process table when the kill begins and again just
+before the SIGKILL, and SIGKILLs those still running, with their process
+groups, at the SIGKILL or as soon as the app-server has exited; a pid is
+signalled only while its start time matches. On Linux a stopped app-server's
+command ended with it under the SIGKILL alone; the
+[vendor test](../../sea-trial/vendor/stuck-runtime-tools.vendor.test.ts)
+checks on the Linux and macOS runners that none outlives it. The limits are
+[claude's](claude.md#process-ownership-environment-installation-and-account-usage):
+a process that left the tree before the kill began is not reached. This
+supplies resource release, not detached execution or a lease against other
+controllers of the persisted thread. The environment overlay applies to the
+child process.
 
 On Windows, app-server disposal and the abort fallback force-terminate the
 whole process tree with `taskkill /T /F`, including any launcher, with a

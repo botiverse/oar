@@ -484,8 +484,11 @@ hosted terminals. On POSIX the process and each hosted terminal command
 lead their own process groups, so `terminal/kill`, release, and disposal reach
 what they started, and a runtime still running a grace period after SIGTERM
 (10 s, or `OAR_KILL_GRACE_MS`) is SIGKILLed with its group
-([test](../../tests/session-dispose.test.ts)). It does not delete persisted
-native sessions.
+([test](../../tests/session-dispose.test.ts)). That SIGKILL, or the
+runtime's exit if that comes first, also takes its descendants that left
+its group, read from the process table when the kill begins and before the
+SIGKILL (as for [claude](claude.md#process-ownership-environment-installation-and-account-usage)).
+It does not delete persisted native sessions.
 
 On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
 the abort fallback, including the runtime behind its launcher and its

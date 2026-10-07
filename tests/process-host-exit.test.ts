@@ -68,6 +68,32 @@ test.each(["probe", "isolated", "login", "terminal", ...(process.platform === "w
   },
 );
 
+// oar#210: claude runs a Bash tool command in a session of its own, which the
+// group signal misses; the hook finds it below the still running runtime.
+test.skipIf(process.platform === "win32")("host exit kills a live session's tool that left its process group", async () => {
+  await withTreeProbe({ ignoreSigterm: true, detachTool: true }, async (probe) => {
+    const source = `
+      import { existsSync } from "node:fs";
+      import { setTimeout as delay } from "node:timers/promises";
+      import { claudeSession } from ${JSON.stringify(claudeModule)};
+      await claudeSession({ kind: "available", via: "executable", command: ${JSON.stringify(fakeAgentBinary(probe.dir))}, version: "test" }, {
+        cwd: ${JSON.stringify(probe.dir)}, env: ${JSON.stringify(probe.env)}
+      });
+      const deadline = Date.now() + 10_000;
+      while (!existsSync(${JSON.stringify(probe.env.OAR_FIXTURE_PIDS)})) {
+        if (Date.now() > deadline) throw new Error("the tool did not start");
+        await delay(20);
+      }
+      process.exit(23);
+    `;
+    const host = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", source], { encoding: "utf8", timeout: 20_000 });
+    const tree = await probe.tree();
+    expect(host.error).toBeUndefined();
+    expect(host.stderr).toBe("");
+    expect(host.status).toBe(23);
+    expect([await gone(tree.agent), await gone(tree.grandchild)], `surviving: ${JSON.stringify(tree)}`).toEqual([true, true]);
+  });
+});
 
 // Direct native children must be reclaimed too, without needing a launcher.
 // oxlint-disable-next-line eslint/max-statements -- Spawn, observe and reclaim the same host and its two children.

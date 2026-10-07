@@ -122,7 +122,10 @@ After an abort the `usage_update` reports `used: 0`, since it reads the
 latest assistant message, which the abort left empty.
 
 OAR owns the ACP process. Disposal and the ten-second abort fallback end its
-process group on POSIX (SIGTERM, then SIGKILL after the configured grace),
+process group on POSIX (SIGTERM, then SIGKILL after the configured grace;
+the SIGKILL, or the runtime's exit if that comes first, also takes its
+descendants that left the group, as for
+[claude](claude.md#process-ownership-environment-installation-and-account-usage)),
 or its process tree on Windows (`taskkill /T /F`, including a launcher and
 the runtime behind it). The [dispose regression](../../tests/session-dispose.test.ts)
 checks both runtime and descendant termination. See

@@ -4,6 +4,7 @@ import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
+import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
 
 export { trackOwnedProcess } from "./ownership.js";
 
@@ -17,9 +18,14 @@ export interface LineProcessOptions {
    */
   readonly inheritStderr?: boolean;
   /**
-   * On Windows, `kill()` ends the child's whole process tree
-   * ({@link killProcessTree}) instead of the direct child alone, which for an
-   * npm `.cmd` shim is only `cmd.exe`. POSIX always signals the group.
+   * `kill()` ends the child's whole process tree. On Windows
+   * ({@link killProcessTree}) that is more than the direct child, which for an
+   * npm `.cmd` shim is only `cmd.exe`. On POSIX, where the child's process
+   * group is always signalled, it adds the descendants that left the group
+   * (process-tree.ts): SIGTERM still goes to the group alone, so the child
+   * can stop its tools itself; the SIGKILL, or the child's exit if that comes
+   * first, also takes every descendant seen before (when `kill()` began, and
+   * again just before the SIGKILL) and the groups they belong to.
    */
   readonly killTree?: boolean;
 }
@@ -100,9 +106,10 @@ export interface LineProcess {
   /**
    * Stop the process and everything it started: close stdin, SIGTERM its
    * process group, and SIGKILL the group if the child is still running once
-   * the grace period is over. On Windows it ends the child alone, or its whole
-   * tree with `killTree`. Idempotent; a no-op after the exit, since a reaped
-   * pid may already belong to another process.
+   * the grace period is over; with `killTree`, its descendants outside the
+   * group too. On Windows it ends the child alone, or its whole tree with
+   * `killTree`. Idempotent; a no-op after the exit, since a reaped pid may
+   * already belong to another process.
    */
   kill(): void;
 }
@@ -169,6 +176,9 @@ export function spawnLineProcess(
   let exitSignal: NodeJS.Signals | null = null;
   let spawnError: ProcessDiagnostics["error"] = undefined;
   let escalation: NodeJS.Timeout | null = null;
+  // POSIX `killTree`: the child's descendants when kill() began, until they
+  // have had their SIGKILL.
+  let descendants: readonly ProcessEntry[] = [];
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
   const { promise: exited, resolve: exitDone } = Promise.withResolvers<number | null>();
   child.once("spawn", spawnOk);
@@ -181,6 +191,12 @@ export function spawnLineProcess(
     exitSignal = signal;
     if (escalation !== null) {
       clearTimeout(escalation);
+    }
+    if (descendants.length > 0) {
+      // The child stopped before its SIGKILL: what it left running of its
+      // tree now belongs to nobody, and goes before the exit is reported.
+      killEntries(descendants, readProcessTable());
+      descendants = [];
     }
     for (const handler of exitHandlers) {
       handler(code);
@@ -253,11 +269,27 @@ export function spawnLineProcess(
         }, killGraceMs());
         return;
       }
+      const { pid } = child;
+      const tree = options.killTree === true && pid !== undefined;
+      if (tree) {
+        // Read while the child runs: once it is gone, what left its group is
+        // re-parented and no longer found below it.
+        descendants = descendantsOf(readProcessTable(), pid);
+      }
       signalProcessGroup(child, "SIGTERM");
       // Cleared by the exit, so it only fires on a process that ignored the
       // SIGTERM; the SIGKILL then takes its whole group down with it.
       escalation = setTimeout(() => {
+        if (!tree) {
+          signalProcessGroup(child, "SIGKILL");
+          return;
+        }
+        // Read again first: the child may have started more since.
+        const table = readProcessTable();
+        const now = descendantsOf(table, pid);
         signalProcessGroup(child, "SIGKILL");
+        killEntries([...descendants, ...now], table);
+        descendants = [];
       }, killGraceMs());
     },
   };
