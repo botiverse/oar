@@ -53,7 +53,12 @@ Further rules:
   fields with `[redacted]` before the kernel retains or publishes a frame,
   preserving names and other fields. Live observers and replay see the same
   redacted frame; the runtime's configuration is unchanged
-  ([Grok MCP evidence](../runtimes/grok.md#session-mcp-servers)).
+  ([Grok MCP evidence](../runtimes/grok.md#session-mcp-servers)). Records a
+  host stored before a rule existed are cleaned with `redactRecord` (root and
+  `@botiverse/oar/observe`): it applies the current rules to one stored
+  record, returns a changed copy only when it changed something, and is safe
+  to run over all storage on every start (grok MCP notifications recorded
+  before 0.32.1 carry the user's own MCP `env` values).
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.
