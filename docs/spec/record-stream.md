@@ -48,6 +48,12 @@ oar itself killed). Backfilling a guessed response is forbidden.
 
 Further rules:
 
+- **Credential configuration values do not enter records.** This is the
+  exception to verbatim recording: adapters replace documented credential
+  fields with `[redacted]` before the kernel retains or publishes a frame,
+  preserving names and other fields. Live observers and replay see the same
+  redacted frame; the runtime's configuration is unchanged
+  ([Grok MCP evidence](../runtimes/grok.md#session-mcp-servers)).
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.
@@ -143,7 +149,7 @@ interface Frame extends RecordEnvelope {
 
 interface FrameBody {
   type: string;                 // runtime-native discriminator (claude type[/subtype], codex method, pi event type, ACP sessionUpdate)
-  native: unknown;              // the frame as the runtime sent it, never trimmed or re-shaped
+  native: unknown;              // as sent, except credential-field values redacted before recording
   events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
 }
 // RuntimeEventBody:

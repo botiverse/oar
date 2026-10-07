@@ -42,7 +42,8 @@ history/configuration, run in the background, and wake a parent.
 
 OAR exposes one ordered record stream per Session
 ([contract](../../packages/oar/src/contracts/session.ts)). Every ACP frame is
-recorded verbatim as a frame's `native`; the cross-runtime `events` are what
+recorded verbatim as a frame's `native`, except credential configuration
+values are redacted before recording; the cross-runtime `events` are what
 OAR read out of it. Control calls are request/response record pairs. The
 profile declares `capabilities` `{ queue: { durable: false }, attribution:
 "nested", images: true }` and its steer params, so the session has `steer`.
@@ -54,7 +55,7 @@ profile declares `capabilities` `{ queue: { durable: false }, attribution:
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
 | Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
 | `session/update` notifications | One frame per notification, for every session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
-| `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded verbatim with no events under the session id its envelope names; one naming a parent/child pair links `Session.graph()` (`via: "tool_call"`). |
+| `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded with no events under the session id its envelope names, with MCP credential values redacted; one naming a parent/child pair links `Session.graph()` (`via: "tool_call"`). |
 | Native child sessions | A frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier `nested`. |
 | Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim, under the runtime's JSON-RPC id) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
@@ -531,10 +532,30 @@ vendor test asserts no record holds one. grok's MCP notifications carry:
 servers only), `_x.ai/mcp/init_progress` and `_x.ai/mcp_initialized`
 counts, `_x.ai/mcp/server_status` a name, source and status.
 
-**Observation, not about session servers:** `_x.ai/mcp/servers_updated`,
-which OAR records verbatim like every listed vendor method, carries the
-user's own `config.toml` stdio servers with their `env` values in plain text
-(probe, 1.0.46). This predates session MCP servers and is unchanged by them.
+**Credential values do not enter records.** Grok 1.0.46 sends the user's
+`config.toml` stdio `env` values in `_x.ai/mcp/servers_updated`, even without
+session servers. OAR replaces the values of `env` and `headers` entries and
+`bearer_token` / `bearerToken` fields with `[redacted]`, preserving names,
+array/map shape and all other fields. The same rule applies to these fields
+in the other registered MCP notifications. It runs before startup buffering
+and kernel recording, so `records()`, live `rawEvents()` and replay all see
+the redacted form. Grok's configuration and the credentials its servers
+receive are unchanged. This credential exception is the only change to
+verbatim notification recording; free-form text and tool data are unchanged.
+
+Audit of the public source at `2bdd1d6a`: the
+[MCP catalog](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/extensions/mcp.rs)
+copies stdio `env` and omits HTTP headers. `server_status` carries state,
+reason and optional detail; `init_progress` and `mcp_initialized` carry
+counts and timing. `initialize` starts with an empty MCP catalog. No other
+registered notification in this audit declares server credential fields.
+The source revision is not asserted to match the installed binary. The
+[Grok vendor test](../../sea-trial/vendor/grok-mcp-redaction.vendor.test.ts)
+reproduces the 1.0.46 leak with a dummy credential, then checks the entire
+record stream, live/replayed observations, unchanged config and the MCP
+server's credential fingerprint. The
+[fixture regression](../../tests/grok/grok-mcp-redaction.test.ts) also covers
+HTTP credential shapes and notifications before and after session opening.
 
 ### Process ownership, release, installation, and account usage
 
