@@ -383,8 +383,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `childSessionId`, its `/root/name` path the description), interacted →
   `task_updated` running, completed → `task_ended` completed, interrupted →
   `task_ended` stopped. A codex command the model detached itself
-  (`nohup … &`) leaves no task. ACP, pi and cursor report none. `tasksOf` /
-  `reduceTasks` fold them into one row per task.
+  (`nohup … &`) leaves no task. ACP, pi and cursor report none. `tasksOf`
+  folds them into one row per task, including endings inferred from runtime
+  exit as described below.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
   `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi): the
@@ -433,6 +434,42 @@ The rules that make this a projection and not a second source of truth:
   the `agentMessage` item id; claude: the API `message.id`), so two messages
   of one turn stay apart in coalescing and in the session view. pi, cursor
   and the ACP runtimes name none, and older records lack it.
+
+## Tasks at runtime exit
+
+`tasksOf(records, rootSessionId?)` ends every pending, running or paused
+task when the root runtime process records an `exited` response. This
+includes tasks of child sessions and subagents in the same stream. A child
+exit does not end the stream's tasks; a turn ending while the runtime stays
+alive does not end background work either. Already terminal tasks stay as
+reported. The inferred `endedAt` is the exit record's `receivedAt`.
+
+The inferred status is `stopped` if the root received a `dispose` request
+before exit (including while idle), or this exit ends the running root turn
+as `aborted` under the accepted-abort rule. Otherwise it is `failed`, with
+`error: "runtime exited"` unless the task already has a native error. An
+accepted abort from a turn that already ended does not stop tasks at a later
+exit. No new task status or synthetic record is introduced.
+
+A later native `task_ended` or status-bearing `task_updated` overrides the
+inference normally. Reopening a task clears its ending. Only an error
+inferred from exit is cleared when a native status or error arrives; native
+errors remain facts, even if their text is also `runtime exited`.
+Metadata-only updates retain the inferred status and error.
+
+For incremental consumers, use `initialTaskState(rootSessionId?)` and
+`reduceTaskState(state, record)`. Its `tasks` is the existing `TaskMap`;
+`status` reuses `reduceStatus`'s current-turn stop evidence, `disposed`
+remembers a root dispose even while idle, and `exitErrors` identifies
+inferred errors. Persist the whole state, preserving its Map and Set, so a
+checkpoint can continue folding with the same result as replay. Supply the
+root id when the first retained record belongs to a child; otherwise the
+first record's session id becomes the root. Start fresh lifecycle state
+for each runtime start or resume, even when the session id is reused.
+
+The existing `reduceTasks(TaskMap, record)` and `applyTaskEvent` still fold
+only native task events. They have no lifecycle evidence and do not infer
+exit endings; crew's own task fold continues using `applyTaskEvent`.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 

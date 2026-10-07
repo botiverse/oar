@@ -25,8 +25,8 @@ export type { ReasoningPart, ToolGroup, ToolGroupSegment, ToolPart } from "./too
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
 export type { PromptRun, PromptRunOptions } from "./turns.js";
 export { contextUsageOf, effortOf, modelOf, usageOf } from "./usage.js";
-export { applyTaskEvent, initialTasks, reduceTasks, tasksOf } from "./tasks.js";
-export type { TaskEventOrigin, TaskMap, TaskView } from "./tasks.js";
+export { applyTaskEvent, initialTasks, initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "./tasks.js";
+export type { TaskEventOrigin, TaskMap, TaskState, TaskView } from "./tasks.js";
 
 export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./conversation.js";
 export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt } from "./conversation.js";
