@@ -25,6 +25,8 @@ export interface AcpSessionProfile {
    * frame oar never sees, so list everything the runtime is known to emit.
    */
   readonly extensionNotifications?: readonly string[];
+  /** Credential-only exception to verbatim recording; applied before queuing or publishing a notification. */
+  readonly redactExtensionNotification?: (method: string, params: JsonRecord) => JsonRecord;
   readonly initializeMeta?: (options: SessionOptions) => JsonRecord | undefined;
   /**
    * Switch models with `session/set_config_option` on `model`, for agents whose `set_model` answers

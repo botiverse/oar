@@ -1,6 +1,6 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
 import { createInterface } from "node:readline";
-import { grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
+import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
 
@@ -50,12 +50,12 @@ function promptText(params) {
   return [...images, typeof text?.text === "string" ? text.text : ""].join(" ");
 }
 
-// Modes "usage-after-response" / "usage-never" replay kimi-code f9ca33376
-// (onTurnEnded): prompt answered first, usage_update pushed afterwards from an
-// un-awaited task — or never. `used` grows per turn so a stale read shows.
+// Kimi f9ca33376 modes "usage-after-response" / "usage-never": the prompt
+// answers before the un-awaited usage push (or none). `used` grows each turn.
 let completedTurns = 0;
 
 function completePrompt(id, text) {
+  grokMcpCredentials(send, "live", mode);
   completedTurns += 1;
   const reply = antigravity && text === "mode" ? `mode:${currentMode}` : `echo:${text}`;
   update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: reply } });
@@ -194,6 +194,7 @@ function handleSessionPrompt(message) {
 function handleSessionRequest(message) {
   switch (message.method) {
     case "initialize":
+      grokMcpCredentials(send, "opening", mode);
       result(message.id, {
         protocolVersion: 1,
         agentCapabilities: {

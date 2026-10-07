@@ -7,6 +7,21 @@
 const CHILD = "fake-child-grok";
 const LINEAGE = { parent_session_id: "fake-session", child_session_id: CHILD, subagent_type: "general-purpose" };
 
+// servers_updated's env shape from Grok 1.0.46 (oar#182), with dummy values.
+// Headers and bearer_token exercise the same rule if Grok exposes them.
+export function grokMcpCredentials(send, phase, mode) {
+  if (mode !== "grok-credentials") {
+    return;
+  }
+  send({ jsonrpc: "2.0", method: "_x.ai/mcp/servers_updated", params: {
+    phase,
+    mcpServers: [
+      { name: "local", source: "local", type: "stdio", command: "echo", args: [], env: [{ name: "API_KEY", value: "fixture-env-secret" }] },
+      { name: "remote", type: "http", url: "https://example.test/mcp", headers: [{ name: "Authorization", value: "fixture-header-secret" }], bearer_token: "fixture-bearer-secret" },
+    ],
+  } });
+}
+
 /**
  * One sub-agent run: the vendor `_x.ai/session_notification` twin of
  * session/update carries the lineage snake_case under `update`;

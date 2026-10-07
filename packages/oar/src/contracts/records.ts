@@ -67,8 +67,8 @@ export interface ResponseRecord extends RecordEnvelope {
 export type RawEvent = Frame | RequestRecord | ResponseRecord;
 
 /**
- * A frame body carries the runtime's frame verbatim plus oar's typed reading
- * of it. `native` is the source of truth; `events` is a projection for
+ * A frame body carries the runtime's frame, except documented credential-field
+ * redaction, plus oar's typed reading. `native` is the source of truth; `events` is a projection for
  * consumers that want the cross-runtime vocabulary without parsing five wire
  * formats. One frame is one record: a claude assistant message with a
  * thinking block, a text block and a tool_use block is ONE frame with three
@@ -78,7 +78,7 @@ export type RawEvent = Frame | RequestRecord | ResponseRecord;
 export interface FrameBody {
   /** Runtime-native discriminator: claude `type[/subtype]`, codex notification method, pi event type, ACP `sessionUpdate`. */
   readonly type: string;
-  /** The frame as the runtime sent it (JSON-safe). Never trimmed, never re-shaped. */
+  /** The frame as sent (JSON-safe), except documented credential-field redaction. Never otherwise trimmed or re-shaped. */
   readonly native: unknown;
   /** What oar read out of the frame, in frame order; empty when oar read nothing. Only runtime-said kinds appear here. */
   readonly events: readonly RuntimeEventBody[];

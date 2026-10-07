@@ -31,7 +31,7 @@ export type { AcpSessionProfile } from "./profile.js";
  * ACP mapping onto the record stream (shared by grok and kimi; profiles carry the vendor bits):
  * - every `session/update` is ONE event record, native verbatim, for WHATEVER
  *   session id it names: a foreign id is a derived child session (records.ts).
- * - vendor extension notifications the profile lists are recorded verbatim.
+ * - listed vendor notifications are recorded verbatim except credential redaction.
  * - runtime→app requests (permission, terminal) are toApp request records;
  *   oar's automatic answer is the matching `answered` response (client-app.ts).
  * - prompt / steer / queue / withdraw / abort / dispose are toRuntime requests answered
@@ -63,7 +63,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         recorder.update(notification);
       },
       extension: (method, params) => {
-        recorder.extension(method, params);
+        recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params);
       },
       requested: (id, method, params) => {
         recorder.requested(id, method, params);

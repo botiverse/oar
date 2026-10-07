@@ -3,6 +3,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts } from "../../shared/token-totals.js";
+import { redactGrokNotification } from "./redaction.js";
 
 function authMethodIds(initialized: JsonRecord): string[] {
   return (Array.isArray(initialized.authMethods) ? initialized.authMethods : [])
@@ -94,7 +95,7 @@ export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
 
 /**
  * Vendor notification methods the SDK must be told about, or it discards
- * the frame unseen. Registered so each is recorded verbatim; one that names
+ * the frame unseen. Each is recorded verbatim except MCP credential values; one that names
  * a parent/child session pair links the session graph (records.ts).
  *
  * Observed on the live wire, grok 1.0.25 (f7e67d6988e2), 2026-09-11
@@ -145,6 +146,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   // hands an ACP image block to the model (live, docs/runtimes/grok.md).
   capabilities: { queue: { durable: false }, attribution: "nested", images: true },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
+  redactExtensionNotification: redactGrokNotification,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,
   validateOptions: (options) => {
