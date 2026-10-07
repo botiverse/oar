@@ -56,7 +56,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 |---|---|
 | Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames codex sends before that reply (notifications and server requests alike) are recorded ahead of it in wire order, and frames written after it (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` (`turn_ended`: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer and interrupt. |
-| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, which `classifyTool` reads as one `edit_file` with every changed path as `paths`, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()` and `effort()` fold the `model` / `effort` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. |
@@ -501,6 +501,20 @@ requiring interactive settlement have no supported OAR interaction path: the
 dangling request is the honest record
 ([stream tests](../../tests/codex/codex-session-stream.test.ts)); none arrived
 in any live run.
+
+A `fileChange` item carries `changes: [{path, kind, diff}]`, the same on
+`item/started` and `item/completed`: `path` absolute, `kind` `{type: "add"}`,
+`{type: "delete"}`, or `{type: "update", move_path}`, where `move_path`
+(snake case) is `null` unless the update renames the file and then the
+target's absolute path. The list came sorted by path, not in the patch's
+order. The model's `apply_patch` sent through `exec_command` as a heredoc
+arrives as this item, not as a `commandExecution` [env 0.160.1, scripted
+provider: [recording](../../tests/replay/fixtures/codex-file-change.raw.jsonl)].
+`tool_call_started.input` is the `changes` array as JSON. `classifyTool`
+reads it as one `edit_file` whatever kinds the changes have; its `paths` are
+each change's `path`, a rename's `move_path` right after its source, each
+path once, and `detail` is the first of them
+([test](../../tests/replay/tool-activity.test.ts)).
 
 OAR projects command execution, file changes, MCP calls, web search and
 sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
@@ -990,7 +1004,8 @@ replies, a refused interrupt, an unanswered server request, an unrequested
 exit ([stream](../../tests/codex/codex-session-stream.test.ts)); pre-open
 ordering, the open event ahead of a same-chunk `thread/started`, and control
 after an unrequested death ([pre-open](../../tests/codex/codex-pre-open.test.ts));
-item detail (the `sleep` item included), reasoning classification, the
+item detail (the `sleep` item included), a recorded `fileChange`'s paths
+([activity](../../tests/replay/tool-activity.test.ts)), reasoning classification, the
 effort read-back, first-open coordination per home and exit diagnostics
 ([codex tests](../../tests/codex/)). [Vendor
 tests](../../sea-trial/vendor/codex.vendor.test.ts) use the real app-server

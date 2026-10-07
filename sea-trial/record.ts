@@ -6,6 +6,11 @@
  *
  *   pnpm sea-trial:record claude <scenario> <prompt> [-- <steer/next prompt>...]
  *   pnpm sea-trial:record codex  <scenario> <prompt> [-- <steer/next prompt>...]
+ *   pnpm sea-trial:record codex-aimock file-change <prompt>
+ *
+ * `codex-aimock` runs the real codex against a scripted provider (no login,
+ * no tokens) whose model applies one patch (record/codex.ts); like pi's, its
+ * fixture is named for the runtime, `codex-<scenario>.raw.jsonl`.
  *
  * Extra prompts after `--` are sent one per turn end (multi-turn); a leading
  * `+` marks a mid-turn steer (sent ~1.2s in without waiting for the turn to
@@ -14,19 +19,19 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { startClaudeRecording } from "./record/claude.js";
-import { startCodexRecording } from "./record/codex.js";
+import { startCodexAimockRecording, startCodexRecording } from "./record/codex.js";
 import { startPiRecording } from "./record/pi.js";
 
 const [runtime, scenario, first, ...rest] = process.argv.slice(2);
 if (runtime === undefined || scenario === undefined || first === undefined) {
-  process.stderr.write("usage: tsx sea-trial/record.ts <claude|codex|pi> <scenario> <prompt> [-- <more>...]\n");
+  process.stderr.write("usage: tsx sea-trial/record.ts <claude|codex|codex-aimock|pi> <scenario> <prompt> [-- <more>...]\n");
   process.exit(2);
 }
 const separator = rest.indexOf("--");
 const followUps = separator === -1 ? [] : rest.slice(separator + 1);
 
-const recorders = { claude: startClaudeRecording, codex: startCodexRecording, pi: startPiRecording };
-const record = runtime === "claude" || runtime === "codex" || runtime === "pi" ? recorders[runtime] : null;
+const recorders = { claude: startClaudeRecording, codex: startCodexRecording, "codex-aimock": startCodexAimockRecording, pi: startPiRecording };
+const record = runtime === "claude" || runtime === "codex" || runtime === "codex-aimock" || runtime === "pi" ? recorders[runtime] : null;
 if (record === null) {
   process.stderr.write(`unknown runtime: ${runtime}\n`);
   process.exit(2);
@@ -35,7 +40,7 @@ if (record === null) {
 const raw = await record({ prompt: first, followUps });
 const dir = path.join(import.meta.dirname, "..", "tests", "replay", "fixtures");
 mkdirSync(dir, { recursive: true });
-const file = path.join(dir, `${runtime}-${scenario}.raw.jsonl`);
+const file = path.join(dir, `${runtime.replace(/-aimock$/u, "")}-${scenario}.raw.jsonl`);
 writeFileSync(file, `${raw.map((entry) => JSON.stringify(entry)).join("\n")}\n`);
 process.stdout.write(`recorded ${raw.length} frames → ${file}\n`);
 process.exit(0);
