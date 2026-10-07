@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import { test } from "vitest";
 import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
 import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
@@ -11,8 +12,7 @@ import {
   kimiInstallation,
   kimiInstalledExecutableCandidates,
 } from "../packages/oar/src/runtimes/kimi/installation.js";
-import { resolveExecutable } from "../packages/oar/src/shared/executable/index.js";
-import { executableInstallation } from "../packages/oar/src/shared/installation.js";
+import { executableInstallation, locateOnPath } from "../packages/oar/src/shared/installation.js";
 import { piInstallation } from "../packages/oar/src/runtimes/pi/installation.js";
 
 async function withEnv<T>(
@@ -34,10 +34,13 @@ async function withEnv<T>(
   }
 }
 
-const nodeOnPath = resolveExecutable("node");
+const nodeOnPath = locateOnPath("node")?.command;
+// Just the folder of the node that runs, so the machine's other node copies
+// (tests/installation-shadowed.test.ts covers those) stay out of the snapshot.
+const nodeOnlyPath = { PATH: path.dirname(nodeOnPath ?? process.execPath) };
 
 test("executable installation resolves bare names on PATH", async () => {
-  const onPath = await executableInstallation("OAR_FIXTURE_BIN", "node")();
+  const onPath = await withEnv(nodeOnlyPath, async () => executableInstallation("OAR_FIXTURE_BIN", "node")());
   assert.deepEqual(onPath, { kind: "available", via: "executable", command: nodeOnPath, version: process.version });
 
   const absent = await executableInstallation("OAR_FIXTURE_BIN", "oar-fixture-missing")();
@@ -168,12 +171,12 @@ test("kimi candidates match the official native-installer layouts", () => {
 });
 
 test("readiness gates each candidate", async () => {
-  const ready = await executableInstallation(
+  const ready = await withEnv(nodeOnlyPath, async () => executableInstallation(
     "OAR_FIXTURE_BIN",
     "node",
     [],
     ["--version"],
-  )();
+  )());
   assert.deepEqual(ready, { kind: "available", via: "executable", command: nodeOnPath, version: process.version });
 
   // Node rejects the app-server-style subcommand, so the probe is unsupported.

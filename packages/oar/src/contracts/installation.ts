@@ -4,6 +4,19 @@ export interface ExecutableInstallation {
   readonly via: "executable";
   readonly command: string;
   readonly version?: string;
+  /**
+   * The other copies of the same command on PATH after `command`, in PATH
+   * order: copies that never run while this one is first. Only copies on
+   * PATH: one installed off PATH (an npm prefix PATH does not list) is not
+   * among them. Paths as PATH lists them, without versions (the host can ask
+   * each copy for one). Entries that resolve to one file are one copy (a
+   * folder listed twice, `/bin` beside `/usr/bin`, a symlink to `command`),
+   * and a folder holds one copy, the one the shell would pick there. Present
+   * only when PATH found `command` and lists other copies: never when an
+   * `OAR_*_BIN` override names the executable or a fallback outside PATH
+   * found it (codex's macOS app bundle).
+   */
+  readonly shadowed?: readonly string[];
 }
 
 /**
