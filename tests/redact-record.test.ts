@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { RawEvent } from "../packages/oar/src/contracts/records.js";
-import { redactRecord } from "../packages/oar/src/observe/index.js";
+import { REDACTION_RULES, redactRecord } from "../packages/oar/src/observe/index.js";
 
 const frame = (type: string, native: unknown): RawEvent => ({
   kind: "frame",
@@ -37,4 +37,17 @@ test("idempotent: a redacted record, and records no rule touches, come back as t
   expect(redactRecord(status)).toBe(status);
   const request: RawEvent = { kind: "request", id: "r1", direction: "toRuntime", sessionId: "s", agentPath: [], seq: 1, receivedAt: 1, body: { kind: "dispose" } };
   expect(redactRecord(request)).toBe(request);
+});
+
+test("REDACTION_RULES names every frame type a rule can change; any other frame is never changed", () => {
+  expect(Number.isInteger(REDACTION_RULES.version) && REDACTION_RULES.version >= 1).toBe(true);
+  const secret = { mcpServers: [{ name: "x", env: { TOKEN: "secret-value" } }] };
+  for (const prefix of REDACTION_RULES.frameTypePrefixes) {
+    const covered = frame(`${prefix}${prefix.endsWith("/") ? "servers_updated" : ""}`, secret);
+    expect(JSON.stringify(redactRecord(covered))).not.toContain("secret-value");
+  }
+  for (const type of ["_x.ai/other", "session/update", "x_x.ai/mcp/servers_updated", "thread/tokenUsage/updated"]) {
+    const other = frame(type, secret);
+    expect(redactRecord(other)).toBe(other);
+  }
 });
