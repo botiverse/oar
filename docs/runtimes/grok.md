@@ -87,7 +87,8 @@ startup hints in the `initialize` `_meta` (`clientIdentifier: "oar"`,
 `clientType: "generic"`, `startupHints: { nonInteractive, skipGitStatus,
 skipProjectLayout }`). It advertises terminal support, disables client
 filesystem methods, and gives each opening request a 15-second deadline. The
-session request supplies `mcpServers: []` and `_meta: { yoloMode: true }`.
+session request supplies the session's `mcpServers` (`[]` without them; see
+[session MCP servers](#session-mcp-servers)) and `_meta: { yoloMode: true }`.
 The `authenticate` answer's `_meta` carries the account email and
 `subscription_tier`; the `session/new` answer names the model
 (`models.currentModelId`). Spawn, auth, and creation errors reject
@@ -402,6 +403,7 @@ installed binary's build revision; the request capture establishes behavior.
 | `systemPrompt` | Initialize override, on both new and resumed sessions. |
 | `appendSystemPrompt` | Initialize rules on new sessions, or combined override with `systemPrompt`; append-only resume is refused. |
 | `env` | Child-process environment, including tools. |
+| `mcpServers` | ACP `mcpServers` on new and resumed sessions ([session MCP servers](#session-mcp-servers)). |
 
 Launcher/config audit: `grok agent --help` also exposes agent profiles,
 plugin directories, model and reasoning flags. None is needed to replace the
@@ -478,10 +480,61 @@ to `rawOutput` as one `other` part. Under `--always-approve` no
 `allow_always`, then `allow_once`, otherwise `cancelled`, alongside the
 launch/session yolo settings.
 
-There is no application approval callback, generic client-tool callback, or
-per-session MCP configuration (all **unexposed**). Passing no MCP servers and
-disabling client filesystem methods does not disable every vendor-configured
-tool.
+There is no application approval callback or generic client-tool callback
+(both **unexposed**); per-session MCP servers are
+[below](#session-mcp-servers). Passing no MCP servers and disabling client
+filesystem methods does not disable every vendor-configured tool.
+
+### Session MCP servers
+
+`SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new` and
+`session/resume`, in ACP's `McpServer` shape (stdio `{name, command, args,
+env}`, http `{type: "http", name, url, headers}`, `env` and `headers` as
+`{name, value}` lists; `args`, `env` and `headers` always sent;
+[mapping](../../packages/oar/src/shared/acp/mcp-servers.ts),
+[test](../../tests/acp/acp-session-mcp-servers.test.ts)). grok declares
+`mcpCapabilities` http and sse, so http entries are sent (to an agent that
+declares no http, OAR refuses one with `UnsupportedOptionError`). An empty
+or repeated name fails the open before grok starts. Measured on grok 1.0.46
+against a scripted provider: fresh `HOME` and `GROK_HOME`, a `config.toml`
+custom model `[model.aimock-model]` (`api_backend = "chat_completions"`,
+dummy `api_key`) and a dummy `XAI_API_KEY`; `initialize` then offers
+`xai.api_key` (the default, which OAR picks) and `grok.com`, so no grok.com
+login is involved
+([vendor test](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts),
+[harness](../../sea-trial/harness/aimock-acp.ts)):
+
+- grok declares no MCP tool to the model. The model calls a server's tool
+  through grok's `use_tool` meta-tool, `{tool_name: "<server>__<tool>",
+  tool_input: {...}}` (`search_tool` is offered beside it), so the ACP
+  `tool_call` title of every MCP call is `use_tool`. The tool result reached
+  the provider as the server wrote it, so the server ran with the entry's
+  `env` (stdio) or `headers` (http).
+- A resume remembers none: `session/resume` given them spawns the servers
+  again and the model called the stdio one; probed, resumed with none,
+  nothing is attached.
+- On a name clash the session's `echo` wins over the user's `config.toml`
+  `[mcp_servers.echo]` (probed: the user's is never spawned), and the user's
+  `userecho` is still called. `_x.ai/mcp/list` and
+  `_x.ai/mcp/servers_updated` still describe the user's `echo` definition,
+  not the one running (probe).
+- grok's per-process `--plugin-dir <DIR>` flag (before `stdio`;
+  `<DIR>/.grok-plugin/plugin.json` and `<DIR>/.mcp.json`) also attached
+  servers in a probe. OAR does not use it: the ACP param works, and ACP
+  launch flags belong to #171.
+
+The credentials reach grok only in the open request's params, which OAR does
+not record; a failed open's error is redacted (`[redacted]`). A probe found
+the session's values in no notification or answer and not on disk, and the
+vendor test asserts no record holds one. grok's MCP notifications carry:
+`_x.ai/mcp/servers_updated` the config-file servers only (`[]` with session
+servers only), `_x.ai/mcp/init_progress` and `_x.ai/mcp_initialized`
+counts, `_x.ai/mcp/server_status` a name, source and status.
+
+**Observation, not about session servers:** `_x.ai/mcp/servers_updated`,
+which OAR records verbatim like every listed vendor method, carries the
+user's own `config.toml` stdio servers with their `env` values in plain text
+(probe, 1.0.46). This predates session MCP servers and is unchanged by them.
 
 ### Process ownership, release, installation, and account usage
 
@@ -556,6 +609,11 @@ drops it before the stream; concurrent children; cancellation with
 background children (`will_wake`, `task_backgrounded`, `task_completed`);
 usage across compaction; concurrent same-ID controllers, cross-process live
 attachment and load-fallback code effects; the `skills-reload` response's
-payload; the [sym]-only vendor methods. Design should distinguish restoring
+payload; the [sym]-only vendor methods; [session MCP
+servers](#session-mcp-servers) on a real login and model (measured against
+a scripted provider only; their vendor test runs locally,
+`OAR_TEST=grok-aimock`, not in CI); the user's `config.toml` MCP `env`
+values that `_x.ai/mcp/servers_updated` carries into the records. Design
+should distinguish restoring
 context, replaying observations, and adopting live execution; the Session
 OAR returns does not imply all three.

@@ -25,7 +25,7 @@ function nowhere(id: string): AvailableInstallation {
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "kimi"]);
   for (const runtime of declaring) {
     const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
@@ -41,14 +41,14 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["appendSystemPrompt", "mcpServers", "systemPrompt"],
+    antigravity: ["appendSystemPrompt", "systemPrompt"],
     claude: [],
     codex: [],
     cursor: ["appendSystemPrompt", "env", "mcpServers", "systemPrompt"],
-    grok: ["mcpServers"],
-    kimi: ["appendSystemPrompt", "mcpServers", "systemPrompt"],
-    opencode: ["mcpServers"],
-    pi: ["mcpServers"],
+    grok: [],
+    kimi: ["appendSystemPrompt", "systemPrompt"],
+    opencode: [],
+    pi: [],
   });
 });
 

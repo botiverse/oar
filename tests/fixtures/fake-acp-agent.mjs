@@ -2,6 +2,7 @@
 import { createInterface } from "node:readline";
 import { grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
+import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
 
 const mode = process.argv[2] ?? "session";
 const pendingPrompts = new Map();
@@ -196,7 +197,7 @@ function handleSessionRequest(message) {
       result(message.id, {
         protocolVersion: 1,
         agentCapabilities: {
-          loadSession: true,
+          loadSession: true, ...mcpCapabilities(),
           sessionCapabilities: sessionCapabilities[mode] ?? { resume: {}, close: {} },
           promptCapabilities: { image: mode !== "no-images" },
         },
@@ -292,7 +293,7 @@ createInterface({ input: process.stdin }).on("line", (line) => {
   }
   if (mode === "rpc") {
     handleRpcRequest(message);
-  } else {
+  } else if (!answeredMcpOpen(message, error)) {
     handleSessionRequest(message);
   }
 });

@@ -27,7 +27,6 @@ export function supportsKimiYolo(response: JsonRecord): boolean {
 export const kimiRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "kimi acp has no per-session system prompt input; its launcher does not forward --agent-file or --agent",
   appendSystemPrompt: "kimi acp has no per-session system prompt append input; its launcher does not forward --agent-file or --agent",
-  mcpServers: "OAR does not attach MCP servers to kimi yet: ACP session/new and session/resume mcpServers is not yet verified to reach its agent",
 };
 
 export const kimiAcpProfile: AcpSessionProfile = {

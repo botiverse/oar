@@ -1,17 +1,14 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
-import {
-  methods,
-  PROTOCOL_VERSION,
-  type ClientConnection,
-  type SendRequestOptions,
-} from "@agentclientprotocol/sdk";
+import { methods, PROTOCOL_VERSION, type ClientConnection, type SendRequestOptions } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
+import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import { refuseResumeElsewhere } from "./resume-cwd.js";
 
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
+export { acpMcpOpenGuard } from "./mcp-servers.js";
 
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
@@ -194,7 +191,7 @@ async function createOrResume(
 ): Promise<Pick<OpenedAcpSession, "response" | "sessionId" | "openMethod">> {
   const baseParams = {
     cwd: options.cwd,
-    mcpServers: [],
+    mcpServers: acpMcpServersParam(options.mcpServers, initialized),
     ...(meta === undefined ? {} : { _meta: meta }),
   };
   const capabilities = asRecord(initialized.agentCapabilities);
@@ -206,8 +203,7 @@ async function createOrResume(
       await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
     }
     const params = { ...baseParams, sessionId };
-    let method: typeof methods.agent.session.resume | typeof methods.agent.session.load | undefined =
-      undefined;
+    let method: typeof methods.agent.session.resume | typeof methods.agent.session.load | undefined = undefined;
     if (hasAcpCapability(sessionCapabilities?.resume)) {
       method = methods.agent.session.resume;
     } else if (capabilities?.loadSession === true) {

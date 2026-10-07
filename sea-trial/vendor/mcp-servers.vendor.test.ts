@@ -2,11 +2,11 @@ import { appendFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, type McpServer, type RawEvent, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, type RawEvent } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type LLMock, type RawProviderRequest } from "../harness/aimock.js";
+import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { ECHO_SERVER, echoesReceived, echoFixtures, fingerprint, startHttpEcho, stdioEcho } from "./support/echo-mcp.js";
+import { CLASH_ECHO, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 
 /**
@@ -19,36 +19,6 @@ import { structuralToolRound } from "./support/tool-round.js";
  * on a resume, which remembers no server and is given them again. Neither
  * credential value may appear anywhere in the session's records.
  */
-
-const STDIO_TOKEN = "oar-stdio-credential";
-const HTTP_AUTHORIZATION = "Bearer oar-http-credential";
-
-/** Both secrets, checked absent from every record of every session. */
-function leakedCredentials(...sessions: readonly Session[]): readonly string[] {
-  const records = JSON.stringify(sessions.flatMap((session) => session.records()));
-  return [STDIO_TOKEN, HTTP_AUTHORIZATION, "oar-http-credential"].filter((secret) => records.includes(secret));
-}
-
-/** The servers the http echo listens on and the stdio one. */
-function echoServers(url: string): readonly McpServer[] {
-  return [stdioEcho("echo", STDIO_TOKEN), { name: "remote", type: "http", url, headers: { Authorization: HTTP_AUTHORIZATION } }];
-}
-
-const BOTH = [{ server: "echo", text: "stdio-call" }, { server: "remote", text: "http-call" }];
-const AGAIN = [{ server: "echo", text: "resumed-call" }];
-
-function scriptEchoes(mock: LLMock): void {
-  echoFixtures(mock, /call both echo tools/u, BOTH);
-  echoFixtures(mock, /call the echo tool again/u, AGAIN);
-  echoFixtures(mock, /call the clashing echo/u, [{ server: "echo", text: "clash-call" }]);
-}
-
-/** What the open and the resume each received: one echo per call, carrying the credential each server was given. */
-const EXPECTED_ECHOES = [
-  `echo:stdio-call via=stdio token=${fingerprint(STDIO_TOKEN)}`,
-  `echo:http-call via=http token=${fingerprint(HTTP_AUTHORIZATION)}`,
-  `echo:resumed-call via=stdio token=${fingerprint(STDIO_TOKEN)}`,
-];
 
 /** A user-scope stdio echo server in claude's own config (`.claude.json`), with a credential of its own. */
 const CLAUDE_USER_SERVER = { type: "stdio", command: process.execPath, args: [ECHO_SERVER], env: { OAR_ECHO_TOKEN: "user-credential" } };
@@ -152,7 +122,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", (
         ]
       `);
       await session.dispose();
-      expect(echoesReceived(env.raw)).toEqual([`echo:clash-call via=stdio token=${fingerprint(STDIO_TOKEN)}`]);
+      expect(echoesReceived(env.raw)).toEqual([CLASH_ECHO]);
     } finally {
       await env.stop();
       await rm(configDir, { recursive: true, force: true });
@@ -239,7 +209,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex mcpServers", () 
         ]
       `);
       await session.dispose();
-      expect(echoesReceived(env.raw)).toEqual([`echo:clash-call via=stdio token=${fingerprint(STDIO_TOKEN)}`]);
+      expect(echoesReceived(env.raw)).toEqual([CLASH_ECHO]);
       expect(offeredTools(env.raw).filter((name) => name.startsWith("mcp__"))).toEqual(["mcp__echo", "mcp__userecho"]);
     } finally {
       await env.stop();

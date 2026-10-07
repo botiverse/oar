@@ -90,13 +90,10 @@ out instead of naming runtimes.
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)); `Agent.create`'s `mcpServers` is not yet verified |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)); ACP `mcpServers` is not yet verified |
-| antigravity | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); ACP `mcpServers` is not yet verified |
-| opencode | `mcpServers` | ACP `mcpServers` is not yet verified |
-| grok | `mcpServers` | ACP `session/new` / `session/resume` `mcpServers` is not yet verified to reach the agent |
-| pi | `mcpServers` | its MCP extension (`@earendil-works/pi-mcp`) is not yet verified as a per-session channel |
-| claude, codex | nothing | |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| kimi | `systemPrompt`, `appendSystemPrompt` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| antigravity | `systemPrompt`, `appendSystemPrompt` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)) |
+| claude, codex, grok, opencode, pi | nothing | |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page
@@ -106,16 +103,30 @@ call an attached server's tool, with the evidence on its runtime page
 |---|---|---|---|---|---|
 | claude | `--mcp-config <0600 temp file>`, deleted when the process ends; no `--strict-mcp-config` | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
 | codex | `config.mcp_servers` on `thread/start` and `thread/resume` | yes | yes | the override again | merged into the user's entry field by field; oar's `command` / `url`, `args` and `enabled = true` win ([codex](../runtimes/codex.md#session-mcp-servers)) |
+| grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
+| kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
+| opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
+| antigravity | ACP `mcpServers` on `session/new` and `session/resume`, started at the first prompt; the model calls them through `call_mcp_tool` | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay. The server stores the entries, values included, in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
-Evidence for both: [`mcp-servers.vendor.test.ts`](../../sea-trial/vendor/mcp-servers.vendor.test.ts)
-runs the real CLI against a scripted provider whose model calls a stdio and an
-http echo server's tool, on open and on a resume, and asserts the provider
-received what only that server writes; the recordings are
-`tests/replay/fixtures/{claude,codex}-mcp-echo.raw.jsonl`. A list naming a
-server twice, or with an empty name, is a plain error before anything
-starts, as is a name codex would not start (`^[\w:@/.-]+$`). A transport a
-runtime cannot attach is an `UnsupportedOptionError` on `mcpServers` once
-the runtime says so; claude and codex attach both.
+Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
+scripted provider whose model calls a stdio and an http echo server's tool, on
+open and on a resume in a new process, and assert the provider received what
+only that server writes, carrying the credential the entry gave it:
+[`mcp-servers.vendor.test.ts`](../../sea-trial/vendor/mcp-servers.vendor.test.ts)
+(claude, codex), [`mcp-servers-pi.vendor.test.ts`](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)
+and [`mcp-servers-acp.vendor.test.ts`](../../sea-trial/vendor/mcp-servers-acp.vendor.test.ts)
+(grok, kimi, opencode, antigravity: each CLI pointed at aimock from a fresh
+home, [harness](../../sea-trial/harness/aimock-acp.ts); run locally, as CI
+has no ACP aimock backend). The same tests cover the name clash and check that
+no record holds a credential. The recordings are
+`tests/replay/fixtures/{claude,codex,pi}-mcp-echo.raw.jsonl`. A list naming a
+server twice, or with an empty name, is a plain error before anything starts,
+as is a name codex (`^[\w:@/.-]+$`) or pi (`^[\w-]+$`, and two names pi folds
+into one tool namespace) would not take. A transport a runtime cannot attach
+is an `UnsupportedOptionError` on `mcpServers`: an http entry on an ACP agent
+whose `initialize` declares no `mcpCapabilities.http`; every runtime above
+attaches both.
 
 OpenCode carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and

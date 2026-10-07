@@ -10,6 +10,9 @@
                    echo MCP server entries and scripted calls
     harness/       backends.ts (OAR_TEST → runtime + optional aimock),
                    aimock.ts (scripted-provider setup per runtime),
+                   aimock-acp.ts (the same for the ACP CLIs, used by the
+                   mcpServers vendor test: OAR_TEST=<grok|kimi|opencode|
+                   antigravity>-aimock),
                    runner.ts / subject.ts / trace.ts
     fixtures/      the in-process mock runtime (contract-in-one-screenful)
 

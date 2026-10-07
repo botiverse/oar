@@ -89,9 +89,7 @@ rejects with an `UnsupportedOptionError` (`option` names the refused
 back on it. `runtime.refusedSessionOptions` names the options a runtime
 refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`),
 each with the reason, so a host can leave them out before opening: cursor
-refuses `env` and the two prompt options, kimi, antigravity and opencode the
-prompt options, and every runtime but claude and codex refuses
-`mcpServers`. Kimi and
+refuses all four, kimi, antigravity and opencode the two prompt options. Kimi and
 opencode also refuse a `resume` in another directory than the session's own
 (`option: "cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
@@ -100,10 +98,13 @@ opencode also refuse a `resume` in another directory than the session's own
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
 one session, on top of the runtime's own: claude reads them from a 0600
 temporary file deleted when the session ends, codex from its thread config
-overrides. Give them again on `resume`. Their `env` and `headers` values
-never appear in a record or an error. See
-[claude](https://github.com/botiverse/oar/blob/main/docs/runtimes/claude.md#session-mcp-servers)
-and [codex](https://github.com/botiverse/oar/blob/main/docs/runtimes/codex.md#session-mcp-servers).
+overrides, grok, kimi, opencode and antigravity from ACP `session/new` /
+`session/resume`, pi from an extension that registers them; cursor refuses
+them. Give them again on `resume`. Their `env` and `headers` values never
+appear in a record or an error (antigravity itself keeps them in its
+conversation database). See the
+[channels](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options)
+and each runtime page's "Session MCP servers".
 
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime

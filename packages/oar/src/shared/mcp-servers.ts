@@ -60,3 +60,14 @@ export function mcpCredentialRedactor(servers: readonly McpServer[] | undefined)
   }
   return (text) => values.reduce((redacted, value) => redacted.replaceAll(value, "[redacted]"), text);
 }
+
+/** `error` with its message and stack passed through `redact` (in place, so its class and fields stay); anything else as it is. */
+export function redactError(error: unknown, redact: (text: string) => string): unknown {
+  if (error instanceof Error) {
+    error.message = redact(error.message);
+    if (error.stack !== undefined) {
+      error.stack = redact(error.stack);
+    }
+  }
+  return error;
+}
