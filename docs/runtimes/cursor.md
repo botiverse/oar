@@ -37,9 +37,10 @@ record with a `type`; `run.stream()` offers a coarser message view of the
 same run. An agent takes one run at a time: a second `send` while one runs is
 refused (`already has active run`, probed).
 
-The credential is `CURSOR_API_KEY`, or the key `Cursor.auth.login()` mints
-and stores in `~/.cursor/sdk/auth.json`. It is separate from the Cursor CLI's
-login and from the editor's.
+The credential is `CURSOR_API_KEY`, or, without it, the key
+`Cursor.auth.login()` mints and stores in `~/.cursor/sdk/auth.json`. It is
+separate from the Cursor CLI's login and from the editor's. OAR drives that
+login and reads its status ([login](#login)).
 
 ## High-level mapping to OAR
 
@@ -56,6 +57,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
 | Updates | One frame per update; a subagent's updates arrive inside its `task` call and are attributed to it (`agentPath`, tier `attributed`). |
 | Steer, queue, abort | `run.steer`; an adapter-held queue sent as the next run; `run.cancel`. |
+| `Cursor.auth` | `login` is `Cursor.auth.login` (the URL relayed, the SDK polls), `authStatus` is `Cursor.auth.status` ([login](#login)). |
 
 Sources: [session](../../packages/oar/src/runtimes/cursor/session.ts),
 [projection](../../packages/oar/src/runtimes/cursor/projection.ts),
@@ -311,6 +313,87 @@ pinned exactly by the peer dependency.
 Account usage is **unexposed**: `agent.getUsage()` answers `feature_unavailable`
 on this account (probed), and each run reports its own tokens.
 
+### Login
+
+**Mapped** ([runtime login](../spec/login.md)):
+`login` is the SDK's own `Cursor.auth.login`, `authStatus` its
+`Cursor.auth.status`. Native behavior [bundle 1.0.35: `dist/esm/index.js`,
+`Cursor.auth` and `src/agent/auth/*`, with their `.d.ts`]: the login makes a
+PKCE handshake and calls `onLoginUrl(url)` at once, with a
+`cursor.com/loginDeepControl?challenge=…&uuid=…` page; with
+`openBrowser: false` it opens no browser and prints nothing. It then polls
+`POST /auth/poll` until the sign-in in the browser completes: 150 attempts
+backing off from 1 to 10 seconds, about 24 minutes, after which (or after
+three failed requests in a row) it throws `Login failed or timed out. Please
+try again.` With the session token it mints a user API key that expires in
+90 days (`createUserApiKey`, listed as `Cursor SDK login (<hostname>)` among
+the dashboard's API keys), reads the account's email (`getMe`), drops the
+session token, and saves `{ backendUrl, apiKey, apiKeyExpiresAtMs, email,
+createdAtMs }` to its credential store, by default `~/.cursor/sdk/auth.json`
+(mode 0600). It writes nothing before that save and clears nothing, so a
+login that fails leaves the previous one as it was. The SDK's `signal` stops
+the poll (checked before each attempt, passed to each request, and waking
+the backoff; the login then throws `Login was cancelled.`), but the minting
+takes no signal, and the save follows it whatever the signal says.
+`status()` reads only the file: `logged-out` when it is missing, unreadable
+or past its expiry, else `logged-in` with `backendUrl`, `email` and
+`apiKeyExpiresAtMs`, never the key.
+
+OAR passes `openBrowser: false` and relays the URL from `onLoginUrl` as one
+`auth_url` event; nothing is pasted back. The abort the SDK would ignore is
+handled by the store OAR passes in place of the default: while the login
+waits, it hands the SDK's save, unread, to the SDK's own
+`FileCredentialStore` (the same `~/.cursor/sdk/auth.json`); once OAR has
+ended the login (the caller aborted, the deadline passed, or `onEvent`
+threw), it refuses the save, and OAR aborts the SDK's signal, which ends its
+poll. Whichever comes first decides: a save that has begun stands, and a
+later abort or deadline waits for it and yields `logged_in`; an end that
+came first makes `cancelled` or `timed_out` mean that `auth.json` was not
+written. A stop that lands after the browser sign-in but before the save
+leaves the minted key unsaved yet listed in the dashboard until it expires or
+is revoked there; the SDK cannot revoke it. A minting already under way
+finishes in the background, and its save is refused. OAR's deadline is 15
+minutes, before the SDK gives up on its own. A rejection from the SDK is
+`rejected` with the first line of its message, redacted: a poll that failed
+or ran out, a refused key (`Login succeeded, but creating an SDK API key
+failed: …`, for instance when a team restricts user API keys), or a save that
+failed. A login the SDK resolves is confirmed with `Cursor.auth.status`,
+whose `email` and expiry (`expiresAt`, from `apiKeyExpiresAtMs`) are the
+account; a status that reads logged out is `not_logged_in`.
+
+`CURSOR_API_KEY` comes first: the SDK uses it before the stored login for
+every call (an explicit key, then the variable, then the stored key), and
+`status()` ignores it. OAR does not guess: `authStatus` reports the stored
+login only, and a login started while the variable is set adds an `info`
+event saying that the variable wins until it is unset; its value is never
+read. A key stored against another backend (`CURSOR_BACKEND_URL`) also reads
+`logged-in`, though the SDK uses it only against that backend. The SDK's own
+warning when a backend has no `POST /auth/poll` (it falls back to `GET`) goes
+to the host's stderr, out of OAR's reach; it names the backend, not the
+verifier.
+
+The floor is `@cursor/sdk` 1.0.36, the exact peer dependency. An SDK handed
+over without `Cursor.auth` and `FileCredentialStore` makes the login
+`unsupported` / `version_unsupported` and the status `unknown`; an
+installation other than `bundled` is `unsupported_installation`, and an SDK
+that fails to load `process_failed`. Verified against a stand-in SDK that
+runs the 1.0.35 order: URL relayed, success with the account, a cancel while
+polling and while minting, the deadline, a stop while the key is saved, the
+SDK's failures, an unconfirmed success, a failing `onEvent`,
+`CURSOR_API_KEY`, and the status
+([login tests](../../tests/login/cursor-login.test.ts),
+[status tests](../../tests/login/cursor-auth-status.test.ts)), and on a real
+login: on 2026-10-06 and 2026-10-07, on a fresh Linux test machine with
+`@cursor/sdk` 1.0.36, the four manual checklist steps of
+[#146](https://github.com/botiverse/oar/pull/146) (commit `d6ece22`) passed:
+the status read (logged out, no `auth.json`); a cancel while it polled
+(`login cancelled`) and the deadline (`timed_out`), neither writing
+`auth.json` nor leaving a process behind; and a login whose URL was opened on
+another device, which ended on its own once signed in (exit 0, the account's
+email and a key expiring 90 days later).
+[Login](../../packages/oar/src/runtimes/cursor/login.ts),
+[status](../../packages/oar/src/runtimes/cursor/auth-status.ts).
+
 ## Verification and open gaps
 
 [`experiments/live-contract.ts cursor`](../../experiments/live-contract.ts)
@@ -324,7 +407,8 @@ options, the SDK loader) and fold
 recorded updates (tools, usage, the subagent path, run outcomes). The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Cursor.
 
-Open gaps: login through OAR; a crew child (no environment); tool calls the
-SDK runs without updates; the cloud runtime; Windows and macOS live runs.
+Open gaps: a crew child (no environment); tool calls the SDK runs without
+updates; the cloud runtime; Windows and macOS live runs, the login's
+included.
 Keep native API capabilities, SDK limitations, OAR omissions and unexecuted
 checks separate when designing or claiming support.

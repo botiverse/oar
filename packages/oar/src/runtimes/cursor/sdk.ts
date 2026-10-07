@@ -5,7 +5,8 @@ import path from "node:path";
  * The part of `@cursor/sdk` (1.0.35) the adapter uses, narrowed so tests can
  * stand in for it. The SDK runs Cursor's agent in this process: a local
  * agent keeps its conversation under `~/.cursor/projects/<cwd>/`, and its
- * credential is `CURSOR_API_KEY` or the key `Cursor.auth.login()` stored.
+ * credential is `CURSOR_API_KEY` or, without it, the key
+ * `Cursor.auth.login()` stored.
  *
  * The SDK is an optional peer dependency the host installs, so these types
  * are written out here rather than imported: OAR's published declarations
@@ -76,6 +77,41 @@ export interface CursorAgentOptions {
   readonly local: { readonly cwd: string; readonly sandboxOptions: { readonly enabled: boolean } };
 }
 
+/**
+ * The SDK's on-disk credential store (`FileCredentialStore`, by default
+ * `~/.cursor/sdk/auth.json`, the store `Cursor.auth.login()` and `status()`
+ * use when given none). OAR only hands it what a login saves, unread.
+ */
+export interface CursorFileCredentialStore {
+  save(credentials: object): Promise<void>;
+}
+
+/** A store passed to `Cursor.auth.login` (an `SdkCredentialStore`); the login only saves to it. */
+export interface CursorLoginStore {
+  load(): Promise<undefined>;
+  save(credentials: object): Promise<void>;
+  clear(): Promise<void>;
+}
+
+/** The part of `SdkLoginOptions` OAR passes. */
+export interface CursorLoginOptions {
+  readonly openBrowser: false;
+  readonly onLoginUrl: (url: string) => void;
+  readonly signal: AbortSignal;
+  readonly store: CursorLoginStore;
+}
+
+/** What `Cursor.auth.status()` answers about the stored login; it never returns the key. */
+export type CursorAuthStatus =
+  | { readonly status: "logged-out" }
+  | { readonly status: "logged-in"; readonly email?: string; readonly apiKeyExpiresAtMs?: number };
+
+export interface CursorAuth {
+  /** Resolves once the minted key is saved to `store`; OAR never reads what it resolves with (the key among it). */
+  login(options: CursorLoginOptions): Promise<unknown>;
+  status(): Promise<CursorAuthStatus>;
+}
+
 export interface CursorSdk {
   readonly Agent: {
     create(options: CursorAgentOptions): Promise<CursorAgent>;
@@ -87,7 +123,25 @@ export interface CursorSdk {
   };
   readonly Cursor: {
     readonly models: { list(): Promise<readonly ModelListItem[]> };
+    /**
+     * The SDK's own login (`Cursor.auth`, in 1.0.35). Optional, like
+     * `FileCredentialStore`, so a host's own stand-in for the SDK keeps
+     * compiling; without them `login` answers `version_unsupported` and
+     * `authStatus` `unknown`.
+     */
+    readonly auth?: CursorAuth;
   };
+  readonly FileCredentialStore?: new () => CursorFileCredentialStore;
+}
+
+/** The SDK through the host's loader, or the loader's failure in words. */
+export async function loadedSdk(load: () => Promise<CursorSdk>): Promise<CursorSdk | { readonly failed: string }> {
+  try {
+    const sdk = await load();
+    return sdk;
+  } catch (error) {
+    return { failed: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 const SDK_PACKAGE = "@cursor/sdk";

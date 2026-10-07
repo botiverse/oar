@@ -1,7 +1,9 @@
 import { runtimeBrands } from "../../brands.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
+import { cursorAuthStatusWith } from "./auth-status.js";
 import { cursorInstallation } from "./installation.js";
 import { cursorListModelsWith } from "./list-models.js";
+import { cursorLoginWith } from "./login.js";
 import { cursorRefusedSessionOptions } from "./model.js";
 import { cursorSdkLoader, type CursorSdk } from "./sdk.js";
 import { cursorSessionWith } from "./session.js";
@@ -18,8 +20,8 @@ export interface CursorRuntimeOptions {
   readonly sdk: () => Promise<CursorSdk>;
 }
 
-/** A cursor runtime: its probe, model listing and refusals are always there. */
-export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "listModels" | "refusedSessionOptions">>;
+/** A cursor runtime: its probe, model listing, login, status and refusals are always there. */
+export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "listModels" | "login" | "authStatus" | "refusedSessionOptions">>;
 
 /**
  * Cursor, embedded through its official SDK (`@cursor/sdk`): the agent runs
@@ -29,7 +31,7 @@ export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "l
  * (docs/design/capabilities.md#a-runtimes-own-settings). Account usage is
  * absent: the SDK's usage call is not available to every account
  * (`feature_unavailable`, probed 2026-10-03), and each run reports its own
- * tokens anyway.
+ * tokens anyway. Login and its status are the SDK's own `Cursor.auth`.
  */
 export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntime {
   const load = cursorSdkLoader(options.sdk);
@@ -38,6 +40,8 @@ export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntim
     brand: runtimeBrands.cursor,
     installation: cursorInstallation,
     listModels: cursorListModelsWith(load),
+    login: cursorLoginWith(load),
+    authStatus: cursorAuthStatusWith(load),
     session: cursorSessionWith(load),
     refusedSessionOptions: cursorRefusedSessionOptions,
   });

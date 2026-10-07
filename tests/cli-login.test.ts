@@ -15,6 +15,13 @@ import { EchoGate, hidesInput, renderLoginEvent, selectAnswer } from "../package
 type Runtime = Parameters<typeof runLogin>[0];
 type Interaction = Parameters<typeof runLogin>[1];
 type AvailableInstallation = Parameters<NonNullable<Runtime["login"]>>[0];
+type Status = Awaited<ReturnType<NonNullable<Runtime["authStatus"]>>>;
+type Instant = NonNullable<NonNullable<Extract<Status, { kind: "logged_in" }>["account"]>["expiresAt"]>;
+
+/** An instant in the form `UtcInstant` promises (`Date.prototype.toISOString()`'s). */
+function isInstant(value: string): value is Instant {
+  return new Date(value).toISOString() === value;
+}
 
 const executable: AvailableInstallation = { kind: "available", via: "executable", command: "/bin/fake", version: "1.0.0" };
 
@@ -130,8 +137,11 @@ test("a runtime without a login, or whose login throws, fails the command", asyn
 });
 
 test("--status reports each runtime's own status query", async () => {
+  const expiresAt = "2027-01-04T12:00:00.000Z";
+  assert.ok(isInstant(expiresAt));
   const statuses = [
     { kind: "logged_in", account: { email: "user@example.com" }, source: "fake status" },
+    { kind: "logged_in", account: { email: "user@example.com", expiresAt }, source: "fake status" },
     { kind: "logged_out", source: "fake status" },
     { kind: "unknown", detail: "Error loading configuration", source: "fake status" },
   ] as const;
@@ -145,6 +155,7 @@ test("--status reports each runtime's own status query", async () => {
   expect([...reports, none].map((report) => renderAuthStatus(report))).toMatchInlineSnapshot(`
     [
       "fake	logged in as user@example.com",
+      "fake	logged in as user@example.com (expires 2027-01-04T12:00:00.000Z)",
       "fake	logged out",
       "fake	status unknown (Error loading configuration)",
       "agy	agy exposes no sign-in status query",
