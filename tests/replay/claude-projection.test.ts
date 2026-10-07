@@ -22,7 +22,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  */
 
 const here = import.meta.dirname;
-const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks"];
+const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks", "mcp-echo"];
 
 function describeUsage(tokens: TokenTotals | undefined): string {
   if (tokens === undefined) {

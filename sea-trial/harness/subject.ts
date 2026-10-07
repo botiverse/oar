@@ -1,5 +1,5 @@
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
-import type { Session } from "../../packages/oar/src/contracts/session.js";
+import type { McpServer, Session } from "../../packages/oar/src/contracts/session.js";
 import { record } from "./trace.js";
 
 /** What a behavior case runs against: one runtime plus how to open a session on it. */
@@ -13,6 +13,7 @@ export interface RuntimeUnderTest {
     readonly effort?: string;
     readonly systemPrompt?: string;
     readonly appendSystemPrompt?: string;
+    readonly mcpServers?: readonly McpServer[];
   }): Promise<Session>;
 }
 
@@ -40,6 +41,7 @@ export function runtimeUnderTest(
         ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
         ...(overrides.systemPrompt === undefined ? {} : { systemPrompt: overrides.systemPrompt }),
         ...(overrides.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: overrides.appendSystemPrompt }),
+        ...(overrides.mcpServers === undefined ? {} : { mcpServers: overrides.mcpServers }),
       });
       record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null, effort: overrides.effort ?? null });
       session.rawEvents((entry) => {

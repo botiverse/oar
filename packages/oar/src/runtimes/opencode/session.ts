@@ -5,6 +5,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "opencode ACP does not expose a system prompt override",
   appendSystemPrompt: "opencode ACP does not expose a system prompt override",
+  mcpServers: "OAR does not attach MCP servers to opencode yet: ACP session/new and session/resume mcpServers is not yet verified to reach its agent",
 };
 
 /**

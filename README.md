@@ -182,6 +182,8 @@ for (const runtime of defaultRuntimes.list()) {
   runtime refuses, before anything opens; `session()` rejects them with an
   `UnsupportedOptionError` rather than drop them
   ([reference](docs/spec/runtime-matrix.md#refused-session-options)).
+  `mcpServers` attaches MCP servers to one session (claude and codex for
+  now).
 
 The CLI exposes the same queries: `oar installation`, `oar usage`,
 `oar models`, `oar upgrade --check`, and `oar skills`, `oar mcps` and

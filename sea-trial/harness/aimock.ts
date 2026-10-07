@@ -3,10 +3,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
 import { warmCodexHome } from "./codex-home.js";
-import { startRawCapture, type RawCapture, type RawProviderRequest } from "./raw-capture.js";
+import { startRawCapture, type RawCapture, type RawProviderRequest, type ResponseRewrite } from "./raw-capture.js";
 
 export type { LLMock } from "@copilotkit/aimock";
 export type { RawProviderRequest } from "./raw-capture.js";
+export { namespaceMcpToolCalls } from "./raw-capture.js";
 
 /**
  * Backend setup for the aimock-backed instances: the REAL claude/codex
@@ -30,7 +31,7 @@ export interface AimockEnv {
   readonly env?: Readonly<Record<string, string>>;
   /** The scripted server itself. Vendor tests read its journal when a run goes sideways. */
   readonly mock: LLMock;
-  /** Provider requests as the runtime sent them, in arrival order; empty unless started with `captureRaw` (see raw-capture.ts). */
+  /** Provider requests as the runtime sent them, in arrival order; empty unless started with `captureRaw` or `rewriteResponse` (see raw-capture.ts). */
   readonly raw: readonly RawProviderRequest[];
   stop(): Promise<void>;
 }
@@ -39,14 +40,16 @@ export interface AimockEnv {
 export interface AimockOptions {
   /** Put a raw-capture proxy between the runtime and aimock, so `raw` holds the request bodies aimock's journal normalizes away. */
   readonly captureRaw?: boolean;
+  /** Put the same proxy in front and rewrite each response on its way back (`namespaceMcpToolCalls`: a reply shape aimock cannot script). */
+  readonly rewriteResponse?: ResponseRewrite;
 }
 
 /** The provider URL the runtime is pointed at: aimock itself, or the capture proxy in front of it. */
 async function providerUrl(mock: LLMock, options: AimockOptions): Promise<{ readonly url: string; readonly capture: RawCapture | null }> {
-  if (options.captureRaw !== true) {
+  if (options.captureRaw !== true && options.rewriteResponse === undefined) {
     return { url: mock.url, capture: null };
   }
-  const capture = await startRawCapture(mock.url);
+  const capture = await startRawCapture(mock.url, options.rewriteResponse);
   return { url: capture.url, capture };
 }
 

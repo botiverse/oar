@@ -77,7 +77,7 @@ OAR launches `codex app-server -c sandbox_mode="…" --listen stdio://` (see
 true }`), then the `initialized` notification; request ids correlate replies.
 New sessions call `thread/start { cwd, model?, approvalPolicy: "never",
 experimentalRawEvents: true, baseInstructions?, developerInstructions?,
-config?: { model_reasoning_effort } }`. OAR requires a thread id in the reply,
+config?: { model_reasoning_effort?, mcp_servers? } }`. OAR requires a thread id in the reply,
 and a model and effort readback matching any explicit request, before
 constructing its Session; otherwise it kills the process and throws (an RPC
 failure reads `codex thread/start failed: <message>`).
@@ -109,7 +109,7 @@ history/path inputs are not exposed. [Resume schema][resume-schema].
 
 **Mapped:** `codexRuntime.session(installation, { cwd, resume: savedSessionId,
 model? })` sends `thread/resume { threadId, excludeTurns: true, cwd, model?,
-approvalPolicy: "never", …instructions }`, requires a thread id, checks an
+approvalPolicy: "never", …instructions, config?: { mcp_servers } }`, requires a thread id, checks an
 explicit `model` against the readback, and sets a differing effort afterwards
 ([effort](#models-instructions-and-context)). The token is a native thread id
 resolved against the selected executable's runtime storage and configuration
@@ -557,11 +557,64 @@ OAR projects command execution, file changes, MCP calls, web search and
 sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
 dynamic-tool execution callback, MCP management, or elicitation API.
 Runtime-owned tools (MCP servers, skills, plugins) come from native
-configuration. The inventories read them on their own app-server process:
+configuration, plus the session's own MCP servers
+([below](#session-mcp-servers)). The inventories read them on their own app-server process:
 `skills/list` and paginated `mcpServerStatus/list`, with tools explicitly
 MCP-only (2026-09-16; [query contract](../spec/inventory.md),
 [native probe evidence](inventory.md)). [Native interaction flows][approvals],
 [transport][oar-transport], [projection][oar-projection].
+
+### Session MCP servers
+
+`SessionOptions.mcpServers` is the `config` override `mcp_servers` on both
+`thread/start` and `thread/resume`, one table entry per server: stdio
+`{command, args, env, enabled: true}`, http `{url, http_headers, enabled:
+true}` ([open](../../packages/oar/src/runtimes/codex/open.ts)). Measured on
+codex 0.160.1 against a scripted provider
+([vendor test](../../sea-trial/vendor/mcp-servers.vendor.test.ts),
+[recording](../../tests/replay/fixtures/codex-mcp-echo.raw.jsonl)):
+
+- Both transports start (`mcpServer/startupStatus/updated` `starting`, then
+  `ready`) and the model gets each server as one Responses `namespace` tool,
+  `mcp__<name>`, its tools inside; a call must name that namespace beside
+  the bare tool name (a flat `mcp__echo__echo` is answered "unsupported
+  call: mcp__echo__echo"). aimock scripts only flat names, so the tests'
+  provider proxy namespaces them (`namespaceMcpToolCalls` in
+  [raw-capture](../../sea-trial/harness/raw-capture.ts)). The call is an
+  `mcpToolCall` item whose result is the server's own text, so the server
+  ran with the entry's `env` (stdio) or `http_headers` (http).
+- A thread remembers none: resumed without the option, no server starts.
+  Resumed with it, the servers start again and the thread kept its own
+  model and effort (opened on `gpt-5.5` while config.toml says `gpt-5.1`;
+  compare the live rebuild under an effort override in
+  [models](#models-instructions-and-context), not re-checked on a login).
+- codex merges config overrides into config.toml **field by field**, tables
+  included, so the user's other servers stay and a server of the same name
+  is merged into the user's entry: measured, a user `enabled = false`
+  survived a session entry that did not set `enabled`, and a user `url`
+  under a session `command` failed the open ("failed to load
+  configuration: url is not supported for stdio"). OAR therefore always
+  sets `args` (an array is replaced whole) and `enabled = true`: with the
+  user's `echo` disabled and started with a bad flag, the session's `echo`
+  started and was called, and the user's `userecho` was still offered. The
+  user's other fields of that entry (more `env` keys, `env_vars`, `cwd`,
+  timeouts, tool filters) still apply.
+- The servers are nested under one `mcp_servers` key, not dotted
+  `mcp_servers.<name>` keys, which a `.` in a name would split (`a.b`
+  failed the open: "invalid transport"). A name outside codex's
+  `^[a-zA-Z0-9_:@/.-]+$` opens the thread and then fails that server's
+  startup ("Invalid MCP server name"), so OAR refuses it before starting
+  codex.
+- A stdio server gets codex's allowlisted environment (`HOME`, `PATH` and a
+  few more; [subagents](../spec/subagents.md)) plus the entry's `env`, not
+  `SessionOptions.env`.
+
+The credentials reach codex only in the open request, which OAR does not
+record; codex's frames name servers and their status, and a failing server's
+`error` names no `env` or header value (0.160.1, a missing command and an
+unreachable url). Every error the app-server client reports (codex's
+message, the exit's stderr tail) passes a redactor that replaces each value
+with `[redacted]` ([test](../../tests/codex/codex-session-mcp-servers.test.ts)).
 
 ### Process ownership, installation, and account usage
 
@@ -1075,6 +1128,10 @@ Open gaps:
   child `turn/completed` that never arrives is observed but unexplained.
 - Missing/unloadable thread ids on resume are pinned only by the fake-process
   path; concurrent controllers of one thread are not arbitrated.
+- Session MCP servers are verified against a scripted provider only: on a
+  real login, whether a `thread/resume` carrying `mcp_servers` keeps the
+  thread's model (it did on 0.160.1 with aimock), and an MCP call the model
+  itself namespaces.
 - Storage (0.153.4): the `modelProviders` `None` branch's bound value is an
   inference (SQL `NULL`) that probing from outside cannot settle; why
   `thread_sections` joins the default `thread/list` query is unexplained;

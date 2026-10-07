@@ -95,6 +95,12 @@ every adapter:
   read back: a runtime that would run another level, or has no channel,
   refuses the open (contract comment on `SessionOptions.effort`; per-runtime
   channels in [`../runtimes/`](../runtimes/README.md));
+- `SessionOptions.mcpServers` attaching MCP servers (stdio or streamable
+  HTTP, ACP's `McpServer` shape) to that session only, on top of the
+  runtime's own and given again on `resume`; their `env` and `headers`
+  values never reach a record, event or error; refused by a runtime whose
+  channel is not verified
+  ([channels](runtime-matrix.md#refused-session-options));
 - external compaction as a new session whose first prompt carries the
   summary input; nothing links the new session to the prior one, and no
   session-graph edge is created

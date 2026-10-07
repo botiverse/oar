@@ -87,12 +87,23 @@ What a runtime cannot honor is refused, never dropped: `runtime.session()`
 rejects with an `UnsupportedOptionError` (`option` names the refused
 `SessionOptions` key, the message is the reason), so a host can try and fall
 back on it. `runtime.refusedSessionOptions` names the options a runtime
-refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`), each with the
-reason, so a host can leave them out before opening: cursor refuses all
-three, kimi, antigravity and opencode the two prompt options. Kimi and
+refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`),
+each with the reason, so a host can leave them out before opening: cursor
+refuses `env` and the two prompt options, kimi, antigravity and opencode the
+prompt options, and every runtime but claude and codex refuses
+`mcpServers`. Kimi and
 opencode also refuse a `resume` in another directory than the session's own
 (`option: "cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
+
+`SessionOptions.mcpServers` attaches MCP servers (stdio `{name, command,
+args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
+one session, on top of the runtime's own: claude reads them from a 0600
+temporary file deleted when the session ends, codex from its thread config
+overrides. Give them again on `resume`. Their `env` and `headers` values
+never appear in a record or an error. See
+[claude](https://github.com/botiverse/oar/blob/main/docs/runtimes/claude.md#session-mcp-servers)
+and [codex](https://github.com/botiverse/oar/blob/main/docs/runtimes/codex.md#session-mcp-servers).
 
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime

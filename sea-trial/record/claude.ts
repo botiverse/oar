@@ -10,7 +10,7 @@ const userLine = (text: string): string =>
   `${JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "text", text }] } })}\n`;
 
 /** Keep only the fields the claude projection reads. */
-function scrub(line: string): Record<string, unknown> | null {
+export function scrub(line: string): Record<string, unknown> | null {
   const frame = asRecord(parseJson(line));
   if (frame === null) {
     return null;

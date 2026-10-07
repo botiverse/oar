@@ -1,5 +1,6 @@
-import type { RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
+import type { McpServer, RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { checkMcpServerNames, givenMcpServers, isHttpMcpServer, mcpCredentialRedactor } from "../../shared/mcp-servers.js";
 
 /*
  * Opening a codex thread: the `thread/start` / `thread/resume` request built
@@ -9,8 +10,47 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 export type CodexOpenMethod = "thread/start" | "thread/resume";
 
-/** The open request for these options: a new thread, or a resume of `options.resume`. */
-export function codexThreadOpen(options: SessionOptions): { readonly method: CodexOpenMethod; readonly params: JsonRecord } {
+/** The names codex starts an MCP server under; any other fails that server's startup after the thread opened ([env] 0.160.1). */
+const CODEX_MCP_SERVER_NAME = /^[\w:@/.-]+$/u;
+
+/**
+ * SessionOptions.mcpServers as codex's `mcp_servers` config table, one
+ * entry per server: stdio `{command, args, env}`, http `{url, http_headers}`
+ * ([env] 0.160.1 against a scripted provider: both start and their tools are
+ * called). codex merges config overrides into the user's config.toml field
+ * by field, so an entry named like one of the user's own is merged into it:
+ * oar sets `args` (an array is replaced whole) and `enabled = true` so the
+ * user's `args` or `enabled = false` cannot change or silently drop the
+ * session's server; the user's other fields of that entry (more `env` keys,
+ * `env_vars`, `cwd`, timeouts, tool filters) stay, and an entry of the other
+ * transport fails the open ("url is not supported for stdio"). Nested under
+ * one `mcp_servers` key rather than dotted `mcp_servers.<name>` keys, which
+ * a `.` in a name would split. Throws on a list with an empty, repeated or
+ * codex-invalid name.
+ */
+export function codexMcpServersConfig(servers: readonly McpServer[]): JsonRecord {
+  checkMcpServerNames(servers);
+  const invalid = servers.find((server) => !CODEX_MCP_SERVER_NAME.test(server.name));
+  if (invalid !== undefined) {
+    throw new Error(`codex starts no MCP server named ${JSON.stringify(invalid.name)}: its names match ${CODEX_MCP_SERVER_NAME.source}`);
+  }
+  return Object.fromEntries(servers.map((server) => [server.name, isHttpMcpServer(server)
+    ? { url: server.url, ...(server.headers === undefined ? {} : { http_headers: server.headers }), enabled: true }
+    : { command: server.command, args: server.args ?? [], ...(server.env === undefined ? {} : { env: server.env }), enabled: true }]));
+}
+
+/** A `config` param holding these overrides, or none when there are none. */
+function configParams(config: JsonRecord): JsonRecord {
+  return Object.keys(config).length === 0 ? {} : { config };
+}
+
+/**
+ * The open request for these options: a new thread, or a resume of
+ * `options.resume`; and the redactor for the MCP credentials its `config`
+ * carries, through which every error codex reports for this session goes.
+ */
+export function codexThreadOpen(options: SessionOptions): { readonly method: CodexOpenMethod; readonly params: JsonRecord; readonly redact: (text: string) => string } {
+  const redact = mcpCredentialRedactor(options.mcpServers);
   // System prompt seams (probed 2026-08-24 via the aimock journal):
   // baseInstructions REPLACES codex's base prompt; developerInstructions
   // APPENDS as a developer message. "instructions"/"userInstructions" are
@@ -29,11 +69,18 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   // gpt-6-luna thread resumed as gpt-6-astra). A resume sets the effort on
   // the loaded thread instead (codexResumeEffort). Per-turn `turn/start
   // {effort}` would miss a turn codex starts from its queue.
-  const effortParams = options.effort === undefined ? {} : { config: { model_reasoning_effort: options.effort } };
+  const effortConfig = options.effort === undefined ? {} : { model_reasoning_effort: options.effort };
+  // SessionOptions.mcpServers on BOTH methods: codex remembers none for a
+  // thread. A resume carrying this override kept the thread's own model and
+  // effort ([env] 0.160.1, scripted provider, pinned by the codex vendor
+  // test), unlike the live rebuild above; not yet re-checked on a login.
+  const mcpServers = givenMcpServers(options.mcpServers);
+  const mcpConfig = mcpServers === null ? {} : { mcp_servers: codexMcpServersConfig(mcpServers) };
   const modelParams = options.model === undefined ? {} : { model: options.model };
   if (options.resume === undefined) {
     return {
       method: "thread/start",
+      redact,
       params: {
         cwd: options.cwd,
         ...modelParams,
@@ -43,12 +90,13 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
         // lets us distinguish redaction from genuinely empty reasoning.
         experimentalRawEvents: true,
         ...instructionParams,
-        ...effortParams,
+        ...configParams({ ...effortConfig, ...mcpConfig }),
       },
     };
   }
   return {
     method: "thread/resume",
+    redact,
     params: {
       threadId: options.resume,
       excludeTurns: true,
@@ -61,6 +109,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       ...modelParams,
       approvalPolicy: "never",
       ...instructionParams,
+      ...configParams(mcpConfig),
     },
   };
 }
