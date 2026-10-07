@@ -169,10 +169,11 @@ over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ s
 ## Handy utilities, no session needed
 
 OAR also offers a set of handy utilities you can use without running an
-agent at all: is it installed, which account and how much quota is left,
-which models it can run, is there an update (and install it), what skills
-and tools it has. One API covers every supported runtime, so a dashboard, a
-setup wizard or a quota monitor needs no per-runtime code.
+agent at all: is it installed, is it signed in (and sign it in or out),
+which account and how much quota is left, which models it can run, is
+there an update (and install it), what skills and tools it has. One API
+covers every supported runtime, so a dashboard, a setup wizard or a quota
+monitor needs no per-runtime code.
 
 ```ts
 import { defaultRuntimes } from "@botiverse/oar";
@@ -193,6 +194,12 @@ for (const runtime of defaultRuntimes.list()) {
 - **Installation:** `installation()` finds the runtime on this machine and
   reports its version, with no account or network calls. When PATH found
   it, `shadowed` lists the other copies on PATH after it, which never run.
+- **Login:** `login()` signs a runtime in through its own login without a
+  terminal: it relays the sign-in URL or device code, and a code the person
+  pastes back goes to the runtime only. `authStatus()` says whether it is
+  signed in, and `logout()` signs it out through its own logout (claude,
+  codex, cursor; [reference](docs/spec/login.md)). oar never handles the
+  tokens.
 - **Account usage:** `accountUsage()` reads the plan and quota windows with
   their reset times (claude, codex, grok, kimi;
   [reference](docs/spec/account-usage.md)).
@@ -211,9 +218,9 @@ for (const runtime of defaultRuntimes.list()) {
   `mcpServers` attaches MCP servers to one session (every runtime but
   cursor).
 
-The CLI exposes the same queries: `oar installation`, `oar usage`,
-`oar models`, `oar upgrade --check`, and `oar skills`, `oar mcps` and
-`oar tools`.
+The CLI exposes the same queries: `oar installation`, `oar login`
+(`--status` only reports), `oar logout`, `oar usage`, `oar models`,
+`oar upgrade --check`, and `oar skills`, `oar mcps` and `oar tools`.
 
 ## CLI
 
