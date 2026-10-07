@@ -29,12 +29,11 @@ export function addTokens(previous: TokenTotals, report: TokenTotals): TokenTota
 /**
  * The cache parts a native usage record reports, read from the runtime's own
  * field names: a field the record lacks (or that is not a number) stays
- * absent, never a guessed 0. A runtime that reports no cache writes names no
- * `write` field.
+ * absent, never a guessed 0.
  */
-export function cacheParts(usage: JsonRecord, fields: { readonly read: string; readonly write?: string }): Pick<TokenTotals, "cacheRead" | "cacheWrite"> {
+export function cacheParts(usage: JsonRecord, fields: { readonly read: string; readonly write: string }): Pick<TokenTotals, "cacheRead" | "cacheWrite"> {
   const cacheRead = asNumber(usage[fields.read]);
-  const cacheWrite = fields.write === undefined ? null : asNumber(usage[fields.write]);
+  const cacheWrite = asNumber(usage[fields.write]);
   return {
     ...(cacheRead === null ? {} : { cacheRead }),
     ...(cacheWrite === null ? {} : { cacheWrite }),

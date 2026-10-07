@@ -190,13 +190,17 @@ without `input` changing under existing consumers
 | claude | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input` (`input_tokens` excludes them); recorded `result` in the background-tasks replay fixture [env] |
 | cursor | `turn-ended.usage.cacheReadTokens` | `turn-ended.usage.cacheWriteTokens` | both added into `input`; `@cursor/sdk` 1.0.36 `TurnEndedUpdateSchema` [src], probe 2026-10-03 [env] |
 | pi | assistant `usage.cacheRead` | assistant `usage.cacheWrite` | both added into `input`; pi-ai 1.0.4 `Usage` [src], pi-aimock replay fixture [env] |
-| codex | `tokenUsage.total.cachedInputTokens` | absent | `inputTokens` already includes the cached reads; codex's own cumulative total [src 4f39251a, env 0.154.0]; its `cacheWriteInputTokens` is not read (below) |
+| codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own cumulative total [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |
 | grok | `_meta.usage.cachedReadTokens` | `_meta.usage.cacheCreationTokens` | per-prompt ledger, summed per session like its input; live 1.0.25 answer: 1280 / 0 [env] |
 | kimi, opencode, antigravity | absent | absent | no token totals reported, `usage().total` stays null |
 
-Codex's app-server `TokenUsageBreakdown` also has `cacheWriteInputTokens`
-(pinned 4f39251a, `#[serde(default)]`); it is not mapped yet: no recording
-shows it nonzero or whether `inputTokens` counts it. It stays in `native`.
+Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the
+Responses API's `input_tokens_details.cached_tokens` and
+`cache_write_tokens`, both parts of `input_tokens` (codex-api
+`sse/responses.rs` at 4f39251a; its test: input 100 = cache read 40 + cache
+write 60) [src]. A codex built before the write field (openai/codex#33454)
+reports `cacheRead` only.
+
 Grok's `cacheCreationTokens` was 0 in the one recorded ledger that carried
 it, so whether grok's `inputTokens` includes a nonzero cache write is
 unverified.

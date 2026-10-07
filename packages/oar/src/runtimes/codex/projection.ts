@@ -145,11 +145,13 @@ function usageViews(params: JsonRecord): RuntimeEventBody[] {
   }
   const input = asNumber(total.inputTokens);
   const output = asNumber(total.outputTokens);
-  // `inputTokens` already counts the cached reads; `cachedInputTokens` is
-  // that part. `cacheWrite` stays absent: #161 maps codex's cache reads only,
-  // and the schema's `cacheWriteInputTokens` (pinned 4f39251a, serde default
-  // 0) stays in `native` until a recording shows it nonzero and inside input.
-  const tokens = input === null || output === null ? {} : { tokens: { input, output, ...cacheParts(total, { read: "cachedInputTokens" }) } };
+  // `inputTokens` already counts the cache reads and writes; `cachedInputTokens`
+  // and `cacheWriteInputTokens` are those parts (codex-api sse/responses.rs at
+  // 4f39251a fills them from the Responses API's `input_tokens_details`
+  // `cached_tokens` / `cache_write_tokens`). A build without the write field
+  // reports no `cacheWrite`.
+  const cache = cacheParts(total, { read: "cachedInputTokens", write: "cacheWriteInputTokens" });
+  const tokens = input === null || output === null ? {} : { tokens: { input, output, ...cache } };
   const last = asRecord(tokenUsage?.last);
   if (last === null) {
     return [{ kind: "usage", usage: { context: { tokens: input, contextWindow: null, percent: null }, ...tokens } }];
