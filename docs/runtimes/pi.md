@@ -160,10 +160,19 @@ is supplied for startup.
 
 On dispose, OAR first settles an active turn with Pi's abort, then awaits
 `{ type: "session_shutdown", reason: "quit" }` before calling native
-`session.dispose()`, while extension APIs are still usable. This follows
-`AgentSessionRuntime.dispose()` in Pi 1.0.4. Repeated disposal does not emit
-the event again. A failure while binding also shuts down the extensions
-before native disposal. This lifecycle applies with or without
+`session.dispose()`, while extension APIs are still usable. Unlike
+`AgentSessionRuntime.dispose()` in Pi 1.0.4, which waits indefinitely, OAR
+allows **10 seconds total** for the shutdown hooks. After that it releases
+the native session and completes dispose normally. Node emits warning code
+`OAR_PI_SHUTDOWN_TIMEOUT`, naming the session ID, `session_shutdown` and the
+10000 ms limit; hosts can capture Node's `warning` event, and Node prints it
+to stderr by default. Pi's public runner does not identify the currently
+executing extension, so the warning does not attribute the timeout to a
+particular extension. The deadline stops waiting and invalidates the native
+session context; it cannot cancel arbitrary in-process extension code.
+
+Repeated disposal does not emit the event again. A failure while binding
+also uses this bounded shutdown before native disposal. This lifecycle applies with or without
 `mcpServers`; MCP connections are one consumer, alongside user extensions.
 These are native extension hooks, not `AgentSessionEvent` stream frames;
 OAR does not synthesize lifecycle records.
@@ -172,7 +181,11 @@ The [lifecycle vendor test](../../sea-trial/vendor/pi-extension-lifecycle.vendor
 loads a real user extension that asynchronously appends a session entry and
 records both hooks. It covers new sessions and same-ID resumes with and
 without MCP, checks the event payloads before open/dispose resolve, and
-checks repeated disposal does not duplicate shutdown.
+checks repeated disposal does not duplicate shutdown. The
+[shutdown deadline vendor test](../../sea-trial/vendor/pi-extension-shutdown.vendor.test.ts)
+loads a user extension whose shutdown hook never settles, then verifies
+that native disposal runs, the diagnostic names the hook and timeout, and
+OAR acknowledges dispose after the 10-second limit.
 
 Native construction restores active-branch context, the saved model when
 available, and the thinking level subject to current model capabilities. An
