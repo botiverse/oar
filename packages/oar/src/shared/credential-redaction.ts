@@ -33,13 +33,30 @@ function redactMcpTree(value: unknown): unknown {
 }
 
 /**
+ * Which stored records oar's credential-redaction rules can change, and the
+ * rules' version (docs/spec/record-stream.md). `version` goes up whenever a
+ * rule is added or broadened, so a host that cleans stored records with
+ * `redactRecord` rescans only when it changes. `frameTypePrefixes`: a frame
+ * whose `body.type` starts with none of these is never changed, so a host
+ * can pre-filter its storage by them.
+ */
+export const REDACTION_RULES: { readonly version: number; readonly frameTypePrefixes: readonly string[] } = {
+  version: 1,
+  // grok's MCP notifications (0.32.1).
+  frameTypePrefixes: ["_x.ai/mcp/", "_x.ai/mcp_initialized"],
+};
+
+/** Whether a frame `type` is one the redaction rules cover. */
+export function redactionCovers(type: string): boolean {
+  return REDACTION_RULES.frameTypePrefixes.some((prefix) => type.startsWith(prefix));
+}
+
+/**
  * Grok 1.0.46's servers_updated reports the user's stdio env verbatim.
  * The other registered MCP notifications currently carry status/counters,
  * but apply the same credential rule if they include these fields. Do not
  * edit free-form text, other field names, other notifications or the received object.
  */
 export function redactGrokNotification(method: string, params: JsonRecord): JsonRecord {
-  return method.startsWith("_x.ai/mcp/") || method === "_x.ai/mcp_initialized"
-    ? redactMcpFields(params)
-    : params;
+  return redactionCovers(method) ? redactMcpFields(params) : params;
 }

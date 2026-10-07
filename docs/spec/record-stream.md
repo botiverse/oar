@@ -58,7 +58,12 @@ Further rules:
   `@botiverse/oar/observe`): it applies the current rules to one stored
   record, returns a changed copy only when it changed something, and is safe
   to run over all storage on every start (grok MCP notifications recorded
-  before 0.32.1 carry the user's own MCP `env` values).
+  before 0.32.1 carry the user's own MCP `env` values). `REDACTION_RULES`
+  (same exports) says when and where to run it: `version` goes up whenever a
+  rule is added or broadened, so a host rescans stored records only when it
+  changes; `frameTypePrefixes` lists the `body.type` prefixes a rule can
+  change, and a frame matching none is never changed, so storage can be
+  pre-filtered by them.
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.
