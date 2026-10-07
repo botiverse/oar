@@ -165,7 +165,8 @@ for (const runtime of defaultRuntimes.list()) {
 ```
 
 - **Installation:** `installation()` finds the runtime on this machine and
-  reports its version, with no account or network calls.
+  reports its version, with no account or network calls. When PATH found
+  it, `shadowed` lists the other copies on PATH after it, which never run.
 - **Account usage:** `accountUsage()` reads the plan and quota windows with
   their reset times (claude, codex, grok, kimi;
   [reference](docs/spec/account-usage.md)).

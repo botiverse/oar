@@ -23,7 +23,8 @@ result, the others still report, and the exit code is 1.
 
 - `oar list`: registered runtimes and their capabilities.
 - `oar installation [runtime]` (alias `detect`): probe local installation
-  and version, no account or usage I/O.
+  and version, no account or usage I/O. `shadowed` lists the other copies of
+  the command on PATH after the one found, which never run.
 - `oar usage [runtime]`: account usage for each available installation.
 - `oar models [runtime]`: models each available installation can run right
   now (login state, plan, and configured providers included). The first
