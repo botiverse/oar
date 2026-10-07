@@ -534,14 +534,14 @@ counts, `_x.ai/mcp/server_status` a name, source and status.
 
 **Credential values do not enter records.** Grok 1.0.46 sends the user's
 `config.toml` stdio `env` values in `_x.ai/mcp/servers_updated`, even without
-session servers. OAR replaces the values of `env` and `headers` entries and
+session servers. OAR recursively replaces the values of `env`, `headers`, `http_headers` entries and
 `bearer_token` / `bearerToken` fields with `[redacted]`, preserving names,
 array/map shape and all other fields. The same rule applies to these fields
-in the other registered MCP notifications. It runs before startup buffering
+at any depth in the other registered MCP notifications, independent of container names. It runs before startup buffering
 and kernel recording, so `records()`, live `rawEvents()` and replay all see
 the redacted form. Grok's configuration and the credentials its servers
 receive are unchanged. This credential exception is the only change to
-verbatim notification recording; free-form text and tool data are unchanged.
+verbatim notification recording; free-form text and fields with other names are unchanged.
 
 Audit of the public source at `2bdd1d6a`: the
 [MCP catalog](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/extensions/mcp.rs)

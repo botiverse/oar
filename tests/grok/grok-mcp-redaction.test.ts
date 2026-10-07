@@ -11,7 +11,7 @@ test.each(["_x.ai/mcp/servers_updated", "_x.ai/mcp/server_status", "_x.ai/mcp/in
     env: { API_KEY: "env-secret", PATH: "/bin" },
     headers: [{ name: "Authorization", value: "header-secret", source: "user" }],
     bearerToken: "bearer-secret", bearer_token_env_var: "TOKEN_NAME",
-    tools: [{ name: "sample", inputSchema: { properties: { env: { type: "string" } } } }],
+    tools: [{ name: "sample", inputSchema: { properties: { input: { type: "string" } } } }],
   };
   const before = structuredClone(native);
   expect(redactGrokNotification(method, native)).toEqual({
@@ -19,8 +19,27 @@ test.each(["_x.ai/mcp/servers_updated", "_x.ai/mcp/server_status", "_x.ai/mcp/in
     env: { API_KEY: "[redacted]", PATH: "[redacted]" },
     headers: [{ name: "Authorization", value: "[redacted]", source: "user" }],
     bearerToken: "[redacted]", bearer_token_env_var: "TOKEN_NAME",
-    tools: [{ name: "sample", inputSchema: { properties: { env: { type: "string" } } } }],
+    tools: [{ name: "sample", inputSchema: { properties: { input: { type: "string" } } } }],
   });
+  expect(native).toEqual(before);
+});
+
+test("MCP credentials are redacted under arbitrary containers and nesting", () => {
+  const native = { update: { servers: [{ config: {
+    env: [{ name: "API_KEY", value: "nested-env-secret", source: "user" }],
+    transport: { headers: { Authorization: "nested-header-secret" }, http_headers: [{ name: "X-Key", value: "nested-http-secret" }] },
+    auth: [{ bearer_token: "nested-bearer-secret" }, { bearerToken: "nested-camel-secret" }],
+    command: "echo", args: ["hello"], enabled: true,
+  } }] }, revision: 1 };
+  const before = structuredClone(native);
+  const redacted = redactGrokNotification("_x.ai/mcp/servers_updated", native);
+  expect(redacted).toEqual({ update: { servers: [{ config: {
+    env: [{ name: "API_KEY", value: "[redacted]", source: "user" }],
+    transport: { headers: { Authorization: "[redacted]" }, http_headers: [{ name: "X-Key", value: "[redacted]" }] },
+    auth: [{ bearer_token: "[redacted]" }, { bearerToken: "[redacted]" }],
+    command: "echo", args: ["hello"], enabled: true,
+  } }] }, revision: 1 });
+  expect(JSON.stringify(redacted)).not.toContain("nested-");
   expect(native).toEqual(before);
 });
 
