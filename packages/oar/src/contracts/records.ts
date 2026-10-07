@@ -90,7 +90,7 @@ export type ReasoningContent =
   | { readonly kind: "empty" };
 
 /**
- * Token totals; always cumulative for the agent the record is attributed to.
+ * Token totals for the agent the record is attributed to, counted from when this Session opened.
  * `cacheRead` / `cacheWrite` are parts of `input`, accumulated like it and
  * each present only when the runtime reports it: a reported 0 is 0, an
  * unreported part is absent (never derived), a report without a part adds
@@ -108,10 +108,10 @@ export interface TokenTotals {
 
 /**
  * What a usage-bearing frame says. `context` is current context fullness as
- * the runtime reports it; `tokens` is the runtime's running total for this
- * record's `agentPath`, already resolved by the adapter (which runtime figure is
- * authoritative and how overlapping events deduplicate never crosses this
- * surface; see docs/spec/attribution.md, "usage: one constraint").
+ * the runtime reports it; `tokens` is the running total for this record's
+ * `agentPath` counted from when this Session opened, resolved by the adapter
+ * (the authoritative figure, deduplication and what a resumed runtime had
+ * already counted never cross this surface; docs/spec/attribution.md).
  */
 export interface UsageReport {
   readonly context?: ContextUsage;

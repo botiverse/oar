@@ -7,10 +7,13 @@
  *   pnpm sea-trial:record claude <scenario> <prompt> [-- <steer/next prompt>...]
  *   pnpm sea-trial:record codex  <scenario> <prompt> [-- <steer/next prompt>...]
  *   pnpm sea-trial:record codex-aimock file-change <prompt>
+ *   pnpm sea-trial:record codex-aimock resume <prompt> -- <prompt>...
  *
  * `codex-aimock` runs the real codex against a scripted provider (no login,
  * no tokens) whose model applies one patch (record/codex.ts); like pi's, its
- * fixture is named for the runtime, `codex-<scenario>.raw.jsonl`.
+ * fixture is named for the runtime, `codex-<scenario>.raw.jsonl`. Its
+ * `resume` scenario instead bills each prompt its own usage and runs every
+ * follow-up in a new app-server process that resumes the thread.
  *
  * Extra prompts after `--` are sent one per turn end (multi-turn); a leading
  * `+` marks a mid-turn steer (sent ~1.2s in without waiting for the turn to
@@ -19,7 +22,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { startClaudeRecording } from "./record/claude.js";
-import { startCodexAimockRecording, startCodexRecording } from "./record/codex.js";
+import { startCodexAimockRecording, startCodexAimockResumeRecording, startCodexRecording } from "./record/codex.js";
 import { startPiRecording } from "./record/pi.js";
 
 const [runtime, scenario, first, ...rest] = process.argv.slice(2);
@@ -30,7 +33,12 @@ if (runtime === undefined || scenario === undefined || first === undefined) {
 const separator = rest.indexOf("--");
 const followUps = separator === -1 ? [] : rest.slice(separator + 1);
 
-const recorders = { claude: startClaudeRecording, codex: startCodexRecording, "codex-aimock": startCodexAimockRecording, pi: startPiRecording };
+const recorders = {
+  claude: startClaudeRecording,
+  codex: startCodexRecording,
+  "codex-aimock": scenario === "resume" ? startCodexAimockResumeRecording : startCodexAimockRecording,
+  pi: startPiRecording,
+};
 const record = runtime === "claude" || runtime === "codex" || runtime === "codex-aimock" || runtime === "pi" ? recorders[runtime] : null;
 if (record === null) {
   process.stderr.write(`unknown runtime: ${runtime}\n`);

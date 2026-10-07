@@ -23,8 +23,8 @@ carried.
   [sym]
 - codex: one app-server connection; a child is its own thread whose
   notifications arrive on the parent's connection, linked by
-  `subAgentActivity.agentThreadId`, each thread reporting its own cumulative
-  `thread/tokenUsage/updated`. [env: `experiments/codex-child-threads.ts`]
+  `subAgentActivity.agentThreadId`, each thread reporting its own running
+  total in `thread/tokenUsage/updated`. [env: `experiments/codex-child-threads.ts`]
 - grok (ACP): a child has its own ACP sessionId but travels the same ACP
   connection. [src]
 - cursor (`@cursor/sdk`, in process): no connection at all; a child's
@@ -85,8 +85,8 @@ already show the degeneration (adapter red lines in
 
 - claude: `parent_tool_use_id` (linkage) → `agentPath`; usage from `result`
   frames is accumulated per `agentPath`. [sym]
-- codex: child threads → derived child sessions, with per-thread cumulative
-  usage. [env]
+- codex: child threads → derived child sessions, with per-thread usage.
+  [env]
 - grok (ACP): nested sessions; child has its own sessionId + per-child
   usage. [src]
 - cursor (`@cursor/sdk`): attributed; a child's updates carry
@@ -141,10 +141,24 @@ capabilities declared explicitly on the oar side, not protocol guarantees.
 The external shape: a session total, plus an optional per-agent breakdown
 that is deduplicated and directly summable (sum = total). Which runtime
 view is authoritative and how to deduplicate (grok's multiple overlapping
-views, codex's per-thread cumulative totals, pi's flat usage) sinks entirely
-into each runtime adapter and never crosses the protocol surface. The
-protocol carries no usage `origin` or accounting-basis label
+views, codex's per-thread totals over each thread's life, pi's flat usage)
+sinks entirely into each runtime adapter and never crosses the protocol
+surface. The protocol carries no usage `origin` or accounting-basis label
 ([decision](../design/decisions.md#a-usage-basis-label-2026-09-03)).
+
+**Token totals count from when this Session opened, on every runtime**
+([#169](https://github.com/botiverse/oar/issues/169)). A `usage` event's
+`tokens` and `usage()` cover what this Session's own turns spent: a Session
+that resumed a native session never includes what earlier Sessions on it
+spent, so a host adds a conversation's Sessions up by summing their totals.
+Native scopes differ and stay in the adapter. For claude, pi, cursor and
+grok the adapter adds up what this process reports, so their totals start at
+zero. codex's thread total spans the thread's life; after a resume codex re-reports it once, before this
+Session's first turn starts, and the adapter subtracts that report from every
+later root total, `cacheRead` and `cacheWrite` included. It subtracts
+codex's own number and never estimates one: a codex that sends no such
+report (before 0.151.0) leaves its resumed totals counting the thread's life
+([codex](../runtimes/codex.md#connection-session-creation-and-resume)).
 
 Usage itself is a seq-carrying `usage` event read from a frame on the
 stream, and `usage()` is a fold returning `{ value, seq }` (the query rule
@@ -164,7 +178,8 @@ External (protocol surface):
 Adapter-internal (never crosses the protocol surface):
   grok    multiple overlapping views → adapter picks the authoritative one and dedups
   claude  result usage per agentPath → adapter accumulates the breakdown
-  codex   per-thread cumulative usage → one child session per thread
+  codex   per-thread totals over the thread's life → one child session per thread,
+          less the total codex re-reports on resume
   pi      flat usage                 → session total only; no fabricated breakdown
 ```
 
@@ -190,7 +205,7 @@ without `input` changing under existing consumers
 | claude | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input` (`input_tokens` excludes them); recorded `result` in the background-tasks replay fixture [env] |
 | cursor | `turn-ended.usage.cacheReadTokens` | `turn-ended.usage.cacheWriteTokens` | both added into `input`; `@cursor/sdk` 1.0.36 `TurnEndedUpdateSchema` [src], probe 2026-10-03 [env] |
 | pi | assistant `usage.cacheRead` | assistant `usage.cacheWrite` | both added into `input`; pi-ai 1.0.4 `Usage` [src], pi-aimock replay fixture [env] |
-| codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own cumulative total [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |
+| codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own thread total, less the total re-reported on resume like `input` [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |
 | grok | `_meta.usage.cachedReadTokens` | `_meta.usage.cacheCreationTokens` | per-prompt ledger, summed per session like its input; live 1.0.25 answer: 1280 / 0 [env] |
 | kimi, opencode, antigravity | absent | absent | no token totals reported, `usage().total` stays null |
 

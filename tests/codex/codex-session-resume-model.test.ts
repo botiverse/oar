@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
+import { promptAndWait } from "../../packages/oar/src/index.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
@@ -129,4 +130,59 @@ test("a thread/resume the app-server refuses rejects naming thread/resume and ki
     "codex thread/resume failed: no rollout found for thread id thread-123",
   );
   expect(fake.killed()).toBe(true);
+});
+
+const usage = (input: number, output: number): Record<string, unknown> => ({ total: { inputTokens: input, outputTokens: output } });
+
+/** An app-server's answer to one request: the reply's result, then the notifications it sends. */
+interface Answer {
+  readonly result: Record<string, unknown>;
+  readonly notifications: readonly (readonly [string, Record<string, unknown>])[];
+}
+
+/**
+ * An app-server resuming a thread that ran one turn before (thread total
+ * 1000 / 5): right after the reply it re-reports that total under the old
+ * turn's id ([env] codex 0.151.0 to 0.160.1), and a prompt's turn adds
+ * 1200 / 7.
+ */
+const RESUMED_THREAD = new Map<string, Answer>([
+  ["initialize", { result: {}, notifications: [] }],
+  ["thread/resume", {
+    result: { thread: { id: threadId }, model: "gpt-5.5" },
+    notifications: [["thread/tokenUsage/updated", { turnId: "turn-1", tokenUsage: usage(1000, 5) }]],
+  }],
+  ["turn/start", {
+    result: { turn: { id: "turn-2" } },
+    notifications: [
+      ["turn/started", { turn: { id: "turn-2" } }],
+      ["thread/tokenUsage/updated", { turnId: "turn-2", tokenUsage: usage(2200, 12) }],
+      ["turn/completed", { turn: { id: "turn-2", status: "completed" } }],
+    ],
+  }],
+]);
+
+function resumedThreadWithHistory(): void {
+  const fake = fakeLineProcess((text, process) => {
+    const message = asRecord(JSON.parse(text));
+    const answer = typeof message?.method === "string" ? RESUMED_THREAD.get(message.method) : undefined;
+    if (typeof message?.id !== "number" || answer === undefined) {
+      return;
+    }
+    process.emit(`${JSON.stringify({ id: message.id, result: answer.result })}\n`);
+    for (const [method, params] of answer.notifications) {
+      process.emit(`${JSON.stringify({ method, params: { threadId, ...params } })}\n`);
+    }
+  });
+  spawnLineProcess.mockReturnValue(fake);
+}
+
+// #169: usage() is THIS Session's, so a resumed Session subtracts the total
+// codex re-reported before its first turn.
+test("a resumed Session's usage counts from when it opened", async () => {
+  resumedThreadWithHistory();
+  const session = await codexSession(installation, { cwd: "/work", resume: threadId });
+  await promptAndWait(session, "again");
+  expect(session.usage().value).toEqual({ total: { input: 1200, output: 7 } });
+  await session.dispose();
 });

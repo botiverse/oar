@@ -155,6 +155,47 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
     }
   }, 60_000);
 
+  // #169: a resumed thread's codex total spans its life, and codex re-reports
+  // it before the resumed Session's first turn ([env] 0.151.0 and later);
+  // usage() subtracts that, so each Session reports only its own turn.
+  test("a resumed session's usage() counts from when it opened", async () => {
+    const env = await startCodexAimock((mock) => {
+      mock.onMessage(/first/u, { content: "pong", usage: { input_tokens: 1000, output_tokens: 5 } });
+      mock.onMessage(/second/u, { content: "pong", usage: { input_tokens: 1200, output_tokens: 7 } });
+    });
+    try {
+      const subject = runtimeUnderTest(defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation }), env.env);
+      const first = await subject.startSession();
+      await runTurn(first, "first");
+      await first.dispose();
+      const resumed = await subject.startSession({ resume: first.id });
+      await runTurn(resumed, "second");
+      await resumed.dispose();
+      expect([first.usage().value, resumed.usage().value]).toMatchInlineSnapshot(`
+        [
+          {
+            "total": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "input": 1000,
+              "output": 5,
+            },
+          },
+          {
+            "total": {
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "input": 1200,
+              "output": 7,
+            },
+          },
+        ]
+      `);
+    } finally {
+      await env.stop();
+    }
+  }, 120_000);
+
   test("every app-server notification enters the stream verbatim, in one order with the control records", async () => {
     const env = await startCodexAimock();
     try {

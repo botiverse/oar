@@ -32,7 +32,7 @@ function scrub(method: string, params: Record<string, unknown>): Record<string, 
     case "error":
       return { method, error: { message: asRecord(params.error)?.message, additionalDetails: asRecord(params.error)?.additionalDetails } };
     case "thread/tokenUsage/updated":
-      return { method, tokenUsage: params.tokenUsage };
+      return { method, turnId: params.turnId, tokenUsage: params.tokenUsage };
     default:
       return null;
   }
@@ -44,34 +44,45 @@ interface CodexTarget {
   readonly cwd: string;
 }
 
-/** Real codex, by default on the local login in the current directory. */
-export async function startCodexRecording(
-  request: RecordRequest,
-  target?: CodexTarget,
-): Promise<Record<string, unknown>[]> {
-  const cwd = target?.cwd ?? process.cwd();
-  const client = startAppServerClient(resolveExecutable("codex") ?? "codex", target?.env, {
+/**
+ * One app-server process on the thread: open it (a new thread, or a resume
+ * of `resume`), run each prompt as a turn, exit. The open reply is recorded
+ * as a line naming its method, where the adapter records the open frame, so
+ * a replay knows where a Session begins and whether it resumed. Returns the
+ * thread id.
+ */
+async function recordProcess(
+  raw: Record<string, unknown>[],
+  prompts: readonly string[],
+  target: CodexTarget,
+  resume?: string,
+): Promise<string> {
+  const { cwd } = target;
+  const client = startAppServerClient(resolveExecutable("codex") ?? "codex", target.env, {
     sandbox_mode: '"danger-full-access"',
   }, cwd);
-  const raw: Record<string, unknown>[] = [];
   await client.request("initialize", { clientInfo: { name: "oar-record", version: "0" }, capabilities: { experimentalApi: true } });
   client.notify("initialized", {});
-  const started = await client.request("thread/start", { cwd, approvalPolicy: "never" });
-  const threadId = asRecord(started.thread)?.id;
+  const method = resume === undefined ? "thread/start" : "thread/resume";
+  const opened = await client.request(method, resume === undefined
+    ? { cwd, approvalPolicy: "never" }
+    : { threadId: resume, excludeTurns: true, cwd, approvalPolicy: "never" });
+  const threadId = asRecord(opened.thread)?.id;
   if (typeof threadId !== "string") {
-    throw new TypeError("codex thread/start returned no id");
+    throw new TypeError(`codex ${method} returned no id`);
   }
+  raw.push({ method });
   let onTurnComplete: (() => void) | null = null;
   client.handle({
-    onNotification: (method, params) => {
+    onNotification: (notification, params) => {
       if (params.threadId !== threadId) {
         return;
       }
-      const scrubbed = scrub(method, params);
+      const scrubbed = scrub(notification, params);
       if (scrubbed !== null) {
         raw.push(scrubbed);
       }
-      if (method === "turn/completed") {
+      if (notification === "turn/completed") {
         onTurnComplete?.();
       }
     },
@@ -88,12 +99,22 @@ export async function startCodexRecording(
       setTimeout(resolve, 30_000);
     })]);
   };
-  await runTurn(request.prompt);
-  for (const followUp of request.followUps.filter((p) => !p.startsWith("+"))) {
-    await runTurn(followUp);
+  for (const prompt of prompts) {
+    await runTurn(prompt);
   }
   client.kill();
   await client.exited;
+  return threadId;
+}
+
+/** Real codex, by default on the local login in the current directory. */
+export async function startCodexRecording(
+  request: RecordRequest,
+  target?: CodexTarget,
+): Promise<Record<string, unknown>[]> {
+  const raw: Record<string, unknown>[] = [];
+  const followUps = request.followUps.filter((p) => !p.startsWith("+"));
+  await recordProcess(raw, [request.prompt, ...followUps], { ...target, cwd: target?.cwd ?? process.cwd() });
   return raw;
 }
 
@@ -159,6 +180,36 @@ export async function startCodexAimockRecording(request: RecordRequest): Promise
     await writeFile(path.join(cwd, "old-name.txt"), "moved before\n");
     const raw = await startCodexRecording(request, { ...(env.env === undefined ? {} : { env: env.env }), cwd });
     return raw.map((entry) => replaceText(entry, cwd, "<cwd>"));
+  } finally {
+    await env.stop();
+    await rm(cwd, { recursive: true, force: true });
+  }
+}
+
+/**
+ * The resume scenario on the scripted provider: the prompt runs on a new
+ * thread, then each follow-up in a new app-server process that resumes it,
+ * as a host reopening a Session does. The provider bills prompt `i` (by its
+ * text) 1000 + 200i input and 5 + 2i output tokens, so each Session's own
+ * spend differs from the thread's total codex reports (#169).
+ */
+export async function startCodexAimockResumeRecording(request: RecordRequest): Promise<Record<string, unknown>[]> {
+  const prompts = [request.prompt, ...request.followUps];
+  const env = await startCodexAimock((mock) => {
+    prompts.forEach((prompt, index) => {
+      mock.onMessage(prompt, { content: "pong", usage: { input_tokens: 1000 + 200 * index, output_tokens: 5 + 2 * index } });
+    });
+  });
+  const scratch = await mkdtemp(path.join(tmpdir(), "oar-record-"));
+  const cwd = await realpath(scratch);
+  try {
+    const target = { ...(env.env === undefined ? {} : { env: env.env }), cwd };
+    const raw: Record<string, unknown>[] = [];
+    const threadId = await recordProcess(raw, [request.prompt], target);
+    for (const followUp of request.followUps) {
+      await recordProcess(raw, [followUp], target, threadId);
+    }
+    return raw;
   } finally {
     await env.stop();
     await rm(cwd, { recursive: true, force: true });
