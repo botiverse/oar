@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, test, vi } from "vitest";
 import { KILL_GRACE_MS, killGraceMs, requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
+import { readProcessTable } from "../packages/oar/src/shared/executable/process-tree.js";
 import { fakeAgent, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
 
 test("requiresShell matches windows cmd and bat shims only", () => {
@@ -193,5 +194,40 @@ describe.skipIf(process.platform === "win32")("kill takes down the child's proce
     } finally {
       process.kill(leftover, "SIGKILL");
     }
+  });
+});
+
+// A tool in a session of its own (claude's Bash tool) is out of the group.
+describe.skipIf(process.platform === "win32")("kill with killTree also takes the descendants that left the group", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  test("a child that stops on SIGTERM: its tool goes as soon as the child is gone", async () => {
+    vi.stubEnv("OAR_KILL_GRACE_MS", "5000");
+    await withTreeProbe({ ignoreSigterm: false, detachTool: true }, async (probe) => {
+      const child = spawnLineProcess(process.execPath, [fakeAgent], { env: { ...process.env, ...probe.env }, killTree: true });
+      const tree = await probe.tree();
+      assert.equal(readProcessTable().get(tree.grandchild)?.pgid, tree.grandchild, "the tool leads a group of its own");
+      const elapsed = await timed(async () => {
+        child.kill();
+        await child.exited;
+      });
+      assert.ok(elapsed < 2000, `the child's own exit ended it, not the deadline: ${elapsed.toFixed(0)} ms`);
+      assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild, 1000)], [true, true], "the child and its tool are gone");
+    });
+  });
+
+  test("a child that ignores SIGTERM: the SIGKILL takes its tools, one started after the kill began included", async () => {
+    vi.stubEnv("OAR_KILL_GRACE_MS", "300");
+    await withTreeProbe({ ignoreSigterm: true, detachTool: true, lateTool: true }, async (probe) => {
+      const child = spawnLineProcess(process.execPath, [fakeAgent], { env: { ...process.env, ...probe.env }, killTree: true });
+      const tree = await probe.tree();
+      child.kill();
+      const late = await probe.lateTool();
+      assert.equal(await child.exited, null, "a signal ended it");
+      assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild, 1000), await gone(late, 1000)], [true, true, true],
+        "the child, its tool and the one started on SIGTERM are gone");
+    });
   });
 });

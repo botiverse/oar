@@ -192,7 +192,7 @@ export interface AdapterSession {
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
-  dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent. After an exit the stream already holds (the runtime died on its own), the request is answered `accepted` immediately; nothing is left to release. ALWAYS settles: a runtime process is stopped together with every process it started (its process group, on POSIX), and killed outright when it ignores the stop past a grace period.
+  dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent. After an exit the stream already holds (the runtime died on its own), the request is answered `accepted` immediately; nothing is left to release. ALWAYS settles: a runtime process is stopped together with every process it started (on POSIX its process group, and its descendants that left the group), and killed outright when it ignores the stop past a grace period.
 }
 
 /** The API face: the SPI plus surfaces sealSession derives from the stream. Control members answer with `ControlOutcome`: the same records, read. */

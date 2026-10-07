@@ -21,6 +21,17 @@ export interface TreeProbe {
   readonly env: Readonly<Record<string, string>>;
   /** The reported pids, once the grandchild runs. */
   tree(): Promise<AgentTree>;
+  /** The pid of the tool the agent started on SIGTERM (`lateTool`), once it runs. */
+  lateTool(): Promise<number>;
+}
+
+/** How the fake agent behaves (agent-tree.mjs): see the env switches there. */
+export interface TreeProbeOptions {
+  readonly ignoreSigterm: boolean;
+  /** Its tool runs in a session of its own (POSIX). */
+  readonly detachTool?: boolean;
+  /** With `ignoreSigterm`: the SIGTERM starts one more tool, in a session of its own. */
+  readonly lateTool?: boolean;
 }
 
 function alive(pid: number): boolean {
@@ -63,16 +74,22 @@ export async function timed(work: () => Promise<unknown>): Promise<number> {
  * failed test must not leak) and remove the directory.
  */
 export async function withTreeProbe<Result>(
-  options: { readonly ignoreSigterm: boolean },
+  options: TreeProbeOptions,
   body: (probe: TreeProbe) => Promise<Result>,
 ): Promise<Result> {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-process-tree-"));
   const pidFile = path.join(dir, "pids.json");
+  const lateFile = path.join(dir, "late.pid");
   const reported: number[] = [];
   try {
     return await body({
       dir,
-      env: { OAR_FIXTURE_PIDS: pidFile, ...(options.ignoreSigterm ? { OAR_FIXTURE_IGNORE_SIGTERM: "1" } : {}) },
+      env: {
+        OAR_FIXTURE_PIDS: pidFile,
+        ...(options.ignoreSigterm ? { OAR_FIXTURE_IGNORE_SIGTERM: "1" } : {}),
+        ...(options.detachTool === true ? { OAR_FIXTURE_DETACH_TOOL: "1" } : {}),
+        ...(options.lateTool === true ? { OAR_FIXTURE_LATE_TOOL: lateFile } : {}),
+      },
       async tree() {
         if (!await eventually(() => existsSync(pidFile), 10_000)) {
           throw new Error(`the fake agent never reported its pids in ${pidFile}`);
@@ -83,15 +100,32 @@ export async function withTreeProbe<Result>(
         reported.push(tree.agent, tree.grandchild);
         return tree;
       },
+      async lateTool() {
+        if (!await eventually(() => existsSync(lateFile), 10_000)) {
+          throw new Error(`the fake agent never reported a late tool in ${lateFile}`);
+        }
+        const pid = Number(readFileSync(lateFile, "utf8"));
+        reported.push(pid);
+        return pid;
+      },
     });
   } finally {
-    for (const pid of reported) {
-      if (alive(pid)) {
-        process.kill(pid, "SIGKILL");
-      }
+    // Started on a SIGTERM the test may not have got to look at.
+    if (existsSync(lateFile)) {
+      reported.push(Number(readFileSync(lateFile, "utf8")));
     }
-    rmSync(dir, { recursive: true, force: true });
+    reap(reported, dir);
   }
+}
+
+/** SIGKILL whatever of `pids` is still alive and remove `dir`. */
+function reap(pids: readonly number[], dir: string): void {
+  for (const pid of pids) {
+    if (alive(pid)) {
+      process.kill(pid, "SIGKILL");
+    }
+  }
+  rmSync(dir, { recursive: true, force: true });
 }
 
 /**

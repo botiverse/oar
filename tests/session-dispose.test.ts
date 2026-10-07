@@ -46,6 +46,28 @@ describe.skipIf(process.platform === "win32").concurrent("dispose takes down the
   });
 });
 
+// claude's Bash tool runs each command in a session of its own, out of the
+// runtime's group: dispose must reach it whether the runtime stops on SIGTERM
+// (and leaves the tool behind) or only the SIGKILL ends it.
+describe.skipIf(process.platform === "win32").concurrent("dispose takes down a tool that left the runtime's process group", () => {
+  beforeAll(() => {
+    vi.stubEnv("OAR_KILL_GRACE_MS", "500");
+  });
+  afterAll(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const cases = runtimes.flatMap(([runtime, open]) => [true, false].map((ignoreSigterm) => [runtime, ignoreSigterm, open] as const));
+  test.each(cases)("%s (runtime ignores SIGTERM: %s)", async (_runtime, ignoreSigterm, open) => {
+    await withTreeProbe({ ignoreSigterm, detachTool: true }, async (probe) => {
+      const session = await open(probe.dir, { cwd: probe.dir, env: probe.env });
+      const tree = await probe.tree();
+      await session.dispose();
+      assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild, 1000)], [true, true], "the runtime and the tool it started are gone");
+    });
+  });
+});
+
 // Windows has no process groups. Each command above is a .cmd wrapper, so
 // the reported agent and grandchild are both descendants of OAR's child.
 test.skipIf(process.platform !== "win32").each(runtimes)(

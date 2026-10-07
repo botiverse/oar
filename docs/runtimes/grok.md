@@ -569,7 +569,10 @@ terminals. On POSIX the process and each hosted terminal command lead their
 own process groups, so OAR's signals reach what they started (a shell line's
 children too). The runtime gets SIGTERM, then SIGKILL if it is still running
 after a grace period (10 s, or `OAR_KILL_GRACE_MS`), so disposal settles even
-when Grok ignores SIGTERM ([test](../../tests/session-dispose.test.ts));
+when Grok ignores SIGTERM ([test](../../tests/session-dispose.test.ts)); the
+SIGKILL, or Grok's exit if that comes first, also takes its descendants that
+left its group, read from the process table when the kill begins and before
+the SIGKILL (as for [claude](claude.md#process-ownership-environment-installation-and-account-usage));
 hosted terminals are SIGKILLed at release and disposal. A terminal still
 pending `terminal/wait_for_exit` at disposal is answered `{exitCode: null,
 signal: "SIGKILL"}` *after* the `exited` response (the spec keeps late

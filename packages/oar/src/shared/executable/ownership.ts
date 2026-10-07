@@ -1,9 +1,10 @@
 import { execFileSync, type ChildProcess } from "node:child_process";
+import { descendantsOf, killEntries, readProcessTable, type ProcessTable } from "./process-tree.js";
 
 const ownedChildren = new Set<ChildProcess>();
 let exitHookInstalled = false;
 
-function killOwnedProcess(child: ChildProcess): void {
+function killOwnedProcess(child: ChildProcess, table: () => ProcessTable): void {
   try {
     if (child.pid !== undefined) {
       if (process.platform === "win32") {
@@ -15,6 +16,11 @@ function killOwnedProcess(child: ChildProcess): void {
           stdio: "ignore", timeout: 10_000, windowsHide: true,
         });
       } else {
+        // Its descendants outside its group too, found below it only while
+        // it runs: a reaped pid may already be someone else's.
+        if (child.exitCode === null && child.signalCode === null) {
+          killEntries(descendantsOf(table(), child.pid), table());
+        }
         process.kill(-child.pid, "SIGKILL");
       }
       return;
@@ -29,8 +35,10 @@ function killOwnedProcess(child: ChildProcess): void {
  * Own a detached POSIX group or Windows tree until its output pipes close:
  * descendants may hold them after the launcher exits. One synchronous hook
  * covers sessions, probes, updaters, logins and ACP terminals when a host
- * calls process.exit without disposing them. Node does not emit `exit` for
- * an unhandled terminating signal or SIGKILL; hosts own graceful handling.
+ * calls process.exit without disposing them; on POSIX it also SIGKILLs the
+ * descendants of a child still running that left its group, and their groups
+ * (process-tree.ts). Node does not emit `exit` for an unhandled terminating
+ * signal or SIGKILL; hosts own graceful handling.
  */
 export function trackOwnedProcess(child: ChildProcess): void {
   ownedChildren.add(child);
@@ -43,7 +51,10 @@ export function trackOwnedProcess(child: ChildProcess): void {
   if (!exitHookInstalled) {
     exitHookInstalled = true;
     process.once("exit", () => {
-      for (const owned of ownedChildren) { killOwnedProcess(owned); }
+      // One read of the process table serves every child.
+      let table: ProcessTable | null = null;
+      const read = (): ProcessTable => { table ??= readProcessTable(); return table; };
+      for (const owned of ownedChildren) { killOwnedProcess(owned, read); }
     });
   }
 }

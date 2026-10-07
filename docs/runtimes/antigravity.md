@@ -360,7 +360,10 @@ the process (no `session/close` is advertised), and disposes hosted
 terminals; a dispose after an observed exit is answered `accepted` without
 further work. On POSIX the process leads its own process group, and a runtime
 still running a grace period after SIGTERM (10 s, or `OAR_KILL_GRACE_MS`) is
-SIGKILLed with its group. Persisted native sessions are not deleted.
+SIGKILLed with its group. That SIGKILL, or the runtime's exit if that comes
+first, also takes its descendants that left its group (as for
+[claude](claude.md#process-ownership-environment-installation-and-account-usage)).
+Persisted native sessions are not deleted.
 
 On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
 the abort fallback, including the runtime's descendants

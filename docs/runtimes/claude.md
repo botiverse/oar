@@ -367,17 +367,40 @@ project-scope (`.mcp.json`) or local-scope server was not measured.
 ### Process ownership, environment, installation, and account usage
 
 A synchronous host `exit` also kills OAR-owned process groups, including
-live sessions and probes. See [host lifetime and signal limits](../spec/record-stream.md#the-rules).
+live sessions and probes, and the descendants of each that left its group.
+See [host lifetime and signal limits](../spec/record-stream.md#the-rules).
 
 **Mapped:** OAR owns the spawned process; disposal settles active work, kills
 the process, and waits for exit. On POSIX the process leads its own process
-group, so the kill reaches the shells, tools, and MCP servers it started:
-SIGTERM, then SIGKILL if claude is still running after a grace period (10 s,
-or `OAR_KILL_GRACE_MS`), so disposal settles even when claude ignores SIGTERM
+group: SIGTERM goes to the group, then SIGKILL if claude is still running
+after a grace period (10 s, or `OAR_KILL_GRACE_MS`), so disposal settles even
+when claude ignores SIGTERM
 ([process mechanics](../../packages/oar/src/shared/executable/process.ts),
-[test](../../tests/session-dispose.test.ts)). The default is sized to
-claude's own SIGTERM handling [sym 2.1.283]: it runs its SessionEnd hooks (a
-1.5 s budget unless a hook declares a longer `timeout`, capped at 60 s) and
+[test](../../tests/session-dispose.test.ts)). The group does not hold all
+claude starts: claude 2.1.292 runs each Bash tool command in a session of
+its own (observed), which a group signal misses and which, once claude is
+gone, is re-parented to init or a subreaper. So OAR also reads claude's
+descendants from the process table (`/proc` on Linux, `ps` elsewhere) when
+the kill begins and again just before the SIGKILL, and SIGKILLs those still
+running, with the process groups they belong to, at the SIGKILL or as soon
+as claude has exited, whichever comes first. A pid is signalled only while
+its start time matches the one read, so a reused pid is spared
+([process tree](../../packages/oar/src/shared/executable/process-tree.ts),
+[test](../../tests/process.test.ts)). On SIGTERM, claude 2.1.292 ends its
+running Bash commands and background tasks itself before it exits; the
+descendant kill is what ends them when claude cannot (stuck, or stopped) and
+only the SIGKILL ends it, as in the abort fallback that left a command
+running in [oar#210](https://github.com/botiverse/oar/issues/210)
+([vendor test](../../sea-trial/vendor/stuck-runtime-tools.vendor.test.ts)).
+Only an end OAR starts (disposal, the abort fallback, host exit) does this:
+when claude exits by itself, what it left running is not touched. Not
+reached either: a process that had already left claude's tree when the kill
+began (re-parented, e.g. a `nohup … &` whose shell has exited), and one
+started after the first read that outlives claude's own exit.
+
+The grace period's default is sized to claude's own SIGTERM handling
+[sym 2.1.283]: it runs its SessionEnd hooks (a 1.5 s budget unless a hook
+declares a longer `timeout`, capped at 60 s) and
 force-exits after max(5 s, hook budget + 5 s), at least 15 s while writes are
 still pending; the claude-aimock runs exited 0.6 to 2.3 s after the SIGTERM.
 A longer hook budget needs a longer `OAR_KILL_GRACE_MS`, or the SIGKILL cuts
