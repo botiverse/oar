@@ -215,7 +215,8 @@ command, `wait_for_exit` answers `SIGTERM`, the tool ends `status: "failed"`,
 and the prompt answers `stopReason: "cancelled"` about one second later,
 recorded as `turn_ended: aborted` (`abort`). If the cancelled prompt is not
 answered within ten seconds OAR kills the process and the `exited` response
-is the turn's end; the fallback has not been needed live. Kimi still pushes
+is the turn's end, read as `aborted` after the accepted cancel. The exit
+code is retained; the fallback has not been needed live. Kimi still pushes
 the turn's `usage_update` after a cancelled answer (about 1 ms later); the
 usage gate does not wait while aborting, so on an aborted turn that record
 lands after the turn end. Effects on background children are **unverified**.
@@ -234,7 +235,8 @@ OAR session or log exists (`bad-model`).
 
 **Unreachable runtime:** `dispose()` mid-turn runs the cancel path, then
 `session/close` (advertised; answered `{}`), then the kill; the dispose
-request is answered by the `exited` response (`dispose-mid-turn`). The exit
+request is answered by the `exited` response (`dispose-mid-turn`). If no
+native turn end came first, the folds read this exit as `aborted`. The exit
 code is `null` (signal), except when the process exits `0` on `session/close`
 before the kill (seen once, `subagent`). When `kimi acp` dies on its own
 (SIGKILL mid-turn), the stream gets an `exited` response with `requestId ""`

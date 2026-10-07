@@ -1,3 +1,5 @@
+import { initialStatus, reduceStatus } from "./agent-status.js";
+import { exitTurnOutcome } from "./turn-stop.js";
 import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, TurnOutcome } from "../contracts/session.js";
 
 /**
@@ -23,24 +25,32 @@ export function turnEndAfter(
   afterSeq: number,
   sessionId?: string,
 ): TurnOutcome | null {
+  const read = turnEndReader(afterSeq, sessionId);
   for (const record of records) {
-    if (record.seq <= afterSeq || record.agentPath.length > 0) {
-      continue;
-    }
-    if (sessionId !== undefined && record.sessionId !== sessionId) {
-      continue;
-    }
-    if (record.kind === "frame") {
-      const ended = record.body.events.find((event) => event.kind === "turn_ended");
-      if (ended?.kind === "turn_ended") {
-        return ended.outcome;
-      }
-    }
-    if (record.kind === "response" && record.body.kind === "exited") {
-      return { kind: "failed", reason: "runtime exited", failure: "runtime_exited" };
-    }
+    const outcome = read(record);
+    if (outcome !== null) { return outcome; }
   }
   return null;
+}
+
+/** Keep request/response correlation across both the retained prefix and live records. */
+function turnEndReader(afterSeq: number, sessionId?: string): (record: RawEvent) => TurnOutcome | null {
+  let status = initialStatus;
+  return (record) => {
+    if (record.agentPath.length > 0 || (sessionId !== undefined && record.sessionId !== sessionId)) {
+      return null;
+    }
+    const previous = status;
+    status = reduceStatus(previous, record, sessionId);
+    if (record.seq <= afterSeq) { return null; }
+    if (record.kind === "frame") {
+      const ended = record.body.events.find((event) => event.kind === "turn_ended");
+      if (ended?.kind === "turn_ended") { return ended.outcome; }
+    }
+    return record.kind === "response" && record.body.kind === "exited"
+      ? exitTurnOutcome(previous.kind === "running" ? previous.stop : undefined)
+      : null;
+  };
 }
 
 /**
@@ -51,16 +61,17 @@ export function turnEndAfter(
 export async function awaitTurnEnd(session: Session, afterSeq: number): Promise<TurnOutcome> {
   const { promise, resolve } = Promise.withResolvers<TurnOutcome>();
   let done = false;
+  const read = turnEndReader(afterSeq, session.id);
   const unsubscribe = session.rawEvents((record) => {
     if (done) {
       return;
     }
-    const outcome = turnEndAfter([record], afterSeq, session.id);
+    const outcome = read(record);
     if (outcome !== null) {
       done = true;
       resolve(outcome);
     }
-  }, { sessionId: session.id, afterSeq });
+  }, { sessionId: session.id, afterSeq: -1 });
   const outcome = await promise;
   unsubscribe();
   return outcome;
@@ -84,7 +95,7 @@ export async function awaitIdle(session: Session): Promise<TurnOutcome | null> {
 }
 
 export interface PromptRunOptions {
-  /** Abort the turn when it has not ended after this long; the run then reports `interrupted` with the runtime's own outcome. */
+  /** Abort the turn when it has not ended after this long; the run then reports `interrupted` with the observed turn outcome. */
   readonly timeoutMs?: number;
   /** Abort the turn when this fires (a caller-side cancel), reported the same way. */
   readonly signal?: AbortSignal;
@@ -97,7 +108,7 @@ export type PromptRun =
   | { readonly kind: "rejected"; readonly result: ControlOutcome; readonly code: RejectionCode; readonly reason: string }
   /** The runtime ended the turn on its own. `text` is the root agent's text of this turn, concatenated. */
   | { readonly kind: "ended"; readonly result: ControlOutcome; readonly outcome: TurnOutcome; readonly text: string }
-  /** The caller's timeout or signal fired first and the abort was taken over; `outcome` is still the runtime's own turn end. */
+  /** The caller's timeout or signal fired first and the abort was taken over; `outcome` is the native turn end or an observed exit after the stop. */
   | { readonly kind: "interrupted"; readonly by: "timeout" | "signal"; readonly result: ControlOutcome; readonly outcome: TurnOutcome; readonly text: string };
 
 /**
@@ -107,8 +118,8 @@ export type PromptRun =
  * that abort was taken over. An abort the runtime refuses because the turn
  * had just ended is the ordinary late-abort race, and the run is `ended`.
  * After an accepted abort the turn's end is awaited with no further limit:
- * the outcome is the runtime's word, and a runtime that never gives it is a
- * liveness problem `observeStalls` reports, not one this helper guesses at.
+ * a native turn end keeps its outcome; exit after that accepted abort is
+ * `aborted`. Without either fact the helper continues waiting.
  */
 export async function promptAndWait(session: Session, input: string, options: PromptRunOptions = {}): Promise<PromptRun> {
   const result = await session.prompt(input, options.images === undefined ? undefined : { images: options.images });

@@ -55,13 +55,21 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 | `withdraw` request / response | an attempt on the input it names. Accepted: the input is `withdrawn` and leaves `pendingInputs`, and `messages` too where the stream placed it at its request; the segment that request sealed stays sealed. Refused `not_queued`: nothing moves. Queued again, the input enters by the rows above |
 | `text_delta`, `reasoning` | appended to the current section of the lane `(sessionId, agentPath)`; a `text_delta` whose `messageId` differs from the last text part's starts a new part (one per assistant message), one without a `messageId` joins the last; `redacted` and `empty` reasoning render as lifecycle-only parts |
 | `tool_call_started` / `input` / `progress` / `ended` | one tool part per lane and call id, settled where its start landed even after the turn ended; an end without a start still renders. `tool_call_input` replaces the part's `input` with the latest the runtime reported (arguments an ACP runtime sends after the start), leaving its state alone. `startedAt` / `endedAt` are the `receivedAt` of the start and end records (epoch ms): when OAR observed them, not a time the runtime reported, and only those it saw (a running call has no `endedAt`; an end without a start has no `startedAt`), as `tasksOf` does |
-| `turn_ended` of the root session | seals the turn segment and stamps its outcome; a child session's `turn_ended` is a notice and never closes the root turn |
+| `turn_ended` of the root agent in the root session | seals the turn segment and stamps its outcome; unresolved root tools in this turn become `ended`. A child agent's or session's end is a notice and never closes the root turn |
 | `compaction_started` / `ended`, `retry` | notice parts inside the running turn |
 | `app_request` / `app_answered` | a `pendingRequests` entry and an actionable part, then settled; `appRequestKind(type)` tells an approval, a question and a call the adapter serves itself apart (`unknown` otherwise) |
 | `control_rejected` | a rejected prompt removes its empty turn; a rejected steer, queue or abort adds a notice, as does a refused withdraw of an input the view never held |
-| `exited` | `exited` set, a notice, and the open turn sealed without a fabricated outcome |
+| root `exited` | `exited` set and a notice; the record fold closes the running turn as `aborted` after its accepted abort or dispose request, otherwise `failed: runtime_exited`. Flat events alone lack stop acceptance, so do not assign a turn outcome. Both paths mark this turn's unresolved root tools `ended`. Child exits are lane notices only |
 | `user_message` | folds into the input's observations, never a second bubble. The first echo of a waiting steer or queue moves it from `pendingInputs` into `messages` there and seals the open segment: the input sits where the runtime took it, so replies to earlier input come before it. An unechoed input stays pending; neither a turn end nor text matching places it |
 | `usage`, `model`, `effort` | the matching view fields |
+
+When a root turn ends, its tools still marked `running` become `ended`,
+including tools in earlier segments split by a mid-turn input. This means
+their result is unknown: no result `content`, success/failure judgment, or
+tool `endedAt` is inferred. Streamed output stays visible. A later native
+`tool_call_ended` supplies the actual result and observation time in place;
+late progress updates output without reopening the call. Child-agent tools,
+child-session tools and background task state are unchanged.
 
 ## Mapping: the view to assistant-ui
 
@@ -93,7 +101,7 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 | withdraw a queued input | `withdraw(inputId)` | the control exists only when `session.withdraw` does (not on codex). `accepted`: the input is the caller's again; `not_queued`: none is waiting (it already went to the runtime, or was withdrawn before) |
 | edit a queued input | `withdraw`, then `queue` with the same `inputId` | only after an accepted withdraw; the input waits again from its new request |
 | send a queued input now | `withdraw`, then `deliver` with the same `inputId` | only after an accepted withdraw; prompts when idle, steers into the running turn where the session can steer, otherwise queues it again |
-| cancel | `abort` | the outcome arrives as `turn_ended`, not as the call's return value |
+| cancel | `abort` | acceptance says the stop was taken over; the outcome arrives at `turn_ended` or process exit |
 | answer a runtime request | open, see below | |
 | dispose | `dispose` | lifecycle, not a chat command |
 

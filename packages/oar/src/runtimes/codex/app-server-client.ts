@@ -11,7 +11,7 @@ import { coordinateHomeInitialization } from "./home-initialization.js";
 /** How a request settled, delivered synchronously as the reply line is read. */
 export type RpcOutcome =
   | { readonly kind: "result"; readonly result: JsonRecord }
-  | { readonly kind: "error"; readonly error: Error }
+  | { readonly kind: "error"; readonly error: Error; readonly native?: JsonRecord }
   | { readonly kind: "exited"; readonly error: Error };
 
 export interface AppServerHandlers {
@@ -140,7 +140,9 @@ function createAppServerClient(
       const error = asRecord(message.error);
       if (error !== null) {
         const failure = new Error(redact(typeof error.message === "string" ? error.message : "app-server error"));
-        waiter?.settled({ kind: "error", error: failure });
+        const redacted = JSON.stringify(error, (_key, value: unknown) => typeof value === "string" ? redact(value) : value);
+        const native = asRecord(parseJson(redacted));
+        waiter?.settled({ kind: "error", error: failure, ...(native === null ? {} : { native }) });
         waiter?.reject(failure);
       } else {
         const result = asRecord(message.result) ?? {};
@@ -161,7 +163,8 @@ function createAppServerClient(
       waiter.settled({ kind: "exited", error });
       waiter.reject(error);
     }
-    pending.clear();
+    // Keep these already-settled callbacks until any remaining stdout drains.
+    // A late native reply is still observable, but cannot answer a control twice.
   });
 
   return {

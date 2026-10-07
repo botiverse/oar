@@ -101,6 +101,7 @@ test.each([false, true])("a stuck aborted turn is killed even when interrupt was
   spawnLineProcess.mockReturnValue(fake);
   const session = await claudeSession(installation, { cwd: "/work" });
   const prompt = await session.prompt("hold");
+  const liveEnd = awaitTurnEnd(session, prompt.request.seq);
   const abort = session.abort();
   await vi.advanceTimersByTimeAsync(5000);
   const repeated = session.abort();
@@ -110,10 +111,19 @@ test.each([false, true])("a stuck aborted turn is killed even when interrupt was
   expect(fake.killed()).toBe(true);
   const result = await abort;
   await repeated;
-  expect(result.response.body).toMatchObject(acknowledge ? { kind: "accepted" } : { kind: "rejected", code: "runtime_exited" });
+  expect(result.response.body).toMatchObject({ kind: "accepted" });
   expect(session.records().filter((record) => record.kind === "response" && record.requestId === result.request.id)).toHaveLength(1);
   expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true);
-  expect(await awaitTurnEnd(session, prompt.request.seq)).toMatchObject({ failure: "runtime_exited" });
+  expect(await liveEnd).toMatchInlineSnapshot(`
+    {
+      "kind": "aborted",
+    }
+  `);
+  expect(await awaitTurnEnd(session, prompt.request.seq)).toMatchInlineSnapshot(`
+    {
+      "kind": "aborted",
+    }
+  `);
   await session.dispose();
 });
 

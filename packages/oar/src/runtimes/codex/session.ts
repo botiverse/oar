@@ -253,9 +253,9 @@ export const codexSession: StartSession = async (installation, options) => {
         if (!busy() || state.codexTurnId === null) {
           return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
         }
-        refused = abortFallback.arm();
         return null;
       },
+      onPending: (accept) => { refused = abortFallback.arm(accept); },
       method: "turn/interrupt",
       params: () => ({ threadId, turnId: state.codexTurnId }),
       onReply: (reply) => ({ kind: "accepted", native: reply }),

@@ -17,6 +17,8 @@ export interface RpcControlPlan {
   readonly params: () => JsonRecord;
   readonly onReply: (reply: JsonRecord) => ResponseBody;
   readonly onError: (message: string) => ResponseBody;
+  /** Arm a turn fallback that can take over and accept before the RPC settles. */
+  readonly onPending?: (accept: () => void) => void;
 }
 
 /**
@@ -48,17 +50,26 @@ export async function rpcControl(
       resolve(kernel.respond(request.id, decided));
     }
   };
-  try {
-    await client.request(plan.method, plan.params(), (outcome) => {
-      if (outcome.kind === "exited") {
-        record({ kind: "rejected", code: "runtime_exited", reason: outcome.error.message });
-      } else {
-        record(outcome.kind === "result" ? plan.onReply(outcome.result) : plan.onError(outcome.error.message));
-      }
-    });
-  } catch (error) {
-    record(plan.onError(error instanceof Error ? error.message : String(error)));
-  }
+  plan.onPending?.(() => { record({ kind: "accepted" }); });
+  // A fallback answers independently of transport settlement. Keep observing
+  // the RPC: a late native reply remains a frame, never a second response.
+  const send = async (): Promise<void> => {
+    try {
+      await client.request(plan.method, plan.params(), (outcome) => {
+        if (recorded) {
+          const native = outcome.kind === "result" ? outcome.result : (outcome.kind === "error" ? outcome.native : undefined);
+          if (native !== undefined) { kernel.frame({ type: plan.method, native, events: [] }); }
+        } else if (outcome.kind === "exited") {
+          record({ kind: "rejected", code: "runtime_exited", reason: outcome.error.message });
+        } else {
+          record(outcome.kind === "result" ? plan.onReply(outcome.result) : plan.onError(outcome.error.message));
+        }
+      });
+    } catch (error) {
+      if (!recorded) { record(plan.onError(error instanceof Error ? error.message : String(error))); }
+    }
+  };
+  void send();
   return { request, response: await promise };
 }
 

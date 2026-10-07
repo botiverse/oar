@@ -1,5 +1,7 @@
 import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
 
+import { exitTurnOutcome, reduceTurnStop } from "./turn-stop.js";
+
 export type { AgentStatus, RunningPhase } from "../contracts/session.js";
 
 /**
@@ -29,7 +31,9 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *   event compaction_started          → running/compacting
  *   event compaction_ended, retry     → running/waiting_model
  *   event turn_ended                  → idle{lastTurnOutcome}   (the runtime's own completion)
- *   response exited                   → idle{failed runtime_exited} if a turn was running
+ *   accepted abort / request dispose  → retain stop evidence for this turn
+ *   response exited                   → idle{aborted} after accepted abort / dispose
+ *                                     → idle{failed runtime_exited} otherwise
  * The fold is total: a mid-turn event while idle adopts that turn (a consumer
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
@@ -54,6 +58,7 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
     kind: "running",
     sinceSeq,
     ...(requestId === undefined ? {} : { requestId }),
+    ...(previous.kind === "running" && previous.stop !== undefined ? { stop: previous.stop } : {}),
     phase,
     lastEventAt: record.receivedAt,
   };
@@ -69,6 +74,11 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
     // alive, so the clock moves, but the root agent's phase does not.
     return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
   }
+  if (previous.kind === "running") {
+    const { stop: priorStop, ...active } = previous;
+    const stop = reduceTurnStop(priorStop, record);
+    if (stop !== priorStop) { previous = stop === undefined ? active : { ...active, stop }; }
+  }
   switch (record.kind) {
     case "request":
       return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle"
@@ -79,7 +89,7 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
         return { kind: "idle" };
       }
       if (record.body.kind === "exited" && previous.kind === "running") {
-        return { kind: "idle", lastTurnOutcome: { kind: "failed", reason: "runtime exited", failure: "runtime_exited" } };
+        return { kind: "idle", lastTurnOutcome: exitTurnOutcome(previous.stop) };
       }
       return previous;
     case "frame": {

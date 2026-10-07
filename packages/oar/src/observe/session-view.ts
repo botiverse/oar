@@ -19,7 +19,7 @@ import {
   type ConversationInput,
   type ConversationState,
 } from "./conversation.js";
-import { assemble, draftOf } from "./session-view-fold.js";
+import { assemble, draftOf, stampTurnOutcome } from "./session-view-fold.js";
 import { awaitsEcho, upsertInput } from "./session-view-inputs.js";
 import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
@@ -53,8 +53,13 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   to a notice part, it never closes the root turn.
  * - A TOOL part is one per lane and callId: a progress or end settles it in
  *   the turn its start landed in, even after that turn ended; only a call
- *   whose start was never seen becomes a `?` part.
- * - An exited stream never stamps a fabricated outcome on an open turn.
+ *   whose start was never seen becomes a `?` part. A root turn end or exit
+ *   changes its unresolved root tools to `ended`, without a result content
+ *   or tool end time. Later native results still replace that unknown result.
+ * - A root exit stamps the record-derived status outcome on its open turn:
+ *   aborted after an accepted abort or dispose request, failed otherwise.
+ *   Flat events alone lack accepted controls; that path records exit and
+ *   ends unresolved tools without assigning a turn outcome.
  */
 
 export type ViewNotice =
@@ -90,6 +95,7 @@ export type ViewPart =
       readonly output?: string;
       /** The result once the call ended (`tool_call_ended.content`). */
       readonly content?: readonly ToolOutputPart[];
+      /** `ended` means the call or its root turn ended without a known result. */
       readonly result: "running" | "ok" | "failed" | "ended";
       /**
        * When OAR observed the call start: its `tool_call_started` record's
@@ -126,7 +132,7 @@ export interface ViewTurn {
   /** The prompt request that opened the segment; absent for adopted ones. */
   readonly openedBy?: string;
   readonly sections: readonly ViewSection[];
-  /** The runtime's own turn end. Absent on sealed segments and interrupted turns. */
+  /** The native turn end or record-derived exit outcome. Absent on intermediate sealed segments. */
   readonly outcome?: TurnOutcome;
 }
 
@@ -222,6 +228,9 @@ export function reduceSessionView(
     draft.rootSessionId = record.sessionId;
   }
   const status = reduceStatus(previous.status, record, draft.rootSessionId);
+  if (record.kind === "response" && record.body.kind === "exited" && previous.status.kind === "running" && status.kind === "idle" && status.lastTurnOutcome !== undefined) {
+    stampTurnOutcome(draft, `turn:${streamId}:${record.sessionId}:${record.seq}`, status.lastTurnOutcome);
+  }
   const conversation = reduceConversation(previous.conversation, record, streamId);
   for (const update of conversation.updates) {
     if (update.kind === "input") {

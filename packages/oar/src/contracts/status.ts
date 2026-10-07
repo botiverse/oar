@@ -22,6 +22,16 @@ export type AgentStatus =
       readonly sinceSeq: number;
       /** The prompt request id when the turn was opened through this Session; absent for adopted turns. */
       readonly requestId?: string;
+      /**
+       * Stop evidence for this running turn, retained so incremental reducers
+       * can match abort responses and survive a checkpoint. A dispose request
+       * or an accepted abort makes a later exit aborted; unanswered aborts do not.
+       * Cleared at the turn boundary, never inferred from the exit code.
+       */
+      readonly stop?: {
+        readonly pendingAbortIds: readonly string[];
+        readonly abortedOnExit: boolean;
+      };
       readonly phase: RunningPhase;
       /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;

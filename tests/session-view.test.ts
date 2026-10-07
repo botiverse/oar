@@ -178,12 +178,18 @@ test("a runtime request is pending until answered; its part settles in place", (
   ]);
 });
 
-test("an exit records the fact and never stamps a fabricated outcome", () => {
+test("an unrequested exit records the fact and derives a failed turn outcome", () => {
   const exit: ResponseRecord = { ...env, seq: 3, kind: "response", requestId: "", body: { kind: "exited", code: 1 } };
   const view = fold([request(0, "r1"), accepted(1, "r1"), text(2, "partial"), exit]);
   expect(view.exited).toEqual({ code: 1 });
   const [turn] = turns(view);
-  expect(turn?.outcome).toBeUndefined();
+  expect(turn?.outcome).toMatchInlineSnapshot(`
+    {
+      "failure": "runtime_exited",
+      "kind": "failed",
+      "reason": "runtime exited",
+    }
+  `);
   expect(view.messages.at(-1)).toMatchObject({ kind: "notice", notice: { cause: "exited", code: 1 } });
 });
 

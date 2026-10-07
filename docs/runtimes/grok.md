@@ -173,8 +173,8 @@ acknowledgement. The RPC answer is Grok's own turn end: a frame
 `session/prompt` with `native` = the answer, a `turn_ended` event
 (`stopReason: "cancelled"` → aborted, else completed) and a `usage` event
 from `_meta`. An RPC error answer is a frame `session/prompt/error` with a
-failed `turn_ended` (`runtime_exited` when the process died, else the
-classified reason). Around each prompt Grok pushes `_x.ai/sessions/changed`
+failed `turn_ended` with the classified reason. A process exit instead
+is an `exited` response, classified by the folds as described below. Around each prompt Grok pushes `_x.ai/sessions/changed`
 (`working`, then `idle`) and, after `turn_completed`,
 `_x.ai/session/prompt_complete` (`promptId`, `stopReason`,
 `cancellationCategory`); all are frames with no events.
@@ -213,14 +213,16 @@ within about a second (`turn_completed stop_reason: cancelled`,
 `prompt_complete cancellationCategory: MidTurnAbort`, then the
 `session/prompt` answer with `turn_ended: aborted`). If no answer arrives
 within ten seconds, OAR kills the process and the `exited` response is the
-turn's end (a `runtime_exited` failure to `awaitTurnEnd`, not an aborted
-outcome). A late abort is rejected `no active turn`. Effects on background
+turn's end, read as `aborted` by the folds because the abort was accepted.
+The exit code stays on the exit response. A late abort is rejected `no active turn`. Effects on background
 children remain **unverified**. (`live-contract/abort`,
 `live-contract/busy-and-late-control`.)
 
 **Unreachable runtime:** a `dispose` mid-turn cancels first, so the stream
 holds the cancelled answer (`turn_ended: aborted`) before `request dispose`,
-`response exited` (code 143 from OAR's SIGTERM after `session/close`). When
+`response exited` (code 143 from OAR's SIGTERM after `session/close`). If
+there is no native turn end before exit, the dispose request makes that exit
+an `aborted` outcome in the folds. When
 Grok dies on its own (SIGKILL), the stream gets `response exited` with
 `requestId ""` and code `null` and no turn end from the runtime
 (`runtime_exited` for `awaitTurnEnd`); every later

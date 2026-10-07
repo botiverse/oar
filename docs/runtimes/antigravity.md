@@ -149,7 +149,7 @@ runtime is unreachable. `withdraw(inputId)` takes an input out of the FIFO
 before it is prompted (`accepted`) and answers `not_queued` after
 ([test](../../tests/acp/acp-session-withdraw.test.ts)).
 
-**Abort (mapped, fails live with a shell command running):** `abort()` sends
+**Abort (mapped, needs process termination with a shell command running):** `abort()` sends
 `session/cancel` (a notification, so the `accepted` answer carries no
 `native`) and is `rejected no active turn` after the turn. While text is
 streaming Antigravity answers the prompt `stopReason: "cancelled"` at once,
@@ -157,9 +157,10 @@ recorded as `turn_ended: aborted`. While a shell command runs it does not: in
 a direct probe the cancelled prompt was answered only when the command
 finished, 40.1 s after the cancel, with the command's output intact. OAR's
 fallback kills the process when the cancelled prompt is not answered within
-ten seconds, so the live `abort` scenario (a long shell command) ends
-`failed` with `runtime_exited` instead of the runtime's own aborted report,
-and a later `abort()` is `rejected runtime_exited`. The session itself
+ten seconds, as observed in the live `abort` scenario (a long shell command).
+The exit is read as `aborted` because the cancel was accepted; there is no
+native `turn_ended` frame. The exit code remains on `exited`, and a later
+`abort()` is `rejected runtime_exited`. The session itself
 survives the kill and can be resumed. The ten second fallback stays: a longer
 one would hold `abort()` hostage to whatever the command does.
 
@@ -173,7 +174,7 @@ with that error and no OAR session exists (`bad-model`).
 **Unreachable runtime:** `close` is not advertised, so `dispose()` mid-turn
 runs the cancel path, then the kill; the process exits with `code: null` and
 the dispose request is answered by that `exited` response, which also ends
-the open turn as failed (`runtime_exited`, `dispose-mid-turn`). When the
+the open turn as `aborted` because dispose was requested (`dispose-mid-turn`). When the
 process dies on its own (SIGKILL mid-turn), the stream gets an `exited`
 response with `requestId ""` and `code: null`, which is the turn's end; a
 later `prompt()` is rejected and a later `dispose()` is answered `accepted`

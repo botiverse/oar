@@ -231,7 +231,7 @@ test("a steer pending in one stream enters at its echo in the next (resume resta
   }
   expect(outline(view)).toEqual([
     "input input r1 (accepted)",
-    "turn [working]",
+    "turn [working] failed",
     "notice exited",
     "input input s1 (accepted)",
     "turn [resumed on s1] completed",

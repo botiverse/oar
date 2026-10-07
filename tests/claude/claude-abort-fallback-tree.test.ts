@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, test, vi } from "vitest";
 import type { createAbortFallback } from "../../packages/oar/src/shared/abort-fallback.js";
+import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
 import { fakeAgentBinary, gone, withTreeProbe } from "../fixtures/process-tree.js";
 
@@ -30,7 +31,8 @@ test.skipIf(process.platform === "win32")("the abort fallback ends a stuck claud
       const prompt = await session.prompt("run the tool");
       assert.equal(prompt.response.body.kind, "accepted");
       const abort = await session.abort();
-      assert.deepEqual(abort.response.body, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
+      assert.deepEqual(abort.response.body, { kind: "accepted" });
+      assert.deepEqual(await awaitTurnEnd(session, prompt.seq), { kind: "aborted" });
       assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild, 1000)], [true, true], "claude and its tool are gone");
     } finally {
       await session.dispose();
