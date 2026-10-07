@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { runExecutable, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
@@ -6,6 +9,17 @@ import { executableInstallation } from "../packages/oar/src/shared/installation.
 const tail = "native startup failed\n";
 
 afterEach(() => { vi.unstubAllEnvs(); });
+
+test("a one-shot config query runs in its requested directory", async () => {
+  const cwd = await mkdtemp(path.join(tmpdir(), "oar-query-cwd-"));
+  try {
+    const result = await runExecutable(process.execPath, ["-e", "process.stdout.write(process.cwd())"], { cwd });
+    assert.ok(result.ok);
+    expect(await realpath(result.stdout)).toBe(await realpath(cwd));
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+  }
+});
 
 test("one-shot failures keep the exit code and a bounded stderr tail", async () => {
   const result = await runExecutable(process.execPath, ["-e", `process.stderr.write("x".repeat(65536) + ${JSON.stringify(tail)}); process.exitCode = 7;`]);

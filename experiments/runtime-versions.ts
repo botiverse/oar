@@ -9,7 +9,8 @@
  * rules so an upstream fix can retire the conditional refusal.
  * A version match is not a compatibility result. Pi and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
- * PATH.
+ * PATH. A changed OpenCode binary also needs opencode-prompt-options.ts
+ * (local provider, no login) to recheck native configuration and agent selection.
  */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";

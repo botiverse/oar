@@ -72,14 +72,11 @@ test("a model switch goes through its config option, whose answer carries that m
   await expect(startOpencode({ effort: "high" })).rejects.toThrow("session/new advertises no thought_level config option, so effort high cannot be applied");
 });
 
-test("the opencode profile opens without authenticate and refuses a system prompt", async () => {
+test("the opencode profile opens without authenticate", async () => {
   const session = await startOpencode();
   expect(lines(session)).not.toContain("event authenticate");
   expect(session.capabilities).toMatchObject({ queue: { durable: false }, attribution: "opaque" });
   await session.dispose();
-  expect(() => opencodeAcpProfile.validateOptions?.({ cwd: "/", systemPrompt: "x" })).toThrow();
-  expect(() => opencodeAcpProfile.validateOptions?.({ cwd: "/", appendSystemPrompt: "x" })).toThrow();
-  expect(() => opencodeAcpProfile.validateOptions?.({ cwd: "/", env: { A: "1" } })).not.toThrow();
 });
 
 test("the install script's directory is a fallback on each platform", () => {

@@ -47,7 +47,7 @@ test("the declarations say which options each runtime refuses", () => {
     cursor: ["appendSystemPrompt", "env", "mcpServers", "systemPrompt"],
     grok: ["mcpServers"],
     kimi: ["appendSystemPrompt", "mcpServers", "systemPrompt"],
-    opencode: ["appendSystemPrompt", "mcpServers", "systemPrompt"],
+    opencode: ["mcpServers"],
     pi: ["mcpServers"],
   });
 });

@@ -9,8 +9,8 @@ export const opencodeRuntime = defineRuntime({
   brand: runtimeBrands.opencode,
   installation: opencodeInstallation,
   session: opencodeSession,
-  listModels: opencodeListModels,
   refusedSessionOptions: opencodeRefusedSessionOptions,
+  listModels: opencodeListModels,
 });
 
 export { opencodeSession } from "./session.js";

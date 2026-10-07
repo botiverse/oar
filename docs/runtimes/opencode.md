@@ -169,8 +169,68 @@ model was requested; on a model without variants `effort` is refused with
 `UnsupportedOptionError`. An unknown model fails the open with the agent's
 `Invalid params: model not found` (bad-model).
 
-ACP has no system prompt override here, so `systemPrompt` and
-`appendSystemPrompt` are refused.
+ACP has no direct prompt field, but the native launcher reads
+`OPENCODE_CONFIG_CONTENT`. OAR uses a fresh inline configuration for the
+session: `systemPrompt` overrides only the selected `agent.<name>.prompt`;
+`appendSystemPrompt` adds one session-owned file to `instructions`. Native
+config merging appends that file **after existing instructions**, preserving
+other agents, model choices, tools and permission rules. Environment/context,
+project instructions and skills that OpenCode adds separately still apply.
+The file stays available for later turns and compaction and is removed on
+failed open, disposal or process exit. OAR does not rewrite user config or
+redirect the runtime's native home.
+
+Before a replacement, OAR runs the selected executable's read-only
+`debug config` in the session directory, with the session environment. It
+uses `default_agent` (otherwise the native `build` default). For resume,
+`export <id> --sanitize` supplies the saved agent, including the historical
+message fallback, before consulting that default. No transcript is logged
+or used to rebuild the conversation. The ACP open must report that same
+mode; otherwise opening fails and names both agents. This also protects
+against disabled/renamed defaults and config changes between query and open.
+A saved or configured default custom agent missing from resolved config is
+refused before injection, so a prompt override cannot recreate a deleted agent
+with default permissions. Only the visible built-ins `build` and `plan` may
+be absent from that config.
+A replacement adds one native startup query, two on resume, each bounded at
+30 seconds; no prompt options retains the direct ACP path, and append-only
+needs no agent query.
+
+If the host environment **or** `SessionOptions.env` already defines
+`OPENCODE_CONFIG_CONTENT`, either prompt option is refused with
+`UnsupportedOptionError`. OAR does not parse or merge that existing value.
+An empty replacement is also refused: native OpenCode treats an empty agent
+prompt as selecting its built-in prompt. Literal `{env:...}` and
+`{file:...}` in the supplied prompt are preserved, not expanded by the
+native config parser.
+
+[Native request probe](../../experiments/opencode-prompt-options.ts),
+**1.18.34**, Linux x64, 2026-10-07: OAR and the real ACP process send requests
+to a local scripted provider, without login or model quota. Assertions cover
+custom default and customized build agents, both prompt options, earlier
+instructions remaining first, resume after the default agent changes,
+literal interpolation syntax, unchanged model and denied edit tools,
+unchanged config bytes, temporary-file removal, refusal to recreate a deleted agent, and config-env conflicts.
+The fixture config includes its `$schema`: OpenCode itself may add that field
+to a schema-less file even on the baseline path; an initial isolated probe
+observed this native behavior.
+
+Source at [v1.18.34](https://github.com/anomalyco/opencode/tree/v1.18.34):
+`config/config.ts` merges inline content and concatenates instructions;
+`config/variable.ts` substitutes variables before JSON parsing;
+`agent/agent.ts` resolves the default; `acp/service.ts` restores saved agent
+selection; `session/llm/request.ts` chooses the agent prompt; and
+`session/instruction.ts` reads instruction files again for subsequent requests.
+
+| Session option | Native channel and result |
+| --- | --- |
+| `cwd` | ACP directory; a resume elsewhere is refused from native `session/list`. |
+| `resume` | ACP resume, native session identity and saved agent. |
+| `model` | ACP model config option with native read-back. |
+| `effort` | ACP `thought_level` config option when the selected model has variants; otherwise refused. |
+| `systemPrompt` | Fresh inline `agent.<selected>.prompt`, verified against the ACP mode on new/resumed sessions. |
+| `appendSystemPrompt` | Fresh inline `instructions` entry for a session-owned temporary file, on new/resumed sessions. |
+| `env` | Child-process environment, shared by native queries, the ACP process and its tools. |
 
 ### Tools, permissions, and process
 

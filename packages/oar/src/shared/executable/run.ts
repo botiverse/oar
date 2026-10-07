@@ -11,6 +11,7 @@ export interface ExecutableResult {
 }
 
 export interface ExecutableRunOptions {
+  readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
   /** Stops the command; the result is then a failure with no exit code. */
@@ -49,6 +50,7 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
     };
     try {
       execFile(executable, [...args], {
+        cwd: options.cwd,
         env: options.env,
         timeout: timeoutMs,
         ...(options.signal === undefined ? {} : { signal: options.signal }),
