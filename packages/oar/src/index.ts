@@ -107,6 +107,7 @@ export type {
   SessionGraph,
   SessionNode,
   RawEventObserver,
+  McpServer,
   SessionOptions,
   RawEvent,
   SessionUsage,

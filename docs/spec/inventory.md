@@ -22,7 +22,9 @@ A fresh process's connections or active defaults do not describe an existing
 agent. No model prompt is submitted; native startup can load extensions and
 connect configured MCP servers. Pi uses a temporary in-memory SDK session,
 without writing trust configuration, and disposes it after discovery.
-Inventory results never enter a session's record stream.
+Inventory results never enter a session's record stream. Servers a session
+was given in `SessionOptions.mcpServers` are that session's, not the
+runtime's configuration, so `mcpServers()` never lists them.
 
 ## Results
 

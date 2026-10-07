@@ -32,6 +32,7 @@ export function supportsAntigravityYolo(response: JsonRecord): boolean {
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
   appendSystemPrompt: "The Antigravity ACP server has no system prompt append input in its protocol, launch options, or configuration",
+  mcpServers: "OAR does not attach MCP servers to antigravity yet: ACP session/new and session/resume mcpServers is not yet verified to reach its agent",
 };
 
 export const antigravityAcpProfile: AcpSessionProfile = {

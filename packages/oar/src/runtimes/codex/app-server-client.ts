@@ -58,7 +58,10 @@ interface Pending {
 }
 
 /** How the app-server process is handled: whether its stderr may reach the host's, and whether a kill takes its Windows process tree. */
-export type AppServerProcessOptions = Pick<LineProcessOptions, "inheritStderr" | "killTree">;
+export interface AppServerProcessOptions extends Pick<LineProcessOptions, "inheritStderr" | "killTree"> {
+  /** Applied to the text of every error the client reports (codex's error message, the exit's stderr tail): a session's MCP credentials must never reach one. */
+  readonly redact?: (text: string) => string;
+}
 
 export function startAppServerClient(
   command: string,
@@ -107,6 +110,7 @@ function createAppServerClient(
   };
   let nextId = 1;
   let exitFailure: Error | null = null;
+  const redact = processOptions.redact ?? ((text: string): string => text);
 
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
@@ -134,7 +138,7 @@ function createAppServerClient(
       pending.delete(message.id);
       const error = asRecord(message.error);
       if (error !== null) {
-        const failure = new Error(typeof error.message === "string" ? error.message : "app-server error");
+        const failure = new Error(redact(typeof error.message === "string" ? error.message : "app-server error"));
         waiter?.settled({ kind: "error", error: failure });
         waiter?.reject(failure);
       } else {
@@ -145,7 +149,12 @@ function createAppServerClient(
     }
   });
   child.onExit(() => {
-    exitFailure = processFailure("app-server exited", child.diagnostics());
+    const diagnostics = child.diagnostics();
+    exitFailure = processFailure("app-server exited", {
+      ...diagnostics,
+      stderr: redact(diagnostics.stderr),
+      ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: redact(diagnostics.error.message) } }),
+    });
     for (const waiter of pending.values()) {
       const error = exitFailure;
       waiter.settled({ kind: "error", error });

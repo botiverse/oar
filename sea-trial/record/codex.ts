@@ -12,11 +12,14 @@ function scrubItem(item: Record<string, unknown> | null): Record<string, unknown
   if (item?.type === "fileChange") {
     return { type: item.type, id: item.id, changes: item.changes, status: item.status };
   }
+  if (item?.type === "mcpToolCall") {
+    return { type: item.type, id: item.id, server: item.server, tool: item.tool, status: item.status, arguments: item.arguments, result: item.result, error: item.error };
+  }
   return { type: item?.type, id: item?.id, command: item?.command, aggregatedOutput: item?.aggregatedOutput };
 }
 
 /** Keep only the fields the codex projection reads (method + minimal params). */
-function scrub(method: string, params: Record<string, unknown>): Record<string, unknown> | null {
+export function scrub(method: string, params: Record<string, unknown>): Record<string, unknown> | null {
   switch (method) {
     case "turn/started":
       return { method, turn: { id: asRecord(params.turn)?.id } };

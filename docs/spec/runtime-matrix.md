@@ -82,18 +82,40 @@ on that error, and tells it from a failed login or a network error without
 reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
-`SessionOptions` a runtime refuses when given (`env`: a non-empty one), each
-with that reason. The adapter checks the same map, so the declaration and
-the refusal cannot drift (`tests/refused-session-options.test.ts`). A host
-leaves a declared option out instead of naming runtimes.
+`SessionOptions` a runtime refuses when given (`env`, `mcpServers`: a
+non-empty one), each with that reason. The adapter checks the same map, so
+the declaration and the refusal cannot drift
+(`tests/refused-session-options.test.ts`). A host leaves a declared option
+out instead of naming runtimes.
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)) |
-| kimi | `systemPrompt`, `appendSystemPrompt` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
-| antigravity | `systemPrompt`, `appendSystemPrompt` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)) |
-| opencode | `systemPrompt`, `appendSystemPrompt` | its ACP surface exposes no system prompt override |
-| claude, codex, grok, pi | nothing | |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools ([cursor](../runtimes/cursor.md)); `Agent.create`'s `mcpServers` is not yet verified |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)); ACP `mcpServers` is not yet verified |
+| antigravity | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); ACP `mcpServers` is not yet verified |
+| opencode | `systemPrompt`, `appendSystemPrompt`, `mcpServers` | its ACP surface exposes no system prompt override; ACP `mcpServers` is not yet verified |
+| grok | `mcpServers` | ACP `session/new` / `session/resume` `mcpServers` is not yet verified to reach the agent |
+| pi | `mcpServers` | its MCP extension (`@earendil-works/pi-mcp`) is not yet verified as a per-session channel |
+| claude, codex | nothing | |
+
+`mcpServers` is refused until a runtime's channel is shown to make its agent
+call an attached server's tool, with the evidence on its runtime page
+([#170](https://github.com/botiverse/oar/issues/170)). Where it is taken:
+
+| runtime | channel | stdio | http | resume | a name the user's config also has |
+|---|---|---|---|---|---|
+| claude | `--mcp-config <0600 temp file>`, deleted when the process ends; no `--strict-mcp-config` | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
+| codex | `config.mcp_servers` on `thread/start` and `thread/resume` | yes | yes | the override again | merged into the user's entry field by field; oar's `command` / `url`, `args` and `enabled = true` win ([codex](../runtimes/codex.md#session-mcp-servers)) |
+
+Evidence for both: [`mcp-servers.vendor.test.ts`](../../sea-trial/vendor/mcp-servers.vendor.test.ts)
+runs the real CLI against a scripted provider whose model calls a stdio and an
+http echo server's tool, on open and on a resume, and asserts the provider
+received what only that server writes; the recordings are
+`tests/replay/fixtures/{claude,codex}-mcp-echo.raw.jsonl`. A list naming a
+server twice, or with an empty name, is a plain error before anything
+starts, as is a name codex would not start (`^[\w:@/.-]+$`). A transport a
+runtime cannot attach is an `UnsupportedOptionError` on `mcpServers` once
+the runtime says so; claude and codex attach both.
 
 Grok refuses an append-only prompt change on resume: native `rules` is not
 reapplied. A `systemPrompt`, with or without `appendSystemPrompt`, is supported

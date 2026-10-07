@@ -39,6 +39,7 @@ export const morphRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "The morph Runtime API has no system prompt override",
   appendSystemPrompt: "The morph Runtime API has no system prompt override",
   env: "morph runs tools inside its Console process, which a session neither starts nor owns",
+  mcpServers: "OAR does not attach MCP servers to morph: no per-session channel is known",
 };
 
 interface Held {

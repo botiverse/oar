@@ -1,3 +1,4 @@
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
@@ -5,6 +6,7 @@ import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 import {
   foldPiEvent,
   initialPiProjection,
@@ -31,7 +33,12 @@ export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
  * this process.
  */
 
+export const piRefusedSessionOptions: RefusedSessionOptions = {
+  mcpServers: "OAR does not attach MCP servers to pi yet: its pi-mcp extension channel is not yet verified to reach the agent",
+};
+
 export const piSession: StartSession = async (installation, options) => {
+  refuseSessionOptions(piRefusedSessionOptions, options);
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }

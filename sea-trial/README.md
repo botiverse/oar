@@ -6,7 +6,8 @@
                    must run on EVERY backend (real logins included)
     vendor/        *.vendor.test.ts: vitest, OAR_TEST-gated; anything that
                    needs the scripted provider's view or vendor fingerprints
-    vendor/support/ assertion helpers, tool-round script, system-prompt capture
+    vendor/support/ assertion helpers, tool-round script, system-prompt capture,
+                   echo MCP server entries and scripted calls
     harness/       backends.ts (OAR_TEST → runtime + optional aimock),
                    aimock.ts (scripted-provider setup per runtime),
                    runner.ts / subject.ts / trace.ts

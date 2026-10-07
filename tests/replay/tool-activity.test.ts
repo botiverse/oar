@@ -135,12 +135,14 @@ function render(calls: ToolCall[]): string {
   }).join("\n")}\n`;
 }
 
-test("claude tool calls render as friendly activity", async () => {
-  const lines = readFileSync(path.join(here, "fixtures", "claude-tool-round.raw.jsonl"), "utf8").split("\n").filter((l) => l.trim());
-  await expect(render(toolCallsFromClaude(lines))).toMatchFileSnapshot(path.join(here, "fixtures", "claude-tool-round.activity.txt"));
-});
+for (const scenario of ["tool-round", "mcp-echo"]) {
+  test(`claude ${scenario} tool calls render as friendly activity`, async () => {
+    const lines = fixture(`claude-${scenario}.raw.jsonl`);
+    await expect(render(toolCallsFromClaude(lines))).toMatchFileSnapshot(path.join(here, "fixtures", `claude-${scenario}.activity.txt`));
+  });
+}
 
-for (const scenario of ["tool-round", "file-change"]) {
+for (const scenario of ["tool-round", "file-change", "mcp-echo"]) {
   test(`codex ${scenario} tool calls render as friendly activity`, async () => {
     const lines = fixture(`codex-${scenario}.raw.jsonl`);
     await expect(render(toolCallsFromCodex(lines))).toMatchFileSnapshot(path.join(here, "fixtures", `codex-${scenario}.activity.txt`));

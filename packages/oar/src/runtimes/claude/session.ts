@@ -6,7 +6,6 @@ import type {
   StartSession,
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
-import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { asRecord, parseJson } from "../../shared/json.js";
@@ -18,6 +17,7 @@ import {
   claudeEffortRefusal,
   claudeSettingsRequest,
 } from "./effort.js";
+import { launchClaude, type ClaudeProcess } from "./launch.js";
 import {
   claudeAbortRequested,
   claudePrompted,
@@ -64,7 +64,7 @@ function userMessage(text: string, inputId?: string, images: readonly LoadedImag
 }
 
 interface ClaudeSessionState {
-  child: LineProcess;
+  child: ClaudeProcess;
   /** The prompt request whose turn is running; null while idle. Spontaneous turns (a drained queue message) run with no request. */
   active: RequestRecord | null;
   /** True while claude is executing a turn we did not prompt (queue drain). */
@@ -81,25 +81,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   // (--session-id) or reattach to an existing one (--resume), so Session.id
   // is always the runtime-native persistent id.
   const sessionId = options.resume ?? randomUUID();
-  const child = spawnLineProcess(installation.command, [
-    "-p",
-    "--input-format", "stream-json",
-    "--output-format", "stream-json",
-    "--verbose", "--replay-user-messages",
-    // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
-    // no human at an approval prompt: a permission gate is a hang, not
-    // safety. Isolation is the sandbox's job, not the approval flow's.
-    "--dangerously-skip-permissions",
-    ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
-    ...(options.model === undefined ? [] : ["--model", options.model]),
-    ...(options.effort === undefined ? [] : ["--effort", options.effort]),
-    ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
-    ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
-  ], {
-    cwd: options.cwd,
-    env: { ...process.env, CLAUDECODE: undefined, ...options.env },
-  });
-  await child.spawned;
+  const child = await launchClaude(installation.command, sessionId, options);
 
   const kernel = createSessionKernel(sessionId);
   const state: ClaudeSessionState = {

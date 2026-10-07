@@ -19,7 +19,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  */
 
 const here = import.meta.dirname;
-const scenarios = ["tool-round", "subagent", "file-change"];
+const scenarios = ["tool-round", "subagent", "file-change", "mcp-echo"];
 const ROOT = "thread-root";
 
 function describeCommand(command: ProjectionCommand): string {

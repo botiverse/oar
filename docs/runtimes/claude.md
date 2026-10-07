@@ -50,7 +50,7 @@ Programs have two entry points:
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request (none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). `background_tasks_changed` (the live set) and `task_progress` carry no events. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
-| SDK configuration and interaction APIs | Only `--model`, `--effort` (confirmed by `get_settings` at open) and the system prompt flags. |
+| SDK configuration and interaction APIs | Only `--model`, `--effort` (confirmed by `get_settings` at open), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
 
 Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [projection](../../packages/oar/src/runtimes/claude/projection.ts),
@@ -275,10 +275,11 @@ fact (mapping table above).
 ### Tools, permissions, and extensions
 
 Native Claude supports tool selection, MCP, agents, skills, plugins,
-permission modes, and SDK approval/hook callbacks. These are **not exposed**
-as OAR configuration or interaction APIs. Native configuration may still
-affect execution, but OAR does not pass `--mcp-config`, `--tools`, `--agents`,
-or explicit setting-source controls. Startup always passes
+permission modes, and SDK approval/hook callbacks. Apart from session MCP
+servers (`--mcp-config`, [below](#session-mcp-servers)) these are **not
+exposed** as OAR configuration or interaction APIs. Native configuration may
+still affect execution, but OAR does not pass `--strict-mcp-config`,
+`--tools`, `--agents`, or explicit setting-source controls. Startup always passes
 `--dangerously-skip-permissions`; there is no OAR approval request/reply
 channel. [Native MCP][native-mcp], [permissions][native-permissions],
 [adapter](../../packages/oar/src/runtimes/claude/session.ts).
@@ -291,6 +292,42 @@ MCP servers from `mcp_status` with bounded startup polling (view
 [Inventory reader](../../packages/oar/src/runtimes/claude/inventory.ts),
 [query contract](../spec/inventory.md),
 [native probe evidence](inventory.md).
+
+### Session MCP servers
+
+`SessionOptions.mcpServers` is claude's `--mcp-config <file>`
+([launch](../../packages/oar/src/runtimes/claude/launch.ts)). Each entry
+becomes one `mcpServers` member of that JSON document: stdio
+`{type: "stdio", command, args, env}`, http `{type: "http", url, headers}`.
+Measured on claude 2.1.292 against a scripted provider
+([vendor test](../../sea-trial/vendor/mcp-servers.vendor.test.ts),
+[recording](../../tests/replay/fixtures/claude-mcp-echo.raw.jsonl)):
+
+- Both transports attach, `system/init` lists each as
+  `{name, status: "connected", source: "dynamic"}`, and the model calls a
+  server's tool as `mcp__<name>__<tool>` (a name like `my server.x`
+  becomes `mcp__my_server_x__echo`); `--dangerously-skip-permissions`
+  covers MCP tools too. The tool result reached the provider as the
+  server wrote it, so the server ran with the entry's `env` (stdio) or
+  `headers` (http).
+- The user's own servers stay: no `--strict-mcp-config`. On a name clash
+  the session's server replaces a user-scope one of the same name
+  (`~/.claude.json`, here a `CLAUDE_CONFIG_DIR`) for that process: one
+  `echo` is listed, `source: "dynamic"`, and the call reached the
+  session's server; the user's other servers still load.
+- A resume remembers none: resumed without the option, `system/init` lists
+  no server. oar passes the same flag on `--resume`.
+- A stdio server inherits claude's whole environment (`SessionOptions.env`
+  included) with the entry's `env` on top.
+
+The document is written to `oar-claude-mcp-*/mcp.json` in the system
+temporary directory: a fresh 0700 directory, the file 0600, removed when the
+claude process exits however it ends (dispose, a crash, a refused effort),
+never inline on argv where `ps` would show the credentials
+([test](../../tests/claude/claude-session-mcp-servers.test.ts)). claude's
+frames name servers and their status only, never an `env` or `headers`
+value; the vendor test asserts no record holds one. A clash with a
+project-scope (`.mcp.json`) or local-scope server was not measured.
 
 ### Process ownership, environment, installation, and account usage
 
@@ -311,7 +348,7 @@ terminal's job control: a host's Ctrl-C does not reach it, so a host that
 wants it stopped disposes the session. This supplies resource release, not
 detached execution or a lease against other controllers. The environment
 overlay applies to the child process; `CLAUDECODE` is cleared before the
-overlay. [Adapter](../../packages/oar/src/runtimes/claude/session.ts).
+overlay. [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
 
 Installation checks `OAR_CLAUDE_BIN`/PATH; update checks and upgrades are
 covered in [runtime updaters](update.md). Account usage is separate from
@@ -408,14 +445,15 @@ former only.
    --verbose --replay-user-messages --dangerously-skip-permissions` plus
    `--session-id <uuid>` or `--resume <id>`, and optional `--model`,
    `--effort` (then a `get_settings` control request before the first turn),
-   `--system-prompt`, `--append-system-prompt`. `CLAUDECODE` is cleared from
+   `--system-prompt`, `--append-system-prompt`, `--mcp-config <file>` (for
+   `SessionOptions.mcpServers`). `CLAUDECODE` is cleared from
    the child environment. Prompts are `user` message lines on stdin. Present
    in 2.1.261 help but not on the session path: `--include-partial-messages`,
    `--fork-session`, `--no-session-persistence` (the inventory and account
    usage readers pass it), `--permission-mode`, `--permission-prompts`,
-   `--mcp-config`, `--tools`, `--agents`, `--bg`, `--cloud`, `--teleport`,
+   `--strict-mcp-config`, `--tools`, `--agents`, `--bg`, `--cloud`, `--teleport`,
    `--remote-control`. Source:
-   [adapter](../../packages/oar/src/runtimes/claude/session.ts).
+   [launch](../../packages/oar/src/runtimes/claude/launch.ts).
 2. **Session and state storage.** Native identity and transcript are claude's;
    OAR's record stream is process memory behind `records()` and is gone with
    the process. OAR owns no storage. Source: kernel; observed: the transcript
@@ -562,7 +600,9 @@ approval bypass, prompt configuration through compaction and the dispose
 tail. Shared [session cases](../../sea-trial/cases/session.ts) intentionally
 make weaker steering/resume assertions.
 
-Open gaps: an effort clamp by `maxEffortLevel` or an override by
+Open gaps: session MCP servers on a real login (verified against a scripted
+provider only) and against a project- or local-scope server, an effort
+clamp by `maxEffortLevel` or an override by
 `CLAUDE_CODE_EFFORT_LEVEL` (the read-back refuses either; neither was
 exercised), missing-ID resume behavior, accepted-input receipt under load,
 late interrupts across turns, context fullness after multi-step work, child
