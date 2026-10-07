@@ -54,7 +54,9 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude effort on the 
   test("a model that takes no effort refuses the open instead of dropping the level", async () => {
     const env = await startClaudeAimock(undefined, { captureRaw: true });
     try {
-      const opened = runtimeUnderTest(runtime, env.env).startSession({ model: "haiku", effort: "low" });
+      // The haiku alias selects an effort-capable Haiku 5.5 in Claude 2.1.293.
+      // Keep this refusal test on the concrete model that takes no effort.
+      const opened = runtimeUnderTest(runtime, env.env).startSession({ model: "claude-haiku-4-5-20251001", effort: "low" });
       await expect(opened).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: claude sends no effort for claude-haiku-4-5-20251001 (the model takes none), so effort low would be dropped]`);
       // No model call went out. Newer claude builds ping the endpoint at startup (/api/hello), which is not one.
       expect(env.raw.filter((request) => request.path.includes("/v1/messages"))).toEqual([]);
