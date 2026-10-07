@@ -315,7 +315,7 @@ on this account (probed), and each run reports its own tokens.
 
 ### Login
 
-**Mapped, not yet run on a real account** ([runtime login](../spec/login.md)):
+**Mapped** ([runtime login](../spec/login.md)):
 `login` is the SDK's own `Cursor.auth.login`, `authStatus` its
 `Cursor.auth.status`. Native behavior [bundle 1.0.35: `dist/esm/index.js`,
 `Cursor.auth` and `src/agent/auth/*`, with their `.d.ts`]: the login makes a
@@ -382,9 +382,15 @@ polling and while minting, the deadline, a stop while the key is saved, the
 SDK's failures, an unconfirmed success, a failing `onEvent`,
 `CURSOR_API_KEY`, and the status
 ([login tests](../../tests/login/cursor-login.test.ts),
-[status tests](../../tests/login/cursor-auth-status.test.ts)). **The real
-login has not been run through OAR yet**; a person runs it with a real
-account, as the claude and codex logins were.
+[status tests](../../tests/login/cursor-auth-status.test.ts)), and on a real
+login: on 2026-10-06 and 2026-10-07, on a fresh Linux test machine with
+`@cursor/sdk` 1.0.36, the four manual checklist steps of
+[#146](https://github.com/botiverse/oar/pull/146) (commit `d6ece22`) passed:
+the status read (logged out, no `auth.json`); a cancel while it polled
+(`login cancelled`) and the deadline (`timed_out`), neither writing
+`auth.json` nor leaving a process behind; and a login whose URL was opened on
+another device, which ended on its own once signed in (exit 0, the account's
+email and a key expiring 90 days later).
 [Login](../../packages/oar/src/runtimes/cursor/login.ts),
 [status](../../packages/oar/src/runtimes/cursor/auth-status.ts).
 
@@ -401,7 +407,8 @@ options, the SDK loader) and fold
 recorded updates (tools, usage, the subagent path, run outcomes). The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Cursor.
 
-Open gaps: a real login through OAR ([login](#login)); a crew child (no environment); tool calls the
-SDK runs without updates; the cloud runtime; Windows and macOS live runs.
+Open gaps: a crew child (no environment); tool calls the SDK runs without
+updates; the cloud runtime; Windows and macOS live runs, the login's
+included.
 Keep native API capabilities, SDK limitations, OAR omissions and unexecuted
 checks separate when designing or claiming support.

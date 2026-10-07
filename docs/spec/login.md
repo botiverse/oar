@@ -119,9 +119,7 @@ answered.
 | grok, kimi, opencode, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
-Cursor's login has not yet been run through oar on a real account
-([its page](../runtimes/cursor.md#login)). Pi's provider logins are on
-`createPiProviderAuth`.
+Pi's provider logins are on `createPiProviderAuth`.
 
 ## CLI
 
