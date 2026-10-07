@@ -1,5 +1,7 @@
+/* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
 import { randomUUID } from "node:crypto";
 import type { ControlResult, InputImage, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
+import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -14,28 +16,11 @@ import {
 import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 
 /*
- * codex app-server v2 mapping:
- * - initialize → initialized, thread/start {cwd, approvalPolicy:never}
- * - SessionOptions.effort governs every turn of the thread, a drained queue
- *   submission included: a config override on thread/start, and on a resume
- *   thread/settings/update on the loaded thread (open.ts says why). codex's
- *   word on it is the open reply's `reasoningEffort` or the pushed
- *   thread/settings/updated: checked, and an `effort` event either way.
- * - turn/start {threadId, input} → {turn{id}}: the RPC reply is the prompt's
- *   accepted response; completion is codex's own turn/completed notification
- *   (turn.status completed | interrupted | failed): the turn_ended event.
- * - steer: turn/steer with the expectedTurnId precondition (race adjudicated
- *   at the runtime); a typed refusal is a rejected response.
- * - abort: turn/interrupt {threadId, turnId}; the reply is the abort's
- *   accepted/rejected response, the outcome is turn/completed.
- * - every notification is one frame (verbatim params); notifications
- *   of other threads are child-session records; collab items link them.
- * - token totals count from when this Session opened: after a resume, the
- *   thread total codex re-reports before the first turn is subtracted.
- * - server-initiated requests are recorded as toApp requests, unanswered.
- * - reachability (exited / disposed) is the kernel's, read off the stream;
- *   the adapter holds no liveness flag (record-stream.md, "Reachability").
- * Live probe: codex-session-adapter.ts.
+ * App-server v2: RPC replies answer controls; notifications carry facts.
+ * Record replies synchronously, before later notifications in the same chunk.
+ * Model/effort read-back and resume overrides live in open.ts. Reachability
+ * comes from the recorded exit/dispose, never a separate liveness flag.
+ * Native mappings and live evidence: docs/runtimes/codex.md.
  */
 
 /** codex's UserInput: the text, then each image as a `localImage` path codex reads itself (its own composer's order). */
@@ -115,6 +100,7 @@ export const codexSession: StartSession = async (installation, options) => {
     projection: initialCodexProjection(threadId, openMethod),
   };
   const busy = (): boolean => state.active !== null || state.spontaneous;
+  const abortFallback = createAbortFallback(() => { client.kill(); });
   let disposeRequest: RequestRecord | null = null;
   // A resume's effort update in flight: codex's thread/settings/updated answers it.
   let settingsWaiter: ((params: JsonRecord) => void) | null = null;
@@ -158,6 +144,7 @@ export const codexSession: StartSession = async (installation, options) => {
       }
     }
     if (isRoot && method === "turn/completed") {
+      abortFallback.clear();
       state.active = null;
       state.spontaneous = false;
       state.codexTurnId = null;
@@ -177,6 +164,7 @@ export const codexSession: StartSession = async (installation, options) => {
   // the reply), then whatever codex wrote after the reply.
   client.handle({ onNotification, onServerRequest });
   client.onExit((code) => {
+    abortFallback.clear();
     // The exit is an outcome only oar observes: it answers our dispose when
     // we caused it, and stands alone when the app-server died on its own.
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
@@ -256,16 +244,27 @@ export const codexSession: StartSession = async (installation, options) => {
     onReply: (reply) => ({ kind: "accepted", native: reply }),
     onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
   });
-  // A refused interrupt is the contractual late abort: the turn ended before
-  // it landed, and turn/completed carries the real outcome.
-  const abortPlan = (): RpcControlPlan => ({
-    body: { kind: "abort" },
-    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : null),
-    method: "turn/interrupt",
-    params: () => ({ threadId, turnId: state.codexTurnId }),
-    onReply: (reply) => ({ kind: "accepted", native: reply }),
-    onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
-  });
+  // An early or late interrupt can be refused; turn/completed is the outcome.
+  const abortPlan = (): RpcControlPlan => {
+    let refused: (() => void) | null = null;
+    return {
+      body: { kind: "abort" },
+      gate: () => {
+        if (!busy() || state.codexTurnId === null) {
+          return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
+        }
+        refused = abortFallback.arm();
+        return null;
+      },
+      method: "turn/interrupt",
+      params: () => ({ threadId, turnId: state.codexTurnId }),
+      onReply: (reply) => ({ kind: "accepted", native: reply }),
+      onError: (message) => {
+        refused?.();
+        return { kind: "rejected", code: "runtime_refused", reason: message };
+      },
+    };
+  };
 
   const session: Session = sealSession({
     id: kernel.sessionId,

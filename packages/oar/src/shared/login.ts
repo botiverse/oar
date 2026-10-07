@@ -3,7 +3,7 @@ import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
-import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./executable/index.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./executable/index.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
 
@@ -170,6 +170,7 @@ export function spawnLoginProcess(
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,
   });
+  trackOwnedProcess(child);
   let running = true;
   let stopped = false;
   // A write racing the exit fails with EPIPE; the exit reports the outcome.

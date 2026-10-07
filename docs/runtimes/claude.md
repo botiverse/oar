@@ -150,6 +150,16 @@ response, and the turn ends on claude's own `result/error_during_execution`,
 which the fold classifies `aborted` because OAR's interrupt was outstanding.
 A late abort is rejected `no active turn`.
 
+If claude exits before replying, every pending interrupt is answered once
+with `rejected: runtime_exited`. A `control_response` draining from stdout
+after that is kept as a frame only. If the turn is still running ten seconds
+after the first abort, OAR kills the process using its normal SIGTERM then
+SIGKILL grace period below. The timer follows the turn, even after an
+interrupt acknowledgement, and is cleared when the turn ends. A native
+refusal cancels only that abort attempt. The observed exit ends the turn as `failed: runtime_exited`; continue by resuming the
+session. [Exit and deadline tests](../../tests/claude/claude-session-death.test.ts),
+[real-binary transport-fault test](../../sea-trial/vendor/abort-fallback.vendor.test.ts).
+
 **Unreachable runtime:** a `dispose` mid-turn ends with `request dispose`,
 `response exited` (code 143) and no `result` frame, so the turn end for
 observers is the exit itself. When claude dies on its own (SIGKILL), the
@@ -355,6 +365,9 @@ claude's frames name servers and their status only, never an `env` or
 project-scope (`.mcp.json`) or local-scope server was not measured.
 
 ### Process ownership, environment, installation, and account usage
+
+A synchronous host `exit` also kills OAR-owned process groups, including
+live sessions and probes. See [host lifetime and signal limits](../spec/record-stream.md#the-rules).
 
 **Mapped:** OAR owns the spawned process; disposal settles active work, kills
 the process, and waits for exit. On POSIX the process leads its own process

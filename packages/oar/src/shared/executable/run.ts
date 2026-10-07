@@ -1,5 +1,5 @@
-import { execFile, type ExecException } from "node:child_process";
-import { requiresShell } from "./process.js";
+import { spawn } from "node:child_process";
+import { killGraceMs, OWN_PROCESS_GROUP, requiresShell, signalProcessGroup, trackOwnedProcess } from "./process.js";
 import { nativeError, stderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 
 export interface ExecutableResult {
@@ -24,46 +24,88 @@ export type ExecutableRunner = (
   options?: ExecutableRunOptions,
 ) => Promise<ExecutableResult>;
 
+const OUTPUT_LIMIT = 2 * 1024 * 1024;
+
 export const runExecutable: ExecutableRunner = async (executable, args, options = {}) => {
   const timeoutMs = options.timeoutMs ?? 15_000;
+  // execFile does not forward `detached` to spawn. Own the actual process
+  // group here too, so a hung probe's tools cannot outlive the host.
   const result = await new Promise<ExecutableResult>((resolve) => {
-    const complete = (error: (Error & Pick<ExecException, "code" | "signal" | "killed">) | null, stdout: string, stderr: string): void => {
-      const exitCode = error !== null && typeof error.code === "number" ? error.code : null;
+    let stdout: Buffer = Buffer.alloc(0);
+    let stderr: Buffer = Buffer.alloc(0);
+    let failure: ReturnType<typeof nativeError> | null = null;
+    let timedOut = false;
+    let stopped = false;
+    let exited = false;
+    let timer: NodeJS.Timeout | null = null;
+    let escalation: NodeJS.Timeout | null = null;
+    const complete = (code: number | null, signal: NodeJS.Signals | null): void => {
+      clearTimeout(timer ?? undefined);
+      clearTimeout(escalation ?? undefined);
+      options.signal?.removeEventListener("abort", onAbort);
+      const ok = code === 0 && signal === null && failure === null && !stopped;
+      const exitCode = ok || failure !== null || stopped ? null : code;
       resolve({
-        ok: error === null,
-        stdout,
-        stderr,
-        exitCode,
-        ...(error === null ? {} : {
-          diagnostics: {
-            exitCode,
-            signal: error.signal ?? null,
-            stderr: stderrTail(stderr),
-            // maxBuffer also kills the child, but supplies its own string
-            // error code. Only the timer kill is a timeout.
-            ...(error.killed === true && typeof error.code !== "string" ? { timeoutMs } : {}),
-            ...(typeof error.code === "string" || (error.code === undefined && error.signal === undefined && error.killed !== true)
-              ? { error: nativeError(error) } : {}),
-          },
-        }),
+        ok, stdout: stdout.toString("utf8"), stderr: stderr.toString("utf8"), exitCode,
+        ...(ok ? {} : { diagnostics: {
+          exitCode, signal, stderr: stderrTail(stderr.toString("utf8")),
+          ...(timedOut ? { timeoutMs } : {}),
+          ...(failure === null ? {} : { error: failure }),
+        } }),
       });
     };
+    let stop: (() => void) | null = null;
+    const onAbort = (): void => {
+      failure ??= { code: "ABORT_ERR", message: "The operation was aborted" };
+      stop?.();
+    };
     try {
-      execFile(executable, [...args], {
-        cwd: options.cwd,
-        env: options.env,
-        timeout: timeoutMs,
-        ...(options.signal === undefined ? {} : { signal: options.signal }),
-        maxBuffer: 2 * 1024 * 1024,
-        // Modern Node rejects shell-less execution of Windows .cmd/.bat shims.
-        shell: requiresShell(executable, process.platform),
-      }, complete);
-    } catch (error) {
-      // Spawn can fail synchronously too (for example EINVAL on Windows).
-      if (!(error instanceof Error)) {
-        throw error;
+      if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
+        throw Object.assign(new RangeError("timeoutMs must be a nonnegative integer"), { code: "ERR_OUT_OF_RANGE" });
       }
-      complete(error, "", "");
+      const child = spawn(executable, [...args], {
+        cwd: options.cwd, env: options.env,
+        stdio: ["pipe", "pipe", "pipe"],
+        detached: OWN_PROCESS_GROUP,
+        // Keep the existing .cmd/.bat resolution on Windows.
+        shell: requiresShell(executable, process.platform),
+      });
+      trackOwnedProcess(child);
+      stop = (): void => {
+        if (stopped || exited) { return; }
+        stopped = true;
+        clearTimeout(timer ?? undefined);
+        signalProcessGroup(child, "SIGTERM");
+        escalation = setTimeout(() => { signalProcessGroup(child, "SIGKILL"); }, killGraceMs());
+        escalation.unref();
+      };
+      const append = (output: Buffer, chunk: Buffer, stream: string): Buffer => {
+        const remaining = OUTPUT_LIMIT - output.length;
+        const next = Buffer.concat([output, chunk.subarray(0, Math.max(0, remaining))]);
+        if (chunk.length > remaining) {
+          failure ??= { code: "ERR_CHILD_PROCESS_STDIO_MAXBUFFER", message: `${stream} maxBuffer length exceeded` };
+          stop?.();
+        }
+        return next;
+      };
+      child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
+      child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
+      child.once("error", (error) => { failure ??= nativeError(error); });
+      child.once("exit", () => {
+        exited = true;
+        clearTimeout(escalation ?? undefined);
+      });
+      child.once("close", complete);
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => { timedOut = true; stop?.(); }, timeoutMs);
+        timer.unref();
+      }
+      options.signal?.addEventListener("abort", onAbort, { once: true });
+      if (options.signal?.aborted === true) { onAbort(); }
+    } catch (error) {
+      if (!(error instanceof Error)) { throw error; }
+      failure = nativeError(error);
+      complete(null, null);
     }
   });
   return result;

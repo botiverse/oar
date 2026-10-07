@@ -279,6 +279,15 @@ active turn` and a steer `rejected: not_steerable: no active turn`
 (live-contract `busy-and-late-control`;
 [stream tests](../../tests/codex/codex-session-stream.test.ts)).
 
+If the app-server exits with RPCs still pending, their control responses
+are `rejected: runtime_exited`, carrying the process diagnostics; a native
+RPC refusal remains `runtime_refused`. If the interrupted turn has not ended
+ten seconds after the first abort, OAR kills the process with the normal
+SIGTERM then SIGKILL grace period below. An interrupt acknowledgement alone
+does not clear the deadline; `turn/completed` does. A native refusal cancels
+only that abort attempt. The observed exit ends the turn as `failed: runtime_exited`, and the host must resume to continue.
+[Real-binary transport-fault test](../../sea-trial/vendor/abort-fallback.vendor.test.ts).
+
 **Dispose and unreachable runtime:** `dispose()` records a `dispose` request,
 kills the app-server and awaits its exit, recorded as the `exited` response
 (signal death: `code: null`). OAR does not settle active work: a dispose
@@ -617,6 +626,9 @@ message, the exit's stderr tail) passes a redactor that replaces each value
 with `[redacted]` ([test](../../tests/codex/codex-session-mcp-servers.test.ts)).
 
 ### Process ownership, installation, and account usage
+
+A synchronous host `exit` also kills OAR-owned process groups, including
+live sessions and probes. See [host lifetime and signal limits](../spec/record-stream.md#the-rules).
 
 **Mapped:** OAR owns the spawned app-server; disposal kills it and waits for
 the exit because the process may hold state (codex's sqlite runtime in

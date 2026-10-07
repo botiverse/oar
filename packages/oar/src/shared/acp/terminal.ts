@@ -16,7 +16,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
-import { OWN_PROCESS_GROUP, signalProcessGroup } from "../executable/index.js";
+import { OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "../executable/index.js";
 
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024;
 const MAX_OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -144,6 +144,7 @@ export function createAcpTerminalHost(
       // everything it started, not only the shell that launched it.
       detached: OWN_PROCESS_GROUP,
     });
+    trackOwnedProcess(child);
     const { stdout, stderr } = child;
     if (stdout === null || stderr === null) {
       child.kill("SIGKILL");

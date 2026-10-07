@@ -50,7 +50,11 @@ export async function rpcControl(
   };
   try {
     await client.request(plan.method, plan.params(), (outcome) => {
-      record(outcome.kind === "result" ? plan.onReply(outcome.result) : plan.onError(outcome.error.message));
+      if (outcome.kind === "exited") {
+        record({ kind: "rejected", code: "runtime_exited", reason: outcome.error.message });
+      } else {
+        record(outcome.kind === "result" ? plan.onReply(outcome.result) : plan.onError(outcome.error.message));
+      }
     });
   } catch (error) {
     record(plan.onError(error instanceof Error ? error.message : String(error)));

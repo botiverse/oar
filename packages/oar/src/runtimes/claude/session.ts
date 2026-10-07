@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
 import type {
   ControlResult,
   InputOptions,
@@ -6,6 +7,7 @@ import type {
   StartSession,
 } from "../../contracts/session.js";
 import { randomUUID } from "node:crypto";
+import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { asRecord, parseJson } from "../../shared/json.js";
@@ -27,25 +29,13 @@ import {
 } from "./projection.js";
 
 /*
- * Live semantics this adapter is built on (drydock probes, 2026-08-21):
- * - stdin accepts writes at every phase; a mid-turn write is delivered into
- *   the ACTIVE turn at the next model-step boundary (steer), or becomes the
- *   next turn when no step remains. Landing shows up in the event stream.
- * - each turn is framed by its own system/init … result pair; the `result`
- *   frame is claude's own turn end and becomes the turn_ended event.
- * - `control_request {subtype:"interrupt"}` is acked with control_response
- *   (the abort request's response record) and claude settles the turn with
- *   an error-subtype result.
- * - steer/prompt `accepted` here means: the user message was written to
- *   stdin. Landing (same turn vs auto-queued next turn) is claude's timing and
- *   shows up only in the stream. Live probe: claude-session-adapter.ts.
- * - `SessionOptions.effort` is `--effort`; claude's only report of the level
- *   it runs is its `get_settings` answer, read at open (effort.ts). That one
- *   stdout line is consumed, NOT recorded: besides `applied.effort` it dumps
- *   the merged settings of every source (hooks, permissions, any `env` block)
- *   verbatim, and a read-back oar asks for must not publish a user's settings
- *   into every consumer's log. Like codex's `initialize` reply, it is the
- *   adapter's plumbing, not the session's words; every other line is a frame.
+ * Stream-json writes can steer the active turn or land as the next turn;
+ * native system/init ... result frames establish those boundaries. The
+ * interrupt's control_response acknowledges abort, not turn completion.
+ * The adapter owns pending controls and queue drain; projection owns facts.
+ * Effort read-back is private plumbing: get_settings contains user config
+ * and credentials, so that one response is consumed before projection.
+ * Native mappings and live evidence: docs/runtimes/claude.md.
  */
 
 /** One stream-json user message; images go before the text, as the Messages API recommends. */
@@ -96,6 +86,8 @@ export const claudeSession: StartSession = async (installation, options) => {
   // and an entry can be withdrawn by its inputId until then.
   const heldQueue: { input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
+  const abortFallback = createAbortFallback(() => { child.kill(); });
+  const pendingInterrupts = new Map<string, () => void>();
   let disposeRequest: RequestRecord | null = null;
   // The effort read-back in flight at open (see the header): its answer is
   // taken off the line stream before the fold.
@@ -130,9 +122,19 @@ export const claudeSession: StartSession = async (installation, options) => {
           }
           break;
         }
-        case "respond":
-          kernel.respond(command.requestId, command.body);
+        case "respond": {
+          const refused = pendingInterrupts.get(command.requestId);
+          if (refused !== undefined) {
+            pendingInterrupts.delete(command.requestId);
+            if (command.body.kind === "rejected") { refused(); }
+            kernel.respond(command.requestId, command.body);
+          } else {
+            // Exit may precede the last stdout bytes. Preserve a late or
+            // duplicate native reply, but never answer a request twice.
+            kernel.frame({ type: "control_response", native: message, events: [] });
+          }
           break;
+        }
         case "toApp":
           kernel.request("toApp", { kind: "native", type: command.type, native: command.native }, { id: command.id });
           break;
@@ -141,6 +143,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       }
     }
     if (ended) {
+      abortFallback.clear();
       state.active = null;
       state.spontaneous = false;
       if (!state.disposed) {
@@ -152,11 +155,16 @@ export const claudeSession: StartSession = async (installation, options) => {
     }
   });
   child.onExit((code) => {
+    abortFallback.clear();
     // The exit is an outcome only oar observes: it answers our dispose when
     // we caused it, and stands alone when claude died on its own.
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
     state.active = null;
     state.spontaneous = false;
+    for (const requestId of pendingInterrupts.keys()) {
+      pendingInterrupts.delete(requestId);
+      kernel.respond(requestId, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
+    }
     readback?.settle(new Error(`claude exited (code ${String(code)}) before answering get_settings`));
   });
 
@@ -249,6 +257,7 @@ export const claudeSession: StartSession = async (installation, options) => {
           resolve({ request, response: record });
         }
       });
+      pendingInterrupts.set(requestId, abortFallback.arm());
       child.write(`${JSON.stringify({
         type: "control_request",
         request_id: requestId,

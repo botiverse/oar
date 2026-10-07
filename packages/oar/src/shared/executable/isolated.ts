@@ -1,6 +1,6 @@
 import type { ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
-import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./process.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
 
 export interface IsolatedResult {
   readonly exitCode: number | null;
@@ -50,6 +50,7 @@ export async function runIsolated(command: string, args: readonly string[], opti
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,
   });
+  trackOwnedProcess(child);
   let stdout = "";
   let stderr = "";
   const stop = { timedOut: false };

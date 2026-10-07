@@ -14,6 +14,7 @@ const threadId = "thread-123";
 
 afterEach(() => {
   spawnLineProcess.mockReset();
+  vi.useRealTimers();
 });
 
 function notify(process: FakeLineProcess, method: string, params: Record<string, unknown>): void {
@@ -66,11 +67,15 @@ function answer(process: FakeLineProcess, message: { id: number; method: string;
 }
 
 /** A scripted app-server for the stream shape; `interruptFails` makes turn/interrupt answer with an RPC error. */
-function scriptedAppServer(options: { interruptFails?: boolean } = {}): FakeLineProcess {
+function scriptedAppServer(options: { interruptFails?: boolean; interruptHangs?: boolean; interruptAckOnly?: boolean } = {}): FakeLineProcess {
   let ended = false;
   const fake = fakeLineProcess((text, process) => {
     const message = asRecord(JSON.parse(text));
     if (!ended && typeof message?.id === "number" && typeof message.method === "string") {
+      if (message.method === "turn/interrupt" && (options.interruptHangs === true || options.interruptAckOnly === true)) {
+        if (options.interruptAckOnly === true) { process.emit(`${JSON.stringify({ id: message.id, result: {} })}\n`); }
+        return;
+      }
       answer(process, { id: message.id, method: message.method, params: asRecord(message.params) ?? {} }, options.interruptFails === true);
     }
   });
@@ -148,11 +153,14 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
 });
 
 test("an interrupt the runtime refuses is a rejected abort, not an error", async () => {
-  scriptedAppServer({ interruptFails: true });
+  vi.useFakeTimers();
+  const fake = scriptedAppServer({ interruptFails: true });
   const session = await codexSession(installation, { cwd: "/work" });
   await session.prompt("hold");
   const aborted = await session.abort();
   expect(aborted.response.body).toEqual({ kind: "rejected", code: "runtime_refused", reason: "turn already finished" });
+  await vi.advanceTimersByTimeAsync(10_000);
+  expect(fake.killed()).toBe(false);
   await session.dispose();
 });
 
@@ -210,4 +218,55 @@ test("an unrequested app-server exit is recorded as an exit pointing at no reque
   expect(exit).toMatchObject({ kind: "response", requestId: "", body: { kind: "exited", code: 2 } });
   const after = await session.prompt("after");
   expect(after.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
+});
+
+
+test("an interrupt pending at exit is runtime_exited, not a native refusal", async () => {
+  const fake = scriptedAppServer({ interruptHangs: true });
+  const session = await codexSession(installation, { cwd: "/work" });
+  const prompt = await session.prompt("hold");
+  const abort = session.abort();
+  fake.end(9);
+  const result = await abort;
+  expect(result.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });
+  expect(session.records().filter((record) => record.kind === "response" && record.requestId === result.request.id)).toHaveLength(1);
+  expect(await awaitTurnEnd(session, prompt.request.seq)).toMatchObject({ failure: "runtime_exited" });
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Assert the deadline and its recorded outcome on the same active turn.
+test.each([false, true])("a stuck aborted turn is killed even when interrupt was acknowledged: %s", async (acknowledge) => {
+  vi.useFakeTimers();
+  const fake = scriptedAppServer({ interruptHangs: !acknowledge, interruptAckOnly: acknowledge });
+  const session = await codexSession(installation, { cwd: "/work" });
+  const prompt = await session.prompt("hold");
+  const abort = session.abort();
+  await vi.advanceTimersByTimeAsync(5000);
+  const repeated = session.abort();
+  await vi.advanceTimersByTimeAsync(4999);
+  expect(fake.killed()).toBe(false);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(fake.killed()).toBe(true);
+  const result = await abort;
+  await repeated;
+  expect(result.response.body).toMatchObject(acknowledge ? { kind: "accepted" } : { kind: "rejected", code: "runtime_exited" });
+  expect(session.records().filter((record) => record.kind === "response" && record.requestId === result.request.id)).toHaveLength(1);
+  expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true);
+  expect(await awaitTurnEnd(session, prompt.request.seq)).toMatchObject({ failure: "runtime_exited" });
+  await session.dispose();
+});
+
+
+// oxlint-disable-next-line eslint/max-statements -- Pin timer cancellation across two successive turns.
+test("a completed turn cancels the abort deadline before another turn starts", async () => {
+  vi.useFakeTimers();
+  const fake = scriptedAppServer({ interruptAckOnly: true });
+  const session = await codexSession(installation, { cwd: "/work" });
+  await session.prompt("hold");
+  await session.abort();
+  notify(fake, "turn/completed", { threadId, turn: { id: "turn-1", status: "interrupted" } });
+  await session.prompt("hold");
+  await vi.advanceTimersByTimeAsync(10_000);
+  expect(fake.killed()).toBe(false);
+  await session.dispose();
 });

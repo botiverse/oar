@@ -76,6 +76,41 @@ export function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals):
   child.kill(signal);
 }
 
+const ownedChildren = new Set<ChildProcess>();
+let exitHookInstalled = false;
+
+/**
+ * Own a detached POSIX process group (or a Windows child) until it exits.
+ * One synchronous hook covers sessions, probes, updaters, logins and ACP
+ * terminals even when a host calls process.exit without disposing them.
+ * Node does not emit `exit` for an unhandled terminating signal or SIGKILL;
+ * hosts must arrange graceful signal handling themselves.
+ */
+export function trackOwnedProcess(child: ChildProcess): void {
+  ownedChildren.add(child);
+  const forget = (): void => { ownedChildren.delete(child); };
+  child.once("exit", forget);
+  child.once("error", () => {
+    // A failed spawn has no group. Other errors (e.g. a failed kill) do not
+    // prove the process is gone.
+    if (child.pid === undefined) { forget(); }
+  });
+  if (!exitHookInstalled) {
+    exitHookInstalled = true;
+    process.once("exit", () => {
+      for (const owned of ownedChildren) {
+        try {
+          if (OWN_PROCESS_GROUP) { signalProcessGroup(owned, "SIGKILL"); }
+          else { owned.kill(); }
+        } catch {
+          // Best effort during synchronous exit: one failed signal must not
+          // prevent cleanup of the remaining children.
+        }
+      }
+    });
+  }
+}
+
 /** A long-lived child whose raw streams can also be observed line-by-line. */
 export interface LineProcess {
   /** Resolves once the OS process exists; rejects when it cannot be spawned. */
@@ -114,11 +149,12 @@ export function killProcessTree(child: ChildProcess): void {
     child.kill();
     return;
   }
-  execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], (error) => {
+  const killer = execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], (error) => {
     if (error !== null) {
       child.kill();
     }
   });
+  trackOwnedProcess(killer);
 }
 
 /** Windows npm shims need a shell for one-shot execFile calls. */
@@ -141,6 +177,7 @@ export function spawnLineProcess(
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
   });
+  trackOwnedProcess(child);
   const { stdin, stdout } = child;
   const stderr = new StderrTail();
   const inheritStderr = options.inheritStderr ?? process.env.OAR_CHILD_STDERR === "inherit";
