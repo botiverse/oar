@@ -20,8 +20,7 @@ import { toolContent } from "../../shared/tool-output.js";
  * enter the stream with no events, inside the turn they belong to. pi has no native turn id (no spanId) and no native sub-agents
  * (agentPath is always root).
  *
- * `abortRequested` / `providerError` are control-plane and error inputs the
- * provider stream alone does not carry; `tokens` is the running total of
+ * `providerError` retains failures from the provider stream; `tokens` is the running total of
  * this Session's assistant messages, so usage events count from when this
  * Session opened, as the contract requires.
  */
@@ -32,14 +31,12 @@ export interface ProjectionCommand {
 }
 
 export interface PiProjectionState {
-  readonly abortRequested: boolean;
   readonly reasoningHadText: boolean;
   readonly providerError: PiProviderError | undefined;
   readonly tokens: TokenTotals;
 }
 
 export const initialPiProjection: PiProjectionState = {
-  abortRequested: false,
   reasoningHadText: false,
   providerError: undefined,
   tokens: noTokens,
@@ -50,13 +47,9 @@ export function piPrompted(state: PiProjectionState): PiProjectionState {
   return { ...initialPiProjection, tokens: state.tokens };
 }
 
-export function piAbortRequested(state: PiProjectionState): PiProjectionState {
-  return { ...state, abortRequested: true };
-}
-
-/** The outcome of the run pi's own `agent_settled` closes, read through the control intent and provider errors folded so far. */
-export function piRunOutcome(state: PiProjectionState): TurnOutcome {
-  if (state.abortRequested) {
+/** Pi's settlement reports cancellation; preceding provider events supply error details. */
+export function piRunOutcome(state: PiProjectionState, aborted: boolean): TurnOutcome {
+  if (aborted) {
     return { kind: "aborted" };
   }
   if (state.providerError !== undefined) {
@@ -153,7 +146,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
       // progress"). The context read here is therefore post-compaction.
-      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: piRunOutcome(state) }];
+      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }];
       if (extra.context !== undefined && extra.context !== null) {
         events.push({ kind: "usage", usage: { context: extra.context } });
       }

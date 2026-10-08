@@ -157,6 +157,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       const abort = await session.abort();
       expect(abort.response.body).toEqual({ kind: "accepted" });
       await expect(awaitTurnEnd(session, started.request.seq)).resolves.toEqual({ kind: "aborted" });
+      expect(session.records().findLast((record) => record.kind === "frame" && record.body.type === "agent_settled"))
+        .toMatchObject({ body: { native: { type: "agent_settled", aborted: true } } });
       expect(turnSkeleton(session.records(), started.request.seq)).toEqual([
         "request:prompt",
         "response:accepted",

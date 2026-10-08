@@ -6,13 +6,13 @@ unsupported. See the [query contract](../spec/inventory.md) and
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.0.4**. Native source references are
+`@earendil-works/pi-coding-agent` SDK **1.1.0**. Native source references are
 pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
 URLs redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
 on 2026-09-29, 0.99.1 on 2026-09-30, 0.99.2 on 2026-10-01, 1.0.0 on
-2026-10-02, 1.0.2 on 2026-10-04, 1.0.3 on 2026-10-05 and 1.0.4 on
-2026-10-06): in-process runs of
+2026-10-02, 1.0.2 on 2026-10-04, 1.0.3 on 2026-10-05, 1.0.4 on
+2026-10-06 and 1.1.0 on 2026-10-08): in-process runs of
 [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) and the
 [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
@@ -48,9 +48,16 @@ upstream overload response. The other ten passed on the first run. All eight
 vendor tests and the 19-case simulated behavior suite passed or skipped only
 inapplicable cases. Separate-process 1.0.3 to 1.0.4 resume preserved the id,
 model and prior transcript; the new stream began at sequence zero. No adapter
-change was needed. The workspace lock now selects 1.0.4 and OAR's dependency
-ranges remain `^1.0.2`. See the
+change was needed then; that check used 1.0.4 with dependency ranges `^1.0.2`. See the
 [October 6 report](../../experiments/runtime-version-checks/2026-10-06.md).
+
+**1.1.0** adds an authoritative `aborted` flag to `agent_settled`. OAR now
+uses that native fact for cancellation, including aborts initiated by Pi
+extensions, and invokes the complete `AgentSession.abort()` path. Both Pi
+dependency floors are `^1.1.0`. The
+[October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
+records the local-provider regressions and upgrade checks; older live
+observations above retain their original versions.
 
 **Azure migration in 1.0.3:** the native provider was renamed from
 `azure-openai-responses` to `azure`. Update the native auth, model and
@@ -147,7 +154,7 @@ The directory formula, lookup and error are pinned by
 [`tests/pi/pi-session-resume.test.ts`](../../tests/pi/pi-session-resume.test.ts).
 [Resolver](../../packages/oar/src/runtimes/pi/resolve.ts).
 
-**Extension lifecycle (SDK 1.0.4):** every OAR session, new or resumed,
+**Extension lifecycle (SDK 1.1.0):** every OAR session, new or resumed,
 awaits `session.bindExtensions({})` after construction and option readback,
 before returning it to the host. Pi emits `{ type: "session_start", reason:
 "startup" }` from that call and awaits extension resource discovery. This
@@ -161,7 +168,7 @@ is supplied for startup.
 On dispose, OAR first settles an active turn with Pi's abort, then awaits
 `{ type: "session_shutdown", reason: "quit" }` before calling native
 `session.dispose()`, while extension APIs are still usable. Unlike
-`AgentSessionRuntime.dispose()` in Pi 1.0.4, which waits indefinitely, OAR
+`AgentSessionRuntime.dispose()` in Pi 1.1.0, which waits indefinitely, OAR
 allows **10 seconds total** for the shutdown hooks. After that it releases
 the native session and completes dispose normally. Node emits warning code
 `OAR_PI_SHUTDOWN_TIMEOUT`, naming the session ID, `session_shutdown` and the
@@ -278,23 +285,31 @@ different queue and is not used ([input cancellation](input-cancellation.md),
 [Agent loop][native-agent-loop], [SDK][native-sdk],
 [adapter](../../packages/oar/src/runtimes/pi/session.ts).
 
-**Abort (mapped, cooperative):** `abort()` makes pi's two public synchronous
-calls, `AgentSession.abortRetry()` then `AgentSession.agent.abort()`, exactly
-what pi's own `AgentSession.abort()` does before it awaits idle. Both are
-no-ops until pi has created the run, so an abort taken before `agent_start`
-is held and delivered there. The answer is `accepted` at delivery, ahead of
-the turn end (awaiting idle would put it behind `agent_settled`), so callers
-`awaitTurnEnd` before the next prompt, or the prompt is `rejected` `busy`
-while pi is still settling. On abort the running tool ends with result text
-`Command aborted`, pi still starts the next internal turn, whose assistant
-message arrives with `stopReason: "error"` / `errorMessage: "This operation
-was aborted"`, then `agent_end`, then `agent_settled`. The projection's abort
-intent outranks that error, so `turn_ended` is `aborted`, not `failed`. A late
-abort is `rejected` `no active turn`. The ordering (`request:abort`,
-`response:accepted`, `tool_call_ended`, `turn_ended:aborted`) is pinned by the
-[vendor test](../../sea-trial/vendor/pi.vendor.test.ts) and observed live
-(`abort` scenario); the classification by the
-[replay test](../../tests/replay/pi-projection.test.ts).
+**Abort (mapped, cooperative):** `abort()` invokes the public
+`AgentSession.abort()` method without awaiting its idle wait. In SDK 1.1.0
+that method synchronously marks the run aborted, cancels retry, compaction
+and branch-summary work, and signals the agent before awaiting idle. OAR
+records `accepted` immediately; acceptance is delivery of the cancellation,
+not evidence that the turn has ended. Before Pi creates its run, OAR holds
+the abort and delivers it at `agent_start`. Callers still `awaitTurnEnd`
+before the next prompt. A late abort rejects with `no_active_turn`.
+
+The outcome comes from **`agent_settled.aborted`**, not from OAR's request
+state. A native `true` produces `turn_ended: aborted` even if an extension
+called `ctx.abort()` and the host never requested it. A native `false`
+keeps a provider failure or normal completion. This also prevents a
+provider's abort-related error message from changing a native cancellation
+into failure. A later rejection from the SDK's abort promise is retained
+as `pi/abort_rejected`, without synthesizing a turn boundary.
+
+The [vendor test](../../sea-trial/vendor/pi.vendor.test.ts) pins
+`request:abort`, `response:accepted`, then the native aborted settlement;
+the [extension test](../../sea-trial/vendor/pi-native-abort.vendor.test.ts)
+loads a real extension that cancels a tool call without any OAR abort
+request. The [replay tests](../../tests/replay/pi-projection.test.ts) pin
+classification, and the
+[session test](../../tests/pi/pi-session-withdraw.test.ts) covers an abort
+accepted before `agent_start`.
 
 **Dispose:** `dispose()` records the request, clears the held queue, aborts
 active work (this time awaiting pi's idle), disposes the SDK session, and
