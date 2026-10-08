@@ -750,4 +750,8 @@ both new and resumed print-mode processes. Use Claude names such as `Bash`,
 empty lists add no flag. The native tool selector removes built-in and MCP
 tools from provider requests even with OAR's usual permission bypass.
 
+Unknown or wrong-case names such as `NoSuchTool` or `bash` are accepted
+silently and disable nothing. Neither Claude nor OAR reports that no tool
+matched; use the native spelling (`Bash`, not `bash`).
+
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

@@ -29,6 +29,22 @@ async function offered(session: Session, env: AimockEnv): Promise<string[]> {
 
 for (const name of ["claude", "pi"] as const) {
   describe.skipIf(process.env.OAR_TEST !== `${name}-aimock`)(`${name} disallowedTools`, () => {
+    test("unknown native names open without error and leave the provider tool list unchanged", async () => {
+      const start = name === "claude" ? startClaudeAimock : startPiAimock;
+      const env = await start((mock) => { mock.onMessage(/TOOL_FILTER_OK/u, { content: "TOOL_FILTER_OK" }); }, { captureRaw: true });
+      try {
+        const runtime = name === "claude"
+          ? defineRuntime({ id: "claude-aimock", installation: claudeInstallation, session: claudeSession })
+          : defineRuntime({ id: "pi-aimock", installation: piInstallation, session: piSession });
+        const subject = runtimeUnderTest(runtime, { ...env.env, ENABLE_TOOL_SEARCH: "false" });
+        const baseline = await offered(await subject.startSession(), env);
+        expect(await offered(await subject.startSession({ disallowedTools: ["NoSuchTool"] }), env)).toEqual(baseline);
+        if (name === "claude") {
+          expect(await offered(await subject.startSession({ disallowedTools: ["bash"] }), env)).toEqual(baseline);
+        }
+      } finally { await env.stop(); }
+    }, 90_000);
+
     test("native builtin and MCP denial reaches new sessions and resumes; omitted and empty lists keep defaults", async () => {
       const start = name === "claude" ? startClaudeAimock : startPiAimock;
       const env = await start((mock) => { mock.onMessage(/TOOL_FILTER_OK/u, { content: "TOOL_FILTER_OK" }); }, { captureRaw: true });

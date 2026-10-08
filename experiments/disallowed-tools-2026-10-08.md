@@ -43,6 +43,11 @@ before launch. The filter does not cover MCP or client filesystem callbacks.
 OAR's ACP client advertises no filesystem callbacks. Authentication and the
 live Gemini service are not exercised by this scripted-provider check.
 
+Claude and Pi accept an unmatched `NoSuchTool` without error and send the
+same tool set as the baseline; Claude also ignores the wrong-case `bash`.
+Their native filtering is not name validation. Vendor regressions pin this
+silent no-op so hosts do not mistake an accepted open for a matched denial.
+
 ## Reproduce
 
 Run the vendor test for the named backend, pinning its executable with the

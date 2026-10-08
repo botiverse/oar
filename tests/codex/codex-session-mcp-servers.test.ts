@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { McpServer } from "../../packages/oar/src/contracts/session.js";
+import type { McpServer, Session } from "../../packages/oar/src/contracts/session.js";
 import { codexThreadOpen } from "../../packages/oar/src/runtimes/codex/open.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -92,4 +92,36 @@ test("nor does a codex exit, whose stderr tail the error carries", async () => {
   const opening = codexSession(installation, { cwd: "/work", mcpServers: [echo] });
   await expect(opening).rejects.toThrow(/\[redacted\]/u);
   await expect(opening).rejects.not.toThrow(STDIO_TOKEN);
+});
+
+const privateUserConfigValue = "private-user-config-env-sentinel";
+
+function expectPrivateConfig(session: Session, sent: readonly Record<string, unknown>[], method: string): void {
+  const open = sent.find((message) => message.method === method);
+  expect(asRecord(open?.params)?.config).toEqual({ mcp_servers: { saved: { disabled_tools: ["already", "echo"] } } });
+  expect(JSON.stringify(sent)).not.toContain(privateUserConfigValue);
+  expect(JSON.stringify(session.records())).not.toContain(privateUserConfigValue);
+  expect(session.records().filter((record) => record.kind === "frame").map((record) => record.body.type)).toEqual([method]);
+}
+
+test.each([undefined, "saved-thread"])("config/read credentials stay private when applying tool denials, resume=%s", async (resume) => {
+  const sent: Record<string, unknown>[] = [];
+  const fake = fakeLineProcess((text, process) => {
+    const message = asRecord(JSON.parse(text));
+    if (typeof message?.id !== "number") { return; }
+    sent.push(message);
+    let result: Record<string, unknown> = {};
+    if (message.method === "config/read") {
+      result = { config: { mcp_servers: { saved: { command: "private-server", env: { PRIVATE_TOKEN: privateUserConfigValue }, disabled_tools: ["already"] } } } };
+    } else if (message.method !== "initialize") {
+      result = { thread: { id: "saved-thread" }, model: "gpt-5.5" };
+    }
+    process.emit(`${JSON.stringify({ id: message.id, result })}\n`);
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const session = await codexSession(installation, { cwd: "/work", ...(resume === undefined ? {} : { resume }), disallowedTools: ["mcp__saved__echo"] });
+  try {
+    expectPrivateConfig(session, sent, resume === undefined ? "thread/start" : "thread/resume");
+  } finally { await session.dispose(); }
+  expect(JSON.stringify(session.records())).not.toContain(privateUserConfigValue);
 });

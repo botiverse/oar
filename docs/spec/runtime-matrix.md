@@ -113,8 +113,8 @@ perform similar work, so it is not a process sandbox.
 
 | runtime | can disable | refuses |
 |---|---|---|
-| claude | native `--disallowed-tools` names, including `Bash` and `mcp__server__tool` | native CLI validation errors remain native |
-| pi | SDK `excludeTools`, built-ins such as `bash` and directly exposed MCP names `mcp__server__tool` | native SDK name/pattern semantics apply |
+| claude | native `--disallowed-tools` names, including `Bash` and `mcp__server__tool` | unknown or wrong-case names are accepted silently and disable nothing (for example `bash` is not `Bash`); OAR does not validate them |
+| pi | SDK `excludeTools`, built-ins such as `bash` and directly exposed MCP names `mcp__server__tool` | native SDK name/pattern semantics apply; unmatched names are accepted silently and disable nothing |
 | cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
 | codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
 | antigravity | canonical `BuiltinTools` filter names via `_meta.agy.disabledTools`; see its page for the exact list and native group names | MCP, client file tools, unknown names; a mixed list fails as a whole before launch |

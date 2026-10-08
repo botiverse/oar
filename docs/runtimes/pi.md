@@ -644,4 +644,8 @@ registered later by extensions/MCP. Use Pi names such as `bash`, `read` and
 `mcp__server__tool`; native pattern matching is unchanged. OAR does not edit
 Pi's settings or build an allowlist. Supply the list again on resume.
 
+An unmatched native name such as `NoSuchTool` is accepted silently and
+disables nothing. Neither Pi nor OAR reports that no tool matched; this
+option does not validate names against the current registry.
+
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

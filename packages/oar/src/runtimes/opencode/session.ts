@@ -16,7 +16,6 @@ export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
 
 export const opencodeAcpProfile: AcpSessionProfile = {
   args: ["acp"],
-  validateOptions: (options) => { refuseSessionOptions(opencodeRefusedSessionOptions, options); },
   // The ACP layer forwards only its own sessions' parts: a `task` subagent
   // runs in a child session whose frames never reach this transport, so the
   // call shows only as the parent's tool call (opaque, tier #1).
