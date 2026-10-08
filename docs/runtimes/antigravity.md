@@ -190,6 +190,15 @@ Detail strings truncate at 10,000 characters (`native` does not).
 `usage_update` and no token totals on any answer, so no `cacheRead` or
 `cacheWrite` either.
 
+**Known gap: a failed turn looks completed.** Against a scripted Gemini
+provider (ACP server 1.3.0, [failure evidence](../spec/runtime-matrix.md#failure-evidence)),
+a rejected key, a billing error or an oversized context ends the prompt
+`stopReason: end_turn` with no message; a 500 or a model the provider refuses
+ends it `end_turn` after the provider's text as agent text; a 429 or 503
+sends nothing for at least 150 s. OAR records the first two as `completed`.
+Only a missing login (-32000 "Authentication required") and a model it does
+not offer (-32602) fail, when the session opens.
+
 **Tool frames:** Antigravity executes tools itself. In `yolo` a shell call
 opens with a `tool_call` whose `title` is the command, `kind: "execute"`,
 `status: "in_progress"` and `rawInput {command_line, working_dir}`, so
