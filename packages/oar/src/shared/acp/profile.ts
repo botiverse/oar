@@ -3,6 +3,7 @@ import { methods, PROTOCOL_VERSION, type ClientConnection, type SendRequestOptio
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
+import { acpOpenStep, type AcpFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import { refuseResumeElsewhere } from "./resume-cwd.js";
@@ -63,6 +64,8 @@ export interface AcpSessionProfile {
    */
   readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
+  /** Classify a prompt the agent answered with an error, from the error and the turn's frames; null leaves it to the generic rules (failure.ts). */
+  readonly failureOutcome?: AcpFailureReader;
   /**
    * The agent answers `session/prompt` BEFORE it pushes the turn's
    * `usage_update` (kimi-code f9ca33376 packages/acp-server/src/session.ts:
@@ -244,22 +247,17 @@ export async function openAcpSession(
   options: SessionOptions,
   observe: AcpOpenObserver = () => {},
 ): Promise<OpenedAcpSession> {
-  const initialized = await initialize(process, profile, options, observe);
-  const opened = await createOrResume(
-    process,
-    profile,
-    initialized,
-    options,
-    profile.sessionMeta?.(options),
-  );
+  // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
+  const initialized = await acpOpenStep(initialize(process, profile, options, observe), "open");
+  const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options)), "open");
   observe({ method: opened.openMethod, response: opened.response });
   const setModelResponse = options.model === undefined
     ? undefined
-    : await applyAcpModel(process, opened.sessionId, options.model, {
+    : await acpOpenStep(applyAcpModel(process, opened.sessionId, options.model, {
       viaConfigOption: profile.modelViaConfigOption === true,
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe,
-    });
+    }), "model");
   if (options.effort !== undefined) {
     // The effort menu belongs to the model in effect: a model switch whose
     // answer lists the options (`set_config_option`, opencode 1.18.30 where

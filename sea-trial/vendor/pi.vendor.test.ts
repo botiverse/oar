@@ -58,6 +58,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
           "failure": "invalid_request",
           "kind": "failed",
           "reason": "400 {"type":"error","error":{"type":"invalid_request_error","message":"max_tokens exceeds model limit"}}",
+          "status": 400,
         }
       `);
       await session.dispose();

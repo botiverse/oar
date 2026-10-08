@@ -4,7 +4,6 @@ import type {
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
-import { classifyFailure } from "../failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../json.js";
 import { addTokens } from "../token-totals.js";
 import { toolContent } from "../tool-output.js";
@@ -272,17 +271,7 @@ export function defaultAcpPromptOutcome(response: JsonRecord): TurnOutcome {
     : { kind: "completed" };
 }
 
-/** The outcome a rejected prompt request reports (an RPC error answer). */
-export function acpFailureOutcome(error: unknown): TurnOutcome {
-  const reason = error instanceof Error ? error.message : "ACP prompt failed";
-  return {
-    kind: "failed",
-    reason,
-    failure: error instanceof AcpError && error.kind === "process_exited"
-      ? "runtime_exited"
-      : classifyFailure(reason),
-  };
-}
+export { acpFailureOutcome } from "./failure.js";
 
 /** A JSON-safe rendering of an RPC error for the `native` of a prompt-error event. */
 export function acpErrorNative(error: unknown): JsonRecord {

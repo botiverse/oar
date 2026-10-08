@@ -6,6 +6,7 @@ import { appendFileSync } from "node:fs";
  *   FAKE_ACP_MCP_HTTP=1      initialize declares mcpCapabilities.http
  *   FAKE_ACP_MCP_LOG=<file>  each open's method and `mcpServers` param, one JSON line per open
  *   FAKE_ACP_MCP_FAIL=1      an open fails, its error quoting the `mcpServers` param
+ *   FAKE_ACP_MCP_FAIL_CODE=n that error's JSON-RPC code (default -32603)
  */
 
 export function mcpCapabilities() {
@@ -24,7 +25,7 @@ export function answeredMcpOpen(message, error) {
     appendFileSync(process.env.FAKE_ACP_MCP_LOG, `${JSON.stringify({ method: message.method, mcpServers: servers })}\n`);
   }
   if (process.env.FAKE_ACP_MCP_FAIL === "1") {
-    error(message.id, -32_603, `cannot start ${JSON.stringify(servers)}`);
+    error(message.id, Number(process.env.FAKE_ACP_MCP_FAIL_CODE ?? -32_603), `cannot start ${JSON.stringify(servers)}`);
     return true;
   }
   return false;

@@ -6,7 +6,7 @@ import type {
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
-import { classifyFailure } from "../../shared/failure-class.js";
+import { piFailure, type PiProviderError } from "./failure.js";
 import { asNumber, asRecord } from "../../shared/json.js";
 import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
@@ -34,7 +34,7 @@ export interface ProjectionCommand {
 export interface PiProjectionState {
   readonly abortRequested: boolean;
   readonly reasoningHadText: boolean;
-  readonly providerError: string | undefined;
+  readonly providerError: PiProviderError | undefined;
   readonly tokens: TokenTotals;
 }
 
@@ -60,14 +60,20 @@ export function piRunOutcome(state: PiProjectionState): TurnOutcome {
     return { kind: "aborted" };
   }
   if (state.providerError !== undefined) {
-    return { kind: "failed", reason: state.providerError, failure: classifyFailure(state.providerError) };
+    return piFailure(state.providerError);
   }
   return { kind: "completed" };
 }
 
-/** Extra inputs the adapter supplies alongside an SDK event: pi's authoritative context fullness, read at `agent_settled`. */
+/**
+ * Extra inputs the adapter supplies alongside an SDK event: pi's
+ * authoritative context fullness, read at `agent_settled`; and whether the
+ * failed assistant message the event carries is a context overflow (pi-ai's
+ * `isContextOverflow`, which the adapter loads with the SDK).
+ */
 export interface PiFoldExtra {
   readonly context?: ContextUsage | null;
+  readonly overflow?: boolean;
 }
 
 interface Step {
@@ -89,6 +95,7 @@ function jsonDetail(value: unknown): string | undefined {
 function foldMessageUpdate(
   state: PiProjectionState,
   inner: Extract<AgentSessionEvent, { type: "message_update" }>["assistantMessageEvent"],
+  overflow: boolean,
 ): Step {
   switch (inner.type) {
     case "text_delta":
@@ -100,7 +107,7 @@ function foldMessageUpdate(
     case "error":
       // pi's prompt() RESOLVES even when the provider errored; the failure
       // only surfaces here (pinned by the pi vendor 400 test).
-      return { state: { ...state, providerError: inner.error.errorMessage ?? inner.reason }, events: [] };
+      return { state: { ...state, providerError: { message: inner.error.errorMessage ?? inner.reason, overflow } }, events: [] };
     case "thinking_start":
       return { state: { ...state, reasoningHadText: false }, events: [] };
     case "thinking_end":
@@ -153,7 +160,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       return { state: piPrompted(state), events };
     }
     case "message_update":
-      return foldMessageUpdate(state, event.assistantMessageEvent);
+      return foldMessageUpdate(state, event.assistantMessageEvent, extra.overflow === true);
     case "message_end":
       return accumulate(state, event.message);
     case "tool_execution_start": {
@@ -205,7 +212,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // A provider failure surfaces only as stopReason "error" on the turn's
       // final assistant message (pinned by the pi vendor 400 test).
       return event.message.role === "assistant" && event.message.stopReason === "error"
-        ? { state: { ...state, providerError: event.message.errorMessage ?? "provider error" }, events: [] }
+        ? { state: { ...state, providerError: { message: event.message.errorMessage ?? "provider error", overflow: extra.overflow === true } }, events: [] }
         : { state, events: [] };
     // Recorded with no event (an exhaustive switch makes a NEW pi event type a
     // compile error, forcing a conscious event-or-plain decision on each

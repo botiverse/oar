@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
+import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-failure-error.js";
 import type { McpServer, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
@@ -102,6 +103,19 @@ test("an open that fails reports no credential its servers carry", async () => {
   await expect(opening).rejects.toThrow(/cannot start .*"value":"\[redacted\]"/u);
   const failure: unknown = await opening.catch((error: unknown) => error);
   expect(String(failure instanceof Error ? failure.stack : failure)).not.toMatch(/stdio-secret-value|http-secret-value/u);
+});
+
+// An open refused as a RuntimeFailureError keeps the agent's words in `reason` and its `cause`: neither may hold a credential.
+test("an open refused for auth reports no credential its servers carry, in its reason or its cause", async () => {
+  const failure: unknown = await open({ mcpServers: servers }, { FAKE_ACP_MCP_HTTP: "1", FAKE_ACP_MCP_FAIL: "1", FAKE_ACP_MCP_FAIL_CODE: "-32000" }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(RuntimeFailureError);
+  expect(failure).toMatchObject({ failure: "auth" });
+  const refused = failure instanceof RuntimeFailureError ? failure : null;
+  const cause = refused?.cause instanceof Error ? refused.cause : null;
+  expect(cause?.message).toMatch(/cannot start .*"value":"\[redacted\]"/u);
+  for (const text of [refused?.message, refused?.reason, refused?.stack, cause?.message, cause?.stack]) {
+    expect(String(text)).not.toMatch(/stdio-secret-value|http-secret-value/u);
+  }
 });
 
 const antigravity = acpSession({ ...antigravityAcpProfile, args: [fixture, "antigravity"] });

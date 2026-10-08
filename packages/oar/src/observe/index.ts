@@ -16,6 +16,8 @@ export type { AgentObserver, AgentView, ObserveAgentOptions } from "./observe-ag
 export { classifyTool, toolActionLabel } from "./tool-activity.js";
 export { groupToolActivity, toolGroupSummary } from "./tool-groups.js";
 export { failureText, noticeText, noticeTone, phaseLabel, taskStatusLabel } from "./display-text.js";
+export { failureAdvice } from "./failure-advice.js";
+export type { FailureAdvice } from "./failure-advice.js";
 export type { NoticeTone } from "./display-text.js";
 export { toolResultText } from "./tool-output.js";
 export { appRequestKind } from "./app-requests.js";

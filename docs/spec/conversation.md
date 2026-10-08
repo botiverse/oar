@@ -207,12 +207,18 @@ same wording works in a browser or JavaScriptCore:
 | `noticeText(notice)` | A `ViewNotice` to text, including its native reason and available retry details. Child turn outcomes are objects, read by their `kind`. |
 | `noticeTone(notice)` | A `ViewNotice` to `quiet`, `warning` or `danger`. Completed work and a zero exit are quiet; retries, refusals, aborts and an unknown exit code warn; failed work and a nonzero exit are danger. |
 | `phaseLabel(phase)` | A `RunningPhase` to a label such as `Waiting for model` or `Running <tool>`. |
-| `failureText(failure, runtimeName)` | A `FailureClass` to a neutral sentence such as `Claude Code is not signed in.` The host adds any sign-in or recovery instructions. |
+| `failureText(failure, runtimeName, credential?)` | A `FailureClass` to a neutral sentence such as `Claude Code reported that its usage limit was reached.` With `auth`, a failed outcome's `credential` words it as a missing login (`Claude Code is not signed in.`) or a refused credential (`Claude Code's credentials were rejected.`); without it, `Claude Code could not authenticate.` The host adds any sign-in or recovery instructions. |
 | `taskStatusLabel(status)` | A `TaskStatus` to its display label. |
 | `toolGroupSummary(counts, state?)` | A tool group's English summary. With no calls, the reasoning-only group reads `Thought`, or `Thinking…` when `state` is `running`; `state` defaults to `done`. Tool counts retain their existing wording. |
 
 The wording is for display and may change in any minor release. Hosts must
-make decisions from the typed values, never parse these strings. The
+make decisions from the typed values, never parse these strings. For those
+decisions, `failureAdvice(failure)` gives one policy per `FailureClass`:
+`retry` is `now` (retry with ordinary backoff: `rate_limited`, `overloaded`,
+`provider`, `runtime_exited`), `later` (wait for a limit to reset, typically
+hours: `quota`) or `no`; `userAction` says a person has to act first (`auth`,
+`billing`, `model_unavailable`, `input_too_large`). A `RuntimeFailureError`
+from `session()` carries the same `failure`. The
 separate [`parseReport`](subagents.md#reading-results) helper reads only
 `formatReport`'s own report format. Each union member is covered by tests
 and exhaustive type checks in OAR, so an added member requires its wording

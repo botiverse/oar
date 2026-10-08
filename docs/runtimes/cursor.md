@@ -149,10 +149,15 @@ abort that arrives before the SDK has returned the run is held and delivered
 as soon as it exists.
 
 **Outcomes:** `run.wait()`'s `finished` is completed, `cancelled` aborted,
-and `error` failed with the SDK's `error.message` classified by
-`classifyFailure` (a missing credential fails the first run with `[unknown]
-Invalid User API Key`, read as `auth`; probed). A `run.wait()` that throws
-instead records `cursor/run_failed` with the message, which ends the turn.
+and `error` failed with the SDK's `error.message` classified from its words,
+the last resort, as the run error carries no code (a missing credential fails
+the first run with `[unknown] Invalid User API Key`, read as `auth`; probed).
+A made-up `CURSOR_API_KEY` fails the open instead: `Agent.create` checks the
+key with Cursor's service and rejects with `AuthenticationError` (401), which
+`session()` rejects as a `RuntimeFailureError` (`auth`, `rejected`;
+[failure evidence](../spec/runtime-matrix.md#cursor)). A `run.wait()` that
+throws instead records `cursor/run_failed` with the message, which ends the
+turn.
 
 **Dispose (mapped):** `dispose()` gives up a `send` still on its way,
 cancels a running run, waits up to five seconds for its `cancelled` answer,

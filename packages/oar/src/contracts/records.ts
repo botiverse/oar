@@ -1,3 +1,4 @@
+import type { CredentialProblem, FailureClass } from "./failure.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { TaskEventBody } from "./tasks.js";
 import type { ToolOutputPart } from "./tool-output.js";
@@ -268,20 +269,18 @@ export type ResponseBody =
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
   | { readonly kind: "exited"; readonly code: number | null };
 
-/** Coarse failure classification so applications can react (re-login, back off, report a bug) without parsing vendor error prose. Best-effort: adapters map what the runtime reveals; "unknown" is an honest answer. */
-export type FailureClass =
-  | "auth"
-  | "quota"
-  | "invalid_request"
-  | "overloaded"
-  | "provider"
-  | "runtime_exited"
-  | "unknown";
-
 export type TurnOutcome =
   | { readonly kind: "completed" }
   | { readonly kind: "aborted" }
-  | { readonly kind: "failed"; readonly reason: string; readonly failure: FailureClass };
+  | {
+    readonly kind: "failed";
+    readonly reason: string;
+    readonly failure: FailureClass;
+    /** With `auth`, where the runtime says which. */
+    readonly credential?: CredentialProblem;
+    /** The provider's HTTP status, where the runtime reports one. */
+    readonly status?: number;
+  };
 
 /**
  * Current context fullness, borrowed from pi's shape because it already

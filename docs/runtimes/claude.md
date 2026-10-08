@@ -251,8 +251,9 @@ projection tests; it is not a public raw/replay interface.
 event OAR reads from each `system/init` frame, so it is `null` until the
 first turn's init frame (`haiku` reads back as `claude-haiku-4-5-20251001`).
 Opening with a model that does not exist succeeds; the first turn fails with
-claude's "issue with the selected model" message, classified
-`invalid_request`. The token-free `list_models` control request preserves
+claude's "issue with the selected model" message (`error: model_not_found`,
+`api_error_status: 404`), classified `model_unavailable`
+([failure evidence](../spec/runtime-matrix.md#claude)). The token-free `list_models` control request preserves
 selector versus resolved ID, disabled entries, and effort choices
 (`supportedEffortLevels` per model; haiku lists none).
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),

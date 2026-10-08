@@ -222,11 +222,11 @@ one.
 
 ## Failure evidence
 
-What each runtime reports when a session fails for a common cause, gathered
-for structured failure classes ([#227](https://github.com/botiverse/oar/issues/227));
-the mapping comes separately. Until then `TurnOutcome.failure` comes from one
-prose table for every runtime (`shared/failure-class.ts`): the **oar 0.40**
-column below is what it gives today.
+What each runtime reports when a session fails for a common cause, and the
+`FailureClass` oar maps it to ([#227](https://github.com/botiverse/oar/issues/227)):
+a failed turn's `failure`, `credential` and `status`, or the
+`RuntimeFailureError` an open rejects with. The **oar** column of each table
+is what oar gives; the [mapping rules](#the-mapping) say why.
 
 **How.** [`experiments/failure-evidence.ts`](../../experiments/failure-evidence.ts)
 opens a session on the real runtime and prompts once, with the model provider
@@ -249,6 +249,58 @@ made before any (a login; a model the runtime, or oar for pi, does not know;
 cursor verifies its key with its service). The cells marked **open** hold
 those; pi refuses the prompt when it has no key; every other failure came
 with the turn.
+
+### The mapping
+
+Each adapter reads, in order: the runtime's own category for the failure
+(claude's `assistant.error`, codex's `codexErrorInfo`, grok's
+`retry_state.error_type`, ACP's -32000); then the provider's error body that
+the runtime passes on (its `code`, else its `type`: pi's `errorMessage`, a
+codex `other`); then the HTTP status the runtime reports (401 `auth`, 402
+`billing`, 404 `model_unavailable`, 429 `rate_limited`, 503 and 529
+`overloaded`, another 5xx `provider`, 400 `invalid_request`). An OpenAI 429
+whose code names a quota or a balance (`insufficient_quota`,
+`organization_usage_limit_exceeded`, `usage_limit_reached`,
+`credit_balance_exhausted`) is `quota` or `billing`; only one without such a
+code is `rate_limited`. Matching the words is each adapter's last resort,
+named in its table below. What none of these says is `unknown`.
+
+Only `[env]` cells are mapped. A value a runtime declares that no run
+produced stays unmapped (it falls through to the status or to `unknown`)
+until it is observed: claude's `oauth_org_not_allowed`, `account_on_hold`,
+`verification_required`, `overloaded`, `max_output_tokens`,
+`cloud_credential_error`; codex's `unauthorized`, `badRequest`,
+`sessionBudgetExceeded`, `cyberPolicy` and the rest of its schema; Anthropic's
+`request_too_large` and `permission_error`; OpenAI's spend-limit and
+`slow_down` codes.
+
+`credential` is set only where the runtime makes it plain: claude's
+`authentication_failed` with no request sent (`missing`) or a 401
+(`rejected`), and cursor's `AuthenticationError` at open (`rejected`).
+ACP's -32000, a codex 401 and a pi 401 do not say which. `status` is the
+HTTP status where the runtime reports one.
+
+Known blur, kept because the runtime does not tell the causes apart: codex's
+`usageLimitExceeded` covers a usage limit and an exhausted balance alike
+(`quota`); claude's 429 covers a tier's monthly spend cap as well as
+throttling (`rate_limited`); grok's -32003 covers every 429 (`rate_limited`).
+kimi and antigravity report most failed turns as completed, so oar does too.
+
+An open fails with a `RuntimeFailureError` (`failure`, `credential`,
+`status`, `reason`) for: ACP's -32000 on `initialize`, `authenticate`,
+`session/new` or `session/resume` (`auth`); an invalid-params answer (-32602)
+to the call that selects the model (`model_unavailable`); cursor's
+`AuthenticationError` (`auth`, `rejected`); a pi model oar does not find in
+pi's registry (`model_unavailable`). Other open failures keep their errors
+(kimi's unknown model is a -32603 that only its words explain).
+`failureAdvice(failure)` (observe) turns any class into one retry policy.
+
+Each mapped cell has a vendor test: [`failure-classes.vendor.test.ts`](../../sea-trial/vendor/failure-classes.vendor.test.ts)
+(claude, codex, pi, in CI) and [`failure-classes-acp.vendor.test.ts`](../../sea-trial/vendor/failure-classes-acp.vendor.test.ts)
+(the ACP runtimes, run locally like the other ACP vendor tests), which also
+pin kimi's and antigravity's completed-looking failures and opencode's
+classes by its words. The adapters' mappings are unit-tested on the observed
+facts ([test](../../tests/failure-mapping.test.ts)).
 
 ### The provider replies
 
@@ -286,18 +338,18 @@ was sent) and `terminal_reason`. A retried cause first sends `system/api_retry`
 frames `{attempt, max_retries, retry_delay_ms, error_status, error}`: 10 retries
 by default (`CLAUDE_CODE_MAX_RETRIES`; the runs set 1).
 
-| cause | `assistant.error` | `api_error_status` | retried (`api_retry.error`) | oar 0.40 |
+| cause | `assistant.error` | `api_error_status` | retried (`api_retry.error`) | oar |
 |---|---|---|---|---|
-| missing login | `authentication_failed` ("Not logged in · Please run /login") | `null` | no | `auth` |
-| invalid key | `authentication_failed` | 401 | yes (`authentication_failed`) | `auth` |
-| unknown model | `model_not_found` | 404 | no | `invalid_request` |
-| rate limited | `rate_limit` | 429 | yes (`rate_limit`) | `quota` |
-| usage limit (400) | `unknown` | 400 | no | `quota` |
-| billing: credit balance (400) | `billing_error` ("Credit balance is too low") | 400 | no | `unknown` |
-| billing: 402 | `unknown` | 402 | no | `provider` |
-| server error | `server_error` | 500 | yes (`server_error`) | `provider` |
-| overloaded | `server_error` | 529 | yes (`overloaded`) | `overloaded` |
-| oversized context | `invalid_request`; `terminal_reason: prompt_too_long` | 400 | no | `unknown` |
+| missing login | `authentication_failed` ("Not logged in · Please run /login") | `null` | no | `auth`, `missing` |
+| invalid key | `authentication_failed` | 401 | yes (`authentication_failed`) | `auth`, `rejected` |
+| unknown model | `model_not_found` | 404 | no | `model_unavailable` |
+| rate limited | `rate_limit` | 429 | yes (`rate_limit`) | `rate_limited` |
+| usage limit (400) | `unknown` | 400 | no | `quota`: the words ("specified API usage limits"), the last resort |
+| billing: credit balance (400) | `billing_error` ("Credit balance is too low") | 400 | no | `billing` |
+| billing: 402 | `unknown` | 402 | no | `billing` (the status) |
+| server error | `server_error` | 500 | yes (`server_error`) | `provider` (the status) |
+| overloaded | `server_error` | 529 | yes (`overloaded`) | `overloaded` (the status) |
+| oversized context | `invalid_request`; `terminal_reason: prompt_too_long` | 400 | no | `input_too_large` |
 | inside the stream | none: claude retries the stream, then repeats the request without streaming, and that answer ends the turn | | | |
 
 After a tool call the fields are the same; an oversized context first tries
@@ -314,21 +366,21 @@ with `willRetry: false`. Each retry is an `error` notification with
 `willRetry: true`, `codexErrorInfo: {responseStreamDisconnected: {httpStatusCode}}`
 and the message "Reconnecting... n/5".
 
-| cause | `codexErrorInfo` | retried | oar 0.40 |
+| cause | `codexErrorInfo` | retried | oar |
 |---|---|---|---|
-| missing login (no key, the default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` |
-| invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` |
-| unknown model | `{httpConnectionFailed: {httpStatusCode: 404}}` | 5 | `invalid_request` |
-| rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `quota` |
+| missing login (no key, the default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` (the status) |
+| invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` (the status) |
+| unknown model | `{httpConnectionFailed: {httpStatusCode: 404}}` | 5 | `model_unavailable` (the status) |
+| rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `rate_limited` (the status) |
 | usage limit, plan usage limit | `usageLimitExceeded` ("Quota exceeded. Check your plan and billing details."; "You've hit your usage limit.") | no | `quota` |
 | billing (both codes) | `usageLimitExceeded` ("Quota exceeded…") | no | `quota` |
 | server error | `internalServerError` | 5 (`httpStatusCode: null`) | `provider` |
-| overloaded | `serverOverloaded` | no | `unknown` |
-| oversized context (an HTTP 400) | `other` (the message is the provider's JSON) | no | `invalid_request` |
-| in the stream: `context_length_exceeded` | `contextWindowExceeded` | no | `unknown` |
-| in the stream: `server_is_overloaded` | `serverOverloaded` | no | `unknown` |
-| in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota`, `unknown` |
-| in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `quota` |
+| overloaded | `serverOverloaded` | no | `overloaded` |
+| oversized context (an HTTP 400) | `other` (the message is the provider's JSON) | no | `input_too_large` (the body's `code`) |
+| in the stream: `context_length_exceeded` | `contextWindowExceeded` | no | `input_too_large` |
+| in the stream: `server_is_overloaded` | `serverOverloaded` | no | `overloaded` |
+| in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota` |
+| in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `rate_limited` |
 
 A 401 is `httpConnectionFailed`, not the declared `unauthorized`; the schema
 also declares `sessionBudgetExceeded`, `badRequest`, `cyberPolicy` and others
@@ -337,11 +389,11 @@ values are the same.
 
 ### pi
 
-| cause | where | what it carries | oar 0.40 |
+| cause | where | what it carries | oar |
 |---|---|---|---|
 | missing key | the prompt is rejected (`runtime_refused`), no turn | "No API key found for the selected model." | (no turn) |
-| unknown model | the open fails (oar's own check against pi's registry) | a plain `Error` | (no class) |
-| every provider error | the assistant message: `stopReason: "error"`, `errorMessage` | "<status> <the provider's JSON body>"; inside a stream the body alone, no status | as its text: 401 `auth`, 404 and 402 and 500 `provider`, 429 and the 400 usage limit `quota`, 529 `overloaded`, the credit balance and the oversized context `invalid_request` |
+| unknown model | the open fails (oar's own check against pi's registry) | `RuntimeFailureError` | `model_unavailable` |
+| every provider error | the assistant message: `stopReason: "error"`, `errorMessage` | "<status> <the provider's JSON body>"; inside a stream the body alone, no status | pi-ai's `isContextOverflow` first (`input_too_large`), then the body's `type` / `code` (Anthropic's 400 spend-limit and credit-balance wording as the last resort), then the status; `status` from the prefix |
 
 Rate limits, server errors and overload (also inside a stream) are retried
 three times, each announced by `auto_retry_start {attempt, maxAttempts, delayMs,
@@ -362,7 +414,7 @@ another attempt follows. pi-ai keeps the status apart
 | billing (OpenAI: a 429; Anthropic: a 400 or 402; Gemini: a 400) | prompt: -32603 "Internal error: …" | turn completes, no message | as for the 429s above: -32003 "Rate limited" | turn completes, no message |
 | server error, overloaded | prompt: -32603 "Internal error: …", after about 70 s of silent retries | turn completes, no message, after about 140 s | `retry_state {retrying, api}` up to `max_retries: 15`: no turn end within 150 s | 500: the provider text as agent text, then `end_turn`; 503: no frame within 150 s |
 | oversized context | no turn end within 150 s | compaction messages ("Compaction cancelled."), then `end_turn` | `retry_state {failed, context_length}`, prompt: -32603 | turn completes, no message |
-| oar 0.40 | its text: `auth`, `quota`, `overloaded` or `provider` | `auth` for the key, else a completed turn | -32003 `quota`, -32603 `provider` | a completed turn, or none (429, 503) |
+| oar | its words, the last resort (`auth`, `rate_limited`, `quota`, `billing`, `overloaded`, `provider`); an unknown model: `RuntimeFailureError` `model_unavailable` | open and prompt -32000: `auth` (at open a `RuntimeFailureError`); else a completed turn | open: `RuntimeFailureError` `auth` or `model_unavailable`; -32003 `rate_limited`; -32603 by the final `retry_state.error_type` (`auth`, `input_too_large`, `provider`) | open: `RuntimeFailureError` `auth` or `model_unavailable`; else a completed turn, or none (429, 503) |
 
 **Known: kimi and antigravity report a failed turn as completed.** kimi
 records the failure in its own session (`wire.jsonl`: `turn.ended`
@@ -378,8 +430,8 @@ a tool call.
 
 | cause | what it reports | evidence |
 |---|---|---|
-| missing login (no stored key, no `CURSOR_API_KEY`) | the open succeeds; the run ends `status: error`, `error.message` "[unknown] Invalid User API Key", no code | `[env]` |
-| invalid key (a made-up `CURSOR_API_KEY`) | the open rejects with `AuthenticationError {status: 401, code: "error"}` | `[env]` |
+| missing login (no stored key, no `CURSOR_API_KEY`) | the open succeeds; the run ends `status: error`, `error.message` "[unknown] Invalid User API Key", no code. oar: `auth` from the words, the last resort | `[env]` |
+| invalid key (a made-up `CURSOR_API_KEY`) | the open rejects with `AuthenticationError {status: 401, code: "error"}`. oar: `RuntimeFailureError` `auth`, `rejected`, 401 | `[env]` |
 | the other causes | not observed: each needs an account. The SDK's errors are `AuthenticationError` (401: invalid key, not logged in), `RateLimitError` (429: too many requests, usage limits), `ConfigurationError` (400, 404: bad key, invalid model), `NetworkError` and `UnknownAgentError`, each with `code`, `status` and `isRetryable` | `[src]` (`errors.d.ts`) |
 
 ### Where a class can come from

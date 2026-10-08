@@ -37,6 +37,14 @@ export const piSession: StartSession = async (installation, options) => {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }
   const piAgentSession = await openPiAgentSession(options);
+  // pi-ai's own test for an oversized context, on a failed assistant message (failure.ts).
+  const { isContextOverflow } = await import("@earendil-works/pi-ai");
+  const overflowOf = (event: Parameters<Parameters<typeof piAgentSession.subscribe>[0]>[0]): boolean => {
+    if (event.type === "turn_end") {
+      return event.message.role === "assistant" && event.message.stopReason === "error" && isContextOverflow(event.message);
+    }
+    return event.type === "message_update" && event.assistantMessageEvent.type === "error" && isContextOverflow(event.assistantMessageEvent.error);
+  };
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
   let projection: PiProjectionState = initialPiProjection;
@@ -151,7 +159,7 @@ export const piSession: StartSession = async (installation, options) => {
         piAgentSession.agent.abort();
       }
     }
-    const extra = event.type === "agent_settled" ? { context: contextOf() } : {};
+    const extra = event.type === "agent_settled" ? { context: contextOf() } : { overflow: overflowOf(event) };
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
     for (const command of commands) {

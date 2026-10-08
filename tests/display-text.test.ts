@@ -77,8 +77,12 @@ test("a tool phase keeps the runtime's tool name", () => {
 });
 
 const failures = {
-  auth: ["auth", "Claude Code is not signed in."],
+  auth: ["auth", "Claude Code could not authenticate."],
   quota: ["quota", "Claude Code reported that its usage limit was reached."],
+  rate_limited: ["rate_limited", "Claude Code was rate limited by its provider."],
+  billing: ["billing", "Claude Code reported a billing or credit problem."],
+  model_unavailable: ["model_unavailable", "Claude Code cannot use the selected model."],
+  input_too_large: ["input_too_large", "Claude Code reported that the input is too large for the model."],
   invalid_request: ["invalid_request", "Claude Code rejected the request as invalid."],
   overloaded: ["overloaded", "Claude Code reported that its provider is overloaded."],
   provider: ["provider", "Claude Code reported a provider error."],
@@ -91,7 +95,13 @@ test.each(Object.values(failures))("failure %s describes the runtime without hos
 });
 
 test("failure wording uses the caller's runtime name", () => {
-  expect(failureText("auth", "Pi")).toBe("Pi is not signed in.");
+  expect(failureText("auth", "Pi")).toBe("Pi could not authenticate.");
+});
+
+// A rejected key is not a missing login (oar#227: Raft said "not signed in" for a 401 on an API key).
+test("auth wording follows the credential problem the runtime reported", () => {
+  expect(failureText("auth", "Pi", "missing")).toBe("Pi is not signed in.");
+  expect(failureText("auth", "Pi", "rejected")).toBe("Pi's credentials were rejected.");
 });
 
 const statuses = {
