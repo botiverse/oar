@@ -19,12 +19,17 @@ using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. On
 2026-10-08 the native login/logout probe passed all 11 scenarios against a
 local substitute backend with other network access blocked; the public
-session, model and auth declarations remain compatible. The last complete
-live session battery was **1.0.36** on 2026-10-06 (Linux x64, Node 24.19.0,
-`gpt-5.4-nano`): all 12 applicable scenarios passed, and `kill-runtime`
-remains inapplicable. Live model sessions have not been rechecked on 1.0.37.
-See the [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
-and [October 6 live evidence](../../experiments/runtime-version-checks/2026-10-06.md).
+session, model and auth declarations remain compatible. The **1.0.37** live
+follow-up on the same day passed all 12 applicable session scenarios and
+all three root tool-selection scenarios
+(Linux x64, Node 24.19.0, `gpt-5.4-nano`), reusing an existing login.
+`kill-runtime` remains inapplicable. Abort and disposal during a turn ended
+as aborted, resume preserved the id/model/history, and both new and resumed
+restricted sessions denied shell/MCP while keeping read usable. See the
+[October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
+for the evidence and usage limits, and the
+[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md)
+for the previous 1.0.36 baseline.
 
 ## Native concepts and calling interfaces
 
