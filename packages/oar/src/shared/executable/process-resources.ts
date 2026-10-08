@@ -105,11 +105,7 @@ function counted(table: ReadonlyMap<number, Resident>, root: Resident): Readonly
   return members;
 }
 
-/**
- * The resident memory of `pid`, the process group it leads and its
- * descendants, and how many processes that is. Null when `pid` is no longer
- * in the table, when the table cannot be read, and on Windows.
- */
+/** The table read each source has in flight. */
 const inFlight = new Map<"procfs" | "ps", Promise<ReadonlyMap<number, Resident> | null>>();
 
 /** One read of the table, forgotten once it settles; null when it cannot be read whole. */
@@ -135,6 +131,11 @@ async function currentTable(source: "procfs" | "ps"): Promise<ReadonlyMap<number
   return table;
 }
 
+/**
+ * The resident memory of `pid`, the process group it leads and its
+ * descendants, and how many processes that is. Null when `pid` is no longer
+ * in the table, when the table cannot be read, and on Windows.
+ */
 export async function processTreeResources(pid: number, platform: NodeJS.Platform = process.platform): Promise<SessionResources | null> {
   if (platform === "win32") {
     return null;
