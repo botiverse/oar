@@ -8,7 +8,6 @@ import { createSessionKernel } from "../../shared/session-kernel.js";
 import {
   foldPiEvent,
   initialPiProjection,
-  piAbortRequested,
   piPrompted,
   type PiProjectionState,
 } from "./projection.js";
@@ -47,6 +46,15 @@ export const piSession: StartSession = async (installation, options) => {
   };
 
   const kernel = createSessionKernel(piAgentSession.sessionId);
+  // abort() signals synchronously, then waits for idle. Accept delivery now;
+  // its later settlement is a native event, never a control-intent inference.
+  const abortNative = async (): Promise<void> => {
+    try {
+      await piAgentSession.abort();
+    } catch (error) {
+      kernel.frame({ type: "pi/abort_rejected", native: { message: error instanceof Error ? error.message : String(error) }, events: [] });
+    }
+  };
   let projection: PiProjectionState = initialPiProjection;
   // A run is in progress: from an accepted prompt (or a drained queue input,
   // or an adopted agent_start) until pi's own agent_settled. Held in an
@@ -155,8 +163,7 @@ export const piSession: StartSession = async (installation, options) => {
       }
       if (pendingAbort) {
         pendingAbort = false;
-        piAgentSession.abortRetry();
-        piAgentSession.agent.abort();
+        void abortNative();
       }
     }
     const extra = event.type === "agent_settled" ? { context: contextOf() } : { overflow: overflowOf(event) };
@@ -230,16 +237,11 @@ export const piSession: StartSession = async (installation, options) => {
         if (!gate.running) {
           return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
         }
-        projection = piAbortRequested(projection);
-        // Delivery is pi's own AgentSession.abort() minus its idle wait (SDK
-        // 0.84.2 agent-session.js: abortRetry(); agent.abort(); await
-        // waitForIdle()); both calls are public and synchronous, and both
-        // are no-ops until pi has created the run, so before agent_start the
-        // intent is held and delivered there. Accepted means taken over; the
-        // outcome is pi's own agent_settled on the stream.
+        // Use the complete SDK cancellation path, including its run-aborted
+        // flag, retries, compaction and branch summaries. Before agent_start,
+        // hold the intent until Pi has created the run that owns that flag.
         if (piAgentSession.isStreaming) {
-          piAgentSession.abortRetry();
-          piAgentSession.agent.abort();
+          void abortNative();
         } else {
           pendingAbort = true;
         }
@@ -259,7 +261,6 @@ export const piSession: StartSession = async (installation, options) => {
       disposeRequest = request;
       if (gate.running) {
         // pi's own agent_settled (aborted) ends the turn in the stream.
-        projection = piAbortRequested(projection);
         await piAgentSession.abort();
       }
       // Every extension shuts down before its native context is invalidated.

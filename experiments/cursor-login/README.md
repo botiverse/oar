@@ -16,7 +16,7 @@ through OAR's cursor `login`, `logout` and `authStatus`
 ([login](../../packages/oar/src/runtimes/cursor/login.ts),
 [logout](../../packages/oar/src/runtimes/cursor/logout.ts)). The backend it
 talks to is [`mock-backend.ts`](mock-backend.ts), which serves only the
-endpoints the 1.0.35 and 1.0.36 bundles call: the browser page
+endpoints the 1.0.35, 1.0.36 and 1.0.37 bundles call: the browser page
 `/loginDeepControl?challenge=…&uuid=…`, `POST /auth/poll` (it checks the
 PKCE verifier against the page's challenge), and the Connect RPCs
 `DashboardService/CreateUserApiKey` and `GetMe` (binary protobuf over
@@ -113,3 +113,7 @@ empty network namespace with only loopback up and a temporary `HOME`: the
 guard check and 11/11 scenarios passed. `Cursor.auth.logout()` removed
 `auth.json` and made no request, a second call over the missing file
 resolved as well, and `CURSOR_API_KEY` was left as it was.
+
+2026-10-08, `@cursor/sdk` 1.0.37, Linux x64, Node 24.19.0: the guard check
+and 11/11 scenarios passed with temporary homes and the probe's outbound
+connection guard. No real account or model request was used.

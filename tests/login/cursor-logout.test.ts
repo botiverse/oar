@@ -73,12 +73,12 @@ test("an SDK without Cursor.auth.logout, an installation that is not bundled, or
   expect(results).toMatchInlineSnapshot(`
     [
       {
-        "detail": "@cursor/sdk 1.0.36 is required; this one has no Cursor.auth.logout",
+        "detail": "@cursor/sdk 1.0.37 is required; this one has no Cursor.auth.logout",
         "kind": "unsupported",
         "reason": "version_unsupported",
       },
       {
-        "detail": "@cursor/sdk 1.0.36 is required; this one has no Cursor.auth.logout",
+        "detail": "@cursor/sdk 1.0.37 is required; this one has no Cursor.auth.logout",
         "kind": "unsupported",
         "reason": "version_unsupported",
       },

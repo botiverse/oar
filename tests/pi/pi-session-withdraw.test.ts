@@ -6,7 +6,7 @@ import { piSession } from "../../packages/oar/src/runtimes/pi/session.js";
 import { inputIdOf, withdraw } from "../fixtures/withdraw.js";
 
 /**
- * A stand-in for the slice of pi's AgentSession (SDK 0.84.2) the adapter
+ * A stand-in for the slice of pi's AgentSession (SDK 1.1.0) the adapter
  * drives: `prompt` starts a run (`agent_start`) that lasts until the test
  * ends it with pi's own `agent_end` then `agent_settled`.
  */
@@ -16,12 +16,8 @@ class FakePiSession {
   readonly model = undefined;
   readonly extensionRunner = { emit: async (): Promise<void> => {} };
   readonly prompts: string[] = [];
+  deferStart = false;
   isStreaming = false;
-  readonly agent = {
-    abort: (): void => {
-      this.end();
-    },
-  };
   private readonly listeners: ((event: unknown) => void)[] = [];
   private finish: (() => void) | null = null;
 
@@ -36,15 +32,19 @@ class FakePiSession {
 
   async prompt(input: string): Promise<void> {
     this.prompts.push(input);
-    this.isStreaming = true;
     const { promise, resolve } = Promise.withResolvers<void>();
     this.finish = resolve;
-    this.emit({ type: "agent_start" });
+    if (!this.deferStart) { this.begin(); }
     await promise;
   }
 
+  begin(): void {
+    this.isStreaming = true;
+    this.emit({ type: "agent_start" });
+  }
+
   /** pi ends the run: `agent_end`, then `agent_settled`, the turn's end. */
-  end(): void {
+  end(aborted = false): void {
     const { finish } = this;
     if (finish === null) {
       return;
@@ -52,14 +52,12 @@ class FakePiSession {
     this.finish = null;
     this.isStreaming = false;
     this.emit({ type: "agent_end", messages: [] });
-    this.emit({ type: "agent_settled" });
+    this.emit({ type: "agent_settled", aborted });
     finish();
   }
 
-  abortRetry(): void {}
-
   async abort(): Promise<void> {
-    this.end();
+    this.end(true);
   }
 
   dispose(): void {}
@@ -128,5 +126,18 @@ test("a queue while idle is prompted at once; after dispose a withdraw is refuse
 test("a pi session has no resources(): it has no process of its own", async () => {
   const { session } = await open();
   expect("resources" in session).toBe(false);
+  await session.dispose();
+});
+
+test("an abort taken over before agent_start reaches the SDK when its run starts", async () => {
+  const { session, pi } = await open();
+  pi.deferStart = true;
+  const starting = session.prompt("start later");
+  await settle();
+  expect(await session.abort()).toMatchObject({ response: { body: { kind: "accepted" } } });
+  expect(session.records().some((record) => record.kind === "frame" && record.body.type === "agent_settled")).toBe(false);
+  pi.begin();
+  const started = await starting;
+  expect(await awaitTurnEnd(session, started.seq)).toEqual({ kind: "aborted" });
   await session.dispose();
 });

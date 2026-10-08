@@ -14,14 +14,17 @@ beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-Current tested and required SDK: **1.0.36**. On 2026-10-06 (Linux x64,
-Node 24.19.0, `gpt-5.4-nano`), all 12 applicable live scenarios passed again;
-`kill-runtime` remains inapplicable. No session adapter changes were needed.
-OAR 0.25.0 pins its optional peer to exactly 1.0.36: hosts using Cursor must
-upgrade their own SDK from 1.0.35 alongside OAR. The CLI installs 1.0.36
-itself. The precise pin matches the version installed by CI; it does not
-promise continuing support for older SDKs. See the
-[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md).
+Current required SDK: **1.0.37**, the exact optional peer version. Hosts
+using Cursor install that version alongside OAR; the CLI installs it itself.
+The pin matches CI and does not promise support for older SDKs. On
+2026-10-08 the native login/logout probe passed all 11 scenarios against a
+local substitute backend with other network access blocked; the public
+session, model and auth declarations remain compatible. The last complete
+live session battery was **1.0.36** on 2026-10-06 (Linux x64, Node 24.19.0,
+`gpt-5.4-nano`): all 12 applicable scenarios passed, and `kill-runtime`
+remains inapplicable. Live model sessions have not been rechecked on 1.0.37.
+See the [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
+and [October 6 live evidence](../../experiments/runtime-version-checks/2026-10-06.md).
 
 ## Native concepts and calling interfaces
 
@@ -51,7 +54,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.36`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.37`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -451,7 +454,7 @@ warning when a backend has no `POST /auth/poll` (it falls back to `GET`) goes
 to the host's stderr, out of OAR's reach; it names the backend, not the
 verifier.
 
-The floor is `@cursor/sdk` 1.0.36, the exact peer dependency. An SDK handed
+The floor is `@cursor/sdk` 1.0.37, the exact peer dependency. An SDK handed
 over without `Cursor.auth` and `FileCredentialStore` makes the login
 `unsupported` / `version_unsupported` and the status `unknown`; an
 installation other than `bundled` is `unsupported_installation`, and an SDK

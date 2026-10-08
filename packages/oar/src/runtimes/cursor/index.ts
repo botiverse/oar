@@ -11,7 +11,7 @@ import { cursorSessionWith } from "./session.js";
 
 export interface CursorRuntimeOptions {
   /**
-   * Loads `@cursor/sdk` 1.0.36, which the host installs (an optional peer
+   * Loads `@cursor/sdk` 1.0.37, which the host installs (an optional peer
    * dependency of OAR): `() => import("@cursor/sdk")`. Written in the host's
    * own code, the import fails the host's compile when the package is
    * missing, checks the SDK's types against `CursorSdk`, and is visible to

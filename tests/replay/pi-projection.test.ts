@@ -5,7 +5,6 @@ import { expect, test } from "vitest";
 import {
   foldPiEvent,
   initialPiProjection,
-  piAbortRequested,
   piPrompted,
   type PiProjectionState,
   type ProjectionCommand,
@@ -96,14 +95,14 @@ for (const scenario of scenarios) {
 }
 
 test("pi agent_settled carries the adapter-supplied context and classifies abort and provider errors", () => {
-  const agentEnd: AgentSessionEvent = { type: "agent_settled" };
+  const agentEnd: AgentSessionEvent = { type: "agent_settled", aborted: false };
   const context = { tokens: 42, contextWindow: 1000, percent: 4 };
   const completed = foldPiEvent(piPrompted(initialPiProjection), agentEnd, { context });
   expect(completed.commands[0]?.body.events).toEqual([
     { kind: "turn_ended", outcome: { kind: "completed" } },
     { kind: "usage", usage: { context } },
   ]);
-  const aborted = foldPiEvent(piAbortRequested(piPrompted(initialPiProjection)), agentEnd);
+  const aborted = foldPiEvent(piPrompted(initialPiProjection), { type: "agent_settled", aborted: true });
   expect(aborted.commands[0]?.body.events).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
   const errored = foldPiEvent(piPrompted(initialPiProjection), {
     type: "turn_end",
@@ -116,6 +115,17 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
     kind: "turn_ended",
     outcome: { kind: "failed", reason: "400 bad request", failure: "invalid_request", status: 400 },
   });
+});
+
+test("pi's native aborted flag takes precedence over a provider's abort error", () => {
+  const failed = foldPiEvent(initialPiProjection, {
+    type: "turn_end",
+    // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- only the fields the fold reads matter here
+    message: { role: "assistant", stopReason: "error", errorMessage: "This operation was aborted" } as never,
+    toolResults: [],
+  });
+  const result = foldPiEvent(failed.state, { type: "agent_settled", aborted: true });
+  expect(result.commands[0]?.body.events).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
 });
 
 /**
@@ -135,7 +145,7 @@ test("pi cache reads and writes accumulate across turns as parts of input", () =
   const totals: unknown[] = [];
   for (const event of [
     assistantEnd({ input: 1381, output: 39, cacheRead: 0, cacheWrite: 5120, cacheWrite1h: 5120 }),
-    { type: "agent_settled" } satisfies AgentSessionEvent,
+    { type: "agent_settled", aborted: false } satisfies AgentSessionEvent,
     assistantEnd({ input: 12, output: 40, cacheRead: 5120, cacheWrite: 1395 }),
   ]) {
     const { state: next, commands } = foldPiEvent(state, event);

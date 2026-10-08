@@ -65,7 +65,7 @@ downloads (1.2.1 listed while 1.3.0 was downloadable). The `agy` CLI's own
 
 **pi and cursor.** In process through their SDKs: the pi SDK is a
 dependency of oar (`^1.0.2`), and `@cursor/sdk` an optional peer dependency
-(`1.0.36`) that the host installs and hands to `createCursorRuntime` (the oar
+(`1.0.37`) that the host installs and hands to `createCursorRuntime` (the oar
 CLI depends on it). Both installations are `via: "bundled"`; neither runtime
 has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
 oar and moving with the oar version.
