@@ -130,6 +130,28 @@ channels, observed versions and limits are in the
 [October 8 audit](../../experiments/disallowed-tools-2026-10-08.md). Supply
 the list again when resuming; OAR does not persist host options.
 
+## Launch arguments
+
+`SessionOptions.launchArgs` adds the host's own command-line arguments to
+the runtime process a session starts, for a flag OAR does not model (codex
+`-c service_tier="fast"`, claude `--add-dir`). OAR passes them unchecked:
+it promises nothing about their effect, and one that changes the protocol
+OAR speaks breaks the session. A flag the runtime does not know usually
+makes it exit: claude, codex, grok, kimi and opencode all did (2026-10-08),
+so the open rejects, except that claude opens with its exit as the first
+record. OAR never records them, but they are not secret: any local user can
+read a process's arguments (`ps`), so credentials go in `env`. Give them
+again on resume.
+
+| runtime | where they go |
+|---|---|
+| claude | after OAR's own flags, before `--mcp-config` and `--disallowed-tools` (both take several values, so a bare host value after them would be read as theirs) |
+| codex | `app-server`, OAR's `-c` overrides, the host's arguments, `--listen stdio://` |
+| grok | `agent --always-approve --no-leader`, the host's arguments, `stdio`: `agent` takes its options before `stdio` |
+| kimi, opencode | after `acp` |
+| antigravity | after OAR's own arguments |
+| pi, cursor | refused: they run in the host process through their SDKs, with no command line |
+
 ## Claude partial output
 
 Claude requests partial output for new and resumed sessions: text/thinking
@@ -147,7 +169,7 @@ on that error, and tells it from a failed login or a network error without
 reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
-`SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`: a
+`SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`: a
 non-empty one), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
@@ -155,12 +177,13 @@ out instead of naming runtimes.
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
 | antigravity | `systemPrompt`, `appendSystemPrompt` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)) |
 | grok | `disallowedTools` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
 | opencode | `disallowedTools` | agent permissions can override global denies; permission names do not consistently match tool names |
-| claude, codex, pi | nothing always refused | codex has value-specific tool-name refusals below |
+| pi | `launchArgs` | it runs in the host process through its SDK, with no command line |
+| claude, codex | nothing always refused | codex has value-specific tool-name refusals below |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page

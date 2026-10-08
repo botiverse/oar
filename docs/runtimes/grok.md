@@ -689,3 +689,7 @@ forward those overrides into `agent stdio`. Its `--agent-profile` and ACP
 OAR does not replace the user's harness merely to change tool selection.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` go before `stdio`: `grok agent [OPTIONS] stdio [OPTIONS]` takes the agent's options (`--model`, `--agent-profile`, `--plugin-dir`) before `stdio`, which itself takes only `--debug` and `--leader-socket`. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

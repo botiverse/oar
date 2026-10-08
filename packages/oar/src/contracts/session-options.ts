@@ -99,4 +99,23 @@ export interface SessionOptions {
    * sandbox: another allowed tool may provide the same capability.
    */
   readonly disallowedTools?: readonly string[];
+  /**
+   * Extra command-line arguments for the runtime process this session
+   * starts, for a host that knows a runtime flag OAR does not model (for
+   * example codex `-c service_tier="fast"`). They go where that runtime's
+   * CLI takes options; each runtime page says where. OAR passes them
+   * unchecked and promises nothing about their effect: an argument can
+   * conflict with one OAR passes, one that changes the protocol OAR speaks
+   * (claude's output format, codex's `--listen`) breaks the session, and a
+   * flag the runtime does not know usually makes it exit (the open rejects;
+   * claude opens with its exit as the first record). OAR's own checks
+   * (model, effort and the other typed options read back from the runtime)
+   * cover only those options. OAR never records them (no record, event,
+   * error or voyage header), though a runtime's own error output can quote
+   * them. They are NOT secret: any local user can read a process's argv
+   * (`ps`), so credentials belong in `env`. Give them again on resume. Refused when non-empty by runtimes with no
+   * process of their own (pi, cursor) and by morph: `session()` rejects with
+   * `UnsupportedOptionError` (`Runtime.refusedSessionOptions`).
+   */
+  readonly launchArgs?: readonly string[];
 }

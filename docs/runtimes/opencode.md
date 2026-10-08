@@ -548,3 +548,7 @@ native tool-name denylist. OAR does not rewrite the user's agent definition
 or turn a denylist into a computed allowlist.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` go after `acp`, on the process the session runs; OAR's helper queries (`opencode agent list`) do not get them. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

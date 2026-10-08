@@ -255,6 +255,7 @@ test("options morph cannot honor, an unknown topic and a Console without POST /t
   await expect(open(new FakeConsole(), { resume: "missing" })).rejects.toThrow("morph has no topic missing to resume");
   await expect(open(new FakeConsole(), { systemPrompt: "x" })).rejects.toBeInstanceOf(UnsupportedOptionError);
   await expect(open(new FakeConsole(), { env: { A: "1" } })).rejects.toBeInstanceOf(UnsupportedOptionError);
+  await expect(open(new FakeConsole(), { launchArgs: ["--flag"] })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "launchArgs" });
   await expect(open(new FakeConsole(), { effort: "high" })).rejects.toThrow("effort high");
   const old = new FakeConsole();
   old.routes.set("POST /topics", () => ({ status: 405, body: "method not allowed" }));

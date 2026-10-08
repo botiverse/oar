@@ -1287,3 +1287,7 @@ server namespaces are refused before the thread opens, naming the entries.
 Supply the list again on resume; an empty list adds no override.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` go after `app-server` and OAR's own `-c` overrides, before `--listen stdio://`; codex reads `-c key=value` there, for example `-c service_tier="fast"`. codex applies `-c` overrides in command-line order (`codex-rs/utils/cli/src/config_override.rs`), so a host `-c` for a key OAR also sets (`sandbox_mode`) is the one that applies. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

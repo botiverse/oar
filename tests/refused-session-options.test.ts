@@ -15,6 +15,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   appendSystemPrompt: { appendSystemPrompt: "x" },
   env: { env: { OAR_PROBE: "1" } },
   mcpServers: { mcpServers: [{ name: "probe", command: "/nonexistent/oar-probe" }] },
+  launchArgs: { launchArgs: ["--probe"] },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -26,9 +27,9 @@ function nowhere(id: string): AvailableInstallation {
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
@@ -45,11 +46,11 @@ test("the declarations say which options each runtime refuses", () => {
     antigravity: ["appendSystemPrompt", "systemPrompt"],
     claude: [],
     codex: [],
-    cursor: ["appendSystemPrompt", "env", "mcpServers", "systemPrompt"],
+    cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "systemPrompt"],
     grok: ["disallowedTools"],
     kimi: ["appendSystemPrompt", "disallowedTools", "systemPrompt"],
     opencode: ["disallowedTools"],
-    pi: [],
+    pi: ["launchArgs"],
   });
 });
 
