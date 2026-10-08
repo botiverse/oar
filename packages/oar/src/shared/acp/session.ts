@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
+import { sessionEnvironment } from "../environment.js";
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
@@ -50,7 +52,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // and an open that fails reports no credential they carry.
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers);
     const args = typeof profile.args === "function" ? profile.args(options) : profile.args;
-    const environment = { ...process.env, ...options.env };
+    const environment = sessionEnvironment(options.env);
     const terminalHost = createAcpTerminalHost(options.cwd, environment, {
       shellCommand: profile.terminalShellCommand === true,
     });

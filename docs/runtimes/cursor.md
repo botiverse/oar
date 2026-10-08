@@ -265,7 +265,8 @@ measurement.
 
 **Environment (unsupported):** the SDK has no per-agent environment for
 tools, and the agent shares the host's process, so a non-empty
-`SessionOptions.env` is refused at open the same way. `refusedSessionOptions`
+`SessionOptions.env` is refused at open the same way, including a map whose
+only entries are `null` removals. `refusedSessionOptions`
 declares these refusals, and the `mcpServers` one
 ([below](#session-mcp-servers)), before any session opens. The
 `@botiverse/oar/agents` crew passes its depth variable through `env`, so it

@@ -1,8 +1,9 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
 import { configurePiHttp } from "./http.js";
 import { disposePiAgentSession } from "./lifecycle.js";
-import { piMcpExtensions } from "./mcp.js";
+import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
 import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
 
 /*
@@ -19,11 +20,11 @@ import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
  */
 export async function piEnvBashTool(
   cwd: string,
-  overlay: Readonly<Record<string, string>>,
+  overlay: Readonly<Record<string, string | null>>,
 ): Promise<NonNullable<CreateAgentSessionOptions["customTools"]>[number]> {
   const sdk = await import("@earendil-works/pi-coding-agent");
   return sdk.defineTool(sdk.createBashToolDefinition(cwd, {
-    spawnHook: (context) => ({ ...context, env: { ...context.env, ...overlay } }),
+    spawnHook: (context) => ({ ...context, env: sessionEnvironment(overlay, context.env) }),
   }));
 }
 
@@ -100,6 +101,7 @@ export function piEffectiveModel(session: PiModelSource): string | null {
  * share one session directory.
  */
 export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
+  validatePiMcpEnvironment(options);
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
   const sdk = await import("@earendil-works/pi-coding-agent");
   // OAR_PI_AGENT_DIR pins pi's global config home (models.json/auth.json/

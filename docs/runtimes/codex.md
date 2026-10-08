@@ -655,7 +655,8 @@ checks on the Linux and macOS runners that none outlives it. The limits are
 a process that left the tree before the kill began is not reached. This
 supplies resource release, not detached execution or a lease against other
 controllers of the persisted thread. The environment overlay applies to the
-child process.
+child process; `null` removes an inherited variable
+([environment contract](../spec/runtime-matrix.md#session-environment)).
 
 On Windows, app-server disposal and the abort fallback force-terminate the
 whole process tree with `taskkill /T /F`, including any launcher, with a

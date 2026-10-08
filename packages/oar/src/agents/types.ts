@@ -19,7 +19,7 @@ export interface SubagentsOptions {
   /** Write each child's records to `<logDir>/<name or runtime>-<sessionId>.jsonl` as an oar-voyage log. */
   readonly logDir?: string;
   /** Environment overlaid on every child (each spawn may add its own). */
-  readonly env?: Readonly<Record<string, string>>;
+  readonly env?: Readonly<Record<string, string | null>>;
 }
 
 export interface SpawnOptions {
@@ -33,7 +33,7 @@ export interface SpawnOptions {
   readonly effort?: string;
   /** Resume this runtime-native session (a previous report's `sessionId`) instead of starting one. */
   readonly resume?: string;
-  readonly env?: Readonly<Record<string, string>>;
+  readonly env?: Readonly<Record<string, string | null>>;
 }
 
 export type SpawnRefusalCode =

@@ -84,3 +84,25 @@ test("a removed saved agent is never recreated by the prompt overlay", async () 
   const run = vi.fn<ExecutableRunner>().mockResolvedValueOnce(json({ default_agent: "build", agent: {} })).mockResolvedValueOnce(json({ info: { agent: "removed" } }));
   await expect(prepareOpenCodePrompts("opencode", { cwd: "/", resume: "ses_saved", systemPrompt: "base" }, run)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "systemPrompt" });
 });
+
+// oxlint-disable-next-line max-statements -- One prepare/resume operation verifies both native queries and the final overlay.
+test("removing inherited inline config permits prompt injection and removes it from every helper query", async () => {
+  vi.stubEnv("OPENCODE_CONFIG_CONTENT", "inherited-private-config");
+  vi.stubEnv("OAR_ENV_REMOVE", "inherited-private-value");
+  const run = vi.fn<ExecutableRunner>().mockResolvedValueOnce(json({})).mockResolvedValueOnce(json({ info: { agent: "build" } }));
+  const prepared = await prepareOpenCodePrompts("opencode", {
+    cwd: "/project", resume: "old", systemPrompt: "replacement",
+    env: { OPENCODE_CONFIG_CONTENT: null, OAR_ENV_REMOVE: null, OAR_ENV_OVERRIDE: "new" },
+  }, run);
+  cleanups.push(prepared.cleanup);
+  expect(run).toHaveBeenCalledTimes(2);
+  for (const call of run.mock.calls) {
+    const { 2: options } = call;
+    expect(options?.env).not.toHaveProperty("OPENCODE_CONFIG_CONTENT");
+    expect(options?.env).not.toHaveProperty("OAR_ENV_REMOVE");
+    expect(options?.env?.OAR_ENV_OVERRIDE).toBe("new");
+  }
+  expect(prepared.options.env?.OAR_ENV_REMOVE).toBeNull();
+  expect(JSON.parse(prepared.options.env?.OPENCODE_CONFIG_CONTENT ?? "")).toEqual({ agent: { build: { prompt: "replacement" } } });
+  expect(process.env.OPENCODE_CONFIG_CONTENT).toBe("inherited-private-config");
+});

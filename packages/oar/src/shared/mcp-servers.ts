@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../contracts/errors.js";
 import type { McpServer } from "../contracts/session.js";
 
 /*
@@ -22,6 +23,15 @@ export function hasMcpCredentials(server: McpServer): boolean {
 
 /** The given list, or nothing when there is none to attach (absent or empty). */
 export function givenMcpServers(servers: readonly McpServer[] | undefined): readonly McpServer[] | null {
+  for (const server of servers ?? []) {
+    if (!isHttpMcpServer(server)) {
+      for (const [key, value] of Object.entries(server.env ?? {})) {
+        if (typeof value !== "string") {
+          throw new UnsupportedOptionError("mcpServers", `MCP server ${JSON.stringify(server.name)} env.${key} must be a string; null removal is only supported by SessionOptions.env`);
+        }
+      }
+    }
+  }
   return servers === undefined || servers.length === 0 ? null : servers;
 }
 
@@ -31,6 +41,7 @@ export function givenMcpServers(servers: readonly McpServer[] | undefined): read
  * would silently replace the earlier one). The error names the value.
  */
 export function checkMcpServerNames(servers: readonly McpServer[]): void {
+  givenMcpServers(servers);
   const seen = new Set<string>();
   for (const { name } of servers) {
     if (name.length === 0) {
@@ -49,7 +60,7 @@ const CREDENTIAL_MIN_LENGTH = 4;
 /** Every credential value in the entries: each `env` and `headers` value, longest first. */
 function credentialValues(servers: readonly McpServer[]): readonly string[] {
   const values = servers.flatMap((server) => Object.values((isHttpMcpServer(server) ? server.headers : server.env) ?? {}));
-  return [...new Set(values.filter((value) => value.length >= CREDENTIAL_MIN_LENGTH))].toSorted((left, right) => right.length - left.length);
+  return [...new Set(values.filter((value) => typeof value === "string" && value.length >= CREDENTIAL_MIN_LENGTH))].toSorted((left, right) => right.length - left.length);
 }
 
 /**

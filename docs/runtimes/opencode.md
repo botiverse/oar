@@ -73,7 +73,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `opencode acp` executable | One `opencode acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay; its exit is an `exited` response record (kill-runtime). |
+| `opencode acp` executable | One `opencode acp` subprocess per OAR Session, spawned in the session `cwd` with the env overlay (`null` removes an inherited variable, [contract](../spec/runtime-matrix.md#session-environment)); its exit is an `exited` response record (kill-runtime). |
 | Persistent native session | `Session.id` is the native `ses_` id; `SessionOptions.resume` attaches through `session/resume`, which replays nothing (resume). |
 | Handshake answers and opening pushes | Answers are frame records with `model` and `effort` events where they report them; no `authenticate` is sent. |
 | Native agent and turn | Every `session/update` is one frame with `native` verbatim. No `spanId`. Attribution tier `opaque`: a `task` subagent's child session never reaches the transport, so only the parent's tool call shows (subagent). |
@@ -212,9 +212,11 @@ A replacement adds one native startup query, two on resume, each bounded at
 30 seconds; no prompt options retains the direct ACP path, and append-only
 needs no agent query.
 
-If the host environment **or** `SessionOptions.env` already defines
-`OPENCODE_CONFIG_CONTENT`, either prompt option is refused with
+If the effective session environment defines `OPENCODE_CONFIG_CONTENT`,
+either prompt option is refused with
 `UnsupportedOptionError`. OAR does not parse or merge that existing value.
+Setting `env: { OPENCODE_CONFIG_CONTENT: null }` removes an inherited value
+before native configuration queries and permits prompt injection.
 An empty replacement is also refused: native OpenCode treats an empty agent
 prompt as selecting its built-in prompt. Literal `{env:...}` and
 `{file:...}` in the supplied prompt are preserved, not expanded by the

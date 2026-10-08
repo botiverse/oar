@@ -72,6 +72,36 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event.
 
+## Session environment
+
+`SessionOptions.env` is a `Readonly<Record<string, string | null>>` overlay:
+a string sets a variable (an empty string remains present), and `null`
+removes it from the inherited environment. Omitted keys inherit unchanged;
+OAR never changes the host's `process.env`. Windows names are matched without
+regard to case. For example, `env: { ANTHROPIC_API_KEY: null,
+ANTHROPIC_BASE_URL: "https://provider.example" }` removes an inherited key
+while selecting the session's provider endpoint.
+
+Claude, codex, grok, kimi, opencode and antigravity apply the overlay to their
+runtime process and its tool children; ACP client-hosted terminals receive it
+too. OpenCode's prompt preparation queries use the same environment. Pi
+applies it to its Bash tool's children, not its in-process provider. Cursor
+refuses any non-empty `env`, including a removal-only map. Native tool shells
+or runtime configuration can subsequently set their own variables.
+
+An MCP server's own `env` remains a map of strings; `null` there is refused
+with `UnsupportedOptionError` on `mcpServers`. Pi also refuses an `env`
+removal combined with any stdio `mcpServers`: its native MCP transport
+re-inherits the host environment and cannot remove a variable. HTTP-only
+servers do not impose this restriction. The refusal is conditional and does
+not add `env` to pi's always-refused options.
+
+Session environment options, including removed keys, are not written to the
+record stream or voyage header. Runtime-specific removals stay in OAR:
+Claude's `CLAUDECODE` marker is always removed. Child-process and native Pi
+Bash regressions: [session-env.test.ts](../../tests/session-env.test.ts),
+[pi-env.test.ts](../../tests/providers/pi-env.test.ts).
+
 ## Refused session options
 
 What a runtime cannot honor is refused, never dropped: `session()` rejects

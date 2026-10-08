@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
@@ -36,7 +37,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(mcpConfig === null ? [] : ["--mcp-config", mcpConfig]),
   ], {
     cwd: options.cwd,
-    env: { ...process.env, CLAUDECODE: undefined, ...options.env },
+    env: sessionEnvironment({ ...options.env, CLAUDECODE: null }),
     // On Windows an npm .cmd wrapper can exit while native claude keeps
     // the provider request and stdio alive. Teardown must reach both.
     killTree: true,
