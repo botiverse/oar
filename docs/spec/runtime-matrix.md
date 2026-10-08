@@ -538,3 +538,17 @@ seq=122  ✓ frame  path=["bg-7"]  completed {usage:…}
 - codex child-thread delivery and identity are [env] on codex 0.149.0
   (three runs, experiments/codex-child-threads.ts); the child's
   `turn/completed` can arrive before the root's.
+
+## Interrupted input ownership
+
+`input_dropped` is currently emitted by Codex only: an interrupted root
+turn drops that turn's accepted, un-echoed steers before `turn_ended`.
+Claude, Pi and OpenCode retain the tested interrupted steering input;
+Cursor hands undelivered steering back as a refused control. Grok can
+lose a just-submitted steer, but its cancellation receipt cannot yet
+prove whether that input had been read, so OAR makes no discard claim.
+[The audit](../../experiments/input-interruption-2026-10-08.md) records
+native versions, evidence and verification limits. Kimi and Antigravity
+have no `steer` member. Independent of runtime, an observed process exit
+settles inputs still awaiting echoes as `dropped: runtime_exited`, with the
+[resume uncertainty](conversation.md#dropped-input) preserved.

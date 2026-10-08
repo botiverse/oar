@@ -103,6 +103,19 @@ Fork, session listing, history retrieval, rewind, and reset identity management
 are **not exposed**. Missing-ID error timing, duplicate transcripts, and
 concurrent controllers resuming one ID are **unverified**.
 
+### Interrupted input
+
+A plain interrupt preserves unread steering input. On 2.1.293, the
+`control_response` receipt's `still_queued` listed its UUID and a later
+provider request contained the input, so OAR does not emit `input_dropped`
+from that interrupt or from its result. The installed binary documents
+`cancel_queued: true` as a separate interrupt option, advertised by
+`interrupt_cancel_queued_v1`, with cancelled UUIDs in `cancelled`; OAR does
+not send that option. It is not a discard marker emitted by an ordinary
+interrupt. No cancellation is inferred from an absent echo or from
+`still_queued` being empty.
+[Native probe and marker evidence](../../experiments/input-interruption-2026-10-08.md).
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt(string)` records a `prompt` request and answers

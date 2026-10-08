@@ -219,24 +219,29 @@ test("a prompt refused busy and retried as a steer waits for its echo (deliver's
   ]);
 });
 
-test("a steer pending in one stream enters at its echo in the next (resume restarts seq)", () => {
+// oxlint-disable-next-line eslint/max-statements -- Compare the exit and resumed evidence in one retained view.
+test("exit drops pending input; a resumed echo supplies the missing evidence without a duplicate bubble", () => {
   const exit: ResponseRecord = { ...env, seq: 6, kind: "response", requestId: "", body: { kind: "exited", code: null } };
   let view = initialSessionView();
   for (const record of [request(0, "r1"), accepted(1, "r1"), echo(2, "r1"), text(3, "working"), request(4, "s1", "steer"), accepted(5, "s1"), exit]) {
     view = reduceSessionView(view, record, "a");
   }
-  expect(view.pendingInputs.map((input) => input.input)).toEqual(["input s1"]);
+  expect(view.pendingInputs).toEqual([]);
+  expect(view.messages.find((message) => message.kind === "input" && message.input.inputId === "input-s1")).toMatchObject({ input: { state: "dropped", reason: "runtime_exited" } });
   for (const record of [echo(0, "s1"), text(1, "resumed on s1"), ended(2)]) {
     view = reduceSessionView(view, record, "b");
   }
   expect(outline(view)).toEqual([
     "input input r1 (accepted)",
     "turn [working] failed",
-    "notice exited",
     "input input s1 (accepted)",
+    "notice exited",
     "turn [resumed on s1] completed",
     "pending []",
   ]);
+  const restored = [...view.conversation.inputs.values()].find((input) => input.inputId === "input-s1");
+  expect(restored?.observations).toHaveLength(1);
+  expect(restored).not.toHaveProperty("reason");
 });
 
 test("records folded twice in one stream change nothing", () => {

@@ -1,3 +1,4 @@
+import { foldCodexInputs, type CodexInputs } from "./input-delivery.js";
 import type {
   FrameBody,
   RuntimeEventBody,
@@ -47,6 +48,8 @@ export type ProjectionCommand =
  */
 export interface CodexProjectionState {
   readonly rootThreadId: string;
+  /** Accepted steers and native echoes, keyed by the turn that owns them. */
+  readonly inputs: CodexInputs;
   readonly lastErrorDetail: string | null;
   /**
    * A root-thread compaction is open (its `contextCompaction` item started).
@@ -63,7 +66,7 @@ export interface CodexProjectionState {
 
 /** The projection of a Session opened by `opened`: a resume awaits codex's re-reported token total. */
 export function initialCodexProjection(rootThreadId: string, opened: CodexOpenMethod = "thread/start"): CodexProjectionState {
-  return { rootThreadId, lastErrorDetail: null, compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
+  return { inputs: new Map(), rootThreadId, lastErrorDetail: null, compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -222,11 +225,12 @@ export function foldCodexNotification(
   const threadId = typeof params.threadId === "string" ? params.threadId : previous.rootThreadId;
   // Before the views: a re-reported total is read against itself (zero).
   const tokenBaseline = threadId === previous.rootThreadId ? nextTokenBaseline(previous.tokenBaseline, method, params) : previous.tokenBaseline;
-  const state = tokenBaseline === previous.tokenBaseline ? previous : { ...previous, tokenBaseline };
+  const input = threadId === previous.rootThreadId ? foldCodexInputs(previous.inputs, method, params) : { inputs: previous.inputs, events: [] };
+  const state = { ...previous, tokenBaseline, inputs: input.inputs };
   const spanId = spanIdOf(params);
   const event: ProjectionCommand = {
     kind: "frame",
-    body: { type: method, native: params, events: viewsFor(state, threadId, method, params) },
+    body: { type: method, native: params, events: [...input.events, ...viewsFor(state, threadId, method, params)] },
     ...(spanId === undefined ? {} : { spanId }),
     ...(threadId === state.rootThreadId ? {} : { sessionId: threadId }),
   };

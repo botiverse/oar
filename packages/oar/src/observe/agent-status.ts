@@ -128,8 +128,9 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "task_ended":
       // Tasks run beside the turn; whether the agent is busy is the turn's fact, but a report is activity.
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
+    case "input_dropped":
     case "user_message":
-      case "usage":
+    case "usage":
     case "model":
     case "effort":
       return previous;

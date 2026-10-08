@@ -38,8 +38,9 @@ function describeCommand(command: ProjectionCommand): string {
             return `turn_ended ${view.outcome.kind}`;
           case "text_delta":
           case "tool_call_ended":
+          case "input_dropped":
           case "user_message":
-      case "usage":
+          case "usage":
           case "model":
           case "effort":
           case "tool_call_progress":
