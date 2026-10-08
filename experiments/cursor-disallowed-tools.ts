@@ -7,6 +7,8 @@
  * and resumed agents must execute neither; another tool (read) stays usable.
  * The SDK's native resolver groups shell/stdin and the MCP family; this does
  * not check subagents (the SDK gives them a separate toolset).
+ * Each round also prints its session id and native run results, including
+ * usage when available, so a quota report need not repeat model calls.
  */
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -43,7 +45,7 @@ const installation = { kind: "available", via: "bundled" } as const;
 const model = process.env.OAR_TEST_MODEL ?? "gpt-5.4-nano";
 const probe = "Use the shell tool to run printf 'SHELL_PROBE_OK', then invoke the oar_echo MCP tool with text 'MCP_PROBE_OK'. Do not use another tool as a substitute. If either is unavailable, just say so. Finally use the read tool to read probe.txt. Do not delegate.";
 
-async function round(session: Session): Promise<string[]> {
+async function round(session: Session, phase: string): Promise<string[]> {
   try {
     const result = await promptAndWait(session, probe, { timeoutMs: 90_000 });
     assert.equal(result.kind, "ended");
@@ -51,26 +53,28 @@ async function round(session: Session): Promise<string[]> {
     return session.records().flatMap((record) => record.kind === "frame" ? record.body.events.flatMap((event) => event.kind === "tool_call_started" ? [event.tool] : []) : []);
   } finally {
     await session.dispose();
+    const runs = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "cursor/run_result" ? [record.body.native] : []);
+    console.log(JSON.stringify({ phase, sessionId: session.id, runs }));
   }
 }
 
 try {
   await writeFile(path.join(cwd, "probe.txt"), "READ_PROBE_OK\n");
   const baseline = await runtime.session(installation, { cwd, model });
-  const baselineTools = await round(baseline);
+  const baselineTools = await round(baseline, "baseline");
   console.log(JSON.stringify({ phase: "baseline", tools: baselineTools, echoCalls: echoCalls.length }));
   assert.ok(baselineTools.includes("shell"));
   assert.ok(echoCalls.length > 0, "baseline must call the real SDK custom MCP tool");
   const count = echoCalls.length;
   const disallowedTools = ["shell", "mcp", "task"];
   const restricted = await runtime.session(installation, { cwd, model, disallowedTools });
-  const blocked = await round(restricted);
+  const blocked = await round(restricted, "restricted");
   console.log(JSON.stringify({ phase: "restricted", tools: blocked, echoCalls: echoCalls.length }));
   assert.ok(!blocked.includes("shell") && !blocked.includes("writeShellStdin") && !blocked.includes("mcp"));
   assert.ok(blocked.includes("read"), "unrelated native tools remain usable");
   assert.equal(echoCalls.length, count);
   const resumed = await runtime.session(installation, { cwd, model, resume: restricted.id, disallowedTools });
-  const resumedTools = await round(resumed);
+  const resumedTools = await round(resumed, "resume");
   console.log(JSON.stringify({ phase: "resume", tools: resumedTools, echoCalls: echoCalls.length }));
   assert.ok(!resumedTools.includes("shell") && !resumedTools.includes("writeShellStdin") && !resumedTools.includes("mcp"));
   assert.ok(resumedTools.includes("read"));
