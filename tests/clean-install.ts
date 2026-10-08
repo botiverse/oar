@@ -86,6 +86,7 @@ import { registerHooks } from "node:module";
 const loaded = [];
 registerHooks({
   load(url, context, nextLoad) {
+    assert.ok(!url.startsWith("node:"), "Pure report/observe entry loaded " + url);
     const at = url.indexOf("/node_modules/@botiverse/oar/");
     if (at !== -1) {
       loaded.push(url.slice(at + "/node_modules/@botiverse/oar/".length));
@@ -93,11 +94,20 @@ registerHooks({
     return nextLoad(url, context);
   },
 });
-const { formatReport, reportOrigin } = await import("@botiverse/oar/agents/report");
+const { formatReport, parseReport, reportOrigin } = await import("@botiverse/oar/agents/report");
 assert.deepEqual(loaded, ["dist/agents/report.js"]);
 const report = { id: "scout", name: "scout", runtime: "codex", sessionId: "s-1", turn: 2, outcome: { kind: "completed" }, text: "found it", endedAt: 0 };
 assert.equal(formatReport(report), "[subagent scout on codex, turn 2: completed; session s-1]\\nfound it");
 assert.deepEqual(reportOrigin(report), { kind: "notification", source: "subagent:scout" });
+assert.deepEqual(parseReport(formatReport(report)), { id: "scout", runtime: "codex", sessionId: "s-1", turn: 2, outcome: { kind: "completed" }, body: "found it" });
+const { failureText, noticeText, noticeTone, phaseLabel, taskStatusLabel, toolGroupSummary } = await import("@botiverse/oar/observe");
+assert.equal(failureText("auth", "Codex"), "Codex is not signed in.");
+assert.equal(noticeText({ cause: "child_turn_ended", outcome: { kind: "aborted" } }), "Subagent turn aborted");
+assert.equal(noticeTone({ cause: "retry", attempt: 1 }), "warning");
+assert.equal(phaseLabel("waiting_model"), "Waiting for model");
+assert.equal(taskStatusLabel("stopped"), "Stopped");
+assert.equal(toolGroupSummary([], "running"), "Thinking…");
+assert.ok(loaded.every((file) => !file.startsWith("dist/runtimes/")), "Pure entries loaded a runtime adapter");
 `;
 
 const ENTRIES = `
@@ -111,7 +121,8 @@ import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
 export const entries = [oar, agents, report, brands, kernel, observe, testing];
-export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r) });
+export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r), parsed: report.parseReport(report.formatReport(r)) });
+export const display = [observe.noticeText, observe.noticeTone, observe.phaseLabel, observe.failureText, observe.taskStatusLabel];
 `;
 
 const ADD_CURSOR = `

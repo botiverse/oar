@@ -65,11 +65,31 @@ and steers or queues into a running one ([conversation](conversation.md#deliveri
 the report's text; `reportOrigin` marks the input as a notification from that
 subagent.
 
-A host that only forwards reports, such as a server relaying them from
-another machine, imports both from `@botiverse/oar/agents/report`: the same
-two functions and the `SubagentReport` type, with no Node or adapter imports.
+A host that forwards or displays reports, such as a server relaying them
+from another machine, imports `formatReport`, `parseReport`, `reportOrigin`
+and their types from `@botiverse/oar/agents/report`, with no Node or adapter imports.
 `@botiverse/oar/agents` loads every built-in runtime, because
 `createSubagents` defaults to them.
+
+`parseReport(text)` reads the format above, including reports recorded
+before the parser was added, and returns `null` for text outside that
+format. Its `ParsedReport` contains `id`, optional `name`, `runtime`,
+`turn`, `outcome`, `sessionId` and `body`. `outcome` is `{ kind: "completed" }`,
+`{ kind: "aborted" }` or `{ kind: "failed", reason: string }`; the failed
+reason and body are preserved verbatim, including whitespace and newlines.
+Failure classification, timestamp and log path are absent from the text,
+so the parser does not invent them. `InputOrigin` remains `{ kind, source }`.
+
+The existing format does not escape header fields. `x (y)` is read as id
+`x`, name `y`; an id that itself ends with that parenthesized text is
+ambiguous. A name equal to the id is omitted by the formatter. Runtime ids
+contain no whitespace or comma, session ids no whitespace or `]`, and turns
+are positive safe integers. The parser takes the first complete header and
+splits its session suffix from the right, preserving semicolons and
+parentheses in failed reasons. A reason containing the complete terminator
+`; session <id>]` followed by a newline is indistinguishable from the start
+of the body in this legacy format. Ordinary report bodies may freely quote
+other reports. No format change is required for existing records.
 
 ## Tasks
 
