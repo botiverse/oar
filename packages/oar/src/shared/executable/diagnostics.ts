@@ -55,8 +55,8 @@ export function nativeError(error: Error): { readonly code?: string; readonly me
  * message (which names only the command) and the identifying fields, no argv
  * and no cause pointing back at the original.
  */
-export function spawnFailure(error: Error): Error {
-  const failure = new Error(error.message);
+export function spawnFailure(error: Error, message = error.message): Error {
+  const failure = new Error(message);
   for (const key of ["code", "errno", "syscall", "path"]) {
     const field = Object.getOwnPropertyDescriptor(error, key);
     if (field !== undefined) {
@@ -79,9 +79,8 @@ export function spawnChecked<T>(start: () => T): T {
     if (!(error instanceof Error)) {
       throw error;
     }
-    const failure = spawnFailure(error);
-    failure.message = error.message.split(" Received")[0] ?? error.message;
-    throw failure;
+    // The cut message goes in at construction, so the stack never held the value.
+    throw spawnFailure(error, error.message.split(" Received")[0] ?? error.message);
   }
 }
 
