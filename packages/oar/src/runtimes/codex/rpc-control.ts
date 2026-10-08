@@ -1,3 +1,4 @@
+import { emptyInputRefusal } from "../../shared/control-input.js";
 import type {
   ControlResult,
   RequestBody,
@@ -24,7 +25,8 @@ export interface RpcControlPlan {
 /**
  * A control action backed by one app-server RPC: record the request; when the
  * stream already says the runtime is unreachable (`kernel.unreachable()`:
- * exited or disposed) record that rejection without running the plan; if the
+ * exited or disposed), or input is empty with no images, record that
+ * rejection without running the plan; if the
  * plan's gate refuses, record that; otherwise send and record the reply AS
  * the reply line is read (synchronously, through the client's onSettled hook)
  * so the response sits in the stream before any notification codex wrote
@@ -38,7 +40,7 @@ export async function rpcControl(
 ): Promise<ControlResult> {
   const blocked = kernel.unreachable();
   const request = kernel.request("toRuntime", plan.body);
-  const refused = blocked ?? plan.gate(request);
+  const refused = blocked ?? emptyInputRefusal(plan.body) ?? plan.gate(request);
   if (refused !== null) {
     return { request, response: kernel.respond(request.id, refused) };
   }

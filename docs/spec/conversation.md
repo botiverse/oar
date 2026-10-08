@@ -44,6 +44,14 @@ resubmit an accepted input. OAR generates identity, not delivery evidence.
 
 ## Images
 
+`prompt`, `steer` and `queue` accept `input: ""` when at least one image
+is present and that control supports images. With no images (omitted or
+`[]`), exactly `""` is rejected `unsupported`, reason
+`empty input: give text or images`. The request is still recorded, nothing
+is sent to the runtime, and the caller keeps ownership. Whitespace is not
+trimmed. Image-only requests and their `turn_started.input` retain `""`;
+OAR adds no placeholder prompt.
+
 `InputOptions.images` hands image files (by absolute path) to the runtime with
 the input, as its own image content: claude and ACP get base64 `image` blocks,
 codex `localImage` paths, pi `ImageContent`, cursor the SDK's

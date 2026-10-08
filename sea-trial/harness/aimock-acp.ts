@@ -100,7 +100,7 @@ export async function startOpencodeAimock(configure: (mock: LLMock) => void, use
         npm: "@ai-sdk/anthropic",
         name: "aimock",
         options: { baseURL: `${started.url}/v1`, apiKey: "aimock" },
-        models: { "aimock-model": { name: "aimock", tool_call: true, reasoning: false, limit: { context: 200_000, output: 8192 } } },
+        models: { "aimock-model": { name: "aimock", tool_call: true, reasoning: false, modalities: { input: ["text", "image"], output: ["text"] }, limit: { context: 200_000, output: 8192 } } },
       },
     },
     ...user,

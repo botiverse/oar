@@ -243,7 +243,7 @@ export type RejectionCode =
   | "no_active_turn"
   /** withdraw: no held input with this `inputId` is waiting: it was already sent to the runtime, never queued in this session, or already withdrawn. Never answered `accepted` when the input may already have gone. */
   | "not_queued"
-  /** The runtime cannot do this control with these inputs: images where it takes none, or a format it does not read, images on a cursor steer. A control the runtime cannot do at all is an absent member (`Session.steer`), not a rejection. */
+  /** The runtime cannot do this control with these inputs: images where it takes none, or a format it does not read, images on a cursor steer, or empty text with no images. A control the runtime cannot do at all is an absent member (`Session.steer`), not a rejection. */
   | "unsupported"
   /** The stream already holds the process exit. */
   | "runtime_exited"

@@ -5,8 +5,8 @@ import path from "node:path";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import type { TrialCase } from "../harness/runner.js";
 
-/** A 1×1 PNG: the smallest image every runtime with image input takes. */
-const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+/** A 32×32 PNG; Grok drops images smaller than 8×8. */
+const IMAGE_PNG = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR4nO3NsQ0AAAzCMP5/un0CNkuZ41wybXsHAAAAAAAAAAAAxR4yw/wuPL6QkAAAAABJRU5ErkJggg==";
 
 export const sessionImagesCases: readonly TrialCase[] = [
   {
@@ -19,9 +19,14 @@ export const sessionImagesCases: readonly TrialCase[] = [
     async run(subject) {
       const dir = await mkdtemp(path.join(tmpdir(), "oar-images-"));
       const image = path.join(dir, "dot.png");
-      await writeFile(image, Buffer.from(ONE_PIXEL_PNG, "base64"));
+      await writeFile(image, Buffer.from(IMAGE_PNG, "base64"));
       const session = await subject.startSession();
       try {
+        for (const control of [session.prompt.bind(session), session.steer?.bind(session), session.queue.bind(session)]) {
+          if (control === undefined) { continue; }
+          const empty = await control("");
+          assert.deepEqual(empty.response.body, { kind: "rejected", code: "unsupported", reason: "empty input: give text or images" });
+        }
         if (!session.capabilities.images) {
           const refused = await session.prompt("what is this?", { images: [{ path: image }] });
           assert.ok(refused.kind === "rejected" && refused.code === "unsupported", `no image input means unsupported: ${JSON.stringify(refused.response.body)}`);
@@ -33,9 +38,10 @@ export const sessionImagesCases: readonly TrialCase[] = [
         const notImage = await session.prompt("what is this?", { images: [{ path: path.join(dir, "notes.txt") }] });
         assert.ok(notImage.kind === "rejected" && notImage.code === "unsupported", `a file that is not an image refuses the input: ${JSON.stringify(notImage.response.body)}`);
         assert.equal(session.status().value.kind, "idle", "a refused input starts no turn");
-        const started = await session.prompt("Reply with one word: what color is this image?", { images: [{ path: image }] });
+        const started = await session.prompt("", { images: [{ path: image }] });
         assert.equal(started.kind, "accepted", JSON.stringify(started.response.body));
         assert.ok(started.request.body.kind === "prompt");
+        assert.equal(started.request.body.input, "", "image-only input stays empty in the record");
         assert.deepEqual(started.request.body.images, [{ path: image }], "the request records the image paths verbatim");
         assert.deepEqual(await awaitTurnEnd(session, started.request.seq), { kind: "completed" });
       } finally {

@@ -134,8 +134,13 @@ does not expose it.
 `busy-and-late-control`; `runtime_exited` once the process is gone). The RPC
 answer is recorded as frame `session/prompt` with the `turn_ended` event.
 `InputOptions.images` go as ACP `image` blocks before the text, since
-`initialize` advertises `promptCapabilities.image`; delivery to the model is
-not probed live. The advertised audio and embedded context support is unused.
+`initialize` advertises `promptCapabilities.image`; delivery to the local scripted model is verified below. The advertised audio and embedded context support is unused.
+
+For image-only input OAR sends ACP image blocks without a text block.
+Antigravity 1.3.0 sends Gemini `inlineData` plus its own nonempty text part
+containing a `USER_REQUEST` wrapper and metadata. The
+[image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts) confirms image delivery without an empty text block, using a local
+scripted provider and a dummy key.
 
 **Steer (not available on this transport):** ACP has no steer method, so
 the session has no `steer`; the live `steer` scenario skips on that.

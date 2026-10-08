@@ -48,3 +48,13 @@ test("a profile can say, on evidence, that an agent takes images its initialize 
   expect(run.kind === "ended" && run.text).toBe(`echo:[image image/png ${pathToFileURL(image).href}] look`);
   await session.dispose();
 });
+
+test("image-only ACP input contains no trailing empty text block", async () => {
+  const session = await start();
+  try {
+    const run = await promptAndWait(session, "", { images: [{ path: image }] });
+    expect(run.kind === "ended" && run.text).toBe(`echo:[image image/png ${pathToFileURL(image).href}]`);
+  } finally {
+    await session.dispose();
+  }
+});

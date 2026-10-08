@@ -206,6 +206,11 @@ codex-cli 0.155.1, 2026-09-29: a plain green PNG named `probe.png` was
 answered `green`). OAR checks the file's type and readability first, so a bad
 image refuses the input before any RPC.
 
+With empty text and images, OAR sends only `localImage` items. Codex
+0.161.0 wraps the provider's `input_image` in its own nonempty `input_text`
+image delimiters. OAR neither adds a placeholder nor removes those native
+labels. Verified with the [image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts), without a login.
+
 **Input identity:** every prompt, steer and queue sends its `inputId` (a UUID,
 assigned when the host gives none) as `clientUserMessageId`; codex echoes it as
 the `userMessage` item's `clientId`, read on `item/started` as a

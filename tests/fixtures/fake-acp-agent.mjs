@@ -47,7 +47,7 @@ function promptText(params) {
   const prompt = Array.isArray(params?.prompt) ? params.prompt : [];
   const text = prompt.find((block) => block?.type === "text");
   const images = prompt.filter((block) => block?.type === "image").map((block) => `[image ${block.mimeType} ${block.uri}]`);
-  return [...images, typeof text?.text === "string" ? text.text : ""].join(" ");
+  return [...images, ...(typeof text?.text === "string" ? [text.text] : [])].join(" ");
 }
 
 // Kimi f9ca33376 modes "usage-after-response" / "usage-never": the prompt
