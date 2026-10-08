@@ -67,6 +67,24 @@ export function spawnFailure(error: Error): Error {
   return failure;
 }
 
+/**
+ * Node rejects an argument or environment value it cannot pass (a NUL byte)
+ * synchronously, quoting the value after "Received". Rethrown with the
+ * value cut, so an argv or env secret never reaches the host's error.
+ */
+export function spawnChecked<T>(start: () => T): T {
+  try {
+    return start();
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error;
+    }
+    const failure = spawnFailure(error);
+    failure.message = error.message.split(" Received")[0] ?? error.message;
+    throw failure;
+  }
+}
+
 export function processFailure(context: string, diagnostics: ProcessDiagnostics): Error {
   const reasons = [
     `exit code ${diagnostics.exitCode === null ? "unavailable" : String(diagnostics.exitCode)}`,

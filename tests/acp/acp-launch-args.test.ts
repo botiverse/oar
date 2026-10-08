@@ -31,3 +31,10 @@ test("a runtime that cannot start rejects with no launch argument in the error",
   expect(failure).toMatchObject({ code: "ENOENT" });
   expect([inspect(failure, { depth: 5 }), JSON.stringify(failure)].filter((text) => text.includes(secret))).toEqual([]);
 });
+
+test("an argument Node cannot pass (a NUL byte) is not quoted in the error either", async () => {
+  const secret = "LAUNCH-SECRET-456";
+  const failure: unknown = await kimiSession({ kind: "available", via: "executable", command: process.execPath }, { cwd: "/tmp", launchArgs: [`--token=${secret}\0x`] }).catch((error: unknown) => error);
+  expect(failure).toMatchObject({ code: "ERR_INVALID_ARG_VALUE" });
+  expect([inspect(failure, { depth: 5 }), JSON.stringify(failure)].filter((text) => text.includes(secret))).toEqual([]);
+});

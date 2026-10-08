@@ -2,7 +2,7 @@ import { execFile, type ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
-import { nativeError, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
+import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { treeResourcesReader } from "./process-resources.js";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
@@ -149,12 +149,12 @@ export function spawnLineProcess(
   args: readonly string[],
   options: LineProcessOptions = {},
 ): LineProcess {
-  const child = spawn(command, [...args], {
+  const child = spawnChecked(() => spawn(command, [...args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
-  });
+  }));
   trackOwnedProcess(child);
   const { stdin, stdout } = child;
   const stderr = new StderrTail();
