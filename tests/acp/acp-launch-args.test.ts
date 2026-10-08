@@ -1,7 +1,8 @@
+import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
-import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
+import { kimiAcpProfile, kimiSession } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { acpLaunchArgs } from "../../packages/oar/src/shared/acp/launch-args.js";
 
@@ -20,4 +21,13 @@ test("omitted or empty launchArgs leave every argv as it was", () => {
     const plain = acpLaunchArgs(profile, { cwd: "/work" });
     expect(acpLaunchArgs(profile, { cwd: "/work", launchArgs: [] })).toEqual(plain);
   }
+});
+
+// Node's spawn error carries the whole argv in `spawnargs`; a host that logs
+// the rejection must not print the launch arguments (Lookout, #251).
+test("a runtime that cannot start rejects with no launch argument in the error", async () => {
+  const secret = "LAUNCH-SECRET-123";
+  const failure: unknown = await kimiSession({ kind: "available", via: "executable", command: "/nonexistent/oar-runtime" }, { cwd: "/tmp", launchArgs: [`--token=${secret}`] }).catch((error: unknown) => error);
+  expect(failure).toMatchObject({ code: "ENOENT" });
+  expect([inspect(failure, { depth: 5 }), JSON.stringify(failure)].filter((text) => text.includes(secret))).toEqual([]);
 });

@@ -598,4 +598,4 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go after `acp`. `kimi acp` reads only its own options there (`--login`, `--region`); the root command's options do not reach the ACP server. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go after `acp`. `kimi acp` reads only its own options there (`--login`, `--region`) and exits on any other (2.1.1); the root command's options, placed before `acp`, do not reach the ACP server either, so kimi currently has no useful launch argument. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

@@ -135,13 +135,17 @@ the list again when resuming; OAR does not persist host options.
 `SessionOptions.launchArgs` adds the host's own command-line arguments to
 the runtime process a session starts, for a flag OAR does not model (codex
 `-c service_tier="fast"`, claude `--add-dir`). OAR passes them unchecked:
-it promises nothing about their effect, a runtime can ignore one it does
-not know, and one that changes the protocol OAR speaks breaks the session.
-They are never recorded. Give them again on resume.
+it promises nothing about their effect, and one that changes the protocol
+OAR speaks breaks the session. A flag the runtime does not know usually
+makes it exit: claude, codex, grok, kimi and opencode all did (2026-10-08),
+so the open rejects, except that claude opens with its exit as the first
+record. OAR never records them, but they are not secret: any local user can
+read a process's arguments (`ps`), so credentials go in `env`. Give them
+again on resume.
 
 | runtime | where they go |
 |---|---|
-| claude | after OAR's own flags, before `--mcp-config` and `--disallowed-tools` (both take several values) |
+| claude | after OAR's own flags, before `--mcp-config` and `--disallowed-tools` (both take several values, so a bare host value after them would be read as theirs) |
 | codex | `app-server`, OAR's `-c` overrides, the host's arguments, `--listen stdio://` |
 | grok | `agent --always-approve --no-leader`, the host's arguments, `stdio`: `agent` takes its options before `stdio` |
 | kimi, opencode | after `acp` |

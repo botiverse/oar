@@ -2,7 +2,7 @@ import { execFile, type ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
 import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
-import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
+import { nativeError, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { treeResourcesReader } from "./process-resources.js";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
@@ -209,7 +209,7 @@ export function spawnLineProcess(
   child.on("exit", end);
   child.on("error", (error) => {
     spawnError = nativeError(error);
-    spawnFailed(error);
+    spawnFailed(spawnFailure(error));
     end(null);
   });
 

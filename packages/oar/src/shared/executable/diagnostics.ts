@@ -49,6 +49,24 @@ export function nativeError(error: Error): { readonly code?: string; readonly me
   };
 }
 
+/**
+ * A spawn failure as a host may see it: Node's own error carries the whole
+ * argv in `spawnargs` (prompts, SessionOptions.launchArgs). This keeps the
+ * message (which names only the command) and the identifying fields, no argv
+ * and no cause pointing back at the original.
+ */
+export function spawnFailure(error: Error): Error {
+  const failure = new Error(error.message);
+  for (const key of ["code", "errno", "syscall", "path"]) {
+    const field = Object.getOwnPropertyDescriptor(error, key);
+    if (field !== undefined) {
+      const value: unknown = field.value;
+      Object.assign(failure, { [key]: value });
+    }
+  }
+  return failure;
+}
+
 export function processFailure(context: string, diagnostics: ProcessDiagnostics): Error {
   const reasons = [
     `exit code ${diagnostics.exitCode === null ? "unavailable" : String(diagnostics.exitCode)}`,
