@@ -109,9 +109,10 @@ for (const update of state.updates) {
 `state.inputs` contains logical inputs, every attempt's original request and
 observed response, and native observations. `state.updates` contains only the
 changes from the most recently folded record. Input states are `pending`,
-`accepted`, `rejected`, `withdrawn` (taken back before it was sent, see
-below), or `untracked` (a native echo without an observed request).
-An accepted attempt wins over later refusals; otherwise the latest attempt
+`accepted`, `rejected`, `withdrawn` (taken back before it was sent),
+`dropped` (ownership returned by the evidence below), or `untracked` (a native echo without an observed request).
+Among attempts after the latest accepted withdrawal or drop, an accepted
+attempt wins over later refusals; otherwise the latest attempt
 sets the state. A missing response remains pending: neither exceptions nor a
 turn end manufacture a refusal or consumption receipt.
 
@@ -140,11 +141,45 @@ persistence belongs to the application
 Rao uses this reducer over its persisted records. It shows input requests
 immediately and hides routine success badges. It must not infer completion of
 all steering inputs from `turn_ended`. Taking back held input is `withdraw`
-(below); any other cancellation is outside this contract.
+(below); a runtime discarding input is `input_dropped`.
 
 Evidence: [local steer identity probes](../runtimes/steer-delivery.md). Regression
 coverage includes pure reducer cases, mock fallback, and Codex/Claude native
 harnesses with a local scripted provider.
+
+## Dropped input
+
+`input_dropped {inputId, reason: "turn_interrupted"}` is a runtime event.
+Only an adapter with native evidence of discard emits it, on the frame
+that proves the discard. A turn ending alone says nothing about unread input.
+Codex emits it on an interrupted root `turn/completed`, before `turn_ended`,
+for accepted steers to that turn with no user-message echo. It does not
+apply to Codex's durable queue, another turn, or an echoed steer.
+[Runtime evidence](../../experiments/input-interruption-2026-10-08.md)
+distinguishes runtimes that retain input and the remaining Grok ambiguity.
+
+The conversation reducer sets the input's state to `dropped` and its `reason`
+to the event's reason. The caller owns that input again and may resend it.
+Earlier accepted responses and native observations remain facts in
+`attempts` and `observations`. A later delivery attempt using the same
+`inputId` starts fresh, without an earlier accepted attempt keeping the new
+attempt accepted; its old top-level drop reason disappears. Reducer state
+retains the attempt boundary in `drops` so incremental and replay folds agree.
+
+An `exited` response also settles inputs still waiting in that stream and
+session lineage: `dropped`, with `reason: "runtime_exited"`. This includes
+held queues and accepted or unanswered steers still awaiting an echo.
+A child's exit does not settle its parent's inputs. Streams that place
+inputs at their request (ACP, Pi, Cursor) have no such pending tray.
+This fold does not synthesize a runtime event or a second control response.
+**`runtime_exited` means no read was observed before exit**, not proof the
+runtime never read or saved the input. In particular, Codex's durable queue
+may survive in its native session. Check the resumed transcript before
+resending when duplication matters; death returns control, not certainty.
+A later correlated echo, including on resume, replaces an exit-only drop
+with the recorded delivery state if no new attempt intervened. It clears
+the drop reason and updates the already placed bubble without duplicating
+it; the original exit remains in the record stream.
 
 ## Withdrawing held input
 
@@ -190,8 +225,11 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 - A rejected input enters where it was refused. If a retry of the same
   input (`deliver`, `steerOrQueue`) must wait for its echo, it leaves
   `messages` for `pendingInputs` again.
-- An input never echoed stays pending, even after its turn ends: OAR does
-  not invent a position for it from a turn end or matching text.
+- A dropped input leaves `pendingInputs` and enters `messages` at the drop
+  event or exit, just as a rejection enters at its refusal.
+- An input never echoed stays pending after a turn ends unless explicit
+  discard or exit evidence settles it. OAR does not infer discard or a
+  position from a turn end or matching text.
 - A withdrawn input leaves `pendingInputs`, and `messages` too on a stream
   that placed it at its request. The segment that request sealed stays
   sealed: content folded since sits on either side of where the input was,

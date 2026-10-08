@@ -206,6 +206,17 @@ is measured in [crash and resume](crash-resume.md) (SDK 0.99.2).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [kernel](../../packages/oar/src/shared/session-kernel.ts).
 
+### Interrupted input
+
+Pi retains steering input across the tested abort. In SDK 1.0.4,
+`pi-agent-core/dist/agent.js`'s `abort()` only signals the active run;
+`finishRun()` does not clear the steering queue. The loop can drain steering
+into the transcript while an aborted tool settles, before the next model
+request. The local-provider probe observed the steering text in the next
+prompt's provider request. OAR emits no `input_dropped` on Pi's aborted
+`agent_settled`. Its echoes have no input IDs, so request-position placement
+continues. [Evidence](../../experiments/input-interruption-2026-10-08.md).
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt()` records a request and calls

@@ -1,33 +1,10 @@
-import type { ConversationInput, ConversationState } from "./conversation.js";
+import type { ConversationInput } from "./conversation.js";
 import { sealTurn, type Draft } from "./session-view-fold.js";
 
 /**
  * Where a user input enters the session view: the INPUT rule in the
  * `session-view.ts` header (issue #82), applied per input update.
  */
-
-/**
- * Whether an input waits in `pendingInputs` for its native echo instead of
- * entering `messages` now: a steer or queue the runtime has not echoed yet,
- * on a stream that echoes input ids, which it shows by having echoed one
- * before. Never a prompt still in play (it opens its turn) or a refused
- * input (shown where it was refused). No runtime name or capability decides
- * this; the stream itself does.
- */
-export function awaitsEcho(input: ConversationInput, conversation: ConversationState): boolean {
-  if (input.observations.length > 0 || input.state === "rejected") {
-    return false;
-  }
-  if (input.attempts.some((attempt) => attempt.request.body.kind === "prompt" && attempt.state !== "rejected")) {
-    return false;
-  }
-  for (const known of conversation.inputs.values()) {
-    if (known.observations.length > 0) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /**
  * Upsert a user input. One waiting for its echo goes to `pendingInputs`;

@@ -1,7 +1,8 @@
 /* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
 import { randomUUID } from "node:crypto";
-import type { ControlResult, InputImage, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
+import type { ControlResult, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
+import { acceptCodexSteer, codexUserInput } from "./input-delivery.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -20,10 +21,6 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
  * Native mappings and live evidence: docs/runtimes/codex.md.
  */
 
-/** codex's UserInput: the text, then each image as a `localImage` path codex reads itself (its own composer's order). */
-const userInput = (input: string, images: readonly InputImage[] = []): JsonRecord[] =>
-  [...(input === "" ? [] : [{ type: "text", text: input }]), ...images.map((image) => ({ type: "localImage", path: image.path }))];
-
 interface CodexSessionState {
   /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */
   active: RequestRecord | null;
@@ -33,7 +30,6 @@ interface CodexSessionState {
   codexTurnId: string | null;
   projection: CodexProjectionState;
 }
-
 export const codexSession: StartSession = async (installation, options) => {
   if (installation.via !== "executable") {
     throw new Error("The codex session adapter needs an executable installation");
@@ -87,7 +83,6 @@ export const codexSession: StartSession = async (installation, options) => {
     await client.exited;
     throw new Error(readback.refusal);
   }
-
   const kernel = createSessionKernel(threadId);
   const state: CodexSessionState = {
     active: null,
@@ -210,7 +205,7 @@ export const codexSession: StartSession = async (installation, options) => {
       return null;
     },
     method: "turn/start",
-    params: () => ({ threadId, input: userInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId }),
+    params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId }),
     onReply: (reply) => {
       const turnId = asRecord(reply.turn)?.id;
       if (typeof turnId !== "string") {
@@ -225,20 +220,28 @@ export const codexSession: StartSession = async (installation, options) => {
       return { kind: "rejected", code: "runtime_refused", reason: message };
     },
   });
-  const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
-    body: { kind: "steer", input, ...inputOptions },
-    gate: () => (!busy() || state.codexTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : inputImagesRefusal(capabilities, inputOptions?.images)),
-    method: "turn/steer",
-    params: () => ({ threadId, input: userInput(input, inputOptions?.images), expectedTurnId: state.codexTurnId, clientUserMessageId: inputOptions?.inputId }),
-    onReply: (reply) => ({ kind: "accepted", native: reply }),
-    onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: `not_steerable: ${message}` }),
-  });
+  const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => {
+    const expectedTurnId = state.codexTurnId;
+    return {
+      body: { kind: "steer", input, ...inputOptions },
+      gate: () => (!busy() || expectedTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : inputImagesRefusal(capabilities, inputOptions?.images)),
+      method: "turn/steer",
+      params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), expectedTurnId, clientUserMessageId: inputOptions?.inputId }),
+      onReply: (reply) => {
+        if (expectedTurnId !== null && inputOptions?.inputId !== undefined) {
+          state.projection = { ...state.projection, inputs: acceptCodexSteer(state.projection.inputs, expectedTurnId, inputOptions.inputId) };
+        }
+        return { kind: "accepted", native: reply };
+      },
+      onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: `not_steerable: ${message}` }),
+    };
+  };
   // The reply carries the runtime's submission id; it is retained on the response.
   const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "queue", input, ...inputOptions },
     gate: () => inputImagesRefusal(capabilities, inputOptions?.images),
     method: "thread/queue/add",
-    params: () => ({ threadId, input: userInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
+    params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),
     onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
   });
@@ -263,7 +266,6 @@ export const codexSession: StartSession = async (installation, options) => {
       },
     };
   };
-
   const session: Session = sealSession({
     id: kernel.sessionId,
     capabilities,

@@ -106,6 +106,22 @@ const resumed = await cursor.session(installation, {
 Sessions of the earlier cursor-agent adapter (bare UUIDs) are not SDK agents
 and cannot be resumed.
 
+### Interrupted input
+
+SDK 1.0.36 keeps `run.steer()` pending on its internal
+`confirm_steering` acknowledgement. Only `complete_delivered` becomes
+OAR `accepted`; `revert_to_followup`, including the SDK's cleanup of
+undelivered steering when the run ends, is a refusal. OAR also races a
+pending steer against the recorded run end, so cancellation cannot leave
+an unanswered control. No accepted unread steering was established and
+no `input_dropped` rule is added.
+
+This audit inspected installed `run.d.ts` and `dist/esm/867.js` and exercised
+the SDK-facing adapter tests. The Cursor agent streaming backend was not
+reproduced locally, and no account was used; backend delivery behavior in
+this abort race remains unverified.
+[Audit](../../experiments/input-interruption-2026-10-08.md).
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt()` is one `agent.send`, answered `accepted`

@@ -146,6 +146,23 @@ cross-process live attachment, and load-fallback code effects remain
 Native [session fork](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/extensions/session_admin.rs#L994-L1007)
 exists as `x.ai/session/fork`; OAR exposes no fork operation.
 
+### Interrupted input
+
+Grok's `sendNow` steering cancels the active prompt and starts another.
+On 1.0.46, an immediate abort could cancel the replacement before its input
+was read: a subsequent provider request omitted it. If the abort waited
+until the replacement reached the provider, its text remained in later
+requests. Both runs reported `cancelled` / `MidTurnAbort`; the early
+replacement's usage could even repeat the previous prompt's totals.
+
+OAR does not yet have a reliable per-input consumption or discard signal
+for this race. It records those native replies without `input_dropped`;
+blindly treating every cancelled steer as unread would return already-read
+input for duplicate delivery. The source's running-prompt queue removal
+explains the early loss but does not establish whether a cancelled prompt
+reached the transcript. Inputs remain placed at request, as for other ACP
+runtimes. [Comparison, source and reproducible probe](../../experiments/input-interruption-2026-10-08.md).
+
 ### Prompting, steering, queuing, and cancellation
 
 Native `session/prompt { sessionId, prompt: [{ type: "text", text }] }`

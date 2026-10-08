@@ -21,7 +21,7 @@ import type { PendingRequest } from "./session-view.js";
 
 export function foldEvent(draft: Draft, event: Event, streamId: string): void {
   // Native echoes are ConversationInput observations, never a second bubble.
-  if (event.kind === "user_message") {
+  if (event.kind === "user_message" || event.kind === "input_dropped") {
     return;
   }
   const scope = draft.rootSessionId ?? event.sessionId;

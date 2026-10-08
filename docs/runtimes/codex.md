@@ -181,6 +181,25 @@ resuming the same persisted identity.
 [resume tests](../../tests/codex/codex-session-resume-model.test.ts),
 [error handling][oar-transport].
 
+### Interrupted input
+
+When a root `turn/completed` reports `interrupted`, OAR emits
+`input_dropped {inputId, reason: "turn_interrupted"}` for each accepted
+steer to that `expectedTurnId` without an `item/started` user-message echo.
+The events precede `turn_ended` on that same native frame. Queue submissions,
+already echoed steers, other turns and children are excluded; a completed
+or failed turn does not establish discard.
+
+This follows Codex's own restoration rule in
+[`input_restore.rs` at ea27864](https://github.com/openai/codex/blob/ea27864f99f0b086cec2f9f0251b7190fb9844f1/codex-rs/tui/src/chatwidget/input_restore.rs#L340),
+backed by `abort_all_tasks` removing the active turn and clearing pending
+input in [`tasks/mod.rs`](https://github.com/openai/codex/blob/ea27864f99f0b086cec2f9f0251b7190fb9844f1/codex-rs/core/src/tasks/mod.rs#L549).
+The [native 0.161.0 probe](../../experiments/input-interruption-2026-10-08.md)
+confirmed acceptance without an echo, interrupted completion, and absence
+from the next provider request. The
+[vendor regression](../../sea-trial/vendor/input-dropped.vendor.test.ts)
+runs that case with a local scripted provider.
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** native `turn/start { threadId, input }` returns

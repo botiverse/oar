@@ -20,7 +20,8 @@ import {
   type ConversationState,
 } from "./conversation.js";
 import { assemble, draftOf, stampTurnOutcome } from "./session-view-fold.js";
-import { awaitsEcho, upsertInput } from "./session-view-inputs.js";
+import { awaitsEcho } from "./input-delivery.js";
+import { upsertInput } from "./session-view-inputs.js";
 import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
 
@@ -45,7 +46,7 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   until then it waits in `pendingInputs`. On a stream that never echoed
  *   one (pi, cursor, ACP runtimes) it enters at its request, the best fact known. A
  *   refused input enters where it was refused; a retry of it that must wait
- *   for its echo takes it back out. A withdrawn input leaves `pendingInputs`
+ *   for its echo takes it back out. A dropped input enters at its discard/exit; a withdrawn input leaves `pendingInputs`
  *   and `messages`; the segment its request sealed stays sealed.
  * - A SECTION is a contiguous run of one lane (`sessionId`, `agentPath`)
  *   inside a turn. Sub-agent and child-session activity nests inside the

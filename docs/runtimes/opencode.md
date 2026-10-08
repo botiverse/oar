@@ -115,6 +115,14 @@ directory](resume-cwd.md)). Every non-git directory belongs to the one
 `global` project, yet `session/list` without a directory still found a
 session from a non-git directory when the resume named a git repository.
 
+### Interrupted input
+
+On 1.18.35, steering followed immediately by `session/cancel` kept the
+steering text in the next prompt's provider request. An aborted prompt does
+not prove discard, so OAR emits no `input_dropped` for it. ACP provides no
+verified input-ID echo; inputs still enter the view at their request.
+[Native scripted-provider probe](../../experiments/input-interruption-2026-10-08.md).
+
 ### Prompt, steering, queueing, and abort
 
 A `session/prompt` sent while one runs is not refused: opencode admits it and

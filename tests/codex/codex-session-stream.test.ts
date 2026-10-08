@@ -128,6 +128,7 @@ async function bodiesOf(calls: readonly Promise<ControlResult>[]): Promise<Respo
   return results.map((result) => result.response.body);
 }
 
+// oxlint-disable-next-line eslint/max-statements -- Pin acceptance, drop, queue isolation and later refusal in one transport sequence.
 test("busy while a turn runs; steer, queue and abort answer through the RPC replies", async () => {
   scriptedAppServer();
   const session = await codexSession(installation, { cwd: "/work" });
@@ -142,6 +143,9 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
   // The queue is codex's own (thread/queue/add): OAR offers no withdraw until thread/queue/delete is verified.
   expect("withdraw" in session).toBe(false);
   expect(await awaitTurnEnd(session, held.request.seq)).toEqual({ kind: "aborted" });
+  const drops = session.records().flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "input_dropped") : []);
+  const acceptedSteer = session.records().find((record) => record.kind === "request" && record.body.kind === "steer");
+  expect(drops).toEqual([{ kind: "input_dropped", inputId: acceptedSteer?.kind === "request" && "inputId" in acceptedSteer.body ? acceptedSteer.body.inputId : undefined, reason: "turn_interrupted" }]);
   expect(await bodiesOf([session.abort(), steer(session, "late")])).toEqual([
     { kind: "rejected", code: "no_active_turn", reason: "no active turn" },
     { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" },
