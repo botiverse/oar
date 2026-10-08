@@ -35,6 +35,7 @@ export interface Draft {
   pendingRequests: PendingRequest[];
   model: string | null;
   effort: string | null;
+  serviceTier: string | null;
   context: ContextUsage | null;
   exited: { readonly code: number | null } | null;
   usageByAgent: Map<string, AgentTokens>;
@@ -50,6 +51,7 @@ export function draftOf(state: SessionView): Draft {
     pendingRequests: [...state.pendingRequests],
     model: state.model,
     effort: state.effort,
+    serviceTier: state.serviceTier,
     context: state.context,
     exited: state.exited,
     usageByAgent: new Map(state.usageByAgent),
@@ -77,6 +79,7 @@ export function assemble(
     status,
     model: draft.model,
     effort: draft.effort,
+    serviceTier: draft.serviceTier,
     context: draft.context,
     usage,
     pendingRequests: draft.pendingRequests,

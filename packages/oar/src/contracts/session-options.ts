@@ -52,6 +52,20 @@ export interface SessionOptions {
    * `Session.effort()` is the runtime's report, where it gives one.
    */
   readonly effort?: string;
+  /**
+   * Runtime-native service tier, one of the model's `ModelEntry.serviceTiers`,
+   * or `default` to explicitly disable a special tier. `default` is an
+   * opt-out, not an entry in the catalog. Omission follows the runtime's
+   * configuration and restore rules; see its page for resume behavior.
+   * Applied at open, including resume; reopen to change it. The adapter reads
+   * the native report before returning and rejects a refused or substituted
+   * tier instead of silently running another. Runtimes without a verified
+   * channel reject with UnsupportedOptionError on serviceTier, declared in
+   * Runtime.refusedSessionOptions. A runtime that accepts this option lists
+   * its tiers, and one that lists tiers accepts it. Session.serviceTier()
+   * folds native reports; provider-side availability can still change later.
+   */
+  readonly serviceTier?: string;
   /** Resume the runtime-native session identified by a previous Session.id. In a `cwd` other than the session's own, see `cwd`: kimi and opencode refuse it with `UnsupportedOptionError` (docs/spec/runtime-matrix.md#refused-session-options). */
   readonly resume?: string;
   /** Environment changes for the processes THIS session spawns: a string sets the variable (including an empty string); null removes it from the inherited environment. The host environment is never changed. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. Pi refuses removals combined with stdio mcpServers because its MCP transport re-inherits the host environment. Refused when non-empty by cursor, whose tools run in the host process with no environment of their own: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */

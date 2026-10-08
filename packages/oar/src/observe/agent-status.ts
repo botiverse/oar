@@ -133,6 +133,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "usage":
     case "model":
     case "effort":
+    case "service_tier":
       return previous;
   }
   return previous;

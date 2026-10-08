@@ -69,6 +69,10 @@ export function renderModels(report: ModelsReport): string[] {
         level === model.defaultEffort ? `${level}*` : level);
       parts.push(`[${marked.join(",")}]`);
     }
+    if (model.serviceTiers !== undefined && model.serviceTiers.length > 0) {
+      const marked = model.serviceTiers.map((tier) => tier === model.defaultServiceTier ? `${tier}*` : tier);
+      parts.push(`tiers [${marked.join(",")}]`);
+    }
     if (model.disabled !== undefined) {
       parts.push(`(disabled: ${model.disabled.reason})`);
     }

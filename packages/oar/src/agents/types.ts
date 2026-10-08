@@ -31,6 +31,8 @@ export interface SpawnOptions {
   readonly cwd?: string;
   readonly model?: string;
   readonly effort?: string;
+  /** Requested native service tier; omitted means the runtime chooses. */
+  readonly serviceTier?: string;
   /** Resume this runtime-native session (a previous report's `sessionId`) instead of starting one. */
   readonly resume?: string;
   readonly env?: Readonly<Record<string, string | null>>;

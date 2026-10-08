@@ -55,6 +55,7 @@ function describeCommand(command: ProjectionCommand): string {
             return describeUsage(view.usage.tokens);
           case "text_delta":
           case "tool_call_ended":
+          case "service_tier":
           case "input_dropped":
           case "user_message":
           case "model":

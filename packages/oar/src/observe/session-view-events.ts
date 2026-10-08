@@ -190,6 +190,9 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         draft.model = event.model;
       }
       return;
+    case "service_tier":
+      if (event.sessionId === scope && event.agentPath.length === 0) { draft.serviceTier = event.serviceTier; }
+      break;
     case "effort":
       if (event.sessionId === scope && event.agentPath.length === 0) {
         draft.effort = event.effort;

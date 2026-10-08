@@ -204,7 +204,7 @@ for (const runtime of defaultRuntimes.list()) {
   their reset times (claude, codex, grok, kimi;
   [reference](docs/spec/account-usage.md)).
 - **Models:** `listModels()` lists the models the installation can run now,
-  with their effort levels; not being logged in is its own answer, not an
+  with their effort levels and service tiers; not being logged in is its own answer, not an
   empty list.
 - **Updates:** `checkUpdate()` reports the version the runtime's own updater
   would install, and `upgrade()` runs that updater and judges it by the

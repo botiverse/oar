@@ -9,7 +9,7 @@ import { codexFailure } from "./failure.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { noTokens } from "../../shared/token-totals.js";
 import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-detail.js";
-import type { CodexOpenMethod } from "./open.js";
+import { codexServiceTierEvents, type CodexOpenMethod } from "./open.js";
 import { codexReasoningContent } from "./reasoning.js";
 import { aboutOwnChild, codexTaskViews, withStartedChild, type SubagentThreads } from "./tasks.js";
 import { baselineTokens, codexUsageViews, initialTokenBaseline, nextTokenBaseline, type CodexTokenBaseline } from "./token-usage.js";
@@ -132,7 +132,7 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
  */
 function settingsViews(params: JsonRecord): RuntimeEventBody[] {
   const settings = asRecord(params.threadSettings);
-  const events: RuntimeEventBody[] = [];
+  const events: RuntimeEventBody[] = [...codexServiceTierEvents(settings)];
   if (typeof settings?.model === "string" && settings.model.length > 0) {
     events.push({ kind: "model", model: settings.model });
   }

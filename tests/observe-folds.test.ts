@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { AdapterSession, ControlResult, FrameBody, RuntimeEventBody, RawEvent, TurnOutcome } from "../packages/oar/src/index.js";
 import { awaitTurnEnd, turnEndAfter } from "../packages/oar/src/observe/turns.js";
-import { contextUsageOf, effortOf, modelOf, usageOf } from "../packages/oar/src/observe/usage.js";
+import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../packages/oar/src/observe/usage.js";
 import { sealSession } from "../packages/oar/src/shared/seal-session.js";
 import { createSessionKernel, type SessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 
@@ -156,4 +156,25 @@ test("usage totals sum each cache part over the agents that reported it", () => 
   const plain = createSessionKernel(ROOT);
   plain.frame(tokens({ input: 9, output: 1 }));
   assert.deepEqual(usageOf(plain.records()).value, { total: { input: 9, output: 1 } }, "no agent reported a cache part: none in the total");
+});
+
+
+test("service tier is unknown until the runtime reports it", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  assert.deepEqual(session.serviceTier(), { value: null, seq: -1 });
+});
+
+test("service tier folds root reports, including default, and survives replay", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "service_tier", serviceTier: "priority" }] });
+  for (const scope of [{ sessionId: CHILD }, { agentPath: ["subagent"] }]) {
+    kernel.frame({ type: "child", native: {}, events: [{ kind: "service_tier", serviceTier: "flex" }] }, scope);
+  }
+  assert.deepEqual(session.serviceTier(), { value: "priority", seq: 2 });
+  kernel.frame({ type: "thread/settings/updated", native: {}, events: [{ kind: "service_tier", serviceTier: "default" }] });
+  assert.deepEqual(session.serviceTier(), { value: "default", seq: 3 });
+  const records = structuredClone(session.records());
+  assert.deepEqual(serviceTierOf(records, ROOT), session.serviceTier());
 });

@@ -105,3 +105,10 @@ test("renderModels distinguishes unauthenticated from an empty list", () => {
   assert.deepEqual(renderModels({ runtimeId: "r", models: { kind: "unauthenticated" } }), ["r: not logged in"]);
   assert.deepEqual(renderModels({ runtimeId: "r", models: { kind: "ok", models: [] } }), ["r: no models"]);
 });
+
+
+test("renderModels shows native tier ids and marks the catalog default", () => {
+  assert.deepEqual(renderModels({ runtimeId: "codex", models: { kind: "ok", models: [
+    { id: "model", serviceTiers: ["priority", "flex"], defaultServiceTier: "flex" },
+  ] } }), ["codex\tmodel tiers [priority,flex*]"]);
+});

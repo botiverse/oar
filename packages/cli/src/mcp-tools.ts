@@ -32,7 +32,7 @@ function required(args: Readonly<Record<string, unknown>>, key: string): string 
 }
 
 function spawnOptions(args: Readonly<Record<string, unknown>>): SpawnOptions {
-  const optional = ["name", "cwd", "model", "effort", "resume"].flatMap((key) => {
+  const optional = ["name", "cwd", "model", "effort", "serviceTier", "resume"].flatMap((key) => {
     const value = text(args, key);
     return value === undefined ? [] : [[key, value] as const];
   });
@@ -46,6 +46,7 @@ const SPAWN_PROPERTIES = {
   cwd: { type: "string", description: "Working directory; the server's by default." },
   model: { type: "string", description: "Runtime-native model id." },
   effort: { type: "string", description: "Runtime-native reasoning effort." },
+  serviceTier: { type: "string", description: "Runtime-native service tier from the model catalog." },
   resume: { type: "string", description: "A sessionId from an earlier report, to continue that conversation." },
 };
 

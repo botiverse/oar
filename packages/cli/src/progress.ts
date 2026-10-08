@@ -25,6 +25,7 @@ export interface OpenedSession {
   readonly resumed: boolean;
   readonly model: string | null;
   readonly effort: string | null;
+  readonly serviceTier?: string | null;
 }
 
 /** The first progress line: which session this run is, and what model and effort the runtime says it runs, when it said so at open. */
@@ -32,6 +33,9 @@ export function renderOpened(opened: OpenedSession): string {
   const parts = [`${opened.resumed ? "resumed" : "session"} ${opened.sessionId}`];
   if (opened.model !== null) {
     parts.push(`model ${opened.model}`);
+  }
+  if (opened.serviceTier !== undefined && opened.serviceTier !== null) {
+    parts.push(`tier ${opened.serviceTier}`);
   }
   if (opened.effort !== null) {
     parts.push(`effort ${opened.effort}`);
@@ -125,6 +129,7 @@ export function createProgressRenderer(
       case "usage":
       case "model":
       case "effort":
+      case "service_tier":
       case "task_updated":
         return [];
     }

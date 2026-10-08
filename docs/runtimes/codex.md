@@ -56,9 +56,9 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 |---|---|
 | Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames codex sends before that reply (notifications and server requests alike) are recorded ahead of it in wire order, and frames written after it (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. The turn starts at the `prompt` request record and ends at codex's `turn/completed` (`turn_ended`: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer and interrupt. |
-| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, which `classifyTool` reads as one `edit_file` with every changed path as `paths`, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, which `classifyTool` reads as one `edit_file` with every changed path as `paths`, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `output` = the delta) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). Each response is recorded as the reply line is read, before notifications codex wrote after it. |
-| Effective configuration | `model()` and `effort()` fold the `model` / `effort` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
+| Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
@@ -443,6 +443,31 @@ by build):
 [child-thread probe](../../experiments/codex-child-threads.ts),
 [replay tests](../../tests/replay/codex-projection.test.ts).
 
+### Service tiers
+
+`SessionOptions.serviceTier` is sent on `thread/start` or `thread/resume`,
+never `turn/start`. The open reply's `serviceTier` must match before OAR
+returns a session. The native `fast` alias is **not** accepted as equivalent:
+0.161.0 reports `priority`, so requesting `fast` fails with both names. Use
+the model catalog's native ID. Unknown IDs that codex drops also fail the
+readback. Provider-side restrictions can still fail a later turn.
+
+The explicit opt-out `default` clears any special tier and is accepted even
+though it is not a catalog entry. Native null is also a report of no tier,
+projected as `default`; an absent field supplies no evidence. Open replies
+and `thread/settings/updated` produce `service_tier` events for
+`Session.serviceTier()` and `SessionView.serviceTier`.
+
+On 0.161.0, **omitting the tier on resume reads the current configuration,
+not the previous turn's tier**. With no `service_tier` in config, a priority
+session resumes with null and sends no provider `service_tier`. With config
+`service_tier = "priority"`, an omitted option resumes on priority. Passing
+`default` overrides that config and removes the field from provider requests.
+Priority and flex reach Responses requests as `service_tier: "priority"`
+and `"flex"`. These cases use a real executable and scripted provider in
+[service-tier.vendor.test.ts](../../sea-trial/vendor/service-tier.vendor.test.ts);
+[dated evidence](../../experiments/service-tier-2026-10-08.md).
+
 ### Models, instructions, and context
 
 **Model (mapped):** `model` on open selects the model for `thread/start` /
@@ -506,14 +531,14 @@ ignored by `thread/start`. Cwd and the process environment overlay are
 forwarded. Requested and effective configuration remain distinct.
 [Vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
 
-**Model listing:** `listModels` runs `codex debug models` (stdout streamed:
-the payload is close to 2 MB because every model embeds its instruction
-templates), not the app-server's `model/list`; `slug` is identity,
-`display_name` presentation only, and `visibility: "hide"` entries are
-dropped. Without credentials codex still exits 0 with its built-in fallback
-list, so the lister never reports `unauthenticated` and fallback entries can
-appear. [Model listing][oar-models],
-[list probe](../../experiments/codex-list-models.ts).
+**Model listing:** `listModels` opens a bounded app-server connection and
+paginates `model/list`. `model` is the selectable identity, `displayName` is
+presentation, hidden entries are omitted, and reasoning levels plus
+`serviceTiers[].id` / `defaultServiceTier` come from that same native picker.
+It does not read deprecated `additionalSpeedTiers`. No tier is invented for
+`default`: that is the separate explicit opt-out. This path uses the same
+home-initialization coordination as other app-server clients.
+[Model listing][oar-models], [regressions](../../tests/codex/codex-service-tier.test.ts).
 
 **Context (mapped):** native usage separates `total`, `last`, and nullable
 `modelContextWindow`. Each `thread/tokenUsage/updated` frame carries a
@@ -708,14 +733,14 @@ from the child's effective environment and working directory, with relative
 paths and symlinks resolved and trailing separators ignored; readiness comes
 from the observed handshake, not from a database file, and replacing the home
 directory invalidates it. The coordination does not cover other host
-processes, separately loaded copies of OAR, or `codex debug models`, and it
-is neither a native migration lock nor arbitration between controllers of
+processes, separately loaded copies of OAR, or external `codex debug models`
+calls, and it is neither a native migration lock nor arbitration between controllers of
 one thread
 ([implementation](../../packages/oar/src/runtimes/codex/home-initialization.ts),
 [cancellation and concurrency tests](../../tests/codex/codex-home-initialization.test.ts)).
 
-`codex debug models` stays outside because it did not initialize the SQLite
-state database on 0.160.0/Linux (the probe's custom provider, no login): 24
+The older `codex debug models` probe stays outside because it did not
+initialize the SQLite state database on 0.160.0/Linux (the probe's custom provider, no login): 24
 standalone readers and 21 readers alongside three app-servers succeeded,
 models-only homes held just their input config, and file-system tracing saw
 no SQLite paths; the native implementation uses a separate model
@@ -918,7 +943,7 @@ material" row describes the former only.
    dynamic tools exist natively; OAR passes none of them. A Session's
    control calls are `turn/start`, `turn/steer`, `thread/queue/add` and
    `turn/interrupt`; inventories and account usage run their own app-server
-   processes, and model listing runs `codex debug models`.
+   processes; model listing uses its own app-server `model/list` connection.
 
 ### Six questions
 

@@ -232,6 +232,14 @@ reported.
 **History:** the retained stream backs `rawEvents(observer, cursor)` for the
 life of the process (`cursor`); OAR enumerates no native history.
 
+### Service tiers
+
+`SessionOptions.serviceTier` is explicitly refused with
+`UnsupportedOptionError`, declared in `Runtime.refusedSessionOptions`.
+No per-session native setting plus applied-state readback has been verified
+for this adapter; `listModels` therefore advertises no service tiers. OAR
+does not silently ignore a requested tier or alter a global default.
+
 ### Models, instructions, and context
 
 **Mapped:** open-time model selection (`SessionOptions.model` →

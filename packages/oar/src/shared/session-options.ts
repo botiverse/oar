@@ -15,7 +15,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
 
 /** Reject an open that gives an option the runtime declares refused: an `UnsupportedOptionError` naming it, with the declared reason. */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier"] as const) {
     const reason = refused[key];
     if (reason !== undefined && sessionOptionGiven(options, key)) {
       throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);

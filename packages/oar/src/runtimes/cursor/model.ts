@@ -52,6 +52,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * '--system-prompt'" (probed 2026-10-03), and there is no append.
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
+  serviceTier: "cursor exposes no verified per-session service-tier setting and readback",
   systemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported",

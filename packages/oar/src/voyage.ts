@@ -19,6 +19,8 @@ export interface VoyageHeader {
   readonly model?: string;
   /** The reasoning-effort level the run requested (`SessionOptions.effort`); absent when none was. */
   readonly effort?: string;
+  /** Requested native service tier; omitted means the runtime chooses. */
+  readonly serviceTier?: string;
   readonly cwd: string;
   readonly sessionId: string;
   readonly startedAt: number;
@@ -32,6 +34,7 @@ export function headerLine(header: VoyageHeader): string {
     runtime: header.runtime,
     ...(header.model === undefined ? {} : { model: header.model }),
     ...(header.effort === undefined ? {} : { effort: header.effort }),
+    ...(header.serviceTier === undefined ? {} : { serviceTier: header.serviceTier }),
     cwd: header.cwd,
     sessionId: header.sessionId,
     startedAt: header.startedAt,

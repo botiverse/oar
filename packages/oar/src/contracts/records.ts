@@ -180,7 +180,9 @@ export type RuntimeEventBody = UserMessage
   | { readonly kind: "model"; readonly model: string }
   | TaskEventBody
   /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`, cursor's reasoning parameter): its own report, never the request echoed. claude's stream carries none. */
-  | { readonly kind: "effort"; readonly effort: string };
+  | { readonly kind: "effort"; readonly effort: string }
+  /** The runtime-reported service tier; `default` means explicitly no special tier. */
+  | { readonly kind: "service_tier"; readonly serviceTier: string };
 
 /** The toRuntime control actions a Session issues. */
 export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose";
@@ -294,7 +296,5 @@ export interface ContextUsage {
   readonly contextWindow: number | null;
   readonly percent: number | null;
 }
-
-// ─── Session graph and cursor: ./graph.ts ─────────────────────────────────
 
 export type { Cursor, SessionEdge, SessionGraph, SessionNode } from "./graph.js";

@@ -84,12 +84,14 @@ export async function openThread(
   client: AppServerClient,
   method: "thread/start" | "thread/resume",
   send: () => Promise<JsonRecord>,
+  serviceTier?: string,
 ): Promise<JsonRecord> {
   try {
     return await send();
   } catch (error) {
     client.kill();
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`codex ${method} failed: ${message}`, { cause: error });
+    const detail = serviceTier === undefined ? message : `serviceTier ${serviceTier} could not be confirmed (actual unreported): ${message}`;
+    throw new Error(`codex ${method} failed: ${detail}`, { cause: error });
   }
 }

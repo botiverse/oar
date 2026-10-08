@@ -1,3 +1,4 @@
+import { claudeServiceTierEvents } from "./service-tier.js";
 import type {
   FrameBody,
   RuntimeEventBody,
@@ -198,7 +199,7 @@ export function foldClaudeStdout(
       return event({ events: views });
     }
     case "result": {
-      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: resultOutcome(state, message) }];
+      const events: RuntimeEventBody[] = [...claudeServiceTierEvents(message), { kind: "turn_ended", outcome: resultOutcome(state, message) }];
       const accumulated = accumulate(state, agentPath, message);
       const context = claudeContextUsageFromResult(message);
       if (accumulated !== null || context !== null) {
@@ -218,7 +219,7 @@ export function foldClaudeStdout(
         return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] });
       }
       const model = message.subtype === "init" && typeof message.model === "string" ? message.model : null;
-      return event({ events: model === null ? claudeTaskViews(message) : [{ kind: "model", model }] });
+      return event({ events: [...(model === null ? claudeTaskViews(message) : [{ kind: "model" as const, model }]), ...claudeServiceTierEvents(message)] });
     }
     case "control_response": {
       // claude answering one of OUR control_requests (interrupt): the frame IS
@@ -226,6 +227,11 @@ export function foldClaudeStdout(
       // is not also recorded as an event. A control_response we cannot pair
       // is recorded as a plain event.
       const response = asRecord(message.response);
+      const initialized = asRecord(response?.response);
+      if (response?.subtype === "success" && initialized !== null) {
+        const events = claudeServiceTierEvents(initialized);
+        if (events.length > 0) { return event({ events }); }
+      }
       const requestId = typeof response?.request_id === "string" ? response.request_id : null;
       if (requestId === null) {
         return event({ events: [] });

@@ -95,6 +95,12 @@ export function piEffectiveModel(session: PiModelSource): string | null {
   return model === undefined ? null : `${model.provider}/${model.id}`;
 }
 
+/** Options the in-process SDK cannot honor, refused before anything opens. */
+export const piRefusedSessionOptions: RefusedSessionOptions = {
+  launchArgs: "pi runs in this process through its SDK; there is no runtime command line to add arguments to",
+  serviceTier: "pi exposes no verified per-session service-tier setting and readback",
+};
+
 /**
  * Opens (or resumes) the pi AgentSession the adapter wraps. Services first
  * (createAgentSessionServices loads the agent dir's extensions and their
@@ -102,11 +108,6 @@ export function piEffectiveModel(session: PiModelSource): string | null {
  * then the session against an explicit SessionManager so resume and creation
  * share one session directory.
  */
-/** Options the in-process SDK cannot honor, refused before anything opens. */
-export const piRefusedSessionOptions: RefusedSessionOptions = {
-  launchArgs: "pi runs in this process through its SDK; there is no runtime command line to add arguments to",
-};
-
 export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   validatePiMcpEnvironment(options);

@@ -28,7 +28,7 @@ export type { ToolAction, ToolActionKind } from "./tool-activity.js";
 export type { ReasoningPart, ToolGroup, ToolGroupSegment, ToolPart } from "./tool-groups.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
 export type { PromptRun, PromptRunOptions } from "./turns.js";
-export { contextUsageOf, effortOf, modelOf, usageOf } from "./usage.js";
+export { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "./usage.js";
 export { applyTaskEvent, initialTasks, initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "./tasks.js";
 export type { TaskEventOrigin, TaskMap, TaskState, TaskView } from "./tasks.js";
 

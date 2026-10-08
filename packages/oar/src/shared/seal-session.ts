@@ -9,7 +9,7 @@ import type {
 } from "../contracts/session.js";
 import { statusOf } from "../observe/agent-status.js";
 import { coalesceText, eventsReader } from "../observe/events.js";
-import { contextUsageOf, effortOf, modelOf, usageOf } from "../observe/usage.js";
+import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../observe/usage.js";
 import { deliverInto } from "./deliver.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
@@ -96,6 +96,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     },
     model: () => modelOf(adapterSession.records(), adapterSession.id),
     effort: () => effortOf(adapterSession.records(), adapterSession.id),
+    serviceTier: () => serviceTierOf(adapterSession.records(), adapterSession.id),
     usage: () => usageOf(adapterSession.records(), adapterSession.id),
     contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),
     status: () => statusOf(adapterSession.records(), adapterSession.id),

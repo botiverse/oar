@@ -15,6 +15,10 @@ export interface ModelEntry {
   /** Runtime-enumerated reasoning effort menu; omitted when not exposed. */
   readonly effortLevels?: readonly string[];
   readonly defaultEffort?: string;
+  /** Native service-tier menu; the explicit opt-out `default` is not a tier. */
+  readonly serviceTiers?: readonly string[];
+  /** Native catalog default, when the runtime reports one. */
+  readonly defaultServiceTier?: string;
   /** Present when the runtime lists the model but refuses to run it as-is. */
   readonly disabled?: { readonly reason: string };
 }

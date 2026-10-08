@@ -54,7 +54,7 @@ Programs have two entry points:
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request (none arrive under `--dangerously-skip-permissions`); `events()` reads it as `app_request` with the request subtype as `type`. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). `background_tasks_changed` (the live set) and `task_progress` carry no events. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
-| SDK configuration and interaction APIs | Only `--model`, `--effort` (confirmed by `get_settings` at open), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
+| SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
 
 Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [projection](../../packages/oar/src/runtimes/claude/projection.ts),
@@ -89,9 +89,10 @@ Resume restores context for new requests, not a prior process.
 [SDK sessions][native-sessions].
 
 **Mapped:** `await claudeSession(installation, { cwd, resume: sessionId })`
-resolves once the process is spawned (and, with `effort`, once `get_settings`
-confirms it), **before any native resume acknowledgment**; the resumed stream
-starts empty (claude says nothing until the first turn). A resumed session
+resolves once the process is spawned and any requested `effort` or `serviceTier`
+has passed its native readback, **before any native resume acknowledgment**.
+Without a tier readback the resumed stream starts empty; with one, it contains
+the `initialize` response, which confirms settings but not restored history. A resumed session
 keeps the id and recalls the earlier transcript (same cwd), but only a
 prompt's outcome establishes that history was restored. The reopened adapter
 has fresh observers, sequence numbers, and an empty queue; it takes startup
@@ -262,6 +263,36 @@ the retained records and continues live; a full replay equals `records()`);
 it is not a history API across processes. The
 [recording helper](../../sea-trial/record/claude.ts) scrubs frames for
 projection tests; it is not a public raw/replay interface.
+
+### Service tiers
+
+Claude 2.1.293 has both required native seams: a per-process
+`--settings '{"fastMode":true}'` flag and the pre-turn `initialize` control
+response's `fast_mode_state`. `SessionOptions.serviceTier: "fast"` uses that
+flag on new sessions and resumes; `default` explicitly sends false. This
+changes no user settings file. Any other tier is refused before launch.
+`list_models` supplies `supportsFastMode`; OAR lists `serviceTiers: ["fast"]`
+only when it is true. `default` is an opt-out, never a menu entry.
+
+Before returning the session, OAR requires `on` for fast or `off` for
+default. `off`, `cooldown`, an absent report or a native rejection cannot
+confirm requested fast, and opening fails with both the request and native
+status/reason. The wait is bounded to 30 seconds and failure stops the child.
+`get_settings.effective.fastMode` is **not** sufficient: it is configuration
+intent, and `applied` currently carries no fast-mode status. Sonnet with
+fastMode true still reports off and is correctly refused before a model call.
+
+The initialization response is recorded verbatim; its report and later
+`system/init` / `result` reports produce `service_tier` events. `on` maps to
+fast, `off` and temporary `cooldown` to default. Native reasons remain in the
+frame. A provider can downgrade fast after opening, so this is observable
+state rather than a promise about future capacity or billing.
+
+Real-binary tests in a fresh Claude config directory confirmed Messages
+`speed: "fast"`, its removal on a resume with default, and fast again on
+another resume. No real model account was used. See the
+[native regression](../../sea-trial/vendor/service-tier.vendor.test.ts) and
+[dated evidence](../../experiments/service-tier-2026-10-08.md).
 
 ### Models, instructions, and context
 

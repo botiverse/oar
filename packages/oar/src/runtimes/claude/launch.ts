@@ -1,3 +1,4 @@
+import { claudeServiceTierArgs } from "./service-tier.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
@@ -19,7 +20,7 @@ import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
 /** The process a claude session drives. */
 export type ClaudeProcess = LineProcess;
 
-function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null): LineProcess {
+function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierArgs: readonly string[]): LineProcess {
   return spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
@@ -32,6 +33,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
+    ...tierArgs,
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
     // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of
@@ -56,6 +58,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
  * and when claude cannot be spawned.
  */
 export async function launchClaude(command: string, sessionId: string, options: SessionOptions): Promise<ClaudeProcess> {
+  const tierArgs = claudeServiceTierArgs(options.serviceTier);
   const servers = givenMcpServers(options.mcpServers);
   // Either way, what dead hosts left behind goes first (mcp-config.ts).
   const mcpConfig = servers === null ? null : await handOverMcpConfig(servers);
@@ -64,7 +67,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   }
   let child: LineProcess | null = null;
   try {
-    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null);
+    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierArgs);
   } finally {
     if (child === null) {
       mcpConfig?.end();

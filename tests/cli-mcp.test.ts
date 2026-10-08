@@ -95,6 +95,15 @@ test("run waits for the subagent's turn and returns its report", async () => {
   await client.end();
 });
 
+test("MCP run forwards serviceTier through the crew to the native session", async () => {
+  const observed: (string | undefined)[] = [];
+  const client = connect((turn) => { observed.push(turn.options.serviceTier); turn.say("done"); });
+  const answer = await client.tool("run", { runtime: "fake", task: "hello", serviceTier: "priority" });
+  expect(answer.isError).toBe(false);
+  expect(observed).toEqual(["priority"]);
+  await client.end();
+});
+
 test("spawned subagents that finished are named in later tool results until wait reads them", async () => {
   const client = connect();
   expect(await toolText(client, "spawn", { runtime: "fake", task: "a", name: "alpha" })).toContain('"id": "alpha"');

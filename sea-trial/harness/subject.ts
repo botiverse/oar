@@ -11,6 +11,7 @@ export interface RuntimeUnderTest {
     readonly resume?: string;
     readonly model?: string;
     readonly effort?: string;
+    readonly serviceTier?: string;
     readonly systemPrompt?: string;
     readonly appendSystemPrompt?: string;
     readonly mcpServers?: readonly McpServer[];
@@ -38,6 +39,7 @@ export function runtimeUnderTest(
         cwd: process.cwd(),
         ...(model === undefined ? {} : { model }),
         ...(overrides.effort === undefined ? {} : { effort: overrides.effort }),
+        ...(overrides.serviceTier === undefined ? {} : { serviceTier: overrides.serviceTier }),
         ...(env === undefined ? {} : { env }),
         ...(overrides.resume === undefined ? {} : { resume: overrides.resume }),
         ...(overrides.systemPrompt === undefined ? {} : { systemPrompt: overrides.systemPrompt }),

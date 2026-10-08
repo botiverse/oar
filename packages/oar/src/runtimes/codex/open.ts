@@ -78,6 +78,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   // test), unlike the live rebuild above; not yet re-checked on a login.
   const mcpServers = givenMcpServers(options.mcpServers);
   const mcpConfig = mcpServers === null ? {} : { mcp_servers: codexMcpServersConfig(mcpServers) };
+  const tierParams = options.serviceTier === undefined ? {} : { serviceTier: options.serviceTier };
   const modelParams = options.model === undefined ? {} : { model: options.model };
   if (options.resume === undefined) {
     return {
@@ -86,6 +87,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       params: {
         cwd: options.cwd,
         ...modelParams,
+        ...tierParams,
         approvalPolicy: "never",
         // Required in addition to initialize.experimentalApi. This exposes
         // the completed Responses API reasoning item, whose encrypted_content
@@ -109,6 +111,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       // thread is loaded cold, which is the normal case here because every
       // oar session owns its own app-server process.
       ...modelParams,
+      ...tierParams,
       approvalPolicy: "never",
       ...instructionParams,
       ...configParams(mcpConfig),
@@ -148,9 +151,14 @@ export function codexOpenReadback(
   const events: RuntimeEventBody[] = [
     ...(model === null ? [] : [{ kind: "model" as const, model }]),
     ...(effort === null ? [] : [{ kind: "effort" as const, effort }]),
+    ...codexServiceTierEvents(reply),
   ];
   if (options.model !== undefined && model !== null && model !== options.model) {
     return { events, refusal: `codex ${method} kept model ${model} although ${options.model} was requested`, resumeEffort: null };
+  }
+  if (options.serviceTier !== undefined && codexServiceTier(reply) !== options.serviceTier) {
+    const actual = codexServiceTier(reply) ?? "unreported";
+    return { events, refusal: `codex ${method} reports serviceTier ${actual} although ${options.serviceTier} was requested`, resumeEffort: null };
   }
   if (options.effort === undefined || effort === options.effort) {
     return { events, refusal: null, resumeEffort: null };
@@ -185,4 +193,16 @@ export function codexResumeEffortRefusal(
   }
   const effort = effortIn(asRecord(settings.threadSettings));
   return effort === requested ? null : `codex thread/settings/update left effort ${effort ?? "none (the model's default)"} although ${requested} was requested`;
+}
+
+/** Null explicitly means no tier; an absent field is no evidence. */
+export function codexServiceTier(record: JsonRecord | null): string | null {
+  const value = record?.serviceTier;
+  if (value === null) { return "default"; }
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+export function codexServiceTierEvents(record: JsonRecord | null): RuntimeEventBody[] {
+  const serviceTier = codexServiceTier(record);
+  return serviceTier === null ? [] : [{ kind: "service_tier", serviceTier }];
 }

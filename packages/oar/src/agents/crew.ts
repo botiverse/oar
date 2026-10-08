@@ -110,6 +110,7 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
       cwd,
       ...(spawn.model === undefined ? {} : { model: spawn.model }),
       ...(spawn.effort === undefined ? {} : { effort: spawn.effort }),
+      ...(spawn.serviceTier === undefined ? {} : { serviceTier: spawn.serviceTier }),
       ...(spawn.resume === undefined ? {} : { resume: spawn.resume }),
       env: { ...options.env, ...spawn.env, [SUBAGENT_DEPTH_ENV]: String(hostDepth() + 1) },
     });
@@ -118,7 +119,8 @@ export function createSubagents(options: SubagentsOptions = {}): Subagents {
     }
     const log = options.logDir === undefined ? undefined : path.join(options.logDir, logName(spawn.name ?? spawn.runtime, session.id));
     const logFailure = log === undefined ? null : attachLog(session, log, { runtime: runtime.id, cwd, sessionId: session.id, startedAt: Date.now(), recorder: "oar-subagents",
-      ...(spawn.model === undefined ? {} : { model: spawn.model }), ...(spawn.effort === undefined ? {} : { effort: spawn.effort }) });
+      ...(spawn.model === undefined ? {} : { model: spawn.model }), ...(spawn.effort === undefined ? {} : { effort: spawn.effort }),
+      ...(spawn.serviceTier === undefined ? {} : { serviceTier: spawn.serviceTier }) });
     if (closed || logFailure !== null) {
       await session.dispose();
       return logFailure === null
