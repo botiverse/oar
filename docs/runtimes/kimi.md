@@ -577,3 +577,14 @@ a hidden same-name user server still starts is unmeasured. Keep native API
 capabilities, transport
 limitations, OAR omissions, and unexecuted checks separate when designing or
 claiming support.
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` is refused before launch and declared in
+`refusedSessionOptions`. Kimi profiles support `disallowedTools`, but
+`kimi acp` starts the ACP server without forwarding root CLI profile
+options, and has no session tool-denial overlay. OAR does not replace the
+user's selected agent profile or redirect the whole native home to emulate
+one.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

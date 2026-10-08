@@ -11,7 +11,7 @@ import { withInputImages, type LoadedImage } from "../../shared/input-images.js"
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
-import { cursorModelSelection, cursorRefusedSessionOptions } from "./model.js";
+import { cursorModelSelection, cursorRefusedSessionOptions, cursorToolDenialError } from "./model.js";
 import {
   cursorOpenedFrame,
   cursorRunFailedFrame,
@@ -56,11 +56,14 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     // without this a `~/.cursor/sandbox.json` would turn one on.
     const agentOptions = {
       model: await cursorModelSelection(sdk, options),
+      ...(options.disallowedTools === undefined ? {} : { disallowedTools: [...options.disallowedTools] }),
       local: { cwd: options.cwd, sandboxOptions: { enabled: false } },
     };
-    const agent = options.resume === undefined
-      ? await sdk.Agent.create(agentOptions)
-      : await sdk.Agent.resume(options.resume, agentOptions);
+    const agent = await (options.resume === undefined
+      ? sdk.Agent.create(agentOptions)
+      : sdk.Agent.resume(options.resume, agentOptions)).catch((error: unknown) => {
+      throw cursorToolDenialError(error, options);
+    });
 
     const kernel = createSessionKernel(agent.agentId);
     let projection: CursorProjectionState = initialCursorProjection;

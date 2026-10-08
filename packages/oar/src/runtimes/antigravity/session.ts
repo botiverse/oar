@@ -53,6 +53,21 @@ export function refuseAntigravityMcpCredentials(options: SessionOptions): void {
   }
 }
 
+/** Canonical BuiltinTools values in agy_acp_server 1.3.0's distributed types.py.
+ * Native tool_filter.py logs and ignores other names, so fail before launch.
+ * The names are a validation set, never an allowlist sent to the runtime. */
+const ANTIGRAVITY_FILTER_NAMES = new Set([
+  "list_directory", "search_directory", "find_file", "view_file", "create_file", "edit_file",
+  "run_command", "ask_question", "start_subagent", "generate_image", "search_web", "read_url_content", "schedule", "finish",
+]);
+
+export function antigravityToolDenials(options: SessionOptions): void {
+  const unsupported = (options.disallowedTools ?? []).filter((name) => !ANTIGRAVITY_FILTER_NAMES.has(name));
+  if (unsupported.length > 0) {
+    throw new UnsupportedOptionError("disallowedTools", `antigravity disabledTools only filters canonical built-in names; MCP, client tools and unknown names cannot be disabled: ${JSON.stringify(unsupported)}`);
+  }
+}
+
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
   // Subagents run inside the harness and never reach ACP under their own
@@ -67,7 +82,9 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   validateOptions: (options) => {
     refuseSessionOptions(antigravityRefusedSessionOptions, options);
     refuseAntigravityMcpCredentials(options);
+    antigravityToolDenials(options);
   },
+  sessionMeta: (options) => options.disallowedTools === undefined ? undefined : { agy: { disabledTools: [...options.disallowedTools] } },
   // `session/set_model` answers `{}` and no `config_option_update` is ever
   // pushed, so only `set_config_option` reports the switch. Effort is part
   // of the model id and no `thought_level` option exists.

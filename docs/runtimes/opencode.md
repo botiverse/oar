@@ -519,3 +519,15 @@ not be mixed.
 - No real model turns ran, so message/part write granularity is unmeasured.
 - Death boundary not observed: no process was killed mid-turn, so the event
   stream and projections at an abrupt exit are unknown.
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` is refused before prompt preparation or
+launch and declared in `refusedSessionOptions`. OpenCode 1.18.35 has native
+global and per-agent permission rules, but a global deny can be overridden
+by an agent's allow. Permission names also differ from tool names (for
+example, multiple file mutations share `edit`). ACP exposes no session
+native tool-name denylist. OAR does not rewrite the user's agent definition
+or turn a denylist into a computed allowlist.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

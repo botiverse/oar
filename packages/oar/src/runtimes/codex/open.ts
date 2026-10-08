@@ -1,3 +1,4 @@
+import { validateCodexToolDenials } from "./tool-denials.js";
 import type { McpServer, RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer, mcpCredentialRedactor } from "../../shared/mcp-servers.js";
@@ -50,6 +51,7 @@ function configParams(config: JsonRecord): JsonRecord {
  * carries, through which every error codex reports for this session goes.
  */
 export function codexThreadOpen(options: SessionOptions): { readonly method: CodexOpenMethod; readonly params: JsonRecord; readonly redact: (text: string) => string } {
+  validateCodexToolDenials(options);
   const redact = mcpCredentialRedactor(options.mcpServers);
   // System prompt seams (probed 2026-08-24 via the aimock journal):
   // baseInstructions REPLACES codex's base prompt; developerInstructions

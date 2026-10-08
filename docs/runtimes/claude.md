@@ -741,3 +741,13 @@ whether anything ever collects `sessions/<pid>.json` or `session-env/<uuid>/`.
 [native-permissions]: https://code.claude.com/docs/en/agent-sdk/permissions
 [native-mcp]: https://code.claude.com/docs/en/agent-sdk/mcp
 [native-tool-result]: https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` goes to native `--disallowed-tools` on
+both new and resumed print-mode processes. Use Claude names such as `Bash`,
+`Read` and `mcp__server__tool`; OAR passes the names unchanged. Omitted or
+empty lists add no flag. The native tool selector removes built-in and MCP
+tools from provider requests even with OAR's usual permission bypass.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

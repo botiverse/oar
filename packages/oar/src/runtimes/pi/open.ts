@@ -174,6 +174,7 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   const { session } = await sdk.createAgentSessionFromServices({
     services,
     sessionManager,
+    ...(options.disallowedTools === undefined ? {} : { excludeTools: [...options.disallowedTools] }),
     ...(model === undefined ? {} : { model }),
     ...(thinkingLevel === undefined ? {} : { thinkingLevel }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),

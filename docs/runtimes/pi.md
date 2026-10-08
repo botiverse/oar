@@ -634,3 +634,14 @@ concurrent writers.
 [native-agent-loop]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/agent/src/agent-loop.ts
 [native-services-source]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/src/core/agent-session-services.ts
 [native-sdk-source]: https://github.com/earendil-works/pi/blob/v0.84.2/packages/coding-agent/src/core/sdk.ts
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` goes to `createAgentSessionFromServices`
+as `excludeTools` on both new and resumed sessions. The SDK filters its own
+registry, including OAR's environment-aware Bash replacement and tools
+registered later by extensions/MCP. Use Pi names such as `bash`, `read` and
+`mcp__server__tool`; native pattern matching is unchanged. OAR does not edit
+Pi's settings or build an allowlist. Supply the list again on resume.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
