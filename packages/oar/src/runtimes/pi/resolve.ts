@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 
 /*
  * pi resume + model resolution (SDK 0.84.2, pi-mono v0.84.2 914cf1472):
@@ -84,7 +85,8 @@ export function piResolveModel<TModel>(lookup: PiModelLookup<TModel>, model: str
   const { provider, modelId } = splitPiModelId(model);
   const found = lookup.getModel(provider, modelId);
   if (found === undefined) {
-    throw new Error(
+    throw new RuntimeFailureError(
+      "model_unavailable",
       `pi model ${model} is not registered: provider ${provider} has no model ${modelId} `
       + "(see `oar models pi` for the usable list)",
     );

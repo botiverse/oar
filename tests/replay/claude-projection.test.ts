@@ -262,3 +262,26 @@ test("claude assistant text names its API message id as the text's messageId", (
   ]);
   expect(assistantEvents({ content: [{ type: "text", text: "no id" }] })).toEqual([{ kind: "text_delta", text: "no id" }]);
 });
+
+// claude 2.1.292 names a failed turn's cause on its synthetic assistant frame
+// (`error`) and the result's `api_error_status` (docs/spec/runtime-matrix.md#claude).
+test("a failed result takes the class of the turn's error frame, which the next turn forgets", () => {
+  const outcomes: unknown[] = [];
+  let state = claudePrompted(initialClaudeProjection);
+  for (const frame of [
+    { type: "assistant", error: "authentication_failed", message: { model: "<synthetic>", content: [{ type: "text", text: "Invalid API key · Fix external API key" }] } },
+    { type: "result", subtype: "success", is_error: true, api_error_status: 401, terminal_reason: "api_error", result: "Invalid API key · Fix external API key" },
+    { type: "result", subtype: "success", is_error: true, api_error_status: 529, terminal_reason: "api_error", result: "API Error: 529 Overloaded." },
+  ]) {
+    const { state: next, commands } = foldClaudeStdout(state, frame);
+    state = next;
+    for (const command of commands) {
+      const ended = command.kind === "frame" ? command.body.events.find((view) => view.kind === "turn_ended") : undefined;
+      if (ended?.kind === "turn_ended") { outcomes.push(ended.outcome); }
+    }
+  }
+  expect(outcomes).toEqual([
+    { kind: "failed", reason: "Invalid API key · Fix external API key", failure: "auth", credential: "rejected", status: 401 },
+    { kind: "failed", reason: "API Error: 529 Overloaded.", failure: "overloaded", status: 529 },
+  ]);
+});

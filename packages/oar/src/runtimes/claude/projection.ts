@@ -5,7 +5,7 @@ import type {
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
-import { classifyFailure } from "../../shared/failure-class.js";
+import { claudeFailure } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
@@ -44,12 +44,15 @@ export type ProjectionCommand =
  * message that carried it, so a frame with `parent_tool_use_id` attributes to
  * that tool call's agent plus the call; nested Task calls nest the path.
  * `tokens` accumulates per-agent result usage so usage events are cumulative.
+ * `failureCategory` is the `error` of the turn's last root assistant frame,
+ * which classifies a failed result (failure.ts).
  */
 export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
   readonly partials: ClaudePartials;
+  readonly failureCategory: string | null;
 }
 
 export const initialClaudeProjection: ClaudeProjectionState = {
@@ -57,6 +60,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   agents: new Map(),
   tokens: new Map(),
   partials: new Map(),
+  failureCategory: null,
 };
 
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
@@ -102,7 +106,11 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnO
       ? message.subtype
       : undefined;
     const reason = text ?? subtype ?? "error";
-    return { kind: "failed", reason, failure: classifyFailure(reason) };
+    return claudeFailure(reason, {
+      category: state.failureCategory,
+      status: asNumber(message.api_error_status),
+      terminalReason: typeof message.terminal_reason === "string" ? message.terminal_reason : null,
+    });
   }
   return { kind: "completed" };
 }
@@ -172,7 +180,13 @@ export function foldClaudeStdout(
     case "stream_event": {
       const content = claudeContent(state.partials, message, agentPath);
       const next = { ...state, partials: content.partials };
-      return event({ events: content.events }, message.type === "assistant" ? rememberToolUses(next, message, agentPath) : next);
+      if (message.type !== "assistant") {
+        return event({ events: content.events }, next);
+      }
+      const remembered = rememberToolUses(next, message, agentPath);
+      // The category of an error claude reports as an assistant message.
+      const failureCategory = agentPath.length === 0 && typeof message.error === "string" ? message.error : remembered.failureCategory;
+      return event({ events: content.events }, { ...remembered, failureCategory });
     }
     case "user": {
       const views = [...toolResultViews(message)];
@@ -193,7 +207,7 @@ export function foldClaudeStdout(
           ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
         } });
       }
-      return event({ events }, { ...(accumulated?.state ?? state), abortRequested: false });
+      return event({ events }, { ...(accumulated?.state ?? state), abortRequested: false, failureCategory: null });
     }
     case "system": {
       if (message.subtype === "compact_boundary") {

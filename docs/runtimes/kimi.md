@@ -269,7 +269,9 @@ ends the prompt `stopReason: end_turn` with no message, after kimi's own
 retries (about 9 s for a 429, 140 s for a 5xx), so OAR records the turn
 `completed`. kimi's own session file records `turn.ended` `reason: failed`
 with a structured error, but that file is kimi's storage, not an interface,
-and OAR reads only ACP.
+and OAR reads only ACP. Upstream: [MoonshotAI/kimi-code#1865](https://github.com/MoonshotAI/kimi-code/issues/1865)
+(reported on 0.26.0; the ACP adapter logs a failed turn and answers
+`end_turn`, as ACP's `StopReason` has no failure value), still so on 2.1.1.
 
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty

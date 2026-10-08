@@ -39,6 +39,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude vendor error e
           "failure": "invalid_request",
           "kind": "failed",
           "reason": "API Error: 400 max_tokens exceeds model limit",
+          "status": 400,
         }
       `);
       await session.dispose();

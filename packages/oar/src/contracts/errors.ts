@@ -19,3 +19,4 @@ export class UnsupportedOptionError extends Error {
     this.option = option;
   }
 }
+

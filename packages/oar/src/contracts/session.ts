@@ -16,6 +16,7 @@ import type { AvailableInstallation } from "./installation.js";
 import type { SessionOptions } from "./session-options.js";
 
 export type { McpServer, SessionOptions } from "./session-options.js";
+export type { CredentialProblem, FailureClass } from "./failure.js";
 export type {
   ContextUsage,
   ControlAction,
@@ -23,7 +24,6 @@ export type {
   Cursor,
   Event,
   EventBody,
-  FailureClass,
   Frame,
   FrameBody,
   ReasoningContent,

@@ -84,6 +84,7 @@ export type {
   EventBody,
   EventObserver,
   EventsOptions,
+  CredentialProblem,
   FailureClass,
   Frame,
   FrameBody,
@@ -128,6 +129,7 @@ export type {
 } from "./contracts/session.js";
 export { defineRuntime } from "./contracts/runtime.js";
 export { UnsupportedOptionError } from "./contracts/errors.js";
+export { RuntimeFailureError } from "./contracts/runtime-failure-error.js";
 export { utcInstantFromDate } from "./shared/instant.js";
 export { RuntimeRegistry, createRuntimeRegistry } from "./registry.js";
 export {

@@ -114,7 +114,7 @@ test("pi agent_settled carries the adapter-supplied context and classifies abort
   const ended = foldPiEvent(errored.state, agentEnd);
   expect(ended.commands[0]?.body.events[0]).toEqual({
     kind: "turn_ended",
-    outcome: { kind: "failed", reason: "400 bad request", failure: "invalid_request" },
+    outcome: { kind: "failed", reason: "400 bad request", failure: "invalid_request", status: 400 },
   });
 });
 

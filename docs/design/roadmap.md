@@ -49,7 +49,8 @@ polled. Spec: [record-stream.md](../spec/record-stream.md); regression:
 `tests/turns.test.ts`; sea-trial: `session.single-active-turn`.
 
 **Open:** a runtime's own failure prose in `TurnOutcome.failed`
-(`FailureClass` is the only category today).
+(`FailureClass`, with `credential` and `status` where the runtime says them,
+is the only category today; `failureAdvice` turns it into a retry policy).
 
 **Acceptance:** a caller can choose retry, queue, hand off or stop without
 parsing prose; rejected input is provably caller-owned.

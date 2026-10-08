@@ -1,4 +1,4 @@
-import type { ControlAction, FailureClass, RunningPhase, TaskStatus, TurnOutcome } from "../contracts/session.js";
+import type { ControlAction, CredentialProblem, FailureClass, RunningPhase, TaskStatus, TurnOutcome } from "../contracts/session.js";
 import type { ViewNotice } from "./session-view.js";
 
 /** English display wording may change in a minor release. Use the types, not these strings, for decisions. */
@@ -94,11 +94,28 @@ export function phaseLabel(phase: RunningPhase): string {
   }
 }
 
-/** What the runtime reported, in English. The host supplies any sign-in or recovery guidance. */
-export function failureText(failure: FailureClass, runtimeName: string): string {
+function authText(runtimeName: string, credential: CredentialProblem | undefined): string {
+  switch (credential) {
+    case "missing": return `${runtimeName} is not signed in.`;
+    case "rejected": return `${runtimeName}'s credentials were rejected.`;
+    case undefined: return `${runtimeName} could not authenticate.`;
+    default: return unreachable(credential);
+  }
+}
+
+/**
+ * What the runtime reported, in English. The host supplies any sign-in or
+ * recovery guidance. `credential` (a failed outcome's) words `auth` as a
+ * missing login or a refused credential when the runtime said which.
+ */
+export function failureText(failure: FailureClass, runtimeName: string, credential?: CredentialProblem): string {
   switch (failure) {
-    case "auth": return `${runtimeName} is not signed in.`;
+    case "auth": return authText(runtimeName, credential);
     case "quota": return `${runtimeName} reported that its usage limit was reached.`;
+    case "rate_limited": return `${runtimeName} was rate limited by its provider.`;
+    case "billing": return `${runtimeName} reported a billing or credit problem.`;
+    case "model_unavailable": return `${runtimeName} cannot use the selected model.`;
+    case "input_too_large": return `${runtimeName} reported that the input is too large for the model.`;
     case "invalid_request": return `${runtimeName} rejected the request as invalid.`;
     case "overloaded": return `${runtimeName} reported that its provider is overloaded.`;
     case "provider": return `${runtimeName} reported a provider error.`;

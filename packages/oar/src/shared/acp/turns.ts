@@ -35,6 +35,8 @@ import {
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
   readonly request: RequestRecord | null;
+  /** The last record before this turn: what the runtime said during it comes after. */
+  readonly since: number;
   readonly outcomes: Map<number, TurnOutcome>;
   readonly pending: Set<number>;
   abortRequested: boolean;
@@ -146,7 +148,8 @@ export function createAcpTurns(deps: {
           closeTurn(state);
           return;
         }
-        const outcome = state.abortRequested ? { kind: "aborted" as const } : acpFailureOutcome(error);
+        const turnFrames = kernel.records().flatMap((record) => (record.kind === "frame" && record.seq > state.since ? [record.body] : []));
+        const outcome = state.abortRequested ? { kind: "aborted" as const } : acpFailureOutcome(error, turnFrames, profile.failureOutcome);
         finishRequest(state, requestNumber, {
           type: `${methods.agent.session.prompt}/error`,
           native: acpErrorNative(error),
@@ -162,6 +165,7 @@ export function createAcpTurns(deps: {
     }
     const state: ActiveTurn = {
       request,
+      since: kernel.records().at(-1)?.seq ?? -1,
       outcomes: new Map(),
       pending: new Set(),
       abortRequested: false,

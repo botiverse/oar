@@ -5,6 +5,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts } from "../../shared/token-totals.js";
+import { grokFailureOutcome } from "./failure.js";
 import { redactGrokNotification } from "../../shared/credential-redaction.js";
 
 function authMethodIds(initialized: JsonRecord): string[] {
@@ -153,6 +154,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   capabilities: { queue: { durable: false }, attribution: "nested", images: true },
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   redactExtensionNotification: redactGrokNotification,
+  failureOutcome: grokFailureOutcome,
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,
   validateOptions: (options) => {

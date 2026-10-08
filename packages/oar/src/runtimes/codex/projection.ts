@@ -4,7 +4,7 @@ import type {
   SessionEdge,
   TurnOutcome,
 } from "../../contracts/session.js";
-import { classifyFailure } from "../../shared/failure-class.js";
+import { codexFailure } from "./failure.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { noTokens } from "../../shared/token-totals.js";
 import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-detail.js";
@@ -74,15 +74,18 @@ function isCompactionItem(params: JsonRecord): boolean {
 
 // The runtime's own status is the truth: an interrupt that landed reports
 // "interrupted"; one that lost the race to completion reports "completed".
-function outcomeFromStatus(status: unknown): TurnOutcome {
+// A failure is classified from the turn's own error (failure.ts).
+function outcomeFromTurn(state: CodexProjectionState, turn: JsonRecord | null): TurnOutcome {
+  const status = turn?.status;
   switch (status) {
     case "interrupted":
       return { kind: "aborted" };
     case "completed":
       return { kind: "completed" };
     default: {
-      const reason = typeof status === "string" ? status : "unknown";
-      return { kind: "failed", reason, failure: classifyFailure(reason) };
+      const word = typeof status === "string" ? status : "unknown";
+      const reason = state.lastErrorDetail === null ? word : `${word}: ${state.lastErrorDetail}`;
+      return codexFailure(reason, turn?.error);
     }
   }
 }
@@ -115,15 +118,6 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
     ...(result === undefined ? {} : { result }),
     ...(exitCode === undefined ? {} : { exitCode }),
   }];
-}
-
-function settleOutcome(state: CodexProjectionState, status: unknown): TurnOutcome {
-  const outcome = outcomeFromStatus(status);
-  if (outcome.kind === "failed" && state.lastErrorDetail !== null) {
-    const reason = `${outcome.reason}: ${state.lastErrorDetail}`;
-    return { kind: "failed", reason, failure: classifyFailure(reason) };
-  }
-  return outcome;
 }
 
 /**
@@ -209,7 +203,7 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       return toolViews(method, item);
     }
     case "turn/completed":
-      return [{ kind: "turn_ended", outcome: settleOutcome(state, asRecord(params.turn)?.status) }];
+      return [{ kind: "turn_ended", outcome: outcomeFromTurn(state, asRecord(params.turn)) }];
     case "thread/tokenUsage/updated":
       return codexUsageViews(params, reporter === state.rootThreadId ? baselineTokens(state.tokenBaseline) : noTokens);
     case "thread/settings/updated":
