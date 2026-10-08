@@ -198,7 +198,9 @@ meant to end exits explicitly, as `oar run` does. Probed on SDK 1.0.35
 (2026-10-04): a `sleep 20` that a 3 second tool timeout moved to the
 background left one 86400000 ms timer, and `oar run` was still running 150
 seconds after `[turn completed]` until it exited explicitly. SDK 1.0.36
-(checked 2026-10-06) has the same code, in a bundle file renamed `867.js`.
+(checked 2026-10-06) has the same code, in a bundle file renamed `867.js`,
+and so does 1.0.37 (checked 2026-10-08, `464.js`: the backgrounded branch
+still skips `clearTimeout` and hands the timer to no one).
 Reported upstream on 2026-10-07
 ([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928));
 Cursor reproduced it the same day, called it unintended, and named exiting

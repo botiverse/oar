@@ -109,7 +109,11 @@ native deny channels on both create and resume. Omitted or empty adds no
 restriction; a runtime may restore its own saved settings on resume (notably
 Antigravity). OAR neither computes a complementary allowlist nor hides tool
 events after execution. This selects tools; another permitted tool can still
-perform similar work, so it is not a process sandbox.
+perform similar work, so it is not a process sandbox. A model that calls a
+denied tool anyway gets the runtime's refusal, not the tool: claude ("No such
+tool available"), pi ("Tool … not found"), codex ("unsupported call", with no
+tool event) and antigravity (nothing run, no tool event), each pinned by its
+vendor test with the omitted-list resume.
 
 | runtime | can disable | refuses |
 |---|---|---|
