@@ -15,6 +15,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| `failure-evidence.ts <runtime> [case ...]` | What each runtime reports for a missing login, an invalid key, an unknown model, a 429, a usage limit, a billing error, a 5xx, overload and an oversized context, at open and in the turn: the real CLIs (pi: the SDK) against a scripted provider answering with the documented error, cursor against its service with no key or a made-up one. No account, no tokens. | [failure evidence][failure-evidence] | 2026-10-08, claude 2.1.292, codex 0.160.1, pi SDK 1.0.4, opencode 1.18.30, kimi 2.1.1, grok 1.0.46, antigravity 1.3.0, `@cursor/sdk` 1.0.36 |
 | `runtime-versions.ts` | Read-only stable release inventory of the eight core runtimes against the detected CLIs, OAR's Pi SDK and the host-supplied Cursor SDK; a version match is not a live compatibility result. | [daily reports][version-checks] | [2026-10-07] |
 | `pi-upgrade-resume.ts <older-oar-checkout>` | A Pi session created in an older checkout resumes in a fresh process with this checkout; a scripted provider verifies the earlier user and assistant messages reach the new request, without login or model quota. | [report][2026-10-06] | 2026-10-06, SDK 1.0.3 to 1.0.4: same native id and saved model, prior transcript sent, new stream starts at seq 0 |
 | `pi-azure-upgrade-resume.ts <pi-1.0.2-checkout>` | Old native Azure-provider session file resumed through OAR with SDK 1.0.3; synthetic transcript, scripted fallback, no Azure request. | [report][2026-10-05] | 2026-10-05: implicit resume picks the configured default, old explicit provider rejects, new explicit provider opens; model event and readback report the effective selection |
@@ -73,6 +74,7 @@ time.
 [cursor]: ../docs/runtimes/cursor.md#login
 [grok]: ../docs/runtimes/grok.md
 [input-cancellation]: ../docs/runtimes/input-cancellation.md
+[failure-evidence]: ../docs/spec/runtime-matrix.md#failure-evidence
 [inventory]: ../docs/runtimes/inventory.md
 [kimi]: ../docs/runtimes/kimi.md
 [live-configure]: ../docs/runtimes/live-configure.md

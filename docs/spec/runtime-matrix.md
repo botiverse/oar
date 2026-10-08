@@ -187,6 +187,185 @@ read, not the open's ([env] opencode 1.18.30). A
 level a runtime does not offer is a plain error naming the level, not this
 one.
 
+## Failure evidence
+
+What each runtime reports when a session fails for a common cause, gathered
+for structured failure classes ([#227](https://github.com/botiverse/oar/issues/227));
+the mapping comes separately. Until then `TurnOutcome.failure` comes from one
+prose table for every runtime (`shared/failure-class.ts`): the **oar 0.40**
+column below is what it gives today.
+
+**How.** [`experiments/failure-evidence.ts`](../../experiments/failure-evidence.ts)
+opens a session on the real runtime and prompts once, with the model provider
+replaced by a scripted one (aimock, [harness](../../sea-trial/harness/aimock.ts))
+that answers every model request with the error the provider documents for the
+cause ([replies](#the-provider-replies)). A missing login is a fresh home with
+no credential instead. No real account is used and nothing is spent. Runs:
+claude 2.1.292, codex 0.160.1, pi SDK 1.0.4, opencode 1.18.30, kimi 2.1.1,
+grok 1.0.46, antigravity ACP server 1.3.0 (2026-10-08); cursor (`@cursor/sdk`
+1.0.36) against Cursor's own service, with no key or a made-up one only.
+
+**Evidence level** of each cell: `[env]` observed in such a run; `[rec]` a
+recorded run (no failure cell has one yet); `[src]` vendor source or type
+declarations, `[sym]` binary symbols; `[doc]` vendor documentation. **Not
+observed** means none of these. Only `[env]` and `[rec]` cells may back a
+mapping; the others are reference. Every cell below is `[env]` unless tagged.
+
+No open failed on a model request: the opens that failed did so on a check
+made before any (a login; a model the runtime, or oar for pi, does not know;
+cursor verifies its key with its service). The cells marked **open** hold
+those; pi refuses the prompt when it has no key; every other failure came
+with the turn.
+
+### The provider replies
+
+Status and error `type` / `code` as the scripted provider sent them. The
+statuses, types and codes are the providers' documented ones `[doc]`
+([Anthropic](https://platform.claude.com/docs/en/api/errors),
+[OpenAI](https://developers.openai.com/api/docs/guides/error-codes),
+Gemini's generateContent in Google's error shape, [AIP-193](https://google.aip.dev/193));
+a message the docs do not give is illustrative. The scripted Gemini replies
+carry no `details` (Google's `ErrorInfo.reason`), which a real one does.
+
+| cause | Anthropic Messages: claude, pi, opencode | OpenAI: codex (Responses), kimi and grok (chat completions) | Gemini: antigravity |
+|---|---|---|---|
+| invalid key | 401 `authentication_error` | 401 `invalid_api_key` | 400 `INVALID_ARGUMENT` "API key not valid" |
+| unknown or unentitled model | 404 `not_found_error` | 404 `model_not_found` | 404 `NOT_FOUND` |
+| rate limited | 429 `rate_limit_error` | 429 `rate_limit_exceeded` | 429 `RESOURCE_EXHAUSTED` |
+| usage limit | 400 `invalid_request_error` "You have reached your specified API usage limits" (a spend limit the organization set) | 429 `organization_usage_limit_exceeded`; a ChatGPT plan's 429 `usage_limit_reached` (codex `[src]`) | 429 `RESOURCE_EXHAUSTED` "You exceeded your current quota" |
+| billing | 400 `invalid_request_error` "Your credit balance is too low" (claude tests for this text `[sym]`); 402 `billing_error` | 429 `credit_balance_exhausted`; the older 429 `insufficient_quota` | 400 `FAILED_PRECONDITION` "enable billing" |
+| server error | 500 `api_error` | 500 `server_error` | 500 `INTERNAL` |
+| overloaded | 529 `overloaded_error` | 503 `server_is_overloaded` | 503 `UNAVAILABLE` |
+| oversized context | 400 `invalid_request_error` "prompt is too long: 250000 tokens > 200000 maximum" | 400 `context_length_exceeded` | 400 `INVALID_ARGUMENT` "The input token count … exceeds the maximum" |
+| inside a 200 stream | an `error` event (`overloaded_error`, `api_error`) | `response.failed` with `error.code` (Responses API only) | not tried |
+
+The overflow texts are the ones pi-ai's `isContextOverflow` documents per
+provider `[src]`. Not simulated: a Claude subscription's usage limit (a 429
+whose `anthropic-ratelimit-unified-*` headers the scripted provider cannot
+send) and a tier's monthly spend cap (a 429 without `retry-after`).
+
+### claude
+
+Every cause ends the turn with an `assistant` frame whose top-level `error`
+names a category (its text is the message), then a `result` with
+`is_error: true`, `api_error_status` (the HTTP status; `null` when no request
+was sent) and `terminal_reason`. A retried cause first sends `system/api_retry`
+frames `{attempt, max_retries, retry_delay_ms, error_status, error}`: 10 retries
+by default (`CLAUDE_CODE_MAX_RETRIES`; the runs set 1).
+
+| cause | `assistant.error` | `api_error_status` | retried (`api_retry.error`) | oar 0.40 |
+|---|---|---|---|---|
+| missing login | `authentication_failed` ("Not logged in · Please run /login") | `null` | no | `auth` |
+| invalid key | `authentication_failed` | 401 | yes (`authentication_failed`) | `auth` |
+| unknown model | `model_not_found` | 404 | no | `invalid_request` |
+| rate limited | `rate_limit` | 429 | yes (`rate_limit`) | `quota` |
+| usage limit (400) | `unknown` | 400 | no | `quota` |
+| billing: credit balance (400) | `billing_error` ("Credit balance is too low") | 400 | no | `unknown` |
+| billing: 402 | `unknown` | 402 | no | `provider` |
+| server error | `server_error` | 500 | yes (`server_error`) | `provider` |
+| overloaded | `server_error` | 529 | yes (`overloaded`) | `overloaded` |
+| oversized context | `invalid_request`; `terminal_reason: prompt_too_long` | 400 | no | `unknown` |
+| inside the stream | none: claude retries the stream, then repeats the request without streaming, and that answer ends the turn | | | |
+
+After a tool call the fields are the same; an oversized context first tries
+compaction (`system/status` `compacting`). Other `error` values claude 2.1.292
+declares: `oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
+`overloaded`, `max_output_tokens`, `cloud_credential_error` `[sym]`; a
+subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed.
+
+### codex
+
+The turn ends with `turn/completed` (`status: failed`) whose `turn.error` is
+`{message, codexErrorInfo, additionalDetails, misalignment}`, after an `error` notification
+with `willRetry: false`. Each retry is an `error` notification with
+`willRetry: true`, `codexErrorInfo: {responseStreamDisconnected: {httpStatusCode}}`
+and the message "Reconnecting... n/5".
+
+| cause | `codexErrorInfo` | retried | oar 0.40 |
+|---|---|---|---|
+| missing login (no key, the default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` |
+| invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` |
+| unknown model | `{httpConnectionFailed: {httpStatusCode: 404}}` | 5 | `invalid_request` |
+| rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `quota` |
+| usage limit, plan usage limit | `usageLimitExceeded` ("Quota exceeded. Check your plan and billing details."; "You've hit your usage limit.") | no | `quota` |
+| billing (both codes) | `usageLimitExceeded` ("Quota exceeded…") | no | `quota` |
+| server error | `internalServerError` | 5 (`httpStatusCode: null`) | `provider` |
+| overloaded | `serverOverloaded` | no | `unknown` |
+| oversized context (an HTTP 400) | `other` (the message is the provider's JSON) | no | `invalid_request` |
+| in the stream: `context_length_exceeded` | `contextWindowExceeded` | no | `unknown` |
+| in the stream: `server_is_overloaded` | `serverOverloaded` | no | `unknown` |
+| in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota`, `unknown` |
+| in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `quota` |
+
+A 401 is `httpConnectionFailed`, not the declared `unauthorized`; the schema
+also declares `sessionBudgetExceeded`, `badRequest`, `cyberPolicy` and others
+`[src]` (`codex app-server generate-json-schema`). After a tool call the
+values are the same.
+
+### pi
+
+| cause | where | what it carries | oar 0.40 |
+|---|---|---|---|
+| missing key | the prompt is rejected (`runtime_refused`), no turn | "No API key found for the selected model." | (no turn) |
+| unknown model | the open fails (oar's own check against pi's registry) | a plain `Error` | (no class) |
+| every provider error | the assistant message: `stopReason: "error"`, `errorMessage` | "<status> <the provider's JSON body>"; inside a stream the body alone, no status | as its text: 401 `auth`, 404 and 402 and 500 `provider`, 429 and the 400 usage limit `quota`, 529 `overloaded`, the credit balance and the oversized context `invalid_request` |
+
+Rate limits, server errors and overload (also inside a stream) are retried
+three times, each announced by `auto_retry_start {attempt, maxAttempts, delayMs,
+errorMessage}`, ended by `auto_retry_end`; `agent_end.willRetry` says whether
+another attempt follows. pi-ai keeps the status apart
+(`normalizeProviderError`) but puts only the text on the message, and exports
+`isContextOverflow(message)` for the overflow texts `[src]`.
+
+### opencode, kimi, grok, antigravity (ACP)
+
+| cause | opencode | kimi | grok | antigravity |
+|---|---|---|---|---|
+| missing login | no local check: the request goes without a key; the provider's 401 ("x-api-key header is required") comes back as prompt: -32603 "Internal error: x-api-key header is required". With no provider configured at all, opencode answered from its own hosted model: no failure | open: -32000 "Authentication required" | open: -32000 "Authentication required", `data` "no auth method id provided" | open: -32000 "Authentication required", `data.message` "No authentication method selected…" |
+| invalid key | prompt: -32603 "Internal error: invalid x-api-key", `data {service: "session", errorName: "APIError"}` | prompt: -32000 "Authentication required: 401 …" | `retry_state {type: failed, error_type: auth}`, `turn_completed.stop_reason: error`, prompt: -32603 "Internal error", `data` the provider text | turn completes (`end_turn`), no message |
+| unknown model | open: -32602 "Invalid params: model not found", `data {providerId, modelId}` | open: -32603 "Internal error", `data.details` "Model … is not configured" | open: -32602 "Invalid params", `data` "unknown model id" | open: -32602 "Model … is not available for the current authentication method", `data {modelId, availableModels}` |
+| unentitled model (provider 404) | prompt: -32603 "Internal error: model: …" | turn completes, no message | `retry_state {failed, api}`, prompt: -32603 | turn completes; the provider text as agent text |
+| rate limited, usage limit (OpenAI and Gemini: a 429; Anthropic's usage limit: a 400) | prompt: -32603 "Internal error: <provider message>" | turn completes, no message | `retry_state {retrying, rate_limited}` then `{exhausted, is_rate_limited: true}`, `stop_reason: rate_limit`, prompt: -32003 "Rate limited", `data` "API error (status 429 …): …" | no frame within 150 s |
+| billing (OpenAI: a 429; Anthropic: a 400 or 402; Gemini: a 400) | prompt: -32603 "Internal error: …" | turn completes, no message | as for the 429s above: -32003 "Rate limited" | turn completes, no message |
+| server error, overloaded | prompt: -32603 "Internal error: …", after about 70 s of silent retries | turn completes, no message, after about 140 s | `retry_state {retrying, api}` up to `max_retries: 15`: no turn end within 150 s | 500: the provider text as agent text, then `end_turn`; 503: no frame within 150 s |
+| oversized context | no turn end within 150 s | compaction messages ("Compaction cancelled."), then `end_turn` | `retry_state {failed, context_length}`, prompt: -32603 | turn completes, no message |
+| oar 0.40 | its text: `auth`, `quota`, `overloaded` or `provider` | `auth` for the key, else a completed turn | -32003 `quota`, -32603 `provider` | a completed turn, or none (429, 503) |
+
+**Known: kimi and antigravity report a failed turn as completed.** kimi
+records the failure in its own session (`wire.jsonl`: `turn.ended`
+`reason: failed`, `error {code: "provider.rate_limit", name, details.statusCode,
+retryable}`, and `turn.step.retrying`), but answers the ACP prompt `end_turn`
+with no message, so oar records `completed`. That file is kimi's private
+storage, not an interface, and oar reads only the ACP stream. antigravity
+likewise ends most failed turns `end_turn`, some with the provider's text as
+agent text. Not tried on the ACP runtimes: errors inside a stream, and after
+a tool call.
+
+### cursor
+
+| cause | what it reports | evidence |
+|---|---|---|
+| missing login (no stored key, no `CURSOR_API_KEY`) | the open succeeds; the run ends `status: error`, `error.message` "[unknown] Invalid User API Key", no code | `[env]` |
+| invalid key (a made-up `CURSOR_API_KEY`) | the open rejects with `AuthenticationError {status: 401, code: "error"}` | `[env]` |
+| the other causes | not observed: each needs an account. The SDK's errors are `AuthenticationError` (401: invalid key, not logged in), `RateLimitError` (429: too many requests, usage limits), `ConfigurationError` (400, 404: bad key, invalid model), `NetworkError` and `UnknownAgentError`, each with `code`, `status` and `isRetryable` | `[src]` (`errors.d.ts`) |
+
+### Where a class can come from
+
+| cause | claude | codex | pi | opencode | kimi | grok | antigravity | cursor |
+|---|---|---|---|---|---|---|---|---|
+| missing login | `error` + null status | info 401 | prompt refusal | text | open -32000 | open -32000 | open -32000 | text |
+| invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
+| unknown model | `error` + 404 | info 404 | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
+| rate limited | `error` + 429 | info 429 | status in text | text | nothing | -32003 | nothing | not observed |
+| usage limit | 400 only | info | status in text | text | nothing | -32003 | nothing | not observed |
+| billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 | nothing | not observed |
+| server error | `error` + 500 | info | status in text | text | nothing | `error_type: api` | text | not observed |
+| overloaded | 529 | info | status in text | text | nothing | `error_type: api` | nothing | not observed |
+| oversized context | `terminal_reason` | info (in stream) | `isContextOverflow` | nothing | nothing | `error_type: context_length` | nothing | not observed |
+
+"info" is `codexErrorInfo`; "text" is a message that only prose matching can
+read; "nothing" means the turn looks completed or never ends.
+
 ## Adapter red lines
 
 "The adapter drops attribution" appears in identical form in mutually

@@ -260,6 +260,17 @@ never ended gets no synthetic end. Kimi reports no retry through ACP, so
 token totals, only `usage_update` context, so there is no `cacheRead` or
 `cacheWrite` either.
 
+**Known gap: a failed turn looks completed.** Against a scripted provider
+(2.1.1, [failure evidence](../spec/runtime-matrix.md#failure-evidence)), only
+an authentication failure reaches ACP (`session/prompt` error -32000
+"Authentication required: 401 …"). A rate limit, usage limit, billing error,
+server error, overload, a model the provider refuses, or an oversized context
+ends the prompt `stopReason: end_turn` with no message, after kimi's own
+retries (about 9 s for a 429, 140 s for a 5xx), so OAR records the turn
+`completed`. kimi's own session file records `turn.ended` `reason: failed`
+with a structured error, but that file is kimi's storage, not an interface,
+and OAR reads only ACP.
+
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
 `content` text block, and no `rawInput`, so `tool_call_started` has no
