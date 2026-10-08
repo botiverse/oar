@@ -91,3 +91,30 @@ test("coalesced reasoning respects the same message identity boundary as text", 
     ["m1", { kind: "text", text: "Think more" }], ["m2", { kind: "text", text: "Next" }],
   ]);
 });
+
+
+test("message_stop releases only its agent's partial state and preserves the native boundary", () => {
+  let state = initialClaudeProjection;
+  for (const message of [start("root"), block(0, "text"), delta(0, "text", "root"), start("child", "task-1"), block(0, "text", "task-1"), delta(0, "text", "child", "task-1")]) {
+    ({ state } = foldClaudeStdout(state, message));
+  }
+  expect(state.partials.size).toBe(2);
+  ({ state } = foldClaudeStdout(state, final("root", [{ type: "text", text: "root" }])));
+  const boundary = partial({ type: "message_stop" });
+  const stopped = foldClaudeStdout(state, boundary);
+  expect([...stopped.state.partials.keys()]).toEqual(['["task-1"]']);
+  expect(stopped.commands).toEqual([{ kind: "frame", agentPath: [], body: { type: "stream_event", native: boundary, events: [] } }]);
+  const child = foldClaudeStdout(stopped.state, final("child", [{ type: "text", text: "child" }], "task-1"));
+  expect(child.commands.filter((command) => command.kind === "frame").flatMap((command) => command.body.events)).toEqual([]);
+  const done = foldClaudeStdout(child.state, partial({ type: "message_stop" }, "task-1"));
+  expect(done.state.partials.size).toBe(0);
+  ({ state } = done);
+  const nextEvents: RuntimeEventBody[] = [];
+  for (const message of [start("next"), block(0, "text"), delta(0, "text", "root"), final("next", [{ type: "text", text: "root" }]), boundary]) {
+    const next = foldClaudeStdout(state, message);
+    ({ state } = next);
+    nextEvents.push(...next.commands.filter((command) => command.kind === "frame").flatMap((command) => command.body.events));
+  }
+  expect(nextEvents).toEqual([{ kind: "text_delta", text: "root", messageId: "next" }]);
+  expect(state.partials.size).toBe(0);
+});

@@ -205,7 +205,9 @@ remain distinguishable. Final result usage is unchanged.
 Claude 2.1.293 emits each completed block just before its
 `content_block_stop`; several completed blocks can share one API message ID.
 Deduplication tracks blocks independently within each agent's message, so
-parallel child output does not suppress root output or another child.
+parallel child output does not suppress root output or another child. A
+`message_stop` releases that agent's partial projection state; its raw
+records remain available.
 `input_json_delta` has no tool event: its raw frame is still activity for
 `stallOf`, while the incomplete input remains available in `native`.
 

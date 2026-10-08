@@ -10,7 +10,7 @@ interface PartialMessage {
   readonly id?: string;
   readonly blocks: ReadonlyMap<number, PartialBlock>;
 }
-/** One current API message per agent lane. Children can stream while root is idle. */
+/** Only unfinished API messages, per agent lane. Children can stream while root is idle. */
 export type ClaudePartials = ReadonlyMap<string, PartialMessage>;
 
 export function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
@@ -26,7 +26,7 @@ function textEvent(type: "text" | "thinking", text: string, id?: string): Runtim
 }
 
 /** Partial frames never start a tool: its full input still comes from assistant. */
-function streamContent(previous: PartialMessage | undefined, event: JsonRecord): { message: PartialMessage; events: RuntimeEventBody[] } {
+function streamContent(previous: PartialMessage | undefined, event: JsonRecord): { message: PartialMessage | undefined; events: RuntimeEventBody[] } {
   if (event.type === "message_start") {
     const id = asRecord(event.message)?.id;
     return { message: { ...(typeof id === "string" ? { id } : {}), blocks: new Map() }, events: [] };
@@ -37,7 +37,7 @@ function streamContent(previous: PartialMessage | undefined, event: JsonRecord):
   const type = body?.type === "text" || body?.type === "text_delta" ? "text"
     : (body?.type === "thinking" || body?.type === "thinking_delta" ? "thinking" : null);
   if (type === null || typeof event.index !== "number") {
-    return { message, events: [] };
+    return { message: previous, events: [] };
   }
   const value = body?.[type];
   const text = typeof value === "string" ? value : "";
@@ -107,6 +107,13 @@ function finalContent(message: JsonRecord, partial: PartialMessage | undefined):
 /** Pure content projection; the caller records the original frame even if events is empty. */
 export function claudeContent(partials: ClaudePartials, message: JsonRecord, agentPath: readonly string[]): { partials: ClaudePartials; events: RuntimeEventBody[] } {
   const lane = JSON.stringify(agentPath);
+  if (message.type === "stream_event" && asRecord(message.event)?.type === "message_stop") {
+    // Every completed assistant block precedes this native boundary. Only
+    // this agent is done; other agents may still have partial output pending.
+    const remaining = new Map(partials);
+    remaining.delete(lane);
+    return { partials: remaining, events: [] };
+  }
   const previous = partials.get(lane);
   const next = message.type === "stream_event"
     ? streamContent(previous, asRecord(message.event) ?? {})
