@@ -40,15 +40,14 @@ export const codexSession: StartSession = async (installation, options) => {
   const { method: openMethod, params: openParams, redact } = codexThreadOpen(options);
   // YOLO default (repo policy 2026-08-24): bypass the sandbox too, not just
   // approvals; OAR_CODEX_SANDBOX pins a stricter mode when a host wants one.
-  // Injected as a launch -c override because that is the only seam that
-  // governs codex's exec tool; thread/start.sandboxMode does NOT (pinned on a
-  // real login). A host that wants the user's own config to win can set
-  // OAR_CODEX_SANDBOX=inherit to skip the override entirely.
+  // Injected as a launch -c override (app-server-client.ts). A host that
+  // wants the user's own config to win can set OAR_CODEX_SANDBOX=inherit to
+  // skip the override entirely.
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const configOverrides = sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` };
   // Every error the client reports goes through the redactor first: the
   // open's config carries the session's MCP credentials to codex.
-  const client = startAppServerClient(installation.command, options.env, configOverrides, undefined, { redact });
+  const client = startAppServerClient(installation.command, options.env, configOverrides, undefined, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
   await client.request("initialize", {
     clientInfo: { name: "oar", version: "0.0.0" },
     capabilities: { experimentalApi: true },

@@ -459,3 +459,7 @@ list fails as a whole. Antigravity persists its filter: omission on resume
 restores it, while an explicit empty list clears it.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` go after OAR's own arguments to the ACP server. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

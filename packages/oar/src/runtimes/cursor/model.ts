@@ -55,6 +55,7 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported",
+  launchArgs: "Cursor runs in this process through its SDK; there is no runtime command line to add arguments to",
   mcpServers: "OAR does not attach MCP servers to cursor yet: Cursor's agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of the SDK's Agent.create mcpServers",
 };
 

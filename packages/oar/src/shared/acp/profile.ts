@@ -13,6 +13,8 @@ export { acpMcpOpenGuard } from "./mcp-servers.js";
 
 export interface AcpSessionProfile {
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
+  /** Where SessionOptions.launchArgs join `args` when not after them (grok: before `stdio`); launch-args.ts. */
+  readonly withLaunchArgs?: (args: readonly string[], launchArgs: readonly string[]) => readonly string[];
   /** What this runtime's ACP surface lets the adapter carry (docs/spec attribution tier included). */
   readonly capabilities: Omit<SessionCapabilities, "images"> & { readonly images?: boolean }; // images: what `initialize` advertised, unless set on evidence that it is wrong
   readonly requestTimeoutMs?: number;

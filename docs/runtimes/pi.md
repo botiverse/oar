@@ -680,3 +680,7 @@ disables nothing. Neither Pi nor OAR reports that no tool matched; this
 option does not validate names against the current registry.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: pi runs in the host process through its SDK, so a session has no command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

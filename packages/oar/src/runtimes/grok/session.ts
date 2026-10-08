@@ -146,6 +146,10 @@ export const grokRefusedSessionOptions: RefusedSessionOptions = {
 
 export const grokAcpProfile: AcpSessionProfile = {
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
+  // `grok agent [OPTIONS] stdio [OPTIONS]`: agent options (--model,
+  // --agent-profile, --plugin-dir, ...) go before `stdio`, which itself
+  // takes only --debug and --leader-socket.
+  withLaunchArgs: (args, launchArgs) => [...args.slice(0, -1), ...launchArgs, ...args.slice(-1)],
   // Native children are independent ACP sessions on the same connection
   // (attribution tier #3, docs/spec/attribution.md): recorded under their own
   // session id, linked in the graph when a lifecycle notification says so.

@@ -796,3 +796,7 @@ silently and disable nothing. Neither Claude nor OAR reports that no tool
 matched; use the native spelling (`Bash`, not `bash`).
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`, which each take several values and would otherwise swallow the host's. OAR passes them unchecked: a flag that changes the stream-json protocol (`--output-format`, `--input-format`) breaks the session. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

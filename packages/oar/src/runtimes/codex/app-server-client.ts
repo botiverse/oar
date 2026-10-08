@@ -66,6 +66,8 @@ interface Pending {
 export interface AppServerProcessOptions extends Pick<LineProcessOptions, "inheritStderr" | "killTree"> {
   /** Applied to the text of every error the client reports (codex's error message, the exit's stderr tail): a session's MCP credentials must never reach one. */
   readonly redact?: (text: string) => string;
+  /** The host's own `app-server` arguments (SessionOptions.launchArgs), unchecked, after oar's `-c` overrides and before `--listen`. */
+  readonly launchArgs?: readonly string[];
 }
 
 export function startAppServerClient(
@@ -87,14 +89,16 @@ function createAppServerClient(
   cwd: string,
   processOptions: AppServerProcessOptions,
 ): AppServerClient {
-  // -c KEY=VALUE injects config at launch. This is the ONLY seam that reaches
-  // codex's exec tool: thread/start.sandboxMode does not (pinned on a real
-  // login: thread param honored for its own turns but exec follows config).
+  // -c KEY=VALUE injects config at launch, for every thread of this process
+  // (session.ts sets sandbox_mode this way). thread/start can also set the
+  // sandbox per thread, but its field is `sandbox`: an unknown field such as
+  // `sandboxMode` is ignored without an error.
   const overrideArgs = Object.entries(configOverrides).flatMap(([key, value]) => ["-c", `${key}=${value}`]);
+  const { launchArgs = [], ...lineOptions } = processOptions;
   const child = spawnLineProcess(
     command,
-    ["app-server", ...overrideArgs, "--listen", "stdio://"],
-    { cwd, env, killTree: true, ...processOptions },
+    ["app-server", ...overrideArgs, ...launchArgs, "--listen", "stdio://"],
+    { cwd, env, killTree: true, ...lineOptions },
   );
   // Session initialization observes spawn failures through its pending RPC.
   // Mark this parallel promise handled while preserving its rejection for

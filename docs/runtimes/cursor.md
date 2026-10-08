@@ -562,3 +562,7 @@ curated toolset; include `task` when the host must prevent delegation. OAR
 does not install subagent inheritance overrides or normalize tool names.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: the SDK's local agent runs in the host process, so a session has no command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

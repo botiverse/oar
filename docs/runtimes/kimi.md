@@ -595,3 +595,7 @@ user's selected agent profile or redirect the whole native home to emulate
 one.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+
+## Launch arguments
+
+`SessionOptions.launchArgs` go after `acp`. `kimi acp` reads only its own options there (`--login`, `--region`); the root command's options do not reach the ACP server. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

@@ -34,6 +34,9 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
+    // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of
+    // the two variadic flags below so neither swallows them as values.
+    ...options.launchArgs ?? [],
     ...(mcpConfig === null ? [] : ["--mcp-config", mcpConfig]),
     ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", ...options.disallowedTools ?? []]),
   ], {

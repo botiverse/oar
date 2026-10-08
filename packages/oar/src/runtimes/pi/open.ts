@@ -1,3 +1,5 @@
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
@@ -100,7 +102,13 @@ export function piEffectiveModel(session: PiModelSource): string | null {
  * then the session against an explicit SessionManager so resume and creation
  * share one session directory.
  */
+/** Options the in-process SDK cannot honor, refused before anything opens. */
+export const piRefusedSessionOptions: RefusedSessionOptions = {
+  launchArgs: "pi runs in this process through its SDK; there is no runtime command line to add arguments to",
+};
+
 export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
+  refuseSessionOptions(piRefusedSessionOptions, options);
   validatePiMcpEnvironment(options);
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
   const sdk = await import("@earendil-works/pi-coding-agent");

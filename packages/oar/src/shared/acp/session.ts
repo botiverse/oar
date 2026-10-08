@@ -22,6 +22,7 @@ import {
   openAcpSession,
   type AcpSessionProfile,
 } from "./profile.js";
+import { acpLaunchArgs } from "./launch-args.js";
 import { startAcpProcess } from "./process.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
@@ -51,7 +52,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // a list with an empty or repeated name fails before anything starts,
     // and an open that fails reports no credential they carry.
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers);
-    const args = typeof profile.args === "function" ? profile.args(options) : profile.args;
+    const args = acpLaunchArgs(profile, options);
     const environment = sessionEnvironment(options.env);
     const terminalHost = createAcpTerminalHost(options.cwd, environment, {
       shellCommand: profile.terminalShellCommand === true,
