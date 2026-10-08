@@ -20,9 +20,10 @@ optional member and its presence is the capability. `Runtime.accountUsage`,
 `listModels`, `checkUpdate`, `upgrade`, `login`, `logout` and `authStatus`
 already work this way (antigravity, whose terms rule out a sign-in through
 OAR, has no `login`, and only the runtimes OAR signs in have a `logout`);
-`Session` `steer` and `withdraw` do too: a session that cannot
-steer has no `steer`, and one whose queue OAR does not hold (codex) has no
-`withdraw`.
+`Session` `steer`, `withdraw` and `resources` do too: a session that cannot
+steer has no `steer`, one whose queue OAR does not hold (codex) has no
+`withdraw`, and one whose runtime runs in the host process (pi, cursor) has
+no `resources`.
 TypeScript makes every caller handle the absence, and the check works the
 same for a runtime chosen at run time: it reads the member, not a name.
 

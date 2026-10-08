@@ -36,3 +36,10 @@ test("a queue while idle is sent at once; after dispose a withdraw is refused di
   expect(await withdraw(session, inputIdOf(held))).toBe("disposed");
   expect(agent.runs.map((run) => run.message)).toEqual(["idle"]);
 });
+
+// oar#231: the cursor SDK runs in the host process, so its memory is the host's own.
+test("a cursor session has no resources(): it has no process of its own", async () => {
+  const { session } = await openFakeCursor();
+  expect("resources" in session).toBe(false);
+  await session.dispose();
+});

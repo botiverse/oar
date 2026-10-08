@@ -275,6 +275,7 @@ export const codexSession: StartSession = async (installation, options) => {
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
+    resources: client.resources,
     dispose: async () => {
       if (disposeRequest !== null) {
         return;

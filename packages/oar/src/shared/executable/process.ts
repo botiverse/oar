@@ -4,6 +4,7 @@ import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
+import { treeResourcesReader } from "./process-resources.js";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
 
 export { trackOwnedProcess } from "./ownership.js";
@@ -112,6 +113,8 @@ export interface LineProcess {
    * already belong to another process.
    */
   kill(): void;
+  /** The child's memory with its group and descendants (process-resources.ts); null once it has exited. */
+  readonly resources: ReturnType<typeof treeResourcesReader>;
 }
 
 /**
@@ -257,6 +260,7 @@ export function spawnLineProcess(
         exitHandlers.push(handler);
       }
     },
+    resources: treeResourcesReader(child, () => ended),
     kill() {
       stdin.end();
       if (ended || escalation !== null) {

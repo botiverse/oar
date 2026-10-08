@@ -145,6 +145,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),
+      resources: runtime.resources,
       dispose: async () => {
         if (disposeRequest !== null) {
           return; // already released: the stream holds our dispose request

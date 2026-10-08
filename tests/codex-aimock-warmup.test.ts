@@ -21,6 +21,7 @@ function nativeClient() {
     request: vi.fn(async () => { const value = await ready.promise; return value; }), notify: vi.fn(() => {}),
     handle: vi.fn(() => {}), mark: vi.fn(() => {}), onExit: vi.fn(() => {}),
     kill: vi.fn(() => { ready.reject(failure); exited.resolve(null); }),
+    resources: vi.fn(async () => null),
   } satisfies AppServerClient;
   mocks.startAppServerClient.mockReturnValue(client);
   return { ready, exited, client, failure };

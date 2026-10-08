@@ -129,6 +129,22 @@ Further rules:
   does not emit `exit` for an unhandled terminating signal, including
   SIGKILL, so hosts must handle ordinary termination signals themselves.
   Processes spawned internally by an embedded SDK are outside this registry.
+- **A runtime's memory is read, never recorded.** `Session.resources()`
+  answers `{ rss, processes }`: the resident bytes of the runtime process,
+  the process group it leads and its descendants (those that left the group
+  too), counted from one reading of the process table (Linux:
+  `/proc/<pid>/stat`, its resident pages times the page size; other POSIX
+  systems: `ps -A -o pid=,ppid=,pgid=,rss=`), and how many processes that
+  was. It is `null` once the process has exited, on Windows, which has no
+  reader yet, and when the table cannot be read whole (a process gone between
+  the listing and its read is skipped; any other failure gives no reading,
+  never a short count). Concurrent calls share the read in flight. It is the host machine's state, not a runtime fact, so it
+  enters no record; nothing is signalled, and the pid stays inside OAR
+  (`dispose()` is the only way to stop the process). Sessions whose runtime
+  has no process of its own (pi's and cursor's SDKs, whose memory is the
+  host's) have no `resources` member
+  ([process-resources.ts](../../packages/oar/src/shared/executable/process-resources.ts),
+  [test](../../tests/session-resources.test.ts)).
 - **A turn is a span on the stream, not a control object.** The envelope's
   optional `spanId` holds only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn

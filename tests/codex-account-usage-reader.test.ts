@@ -27,6 +27,7 @@ function fakeAppServer(
       },
       onExit() {},
       kill() {},
+      resources: async () => null,
     },
   };
 }
