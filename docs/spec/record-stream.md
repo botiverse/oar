@@ -135,8 +135,10 @@ Further rules:
   too), counted from one reading of the process table (Linux:
   `/proc/<pid>/stat`, its resident pages times the page size; other POSIX
   systems: `ps -A -o pid=,ppid=,pgid=,rss=`), and how many processes that
-  was. It is `null` once the process has exited, and on Windows, which has
-  no reader yet. It is the host machine's state, not a runtime fact, so it
+  was. It is `null` once the process has exited, on Windows, which has no
+  reader yet, and when the table cannot be read whole (a process gone between
+  the listing and its read is skipped; any other failure gives no reading,
+  never a short count). Concurrent calls share the read in flight. It is the host machine's state, not a runtime fact, so it
   enters no record; nothing is signalled, and the pid stays inside OAR
   (`dispose()` is the only way to stop the process). Sessions whose runtime
   has no process of its own (pi's and cursor's SDKs, whose memory is the

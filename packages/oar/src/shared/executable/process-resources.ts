@@ -1,3 +1,4 @@
+import type { ChildProcess } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import type { SessionResources } from "../../contracts/session.js";
 import { descendantsOf, type ProcessEntry } from "./process-tree.js";
@@ -10,6 +11,9 @@ import { runExecutable } from "./run.js";
  * `/proc/<pid>/stat` (ppid, pgrp, resident pages) and the page size; other
  * POSIX systems run `ps -A -o pid=,ppid=,pgid=,rss=` (rss in KiB). Windows has
  * no reader yet. Observation only: nothing is signalled, and no pid leaves oar.
+ * A table that cannot be read whole gives no reading at all, never a count
+ * that silently misses processes. Concurrent callers (a host asking every
+ * session at once) share the one read in flight; nothing is kept after it.
  */
 
 /** One process with its resident set, in bytes. */
@@ -30,9 +34,17 @@ async function linuxPageSize(): Promise<number> {
   return pageSize;
 }
 
+/** The process went away between the listing and the read: skipped. Any other failure fails the reading. */
+function gone(error: unknown): null {
+  if (error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ESRCH")) {
+    return null;
+  }
+  throw error;
+}
+
 /** `/proc/<pid>/stat`'s ppid, pgrp and rss (field 24, in pages); null once the process is gone. */
 async function readStat(pid: number, page: number): Promise<Resident | null> {
-  const stat = await readFile(`/proc/${String(pid)}/stat`, "utf8").catch((): null => null);
+  const stat = await readFile(`/proc/${String(pid)}/stat`, "utf8").catch(gone);
   if (stat === null) {
     return null;
   }
@@ -44,14 +56,24 @@ async function readStat(pid: number, page: number): Promise<Resident | null> {
     : null;
 }
 
+/** How many `stat` files are open at once: well under a low `ulimit -n` (1024). */
+const BATCH = 64;
+
 async function readProcfs(): Promise<ReadonlyMap<number, Resident>> {
   const page = await linuxPageSize();
   const listed = await readdir("/proc");
-  const entries = await Promise.all(listed.filter((name) => /^\d+$/u.test(name)).map(async (name) => {
-    const entry = await readStat(Number(name), page);
-    return entry;
-  }));
-  return new Map(entries.flatMap((entry) => (entry === null ? [] : [[entry.pid, entry] as const])));
+  const pids = listed.filter((name) => /^\d+$/u.test(name)).map(Number);
+  const table = new Map<number, Resident>();
+  for (let start = 0; start < pids.length; start += BATCH) {
+    const batch = await Promise.all(pids.slice(start, start + BATCH).map(async (pid) => {
+      const entry = await readStat(pid, page);
+      return entry;
+    }));
+    for (const entry of batch) {
+      if (entry !== null) { table.set(entry.pid, entry); }
+    }
+  }
+  return table;
 }
 
 async function readPs(): Promise<ReadonlyMap<number, Resident> | null> {
@@ -88,11 +110,36 @@ function counted(table: ReadonlyMap<number, Resident>, root: Resident): Readonly
  * descendants, and how many processes that is. Null when `pid` is no longer
  * in the table, when the table cannot be read, and on Windows.
  */
+const inFlight = new Map<"procfs" | "ps", Promise<ReadonlyMap<number, Resident> | null>>();
+
+/** One read of the table, forgotten once it settles; null when it cannot be read whole. */
+async function readTable(source: "procfs" | "ps"): Promise<ReadonlyMap<number, Resident> | null> {
+  try {
+    const table = await (source === "procfs" ? readProcfs() : readPs());
+    return table;
+  } catch {
+    return null;
+  } finally {
+    inFlight.delete(source);
+  }
+}
+
+/** The process table now: the read already in flight, if one is, else a fresh one. */
+async function currentTable(source: "procfs" | "ps"): Promise<ReadonlyMap<number, Resident> | null> {
+  let read = inFlight.get(source);
+  if (read === undefined) {
+    read = readTable(source);
+    inFlight.set(source, read);
+  }
+  const table = await read;
+  return table;
+}
+
 export async function processTreeResources(pid: number, platform: NodeJS.Platform = process.platform): Promise<SessionResources | null> {
   if (platform === "win32") {
     return null;
   }
-  const table = await (platform === "linux" ? readProcfs() : readPs()).catch((): null => null);
+  const table = await currentTable(platform === "linux" ? "procfs" : "ps");
   const root = table?.get(pid);
   if (table === null || root === undefined) {
     return null;
@@ -101,4 +148,12 @@ export async function processTreeResources(pid: number, platform: NodeJS.Platfor
   let rss = 0;
   for (const member of members.values()) { rss += member.rss; }
   return { rss, processes: members.size };
+}
+
+/** A line process's `resources()`: null once `exited()` says it has, or before it has a pid. */
+export function treeResourcesReader(child: ChildProcess, exited: () => boolean): () => Promise<SessionResources | null> {
+  return async () => {
+    const reading = exited() || child.pid === undefined ? null : await processTreeResources(child.pid);
+    return reading;
+  };
 }

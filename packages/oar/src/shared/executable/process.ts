@@ -4,8 +4,7 @@ import type { Readable, Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
-import type { SessionResources } from "../../contracts/session.js";
-import { processTreeResources } from "./process-resources.js";
+import { treeResourcesReader } from "./process-resources.js";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
 
 export { trackOwnedProcess } from "./ownership.js";
@@ -20,10 +19,14 @@ export interface LineProcessOptions {
    */
   readonly inheritStderr?: boolean;
   /**
-   * `kill()` ends the child's whole process tree: on Windows more than the
-   * direct child ({@link killProcessTree}; an npm `.cmd` shim is `cmd.exe`);
-   * on POSIX the descendants that left the group too (process-tree.ts),
-   * SIGKILLed with the group, or at the child's exit if that comes first.
+   * `kill()` ends the child's whole process tree. On Windows
+   * ({@link killProcessTree}) that is more than the direct child, which for an
+   * npm `.cmd` shim is only `cmd.exe`. On POSIX, where the child's process
+   * group is always signalled, it adds the descendants that left the group
+   * (process-tree.ts): SIGTERM still goes to the group alone, so the child
+   * can stop its tools itself; the SIGKILL, or the child's exit if that comes
+   * first, also takes every descendant seen before (when `kill()` began, and
+   * again just before the SIGKILL) and the groups they belong to.
    */
   readonly killTree?: boolean;
 }
@@ -111,7 +114,7 @@ export interface LineProcess {
    */
   kill(): void;
   /** The child's memory with its group and descendants (process-resources.ts); null once it has exited. */
-  readonly resources: () => Promise<SessionResources | null>;
+  readonly resources: ReturnType<typeof treeResourcesReader>;
 }
 
 /**
@@ -257,10 +260,7 @@ export function spawnLineProcess(
         exitHandlers.push(handler);
       }
     },
-    resources: async () => {
-      const reading = ended || child.pid === undefined ? null : await processTreeResources(child.pid);
-      return reading;
-    },
+    resources: treeResourcesReader(child, () => ended),
     kill() {
       stdin.end();
       if (ended || escalation !== null) {
