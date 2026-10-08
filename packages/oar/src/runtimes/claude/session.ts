@@ -47,7 +47,7 @@ function userMessage(text: string, inputId?: string, images: readonly LoadedImag
       role: "user",
       content: [
         ...images.map((image) => ({ type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } })),
-        { type: "text", text },
+        ...(text === "" ? [] : [{ type: "text", text }]),
       ],
     },
   })}\n`;

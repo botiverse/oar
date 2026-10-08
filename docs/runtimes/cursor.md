@@ -117,6 +117,13 @@ dispose, is cancelled, and its end is still recorded. `InputOptions.images`
 go as the SDK's image content (`{ data, mimeType }`); asked for the color of
 a plain red PNG, the model answered `Red` (probed).
 
+For an image-only prompt or queued input, OAR passes
+`{ text: "", images: [...] }` to `agent.send`. This SDK call shape is covered
+by the [stand-in test](../../tests/cursor/cursor-session.test.ts).
+How the Cursor backend processes the empty text has **not been verified**;
+there is no reusable local agent backend for that probe. An image-only
+steer remains unsupported because `run.steer` takes text only.
+
 **Steer (mapped):** `steer()` is `run.steer(text)`, which settles once the
 agent has taken the text (`complete_delivered`, the `accepted` answer's
 `native.ack`) or handed it back (`revert_to_followup`, `rejected

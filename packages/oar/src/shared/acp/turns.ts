@@ -49,11 +49,11 @@ export function acpTakesImages(initialized: JsonRecord): boolean {
   return asRecord(asRecord(initialized.agentCapabilities)?.promptCapabilities)?.image === true;
 }
 
-/** One input as ACP ContentBlocks: the images (each naming its file as `uri`), then the text. */
+/** One input as ACP ContentBlocks: the images (each naming its file as `uri`), then any nonempty text. */
 function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] {
   return [
     ...images.map((image) => ({ type: "image", mimeType: image.mediaType, data: image.data, uri: pathToFileURL(image.path).href })),
-    { type: "text", text: input },
+    ...(input === "" ? [] : [{ type: "text", text: input }]),
   ];
 }
 

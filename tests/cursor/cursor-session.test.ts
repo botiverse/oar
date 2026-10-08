@@ -88,11 +88,11 @@ test("a steer with images is refused: cursor steers with text only", async () =>
   await session.dispose();
 });
 
-test("a prompt's images go as the SDK's image content", async () => {
+test.each(["what color?", ""])("a prompt's images go as the SDK's image content: %j", async (input) => {
   const { session, agent } = await openFakeCursor();
-  await session.prompt("what color?", { images: [{ path: imageFile("red.png", "png-bytes") }] });
+  await session.prompt(input, { images: [{ path: imageFile("red.png", "png-bytes") }] });
   assert.deepEqual(agent.latest().message, {
-    text: "what color?",
+    text: input,
     images: [{ data: Buffer.from("png-bytes").toString("base64"), mimeType: "image/png" }],
   });
   await session.dispose();

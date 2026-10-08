@@ -146,6 +146,11 @@ queue alike); claude forwards them to the Messages API unchanged
 2.1.284, 2026-09-29): asked the color of a plain green PNG named `probe.png`,
 it answered `green`. The echo's `user_message.input` stays the text alone.
 
+With empty text and images, OAR sends only image blocks on stdin. Claude
+2.1.293 still adds its own system reminder and image-source label to the
+provider request; neither is an empty user-text block. Verified with the
+[image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts), without a login.
+
 **Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
 false`), drained one message per turn end; the queued input runs as a
 spontaneous turn with no prompt request of its own. A queue while idle is

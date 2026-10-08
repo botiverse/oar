@@ -70,7 +70,7 @@ export async function selectBackend(target: string): Promise<Backend> {
       return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation }), aimock };
     }
     case "pi-aimock": {
-      const aimock = await startPiAimock();
+      const aimock = await startPiAimock(undefined, { imageInput: true });
       return { runtime: defineRuntime({ id: target, session: piSession, installation: piInstallation }), aimock };
     }
     default:

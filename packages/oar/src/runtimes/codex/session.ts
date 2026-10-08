@@ -22,7 +22,7 @@ import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 
 /** codex's UserInput: the text, then each image as a `localImage` path codex reads itself (its own composer's order). */
 const userInput = (input: string, images: readonly InputImage[] = []): JsonRecord[] =>
-  [{ type: "text", text: input }, ...images.map((image) => ({ type: "localImage", path: image.path }))];
+  [...(input === "" ? [] : [{ type: "text", text: input }]), ...images.map((image) => ({ type: "localImage", path: image.path }))];
 
 interface CodexSessionState {
   /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */

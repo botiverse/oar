@@ -58,11 +58,12 @@ export interface QueryResult<T> {
   readonly seq: number;
 }
 
+/** For prompt, steer and queue: empty text requires at least one image; otherwise rejected unsupported. Whitespace is not trimmed. */
 export interface InputOptions {
   /** UUID identifying one logical input across delivery attempts; generated when omitted. */
   readonly inputId?: string;
   /**
-   * Images that travel with the text, as the runtime's own image input (not a
+   * Images that travel with the input (text may be the empty string), as the runtime's own image input (not a
    * path in prose). Each is a file on this machine, read when the input is
    * delivered; the request record keeps the paths, never the bytes. Rejected
    * `unsupported` when `capabilities.images` is false.
@@ -236,7 +237,7 @@ export interface Session extends AdapterSession {
   /**
    * The root agent's status, folded from the stream (`reduceStatus`): idle,
    * or running since the prompt request (or the first event of an adopted
-   * turn). Invariant every adapter must keep: a prompt recorded while this
+   * turn). Invariant every adapter must keep: a valid prompt recorded while this
    * says `running` is rejected `busy`, and one recorded while it says `idle`
    * is never rejected `busy`. `awaitIdle` waits on it.
    */

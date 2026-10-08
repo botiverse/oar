@@ -82,7 +82,7 @@ Further rules:
   `disposed`, `runtime_refused`, `error`) next to the prose `reason`, so an application
   branches on a word, not on vendor text. `unsupported` means the runtime
   cannot do this control with these inputs (images where it takes none,
-  images on a cursor steer); a control a runtime cannot do at all is a
+  images on a cursor steer, or no input at all); a control a runtime cannot do at all is a
   member the session lacks, never a request that is always rejected: a
   session that cannot steer has no `steer`, so its stream holds no steer
   request.

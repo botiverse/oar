@@ -26,6 +26,15 @@ ACP session evidence; it does not repeat the separate HTTP-server
 investigation or the direct model-switching probes. See the
 [October 7 report](../../experiments/runtime-version-checks/2026-10-07.md).
 
+## Image-only input
+
+OAR sends ACP image blocks without a text block when `input` is `""`.
+OpenCode 1.18.35 delivers the image to a local scripted Anthropic provider
+without an empty text block ([image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts)). The selected model must advertise
+image input in `modalities.input`; a text-only model receives OpenCode's
+"Cannot read" notice instead of the image. Its separate title-generation
+request may add a title prompt beside the same image.
+
 ## Native concepts and calling interfaces
 
 | Shape | Command | Protocol |

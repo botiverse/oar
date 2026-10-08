@@ -183,6 +183,11 @@ because `initialize` advertises `promptCapabilities.image`
 `probe.png`, it answered `green`, its reasoning describing "a solid green
 square".
 
+For image-only input OAR sends ACP image blocks without a text block.
+Kimi 2.1.1 forwards only an `image_url` content part to the scripted chat
+completions provider, verified by the [image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts). The probe declares the
+model's `image_in` capability.
+
 **Prompt (mapped):** `prompt(string)` records a prompt request answered
 `accepted` once the RPC is on the wire, or `rejected` (`busy` during a turn,
 as in `busy-and-late-control`; the transport error when the process is gone). The

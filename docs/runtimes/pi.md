@@ -236,6 +236,11 @@ image-capable aimock model; live with this machine's default model,
 2026-09-29: a plain green PNG named `probe.png` was answered `green`).
 [SDK][native-sdk], [projection](../../packages/oar/src/runtimes/pi/projection.ts).
 
+Image-only input passes `""` as the SDK text argument, with the same images.
+Pi SDK 1.0.4 emits an Anthropic image block and no text block for an
+image-capable model, verified by the [image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts).
+The SDK may still drop images for a model that does not declare image input.
+
 **Steer (partial, landing observed):** `steer()` delegates to
 `AgentSession.steer()` and answers `accepted` on queue entry, or `rejected`
 (`no_active_turn`, reason `not_steerable: no active turn`) when no run is

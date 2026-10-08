@@ -165,6 +165,13 @@ Python). Hence `capabilities.images: true`; if a later grok refuses image
 blocks, the prompt fails with grok's own error and this override goes
 ([test](../../tests/acp/acp-session-images.test.ts)).
 
+For image-only input OAR sends ACP image blocks without a text block.
+Grok 1.0.46 adds its own image-file description and empty-query wrapper
+inside a nonempty text part, beside the provider's image URL. It drops
+images smaller than 8×8 pixels before sending and writes an
+`image_dropped_notice` instead ([recorded probe and normalizer source](../../experiments/image-only-2026-10-08.md)). The [image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts) uses a 32×32 PNG and confirms
+image delivery without an empty text block, using a local scripted model.
+
 **Prompt (mapped):** `prompt()` records a prompt request and answers it
 `accepted` once the `session/prompt` RPC is on the wire (no deadline; cancel
 bounds its lifetime), or `rejected` (`busy` while a turn is active; the
