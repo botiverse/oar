@@ -124,7 +124,7 @@ function withText(event: Event, text: string): Event {
 }
 
 function messageIdOf(event: Event): string | undefined {
-  return event.kind === "text_delta" ? event.messageId : undefined;
+  return event.kind === "text_delta" || event.kind === "reasoning" ? event.messageId : undefined;
 }
 
 function sameLane(held: Event, next: Event): boolean {
@@ -138,7 +138,7 @@ function sameLane(held: Event, next: Event): boolean {
 /**
  * Consumer-side coalescing: wrap an event observer so consecutive text (or
  * readable reasoning) pieces of one agent arrive as one event instead of a
- * token stream. Flushes when the kind, agent or text `messageId` changes, a
+ * token stream. Flushes when the kind, agent or `messageId` changes, a
  * non-text event arrives, or (when `maxHoldMs` is set) the stream goes quiet
  * for that long.
  * The merged event carries the LAST piece's envelope. Order is safe because

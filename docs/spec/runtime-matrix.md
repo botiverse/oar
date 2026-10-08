@@ -126,6 +126,13 @@ channels, observed versions and limits are in the
 [October 8 audit](../../experiments/disallowed-tools-2026-10-08.md). Supply
 the list again when resuming; OAR does not persist host options.
 
+## Claude partial output
+
+Claude requests partial output for new and resumed sessions: text/thinking
+deltas project immediately with the native API message ID; completed blocks
+do not repeat them. Tool-argument chunks remain raw activity until the full
+call arrives. See [Claude observation](../runtimes/claude.md#observation-children-and-history).
+
 ## Refused session options
 
 What a runtime cannot honor is refused, never dropped: `session()` rejects

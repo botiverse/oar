@@ -130,15 +130,14 @@ export interface UserMessage {
 
 /**
  * The runtime-said event kinds: what a Frame can carry. `text_delta` is at
- * the granularity the runtime emits (claude: a whole text block per frame;
- * pi and codex: token-sized pieces); `Session.events({ coalesceText })`
+ * the granularity the runtime emits (claude, pi and codex: streamed pieces); `Session.events({ coalesceText })`
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody = UserMessage
   /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
   | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
-  /** A reasoning output item; its lifecycle remains observable without readable contents. */
-  | { readonly kind: "reasoning"; readonly content: ReasoningContent }
+  /** A reasoning output item; its lifecycle remains observable without readable contents. `messageId` names the native message when provided, keeping streamed reasoning from distinct messages apart when coalescing. */
+  | { readonly kind: "reasoning"; readonly content: ReasoningContent; readonly messageId?: string }
   | {
       readonly kind: "tool_call_started";
       readonly callId: string;

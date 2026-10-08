@@ -11,6 +11,7 @@ import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
 import { claudeTaskViews } from "./tasks.js";
+import { claudeContent, contentBlocks, type ClaudePartials } from "./content.js";
 
 /**
  * The claude stdout → record projection as a PURE FOLD. A reducer over the
@@ -48,12 +49,14 @@ export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
+  readonly partials: ClaudePartials;
 }
 
 export const initialClaudeProjection: ClaudeProjectionState = {
   abortRequested: false,
   agents: new Map(),
   tokens: new Map(),
+  partials: new Map(),
 };
 
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
@@ -63,55 +66,6 @@ export function claudePrompted(state: ClaudeProjectionState): ClaudeProjectionSt
 
 export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
   return { ...state, abortRequested: true };
-}
-
-function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
-  const inner = asRecord(message.message);
-  const content = inner?.content;
-  if (!Array.isArray(content)) {
-    return [];
-  }
-  return content.map((block) => asRecord(block)).filter((block) => block !== null);
-}
-
-function assistantViews(message: JsonRecord): RuntimeEventBody[] {
-  const out: RuntimeEventBody[] = [];
-  // The API message id: every frame carrying blocks of one assistant message names it.
-  const messageId = asRecord(message.message)?.id;
-  for (const block of contentBlocks(message)) {
-    switch (String(block.type)) {
-      case "text": {
-        if (typeof block.text === "string") {
-          out.push({ kind: "text_delta", text: block.text, ...(typeof messageId === "string" ? { messageId } : {}) });
-        }
-        break;
-      }
-      case "thinking": {
-        const content = typeof block.thinking === "string" && block.thinking.length > 0
-          ? { kind: "text" as const, text: block.thinking }
-          : { kind: "empty" as const };
-        out.push({ kind: "reasoning", content });
-        break;
-      }
-      case "redacted_thinking": {
-        out.push({ kind: "reasoning", content: { kind: "redacted" } });
-        break;
-      }
-      case "tool_use": {
-        const started = {
-          kind: "tool_call_started" as const,
-          callId: typeof block.id === "string" ? block.id : "unknown",
-          tool: typeof block.name === "string" ? block.name : "unknown",
-        };
-        const input = block.input === undefined ? undefined : JSON.stringify(block.input);
-        out.push(input === undefined ? started : { ...started, input });
-        break;
-      }
-      default:
-        break;
-    }
-  }
-  return out;
 }
 
 function toolResultViews(message: JsonRecord): RuntimeEventBody[] {
@@ -215,7 +169,11 @@ export function foldClaudeStdout(
 
   switch (String(message.type)) {
     case "assistant":
-      return event({ events: assistantViews(message) }, rememberToolUses(state, message, agentPath));
+    case "stream_event": {
+      const content = claudeContent(state.partials, message, agentPath);
+      const next = { ...state, partials: content.partials };
+      return event({ events: content.events }, message.type === "assistant" ? rememberToolUses(next, message, agentPath) : next);
+    }
     case "user": {
       const views = [...toolResultViews(message)];
       const body = asRecord(message.message);

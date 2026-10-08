@@ -24,7 +24,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     "-p",
     "--input-format", "stream-json",
     "--output-format", "stream-json",
-    "--verbose", "--replay-user-messages",
+    "--verbose", "--replay-user-messages", "--include-partial-messages",
     // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
     // no human at an approval prompt: a permission gate is a hang, not
     // safety. Isolation is the sandbox's job, not the approval flow's.
