@@ -15,6 +15,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [`parallel-search.ts "<question>"`](../docs/examples/parallel-search.md) | Runnable Claude session with anonymous Parallel Search MCP; native search/fetch tool dispatch with a scripted model, plus a local HTTP header regression test. | [recipe](../docs/examples/parallel-search.md) | 2026-10-08 |
 | `runtime-versions.ts` | Read-only stable release inventory of the eight core runtimes against the detected CLIs, OAR's Pi SDK and the host-supplied Cursor SDK; a version match is not a live compatibility result. | [daily reports][version-checks] | [2026-10-07] |
 | `pi-upgrade-resume.ts <older-oar-checkout>` | A Pi session created in an older checkout resumes in a fresh process with this checkout; a scripted provider verifies the earlier user and assistant messages reach the new request, without login or model quota. | [report][2026-10-06] | 2026-10-06, SDK 1.0.3 to 1.0.4: same native id and saved model, prior transcript sent, new stream starts at seq 0 |
 | `pi-azure-upgrade-resume.ts <pi-1.0.2-checkout>` | Old native Azure-provider session file resumed through OAR with SDK 1.0.3; synthetic transcript, scripted fallback, no Azure request. | [report][2026-10-05] | 2026-10-05: implicit resume picks the configured default, old explicit provider rejects, new explicit provider opens; model event and readback report the effective selection |

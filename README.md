@@ -161,6 +161,8 @@ What else a session gives you:
   `@botiverse/oar/testing` gives a scripted runtime with real `Session`
   semantics and no binary or login.
 
+For a runnable HTTP MCP example, see [research with Parallel Search](docs/examples/parallel-search.md).
+
 The [package README](packages/oar/README.md) lists the public entry points.
 `defaultRuntimes` holds every runtime but Cursor, whose SDK you install and hand
 over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
