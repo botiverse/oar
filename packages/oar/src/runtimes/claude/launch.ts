@@ -35,6 +35,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
     ...(mcpConfig === null ? [] : ["--mcp-config", mcpConfig]),
+    ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", ...options.disallowedTools ?? []]),
   ], {
     cwd: options.cwd,
     env: sessionEnvironment({ ...options.env, CLAUDECODE: null }),

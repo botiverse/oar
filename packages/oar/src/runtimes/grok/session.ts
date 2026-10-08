@@ -1,3 +1,5 @@
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/session.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
@@ -137,6 +139,10 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
   "_x.ai/session/usage",
 ];
 
+export const grokRefusedSessionOptions: RefusedSessionOptions = {
+  disallowedTools: "grok agent stdio does not forward the CLI tool denylist; supplying an agent profile would replace the user's selected harness rather than overlay its tools",
+};
+
 export const grokAcpProfile: AcpSessionProfile = {
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
   // Native children are independent ACP sessions on the same connection
@@ -150,6 +156,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   terminalShellCommand: true,
   initializeMeta: grokInitializeMeta,
   validateOptions: (options) => {
+    refuseSessionOptions(grokRefusedSessionOptions, options);
     if (options.resume !== undefined && options.appendSystemPrompt !== undefined && options.systemPrompt === undefined) {
       throw new UnsupportedOptionError("appendSystemPrompt", "grok does not reapply rules when resuming a session (observed on 1.0.46)");
     }

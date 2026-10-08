@@ -1243,3 +1243,23 @@ Open gaps:
 [upstream-item]: https://github.com/openai/codex/blob/2151d3a5/codex-rs/app-server-protocol/src/protocol/v2/item.rs
 [upstream-thread-rs]: https://github.com/openai/codex/blob/2151d3a5/codex-rs/app-server-protocol/src/protocol/v2/thread.rs
 [faye-probe]: https://github.com/botiverse/oar/pull/17
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` supports MCP names in the qualified form
+`mcp__server__tool`. Built-ins (for example `exec_command`) and unqualified
+names are refused with `UnsupportedOptionError` before app-server starts.
+
+For a non-empty MCP list, OAR reads effective native config with
+`config/read {cwd, includeLayers:false}` before opening the thread. It
+resolves each unmodified server namespace against configured and session
+MCP servers, unions the requested names with that server's existing
+`disabled_tools`, and sends only those filters in the session's
+`config.mcp_servers` override on `thread/start` / `thread/resume`. Other
+server fields, native allowlists and existing denies stay in place. No
+configuration file is edited and no credential from `config/read` is
+copied into the override or record stream. Unknown, ambiguous or normalized
+server namespaces are refused before the thread opens, naming the entries.
+Supply the list again on resume; an empty list adds no override.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

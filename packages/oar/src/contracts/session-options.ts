@@ -85,4 +85,16 @@ export interface SessionOptions {
    * `env` or `headers` on antigravity, which would write them to its disk.
    */
   readonly mcpServers?: readonly McpServer[];
+  /**
+   * Runtime-native tool names to disable through the runtime's own deny
+   * channel. Names keep the runtime's vocabulary (including MCP names such
+   * as `mcp__server__tool`); oar never constructs an allowlist or filters
+   * tool events after execution. Give the list again on resume. Omitted or
+   * empty means no additional restriction. Unsupported native deny channels
+   * reject the open with UnsupportedOptionError. Native matching remains
+   * native: Claude and Pi accept unmatched names without disabling anything
+   * or reporting an error. See each runtime page for validation and groups. This is tool selection, not an OS
+   * sandbox: another allowed tool may provide the same capability.
+   */
+  readonly disallowedTools?: readonly string[];
 }

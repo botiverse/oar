@@ -507,3 +507,20 @@ included; `mcpServers`, refused until a live run shows what
 measurement is not in the repo and not repeatable from it).
 Keep native API capabilities, SDK limitations, OAR omissions and unexecuted
 checks separate when designing or claiming support.
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` goes unchanged to native
+`Agent.create` / `Agent.resume` as `disallowedTools`. SDK 1.0.36 accepts its
+local tool names and raw protobuf names. `shell` excludes both shell and
+shell-stdin calls; `mcp` excludes the entire MCP tool/resource/auth family,
+including custom callback tools. An individual `mcp__server__tool` is not a
+supported selector: native name validation is surfaced as
+`UnsupportedOptionError` on `disallowedTools`, preserving the named entries.
+The SDK does not persist the option; supply it again on resume.
+
+The filter applies to the main agent. Native Task children have a separate
+curated toolset; include `task` when the host must prevent delegation. OAR
+does not install subagent inheritance overrides or normalize tool names.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

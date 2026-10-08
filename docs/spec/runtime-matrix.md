@@ -102,6 +102,30 @@ Claude's `CLAUDECODE` marker is always removed. Child-process and native Pi
 Bash regressions: [session-env.test.ts](../../tests/session-env.test.ts),
 [pi-env.test.ts](../../tests/providers/pi-env.test.ts).
 
+## Disallowed tools
+
+`SessionOptions.disallowedTools` is a readonly list of native names, sent to
+native deny channels on both create and resume. Omitted or empty adds no
+restriction; a runtime may restore its own saved settings on resume (notably
+Antigravity). OAR neither computes a complementary allowlist nor hides tool
+events after execution. This selects tools; another permitted tool can still
+perform similar work, so it is not a process sandbox.
+
+| runtime | can disable | refuses |
+|---|---|---|
+| claude | native `--disallowed-tools` names, including `Bash` and `mcp__server__tool` | unknown or wrong-case names are accepted silently and disable nothing (for example `bash` is not `Bash`); OAR does not validate them |
+| pi | SDK `excludeTools`, built-ins such as `bash` and directly exposed MCP names `mcp__server__tool` | native SDK name/pattern semantics apply; unmatched names are accepted silently and disable nothing |
+| cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
+| codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
+| antigravity | canonical `BuiltinTools` filter names via `_meta.agy.disabledTools`; see its page for the exact list and native group names | MCP, client file tools, unknown names; a mixed list fails as a whole before launch |
+| grok, kimi, opencode | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
+
+Value-specific refusals identify the offending names. They are not listed
+as an always-refused option on codex, cursor or antigravity. The native
+channels, observed versions and limits are in the
+[October 8 audit](../../experiments/disallowed-tools-2026-10-08.md). Supply
+the list again when resuming; OAR does not persist host options.
+
 ## Refused session options
 
 What a runtime cannot honor is refused, never dropped: `session()` rejects
@@ -112,7 +136,7 @@ on that error, and tells it from a failed login or a network error without
 reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
-`SessionOptions` a runtime refuses when given (`env`, `mcpServers`: a
+`SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`: a
 non-empty one), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
@@ -121,9 +145,11 @@ out instead of naming runtimes.
 | runtime | refuses | why |
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment of its own for tools; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
-| kimi | `systemPrompt`, `appendSystemPrompt` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
 | antigravity | `systemPrompt`, `appendSystemPrompt` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)) |
-| claude, codex, grok, opencode, pi | nothing | |
+| grok | `disallowedTools` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
+| opencode | `disallowedTools` | agent permissions can override global denies; permission names do not consistently match tool names |
+| claude, codex, pi | nothing always refused | codex has value-specific tool-name refusals below |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page

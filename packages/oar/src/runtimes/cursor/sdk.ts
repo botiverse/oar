@@ -73,6 +73,7 @@ export interface CursorAgent {
 }
 
 export interface CursorAgentOptions {
+  readonly disallowedTools?: string[];
   readonly model: ModelSelection;
   readonly local: { readonly cwd: string; readonly sandboxOptions: { readonly enabled: boolean } };
 }

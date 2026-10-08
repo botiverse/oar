@@ -652,3 +652,14 @@ values that `_x.ai/mcp/servers_updated` carries into the records. Design
 should distinguish restoring
 context, replaying observations, and adopting live execution; the Session
 OAR returns does not imply all three.
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` is refused before launch and declared in
+`refusedSessionOptions`. Grok 1.0.46's top-level CLI offers
+`--disallowed-tools`, but `Command::Agent` / `run_agent_command` does not
+forward those overrides into `agent stdio`. Its `--agent-profile` and ACP
+`_meta.agentProfile` can replace the selected native agent definition;
+OAR does not replace the user's harness merely to change tool selection.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

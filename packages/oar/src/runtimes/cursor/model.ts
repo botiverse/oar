@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import type { CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
@@ -105,4 +106,13 @@ async function latestRunModel(sdk: CursorSdk, agentId: string, cwd: string): Pro
     cursor = page.nextCursor === undefined || page.nextCursor === "" ? null : page.nextCursor;
   } while (cursor !== null);
   return latest?.model;
+}
+
+/** Preserve native name validation while giving hosts the common option error.
+ * All other SDK failures retain their original type and details. */
+export function cursorToolDenialError(error: unknown, options: SessionOptions): unknown {
+  if (options.disallowedTools !== undefined && error instanceof Error && error.name === "ConfigurationError" && error.message.includes("`disallowedTools`")) {
+    return new UnsupportedOptionError("disallowedTools", error.message);
+  }
+  return error;
 }

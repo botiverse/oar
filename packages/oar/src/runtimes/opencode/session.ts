@@ -1,3 +1,5 @@
+import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { refuseSessionOptions } from "../../shared/session-options.js";
 import type { StartSession, Session } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
@@ -8,6 +10,10 @@ import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } 
  * at v1.18.34) is opencode's own ACP layer over its HTTP server, so the
  * mapping is upstream's.
  */
+export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
+  disallowedTools: "opencode ACP has no session tool denylist; global permission rules can be overridden by agent rules and do not use the tool-name vocabulary consistently",
+};
+
 export const opencodeAcpProfile: AcpSessionProfile = {
   args: ["acp"],
   // The ACP layer forwards only its own sessions' parts: a `task` subagent
@@ -65,6 +71,7 @@ function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Sess
 }
 
 export const opencodeSession: StartSession = async (installation, options) => {
+  refuseSessionOptions(opencodeRefusedSessionOptions, options);
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
     return directSession(installation, options);
   }

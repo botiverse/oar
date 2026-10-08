@@ -14,6 +14,7 @@ export interface RuntimeUnderTest {
     readonly systemPrompt?: string;
     readonly appendSystemPrompt?: string;
     readonly mcpServers?: readonly McpServer[];
+    readonly disallowedTools?: readonly string[];
   }): Promise<Session>;
 }
 
@@ -42,6 +43,7 @@ export function runtimeUnderTest(
         ...(overrides.systemPrompt === undefined ? {} : { systemPrompt: overrides.systemPrompt }),
         ...(overrides.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: overrides.appendSystemPrompt }),
         ...(overrides.mcpServers === undefined ? {} : { mcpServers: overrides.mcpServers }),
+        ...(overrides.disallowedTools === undefined ? {} : { disallowedTools: overrides.disallowedTools }),
       });
       record({ kind: "session_started", sessionId: session.id, resume: overrides.resume ?? null, effort: overrides.effort ?? null });
       session.rawEvents((entry) => {

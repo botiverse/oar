@@ -433,3 +433,24 @@ server stops storing the entries' values, until which entries with `env` or
 `headers` are refused. Keep native
 API capabilities, transport limitations, OAR omissions and unexecuted checks
 separate when designing or claiming support.
+
+## Disallowed tools
+
+`SessionOptions.disallowedTools` goes to `_meta.agy.disabledTools` on
+session creation and resume. Only the canonical `BuiltinTools` values from
+agy_acp_server 1.3.0's native filter are accepted: `list_directory`,
+`search_directory`, `find_file`, `view_file`, `create_file`, `edit_file`,
+`run_command`, `ask_question`, `start_subagent`, `generate_image`,
+`search_web`, `read_url_content`, `schedule`, `finish`. These are filter
+identifiers: for example, the harness offers creation as `write_to_file`
+and editing as `replace_file_content`. The native filter performs that
+mapping; OAR sends no allowlist.
+
+MCP names, `client_*` file tools and unknown names are refused before
+launch with `UnsupportedOptionError`, listing all offending entries. The
+native parser would merely log and ignore unknown names. OAR advertises
+no client filesystem capability, so those callbacks are absent. A mixed
+list fails as a whole. Antigravity persists its filter: omission on resume
+restores it, while an explicit empty list clears it.
+
+Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).

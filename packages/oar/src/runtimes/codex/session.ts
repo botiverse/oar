@@ -8,11 +8,8 @@ import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadOpen } from "./open.js";
-import {
-  foldCodexNotification,
-  initialCodexProjection,
-  type CodexProjectionState,
-} from "./projection.js";
+import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
+import { prepareCodexToolDenials } from "./tool-denials.js";
 import { openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 
 /*
@@ -61,6 +58,7 @@ export const codexSession: StartSession = async (installation, options) => {
     capabilities: { experimentalApi: true },
   });
   client.notify("initialized", {});
+  const filteredOpenParams = await prepareCodexToolDenials(client, options, openParams);
   // The open event is marked at the reply's wire position AS the reply line
   // is read (onSettled → client.mark), not after this await: a frame codex
   // wrote in the same chunk right after the reply (thread/started) would
@@ -73,7 +71,7 @@ export const codexSession: StartSession = async (installation, options) => {
     }
   };
   const started = await openThread(client, openMethod, async () => {
-    const reply = await client.request(openMethod, openParams, markOpen);
+    const reply = await client.request(openMethod, filteredOpenParams, markOpen);
     return reply;
   });
   const threadId = asRecord(started.thread)?.id;

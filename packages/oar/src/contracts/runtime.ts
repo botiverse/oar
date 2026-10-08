@@ -8,13 +8,13 @@ import type { RuntimeBrand } from "./brand.js";
 import type { StartSession } from "./session.js";
 
 /** The `SessionOptions` a runtime can refuse at open. */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "disallowedTools";
 
 /**
- * The options a runtime refuses when they are given (`env`, `mcpServers`: a
- * non-empty one), each with the reason `session()` rejects with, as the message of an
- * `UnsupportedOptionError` naming the option. Options it does not list, and
- * every option when the map is absent, are accepted.
+ * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`: a
+ * non-empty one), each with the reason `session()` rejects with, in the message of an
+ * `UnsupportedOptionError` naming the option. Unlisted options can still have value-specific refusals (for example,
+ * a tool name the native filter cannot disable); see the runtime page.
  */
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
 
