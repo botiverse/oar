@@ -212,7 +212,7 @@ interface FrameBody {
 }
 // RuntimeEventBody:
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
-//   text_delta {text, messageId?} | reasoning {content} |
+//   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_input {callId, input} |
 //   tool_call_progress {callId, output?} |
@@ -423,8 +423,7 @@ The rules that make this a projection and not a second source of truth:
 - **Lossy by design, never lossy in the stream.** An Event carries no
   `native` and no `type`. The Frame underneath keeps both.
 - **Coalescing is a consumer option.** `text_delta` arrives at the
-  granularity the runtime emits (claude: a whole block per frame; pi and
-  codex: token-sized pieces). `events(observer, { coalesceText })` merges
+  granularity the runtime emits (claude, pi and codex: streamed pieces). `events(observer, { coalesceText })` merges
   consecutive text (or readable reasoning) of one agent into one event
   carrying the last piece's envelope (`{ maxHoldMs }` also flushes when the
   stream goes quiet that long). Off by default, so events stay synchronous
@@ -433,7 +432,9 @@ The rules that make this a projection and not a second source of truth:
   is the runtime's id of the assistant message the text is part of (codex:
   the `agentMessage` item id; claude: the API `message.id`), so two messages
   of one turn stay apart in coalescing and in the session view. pi, cursor
-  and the ACP runtimes name none, and older records lack it.
+  and the ACP runtimes name none, and older records lack it. Claude also
+  names streamed `reasoning` with `messageId`; coalescing keeps readable
+  reasoning from different API messages separate.
 
 ## Tasks at runtime exit
 

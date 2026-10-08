@@ -69,7 +69,8 @@ OAR's resume call:
 
 ```sh
 claude -p --input-format stream-json --output-format stream-json --verbose \
-  --replay-user-messages --dangerously-skip-permissions --resume SESSION_ID
+  --replay-user-messages --include-partial-messages \
+  --dangerously-skip-permissions --resume SESSION_ID
 ```
 
 A new session passes `--session-id UUID` (OAR's `randomUUID()`) instead.
@@ -192,14 +193,31 @@ later `dispose` `accepted`
 Frame, or of the response record for a control reply), except the effort
 read-back answer the adapter consumes at open, so message identity, input
 echoes, control replies and telemetry are there even where OAR has no event
-for them. Text blocks become `text_delta` events naming the API message
-(`messageId` = `message.id`); reasoning keeps the text, redacted, and empty
-distinctions; tools keep IDs and available input/output. An `assistant`
-frame with several blocks is one record with several events in block order
-(every recorded fixture carries one block per frame). OAR does not request
-`--include-partial-messages`, so `text_delta` does not imply token-level
-streaming. [Native streaming][native-output],
-[projection](../../packages/oar/src/runtimes/claude/projection.ts).
+for them. OAR requests `--include-partial-messages` on both new sessions
+and resumes. Every `stream_event` becomes a frame, including message/block
+boundaries, signatures and partial tool JSON. Text and thinking deltas become
+`text_delta` and readable `reasoning`, with the API `message.id` carried from
+`message_start` as `messageId`. A completed `assistant` block only projects
+text or reasoning that was not already streamed; tools still start once,
+with their complete input and original IDs. Redacted and empty thinking
+remain distinguishable. Final result usage is unchanged.
+
+Claude 2.1.293 emits each completed block just before its
+`content_block_stop`; several completed blocks can share one API message ID.
+Deduplication tracks blocks independently within each agent's message, so
+parallel child output does not suppress root output or another child. A
+`message_stop` releases that agent's partial projection state; its raw
+records remain available.
+`input_json_delta` has no tool event: its raw frame is still activity for
+`stallOf`, while the incomplete input remains available in `native`.
+
+This emits more, smaller records, comparable to Codex's streamed deltas;
+hosts retaining records should budget for them. `events(observer,
+{ coalesceText: true })` combines consecutive text and readable reasoning
+without duplicating the completed block. It changes the consumer view only;
+every raw frame stays available. [Native streaming][native-output],
+[projection](../../packages/oar/src/runtimes/claude/content.ts),
+[native regression](../../sea-trial/vendor/claude-partials.vendor.test.ts).
 
 **Attributed:** frames carrying `parent_tool_use_id` get
 `agentPath = [...parentPath, taskCallId]`, where `parentPath` is the agent
@@ -211,7 +229,11 @@ table above), for subagents and background commands alike
 background task ends while the session is idle, claude starts a spontaneous
 turn of its own to handle the result [env 2.1.284]. Child records arriving
 after the parent's `result` still enter the stream (nothing is gated on turn
-state). There is no child control handle. No child `result` frame has been
+state). With 2.1.293, a background Task against the scripted provider
+reported complete child thinking/text blocks after the root result, but no
+child `stream_event` frames. The partial-output flag does not make that
+native child path incremental; its completed blocks remain the source of
+child events. There is no child control handle. No child `result` frame has been
 observed, so child usage stays unattributed and `usage()` is root-only;
 whether a child ever reports usage, and the interleaving of concurrent
 children, are **unverified**. [Native subagents][native-subagents].
@@ -570,7 +592,7 @@ former only.
    `--system-prompt`, `--append-system-prompt`, `--mcp-config <file>` (for
    `SessionOptions.mcpServers`). `CLAUDECODE` is cleared from
    the child environment. Prompts are `user` message lines on stdin. Present
-   in 2.1.261 help but not on the session path: `--include-partial-messages`,
+   in 2.1.261 help but not on the session path:
    `--fork-session`, `--no-session-persistence` (the inventory and account
    usage readers pass it), `--permission-mode`, `--permission-prompts`,
    `--strict-mcp-config`, `--tools`, `--agents`, `--bg`, `--cloud`, `--teleport`,
