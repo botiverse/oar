@@ -34,12 +34,17 @@ export interface TreeProbeOptions {
   readonly lateTool?: boolean;
 }
 
+/** `process.kill` found no such process. */
+function noSuchProcess(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ESRCH";
+}
+
 function alive(pid: number): boolean {
   try {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    return !(error instanceof Error && "code" in error && error.code === "ESRCH");
+    return !noSuchProcess(error);
   }
 }
 
@@ -121,8 +126,14 @@ export async function withTreeProbe<Result>(
 /** SIGKILL whatever of `pids` is still alive and remove `dir`. */
 function reap(pids: readonly number[], dir: string): void {
   for (const pid of pids) {
-    if (alive(pid)) {
+    try {
       process.kill(pid, "SIGKILL");
+    } catch (error) {
+      // Already gone, possibly only just: a dispose may still be ending the
+      // tree, so a check for life before the signal can pass and still miss.
+      if (!noSuchProcess(error)) {
+        throw error;
+      }
     }
   }
   rmSync(dir, { recursive: true, force: true });
