@@ -263,7 +263,7 @@ contains `agy_acp_server.par`, readable as a ZIP archive. Under
 | `resume` | ACP `session/resume`, or `session/load` when resume is not advertised. |
 | `model` | ACP `session/set_config_option` on `model`, with readback. |
 | `effort` | Refused when no `thought_level` is advertised; choose a native model variant instead. |
-| `env` | Environment of this session's subprocess and tool subprocesses. |
+| `env` | Environment of this session's subprocess and tool subprocesses; `null` removes an inherited variable ([contract](../spec/runtime-matrix.md#session-environment)). |
 | `mcpServers` | ACP `mcpServers` on `session/new`, `session/resume` and `session/load` ([session MCP servers](#session-mcp-servers)). |
 | `systemPrompt`, `appendSystemPrompt` | Refused: no prompt input in the selected server's protocol, launcher or configuration. |
 

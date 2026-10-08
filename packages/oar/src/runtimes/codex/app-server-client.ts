@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
@@ -66,12 +67,12 @@ export interface AppServerProcessOptions extends Pick<LineProcessOptions, "inher
 
 export function startAppServerClient(
   command: string,
-  env?: Readonly<Record<string, string>>,
+  env?: Readonly<Record<string, string | null>>,
   configOverrides: Readonly<Record<string, string>> = {},
   cwd?: string,
   processOptions: AppServerProcessOptions = {},
 ): AppServerClient {
-  const environment = { ...process.env, ...env };
+  const environment = sessionEnvironment(env);
   const directory = cwd ?? process.cwd();
   return coordinateHomeInitialization(environment, directory, () => createAppServerClient(command, environment, configOverrides, directory, processOptions));
 }

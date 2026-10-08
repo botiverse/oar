@@ -431,8 +431,9 @@ the hooks short. The own process group also takes claude out of the
 terminal's job control: a host's Ctrl-C does not reach it, so a host that
 wants it stopped disposes the session. This supplies resource release, not
 detached execution or a lease against other controllers. The environment
-overlay applies to the child process; `CLAUDECODE` is cleared before the
-overlay. [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
+overlay applies to the child process; `null` deletes an inherited variable
+and `CLAUDECODE` is always removed. See the
+[environment contract](../spec/runtime-matrix.md#session-environment). [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
 
 On Windows, disposal and the abort fallback use `taskkill /T /F` to terminate
 the entire process tree, including a `.cmd` launcher and native claude. There

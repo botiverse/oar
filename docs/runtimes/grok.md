@@ -581,7 +581,8 @@ signal: "SIGKILL"}` *after* the `exited` response (the spec keeps late
 facts). Disposal does not delete the persistent native session and supplies
 resource release, not detached execution or a lease against other
 controllers. The environment overlay applies to the child process and to
-hosted terminals.
+hosted terminals. A `null` entry removes an inherited variable from both
+([environment contract](../spec/runtime-matrix.md#session-environment)).
 
 On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
 the abort fallback, so termination reaches the runtime behind its launcher

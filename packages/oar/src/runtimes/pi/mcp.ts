@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import path from "node:path";
 import type { InlineExtension, McpServerConfig } from "@earendil-works/pi-coding-agent";
 import type { McpServer, SessionOptions } from "../../contracts/session.js";
@@ -47,11 +48,11 @@ function literalValues(values: Readonly<Record<string, string>>): Record<string,
  * entry's on top (pi starts it with the host's environment under that, like
  * the bash tool's). Every value literal, every tool declared directly.
  */
-export function piMcpServerConfig(server: McpServer, sessionEnv: Readonly<Record<string, string>> = {}): McpServerConfig {
+export function piMcpServerConfig(server: McpServer, sessionEnv: SessionOptions["env"] = {}): McpServerConfig {
   if (isHttpMcpServer(server)) {
     return { type: "http", url: server.url, ...(server.headers === undefined ? {} : { headers: literalValues(server.headers) }), exposure: "direct" };
   }
-  const env = { ...sessionEnv, ...server.env };
+  const env = { ...piMcpEnvironment(sessionEnv), ...server.env };
   return {
     type: "stdio",
     command: server.command,
@@ -59,6 +60,26 @@ export function piMcpServerConfig(server: McpServer, sessionEnv: Readonly<Record
     ...(Object.keys(env).length === 0 ? {} : { env: literalValues(env) }),
     exposure: "direct",
   };
+}
+
+/** Pi's MCP config can override strings but cannot remove inherited variables. */
+function piMcpEnvironment(env: SessionOptions["env"]): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env ?? {})) {
+    if (value === null) {
+      throw new UnsupportedOptionError("env", "pi's stdio MCP servers re-inherit the host environment and cannot remove variables; env removals cannot be combined with stdio mcpServers");
+    }
+    values[key] = value;
+  }
+  return values;
+}
+
+/** Refuse the combination before pi opens resources or loads extensions. */
+export function validatePiMcpEnvironment(options: SessionOptions): void {
+  const servers = givenMcpServers(options.mcpServers);
+  if (servers?.some((server) => !isHttpMcpServer(server)) === true) {
+    piMcpEnvironment(options.env);
+  }
 }
 
 /** Throw on a list pi cannot register as given: an empty or repeated name, one pi refuses, or two pi would fold into one. */

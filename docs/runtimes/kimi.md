@@ -380,7 +380,7 @@ sessions; OAR does not use that as a prompt override or modify user config.
 | `resume` | ACP `session/resume`, or `session/load` when resume is not advertised. |
 | `model` | ACP `session/set_model`, with config-update readback. |
 | `effort` | ACP `session/set_config_option` on `thinking`, with readback. |
-| `env` | Environment of this session's subprocess and tool subprocesses. |
+| `env` | Environment of this session's subprocess and tool subprocesses; `null` removes an inherited variable ([contract](../spec/runtime-matrix.md#session-environment)). |
 | `mcpServers` | ACP `mcpServers` on `session/new` and `session/resume` ([session MCP servers](#session-mcp-servers)). |
 | `systemPrompt`, `appendSystemPrompt` | Refused: the selected native launcher does not carry them. |
 

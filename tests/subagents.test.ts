@@ -50,7 +50,7 @@ test("a follow-up starts a new turn on an idle subagent", async () => {
 });
 
 test("children run one level deeper than their host", async () => {
-  const depths: (string | undefined)[] = [];
+  const depths: (string | null | undefined)[] = [];
   const crew = crewOf((turn) => {
     depths.push(turn.options.env?.[SUBAGENT_DEPTH_ENV]);
   });

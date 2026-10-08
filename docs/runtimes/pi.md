@@ -451,7 +451,11 @@ Extensions can still implement permission gates and interactive flows; OAR has
 no general approval/user-input bridge for them. `SessionOptions.env` affects
 subprocesses spawned by the replacement bash tool and the session's stdio
 MCP servers ([below](#session-mcp-servers)), not provider keys/base
-URLs. Provider configuration uses native model/agent-dir channels;
+URLs. A `null` entry removes an inherited variable from Bash children,
+without changing the host environment. Pi refuses removals combined with
+stdio MCP servers: see below and the
+[environment contract](../spec/runtime-matrix.md#session-environment).
+Provider configuration uses native model/agent-dir channels;
 `OAR_PI_AGENT_DIR` is process-level.
 [Opener](../../packages/oar/src/runtimes/pi/open.ts),
 [native extensions][native-extensions].
@@ -501,6 +505,12 @@ lifecycle, and adds no dependency. Measured on the bundled pi-coding-agent
   resolver). pi expands a leading `~` in `command` and `args`.
 - A stdio server gets the host's environment, then `SessionOptions.env`, then
   the entry's `env` (pi-mcp's `StdioTransport` inherits `process.env`).
+  Pi 1.0.4's MCP registration only accepts string overrides, and its default
+  transport re-inherits the host environment. An `env` removal combined with
+  any stdio `mcpServers` therefore fails before opening with
+  `UnsupportedOptionError` on `env`. No removed key or value is named in the
+  error. Removals without stdio servers, including HTTP-only servers, still
+  apply to Bash. A `null` inside a server's own `env` is always refused.
 
 pi's MCP server log goes to `<agentDir>/mcp.log`. Nothing written under the
 agent dir held a credential (measured: the session file; no `mcp.log` was
