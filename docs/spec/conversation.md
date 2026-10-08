@@ -195,3 +195,25 @@ cursor) leave the view unchanged, as they leave the conversation.
 
 Evidence: a real codex run that steers three times while the agent sleeps,
 replayed in [codex-steer-order](../../tests/replay/codex-steer-order.test.ts).
+
+## Display wording
+
+`@botiverse/oar/observe` supplies English text for OAR's own types. These
+helpers are pure and import no Node modules or runtime adapters, so the
+same wording works in a browser or JavaScriptCore:
+
+| Helper | Input and result |
+| --- | --- |
+| `noticeText(notice)` | A `ViewNotice` to text, including its native reason and available retry details. Child turn outcomes are objects, read by their `kind`. |
+| `noticeTone(notice)` | A `ViewNotice` to `quiet`, `warning` or `danger`. Completed work and a zero exit are quiet; retries, refusals, aborts and an unknown exit code warn; failed work and a nonzero exit are danger. |
+| `phaseLabel(phase)` | A `RunningPhase` to a label such as `Waiting for model` or `Running <tool>`. |
+| `failureText(failure, runtimeName)` | A `FailureClass` to a neutral sentence such as `Claude Code is not signed in.` The host adds any sign-in or recovery instructions. |
+| `taskStatusLabel(status)` | A `TaskStatus` to its display label. |
+| `toolGroupSummary(counts, state?)` | A tool group's English summary. With no calls, the reasoning-only group reads `Thought`, or `Thinking…` when `state` is `running`; `state` defaults to `done`. Tool counts retain their existing wording. |
+
+The wording is for display and may change in any minor release. Hosts must
+make decisions from the typed values, never parse these strings. The
+separate [`parseReport`](subagents.md#reading-results) helper reads only
+`formatReport`'s own report format. Each union member is covered by tests
+and exhaustive type checks in OAR, so an added member requires its wording
+to be supplied here.

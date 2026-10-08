@@ -85,9 +85,17 @@ const DONE: Record<ToolActionKind, (count: number) => string> = {
 
 /**
  * The English line for a group's counts: "Ran 3 commands, read a file". MCP and unclassified
- * tools read alike ("used 2 tools"). Empty for a group with no calls (only reasoning).
+ * tools read alike ("used 2 tools"). A group with no calls (only reasoning) reads "Thought",
+ * or "Thinking…" while it is running. Display wording may change in a minor release.
  */
-export function toolGroupSummary(counts: ToolGroup["counts"]): string {
+export function toolGroupSummary(counts: ToolGroup["counts"], state: "running" | "done" = "done"): string {
+  if (counts.length === 0) {
+    switch (state) {
+      case "running": return "Thinking…";
+      case "done": return "Thought";
+      default: { const unexpected: never = state; throw new Error(`Unknown group state: ${String(unexpected)}`); }
+    }
+  }
   const tools = counts
     .filter(({ kind }) => kind === "mcp" || kind === "other")
     .reduce((sum, { count }) => sum + count, 0);

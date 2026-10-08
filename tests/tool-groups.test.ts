@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { ViewPart } from "../packages/oar/src/observe/session-view.js";
 import { groupToolActivity, toolGroupSummary } from "../packages/oar/src/observe/tool-groups.js";
+import type { ToolActionKind } from "../packages/oar/src/observe/tool-activity.js";
 
 const text = (value: string): ViewPart => ({ kind: "text", text: value });
 const thought: ViewPart = { kind: "reasoning", content: { kind: "redacted" } };
@@ -35,7 +36,31 @@ test("toolGroupSummary words the counts, MCP and unknown tools alike", () => {
   assert.equal(toolGroupSummary([{ kind: "run_command", count: 3 }, { kind: "read_file", count: 1 }]), "Ran 3 commands, read a file");
   assert.equal(toolGroupSummary([{ kind: "web", count: 1 }]), "Searched the web");
   assert.equal(toolGroupSummary([{ kind: "mcp", count: 1 }, { kind: "edit_file", count: 2 }, { kind: "other", count: 1 }]), "Used 2 tools, edited 2 files");
-  assert.equal(toolGroupSummary([]), "");
+  assert.equal(toolGroupSummary([]), "Thought");
+});
+
+test("reasoning-only groups have a summary while running and after ending", () => {
+  const [group] = groupToolActivity("claude", [thought]);
+  assert.ok(group?.kind === "tools");
+  assert.equal(toolGroupSummary(group.counts, "running"), "Thinking…");
+  assert.equal(toolGroupSummary(group.counts, "done"), "Thought");
+  assert.equal(toolGroupSummary([{ kind: "run_command", count: 1 }], "running"), "Ran a command");
+});
+
+const summaries = {
+  run_command: ["run_command", "Ran a command", "Ran 2 commands"],
+  read_file: ["read_file", "Read a file", "Read 2 files"],
+  edit_file: ["edit_file", "Edited a file", "Edited 2 files"],
+  search: ["search", "Searched", "Searched 2 times"],
+  web: ["web", "Searched the web", "Searched the web 2 times"],
+  mcp: ["mcp", "Used a tool", "Used 2 tools"],
+  wait: ["wait", "Waited", "Waited 2 times"],
+  other: ["other", "Used a tool", "Used 2 tools"],
+} satisfies { [Kind in ToolActionKind]: [Kind, string, string] };
+
+test.each(Object.values(summaries))("summary for %s handles singular and plural counts", (kind, singular, plural) => {
+  assert.equal(toolGroupSummary([{ kind, count: 1 }]), singular);
+  assert.equal(toolGroupSummary([{ kind, count: 2 }]), plural);
 });
 
 test("groupToolActivity counts a codex sleep as a wait", () => {

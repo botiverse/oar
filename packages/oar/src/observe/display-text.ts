@@ -1,0 +1,122 @@
+import type { ControlAction, FailureClass, RunningPhase, TaskStatus, TurnOutcome } from "../contracts/session.js";
+import type { ViewNotice } from "./session-view.js";
+
+/** English display wording may change in a minor release. Use the types, not these strings, for decisions. */
+export type NoticeTone = "quiet" | "warning" | "danger";
+
+function unreachable(value: never): never {
+  throw new Error(`Unknown display value: ${String(value)}`);
+}
+
+function outcomeLabel(kind: TurnOutcome["kind"]): string {
+  switch (kind) {
+    case "completed": return "completed";
+    case "aborted": return "aborted";
+    case "failed": return "failed";
+    default: return unreachable(kind);
+  }
+}
+
+function outcomeTone(kind: TurnOutcome["kind"]): NoticeTone {
+  switch (kind) {
+    case "completed": return "quiet";
+    case "aborted": return "warning";
+    case "failed": return "danger";
+    default: return unreachable(kind);
+  }
+}
+
+function actionLabel(action: ControlAction): string {
+  switch (action) {
+    case "prompt": return "Prompt";
+    case "steer": return "Steer";
+    case "queue": return "Queue";
+    case "withdraw": return "Withdraw";
+    case "abort": return "Abort";
+    case "dispose": return "Dispose";
+    default: return unreachable(action);
+  }
+}
+
+function detail(text: string, reason: string | undefined): string {
+  return reason === undefined || reason === "" ? text : `${text}: ${reason}`;
+}
+
+/** A notice's English display text, including native reasons when present. Never parse this wording. */
+export function noticeText(notice: ViewNotice): string {
+  switch (notice.cause) {
+    case "compaction_started":
+      return detail("Compacting context", notice.trigger);
+    case "compaction_ended": {
+      const trigger = notice.trigger === undefined || notice.trigger === "" ? "" : ` (${notice.trigger})`;
+      return detail(`Context compaction ${outcomeLabel(notice.outcome)}${trigger}`, notice.reason);
+    }
+    case "retry": {
+      const maximum = notice.maxAttempts === undefined ? "" : ` of ${notice.maxAttempts}`;
+      const delay = notice.delayMs === undefined ? "" : `, in ${notice.delayMs / 1000}s`;
+      return detail(`Retrying (attempt ${notice.attempt}${maximum}${delay})`, notice.reason);
+    }
+    case "control_rejected":
+      return detail(`${actionLabel(notice.action)} rejected`, notice.reason);
+    case "child_turn_ended":
+      return detail(`Subagent turn ${outcomeLabel(notice.outcome.kind)}`, notice.outcome.kind === "failed" ? notice.outcome.reason : undefined);
+    case "exited":
+      return notice.code === null ? "Runtime exited" : `Runtime exited (code ${notice.code})`;
+    default:
+      return unreachable(notice);
+  }
+}
+
+/** Display emphasis for a notice; a host chooses its colors and presentation. */
+export function noticeTone(notice: ViewNotice): NoticeTone {
+  switch (notice.cause) {
+    case "compaction_started": return "quiet";
+    case "compaction_ended": return outcomeTone(notice.outcome);
+    case "retry": return "warning";
+    case "control_rejected": return "warning";
+    case "child_turn_ended": return outcomeTone(notice.outcome.kind);
+    case "exited": return notice.code === 0 ? "quiet" : (notice.code === null ? "warning" : "danger");
+    default: return unreachable(notice);
+  }
+}
+
+/** The running phase in English, for display only. Tool names remain the runtime's own. */
+export function phaseLabel(phase: RunningPhase): string {
+  if (typeof phase === "object" && "tool" in phase) {
+    return `Running ${phase.tool}`;
+  }
+  switch (phase) {
+    case "waiting_model": return "Waiting for model";
+    case "thinking": return "Thinking";
+    case "responding": return "Responding";
+    case "compacting": return "Compacting context";
+    default: return unreachable(phase);
+  }
+}
+
+/** What the runtime reported, in English. The host supplies any sign-in or recovery guidance. */
+export function failureText(failure: FailureClass, runtimeName: string): string {
+  switch (failure) {
+    case "auth": return `${runtimeName} is not signed in.`;
+    case "quota": return `${runtimeName} reported that its usage limit was reached.`;
+    case "invalid_request": return `${runtimeName} rejected the request as invalid.`;
+    case "overloaded": return `${runtimeName} reported that its provider is overloaded.`;
+    case "provider": return `${runtimeName} reported a provider error.`;
+    case "runtime_exited": return `${runtimeName} exited before the turn finished.`;
+    case "unknown": return "The turn failed.";
+    default: return unreachable(failure);
+  }
+}
+
+/** A task's status in English, for display only. */
+export function taskStatusLabel(status: TaskStatus): string {
+  switch (status) {
+    case "pending": return "Pending";
+    case "running": return "Running";
+    case "paused": return "Paused";
+    case "completed": return "Completed";
+    case "failed": return "Failed";
+    case "stopped": return "Stopped";
+    default: return unreachable(status);
+  }
+}

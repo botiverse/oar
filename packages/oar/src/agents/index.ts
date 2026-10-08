@@ -5,7 +5,8 @@
  */
 export { createSubagents } from "./crew.js";
 export { SUBAGENT_DEPTH_ENV } from "./helpers.js";
-export { formatReport, reportOrigin } from "./report.js";
+export { formatReport, parseReport, reportOrigin } from "./report.js";
+export type { ParsedReport, ReportOutcome } from "./report.js";
 export type {
   SendMode,
   SendResult,
