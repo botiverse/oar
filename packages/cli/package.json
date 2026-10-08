@@ -1,6 +1,6 @@
 {
   "name": "@botiverse/oar-cli",
-  "version": "0.42.0",
+  "version": "0.43.0",
   "description": "Command-line interface for controlling and observing agent runtimes with OAR",
   "type": "module",
   "bin": {
