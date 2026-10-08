@@ -1,10 +1,13 @@
+import { existsSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { claudeInstallation, claudeSession, defineRuntime, piInstallation, piSession, type Session } from "../../packages/oar/src/index.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startPiAimock, type AimockEnv, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { stdioEcho } from "./support/echo-mcp.js";
+import { echoesReceived, stdioEcho } from "./support/echo-mcp.js";
 
 /** Actual native harnesses, with only the model replaced. Inspect the tools
  * offered to the provider, not the model's description of its abilities. */
@@ -74,6 +77,43 @@ for (const name of ["claude", "pi"] as const) {
         expect(resumedTools).toEqual(expect.arrayContaining([kept, allowedMcp]));
         const empty = await subject.startSession({ resume: restricted.id, mcpServers, disallowedTools: [] });
         expect(await offered(empty, env)).toEqual(expect.arrayContaining([builtin, blockedMcp, allowedMcp]));
+      } finally {
+        await env.stop();
+      }
+    }, 180_000);
+
+    // The list selects what the model is offered; a model that calls a denied
+    // tool anyway must not get it run. And a resume that omits the list has
+    // no restriction: the deny channel is per process (claude) or per open (pi).
+    test("a denied tool the model calls anyway is refused; a resume that omits the list restores it", async () => {
+      const dir = mkdtempSync(path.join(tmpdir(), "oar-denied-"));
+      const marker = path.join(dir, "ran");
+      const builtin = name === "claude" ? "Bash" : "bash";
+      const start = name === "claude" ? startClaudeAimock : startPiAimock;
+      const env = await start((mock) => {
+        mock.onMessage(/TOOL_FILTER_OK/u, { content: "TOOL_FILTER_OK" });
+        mock.on({ userMessage: /CALL_DENIED/u, hasToolResult: false }, { toolCalls: [
+          { name: builtin, arguments: JSON.stringify({ command: `echo ran > ${marker}` }) },
+          { name: "mcp__blocked__echo", arguments: JSON.stringify({ text: "denied-call" }) },
+        ] });
+        mock.on({ userMessage: /CALL_DENIED/u, hasToolResult: true }, { content: "done" });
+      }, { captureRaw: true });
+      try {
+        const runtime = name === "claude"
+          ? defineRuntime({ id: "claude-aimock", installation: claudeInstallation, session: claudeSession })
+          : defineRuntime({ id: "pi-aimock", installation: piInstallation, session: piSession });
+        const subject = runtimeUnderTest(runtime, { ...env.env, ENABLE_TOOL_SEARCH: "false" });
+        const mcpServers = [stdioEcho("blocked")];
+        const restricted = await subject.startSession({ mcpServers, disallowedTools: [builtin, "mcp__blocked__echo"] });
+        expect(await promptAndWait(restricted, "CALL_DENIED", { timeoutMs: 60_000 })).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+        const results = restricted.records().flatMap((record) => (record.kind === "frame" ? record.body.events : []))
+          .flatMap((event) => (event.kind === "tool_call_ended" ? [event.result] : []));
+        expect(results).toEqual(["failed", "failed"]);
+        expect(echoesReceived(env.raw)).toEqual([]);
+        expect(existsSync(marker)).toBe(false);
+        await restricted.dispose();
+        const resumed = await offered(await subject.startSession({ resume: restricted.id, mcpServers }), env);
+        expect(resumed).toEqual(expect.arrayContaining([builtin, "mcp__blocked__echo"]));
       } finally {
         await env.stop();
       }
