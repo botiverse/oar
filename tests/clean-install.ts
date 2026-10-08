@@ -101,7 +101,7 @@ assert.equal(formatReport(report), "[subagent scout on codex, turn 2: completed;
 assert.deepEqual(reportOrigin(report), { kind: "notification", source: "subagent:scout" });
 assert.deepEqual(parseReport(formatReport(report)), { id: "scout", runtime: "codex", sessionId: "s-1", turn: 2, outcome: { kind: "completed" }, body: "found it" });
 const { failureText, noticeText, noticeTone, phaseLabel, taskStatusLabel, toolGroupSummary } = await import("@botiverse/oar/observe");
-assert.equal(failureText("auth", "Codex"), "Codex is not signed in.");
+assert.equal(failureText("auth", "Codex", "missing"), "Codex is not signed in.");
 assert.equal(noticeText({ cause: "child_turn_ended", outcome: { kind: "aborted" } }), "Subagent turn aborted");
 assert.equal(noticeTone({ cause: "retry", attempt: 1 }), "warning");
 assert.equal(phaseLabel("waiting_model"), "Waiting for model");

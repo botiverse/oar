@@ -15,13 +15,16 @@ export class RuntimeFailureError extends Error {
   // Declared, not initialized: absent unless the runtime said them.
   declare readonly credential?: CredentialProblem;
   declare readonly status?: number;
-  readonly reason: string;
 
   constructor(failure: FailureClass, reason: string, details: { readonly credential?: CredentialProblem; readonly status?: number; readonly cause?: unknown } = {}) {
     super(reason, details.cause === undefined ? undefined : { cause: details.cause });
     this.failure = failure;
-    this.reason = reason;
     if (details.credential !== undefined) { this.credential = details.credential; }
     if (details.status !== undefined) { this.status = details.status; }
+  }
+
+  /** The runtime's words: the message itself, so that redacting the message redacts it. */
+  get reason(): string {
+    return this.message;
   }
 }
