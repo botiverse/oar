@@ -40,7 +40,9 @@ request, so a UI can show injected input apart from what a person typed.
 UUIDs are required because Claude's native input identity uses UUIDs. A supplied
 ID must represent exactly one logical input, including retries of that input;
 reusing it for a different input merges those submissions by design. Do not
-resubmit an accepted input. OAR generates identity, not delivery evidence.
+resubmit an accepted input unless the stream later reports it dropped
+([Dropped input](#dropped-input)), which hands it back to the caller. OAR
+generates identity, not delivery evidence.
 
 ## Images
 

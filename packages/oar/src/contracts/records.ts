@@ -262,7 +262,7 @@ export type RejectionCode =
  * observes: its own answer to a runtime→app request, and the process exit.
  */
 export type ResponseBody =
-  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
+  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
   | { readonly kind: "accepted"; readonly native?: unknown }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
