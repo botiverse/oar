@@ -49,6 +49,11 @@ sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
 `deliver`). It exists where OAR holds the queue itself (claude, pi, cursor
 and the ACP runtimes), not on codex, whose queue is its own.
+`session.resources()` reads the memory a runtime takes on the host: resident
+bytes and a process count over the runtime process, its group and its
+descendants, `null` once it has exited (and on Windows). It is a reading only,
+never a handle: no pid leaves OAR. Sessions whose runtime runs in the host
+process (pi, cursor) have none.
 
 For conversation UIs, use the browser-safe `reduceConversation` projection
 over `session.rawEvents()`. It joins input requests, responses and native

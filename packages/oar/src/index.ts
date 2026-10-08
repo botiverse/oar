@@ -115,6 +115,7 @@ export type {
   McpServer,
   SessionOptions,
   RawEvent,
+  SessionResources,
   SessionUsage,
   StartSession,
   SteerOrQueueResult,

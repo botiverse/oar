@@ -90,6 +90,11 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
       ready.reject(new Error("Codex app-server startup cancelled before spawn"));
       for (const handler of exitHandlers.splice(0)) { handler(null); }
     },
+    // No process yet (waiting its turn to initialize the home), or none any more: nothing to read.
+    resources: async () => {
+      const reading = actual === null ? null : await actual.resources();
+      return reading;
+    },
   };
 }
 

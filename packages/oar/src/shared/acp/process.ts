@@ -7,6 +7,7 @@ import {
 import { Readable, Writable } from "node:stream";
 import { spawnLineProcess } from "../executable/index.js";
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
+import type { SessionResources } from "../../contracts/session.js";
 
 export { client as createAcpClient, methods } from "@agentclientprotocol/sdk";
 export type { ClientApp, SessionNotification } from "@agentclientprotocol/sdk";
@@ -43,6 +44,8 @@ export interface AcpProcess {
   readonly closed: boolean;
   readonly exitCode: number | null;
   kill(): void;
+  /** The agent's memory with everything it started (`LineProcess.resources`). */
+  readonly resources: () => Promise<SessionResources | null>;
 }
 
 /**
@@ -122,5 +125,6 @@ export function startAcpProcess(
         child.kill();
       }
     },
+    resources: child.resources,
   };
 }

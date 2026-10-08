@@ -276,6 +276,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
+    resources: child.resources,
     dispose: async () => {
       if (state.disposed) {
         return;

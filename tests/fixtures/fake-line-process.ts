@@ -71,6 +71,9 @@ class ScriptedLineProcess implements FakeLineProcess {
     this.end(null);
   }
 
+  /** A scripted process has no memory of its own to report. */
+  readonly resources = async (): Promise<null> => null;
+
   emit(chunk: string): void {
     this.stdout.write(chunk);
   }

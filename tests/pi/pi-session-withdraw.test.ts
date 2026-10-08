@@ -123,3 +123,10 @@ test("a queue while idle is prompted at once; after dispose a withdraw is refuse
   expect(await withdraw(session, inputIdOf(held))).toBe("disposed");
   expect(pi.prompts).toEqual(["idle"]);
 });
+
+// oar#231: pi runs in the host process, so its memory is the host's own.
+test("a pi session has no resources(): it has no process of its own", async () => {
+  const { session } = await open();
+  expect("resources" in session).toBe(false);
+  await session.dispose();
+});

@@ -3,6 +3,7 @@ import { spawnLineProcess, type LineProcessOptions } from "../../shared/executab
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { coordinateHomeInitialization } from "./home-initialization.js";
+import type { SessionResources } from "../../contracts/session.js";
 
 /**
  * Minimal persistent JSON-RPC client over codex app-server's stdio JSONL
@@ -51,6 +52,8 @@ export interface AppServerClient {
   mark(callback: () => void): void;
   onExit(handler: (code: number | null) => void): void;
   kill(): void;
+  /** The app-server's memory with everything it started (`LineProcess.resources`). */
+  readonly resources: () => Promise<SessionResources | null>;
 }
 
 interface Pending {
@@ -210,5 +213,6 @@ function createAppServerClient(
     kill() {
       child.kill();
     },
+    resources: child.resources,
   };
 }
