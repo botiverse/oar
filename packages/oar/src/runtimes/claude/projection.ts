@@ -258,6 +258,9 @@ export function foldClaudeStdout(
         ],
       };
     }
+    case "control_cancel_request":
+      // claude withdrew a request it had sent us (an interrupt cancels a pending question).
+      return event({ events: typeof message.request_id === "string" ? [{ kind: "app_request_cancelled", requestId: message.request_id }] : [] });
     default:
       return event({ events: [] });
   }

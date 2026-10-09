@@ -65,6 +65,7 @@ export function describe(record: RawEvent): string {
           case "reasoning":
           case "tool_call_ended":
           case "service_tier":
+          case "app_request_cancelled":
           case "input_dropped":
           case "user_message":
           case "usage":

@@ -1,3 +1,5 @@
+import { asRecord, asRecordList, type JsonRecord } from "../shared/json.js";
+
 /**
  * What a runtime→app request asks for, read off its `type`: the `type` of an
  * `app_request` event, view part or pending request (the runtime's native
@@ -59,4 +61,43 @@ const KINDS: ReadonlyMap<string, AppRequestKind> = new Map<string, AppRequestKin
 /** Classify a runtime→app request by its `type` (an `app_request`'s method or subtype). */
 export function appRequestKind(type: string): AppRequestKind {
   return KINDS.get(type) ?? "unknown";
+}
+
+type Texts = (body: JsonRecord) => unknown;
+
+function text(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+/**
+ * Type → where its words are, in the recorded body (the `toApp` request's
+ * native body; claude's is the whole `control_request` frame, the ask in its
+ * `request`). Sources: claude 2.1.292 (`elicitation` carries `message`,
+ * `can_use_tool` carries `tool_name`); codex 0.160.1 `generate-json-schema`
+ * (`McpServerElicitationRequestParams.message`,
+ * `ToolRequestUserInputParams.questions[].question`,
+ * `CommandExecutionRequestApprovalParams.command`); ACP SDK 1.4.0
+ * (`CreateElicitationRequest.message`, `RequestPermissionRequest.toolCall.title`).
+ */
+const TEXTS: ReadonlyMap<string, Texts> = new Map<string, Texts>([
+  ["elicitation", (body) => asRecord(body.request)?.message],
+  ["can_use_tool", (body) => asRecord(body.request)?.tool_name],
+  ["mcpServer/elicitation/request", (body) => body.message],
+  ["item/tool/requestUserInput", (body) => asRecordList(body.questions).flatMap((question) => text(question.question) ?? []).join("\n")],
+  ["item/commandExecution/requestApproval", (body) => body.command],
+  ["elicitation/create", (body) => body.message],
+  ["session/request_permission", (body) => asRecord(body.toolCall)?.title],
+]);
+
+/**
+ * The words of a runtime→app request, read off its native body: what a
+ * question asks, or the action an approval is for (a tool name, a command).
+ * `body` is the one a pending request or an `app_request` view part carries.
+ * Undefined for a type OAR does not know the words of, and when the body does
+ * not hold them: never guessed.
+ */
+export function appRequestText(type: string, body: unknown): string | undefined {
+  const record = asRecord(body);
+  const read = TEXTS.get(type);
+  return read === undefined || record === null ? undefined : text(read(record));
 }

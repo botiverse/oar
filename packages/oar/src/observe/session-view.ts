@@ -117,7 +117,9 @@ export type ViewPart =
       readonly requestId: string;
       readonly type: string;
       readonly answered: boolean;
-      readonly body?: unknown;
+      /** The runtime withdrew the request (`app_request_cancelled`); `answered` stays false. */
+      readonly cancelled?: boolean;
+      readonly body?: unknown; // the `toApp` body verbatim, as in `pendingRequests`
     };
 
 /** One lane's parts in first-appearance order; named messages can continue in place. */
@@ -142,7 +144,7 @@ export type ViewMessage =
   | ViewTurn
   | { readonly kind: "notice"; readonly id: string; readonly notice: ViewNotice };
 
-/** A runtime→app request still awaiting an answer (or the record of one). */
+/** A runtime→app request nobody has answered and the runtime has not withdrawn. */
 export interface PendingRequest {
   readonly requestId: string;
   readonly type: string;
@@ -161,12 +163,8 @@ export interface AgentTokens {
 export interface SessionView {
   readonly messages: readonly ViewMessage[];
   /**
-   * Steered or queued inputs the runtime has not taken yet, in request
-   * order: each leaves this list for `messages` at its first native echo.
-   * A host shows them apart (above the composer, say). An input the
-   * runtime never echoes stays here; no turn end or text match places it.
-   * A withdrawn input leaves it. Always empty on a stream that never echoed
-   * an input id.
+   * Steered or queued inputs the runtime has not taken yet, in request order: each leaves this list for `messages` at its first native echo. A host shows them apart (above the composer, say).
+   * An input the runtime never echoes stays here; no turn end or text match places it. A withdrawn input leaves it. Always empty on a stream that never echoed an input id.
    */
   readonly pendingInputs: readonly ConversationInput[];
   /** Index of the unsealed turn segment in `messages`; -1 when none. */
@@ -179,6 +177,7 @@ export interface SessionView {
   readonly serviceTier: string | null;
   readonly context: ContextUsage | null;
   readonly usage: SessionUsage;
+  /** `toApp` requests someone is waited on for: unanswered, not withdrawn by the runtime (`app_request_cancelled`), and emptied when the process exits. */
   readonly pendingRequests: readonly PendingRequest[];
   /** The last observed process exit, when the stream recorded one. */
   readonly exited: { readonly code: number | null } | null;

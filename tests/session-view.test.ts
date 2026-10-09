@@ -174,7 +174,7 @@ test("a runtime request is pending until answered; its part settles in place", (
   expect(view.pendingRequests).toEqual([]);
   const [turn] = turns(view);
   expect(turn?.sections[0]?.parts).toEqual([
-    { kind: "app_request", requestId: "req9", type: "approval", answered: true },
+    { kind: "app_request", requestId: "req9", type: "approval", answered: true, body: { command: "rm -rf" } },
   ]);
 });
 

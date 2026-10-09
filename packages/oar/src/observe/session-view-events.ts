@@ -3,12 +3,14 @@ import {
   beginTurn,
   laneFor,
   markRequestAnswered,
+  markRequestCancelled,
   noticePart,
   removeEmptyTurn,
   sameLane,
   sealTurn,
   stampTurnOutcome,
   turnForWrite,
+  updateRequestPart,
   type Draft,
 } from "./session-view-fold.js";
 import { endRootTools, updateToolInput, updateToolPart } from "./session-view-tools.js";
@@ -145,6 +147,9 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
     case "app_answered":
       markRequestAnswered(draft, event.requestId);
       return;
+    case "app_request_cancelled":
+      markRequestCancelled(draft, event.requestId);
+      return;
     case "control_rejected":
       if (event.action === "prompt") {
         removeEmptyTurn(draft, event.requestId);
@@ -168,6 +173,8 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         return;
       }
       endRootTools(draft, scope);
+      // Whoever asked is gone with the process: nobody is waited on any more.
+      draft.pendingRequests.splice(0);
       draft.exited = { code: event.code };
       draft.messages.push({
         kind: "notice",
@@ -260,6 +267,8 @@ export function recordFacts(draft: Draft, record: RawEvent, streamId: string): v
     } else {
       draft.pendingRequests[existing] = entry;
     }
+    // The part was pushed from the flat event, which has no body.
+    updateRequestPart(draft, record.id, (part) => ({ ...part, body: entry.body }));
     return;
   }
   if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "prompt") {

@@ -244,7 +244,7 @@ interface FrameBody {
 //   tool_call_progress {callId, output?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
 //   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}}} | model {model} |
-//   effort {effort} | service_tier {serviceTier} |
+//   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
 //   compaction_started {trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
 //   retry {attempt, maxAttempts?, delayMs?, reason?} |
@@ -439,6 +439,16 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   (claude `control_request`, codex server requests, ACP permission and
   terminal requests) and, for `app_answered`, one whose automatic reply is
   recorded (the ACP adapters); `type` is the runtime's method or subtype.
+  `appRequestText(type, body)` reads the words of the ask off the recorded
+  body (what a question asks, the tool or command an approval is for), and is
+  undefined where OAR does not know where they are.
+- `app_request_cancelled`: the runtime withdrew a `toApp` request it had sent
+  and no longer waits on an answer: claude `control_cancel_request` (an
+  interrupt cancels a pending question), codex `serverRequest/resolved`
+  (OAR answers no codex request, so a resolved one was cleared by codex).
+  SessionView drops the request from `pendingRequests` and marks its part
+  `cancelled`; the process exit empties `pendingRequests` too. Never inferred
+  from a turn ending: a runtime may keep a request open across turns.
 
 The rules that make this a projection and not a second source of truth:
 
