@@ -122,6 +122,7 @@ export function createProgressRenderer(
         return event.ambient === true ? [] : [`${agent}[task ${event.taskType} started]${event.description === undefined ? "" : ` ${event.description}`}`];
       case "task_ended":
         return [`${agent}[task ${event.status}]${event.summary === undefined ? "" : ` ${event.summary}`}`];
+      case "turn_active":
       case "turn_started":
       case "tool_call_progress":
       case "app_answered":

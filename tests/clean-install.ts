@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { build } from "esbuild";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -58,7 +59,7 @@ function cursorPeerVersion(): string {
  */
 const PROBE = `
 import { createCursorRuntime, defaultRuntimes } from "@botiverse/oar";
-for (const entry of ["observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
+for (const entry of ["browser", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
   await import("@botiverse/oar/" + entry);
 }
 const kinds = {};
@@ -112,6 +113,7 @@ assert.ok(loaded.every((file) => !file.startsWith("dist/runtimes/")), "Pure entr
 
 const ENTRIES = `
 import * as oar from "@botiverse/oar";
+import * as browser from "@botiverse/oar/browser";
 import * as agents from "@botiverse/oar/agents";
 import * as report from "@botiverse/oar/agents/report";
 import type { SubagentReport } from "@botiverse/oar/agents/report";
@@ -120,7 +122,7 @@ import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
-export const entries = [oar, agents, report, brands, kernel, observe, testing];
+export const entries = [oar, browser, agents, report, brands, kernel, observe, testing];
 export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r), parsed: report.parseReport(report.formatReport(r)) });
 export const display = [observe.noticeText, observe.noticeTone, observe.phaseLabel, observe.failureText, observe.taskStatusLabel];
 `;
@@ -173,8 +175,15 @@ writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", pr
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
+const browser = await build({
+  stdin: { contents: 'export * from "@botiverse/oar/browser";', resolveDir: host },
+  bundle: true, platform: "browser", format: "esm", write: false, metafile: true,
+});
+assert.deepEqual(Object.values(browser.metafile.outputs).flatMap((output) => output.imports), []);
+
 run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
+assert.equal(readdirSync(path.join(host, "node_modules/@earendil-works")).includes("pi-durable"), false, "pi-durable was installed without being asked for");
 const bare = probe();
 assert.equal(bare.kinds.cursor, undefined);
 assert.ok(Object.values(bare.kinds).every((kind) => typeof kind === "string"), JSON.stringify(bare.kinds));
@@ -182,6 +191,26 @@ assert.deepEqual(typecheck(ENTRIES), []);
 const forgotten = typecheck(ADD_CURSOR);
 assert.equal(forgotten.length, 1, forgotten.join("\n"));
 assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
+
+// The host supplies the native peers only when it opts into this subpath.
+npmInstall("@earendil-works/pi-durable@1.1.0", "@earendil-works/chord@1.1.0");
+run(process.execPath, ["--input-type=module", "-e", `
+import assert from "node:assert/strict";
+import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
+import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
+import { createModels } from "@earendil-works/pi-ai/models";
+import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+const models = createModels();
+const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+try {
+  const runtime = createPiDurableRuntime({ harness, models });
+  const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/" });
+  assert.equal(session.status().value.kind, "idle");
+  await session.dispose();
+} finally { await harness.close(BACKGROUND_CONTEXT); }
+`], host);
+const durable = await build({ stdin: { contents: 'export * from "@botiverse/oar/pi-durable";', resolveDir: host }, bundle: true, platform: "browser", format: "esm", write: false, metafile: true });
+assert.deepEqual(Object.values(durable.metafile.outputs).flatMap((output) => output.imports), []);
 
 npmInstall(`@cursor/sdk@${cursorPeerVersion()}`);
 assert.deepEqual(typecheck(ENTRIES), []);

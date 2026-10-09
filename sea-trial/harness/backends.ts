@@ -8,6 +8,7 @@ import {
   piSession,
   type Runtime,
 } from "../../packages/oar/src/index.js";
+import { startDurableFixture } from "./pi-durable.js";
 import { allRuntimes } from "./runtimes.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fixtures/mock-session.js";
@@ -68,6 +69,13 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "codex-aimock": {
       const aimock = await startCodexAimock();
       return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation }), aimock };
+    }
+    case "pi-durable-aimock": {
+      const fixture = await startDurableFixture();
+      return {
+        runtime: { ...fixture.runtime, session: async (installation, options) => { const session = await fixture.runtime.session(installation, { ...options, model: options.model ?? "aimock/aimock-model" }); return session; } },
+        aimock: { mock: fixture.mock, raw: [], stop: async () => { await fixture.close(); } },
+      };
     }
     case "pi-aimock": {
       const aimock = await startPiAimock(undefined, { imageInput: true });

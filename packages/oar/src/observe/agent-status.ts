@@ -106,6 +106,8 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
 
 function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEventBody): AgentStatus {
   switch (event.kind) {
+    case "turn_active":
+      return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : running(previous, record, "waiting_model");
     case "reasoning":
       return running(previous, record, "thinking");
     case "text_delta":

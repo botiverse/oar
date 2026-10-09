@@ -84,6 +84,10 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
   </tr>
 </table>
 
+[Pi Durable](docs/runtimes/pi-durable.md) also runs through a host-owned Harness,
+including in a browser via `@botiverse/oar/pi-durable` and the portable
+core in `@botiverse/oar/browser`. The host installs its optional native peers.
+
 ## Library
 
 One API drives every runtime: swap `"claude"` for `"codex"`, `"grok"` or
@@ -162,9 +166,11 @@ What else a session gives you:
   semantics and no binary or login.
 
 The [package README](packages/oar/README.md) lists the public entry points.
-`defaultRuntimes` holds every runtime but Cursor, whose SDK you install and hand
+`defaultRuntimes` holds the built-in Node runtimes. Cursor needs the SDK you install and hand
 over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
-([why](docs/runtimes/cursor.md#installation-and-account-usage)).
+([why](docs/runtimes/cursor.md#installation-and-account-usage)). Pi Durable needs
+`createPiDurableRuntime({ harness, models })` with the host's already-open Harness
+and its Models.
 
 ## Handy utilities, no session needed
 
@@ -215,8 +221,8 @@ for (const runtime of defaultRuntimes.list()) {
   runtime refuses, before anything opens; `session()` rejects them with an
   `UnsupportedOptionError` rather than drop them
   ([reference](docs/spec/runtime-matrix.md#refused-session-options)).
-  `mcpServers` attaches MCP servers to one session (every runtime but
-  cursor).
+  `mcpServers` attaches MCP servers to one session (except Cursor and
+  Pi Durable).
 
 The CLI exposes the same queries: `oar installation`, `oar login`
 (`--status` only reports), `oar logout`, `oar usage`, `oar models`,
@@ -239,4 +245,5 @@ Every command: [packages/cli](packages/cli/README.md) (published as `@botiverse/
 - [Prior art](docs/prior-arts/README.md): related projects compared feature by feature.
 - [Development](docs/development.md): working in this repo.
 
-ESM-only, requires Node.js 24+, Apache-2.0.
+ESM-only, Node entry requires Node.js 24+; the browser entry needs a modern browser
+with Web Crypto. Apache-2.0.

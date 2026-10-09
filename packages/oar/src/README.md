@@ -6,11 +6,13 @@ these contracts, see [`docs/runtimes/`](../../../docs/runtimes/README.md).
 ```text
 src/
   index.ts                 # public exports + built-in composition
+  browser.ts               # portable core composition: contracts/kernel/observe/report
+  pi-durable.ts            # host-owned durable runtime, optional native peers
   registry.ts              # runtime collection and lookup
   voyage.ts                # oar-voyage/3 evidence log: line builders + recorder
   brands.ts                # @botiverse/oar/brands: browser-safe names and icons
   kernel.ts                # @botiverse/oar/kernel: the runtime-author SPI
-  contracts/               # provider-independent agreements
+  contracts/               # provider-independent agreements; index.ts is shared by the root and browser entries
   runtimes/<id>/           # one runtime, split by capability
   community/<id>/          # a contributor-maintained runtime, exported from @botiverse/oar/community, not in the built-in registry
   shared/                  # mechanisms + shared contract implementations

@@ -63,6 +63,7 @@ export function describe(record: RawEvent): string {
           case "effort":
             return `effort:${view.effort}`;
           case "reasoning":
+          case "turn_active":
           case "tool_call_ended":
           case "service_tier":
           case "app_request_cancelled":

@@ -33,6 +33,11 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
     case "turn_started":
       beginTurn(draft, `turn:${streamId}:${event.requestId}`, event.requestId);
       return;
+    case "turn_active":
+      if (event.sessionId === scope && event.agentPath.length === 0 && draft.openTurn === -1) {
+        beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`);
+      }
+      return;
     case "text_delta": {
       if (appendMessageText(draft, event)) { return; }
       const section = laneFor(draft, event, streamId);

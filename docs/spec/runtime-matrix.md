@@ -17,6 +17,7 @@ calls, resume semantics, and what each adapter still does not carry.
 |---|---|---|
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; child usage stays unattributed (unverified) |
 | codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge (`subAgentActivity.agentThreadId`). [env] codex 0.149.0: child-thread notifications arrive on the parent's connection (experiments/codex-child-threads.ts) |
+| pi-durable | `opaque` | native `watchEvents` covers one conversation; child conversations are not included in that watch |
 | pi | `none` | pi has no native sub-agents; `agentPath` is always root |
 | cursor (`@cursor/sdk`) | `attributed` | a child's updates arrive inside the parent's `task` call as `tool-call-delta {callId, taskUpdate}` and carry `agentPath = [...parentPath, taskCallId]` ([env] SDK 1.0.35) |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
@@ -28,6 +29,7 @@ calls, resume semantics, and what each adapter still does not carry.
 |---|---|---|---|---|---|---|
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | current transport's child usage attribution unverified | `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
 | codex (app-server) | native child threads and collaboration items on the parent's connection | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` ([env]: `started` on the root names the child, `interacted` on the child names the root) | both threads report their own running total in `thread/tokenUsage/updated`; the child's is in its own session's records, not in the root `usage()` ([env]); the root's counts from when the Session opened ([#169](attribution.md#usage-one-constraint)) | native thread topology; child threads are child sessions | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
+| pi-durable | native child conversations exist, outside the selected watch | no inferred edges | own model/tool ledgers since attachment | no child graph projected | numeric conversation id in host storage | [native/current mapping](../runtimes/pi-durable.md) |
 | pi | no native (host composes) | host-nested sessions | flat (host splits) | no runtime-reported edges | session id | [src] |
 | cursor (`@cursor/sdk`) | wrapper records (#2) in the parent run's updates | the `task` call id on `tool-call-delta` | each run's `turn-ended` usage is the root's; none seen for a child ([env]) | `agentPath` (not in graph) | `agentId` | [native/current mapping](../runtimes/cursor.md) |
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
@@ -49,6 +51,7 @@ false, the adapter holds queued input in this process.
 |---|---|---|---|
 | claude | yes: a user message written to stdin mid-turn | yes | no |
 | codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
+| pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes |
 | pi | yes: the SDK session's `steer` | yes | no |
 | cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`) | yes | no |
 | grok (ACP) | yes: a prompt RPC with `_meta.sendNow` | yes | no |
@@ -64,6 +67,15 @@ itemizes its context (`get_context_usage`,
 total and a window at most, which `contextUsage()` folds; a host shows that
 where the member is absent.
 
+## Native active turns
+
+`turn_started` is the projection of an OAR prompt request. `turn_active` is a
+runtime observation, emitted by pi-durable for an initial active snapshot and
+`run_start`; it can adopt existing work without an OAR request id. Status
+becomes running when idle and preserves the current phase when already
+running. The session view opens a turn only if none is open. Other adapters
+do not yet emit `turn_active`.
+
 ## Tool outcomes
 
 Native sources for the `tool_call_ended` fields (the rule that they are
@@ -73,6 +85,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 |---|---|---|---|
 | claude | `tool_result.content` (a string or blocks) | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
 | codex | `commandExecution.aggregatedOutput`; an MCP call's result blocks (an error as its message); `webSearch` results as one `other` part; else the item's status word | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
+| pi-durable | native result entry's toolResult content | toolResult `isError`, only with an actual result | none |
 | pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | none |
 | grok, kimi, antigravity, opencode (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
 | cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
@@ -100,7 +113,7 @@ native reports of a changed tier remain visible in records and tier events.
 Codex uses `thread/start` and `thread/resume`, and enumerates `model/list`.
 Claude uses per-process `--settings` and reads `initialize.fast_mode_state`;
 only models whose `list_models` entry reports `supportsFastMode: true` list
-`fast`. The other six runtimes reject with `UnsupportedOptionError` on
+`fast`. The other runtimes reject with `UnsupportedOptionError` on
 `serviceTier`, from their `refusedSessionOptions` declaration. Evidence and
 resume details: [Codex](../runtimes/codex.md#service-tiers),
 [Claude](../runtimes/claude.md#service-tiers),
@@ -216,6 +229,7 @@ out instead of naming runtimes.
 | antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback |
 | grok | `disallowedTools`, `serviceTier` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback |
 | opencode | `disallowedTools`, `serviceTier` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback |
 | claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
 
