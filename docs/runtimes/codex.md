@@ -602,6 +602,11 @@ arrives per model call, so a tool turn reports twice.
 10080-min windows, reflecting the thread model's own windows: a Spark thread
 reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
 88 %). [Thread schema][thread-schema], [usage projection][oar-token-usage].
+A usage-limit failure (`codexErrorInfo: "usageLimitExceeded"`) gets no
+`resetsAt`: the value carries no data, and the time is only in the message,
+in codex's local time ("Try again at 3:05 PM."), which oar does not parse.
+Nor does oar match these snapshots to the failure: that would be inference
+([when a limit resets](../spec/runtime-matrix.md#when-a-limit-resets)).
 
 **Compaction:** a `contextCompaction` item yields `compaction_started` on
 `item/started` and `compaction_ended` (completed, no trigger) on

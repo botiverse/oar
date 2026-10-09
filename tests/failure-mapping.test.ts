@@ -31,7 +31,7 @@ test.each([
   { name: "a declared category no run produced", reason: "Your account is on hold", category: "account_on_hold", status: 403, terminalReason: "api_error", expected: { failure: "unknown", status: 403 } },
   { name: "no category and no status", reason: "error", category: null, status: null, terminalReason: null, expected: { failure: "unknown" } },
 ] as const)("claude: $name", ({ reason, category, status, terminalReason, expected }) => {
-  expect(claudeFailure(reason, { category, status, terminalReason })).toEqual({ kind: "failed", reason, ...expected });
+  expect(claudeFailure(reason, { category, status, terminalReason, limitResetsAt: null })).toEqual({ kind: "failed", reason, ...expected });
 });
 
 // codex 0.160.1: `turn.error.codexErrorInfo`.

@@ -1,4 +1,4 @@
-import type { FrameBody, TurnOutcome } from "../../contracts/session.js";
+import type { FailureClass, FrameBody } from "../../contracts/session.js";
 import { acpErrorReason, rpcErrorCode, type AcpFailureReader } from "../../shared/acp/failure.js";
 import { asRecord } from "../../shared/json.js";
 
@@ -12,7 +12,7 @@ import { asRecord } from "../../shared/json.js";
 
 const RATE_LIMITED = -32_003;
 
-const ERROR_TYPES: Readonly<Partial<Record<string, Extract<TurnOutcome, { kind: "failed" }>["failure"]>>> = {
+const ERROR_TYPES: Readonly<Partial<Record<string, FailureClass>>> = {
   auth: "auth",
   rate_limited: "rate_limited",
   context_length: "input_too_large",

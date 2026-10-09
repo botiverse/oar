@@ -1,6 +1,6 @@
-import type { CredentialProblem, FailureClass } from "./failure.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
+import type { FailedTurn } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
 
 /**
@@ -274,18 +274,8 @@ export type ResponseBody =
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
   | { readonly kind: "exited"; readonly code: number | null };
 
-export type TurnOutcome =
-  | { readonly kind: "completed" }
-  | { readonly kind: "aborted" }
-  | {
-    readonly kind: "failed";
-    readonly reason: string;
-    readonly failure: FailureClass;
-    /** With `auth`, where the runtime says which. */
-    readonly credential?: CredentialProblem;
-    /** The provider's HTTP status, where the runtime reports one. */
-    readonly status?: number;
-  };
+/** How a turn ended; `failed` is a `FailedTurn`, tagged by its `failure`. */
+export type TurnOutcome = { readonly kind: "completed" } | { readonly kind: "aborted" } | FailedTurn;
 
 /** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
 export interface ContextUsage {

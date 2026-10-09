@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
 import {
   antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession,
-  opencodeInstallation, opencodeSession, RuntimeFailureError, type InstallationProbe, type StartSession, type TurnOutcome,
+  opencodeInstallation, opencodeSession, RuntimeFailureError, type CredentialProblem, type FailureClass, type InstallationProbe, type StartSession, type TurnOutcome,
 } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
@@ -25,7 +25,8 @@ interface ErrorReply {
   readonly error: { readonly type: string; readonly code?: string; readonly message: string };
 }
 
-type Seen = Pick<Extract<TurnOutcome, { kind: "failed" }>, "failure" | "credential" | "status"> | { readonly kind: "completed" };
+/** A failed turn's class, its status, and an auth failure's credential problem; or a completed turn. */
+type Seen = { readonly failure: FailureClass; readonly credential?: CredentialProblem; readonly status?: number } | { readonly kind: "completed" };
 
 interface AcpCell {
   readonly name: string;
@@ -118,7 +119,8 @@ function seen(outcome: TurnOutcome): Seen | TurnOutcome {
   if (outcome.kind !== "failed") {
     return outcome;
   }
-  const { failure, credential, status } = outcome;
+  const { failure, status } = outcome;
+  const credential = outcome.failure === "auth" ? outcome.credential : undefined;
   return { failure, ...(credential === undefined ? {} : { credential }), ...(status === undefined ? {} : { status }) };
 }
 

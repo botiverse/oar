@@ -310,6 +310,10 @@ interface FrameBody {
 //   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
 //   task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
 //   task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}
+// TurnOutcome: {kind: completed} | {kind: aborted} | FailedTurn, tagged by `failure`:
+//   {kind: failed, failure: auth, reason, status?, credential?} |
+//   {kind: failed, failure: quota, reason, status?, resetsAt?} |
+//   {kind: failed, failure: <any other FailureClass>, reason, status?}
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
 // three events) and one frame must stay one record: splitting it would

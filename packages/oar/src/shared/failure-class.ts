@@ -1,4 +1,4 @@
-import type { CredentialProblem, FailureClass } from "../contracts/session.js";
+import type { FailureClass } from "../contracts/session.js";
 import { asRecord, parseJson } from "./json.js";
 
 /*
@@ -9,10 +9,9 @@ import { asRecord, parseJson } from "./json.js";
  * report are mapped; prose matching is each adapter's documented last resort.
  */
 
-/** A failed outcome's classification: the class, and the credential problem and HTTP status where the runtime said them. */
+/** A failed outcome's classification: the class, and the HTTP status where the runtime said it. */
 export interface Classified {
   readonly failure: FailureClass;
-  readonly credential?: CredentialProblem;
   readonly status?: number;
 }
 

@@ -362,7 +362,16 @@ until it is observed: claude's `oauth_org_not_allowed`, `account_on_hold`,
 `cloud_credential_error`; codex's `unauthorized`, `badRequest`,
 `sessionBudgetExceeded`, `cyberPolicy` and the rest of its schema; Anthropic's
 `request_too_large` and `permission_error`; OpenAI's spend-limit and
-`slow_down` codes.
+`slow_down` codes. One mapping rests on `[src]` and `[sym]` alone: claude's
+`rate_limit` after a `rejected` `rate_limit_event` naming a reset is `quota`
+([below](#when-a-limit-resets)). Only a subscription at its limit makes
+claude send that event, and oar never triggers an error on a real account.
+
+A failed turn (`FailedTurn`) is tagged by `failure`: `credential` exists
+only on `auth`, `resetsAt` only on `quota`, `status` on every class. A host
+checks `failure` before reading either. `resetsAt` is set only where the
+runtime reports, for the failure, when the limit that refused it resets
+([below](#when-a-limit-resets)).
 
 `credential` is set only where the runtime makes it plain: claude's
 `authentication_failed` with no request sent (`missing`) or a 401
@@ -372,8 +381,8 @@ HTTP status where the runtime reports one.
 
 Known blur, kept because the runtime does not tell the causes apart: codex's
 `usageLimitExceeded` covers a usage limit and an exhausted balance alike
-(`quota`); claude's 429 covers a tier's monthly spend cap as well as
-throttling (`rate_limited`); grok's -32003 covers every 429 (`rate_limited`).
+(`quota`); claude's 429 without a `rejected` `rate_limit_event` covers a
+tier's monthly spend cap as well as throttling (`rate_limited`); grok's -32003 covers every 429 (`rate_limited`).
 kimi and antigravity report most failed turns as completed, so oar does too.
 
 An open fails with a `RuntimeFailureError` (`failure`, `credential`,
@@ -446,7 +455,9 @@ After a tool call the fields are the same; an oversized context first tries
 compaction (`system/status` `compacting`). Other `error` values claude 2.1.292
 declares: `oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
 `overloaded`, `max_output_tokens`, `cloud_credential_error` `[sym]`; a
-subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed.
+subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed
+(a `rate_limit` after a rejection naming a reset is `quota` with `resetsAt`,
+[below](#when-a-limit-resets)).
 
 ### codex
 
@@ -532,7 +543,7 @@ a tool call.
 | invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
 | unknown model | `error` + 404 | info 404 | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
 | rate limited | `error` + 429 | info 429 | status in text | text | nothing | -32003 | nothing | not observed |
-| usage limit | 400 only | info | status in text | text | nothing | -32003 | nothing | not observed |
+| usage limit | 400 only; a subscription's: `error` + `rate_limit_event` `[sym]` | info | status in text | text | nothing | -32003 | nothing | not observed |
 | billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 | nothing | not observed |
 | server error | `error` + 500 | info | status in text | text | nothing | `error_type: api` | text | not observed |
 | overloaded | 529 | info | status in text | text | nothing | `error_type: api` | nothing | not observed |
@@ -540,6 +551,24 @@ a tool call.
 
 "info" is `codexErrorInfo`; "text" is a message that only prose matching can
 read; "nothing" means the turn looks completed or never ends.
+
+### When a limit resets
+
+A `quota` failure carries `resetsAt` (a `UtcInstant`) only where the runtime
+reports, for that failure, when the limit that refused it resets: never
+derived from an account-usage read, a usage snapshot, a retry delay or the
+runtime's prose. It is the runtime's last report, which may predate the
+failure: a time already past means the reset is unknown (oar reads no
+clock for it). It is a fact for the host; oar does not continue the session
+when it passes. Only claude reports one.
+
+| runtime | what it reports | `resetsAt` |
+|---|---|---|
+| claude | `rate_limit_event` `{status, resetsAt (unix seconds), rateLimitType, overageStatus, …}` whenever its view of a claude.ai subscription's limits changes, a refused request included, before the turn's error frame (`rate_limit`, 429) and `result` `[src]` (Agent SDK 0.3.295 `SDKRateLimitInfo`) `[sym]` (2.1.289); none on an API key | a failure claude categorizes `rate_limit` while its latest event says `rejected`, overage does not take the requests (`overageStatus` absent or `rejected`) and it names `resetsAt`: `quota` with that `resetsAt`; otherwise `rate_limited` with none. From the types and the binary only, never observed ([claude](../runtimes/claude.md#usage-limits)) |
+| codex | `usageLimitExceeded` carries no data; the time is only in the message, in codex's local time to the minute ("Try again at 3:05 PM.") `[src]`, which oar does not parse. Matching an `account/rateLimits/updated` snapshot to the failure would be inference, so oar does not | none |
+| pi, pi-durable | the provider's error text; for a ChatGPT plan pi-ai words it "Try again in ~N min." `[src]` (pi-ai 1.1.0) | none |
+| opencode, kimi, grok, antigravity | nothing in the observed answers (above) | none |
+| cursor | `RateLimitError` has `code`, `status` and `isRetryable`, no time `[src]` (`errors.d.ts`, 1.0.37) | none |
 
 ## Adapter red lines
 

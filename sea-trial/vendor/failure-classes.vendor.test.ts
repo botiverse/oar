@@ -2,7 +2,7 @@ import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import type { TurnOutcome } from "../../packages/oar/src/contracts/session.js";
+import type { CredentialProblem, FailureClass, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
 import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, piInstallation, piSession, RuntimeFailureError } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv, type LLMock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
@@ -21,7 +21,8 @@ interface ErrorReply {
   readonly error: { readonly type: string; readonly code?: string; readonly message: string };
 }
 
-type Expected = Pick<Extract<TurnOutcome, { kind: "failed" }>, "failure" | "credential" | "status">;
+/** A failed turn's class, its status, and an auth failure's credential problem. */
+interface Expected { readonly failure: FailureClass; readonly credential?: CredentialProblem; readonly status?: number }
 
 interface Cell {
   readonly name: string;
@@ -83,7 +84,8 @@ function classOf(outcome: TurnOutcome): Expected | TurnOutcome {
   if (outcome.kind !== "failed") {
     return outcome;
   }
-  const { failure, credential, status } = outcome;
+  const { failure, status } = outcome;
+  const credential = outcome.failure === "auth" ? outcome.credential : undefined;
   return { failure, ...(credential === undefined ? {} : { credential }), ...(status === undefined ? {} : { status }) };
 }
 
