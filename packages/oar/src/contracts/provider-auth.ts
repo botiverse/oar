@@ -43,13 +43,6 @@ export type LoginProviderMethod =
        * account" when a person asks to sign in to this provider (`/login openai`).
        */
       readonly loginLabel?: string;
-      /**
-       * The backend offers this sign-in on its own, beside its account list
-       * (which still has it): pi's Radius, the gateway pi's makers run,
-       * "Sign in with Radius", last in pi's top login menu. Absent on every
-       * other sign-in.
-       */
-      readonly featured?: true;
     }
   | {
       readonly method: "api_key";
@@ -118,11 +111,10 @@ export interface ProviderAuthFacade {
   /**
    * Every provider a person can log in to, configured or not, straight from
    * the backend's own registry (oar keeps no list of its own), in the order
-   * its login menu shows them. Pi's `/login` builds its top menu from the
-   * same registry: "Sign in with an account" lists the providers with an
-   * `oauth` method, "Sign in with an API key" those with an `api_key` method,
-   * and the `featured` sign-in comes last as "Sign in with" its provider's
-   * name. Read only, no credential read: `status` says how one is signed in.
+   * its login menu shows them. Pi's `/login` builds its menu from the same
+   * registry: "Sign in with an account" lists the providers with an `oauth`
+   * method, "Sign in with an API key" those with an `api_key` method. Read
+   * only, no credential read: `status` says how one is signed in.
    */
   loginProviders(): readonly LoginProvider[];
   /** The status of one provider (`configured: false` when nothing is stored). */
@@ -133,7 +125,13 @@ export interface ProviderAuthFacade {
     method: ProviderLoginMethod,
     interaction: ProviderLoginInteraction,
   ): Promise<ProviderAuthStatus>;
-  /** Store an API key for a provider without an interactive flow. */
+  /**
+   * Store an API key for a provider without an interactive flow: it answers
+   * the provider's key prompt and nothing else. When the provider's API-key
+   * login asks more (an auth method, an account id), it rejects, storing
+   * nothing, and the error names `login(providerId, "api_key", interaction)`
+   * as the way to sign that provider in.
+   */
   setApiKey(providerId: string, apiKey: string): Promise<void>;
   /** Clear a provider's stored credential. */
   logout(providerId: string): Promise<void>;

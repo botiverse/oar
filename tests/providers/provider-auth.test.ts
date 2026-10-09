@@ -74,30 +74,7 @@ test("a subscription sign-in comes before the API key, with the vendor's own lab
   `);
 });
 
-test("Radius's sign-in is featured; an account sign-in without isSubscription is not a subscription", () => {
-  expect(piLoginProvider({
-    id: "radius",
-    name: "Radius",
-    auth: { oauth: { name: "Radius" }, apiKey: { name: "Radius API key", login: keyPrompt } },
-  })).toMatchInlineSnapshot(`
-    {
-      "methods": [
-        {
-          "featured": true,
-          "method": "oauth",
-          "name": "Radius",
-          "subscription": false,
-        },
-        {
-          "method": "api_key",
-          "name": "Radius API key",
-        },
-      ],
-      "name": "Radius",
-      "providerId": "radius",
-    }
-  `);
-  // Pi features Radius by id: never another provider's OAuth sign-in.
+test("an account sign-in without isSubscription is not a subscription", () => {
   expect(piLoginProvider({ id: "openrouter", name: "OpenRouter", auth: { oauth: { name: "OpenRouter OAuth" } } })?.methods)
     .toMatchInlineSnapshot(`
       [
@@ -137,14 +114,11 @@ async function piAuth() {
   return auth;
 }
 
-test("pi's registry lists every provider by name, each with a method, Radius's sign-in alone featured", async () => {
+test("pi's registry lists every provider by name, each with a method", async () => {
   const auth = await piAuth();
-  const providers = auth.loginProviders();
-  const names = providers.map((provider) => provider.name);
+  const names = auth.loginProviders().map((provider) => provider.name);
   expect(names).toEqual(names.toSorted((left, right) => left.localeCompare(right)));
-  expect(providers.filter((provider) => provider.methods.length === 0)).toEqual([]);
-  const featured = providers.filter((provider) => provider.methods.some((method) => method.method === "oauth" && method.featured === true));
-  expect(featured.map((provider) => provider.providerId)).toEqual(["radius"]);
+  expect(auth.loginProviders().filter((provider) => provider.methods.length === 0)).toEqual([]);
 });
 
 test("pi's registry entries: Radius, a subscription with a key, an OAuth-only provider", async () => {
@@ -154,7 +128,6 @@ test("pi's registry entries: Radius, a subscription with a key, an OAuth-only pr
     {
       "methods": [
         {
-          "featured": true,
           "method": "oauth",
           "name": "Radius",
           "subscription": false,
@@ -212,6 +185,35 @@ test("a stored Claude Pro/Max login reads as a subscription; listProviders() sta
       "subscription": false,
     }
   `);
+  const listed = await auth.listProviders();
+  expect(listed.map((status) => status.providerId).toSorted()).toEqual(["anthropic", "deepseek"]);
+});
+
+test("setApiKey stores a key whose login asks for the key alone", async () => {
+  const auth = await piAuth();
+  await auth.setApiKey("groq", "fake-key");
+  expect(await auth.status("groq")).toMatchInlineSnapshot(`
+    {
+      "configured": true,
+      "label": "stored credential",
+      "method": "api_key",
+      "providerId": "groq",
+      "subscription": false,
+    }
+  `);
+});
+
+// Each of these API-key logins asks more than the key: the question setApiKey refuses, in pi's words.
+test.each([
+  ["amazon-bedrock", 'select: "Select Amazon Bedrock authentication method:"'],
+  ["cloudflare-ai-gateway", 'text: "Enter Cloudflare account ID"'],
+  ["cloudflare-workers-ai", 'text: "Enter Cloudflare account ID"'],
+  ["google-vertex", 'select: "Select Google Vertex AI authentication method:"'],
+])("setApiKey refuses %s, whose login asks more than the key, and stores nothing", async (providerId, question) => {
+  const auth = await piAuth();
+  await expect(auth.setApiKey(providerId, "fake-key")).rejects.toThrow(new Error(
+    `${providerId}'s API-key login asks more than the key (${question}): use login("${providerId}", "api_key", interaction) instead of setApiKey`,
+  ));
   const listed = await auth.listProviders();
   expect(listed.map((status) => status.providerId).toSorted()).toEqual(["anthropic", "deepseek"]);
 });

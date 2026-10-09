@@ -625,32 +625,41 @@ unauthenticated state.
 [runtime registration](../../packages/oar/src/runtimes/pi/index.ts).
 
 `loginProviders()` lists what pi's own `/login` offers, straight from pi's
-registry (`getLoginProviderOptions` and `showLoginAuthTypeSelector` in pi's
-interactive mode): every provider of `ModelRuntime.getProviders()`,
-configured or not, sorted by name, with its methods in pi's order (OAuth,
-then API key). OAR keeps no list of its own; the one id it names is
-`radius`, pi's `RADIUS_PROVIDER_ID`, which pi does not export. An OAuth
-method carries pi's `isSubscription` as `subscription` and the vendor's
-`loginLabel` ("Sign in with ChatGPT"), which pi shows instead of "Sign in
-with an account" for `/login <provider>`. An API key pi has no prompt for
-(`ApiKeyAuth.login` absent) is `ambient`: pi says it is configured outside
-pi, and `login`/`setApiKey` reject it. Pi's top menu is "Sign in with an
-account" (the providers with an OAuth method), "Sign in with an API key"
-(those with an API-key method) and, last, "Sign in with Radius": the OAuth
-sign-in of provider `radius`, the gateway pi's makers run
-(`https://radius.pi.dev`, `PI_RADIUS_GATEWAY` overrides it), the one
-`featured` method, which stays in the account list too. On 1.1.0 that is 42
-built-in providers, 9 with an OAuth sign-in (7 of them subscriptions;
-OpenRouter and Radius are not) and 41 with an API key, none ambient. The
-facade loads no extensions, so a provider an extension registers is not
-listed; `models.json` providers are (`modelsPath`). The list reads no
-credential; `status(id)` says how each provider is signed in. Its
-`subscription` is pi's `isUsingSubscription` computed from the `checkAuth`
-result, since pi's own reads an availability snapshot that the facade
-(`refreshOnCreate: false`) never fills, and so said `false` for a Claude
-Pro/Max login.
+registry (`getLoginProviderOptions` in pi's interactive mode): every
+provider of `ModelRuntime.getProviders()`, configured or not, sorted by
+name, with its methods in pi's order (OAuth, then API key). OAR keeps no
+list of its own and names no provider. An OAuth method carries pi's
+`isSubscription` as `subscription` and the vendor's `loginLabel` ("Sign in
+with ChatGPT"), which pi shows instead of "Sign in with an account" for
+`/login <provider>`. An API key pi has no prompt for (`ApiKeyAuth.login`
+absent) is `ambient`: pi says it is configured outside pi, and
+`login`/`setApiKey` reject it. Pi's top menu is "Sign in with an account"
+(the providers with an OAuth method), "Sign in with an API key" (those with
+an API-key method) and, last, "Sign in with Radius", the OAuth sign-in of
+provider `radius` (the gateway pi's makers run). Pi picks that entry by its
+own `RADIUS_PROVIDER_ID`, which it does not export, so the list carries no
+"featured" marker: one needs pi to export that id first, rather than OAR
+judging pi's menu layout. On 1.1.0 the registry has 42 built-in providers,
+9 with an OAuth sign-in (7 of them subscriptions; OpenRouter and Radius are
+not) and 41 with an API key, none ambient. The facade loads no extensions,
+so a provider an extension registers is not listed; `models.json` providers
+are (`modelsPath`). The list reads no credential; `status(id)` says how each
+provider is signed in. Its `subscription` is pi's `isUsingSubscription`
+computed from the `checkAuth` result, since pi's own reads an availability
+snapshot that the facade (`refreshOnCreate: false`) never fills, and so
+said `false` for a Claude Pro/Max login.
+
+`setApiKey(id, key)` runs pi's API-key login and answers its key prompt
+(the first prompt, a secret) and nothing else. Most providers ask for the
+key alone. Where the flow asks more, `setApiKey` refuses the question,
+which stops the flow before pi stores anything, and rejects with an error
+that names the question and says to use `login(id, "api_key",
+interaction)`: on 1.1.0, amazon-bedrock and google-vertex first ask which
+credential to use, and cloudflare-workers-ai and cloudflare-ai-gateway ask
+for the account (and gateway) id after the key. Before, it answered every
+prompt with the key.
 [Test](../../tests/providers/provider-auth.test.ts) against pi's real
-registry, with stored fake credentials for the status.
+registry and login flows, with fake stored credentials.
 
 ### User input identity and observation
 

@@ -66,13 +66,6 @@ export function toLoginPrompt(prompt: PiAuthPrompt): ProviderLoginPrompt {
   };
 }
 
-/**
- * The provider pi's `/login` offers on its own, last in its top menu ("Sign in
- * with Radius"): `RADIUS_PROVIDER_ID` in pi's `core/radius.js`, which its
- * public export does not carry.
- */
-const PI_FEATURED_PROVIDER_ID = "radius";
-
 /** The part of a pi `Provider` its `/login` menu reads; every `Provider` is one. */
 export interface PiLoginProvider {
   readonly id: string;
@@ -84,10 +77,9 @@ export interface PiLoginProvider {
 }
 
 /**
- * One provider as pi's `/login` offers it (`getLoginProviderOptions`,
- * `showLoginAuthTypeSelector`): its OAuth sign-in, featured for Radius, then
- * its API key, ambient when pi has no prompt for it (pi: "configured outside
- * pi"). Undefined when it accepts neither.
+ * One provider as pi's `/login` offers it (`getLoginProviderOptions`): its
+ * OAuth sign-in, then its API key, ambient when pi has no prompt for it (pi:
+ * "configured outside pi"). Undefined when it accepts neither.
  */
 export function piLoginProvider(provider: PiLoginProvider): LoginProvider | undefined {
   const { oauth, apiKey } = provider.auth;
@@ -98,7 +90,6 @@ export function piLoginProvider(provider: PiLoginProvider): LoginProvider | unde
       name: oauth.name,
       subscription: oauth.isSubscription === true,
       ...(oauth.loginLabel === undefined ? {} : { loginLabel: oauth.loginLabel }),
-      ...(provider.id === PI_FEATURED_PROVIDER_ID ? { featured: true } : {}),
     });
   }
   if (apiKey !== undefined) {
@@ -123,15 +114,27 @@ function toPiInteraction(interaction: ProviderLoginInteraction): PiInteraction {
   };
 }
 
-/** A non-interactive interaction that answers every prompt with a fixed value. */
-function fixedAnswerInteraction(answer: string): ProviderLoginInteraction {
+/**
+ * A non-interactive interaction for `setApiKey`: it answers pi's key prompt
+ * (the first prompt, a secret) with the key and refuses any other, which stops
+ * the flow before pi stores anything. A flow that asks more (amazon-bedrock and
+ * google-vertex ask which credential first, the Cloudflare providers ask for
+ * account and gateway ids after the key) needs the person: `login`.
+ */
+function keyOnlyInteraction(providerId: string, apiKey: string): ProviderLoginInteraction {
+  let keyGiven = false;
   return {
     onEvent: (): void => {
-      // A non-interactive api-key flow surfaces no URL or device code.
+      // A key-only flow surfaces no URL or device code.
     },
-    prompt: async (): Promise<string> => {
+    prompt: async (prompt: ProviderLoginPrompt): Promise<string> => {
       await Promise.resolve();
-      return answer;
+      if (!keyGiven && prompt.kind === "secret") {
+        keyGiven = true;
+        return apiKey;
+      }
+      throw new Error(`${providerId}'s API-key login asks more than the key (${prompt.kind}: "${prompt.message}"): `
+        + `use login("${providerId}", "api_key", interaction) instead of setApiKey`);
     },
   };
 }
@@ -192,10 +195,10 @@ class PiProviderAuth implements ProviderAuthFacade {
   }
 
   async setApiKey(providerId: string, apiKey: string): Promise<void> {
-    // Persist the key by running the api-key login flow with a non-interactive
-    // interaction that answers the secret prompt with the supplied key.
+    // Persist the key by running pi's api-key login flow, answering its key
+    // prompt and nothing else (see keyOnlyInteraction).
     const authType: PiAuthType = "api_key";
-    await this.#runtime.login(providerId, authType, toPiInteraction(fixedAnswerInteraction(apiKey)));
+    await this.#runtime.login(providerId, authType, toPiInteraction(keyOnlyInteraction(providerId, apiKey)));
   }
 
   async logout(providerId: string): Promise<void> {
