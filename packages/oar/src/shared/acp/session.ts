@@ -60,7 +60,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // The recorder queues everything until the handshake reveals the session
     // id and the kernel can be bound (records.ts).
     const usageGate = createUsageUpdateGate();
-    const recorder = createAcpRecorder(usageGate);
+    const recorder = createAcpRecorder(usageGate, profile.attributeUpdate);
     const client = createAcpClientApp(terminalHost, {
       update: (notification) => {
         recorder.update(notification);
@@ -126,7 +126,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
           const state = turns.active();
           return state === null
             ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
-            : turns.steer(state, input, inputOptions?.images, steerParams(input));
+            : turns.steer(state, input, inputOptions, steerParams(input));
         }),
       };
 

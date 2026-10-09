@@ -13,7 +13,7 @@ vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({
   // oxlint-disable-next-line typescript/promise-function-async -- a resolved runner stand-in.
   runExecutable: () => Promise.resolve({ ok: true, stdout: "{}", stderr: "", exitCode: 0 }),
 }));
-const installation = { kind: "available", via: "executable", command: "not-spawned" } as const;
+const installation = { kind: "available", via: "executable", command: "not-spawned", version: "1.18.35" } as const;
 const sessions: Session[] = [];
 afterEach(async () => {
   await Promise.all(sessions.splice(0).map(async (session) => session.dispose()));
@@ -89,7 +89,7 @@ test.each([
   { prompt: { appendSystemPrompt: "extra" }, overlay: { instructions: [expect.any(String)] } },
 ])("a prompt and MCP servers together both reach the ACP open: $prompt", async ({ prompt, overlay }) => {
   await setup();
-  const mcpServers = [{ name: "probe", command: "not-spawned", env: { TOKEN: "value" } }];
+  const mcpServers = [{ name: "probe", command: "not-spawned", version: "1.18.35", env: { TOKEN: "value" } }];
   const session = await opencodeSession(installation, { cwd: process.cwd(), ...prompt, mcpServers });
   sessions.push(session);
   const options = openOptions();
@@ -98,7 +98,7 @@ test.each([
 });
 
 test("an MCP list with a repeated name fails before prompt preparation and ACP opening", async () => {
-  const probe = { name: "probe", command: "not-spawned" };
+  const probe = { name: "probe", command: "not-spawned", version: "1.18.35" };
   await expect(opencodeSession(installation, { cwd: process.cwd(), appendSystemPrompt: "extra", mcpServers: [probe, probe] })).rejects.toThrow('mcpServers names "probe" twice');
   expect(opening).not.toHaveBeenCalled();
 });

@@ -1,5 +1,6 @@
 import type {
   InputImage,
+  InputOptions,
   RuntimeEventBody,
   RequestRecord,
   ResponseBody,
@@ -26,11 +27,13 @@ import {
  * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
  * host-held queue, cancel with a kill fallback. The RPC ANSWER is the
  * runtime's own turn end and is recorded as an event with a turn_ended event;
- * a rejected RPC is likewise the runtime's word (a prompt-error event). The
+ * a rejected prompt RPC is likewise the runtime's word. A refused steer
+ * instead drops that input and preserves the active turn's outcome. The
  * process dying is not; that is the `exited` response the session records
  * from its exit observer. One turn may span several prompt RPCs (grok's
  * send-now steer): each answer is its own event; the turn_ended event rides
- * the answer that closes the turn, carrying the LATEST request's outcome.
+ * the final answer, carrying the latest non-refused request's outcome.
+ * Otherwise the original prompt's answer ends the turn independently of steer replies.
  */
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
@@ -40,7 +43,6 @@ export interface ActiveTurn {
   readonly outcomes: Map<number, TurnOutcome>;
   readonly pending: Set<number>;
   abortRequested: boolean;
-  latestRequest: number;
   fallback: NodeJS.Timeout | null;
 }
 
@@ -62,7 +64,7 @@ export interface AcpTurns {
   /** Open a turn with one prompt RPC; rejected when the process is gone or its images can't go (`inputImagesRefusal`). */
   begin(request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody;
   /** Another prompt RPC inside the active turn (the profile's steer params); rejected like `begin`. */
-  steer(state: ActiveTurn, input: string, images: readonly InputImage[] | undefined, extraParams: JsonRecord): Promise<ResponseBody>;
+  steer(state: ActiveTurn, input: string, options: InputOptions | undefined, extraParams: JsonRecord): Promise<ResponseBody>;
   /** session/cancel, then a bounded wait after which the process is killed. */
   abort(state: ActiveTurn): Promise<ResponseBody>;
   /** Hold input for the next turn, drained when the active one closes; rejected like `begin`. */
@@ -101,15 +103,21 @@ export function createAcpTurns(deps: {
   const finishRequest = (
     state: ActiveTurn,
     requestNumber: number,
-    frame: { readonly type: string; readonly native: unknown; readonly context: RuntimeEventBody | null },
-    outcome: TurnOutcome,
+    frame: { readonly type: string; readonly native: unknown; readonly context: RuntimeEventBody | null; readonly dropped?: string | undefined; readonly steered: boolean },
+    outcome: TurnOutcome | null,
   ): void => {
     state.pending.delete(requestNumber);
-    state.outcomes.set(requestNumber, outcome);
-    const closes = state.pending.size === 0;
+    if (outcome !== null) { state.outcomes.set(requestNumber, outcome); }
+    const closes = active === state && (profile.steerSupersedesPrompt === true ? state.pending.size === 0 : !frame.steered);
     const events: RuntimeEventBody[] = [];
+    if (frame.dropped !== undefined) {
+      events.push({ kind: "input_dropped", inputId: frame.dropped, reason: "runtime_refused" });
+    }
     if (closes) {
-      events.push({ kind: "turn_ended", outcome: state.outcomes.get(state.latestRequest) ?? outcome });
+      const terminal = profile.steerSupersedesPrompt === true
+        ? state.outcomes.get(Math.max(...state.outcomes.keys()))
+        : outcome;
+      if (terminal !== null && terminal !== undefined) { events.push({ kind: "turn_ended", outcome: terminal }); }
     }
     if (frame.context !== null) {
       events.push(frame.context);
@@ -119,10 +127,9 @@ export function createAcpTurns(deps: {
       closeTurn(state);
     }
   };
-  const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}): void => {
+  const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}, steered?: { readonly inputId: string | undefined }): void => {
     nextRequest += 1;
     const requestNumber = nextRequest;
-    state.latestRequest = requestNumber;
     state.pending.add(requestNumber);
     void (async (): Promise<void> => {
       try {
@@ -139,6 +146,7 @@ export function createAcpTurns(deps: {
           type: methods.agent.session.prompt,
           native: result,
           context: usage.event,
+          steered: steered !== undefined,
         }, profile.promptOutcome?.(result) ?? defaultAcpPromptOutcome(result));
       } catch (error) {
         if (error instanceof AcpError && error.kind === "process_exited") {
@@ -154,7 +162,9 @@ export function createAcpTurns(deps: {
           type: `${methods.agent.session.prompt}/error`,
           native: acpErrorNative(error),
           context: null,
-        }, outcome);
+          steered: steered !== undefined,
+          ...(steered === undefined ? {} : { dropped: steered.inputId }),
+        }, steered === undefined ? outcome : null);
       }
     })();
   };
@@ -169,7 +179,6 @@ export function createAcpTurns(deps: {
       outcomes: new Map(),
       pending: new Set(),
       abortRequested: false,
-      latestRequest: 0,
       fallback: null,
     };
     active = state;
@@ -194,13 +203,13 @@ export function createAcpTurns(deps: {
   return {
     active: () => active,
     begin,
-    async steer(state, input, images, extraParams) {
+    async steer(state, input, options, extraParams) {
       await runtime.spawned;
       if (runtime.closed) {
         return gone();
       }
-      return withInputImages(capabilities, images, (loaded) => {
-        startVendorPrompt(state, acpPrompt(input, loaded), extraParams);
+      return withInputImages(capabilities, options?.images, (loaded) => {
+        startVendorPrompt(state, acpPrompt(input, loaded), extraParams, { inputId: options?.inputId });
         return { kind: "accepted" };
       });
     },

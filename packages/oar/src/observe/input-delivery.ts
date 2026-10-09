@@ -3,7 +3,7 @@ import type { ConversationInput, ConversationState, InputAttempt } from "./conve
 /** A drop ends ownership without changing any earlier request or response. */
 export interface InputDrop {
   readonly attempts: number;
-  readonly reason: "turn_interrupted" | "runtime_exited";
+  readonly reason: "turn_interrupted" | "runtime_exited" | "runtime_refused";
 }
 
 /** Only attempts after the latest withdrawal or drop can own the input again. */

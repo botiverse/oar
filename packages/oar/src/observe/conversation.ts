@@ -21,8 +21,8 @@ export interface ConversationInput {
   readonly origin?: InputOrigin;
   /** `withdrawn`: an accepted withdraw took the held input back before it was sent, and no delivery attempt followed it. */
   readonly state: "pending" | "accepted" | "rejected" | "withdrawn" | "dropped" | "untracked";
-  /** Present only for dropped input. runtime_exited means no echo was observed before exit, not proof it was never read. */
-  readonly reason?: "turn_interrupted" | "runtime_exited";
+  /** Present only for dropped input. runtime_refused is a native refusal after acceptance; runtime_exited means no echo was observed before exit, not proof it was never read. */
+  readonly reason?: "turn_interrupted" | "runtime_exited" | "runtime_refused";
   /** Every request that targeted the input, in fold order: delivery attempts and withdraws, each with its observed response. */
   readonly attempts: readonly InputAttempt[];
   /** Native observations; none of these alone proves model consumption. */

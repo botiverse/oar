@@ -135,8 +135,8 @@ export interface UserMessage {
 export type RuntimeEventBody = UserMessage
   /** The runtime reports an active turn, including one adopted without a prompt request. Not a second turn when `turn_started` already opened it. */
   | { readonly kind: "turn_active" }
-  /** The runtime discarded an input on interruption, established by its native marker or documented behavior. Returns ownership to the caller for resend; never inferred by a view from turn completion. */
-  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "turn_interrupted" }
+  /** The runtime discarded or refused an accepted input, established by native evidence. runtime_refused covers a later refused steering RPC. Returns ownership to the caller for resend; never inferred by a view from turn completion. */
+  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "turn_interrupted" | "runtime_refused" }
   /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
   | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. `messageId` names the native message when provided, keeping streamed reasoning from distinct messages apart when coalescing. */

@@ -178,7 +178,7 @@ view: the records and flat events retain their original order.
 
 ## Dropped input
 
-`input_dropped {inputId, reason: "turn_interrupted"}` is a runtime event.
+`input_dropped {inputId, reason: "turn_interrupted" | "runtime_refused"}` is a runtime event.
 Only an adapter with native evidence of discard emits it, on the frame
 that proves the discard. A turn ending alone says nothing about unread input.
 Codex emits it on an interrupted root `turn/completed`, before `turn_ended`,
@@ -186,6 +186,14 @@ for accepted steers to that turn with no user-message echo. It does not
 apply to Codex's durable queue, another turn, or an echoed steer.
 [Runtime evidence](../../experiments/input-interruption-2026-10-08.md)
 distinguishes runtimes that retain input and the remaining Grok ambiguity.
+
+ACP steering is accepted when written, since some runtimes answer the RPC
+only when the whole turn ends. If the runtime later refuses that RPC, its
+error frame carries `input_dropped` with `reason: "runtime_refused"`. The
+original accepted response remains, and the refusal does not fail or end
+the active turn, even when it arrives after that turn has already ended.
+A successful steer that replaces the native prompt (Grok `sendNow`) still
+contributes its own native turn outcome.
 
 The conversation reducer sets the input's state to `dropped` and its `reason`
 to the event's reason. The caller owns that input again and may resend it.

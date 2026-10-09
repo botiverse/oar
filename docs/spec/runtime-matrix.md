@@ -23,7 +23,8 @@ calls, resume semantics, and what each adapter still does not carry.
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
 | antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
-| opencode (ACP) | `opaque` | `opencode acp` forwards only its own sessions' parts; a `task` subagent runs in a child session whose frames never reach the transport, so only the parent's tool call shows ([src] opencode 1.18.34 `acp/event.ts`) |
+| opencode v1 (ACP) | `opaque` | `opencode acp` forwards only its own sessions' parts; a `task` subagent runs in a child session whose frames never reach the transport, so only the parent's tool call shows ([src] opencode 1.18.34 `acp/event.ts`) |
+| opencode v2 (ACP) | `nested` | forwarded child updates carry `_meta["opencode/child-session"]`; OAR uses its `id` and `parentID` for the child session and graph edge, retaining the original envelope in `native` |
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
@@ -35,7 +36,8 @@ calls, resume semantics, and what each adapter still does not carry.
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child usage lands in the child session's records ([src]; live unverified) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | antigravity (ACP) | opaque (#1): child activity flattened onto the parent session | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
-| opencode (ACP) | opaque (#1): child sessions not forwarded | root `task` tool card only | no child usage exposed | nothing fabricated | ACP `sessionId` (opencode `ses_` id) | [native/current mapping](../runtimes/opencode.md) |
+| opencode v1 (ACP) | opaque (#1): child sessions not forwarded | root `task` tool card only | no child usage exposed | nothing fabricated | ACP `sessionId` (opencode `ses_` id) | [native/current mapping](../runtimes/opencode.md) |
+| opencode v2 (ACP) | child updates forwarded on the parent envelope | native child `id` / `parentID` metadata | child usage stays on the child record; not aggregated into root | native parent/child session edges | native ACP session id | [v2 mapping](../runtimes/opencode.md#opencode-v2) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
@@ -57,7 +59,8 @@ false, the adapter holds queued input in this process.
 | grok (ACP) | yes: a prompt RPC with `_meta.sendNow` | yes | no |
 | kimi (ACP) | no | yes | no |
 | antigravity (ACP) | no | yes | no |
-| opencode (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
+| opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
+| opencode v2 (ACP) | absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
 
 ## Context breakdown
 
@@ -228,7 +231,7 @@ out instead of naming runtimes.
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback |
 | antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback |
 | grok | `disallowedTools`, `serviceTier` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback |
-| opencode | `disallowedTools`, `serviceTier` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback |
+| opencode, both lines | `disallowedTools`, `serviceTier` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback |
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback |
 | claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
@@ -268,11 +271,15 @@ attaches both. So is an entry with a non-empty `env` or `headers` on
 antigravity, which would write them to its disk: a conditional refusal, not
 an always-refused option declaration.
 
-OpenCode carries prompt options through native inline configuration. An
+OpenCode v1 carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
 an empty replacement is refused because native OpenCode selects its built-in
 prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instructions-and-context)).
 These are conditional refusals, not always-refused option declarations.
+OpenCode v2 refuses both prompt options after checking the installed line:
+there is no verified session-local injection path, and its instruction loader
+ignores the v1 `instructions` configuration. This version-specific refusal
+is not in the runtime's always-refused map because v1 supports both options.
 
 Grok refuses an append-only prompt change on resume: native `rules` is not
 reapplied. A `systemPrompt`, with or without `appendSystemPrompt`, is supported
@@ -616,9 +623,11 @@ seq=122  ✓ frame  path=["bg-7"]  completed {usage:…}
 
 ## Interrupted input ownership
 
-`input_dropped` is currently emitted by Codex only: an interrupted root
-turn drops that turn's accepted, un-echoed steers before `turn_ended`.
-Claude, Pi and OpenCode retain the tested interrupted steering input;
+`input_dropped` with `turn_interrupted` is emitted by Codex: an interrupted
+root turn drops that turn's accepted, un-echoed steers before `turn_ended`.
+ACP also emits `runtime_refused` when an accepted steer's native RPC later
+fails, preserving its error frame without changing the active turn outcome.
+Claude, Pi and OpenCode v1 retain the tested interrupted steering input;
 Cursor hands undelivered steering back as a refused control. Grok can
 lose a just-submitted steer, but its cancellation receipt cannot yet
 prove whether that input had been read, so OAR makes no discard claim.

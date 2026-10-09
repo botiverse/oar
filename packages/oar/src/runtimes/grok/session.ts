@@ -175,6 +175,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   // model turn that re-issued the interrupted tool calls; both answers fold
   // into the one oar turn (turns.ts).
   steerParams: () => ({ _meta: { sendNow: true } }),
+  steerSupersedesPrompt: true,
   promptContextUsage: grokContextUsage,
   promptTokenUsage: grokPromptTokens,
 };
