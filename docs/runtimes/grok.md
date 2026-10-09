@@ -351,6 +351,14 @@ retained records and continues live; a full replay equals `records()`
 (`live-contract/cursor`). There is no native-history enumeration and no
 rebuild after the process died.
 
+### Service tiers
+
+`SessionOptions.serviceTier` is explicitly refused with
+`UnsupportedOptionError`, declared in `Runtime.refusedSessionOptions`.
+No per-session native setting plus applied-state readback has been verified
+for this adapter; `listModels` therefore advertises no service tiers. OAR
+does not silently ignore a requested tier or alter a global default.
+
 ### Models and instructions
 
 Native model discovery uses `_x.ai/models/list`; model selection uses

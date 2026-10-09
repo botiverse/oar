@@ -99,6 +99,10 @@ Flags:
   would run another level, or has none, refuses the open, and `run` exits 1
   with the runtime's word (`claude applies effort medium … although bogus
   was requested`).
+- `--service-tier <tier>`: native service-tier ID from `oar models`, or
+  `default` to explicitly clear a tier. Applied and checked at open, including
+  resume. Codex uses `priority` (not the `fast` alias) or `flex`; Claude lists
+  `fast` only for supporting models. Other runtimes refuse the option.
 - `--resume <sessionId>`: resume the runtime-native session a previous run
   printed, with a fresh stream (`SessionOptions.resume`); pair it with a
   different `--model` / `--effort` to switch between turns.
@@ -136,8 +140,8 @@ builders and the `openVoyage` recorder; other tools (such as the
 or read it as consumers.
 
 - Line 1 is always the header:
-  `{"kind":"header","format":"oar-voyage/3","runtime","model?","effort?","cwd","sessionId","startedAt","recorder"}`
-  (`model` and `effort` are omitted when none was requested; `recorder`
+  `{"kind":"header","format":"oar-voyage/3","runtime","model?","effort?","serviceTier?","cwd","sessionId","startedAt","recorder"}`
+  (`model`, `effort` and `serviceTier` are omitted when none was requested; `recorder`
   names the writer, e.g. `oar-cli/<version>`).
 - `{"kind":"record","record":{...}}`: one `RawEvent` verbatim, no
   filtering or re-timestamping. Human inputs are already in the stream as

@@ -30,32 +30,21 @@ test("effortLevelsOf accepts strings and {effort}/{id} objects", () => {
   expect(effortLevelOf("")).toBeUndefined();
 });
 
-test("codex projection keeps slug identity, drops hidden entries, flattens effort objects", () => {
-  const models = projectCodexModels({
-    models: [
-      {
-        slug: "gpt-5.5",
-        display_name: "GPT 5.5 ",
-        default_reasoning_level: "medium",
-        supported_reasoning_levels: [
-          { effort: "low", description: "" },
-          { effort: "high", description: "" },
-        ],
-        visibility: "list",
-      },
-      { slug: "hidden-one", visibility: "hide", supported_reasoning_levels: [] },
-      { display_name: "no slug", visibility: "list" },
-      { slug: "bare", visibility: "list" },
-    ],
-  });
-  expect(models).toEqual([
-    { id: "gpt-5.5", displayName: "GPT 5.5", effortLevels: ["low", "high"], defaultEffort: "medium" },
-    { id: "bare" },
+test("codex model/list keeps native ids and service tiers, drops hidden entries", () => {
+  expect(projectCodexModels({ data: [
+    { id: "picker-id", model: "gpt-5.5", displayName: " GPT 5.5 ", defaultReasoningEffort: "medium",
+      supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "high" }],
+      serviceTiers: [{ id: "priority", name: "Fast" }, { id: "flex" }, {}], defaultServiceTier: "flex", additionalSpeedTiers: ["wrong"] },
+    { model: "hidden", hidden: true }, { displayName: "no model" }, { model: "bare" },
+    { model: "standard", serviceTiers: [], defaultServiceTier: null },
+  ] })).toEqual([
+    { id: "gpt-5.5", displayName: "GPT 5.5", effortLevels: ["low", "high"], defaultEffort: "medium", serviceTiers: ["priority", "flex"], defaultServiceTier: "flex" },
+    { id: "bare" }, { id: "standard", serviceTiers: [] },
   ]);
   expect(projectCodexModels(null)).toEqual([]);
 });
 
-test("claude projection keeps alias vs resolution and disabled reasons", () => {
+test("claude projection keeps alias vs resolution, native fast support and disabled reasons", () => {
   const models = projectClaudeModels({
     models: [
       {
@@ -72,6 +61,7 @@ test("claude projection keeps alias vs resolution and disabled reasons", () => {
         description: "Update to 2.1.255+ to use Fable 5.1",
         disabled: true,
       },
+      { value: "opus", supportsFastMode: true },
       { value: "", displayName: "dropped" },
     ],
   });
@@ -83,6 +73,7 @@ test("claude projection keeps alias vs resolution and disabled reasons", () => {
       displayName: "Fable 5.1",
       disabled: { reason: "Update to 2.1.255+ to use Fable 5.1" },
     },
+    { id: "opus", serviceTiers: ["fast"] },
   ]);
 });
 

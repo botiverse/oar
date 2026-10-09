@@ -62,6 +62,21 @@ export function effortOf(records: readonly RawEvent[], sessionId?: string): Quer
   return { value, seq };
 }
 
+/** The latest service tier the runtime reported for the root agent; null before any. */
+export function serviceTierOf(records: readonly RawEvent[], sessionId?: string): QueryResult<string | null> {
+  let value: string | null = null;
+  let seq = -1;
+  for (const record of records) {
+    if (!inSession(record, sessionId)) { continue; }
+    seq = record.seq;
+    if (record.kind === "frame" && record.agentPath.length === 0) {
+      const event = record.body.events.findLast((candidate) => candidate.kind === "service_tier");
+      if (event?.kind === "service_tier") { value = event.serviceTier; }
+    }
+  }
+  return { value, seq };
+}
+
 /** The latest context fullness the runtime reported for the root agent; null before any. */
 export function contextUsageOf(records: readonly RawEvent[], sessionId?: string): QueryResult<ContextUsage | null> {
   let value: ContextUsage | null = null;

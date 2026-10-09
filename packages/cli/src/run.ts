@@ -25,6 +25,7 @@ export function registerRunCommand(program: Command, version: string): void {
     .description("Run one turn in a fresh (or --resume'd) session and show its progress")
     .option("--model <model>", "runtime-native model identifier")
     .option("--effort <level>", "runtime-native reasoning-effort level (one of the model's effort levels in `oar models`)")
+    .option("--service-tier <tier>", "runtime-native service tier (see `oar models`), or default to disable")
     .option("--resume <sessionId>", "resume the runtime-native session a previous run printed")
     .option("--json", "print the session records as JSON lines instead of progress")
     .option("--record <file>", "write the run as an oar-voyage/3 JSONL log")
@@ -32,7 +33,7 @@ export function registerRunCommand(program: Command, version: string): void {
     .action(async (
       id: string,
       prompt: string,
-      flags: { model?: string; effort?: string; resume?: string; json?: boolean; record?: string; image?: string[] },
+      flags: { model?: string; effort?: string; serviceTier?: string; resume?: string; json?: boolean; record?: string; image?: string[] },
     ) => {
       const runtime = runtimes.require(id);
       if (runtime.installation === undefined) {
@@ -52,6 +53,7 @@ export function registerRunCommand(program: Command, version: string): void {
         cwd: process.cwd(),
         ...(flags.model === undefined ? {} : { model: flags.model }),
         ...(flags.effort === undefined ? {} : { effort: flags.effort }),
+        ...(flags.serviceTier === undefined ? {} : { serviceTier: flags.serviceTier }),
         ...(flags.resume === undefined ? {} : { resume: flags.resume }),
       }).catch((error: unknown) => {
         process.stderr.write(`${id} session did not open: ${error instanceof Error ? error.message : String(error)}\n`);
@@ -67,6 +69,7 @@ export function registerRunCommand(program: Command, version: string): void {
             runtime: id,
             ...(flags.model === undefined ? {} : { model: flags.model }),
             ...(flags.effort === undefined ? {} : { effort: flags.effort }),
+            ...(flags.serviceTier === undefined ? {} : { serviceTier: flags.serviceTier }),
             cwd: process.cwd(),
             sessionId: session.id,
             startedAt: Date.now(),
@@ -88,6 +91,7 @@ export function registerRunCommand(program: Command, version: string): void {
           resumed: flags.resume !== undefined,
           model: session.model().value,
           effort: session.effort().value,
+          serviceTier: session.serviceTier().value,
         })}\n`);
         session.events(progressObserver(id), { cursor, coalesceText: { maxHoldMs: 250 } });
       }

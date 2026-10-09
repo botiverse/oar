@@ -185,6 +185,14 @@ A `task` subagent completed and its result reached the parent (subagent:
 `CHILD-OK-7731`), but no frame of the child session arrived: opencode's ACP
 layer forwards parts only for sessions it opened ([src] `acp/event.ts`).
 
+### Service tiers
+
+`SessionOptions.serviceTier` is explicitly refused with
+`UnsupportedOptionError`, declared in `Runtime.refusedSessionOptions`.
+No per-session native setting plus applied-state readback has been verified
+for this adapter; `listModels` therefore advertises no service tiers. OAR
+does not silently ignore a requested tier or alter a global default.
+
 ### Models, effort, instructions, and context
 
 Model ids are `provider/model` (`opencode/big-pickle`). `session/set_model`

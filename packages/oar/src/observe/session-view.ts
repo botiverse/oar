@@ -175,6 +175,8 @@ export interface SessionView {
   readonly model: string | null;
   /** The latest reasoning-effort level the runtime reported (`effort` events); null before any. */
   readonly effort: string | null;
+  /** Latest native service-tier report, null before any. */
+  readonly serviceTier: string | null;
   readonly context: ContextUsage | null;
   readonly usage: SessionUsage;
   readonly pendingRequests: readonly PendingRequest[];
@@ -195,6 +197,7 @@ export function initialSessionView(): SessionView {
     status: initialStatus,
     model: null,
     effort: null,
+    serviceTier: null,
     context: null,
     usage: { total: null },
     pendingRequests: [],

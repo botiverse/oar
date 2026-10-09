@@ -79,7 +79,7 @@ every adapter:
   its prose `reason`); the `Session` returns those records read, as a
   `ControlOutcome`; runtime→app requests recorded `toApp` and oar's
   automatic answer as `answered`; the process exit as `exited`;
-- queries as folds: `model()`, `effort()`, `usage()`, `contextUsage()` and
+- queries as folds: `model()`, `effort()`, `serviceTier()`, `usage()`, `contextUsage()` and
   `status()` project over `records()` and return `{ value, seq }`, where
   `seq` is the last record the fold consumed (or `-1` before any record);
   `busy` is rejected exactly while `status()` says `running`;

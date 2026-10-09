@@ -330,6 +330,14 @@ guard lives in the older `acp-adapter` package; this baseline uses
 life of the process (`cursor`); there is no native-history enumeration and
 no rebuild after the process died.
 
+### Service tiers
+
+`SessionOptions.serviceTier` is explicitly refused with
+`UnsupportedOptionError`, declared in `Runtime.refusedSessionOptions`.
+No per-session native setting plus applied-state readback has been verified
+for this adapter; `listModels` therefore advertises no service tiers. OAR
+does not silently ignore a requested tier or alter a global default.
+
 ### Models, instructions, and context
 
 Native ACP config options cover model, thinking, and mode, with

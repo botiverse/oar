@@ -230,6 +230,8 @@ export interface Session extends AdapterSession {
   model(): QueryResult<string | null>;
   /** Latest `effort` event: the reasoning-effort level the runtime reports in effect; null until it has said one (claude never does). A fold, not an echo of `SessionOptions.effort`. */
   effort(): QueryResult<string | null>;
+  /** Latest native service tier for the root agent; null until reported, `default` when explicitly off. A fold, never an echo of the open option. */
+  serviceTier(): QueryResult<string | null>;
   /** THIS session's token total, counted from when it opened, plus a per-agent breakdown when children reported: deduplicated, directly summable (sum = total). A derived child session (own `sessionId`, in `graph()`) is not aggregated here; its usage is in its own records. */
   usage(): QueryResult<SessionUsage>;
   /** Latest context fullness the runtime reported for this session's root agent; null before any. */

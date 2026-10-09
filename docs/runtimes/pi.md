@@ -379,6 +379,14 @@ session's own servers, through pi's MCP extension
 through the adapter remains **unverified**.
 [Package overview][native-overview].
 
+### Service tiers
+
+`SessionOptions.serviceTier` is explicitly refused with
+`UnsupportedOptionError`, declared in `Runtime.refusedSessionOptions`.
+No per-session native setting plus applied-state readback has been verified
+for this adapter; `listModels` therefore advertises no service tiers. OAR
+does not silently ignore a requested tier or alter a global default.
+
 ### Models, instructions, and context
 
 **Mapped:** initial/resume `provider/model` selection uses the

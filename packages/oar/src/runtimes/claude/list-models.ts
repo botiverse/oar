@@ -41,6 +41,7 @@ export function projectClaudeModels(payload: unknown): ModelEntry[] {
       ...(resolvedId === undefined ? {} : { resolvedId }),
       ...(displayName === undefined ? {} : { displayName }),
       ...(effortLevels === undefined ? {} : { effortLevels }),
+      ...(model.supportsFastMode === true ? { serviceTiers: ["fast"] } : {}),
       ...(model.disabled === true ? { disabled: { reason } } : {}),
     });
   }

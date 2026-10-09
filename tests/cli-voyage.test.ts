@@ -121,3 +121,9 @@ test("openVoyage writes header, records, end as ordered JSONL", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+
+test("voyage header keeps the requested tier separate from native reports", () => {
+  const header: unknown = JSON.parse(headerLine({ runtime: "codex", serviceTier: "priority", cwd: "/work", sessionId: "t", startedAt: 0, recorder: "test" }));
+  assert.ok(typeof header === "object" && header !== null && "serviceTier" in header && header.serviceTier === "priority");
+});

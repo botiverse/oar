@@ -115,7 +115,12 @@ and each runtime page's "Session MCP servers".
 
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
-has it. `runtime.accountUsage(installation)` reads account quota on claude,
+has it. Entries include native `effortLevels` and `serviceTiers` where supported.
+`SessionOptions.serviceTier` applies at open (also on resume) and is checked
+against the runtime's own report. Use `default` to explicitly clear a tier;
+it is not a model catalog entry. `Session.serviceTier()` reports the effective
+tier. Unsupported runtimes reject the option before opening.
+`runtime.accountUsage(installation)` reads account quota on claude,
 codex, grok and kimi; its failure semantics are in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
 

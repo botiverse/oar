@@ -104,3 +104,8 @@ test("renderer prints compaction, retry and app requests bracketed, and nothing 
   assert.deepEqual(render(at(0, [{ kind: "app_request", requestId: "p", type: "can_use_tool" }])), ["[waiting for app: can_use_tool]"]);
   assert.deepEqual(render(at(0, [{ kind: "tool_call_progress", callId: "c", output: "x" }, { kind: "app_answered", requestId: "p" }])), []);
 });
+
+
+test("renderOpened shows the runtime's actual tier", () => {
+  assert.equal(renderOpened({ sessionId: "t", resumed: false, model: null, effort: null, serviceTier: "priority" }), "[session t · tier priority]");
+});

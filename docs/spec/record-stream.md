@@ -149,7 +149,7 @@ Further rules:
   optional `spanId` holds only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn
   id, such as pi's session-scoped frames, have none.
-- **Query is a projection over the stream.** `model()`, `effort()`,
+- **Query is a projection over the stream.** `model()`, `effort()`, `serviceTier()`,
   `usage()`, `contextUsage()` and `status()` are folds over the retained
   records and return `{ value, seq }`; `seq` is the last record consumed,
   or `-1` before any record. `status()` is the one the control decisions
@@ -235,7 +235,7 @@ interface FrameBody {
 //   tool_call_progress {callId, output?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
 //   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}}} | model {model} |
-//   effort {effort} |
+//   effort {effort} | service_tier {serviceTier} |
 //   compaction_started {trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
 //   retry {attempt, maxAttempts?, delayMs?, reason?} |
@@ -416,6 +416,16 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   but not recorded, since it also dumps the user's merged settings. A
   requested `SessionOptions.effort` is never an event of its own: what the
   runtime says back is.
+- `service_tier`: the tier reported by the runtime, never the requested option
+  echoed. Codex reads `serviceTier` from open replies and settings updates;
+  native null means `default` (no special tier), a missing field means no
+  event. Claude reads `fast_mode_state` from initialization and later
+  system/init or result frames: on maps to `fast`, off or cooldown to
+  `default`. The native frame retains the reason for a downgrade.
+  `Session.serviceTier()`, `serviceTierOf` and `SessionView.serviceTier` read
+  the latest root report, with null before any. Child reports do not change
+  the root's selection. The voyage header's optional `serviceTier` is the
+  requested choice, kept separate from these reported facts.
 - `app_request` / `app_answered`: any adapter that records `toApp` requests
   (claude `control_request`, codex server requests, ACP permission and
   terminal requests) and, for `app_answered`, one whose automatic reply is

@@ -72,6 +72,32 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event.
 
+## Service tiers
+
+`SessionOptions.serviceTier` selects a runtime-native tier at open, including
+resume. Values come from that model's `ModelEntry.serviceTiers`;
+`defaultServiceTier` is present only when the native catalog names a default.
+`default` is a separate explicit opt-out, accepted by the supporting runtimes
+but never inserted into their tier menus. Omitting the option lets the runtime
+choose; it does not promise to clear a configured choice. There is no per-turn
+setter: reopen the session to change it.
+
+The adapter reads the applied native value before returning. A refused,
+missing or different value fails the open with the requested and actual
+selection. OAR does not normalize aliases: codex's `fast` comes back as
+`priority` and is refused; use the catalog's `priority`. `Session.serviceTier()`
+and `SessionView.serviceTier` report native facts, not the request. Later
+native reports of a changed tier remain visible in records and tier events.
+
+Codex uses `thread/start` and `thread/resume`, and enumerates `model/list`.
+Claude uses per-process `--settings` and reads `initialize.fast_mode_state`;
+only models whose `list_models` entry reports `supportsFastMode: true` list
+`fast`. The other six runtimes reject with `UnsupportedOptionError` on
+`serviceTier`, from their `refusedSessionOptions` declaration. Evidence and
+resume details: [Codex](../runtimes/codex.md#service-tiers),
+[Claude](../runtimes/claude.md#service-tiers),
+[native tests](../../sea-trial/vendor/service-tier.vendor.test.ts).
+
 ## Session environment
 
 `SessionOptions.env` is a `Readonly<Record<string, string | null>>` overlay:
@@ -177,13 +203,13 @@ out instead of naming runtimes.
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
-| antigravity | `systemPrompt`, `appendSystemPrompt` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)) |
-| grok | `disallowedTools` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
-| opencode | `disallowedTools` | agent permissions can override global denies; permission names do not consistently match tool names |
-| pi | `launchArgs` | it runs in the host process through its SDK, with no command line |
-| claude, codex | nothing always refused | codex has value-specific tool-name refusals below |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback |
+| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback |
+| grok | `disallowedTools`, `serviceTier` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback |
+| opencode | `disallowedTools`, `serviceTier` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback |
+| pi | `launchArgs`, `serviceTier` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback |
+| claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page

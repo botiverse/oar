@@ -33,6 +33,7 @@ export function supportsAntigravityYolo(response: JsonRecord): boolean {
 }
 
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
+  serviceTier: "antigravity exposes no verified per-session service-tier setting and readback",
   systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
   appendSystemPrompt: "The Antigravity ACP server has no system prompt append input in its protocol, launch options, or configuration",
 };
