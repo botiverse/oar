@@ -1,5 +1,6 @@
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
+import { mcpCredentialRedactor } from "../packages/oar/src/shared/mcp-servers.js";
 import { sessionCredentialRedactor } from "../packages/oar/src/shared/credential-redactor.js";
 import { withSessionCredentials } from "../packages/oar/src/shared/session-credentials.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
@@ -118,4 +119,49 @@ test.each(["ollama", "EMPTY", "none", "x", "/path/to/credential", "~/credential"
   add(key);
   const native = { model: `${key}/model`, text: `provider ${key}` };
   expect(redactValue(native)).toBe(native);
+});
+
+
+test("MCP ordinary env and headers remain unchanged in records and error text", () => {
+  const servers = [
+    { name: "local", command: "echo", env: { DEBUG: "true", LOG_LEVEL: "debug", NODE_ENV: "production", TOKEN: "short", SECRET: "/path/to/secret" } },
+    { name: "remote", type: "http" as const, url: "http://localhost", headers: { "Content-Type": "application/json" } },
+  ];
+  const { redactValue } = sessionCredentialRedactor({ cwd: "/work", mcpServers: servers });
+  const kernel = createSessionKernel("session", redactValue);
+  const body = { type: "tool/output", native: { text: "debug is true in production, application/json, short, /path/to/secret" }, events: [] };
+  expect(kernel.frame(body).body).toBe(body);
+  expect(mcpCredentialRedactor(servers)(body.native.text)).toBe(body.native.text);
+});
+
+test.each(["Authorization", "Proxy-Authorization", "Cookie", "X-Api-Key", "Api-Key", "X-Service-Token", "x-custom-secret"])("MCP credential header %s uses shared record and error redaction", (name) => {
+  const servers = [{ name: "remote", type: "http" as const, url: "http://localhost", headers: { [name]: secret } }];
+  const { redactValue } = sessionCredentialRedactor({ mcpServers: servers });
+  expect(redactValue({ text: secret })).toEqual({ text: "[redacted]" });
+  expect(mcpCredentialRedactor(servers)(secret)).toBe("[redacted]");
+});
+
+test.each(["Bearer", "Basic", "Token"])("MCP Authorization %s protects its complete value and bare credential", (scheme) => {
+  const value = `${scheme} ${secret}`;
+  const servers = [{ name: "remote", type: "http" as const, url: "http://localhost", headers: { Authorization: value } }];
+  const { redactValue } = sessionCredentialRedactor({ mcpServers: servers });
+  const native = { full: value, bare: secret, ordinary: "application/json" };
+  expect(redactValue(native)).toEqual({ full: "[redacted]", bare: "[redacted]", ordinary: "application/json" });
+  expect(mcpCredentialRedactor(servers)(`${value}; ${secret}`)).toBe("[redacted]; [redacted]");
+});
+
+
+test.each([false, true])("env connection strings protect full URLs and encoded/decoded passwords (MCP=%s)", (mcp) => {
+  const encoded = "oar%3Along-password%2Ffor-db";
+  const decoded = "oar:long-password/for-db";
+  const env = { DATABASE_URL: `postgres://user:${encoded}@localhost/db`, MONGODB_URI: `mongodb+srv://user:${secret}@localhost/db`, REDIS_URL: `redis://:${secret}@localhost:6379`, PUBLIC_URL: "http://localhost:3000" };
+  const options = mcp ? { mcpServers: [{ name: "db", command: "echo", env }] } : { env };
+  const { redactValue } = sessionCredentialRedactor(options);
+  expect(redactValue({ urls: Object.values(env), encoded, decoded, password: secret })).toEqual({ urls: ["[redacted]", "[redacted]", "[redacted]", "http://localhost:3000"], encoded: "[redacted]", decoded: "[redacted]", password: "[redacted]" });
+});
+
+test("connection URLs with short passwords redact only the whole URL", () => {
+  const url = "postgres://user:pass@localhost/db";
+  const { redact } = sessionCredentialRedactor({ env: { DATABASE_URL: url } });
+  expect(redact(`${url}; tests pass`)).toBe("[redacted]; tests pass");
 });

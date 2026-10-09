@@ -11,10 +11,12 @@
  * SSE: the MCP spec deprecates it. `name` is the server's name in the
  * runtime, the one its tools are known by (claude: `mcp__<name>__<tool>`).
  *
- * `env` and `headers` values are credentials: oar writes them only to the
- * runtime's native channel and never into a record, event or error, which
- * keep the key names at most (a value as `[redacted]`). Values must be
- * strings: null removal belongs to SessionOptions.env, not this native config.
+ * OAR sends `env` and `headers` through the runtime's native configuration
+ * channel; retained copies of that configuration mask their values. In other
+ * record and error text, the shared known-credential rules select values by
+ * name and shape (docs/spec/record-stream.md). Ordinary settings such as
+ * NODE_ENV and Content-Type remain readable. Values must be strings: null
+ * removal belongs to SessionOptions.env, not this native config.
  */
 export type McpServer =
   | { readonly name: string; readonly command: string; readonly args?: readonly string[]; readonly env?: Readonly<Record<string, string>> }
@@ -68,10 +70,15 @@ export interface SessionOptions {
   readonly serviceTier?: string;
   /** Resume the runtime-native session identified by a previous Session.id. In a `cwd` other than the session's own, see `cwd`: kimi and opencode refuse it with `UnsupportedOptionError` (docs/spec/runtime-matrix.md#refused-session-options). */
   readonly resume?: string;
-  /** Environment changes for the processes THIS session spawns: a string sets the variable (including an empty string); null removes it from the inherited environment. The host environment is never changed. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. Pi refuses removals combined with stdio mcpServers because its MCP transport re-inherits the host environment. Refused when non-empty by cursor, whose tools run in the host process with no environment of their own: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
-  // Credential-like names with non-path values of at least eight characters
-  // are redacted from OAR records and errors; native inputs stay unchanged.
-  // Exact name rules: docs/spec/record-stream.md, "Known session credentials".
+  /** Environment changes for the processes THIS session spawns: a string sets the variable (including an empty string); null removes it from the inherited environment. The host environment is never changed. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. Pi refuses removals combined with stdio mcpServers because its MCP transport re-inherits the host environment. Refused when non-empty by cursor, whose tools run in the host process with no environment of their own: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options).
+   *
+   * Credential-like names with non-path values of at least eight characters,
+   * plus password-bearing connection URLs, are redacted within each OAR
+   * record and error; native inputs stay unchanged.
+   * Model echoes split across streaming deltas are outside this guarantee:
+   * hosts must not rely on this rule to prevent a model from revealing a key.
+   * Exact name rules: docs/spec/record-stream.md, "Known session credentials".
+   */
   readonly env?: Readonly<Record<string, string | null>>;
   /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction (pinned per vendor). Refused by cursor, kimi and antigravity: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly systemPrompt?: string;

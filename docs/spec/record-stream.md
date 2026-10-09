@@ -84,6 +84,21 @@ Further rules:
   `GNUPG_PASSPHRASE_FILE`, `KEYTIMEOUT`, `AWS_ACCESS_KEY_ID`, `HOME` and `PATH`
   stay readable.
 
+  MCP `env` follows the same name and value rules. MCP `headers` recognizes
+  `Authorization` and `Proxy-Authorization`, or a final hyphen-separated
+  segment in that same credential word list, ignoring case. This includes
+  `Cookie`, `X-Api-Key` and `Api-Key`; ordinary `Content-Type` stays readable.
+  Authorization values also contribute the part after their scheme (such
+  as `Bearer`, `Basic` or `Token`), subject to the same value rules, so a
+  bare echoed token is protected too. Error text uses the same selection.
+
+  Independently of names, session and MCP environment values that parse as
+  URLs with a nonempty password are protected in full, including PostgreSQL,
+  MongoDB and Redis connection URLs. Their encoded and decoded passwords are
+  also protected when at least eight characters long. A shorter password is
+  not replaced outside its complete URL; a URL without a password is not
+  selected by this shape rule.
+
   Pi additionally resolves the selected model's API key through its SDK at
   open and on native model changes, keeping previous keys protected for the
   rest of the session. SDK keys use the same eight-character minimum and
@@ -93,7 +108,14 @@ Further rules:
   files. Keys a subprocess runtime independently reads from its login or
   configuration are outside this value-based rule. Unlike the structural
   `redactRecord` rules above, this needs the session's known values and does
-  not retrospectively clean old stored logs.
+  not retrospectively clean old stored logs. Matching is within a string in
+  one record. When a model repeats a key from raw tool output (for example,
+  after `env` or `echo $KEY`), its short text deltas commonly split that key.
+  The complete tool-output frame is redacted, but the model's fragments are
+  not: `SessionView` body text and `events({ coalesceText: true })` can
+  reconstruct the original key. Split text or tool-output deltas are outside
+  this guarantee. This rule neither buffers the live stream nor rewrites
+  previously delivered fragments.
 - **Native activity can precede this controller.** A runtime frame can report
   `turn_active` without a prompt request. It adopts an idle root as running,
   with no invented request id, and preserves the phase of an already running
