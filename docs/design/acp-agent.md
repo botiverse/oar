@@ -232,10 +232,15 @@ Phase 1 needs none of them and serves all eight runtimes with full access.
   scripted checklist of the rows above. The result table is recorded with
   versions, like the runtime pages. In Lody the bridge runs as a custom
   agent (`cliType: 'custom'`, `CustomAcpLaunchSpec { command, args }`);
-  Lody's source (d23ffd4) negotiates `_meta.lody` with every agent and
-  gates steer and subagent events on the agent's declared capabilities,
-  so the live run must also show whether any of its UI keys on the
-  builtin agent type instead.
+  Lody's source (d23ffd4) probes a custom agent at start and enables by
+  its declared `_meta.lody` capabilities: steer (`steering`; the UI button
+  needs an authoritative probe), subagent events, session title,
+  `forkAtTurn`, fork, goals, form elicitation, and model, mode and effort
+  selectors built from `configOptions`. Hard-wired to its builtin agents,
+  so not available to `oar acp` in Lody whatever it declares: Edit and
+  Resend (builtin Codex and Claude), persisted `_lody` usage and rate
+  limits, history import (Codex), provider setup, and Codex's proposed
+  plan prompt. Those are Lody's to open, not the bridge's to work around.
 - **The bar:** every row same or better, or declined with its reason here.
 
 ## Phases
