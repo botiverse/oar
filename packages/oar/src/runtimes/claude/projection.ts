@@ -50,7 +50,8 @@ export type ProjectionCommand =
  * which classifies a failed result (failure.ts). `limitResetsAt` is the
  * reset of the limit the latest `rate_limit_event` says refuses requests,
  * kept across turns until another event replaces it (claude reports a
- * change, not every refusal), and given to a turn that fails on `rate_limit`.
+ * change, not every refusal): a turn that then fails on `rate_limit` is
+ * `quota` with that `resetsAt`.
  */
 export interface ClaudeProjectionState {
   readonly abortRequested: boolean;

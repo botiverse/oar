@@ -282,7 +282,7 @@ export type TurnOutcome =
     readonly credential?: CredentialProblem;
     /** The provider's HTTP status, where the runtime reports one. */
     readonly status?: number;
-    /** When the limit that refused the turn resets, where the runtime reports that time for this failure (claude only; docs/spec/runtime-matrix.md#when-a-limit-resets). Absent otherwise, never derived from an account-usage read or the runtime's prose. A fact, not a retry: oar does not continue the session when it passes. */
+    /** When the limit that refused the turn resets, where the runtime reports that time for this failure (claude only; docs/spec/runtime-matrix.md#when-a-limit-resets). Absent otherwise, never derived from an account-usage read or the runtime's prose. It is the runtime's last report, which may be older than the failure: a time already past means the host should treat the reset as unknown. A fact, not a retry: oar does not continue the session when it passes. */
     readonly resetsAt?: UtcInstant;
   };
 

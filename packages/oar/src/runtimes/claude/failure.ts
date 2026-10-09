@@ -12,6 +12,9 @@ import { asNumber, type JsonRecord } from "../../shared/json.js";
  * declared categories no run produced (`oauth_org_not_allowed`,
  * `account_on_hold`, `verification_required`, `overloaded`,
  * `max_output_tokens`, `cloud_credential_error`) fall through to the status.
+ * A `rate_limit` while claude's latest `rate_limit_event` says a
+ * subscription limit refuses requests until a named reset is `quota` with
+ * that `resetsAt` (`claudeLimitReset`); without one it stays `rate_limited`.
  */
 
 /** The categories observed, by what they mean; `server_error` is decided by its status (a 529 is overload). */
@@ -31,7 +34,7 @@ export interface ClaudeFailureFacts {
   readonly status: number | null;
   /** The result's `terminal_reason`. */
   readonly terminalReason: string | null;
-  /** The reset of the limit claude's latest `rate_limit_event` says refuses requests (`claudeLimitReset`); null when it refuses none. */
+  /** The reset of the limit claude's latest `rate_limit_event` says refuses requests (`claudeLimitReset`); null when none does. */
   readonly limitResetsAt: UtcInstant | null;
 }
 
@@ -46,9 +49,12 @@ export interface ClaudeFailureFacts {
  * sent again, so the latest event stands until another replaces it. Null
  * when the limit refuses nothing (`allowed`, `allowed_warning`), when paid
  * overage still takes the requests (`overageStatus` allowed or
- * allowed_warning), or when the event names no reset. `overageResetsAt` is
- * not read. Read from the types and the binary, not observed: a run needs
- * a claude.ai subscription at its limit.
+ * allowed_warning), or when the event names no reset: claude also marks a
+ * subscriber's 429 without limit headers `rejected`, with no reset, and
+ * words that one a temporary capacity issue. `overageResetsAt` is not read.
+ * The time is kept as claude sent it, so it may already be past when a
+ * later turn fails; no clock is read here. From the SDK types and the
+ * binary only: oar never triggers a limit on a real account to observe it.
  */
 export function claudeLimitReset(info: JsonRecord | null): UtcInstant | null {
   if (info?.status !== "rejected" || info.overageStatus === "allowed" || info.overageStatus === "allowed_warning") {
@@ -72,10 +78,13 @@ export function claudeFailure(reason: string, facts: ClaudeFailureFacts): Extrac
     if (status === null) { return failed("auth", { credential: "missing" }); }
     return failed("auth", status === 401 ? { credential: "rejected" } : {});
   }
+  if (category === "rate_limit" && limitResetsAt !== null) {
+    // A subscription limit refuses requests until a reset claude named: a usage limit, not throttling.
+    return failed("quota", { resetsAt: limitResetsAt });
+  }
   const named = category === null ? undefined : CATEGORIES[category];
   if (named !== undefined) {
-    // claude's own word that a limit refused the turn: it carries the reset the latest rate_limit_event reports.
-    return failed(named, category === "rate_limit" && limitResetsAt !== null ? { resetsAt: limitResetsAt } : {});
+    return failed(named);
   }
   if (status === null) {
     return failed("unknown");

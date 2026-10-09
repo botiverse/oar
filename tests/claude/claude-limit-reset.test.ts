@@ -31,7 +31,10 @@ const refusedTurn = [
   { type: "assistant", error: "rate_limit", message: { model: "<synthetic>", content: [{ type: "text", text: limitText }] } },
   { type: "result", subtype: "success", is_error: true, api_error_status: 429, terminal_reason: "api_error", result: limitText },
 ];
-const refused = { kind: "failed", reason: limitText, failure: "rate_limited", status: 429 };
+/** The same refusal with no rejected rate_limit_event naming a reset: claude's `rate_limit`, read as throttling. */
+const throttled = { kind: "failed", reason: limitText, failure: "rate_limited", status: 429 };
+/** A subscription limit refusing until a named reset: a usage limit. */
+const limited = { kind: "failed", reason: limitText, failure: "quota", status: 429, resetsAt: RESET_AT };
 
 /** The turn outcomes the frames fold to, in order. */
 function outcomesOf(frames: readonly Record<string, unknown>[]): unknown[] {
@@ -56,11 +59,19 @@ async function opened(): Promise<{ session: Awaited<ReturnType<typeof claudeSess
   return { session, emit: (frames) => { child.emit(frames.map((frame) => `${JSON.stringify(frame)}\n`).join("")); } };
 }
 
-test("a turn a subscription limit refused ends with the reset claude's rejected rate_limit_event reports", async () => {
+test("a rate_limit failure after a rejected rate_limit_event that overage does not cover is quota, with the event's reset", () => {
+  expect(outcomesOf([rejected, ...refusedTurn])).toEqual([limited]);
+});
+
+test("a rate_limit failure with no rate_limit_event stays rate_limited, with no reset", () => {
+  expect(outcomesOf(refusedTurn)).toEqual([throttled]);
+});
+
+test("through a session: the refused turn ends quota with the reset, and a later refusal keeps claude's last report", async () => {
   const { session, emit } = await opened();
   const first = await session.prompt("go on");
   emit([rateLimitEvent({ status: "allowed_warning", resetsAt: RESET, rateLimitType: "five_hour", utilization: 0.9 }), rejected, ...refusedTurn]);
-  expect(await awaitTurnEnd(session, first.request.seq)).toEqual({ ...refused, resetsAt: RESET_AT });
+  expect(await awaitTurnEnd(session, first.request.seq)).toEqual(limited);
   // Read for the outcome only: the frame is recorded verbatim, with no event of its own.
   expect(session.records().filter((record) => record.kind === "frame" && record.body.type === "rate_limit_event").map((record) => record.kind === "frame" ? record.body : null))
     .toEqual([expect.objectContaining({ events: [] }), { type: "rate_limit_event", native: rejected, events: [] }]);
@@ -68,28 +79,28 @@ test("a turn a subscription limit refused ends with the reset claude's rejected 
   // Refused again with nothing changed: claude need not report again, and its last report stands.
   const second = await session.prompt("go on");
   emit(refusedTurn);
-  expect(await awaitTurnEnd(session, second.request.seq)).toEqual({ ...refused, resetsAt: RESET_AT });
+  expect(await awaitTurnEnd(session, second.request.seq)).toEqual(limited);
   await session.dispose();
 });
 
-test("no reset unless claude's latest rate_limit_event says the limit refuses requests and names when it resets", () => {
+test("rate_limited with no reset unless claude's latest rate_limit_event says a limit refuses requests until a named reset", () => {
   for (const info of [
     { status: "allowed", resetsAt: RESET, rateLimitType: "five_hour" },
     { status: "allowed_warning", resetsAt: RESET, rateLimitType: "seven_day", utilization: 0.8 },
     // Paid overage takes the requests the plan limit refuses.
     { status: "rejected", resetsAt: RESET, rateLimitType: "five_hour", overageStatus: "allowed", isUsingOverage: true },
     { status: "rejected", rateLimitType: "five_hour" },
+    // claude's own reading of a subscriber's 429 without limit headers: rejected, no reset.
+    { status: "rejected", isUsingOverage: false },
     { status: "rejected", resetsAt: "soon" },
   ]) {
-    expect(outcomesOf([rateLimitEvent(info), ...refusedTurn]), JSON.stringify(info)).toEqual([refused]);
+    expect(outcomesOf([rateLimitEvent(info), ...refusedTurn]), JSON.stringify(info)).toEqual([throttled]);
   }
   // A later event replaces the rejection: the limit no longer refuses.
-  expect(outcomesOf([rejected, rateLimitEvent({ status: "allowed", resetsAt: RESET + 18_000, rateLimitType: "five_hour" }), ...refusedTurn])).toEqual([refused]);
-  // No rate_limit_event at all (an API key, a throttling 429).
-  expect(outcomesOf(refusedTurn)).toEqual([refused]);
+  expect(outcomesOf([rejected, rateLimitEvent({ status: "allowed", resetsAt: RESET + 18_000, rateLimitType: "five_hour" }), ...refusedTurn])).toEqual([throttled]);
 });
 
-test("only a failure claude categorizes rate_limit takes the reset", () => {
+test("only a failure claude categorizes rate_limit becomes quota or takes the reset", () => {
   expect(outcomesOf([
     rejected,
     { type: "assistant", error: "server_error", message: { model: "<synthetic>", content: [{ type: "text", text: "API Error: 529 Overloaded." }] } },
