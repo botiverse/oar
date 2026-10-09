@@ -183,6 +183,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       assertContextUsage(session.contextUsage().value);
       const types = session.records().flatMap((record) => (record.kind === "frame" ? [record.body.type] : []));
       expect(types).toContain("agent_start");
+      const activity = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "agent_start" ? record.body.events : []);
+      expect(activity).toEqual([{ kind: "turn_active" }]);
       expect(types).toContain("agent_end");
       expect(types.at(-1)).toBe("agent_settled");
       expect(session.model().value).toMatch(/\//u);

@@ -232,6 +232,15 @@ child's is unverified. `token-delta`, `thinking-completed`,
 `summary` updates before `onDelta`, so compaction is not observable, and no
 update reports context occupancy, so `contextUsage()` stays empty.
 
+`shell-output-delta` is separate from model tool calls. In SDK 1.0.37,
+its `{event: {case: "stdout" | "stderr", value: {data}}}` carries no
+`callId`: the SDK emits it for `shellCommandAction`, a standalone shell
+operation. OAR cannot attribute it to a model's active shell tool, even if
+only one is running, so it never becomes `tool_call_progress`. A real
+1.0.37 shell-tool probe emitted a matching `tool-call-started` and
+`tool-call-completed` with the final output, and no `shell-output-delta`
+([source inspection and probe](../../experiments/tool-output-2026-10-09.md)).
+
 **Tool frames:** `tool-call-started {callId, toolCall: {type, args}}` is
 `tool_call_started` with the tool's `type` as its name (`shell`, `read`,
 `edit`, `grep`, `glob`, `ls`, `task`, `mcp`, …) and the JSON args as `input`.

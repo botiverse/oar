@@ -1,4 +1,4 @@
-agent_start                    │ event
+agent_start                    │ event → turn_active
 turn_start                     │ event
 message_start                  │ event
 message_end                    │ event

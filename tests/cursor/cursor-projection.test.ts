@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "vitest";
+import { expect, test } from "vitest";
 import {
   cursorOpenedFrame,
   cursorRunFailedFrame,
@@ -155,4 +155,24 @@ test("the opened agent reports the model the SDK resolved", () => {
     { kind: "effort", effort: "max" },
   ]);
   assert.deepEqual(cursorOpenedFrame("agent-1", undefined).events, []);
+});
+
+// SDK 1.0.37 sends these for shellCommandAction, with no tool call identity.
+// Even a single active shell tool is not evidence that this output belongs to it.
+test("independent shell output stays native, never guessed onto an active tool", () => {
+  const updates = [
+    { type: "shell-output-delta", event: { case: "stdout", value: { data: "independent output" } } },
+    { type: "shell-output-delta", event: { case: "stderr", value: { data: "independent error" } } },
+  ];
+  const { frames } = fold([
+    { type: "tool-call-started", callId: "model-tool", toolCall: { type: "shell", args: { command: "echo model" } } },
+    ...updates,
+  ]);
+  expect(frames.slice(1).map((frame) => frame.events)).toMatchInlineSnapshot(`
+    [
+      [],
+      [],
+    ]
+  `);
+  for (const [index, update] of updates.entries()) { expect(frames[index + 1]?.native).toBe(update); }
 });

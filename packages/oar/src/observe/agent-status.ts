@@ -22,6 +22,7 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  * Transition table:
  *   request prompt (toRuntime)        → running/waiting_model (the turn's start IS the request)
  *   response rejected → that request  → idle again (the turn never began)
+ *   event turn_active                 → running/waiting_model if idle; otherwise phase unchanged
  *   event reasoning                   → running/thinking
  *   event text_delta                  → running/responding
  *   event tool_call_started           → running/{tool, callId}

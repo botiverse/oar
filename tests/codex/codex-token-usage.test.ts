@@ -124,6 +124,9 @@ test("a resumed Session without a re-report before its first turn reports no tok
   expect(events).toMatchInlineSnapshot(`
     [
       {
+        "kind": "turn_active",
+      },
+      {
         "kind": "usage",
         "usage": {
           "context": {

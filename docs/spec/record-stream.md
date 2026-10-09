@@ -207,7 +207,8 @@ Further rules:
   when the runtime reported no result. The frame's `native` keeps the
   original. `toolResultText(content)` (`@botiverse/oar/observe`) joins the
   text parts for a host that shows only text. Streamed output while a call
-  runs stays `tool_call_progress.output`. Records written before 0.14.0
+  runs stays in `tool_call_progress`: `output` replaces the preview and
+  `outputDelta` appends a chunk. Records written before 0.14.0
   carry `output` instead; `eventsOf` and the session view read it as
   `content` (`observe/legacy.ts`), so a persisted log keeps replaying.
   Per-runtime sources, and the cut the ACP adapters apply to long text
@@ -247,7 +248,7 @@ interface FrameBody {
 //   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_input {callId, input} |
-//   tool_call_progress {callId, output?} |
+//   tool_call_progress {callId, output?, outputDelta?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
 //   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}}} | model {model} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
@@ -376,14 +377,21 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `turn_ended`, `usage`, `model`: every shipped adapter, except that
   antigravity sent no reasoning and no usage in any probe ([env]
   agy_acp_server 1.2.1).
-- `tool_call_progress`: partial output of a running tool. pi
-  `tool_execution_update` (the partial result as JSON) [src 0.84.2]; codex
-  `item/commandExecution/outputDelta` (`callId` is the item id, `output`
-  the delta) [env 0.154.0 schema]; ACP (grok, kimi) a non-terminal
-  `tool_call_update` for a known call that carries `rawOutput`, never its
-  `content` (kimi streams the call's ARGUMENTS as content while
-  `in_progress`). claude streams none; cursor's `shell-output-delta` is
-  recorded with no event.
+- `tool_call_progress`: partial output of a running tool. `output` is the
+  whole current preview, replacing earlier output; `outputDelta` appends a
+  chunk. An empty `output` clears the preview; an absent field changes
+  nothing. If both fields are present, replace first, then append. Pi
+  `tool_execution_update` uses `output` (the whole partial result as JSON),
+  as do non-terminal ACP updates for known calls carrying `rawOutput` and
+  Pi Durable's reconstructed, bounded output window. ACP `content` is not
+  progress output: Kimi streams arguments there while `in_progress`. Codex `item/commandExecution/outputDelta` uses
+  `outputDelta`, with `callId` equal to the item id. Records retain each
+  native chunk, never an ever-growing cumulative string. `SessionView`
+  applies these operations within the call's session/agent lane, accepts
+  late progress without reopening an ended call, and removes the preview
+  when `tool_call_ended` supplies the result. Claude streams none. Cursor's
+  independent `shell-output-delta` has no tool call id, so stays native
+  ([boundary and probe](../runtimes/cursor.md)).
 - `tool_call_input`: arguments reported after the call started. ACP (grok,
   kimi, opencode, antigravity) a `tool_call_update` for a call that has not
   ended, carrying a `rawInput` that differs from the input last read for

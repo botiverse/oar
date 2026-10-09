@@ -1,4 +1,4 @@
-turn/started                 │ event
+turn/started                 │ event → turn_active
 item/started                 │ event
 item/completed               │ event
 item/started                 │ event

@@ -13,7 +13,7 @@ import {
   updateRequestPart,
   type Draft,
 } from "./session-view-fold.js";
-import { endRootTools, updateToolInput, updateToolPart } from "./session-view-tools.js";
+import { endRootTools, toolPreview, updateToolInput, updateToolPart } from "./session-view-tools.js";
 import type { PendingRequest, ViewPart } from "./session-view.js";
 
 /**
@@ -92,7 +92,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
         kind: "tool",
         callId: event.callId,
         tool: "?",
-        ...(event.kind === "tool_call_progress" && event.output !== undefined ? { output: event.output } : {}),
+        ...(event.kind === "tool_call_progress" ? toolPreview(undefined, event) : {}),
         ...(event.kind === "tool_call_ended" && event.content !== undefined ? { content: event.content } : {}),
         result,
         ...(event.kind === "tool_call_ended" ? { endedAt: event.receivedAt } : {}),

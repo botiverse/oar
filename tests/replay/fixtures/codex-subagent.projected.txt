@@ -1,5 +1,5 @@
 thread/status/changed        │ event
-turn/started                 │ event
+turn/started                 │ event → turn_active
 item/started                 │ event
 item/completed               │ event
 item/started                 │ event
@@ -10,7 +10,7 @@ thread/status/changed        │ event @thread:thread-child
 item/started                 │ event, link thread-root → thread-child (tool_call)
 item/completed               │ event → task_started, link thread-root → thread-child (tool_call)
 thread/status/changed        │ event @thread:thread-child
-turn/started                 │ event @thread:thread-child
+turn/started                 │ event @thread:thread-child → turn_active
 item/started                 │ event
 item/completed               │ event
 thread/status/changed        │ event
