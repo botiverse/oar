@@ -230,7 +230,12 @@ Phase 1 needs none of them and serves all eight runtimes with full access.
 - **Live:** Zed and Lody, each running `oar acp codex` beside the codex
   references and `oar acp claude` beside `claude-agent-acp`, through a
   scripted checklist of the rows above. The result table is recorded with
-  versions, like the runtime pages.
+  versions, like the runtime pages. In Lody the bridge runs as a custom
+  agent (`cliType: 'custom'`, `CustomAcpLaunchSpec { command, args }`);
+  Lody's source (d23ffd4) negotiates `_meta.lody` with every agent and
+  gates steer and subagent events on the agent's declared capabilities,
+  so the live run must also show whether any of its UI keys on the
+  builtin agent type instead.
 - **The bar:** every row same or better, or declined with its reason here.
 
 ## Phases
