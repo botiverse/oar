@@ -9,6 +9,9 @@ import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durab
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { startDurableFixture } from "../harness/pi-durable.js";
 
+/** Generous on purpose: a native submission settles on its own clock, past `vi.waitFor`'s 1 s default on slow CI runners (macOS). */
+const WAIT = { timeout: 15_000 };
+
 const nativeTest = test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock");
 nativeTest("JSONL recovery adopts a pending run, preserves queued input and deduplicates across Harness instances", async () => {
   const directory = await mkdtemp(join(tmpdir(), "oar-durable-recovery-"));
@@ -20,7 +23,7 @@ nativeTest("JSONL recovery adopts a pending run, preserves queued input and dedu
     const inputId = globalThis.crypto.randomUUID();
     await session.prompt("slow recover", { inputId });
     await session.queue("queued after restart");
-    await vi.waitFor(() => { expect(fixture.mock.getRequests().length).toBeGreaterThan(0); });
+    await vi.waitFor(() => { expect(fixture.mock.getRequests().length).toBeGreaterThan(0); }, WAIT);
     await session.dispose();
     await fixture.harness.close(BACKGROUND_CONTEXT);
     reopened = await Harness.open(await openNodeJsonlStorage(directory, BACKGROUND_CONTEXT), { models: fixture.models, registry: fixture.registry }, BACKGROUND_CONTEXT);
@@ -30,7 +33,7 @@ nativeTest("JSONL recovery adopts a pending run, preserves queued input and dedu
     const repeated = await restored.prompt("slow recover", { inputId });
     expect(repeated.kind).toBe("accepted");
     await reopened.waitForIdle(BACKGROUND_CONTEXT);
-    await vi.waitFor(() => { expect(restored.status().value.kind).toBe("idle"); });
+    await vi.waitFor(() => { expect(restored.status().value.kind).toBe("idle"); }, WAIT);
     expect(await awaitTurnEnd(restored, repeated.seq)).toEqual({ kind: "completed" });
     const ended = restored.records().filter((record) => record.kind === "frame").flatMap((record) => record.body.events).filter((event) => event.kind === "turn_ended");
     expect(ended).toHaveLength(2);

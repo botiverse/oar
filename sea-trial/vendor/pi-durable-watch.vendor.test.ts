@@ -5,6 +5,9 @@ import { watchEvents, type ConversationId, type WatchEnd } from "@earendil-works
 import { startDurableFixture, type DurableFixture } from "../harness/pi-durable.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 
+/** Generous on purpose: a native submission settles on its own clock, past `vi.waitFor`'s 1 s default on slow CI runners (macOS). */
+const WAIT = { timeout: 15_000 };
+
 vi.mock("@earendil-works/pi-durable", async (importOriginal) => {
   const native = await importOriginal<{ watchEvents: typeof watchEvents }>();
   return { ...native, watchEvents: vi.fn(native.watchEvents) };
@@ -72,7 +75,7 @@ suite("Pi Durable watch boundaries", () => {
     assert.ok(record);
     const submission = await fixture.harness.submission(record.id, BACKGROUND_CONTEXT);
     assert.ok(submission);
-    await vi.waitFor(async () => { const receipt = await submission.status(BACKGROUND_CONTEXT); expect(receipt.status).toBe("done"); });
+    await vi.waitFor(async () => { const receipt = await submission.status(BACKGROUND_CONTEXT); expect(receipt.status).toBe("done"); }, WAIT);
     expect(session.status().value.kind).toBe("running");
     const busy = await session.prompt("cannot start yet");
     expect(busy.response.body).toEqual({ kind: "rejected", code: "busy", reason: "busy" });
@@ -81,7 +84,7 @@ suite("Pi Durable watch boundaries", () => {
     expect(session.status().value.kind).toBe("running");
     expect(fixture.mock.getRequests()).toHaveLength(1);
     release();
-    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); }, WAIT);
     await session.dispose();
   });
 
@@ -89,7 +92,7 @@ suite("Pi Durable watch boundaries", () => {
     const { fixture, session } = await setup();
     await session.prompt("slow response");
     await fixture.harness.close(BACKGROUND_CONTEXT);
-    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); }, WAIT);
     const closed = session.records().find((record) => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
     assert.ok(closed?.kind === "frame");
     expect(closed.body.native).toEqual({ reason: "session_closed" });
@@ -107,7 +110,7 @@ suite("Pi Durable watch boundaries", () => {
     });
     const { session } = await setup();
     ended.resolve(end);
-    await vi.waitFor(() => { expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true); });
+    await vi.waitFor(() => { expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true); }, WAIT);
     const refused = await session.abort();
     expect(refused.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
     const closed = session.records().find((record) => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
