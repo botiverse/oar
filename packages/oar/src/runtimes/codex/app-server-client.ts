@@ -2,6 +2,7 @@ import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
+import { nativeErrorCause } from "../../shared/native-error.js";
 import { coordinateHomeInitialization } from "./home-initialization.js";
 import type { SessionResources } from "../../contracts/session.js";
 
@@ -57,6 +58,7 @@ export interface AppServerClient {
 }
 
 interface Pending {
+  readonly method: string;
   resolve(result: JsonRecord): void;
   reject(error: Error): void;
   settled(outcome: RpcOutcome): void;
@@ -144,18 +146,18 @@ function createAppServerClient(
     }
     if (typeof message.id === "number" && pending.has(message.id)) {
       const waiter = pending.get(message.id);
+      if (waiter === undefined) { return; }
       pending.delete(message.id);
       const error = asRecord(message.error);
       if (error !== null) {
-        const failure = new Error(redact(typeof error.message === "string" ? error.message : "app-server error"));
-        const redacted = JSON.stringify(error, (_key, value: unknown) => typeof value === "string" ? redact(value) : value);
-        const native = asRecord(parseJson(redacted));
-        waiter?.settled({ kind: "error", error: failure, ...(native === null ? {} : { native }) });
-        waiter?.reject(failure);
+        const cause = nativeErrorCause(waiter.method, error, redact);
+        const failure = new Error(redact(typeof error.message === "string" ? error.message : "app-server error"), { cause });
+        waiter.settled({ kind: "error", error: failure, native: cause.native });
+        waiter.reject(failure);
       } else {
         const result = asRecord(message.result) ?? {};
-        waiter?.settled({ kind: "result", result });
-        waiter?.resolve(result);
+        waiter.settled({ kind: "result", result });
+        waiter.resolve(result);
       }
     }
   });
@@ -189,7 +191,7 @@ function createAppServerClient(
       nextId += 1;
       // oxlint-disable-next-line promise/avoid-new -- settlement is driven by the response pump
       const result = await new Promise<JsonRecord>((resolve, reject) => {
-        pending.set(id, { resolve, reject, settled });
+        pending.set(id, { method, resolve, reject, settled });
         child.write(`${JSON.stringify({ id, method, params })}\n`);
       });
       return result;

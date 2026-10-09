@@ -1,5 +1,6 @@
 import {
   ndJsonStream,
+  RequestError,
   type ClientApp,
   type ClientConnection,
   type SendRequestOptions,
@@ -7,6 +8,7 @@ import {
 import { Readable, Writable } from "node:stream";
 import { spawnLineProcess } from "../executable/index.js";
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
+import { nativeErrorCause } from "../native-error.js";
 import type { SessionResources } from "../../contracts/session.js";
 
 export { client as createAcpClient, methods } from "@agentclientprotocol/sdk";
@@ -34,6 +36,8 @@ function processClosed(process: AcpProcess): boolean {
 export interface AcpProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
+  /** Session MCP credentials must not appear in protocol error messages, data or causes. */
+  readonly redact?: (text: string) => string;
 }
 
 /** A child process connected directly to an official SDK client app. */
@@ -43,6 +47,7 @@ export interface AcpProcess {
   readonly exited: Promise<number | null>;
   readonly closed: boolean;
   readonly exitCode: number | null;
+  readonly redact?: (text: string) => string;
   kill(): void;
   /** The agent's memory with everything it started (`LineProcess.resources`). */
   readonly resources: () => Promise<SessionResources | null>;
@@ -79,6 +84,17 @@ export async function withAcpDeadline<Response>(
       await process.exited;
       throw acpProcessExitedError(process.exitCode);
     }
+    if (error instanceof RequestError) {
+      const redact = process.redact ?? ((text: string): string => text);
+      const cause = nativeErrorCause(method, error.toErrorResponse(), redact);
+      // Keep the SDK class/code for ACP's auth/model classification, but no
+      // unredacted `data` or original error may remain down the cause chain.
+      const failure = new RequestError(error.code, redact(error.message), cause.native.data);
+      // Match ErrorOptions.cause: diagnostic context is not an enumerable
+      // native error field, so existing error-frame projections stay intact.
+      Object.defineProperty(failure, "cause", { value: cause, configurable: true, writable: true });
+      throw failure;
+    }
     throw error;
   } finally {
     if (limit !== undefined) {
@@ -111,6 +127,7 @@ export function startAcpProcess(
   });
   return {
     connection,
+    ...(options.redact === undefined ? {} : { redact: options.redact }),
     spawned: child.spawned,
     exited: child.exited,
     get closed() {

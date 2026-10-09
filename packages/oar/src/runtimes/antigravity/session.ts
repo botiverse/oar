@@ -92,12 +92,11 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   modelViaConfigOption: true,
   // A resumed session comes back in mode `default`, so yolo is applied on
   // every open, not only on `session/new`.
-  configureSession: async ({ connection, sessionId, response, requestOptions }) => {
+  configureSession: async ({ request, sessionId, response }) => {
     if (supportsAntigravityYolo(response)) {
-      await connection.agent.request(
+      await request(
         "session/set_mode",
         { sessionId, modeId: "yolo" },
-        requestOptions,
       );
     }
   },

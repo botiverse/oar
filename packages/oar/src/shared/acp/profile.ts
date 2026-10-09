@@ -1,5 +1,5 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
-import { methods, PROTOCOL_VERSION, type ClientConnection, type SendRequestOptions } from "@agentclientprotocol/sdk";
+import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
@@ -48,11 +48,11 @@ export interface AcpSessionProfile {
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
   readonly validateOptions?: (options: SessionOptions) => void;
   readonly configureSession?: (context: {
-    readonly connection: ClientConnection;
+    /** Each native call retains its own deadline and protocol error context. */
+    readonly request: (method: string, params: JsonRecord) => Promise<unknown>;
     readonly sessionId: string;
     readonly response: JsonRecord;
     readonly options: SessionOptions;
-    readonly requestOptions?: SendRequestOptions;
   }) => Promise<void>;
   /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. */
   readonly steerParams?: (input: string) => JsonRecord;
@@ -277,18 +277,13 @@ export async function openAcpSession(
   }
   const configure = profile.configureSession;
   if (configure !== undefined) {
-    await withAcpDeadline(
-      process,
-      "session/configure",
-      profile.requestTimeoutMs ?? 15_000,
-      (requestOptions) => configure({
-        connection: process.connection,
-        sessionId: opened.sessionId,
-        response: opened.response,
-        options,
-        ...(requestOptions === undefined ? {} : { requestOptions }),
-      }),
-    );
+    await configure({
+      request: (method, params) => withAcpDeadline(process, method, profile.requestTimeoutMs ?? 15_000,
+        (requestOptions) => process.connection.agent.request(method, params, requestOptions)),
+      sessionId: opened.sessionId,
+      response: opened.response,
+      options,
+    });
   }
   const sessionCapabilities = asRecord(asRecord(initialized.agentCapabilities)?.sessionCapabilities);
   return {

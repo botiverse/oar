@@ -296,13 +296,21 @@ same wording works in a browser or JavaScriptCore:
 
 The wording is for display and may change in any minor release. Hosts must
 make decisions from the typed values, never parse these strings. For those
-decisions, `failureAdvice(failure)` gives one policy per `FailureClass`:
+decisions, `failureAdvice(failure)` gives recovery timing per `FailureClass`:
 `retry` is `now` (retry with ordinary backoff: `rate_limited`, `overloaded`,
 `provider`, `runtime_exited`), `later` (wait for a limit to reset, typically
 hours: `quota`) or `no`; `userAction` says a person has to act first (`auth`,
 `billing`, `model_unavailable`, `input_too_large`). A `RuntimeFailureError`
-from `session()` carries the same `failure`. The
-separate [`parseReport`](subagents.md#reading-results) helper reads only
+from `session()` carries the same `failure`.
+
+This timing does not establish whether replaying an input or a whole turn
+is safe. A `provider` or `runtime_exited` failure can follow tool execution
+and file changes. The host decides whether to resend using
+`ConversationInput.state`, a `dropped` input's `reason`, and records observed
+after reopening. Even a `runtime_exited` drop means no echo was observed,
+not proof the runtime never read the input; see [dropped input](#dropped-input).
+
+The separate [`parseReport`](subagents.md#reading-results) helper reads only
 `formatReport`'s own report format. Each union member is covered by tests
 and exhaustive type checks in OAR, so an added member requires its wording
 to be supplied here.

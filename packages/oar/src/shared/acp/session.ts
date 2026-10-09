@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
 import { sessionEnvironment } from "../environment.js";
+import { mcpCredentialRedactor } from "../mcp-servers.js";
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
@@ -76,7 +77,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       },
       extensionNotifications: profile.extensionNotifications ?? [],
     });
-    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment });
+    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: mcpCredentialRedactor(options.mcpServers) });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
     }).catch(async (error: unknown) => {

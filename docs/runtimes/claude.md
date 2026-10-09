@@ -285,6 +285,12 @@ Before returning the session, OAR requires `on` for fast or `off` for
 default. `off`, `cooldown`, an absent report or a native rejection cannot
 confirm requested fast, and opening fails with both the request and native
 status/reason. The wait is bounded to 30 seconds and failure stops the child.
+Native error answers to this `initialize` or the effort `get_settings`
+call are retained as `{ method, native }` in the thrown error's `cause`,
+with the session's MCP credentials redacted. A successful `get_settings`
+answer is never attached, even on a readback mismatch: it includes private
+merged settings. Spawn failures retain their existing safe diagnostic
+fields without the original Node error or its arguments.
 `get_settings.effective.fastMode` is **not** sufficient: it is configuration
 intent, and `applied` currently carries no fast-mode status. Sonnet with
 fastMode true still reports off and is correctly refused before a model call.

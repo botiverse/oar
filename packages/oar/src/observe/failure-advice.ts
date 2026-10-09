@@ -1,13 +1,18 @@
 import type { FailureClass } from "../contracts/session.js";
 
 /**
- * One policy for a failed turn (or a `RuntimeFailureError` at open), so every
- * host decides the same way:
+ * Recovery timing for a failed turn (or a `RuntimeFailureError` at open),
+ * based only on its failure class:
  * - `retry: "now"`: try again with ordinary backoff (seconds to minutes);
  * - `retry: "later"`: wait for a limit to reset, typically hours;
  * - `retry: "no"`: the same request will fail the same way.
  * `userAction`: a person has to act first (sign in, pay, pick another model,
  * shorten the input).
+ * This says when another attempt may recover, not whether replaying input
+ * is safe: tools may already have run or files changed. The host decides
+ * whether to resend from `ConversationInput.state`, a dropped input's
+ * `reason`, and records observed after reopening. Even `runtime_exited`
+ * means no input echo was observed, not proof the runtime never read it.
  */
 export interface FailureAdvice {
   readonly retry: "now" | "later" | "no";
@@ -28,7 +33,7 @@ const ADVICE: Readonly<Record<FailureClass, FailureAdvice>> = {
   unknown: { retry: "no", userAction: false },
 };
 
-/** How to react to a failure of class `failure`. */
+/** Recovery timing for `failure`; no guarantee that replaying a turn is safe. */
 export function failureAdvice(failure: FailureClass): FailureAdvice {
   return ADVICE[failure];
 }

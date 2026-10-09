@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { SessionOptions } from "../../contracts/session.js";
-import type { JsonRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { mcpCredentialRedactor } from "../../shared/mcp-servers.js";
+import { nativeErrorCause } from "../../shared/native-error.js";
 import type { ClaudeProcess } from "./launch.js";
 import { CLAUDE_EFFORT_READBACK_MS, claudeControlResponseId, claudeEffortRefusal, claudeSettingsRequest } from "./effort.js";
 import { claudeServiceTierRefusal } from "./service-tier.js";
@@ -24,7 +26,10 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
   const privateIds = new Set<string>();
   const lifetime: { exited: boolean; code: number | null } = { exited: false, code: null };
   const exitError = (method: Method): Error => new Error(`claude exited (code ${String(lifetime.code)}) before answering ${method}`);
-  const confirm = async (method: Method, option: "effort" | "serviceTier", requested: string): Promise<void> => {
+  const confirm = async (method: Method, option: "effort" | "serviceTier", options: SessionOptions): Promise<void> => {
+    const requested = options[option];
+    if (requested === undefined) { return; }
+    const redact = mcpCredentialRedactor(options.mcpServers);
     const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
     const id = `oar-${option}-${randomUUID()}`;
     pending = { id, method, settle: resolve };
@@ -36,7 +41,13 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
       const answer = await promise;
       const refusal = answer instanceof Error ? `${answer.message}, so ${option} ${requested} cannot be confirmed`
         : (option === "effort" ? claudeEffortRefusal(requested, answer) : claudeServiceTierRefusal(requested, answer));
-      if (refusal !== null) { throw new Error(refusal); }
+      if (refusal !== null) {
+        const response = answer instanceof Error ? null : asRecord(answer.response);
+        // A successful get_settings contains merged user config, including
+        // credentials unknown to OAR. Only a protocol error belongs here.
+        const cause = response?.subtype === "error" ? nativeErrorCause(method, response, redact) : undefined;
+        throw new Error(redact(refusal), cause === undefined ? undefined : { cause });
+      }
     } catch (error) {
       child.kill();
       await child.exited;
@@ -58,8 +69,8 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
       if (pending !== null) { pending.settle(exitError(pending.method)); }
     },
     async confirm(options) {
-      if (options.effort !== undefined) { await confirm("get_settings", "effort", options.effort); }
-      if (options.serviceTier !== undefined) { await confirm("initialize", "serviceTier", options.serviceTier); }
+      if (options.effort !== undefined) { await confirm("get_settings", "effort", options); }
+      if (options.serviceTier !== undefined) { await confirm("initialize", "serviceTier", options); }
     },
   };
 }
