@@ -5,6 +5,9 @@ import { createRegistry, defineExtension, defineTool } from "@earendil-works/pi-
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { startDurableFixture } from "../harness/pi-durable.js";
 
+/** Generous on purpose: a native submission settles on its own clock, past `vi.waitFor`'s 1 s default on slow CI runners (macOS). */
+const WAIT = { timeout: 15_000 };
+
 const nativeTest = test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock");
 nativeTest("steer joins the tool run, follow-up starts another run, and tools retain results", async () => {
   const entered = Promise.withResolvers<void>();
@@ -31,7 +34,7 @@ nativeTest("steer joins the tool run, follow-up starts another run, and tools re
     expect([steered?.kind, queued.kind]).toEqual(["accepted", "accepted"]);
     release.resolve();
     await fixture.harness.waitForIdle(BACKGROUND_CONTEXT);
-    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); }, WAIT);
     const events = session.records().filter((record) => record.kind === "frame").flatMap((record) => record.body.events);
     expect(events.filter((event) => event.kind === "turn_ended")).toHaveLength(2);
     const echoes = events.filter((event) => event.kind === "user_message");

@@ -5,6 +5,9 @@ import { watchEvents } from "@earendil-works/pi-durable";
 import { statusOf } from "../../packages/oar/src/observe/agent-status.js";
 import { startDurableFixture } from "../harness/pi-durable.js";
 
+/** Generous on purpose: a native submission settles on its own clock, past `vi.waitFor`'s 1 s default on slow CI runners (macOS). */
+const WAIT = { timeout: 15_000 };
+
 vi.mock("@earendil-works/pi-durable", async (importOriginal) => {
   const native = await importOriginal<{ watchEvents: typeof watchEvents }>();
   return { ...native, watchEvents: vi.fn(native.watchEvents) };
@@ -48,7 +51,7 @@ test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock").each([false, true])("o
         const failed = session.records().find((entry) => entry.kind === "frame" && entry.body.type === "pi-durable/submissions_error");
         assert.ok(failed?.kind === "frame");
         expect(failed.body.native).toEqual({ name: "Error", message: "receipt query failed", code: "TEST_QUERY" });
-      });
+      }, WAIT);
       // Exercise the persisted JSON format, not an in-memory structured clone.
     const serialized = JSON.stringify(session.records());
     const persisted: unknown = JSON.parse(serialized);
@@ -57,12 +60,12 @@ test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock").each([false, true])("o
       } })]));
       const count = session.records().length;
       await conversation.configure({ instructions: "still watching" }, BACKGROUND_CONTEXT);
-      await vi.waitFor(() => { expect(session.records().length).toBeGreaterThan(count); });
+      await vi.waitFor(() => { expect(session.records().length).toBeGreaterThan(count); }, WAIT);
       expect(session.records().some((entry) => entry.kind === "response" && entry.body.kind === "exited")).toBe(false);
       await session.dispose();
       return;
     }
-    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+    await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); }, WAIT);
     expect(statusOf(session.records(), session.id)).toEqual(session.status());
     const frames = session.records().filter((entry) => entry.kind === "frame");
     expect(frames.filter((frame) => frame.body.type === "pi-durable/submissions")).toHaveLength(1);
