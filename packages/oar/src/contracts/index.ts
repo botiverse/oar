@@ -17,6 +17,8 @@ export type {
   InstallationSnapshot,
 } from "./installation.js";
 export type {
+  LoginProvider,
+  LoginProviderMethod,
   ProviderAuthFacade,
   ProviderAuthStatus,
   ProviderLoginEvent,

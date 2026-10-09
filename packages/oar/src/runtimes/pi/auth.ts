@@ -1,4 +1,6 @@
 import type {
+  LoginProvider,
+  LoginProviderMethod,
   ProviderAuthFacade,
   ProviderAuthStatus,
   ProviderLoginEvent,
@@ -64,6 +66,40 @@ export function toLoginPrompt(prompt: PiAuthPrompt): ProviderLoginPrompt {
   };
 }
 
+/** The part of a pi `Provider` its `/login` menu reads; every `Provider` is one. */
+export interface PiLoginProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly auth: {
+    readonly oauth?: { readonly name: string; readonly isSubscription?: boolean; readonly loginLabel?: string };
+    readonly apiKey?: { readonly name: string; readonly login?: unknown };
+  };
+}
+
+/**
+ * One provider as pi's `/login` offers it (`getLoginProviderOptions`): its
+ * OAuth sign-in, then its API key, ambient when pi has no prompt for it (pi:
+ * "configured outside pi"). Undefined when it accepts neither.
+ */
+export function piLoginProvider(provider: PiLoginProvider): LoginProvider | undefined {
+  const { oauth, apiKey } = provider.auth;
+  const methods: LoginProviderMethod[] = [];
+  if (oauth !== undefined) {
+    methods.push({
+      method: "oauth",
+      name: oauth.name,
+      subscription: oauth.isSubscription === true,
+      ...(oauth.loginLabel === undefined ? {} : { loginLabel: oauth.loginLabel }),
+    });
+  }
+  if (apiKey !== undefined) {
+    methods.push(apiKey.login === undefined
+      ? { method: "api_key", name: apiKey.name, ambient: true }
+      : { method: "api_key", name: apiKey.name });
+  }
+  return methods.length === 0 ? undefined : { providerId: provider.id, name: provider.name, methods };
+}
+
 /** Bridge an oar {@link ProviderLoginInteraction} into Pi's interaction shape. */
 function toPiInteraction(interaction: ProviderLoginInteraction): PiInteraction {
   return {
@@ -78,15 +114,27 @@ function toPiInteraction(interaction: ProviderLoginInteraction): PiInteraction {
   };
 }
 
-/** A non-interactive interaction that answers every prompt with a fixed value. */
-function fixedAnswerInteraction(answer: string): ProviderLoginInteraction {
+/**
+ * A non-interactive interaction for `setApiKey`: it answers pi's key prompt
+ * (the first prompt, a secret) with the key and refuses any other, which stops
+ * the flow before pi stores anything. A flow that asks more (amazon-bedrock and
+ * google-vertex ask which credential first, the Cloudflare providers ask for
+ * account and gateway ids after the key) needs the person: `login`.
+ */
+function keyOnlyInteraction(providerId: string, apiKey: string): ProviderLoginInteraction {
+  let keyGiven = false;
   return {
     onEvent: (): void => {
-      // A non-interactive api-key flow surfaces no URL or device code.
+      // A key-only flow surfaces no URL or device code.
     },
-    prompt: async (): Promise<string> => {
+    prompt: async (prompt: ProviderLoginPrompt): Promise<string> => {
       await Promise.resolve();
-      return answer;
+      if (!keyGiven && prompt.kind === "secret") {
+        keyGiven = true;
+        return apiKey;
+      }
+      throw new Error(`${providerId}'s API-key login asks more than the key (${prompt.kind}: "${prompt.message}"): `
+        + `use login("${providerId}", "api_key", interaction) instead of setApiKey`);
     },
   };
 }
@@ -110,7 +158,9 @@ class PiProviderAuth implements ProviderAuthFacade {
       configured: true,
       method: check.type === "oauth" ? "oauth" : "api_key",
       ...(label === undefined ? {} : { label }),
-      subscription: this.#runtime.isUsingSubscription(providerId),
+      // Pi's `isUsingSubscription`, read from this check: pi's own reads the
+      // availability snapshot, which `refreshOnCreate: false` leaves empty.
+      subscription: check.type === "oauth" && this.#runtime.getProvider(providerId)?.auth.oauth?.isSubscription === true,
     };
   }
 
@@ -120,6 +170,12 @@ class PiProviderAuth implements ProviderAuthFacade {
       const status = await this.#statusOf(credential.providerId);
       return status;
     }));
+  }
+
+  loginProviders(): readonly LoginProvider[] {
+    // Pi's `/login` lists its providers by name.
+    const providers = this.#runtime.getProviders().toSorted((left, right) => left.name.localeCompare(right.name));
+    return providers.flatMap((provider) => piLoginProvider(provider) ?? []);
   }
 
   async status(providerId: string): Promise<ProviderAuthStatus> {
@@ -139,10 +195,10 @@ class PiProviderAuth implements ProviderAuthFacade {
   }
 
   async setApiKey(providerId: string, apiKey: string): Promise<void> {
-    // Persist the key by running the api-key login flow with a non-interactive
-    // interaction that answers the secret prompt with the supplied key.
+    // Persist the key by running pi's api-key login flow, answering its key
+    // prompt and nothing else (see keyOnlyInteraction).
     const authType: PiAuthType = "api_key";
-    await this.#runtime.login(providerId, authType, toPiInteraction(fixedAnswerInteraction(apiKey)));
+    await this.#runtime.login(providerId, authType, toPiInteraction(keyOnlyInteraction(providerId, apiKey)));
   }
 
   async logout(providerId: string): Promise<void> {
@@ -153,6 +209,8 @@ class PiProviderAuth implements ProviderAuthFacade {
 export interface PiProviderAuthOptions {
   /** Path to Pi's `auth.json`; defaults to Pi's `~/.pi/agent/auth.json`. */
   readonly authPath?: string;
+  /** Path to Pi's `models.json` (custom providers, listed by `loginProviders()` too); `null` disables the static config. */
+  readonly modelsPath?: string | null;
 }
 
 /** Create a {@link ProviderAuthFacade} backed by Pi's `ModelRuntime`. */
@@ -163,6 +221,7 @@ export async function createPiProviderAuth(options: PiProviderAuthOptions = {}):
   await configurePiHttp(SettingsManager.create(process.cwd(), process.env.OAR_PI_AGENT_DIR ?? getAgentDir()));
   const runtime = await ModelRuntime.create({
     ...(options.authPath === undefined ? {} : { authPath: options.authPath }),
+    ...(options.modelsPath === undefined ? {} : { modelsPath: options.modelsPath }),
     allowModelNetwork: false,
     refreshOnCreate: false,
   });
