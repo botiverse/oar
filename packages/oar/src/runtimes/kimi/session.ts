@@ -50,12 +50,11 @@ export const kimiAcpProfile: AcpSessionProfile = {
   // A resume naming another directory ran in the session's own (2.1.1, probed
   // 2026-10-03), so a resume elsewhere is refused (profile.ts).
   resumeKeepsSessionCwd: true,
-  configureSession: async ({ connection, sessionId, response, requestOptions }) => {
+  configureSession: async ({ request, sessionId, response }) => {
     if (supportsKimiYolo(response)) {
-      await connection.agent.request(
+      await request(
         "session/set_mode",
         { sessionId, modeId: "yolo" },
-        requestOptions,
       );
     }
   },

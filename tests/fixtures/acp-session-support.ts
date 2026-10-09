@@ -16,11 +16,10 @@ export function profile(overrides: Partial<AcpSessionProfile> = {}): AcpSessionP
     capabilities: { queue: { durable: false }, attribution: "nested" },
     selectAuthMethod: () => "cached",
     abortTimeoutMs: 500,
-    configureSession: async ({ connection, sessionId, requestOptions }) => {
-      await connection.agent.request(
+    configureSession: async ({ request, sessionId }) => {
+      await request(
         "session/set_mode",
         { sessionId, modeId: "yolo" },
-        requestOptions,
       );
     },
     ...overrides,
@@ -94,4 +93,3 @@ export function describe(record: RawEvent): string {
 export function tail(session: Session, afterSeq: number): string[] {
   return session.records().filter((record) => record.seq > afterSeq).map((record) => describe(record));
 }
-

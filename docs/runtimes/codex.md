@@ -174,7 +174,14 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
 Missing or unloadable threads reject as `codex thread/resume failed:
-<message>`; structured RPC error data is dropped. A `thread/resume` on a
+<message>`; its `cause` keeps `{ method, native }`, where `native` is
+the JSON-RPC error, including `code`, `message` and any `data`. The same
+context is kept for `initialize` and other pre-session RPC failures, when
+no Session exists for the host to inspect records. MCP credential values
+are redacted throughout the native object before it is attached. Spawn
+failures keep only the existing safe process diagnostics, never Node's
+original error with its arguments.
+A `thread/resume` on a
 connection already subscribed to the loaded thread drops the `model` override
 and reports the old model, so the adapter refuses a readback mismatch
 (killing the app-server it started) rather than run silently on another

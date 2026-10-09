@@ -111,9 +111,9 @@ test("an open refused for auth reports no credential its servers carry, in its r
   expect(failure).toBeInstanceOf(RuntimeFailureError);
   expect(failure).toMatchObject({ failure: "auth" });
   const refused = failure instanceof RuntimeFailureError ? failure : null;
-  const cause = refused?.cause instanceof Error ? refused.cause : null;
-  expect(cause?.message).toMatch(/cannot start .*"value":"\[redacted\]"/u);
-  for (const text of [refused?.message, refused?.reason, refused?.stack, cause?.message, cause?.stack]) {
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest's asymmetric matcher is intentionally untyped.
+  expect(refused?.cause).toMatchObject({ method: "session/new", native: { message: expect.stringMatching(/cannot start .*"value":"\[redacted\]"/u) } });
+  for (const text of [refused?.message, refused?.reason, refused?.stack, JSON.stringify(refused?.cause)]) {
     expect(String(text)).not.toMatch(/stdio-secret-value|http-secret-value/u);
   }
 });

@@ -92,6 +92,7 @@ export async function openThread(
     client.kill();
     const message = error instanceof Error ? error.message : String(error);
     const detail = serviceTier === undefined ? message : `serviceTier ${serviceTier} could not be confirmed (actual unreported): ${message}`;
-    throw new Error(`codex ${method} failed: ${detail}`, { cause: error });
+    // oxlint-disable-next-line eslint/preserve-caught-error -- Keep the native diagnostic directly in cause, without another Error layer.
+    throw new Error(`codex ${method} failed: ${detail}`, { cause: error instanceof Error ? error.cause ?? error : error });
   }
 }
