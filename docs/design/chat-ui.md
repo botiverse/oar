@@ -53,7 +53,7 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 | `steer` / `queue` request | on a stream that has echoed an input id before (codex, claude): the input waits in `pendingInputs` until its echo. On one that never has (pi, cursor and the ACP runtimes): it enters `messages` at the request and seals the open segment |
 | `prompt` / `steer` / `queue` response | updates the input in place, with attempts and delivery state (folded by `reduceConversation`). A rejected input enters `messages` there if it was waiting; a retry of it that must wait for its echo takes it back out |
 | `withdraw` request / response | an attempt on the input it names. Accepted: the input is `withdrawn` and leaves `pendingInputs`, and `messages` too where the stream placed it at its request; the segment that request sealed stays sealed. Refused `not_queued`: nothing moves. Queued again, the input enters by the rows above |
-| `text_delta`, `reasoning` | appended to the current section of the lane `(sessionId, agentPath)`; a `text_delta` whose `messageId` differs from the last text part's starts a new part (one per assistant message), one without a `messageId` joins the last; `redacted` and `empty` reasoning render as lifecycle-only parts |
+| `text_delta`, `reasoning` | named text and readable reasoning rejoin their existing part of the same kind, lane and `messageId` anywhere in the current turn segment; sections retain first-appearance order. An input seal prevents joining across segments. Content without `messageId` keeps stream order and can still fragment across interleaved lanes; `redacted` and `empty` reasoning remain separate lifecycle-only parts ([grouping contract](../spec/conversation.md#session-view-message-grouping)) |
 | `tool_call_started` / `input` / `progress` / `ended` | one tool part per lane and call id, settled where its start landed even after the turn ended; an end without a start still renders. `tool_call_input` replaces the part's `input` with the latest the runtime reported (arguments an ACP runtime sends after the start), leaving its state alone. `startedAt` / `endedAt` are the `receivedAt` of the start and end records (epoch ms): when OAR observed them, not a time the runtime reported, and only those it saw (a running call has no `endedAt`; an end without a start has no `startedAt`), as `tasksOf` does |
 | `turn_ended` of the root agent in the root session | seals the turn segment and stamps its outcome; unresolved root tools in this turn become `ended`. A child agent's or session's end is a notice and never closes the root turn |
 | `compaction_started` / `ended`, `retry` | notice parts inside the running turn |
@@ -109,8 +109,8 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 - **No synthesized boundaries.** A turn opens on its prompt request or on the
   first event of an adopted turn (queued input, a mid-turn subscriber), the
-  rule `reduceStatus` follows. Sub-agent sections are runs of observed
-  `agentPath`, never an invented start event. A steer enters the transcript
+  rule `reduceStatus` follows. Sub-agent sections come from observed lanes
+  and message IDs, never an invented start event. A steer enters the transcript
   at the runtime's own echo, never at a position guessed from a turn end;
   whether a stream echoes is read off the stream, never off a runtime name.
 - **No transport mandate.** View and commands are host-agnostic; in-process,

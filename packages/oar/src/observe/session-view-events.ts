@@ -5,12 +5,14 @@ import {
   markRequestAnswered,
   noticePart,
   removeEmptyTurn,
+  sameLane,
   sealTurn,
   stampTurnOutcome,
+  turnForWrite,
   type Draft,
 } from "./session-view-fold.js";
 import { endRootTools, updateToolInput, updateToolPart } from "./session-view-tools.js";
-import type { PendingRequest } from "./session-view.js";
+import type { PendingRequest, ViewPart } from "./session-view.js";
 
 /**
  * The event-level fold of the session view: one `Event` (or one record's
@@ -30,10 +32,11 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       beginTurn(draft, `turn:${streamId}:${event.requestId}`, event.requestId);
       return;
     case "text_delta": {
+      if (appendMessageText(draft, event)) { return; }
       const section = laneFor(draft, event, streamId);
       const last = section?.parts.at(-1);
-      // A new message id starts a new part; text without one joins the last (older records, pi, ACP).
-      if (last?.kind === "text" && (event.messageId === undefined || event.messageId === last.messageId)) {
+      // Unnamed text retains stream order (older records, pi, ACP).
+      if (last?.kind === "text" && event.messageId === undefined) {
         section?.parts.splice(-1, 1, { ...last, text: last.text + event.text });
       } else {
         section?.parts.push({ kind: "text", text: event.text, ...(event.messageId === undefined ? {} : { messageId: event.messageId }) });
@@ -41,15 +44,16 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       return;
     }
     case "reasoning": {
+      if (appendMessageText(draft, event)) { return; }
       const section = laneFor(draft, event, streamId);
       const last = section?.parts.at(-1);
-      if (last?.kind === "reasoning" && last.content.kind === "text" && event.content.kind === "text") {
+      if (event.messageId === undefined && last?.kind === "reasoning" && last.content.kind === "text" && event.content.kind === "text") {
         section?.parts.splice(-1, 1, {
-          kind: "reasoning",
+          ...last,
           content: { kind: "text", text: last.content.text + event.content.text },
         });
       } else {
-        section?.parts.push({ kind: "reasoning", content: event.content });
+        section?.parts.push({ kind: "reasoning", content: event.content, ...(event.messageId === undefined ? {} : { messageId: event.messageId }) });
       }
       return;
     }
@@ -208,6 +212,34 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       // leaves the lists there. A withdraw of an input never folded has nothing to remove.
       break;
   }
+}
+
+/** Named text rejoins its own part, only inside the current unsealed segment. */
+function appendMessageText(draft: Draft, event: Extract<Event, { kind: "text_delta" | "reasoning" }>): boolean {
+  if (event.messageId === undefined || (event.kind === "reasoning" && event.content.kind !== "text")) {
+    return false;
+  }
+  const turn = turnForWrite(draft);
+  if (turn === null) { return false; }
+  for (let s = turn.sections.length - 1; s >= 0; s -= 1) {
+    const section = turn.sections[s];
+    if (section === undefined || !sameLane(section, event.sessionId, event.agentPath)) { continue; }
+    for (let p = section.parts.length - 1; p >= 0; p -= 1) {
+      const part = section.parts[p];
+      let updated: ViewPart | undefined = undefined;
+      if (part?.kind === "text" && event.kind === "text_delta" && part.messageId === event.messageId) {
+        updated = { ...part, text: part.text + event.text };
+      } else if (part?.kind === "reasoning" && event.kind === "reasoning" && part.messageId === event.messageId && part.content.kind === "text" && event.content.kind === "text") {
+        updated = { ...part, content: { kind: "text", text: part.content.text + event.content.text } };
+      }
+      if (updated === undefined) { continue; }
+      const parts = [...section.parts];
+      parts[p] = updated;
+      turn.sections[s] = { ...section, parts };
+      return true;
+    }
+  }
+  return false;
 }
 
 // ─── Record-level facts the flat event reading does not carry ─────────────
