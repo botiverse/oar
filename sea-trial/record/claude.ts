@@ -16,15 +16,18 @@ export function scrub(line: string): Record<string, unknown> | null {
     return null;
   }
   const content = asRecord(frame.message)?.content;
+  // Attribution: a sub-agent's frames name the Task call that started it.
+  const parent = typeof frame.parent_tool_use_id === "string" ? { parent_tool_use_id: frame.parent_tool_use_id } : {};
   switch (frame.type) {
     case "system":
       return { type: "system", subtype: frame.subtype };
     case "assistant":
-      return { type: "assistant", message: { content: scrubBlocks(content) } };
+      return { type: "assistant", ...parent, message: { content: scrubBlocks(content) } };
     case "user":
-      return { type: "user", message: { content: scrubBlocks(content).filter((block) => block.type === "tool_result") } };
+      return { type: "user", ...parent, message: { content: scrubBlocks(content).filter((block) => block.type === "tool_result") } };
     case "result": {
       const usage = asRecord(frame.usage);
+      const modelUsage = asRecord(frame.modelUsage);
       return {
         type: "result", subtype: frame.subtype, is_error: frame.is_error,
         ...(usage === null ? {} : { usage: {
@@ -33,6 +36,17 @@ export function scrub(line: string): Record<string, unknown> | null {
           cache_read_input_tokens: usage.cache_read_input_tokens,
           cache_creation_input_tokens: usage.cache_creation_input_tokens,
         } }),
+        // The session total (#282): each model's counts and window.
+        ...(modelUsage === null ? {} : { modelUsage: Object.fromEntries(Object.entries(modelUsage).map(([model, raw]) => {
+          const entry = asRecord(raw) ?? {};
+          return [model, {
+            inputTokens: entry.inputTokens,
+            outputTokens: entry.outputTokens,
+            cacheReadInputTokens: entry.cacheReadInputTokens,
+            cacheCreationInputTokens: entry.cacheCreationInputTokens,
+            contextWindow: entry.contextWindow,
+          }];
+        })) }),
       };
     }
     default:

@@ -1,11 +1,10 @@
 import type {
   ContextUsage,
   Event,
-  SessionUsage,
   TokenTotals,
   TurnOutcome,
 } from "../contracts/session.js";
-import { addTokens, noTokens } from "../shared/token-totals.js";
+import { sessionUsageFrom } from "./usage.js";
 import type { AgentStatus } from "./agent-status.js";
 import type { ConversationInput, ConversationState } from "./conversation.js";
 import type {
@@ -39,6 +38,7 @@ export interface Draft {
   context: ContextUsage | null;
   exited: { readonly code: number | null } | null;
   usageByAgent: Map<string, AgentTokens>;
+  usageTotal: TokenTotals | null;
   rootSessionId: string | undefined;
 }
 
@@ -55,6 +55,7 @@ export function draftOf(state: SessionView): Draft {
     context: state.context,
     exited: state.exited,
     usageByAgent: new Map(state.usageByAgent),
+    usageTotal: state.usageTotal,
     rootSessionId: state.rootSessionId,
   };
 }
@@ -64,14 +65,7 @@ export function assemble(
   conversation: ConversationState,
   status: AgentStatus,
 ): SessionView {
-  const byAgent = [...draft.usageByAgent.values()];
-  const total =
-    byAgent.length === 0
-      ? null
-      : byAgent.reduce<TokenTotals>((sum, entry) => addTokens(sum, entry.tokens), noTokens);
-  const onlyRoot = byAgent.every((entry) => entry.agentPath.length === 0);
-  const usage: SessionUsage =
-    total === null ? { total: null } : (byAgent.length <= 1 && onlyRoot ? { total } : { total, byAgent });
+  const usage = sessionUsageFrom([...draft.usageByAgent.values()], draft.usageTotal);
   return {
     messages: draft.messages,
     pendingInputs: draft.pendingInputs,
@@ -87,6 +81,7 @@ export function assemble(
     conversation,
     rootSessionId: draft.rootSessionId,
     usageByAgent: draft.usageByAgent,
+    usageTotal: draft.usageTotal,
   };
 }
 

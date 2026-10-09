@@ -228,6 +228,10 @@ Further rules:
   arriving before the root's ([env] 0.149.0), and the child's usage total
   would otherwise overwrite the root's under `agentPath []`. Scope a
   fold to a child by passing its `sessionId` (`usageOf(records, sessionId)`).
+  `usage()` reads a derived child's records for one thing only: its
+  `withChildren` adds each child session's total, once
+  ([attribution](attribution.md#usage-one-constraint)), so its `seq` covers
+  those records too.
 - **A tool's input is the latest one the runtime reported.**
   `tool_call_started.input` is what the opening frame said, and stays so. A
   runtime that sends the arguments later (an ACP `tool_call_update` whose
@@ -302,7 +306,7 @@ interface FrameBody {
 //   tool_call_input {callId, input} |
 //   tool_call_progress {callId, output?, outputDelta?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
-//   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}}} | model {model} |
+//   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
 //   compaction_started {trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |

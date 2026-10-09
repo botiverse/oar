@@ -7,6 +7,18 @@ import { claudeInstallation, claudeSession, type Session } from "../../packages/
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 
+/** The main loop's spend in the session's last `result` frame, as OAR counts tokens. */
+function mainLoopOf(session: Session): unknown {
+  const result = session.records().findLast((record) => record.kind === "frame" && record.body.type.startsWith("result"));
+  const native = result?.kind === "frame" ? result.body.native : null;
+  const usage = typeof native === "object" && native !== null && "usage" in native ? native.usage : null;
+  if (typeof usage !== "object" || usage === null) { return null; }
+  const count = (key: string): number => { const value: unknown = Reflect.get(usage, key); return typeof value === "number" ? value : 0; };
+  const cacheRead = count("cache_read_input_tokens");
+  const cacheWrite = count("cache_creation_input_tokens");
+  return { input: count("input_tokens") + cacheRead + cacheWrite, output: count("output_tokens"), cacheRead, cacheWrite };
+}
+
 test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude missing resume fails during initialize without sending a model request", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "oar-claude-missing-resume-"));
   const provider = await startClaudeAimock();
@@ -43,6 +55,9 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude existing resume co
     expect(current.id).toBe(id);
     expect(current.records().some((record) => record.kind === "frame" && record.body.type === "control_response")).toBe(false);
     await expect(runTurn(current, "second")).resolves.toEqual({ kind: "completed" });
+    // The resumed process's modelUsage continues the first one's; less the
+    // get_usage baseline, usage() is this Session's one turn, its main loop (#282).
+    expect(current.usage().value).toEqual({ total: mainLoopOf(current) });
   } finally {
     await current?.dispose();
     await provider.stop();

@@ -22,17 +22,24 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
  */
 
 const here = import.meta.dirname;
-const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks", "mcp-echo"];
+// usage-subagent-compact (claude 2.1.292, haiku, 2026-10-09): one process, a
+// turn that runs a Task subagent, a plain turn, then a manual /compact.
+const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks", "mcp-echo", "usage-subagent-compact"];
 
-function describeUsage(tokens: TokenTotals | undefined): string {
-  if (tokens === undefined) {
-    return "usage";
-  }
+function describeTokens(tokens: TokenTotals): string {
   const parts = [
     ...(tokens.cacheRead === undefined ? [] : [` cacheRead=${String(tokens.cacheRead)}`]),
     ...(tokens.cacheWrite === undefined ? [] : [` cacheWrite=${String(tokens.cacheWrite)}`]),
   ];
-  return `usage in=${String(tokens.input)} out=${String(tokens.output)}${parts.join("")}`;
+  return `in=${String(tokens.input)} out=${String(tokens.output)}${parts.join("")}`;
+}
+
+function describeUsage(tokens: TokenTotals | undefined, total: TokenTotals | undefined): string {
+  return [
+    "usage",
+    ...(tokens === undefined ? [] : [describeTokens(tokens)]),
+    ...(total === undefined ? [] : [`total ${describeTokens(total)}`]),
+  ].join(" ");
 }
 
 function describeCommand(command: ProjectionCommand): string {
@@ -52,7 +59,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "turn_ended":
             return `turn_ended ${view.outcome.kind}`;
           case "usage":
-            return describeUsage(view.usage.tokens);
+            return describeUsage(view.usage.tokens, view.usage.total);
           case "text_delta":
           case "turn_active":
           case "tool_call_ended":
@@ -82,8 +89,10 @@ function describeCommand(command: ProjectionCommand): string {
   }
 }
 
-function summarizeFrame(message: { type?: string; subtype?: string; message?: { content?: { type?: string }[] } }): string {
-  const blocks = message.message?.content?.map((block) => block.type).join(",") ?? "";
+function summarizeFrame(message: { type?: string; subtype?: string; message?: { content?: { type?: string }[] | string } }): string {
+  const content = message.message?.content;
+  // A user message's content may be one plain string (claude's compaction summary).
+  const blocks = typeof content === "string" ? "text" : content?.map((block) => block.type).join(",") ?? "";
   return [message.type, message.subtype, blocks].filter((part) => part !== undefined && part !== "").join(" ");
 }
 
