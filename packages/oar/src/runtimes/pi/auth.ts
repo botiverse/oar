@@ -8,8 +8,8 @@ import type {
   ProviderLoginMethod,
   ProviderLoginPrompt,
 } from "../../contracts/provider-auth.js";
-import { getAgentDir, ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
-import { configurePiHttp } from "./http.js";
+import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import { piFacadeRuntime, type PiModelRuntimePaths } from "./agent-dir.js";
 
 /*
  * Pi's `ModelRuntime.login` takes its own `AuthInteraction` / `AuthType`, whose
@@ -206,24 +206,11 @@ class PiProviderAuth implements ProviderAuthFacade {
   }
 }
 
-export interface PiProviderAuthOptions {
-  /** Path to Pi's `auth.json`; defaults to Pi's `~/.pi/agent/auth.json`. */
-  readonly authPath?: string;
-  /** Path to Pi's `models.json` (custom providers, listed by `loginProviders()` too); `null` disables the static config. */
-  readonly modelsPath?: string | null;
-}
+/** `auth.json` and `models.json` (custom providers, listed by `loginProviders()` too) default into the agent dir sessions use. */
+export type PiProviderAuthOptions = PiModelRuntimePaths;
 
 /** Create a {@link ProviderAuthFacade} backed by Pi's `ModelRuntime`. */
 export async function createPiProviderAuth(options: PiProviderAuthOptions = {}): Promise<ProviderAuthFacade> {
-  // OAuth login/refresh goes over the network: the proxy plane first, from
-  // the same settings (OAR_PI_AGENT_DIR ?? pi's agent dir) every pi entry
-  // point of the adapter reads, so login behaves like a session (see http.ts).
-  await configurePiHttp(SettingsManager.create(process.cwd(), process.env.OAR_PI_AGENT_DIR ?? getAgentDir()));
-  const runtime = await ModelRuntime.create({
-    ...(options.authPath === undefined ? {} : { authPath: options.authPath }),
-    ...(options.modelsPath === undefined ? {} : { modelsPath: options.modelsPath }),
-    allowModelNetwork: false,
-    refreshOnCreate: false,
-  });
+  const runtime = await piFacadeRuntime(options, { allowModelNetwork: false, refreshOnCreate: false });
   return new PiProviderAuth(runtime);
 }

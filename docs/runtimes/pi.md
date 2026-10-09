@@ -636,7 +636,13 @@ regular dependency of OAR and moves with the OAR version, so Pi has no
 support API keys and OAuth; `createPiProviderAuth` exposes per-provider
 status, interactive login (auth-URL / device-code / prompt events bridged from
 pi's `AuthInteraction`), `setApiKey` and logout through `ModelRuntime`,
-outside the session interface. OAR has **no accountUsage reader** for Pi: it
+outside the session interface. It and `createPiModelCatalog` read
+`auth.json` and `models.json` from the agent dir sessions use
+(`OAR_PI_AGENT_DIR`, else pi's own), unless `authPath` or `modelsPath`
+name others, so a login reaches the next session; before 0.50.0 they used
+pi's own dir even with `OAR_PI_AGENT_DIR` set.
+[Facade paths](../../packages/oar/src/runtimes/pi/agent-dir.ts).
+OAR has **no accountUsage reader** for Pi: it
 runs on provider credentials and has no subscription usage surface to
 observe. An empty usable-model catalog does not establish a universal
 unauthenticated state.
