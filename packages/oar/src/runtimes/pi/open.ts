@@ -3,6 +3,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
+import { piCredentialExtension, rememberPiKey } from "./credentials.js";
 import { configurePiHttp } from "./http.js";
 import { disposePiAgentSession } from "./lifecycle.js";
 import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
@@ -108,7 +109,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
  * then the session against an explicit SessionManager so resume and creation
  * share one session directory.
  */
-export async function openPiAgentSession(options: SessionOptions): Promise<PiAgentSession> {
+export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   validatePiMcpEnvironment(options);
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
@@ -149,7 +150,7 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
     resourceLoaderOptions: {
       ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
       ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: [options.appendSystemPrompt] }),
-      ...(mcp === null ? {} : { extensionFactories: [...mcp.extensions] }),
+      extensionFactories: [...(mcp?.extensions ?? []), ...(rememberKey === undefined ? [] : [{ name: "oar-credentials", factory: piCredentialExtension(rememberKey), hidden: true }])],
     },
   });
   mcp?.check(services.resourceLoader.getExtensions().errors);
@@ -204,6 +205,7 @@ export async function openPiAgentSession(options: SessionOptions): Promise<PiAge
   // default session_start reason: startup. bindExtensions emits it and
   // awaits resource discovery, whether or not MCP was requested.
   try {
+    if (rememberKey !== undefined) { await rememberPiKey(new sdk.ModelRegistry(session.modelRuntime), session.model, rememberKey); }
     await session.bindExtensions({});
   } catch (error) {
     await disposePiAgentSession(session);

@@ -3,8 +3,7 @@ import type {
 import { classifyFailure } from "../../shared/failure-class.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
-import { sealSession } from "../../shared/seal-session.js";
-import { createSessionKernel } from "../../shared/session-kernel.js";
+import { withSessionCredentials } from "../../shared/session-credentials.js";
 import {
   foldPiEvent,
   initialPiProjection,
@@ -31,11 +30,11 @@ export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
  * this process.
  */
 
-export const piSession: StartSession = async (installation, options) => {
+export const piSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }
-  const piAgentSession = await openPiAgentSession(options);
+  const piAgentSession = await openPiAgentSession(options, credentials.add);
   // pi-ai's own test for an oversized context, on a failed assistant message (failure.ts).
   const { isContextOverflow } = await import("@earendil-works/pi-ai");
   const overflowOf = (event: Parameters<Parameters<typeof piAgentSession.subscribe>[0]>[0]): boolean => {
@@ -45,7 +44,7 @@ export const piSession: StartSession = async (installation, options) => {
     return event.type === "message_update" && event.assistantMessageEvent.type === "error" && isContextOverflow(event.assistantMessageEvent.error);
   };
 
-  const kernel = createSessionKernel(piAgentSession.sessionId);
+  const kernel = credentials.kernel(piAgentSession.sessionId);
   // abort() signals synchronously, then waits for idle. Accept delivery now;
   // its later settlement is a native event, never a control-intent inference.
   const abortNative = async (): Promise<void> => {
@@ -192,7 +191,7 @@ export const piSession: StartSession = async (installation, options) => {
   }
 
   const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
-  const session: Session = sealSession({
+  const session: Session = credentials.seal({
     id: kernel.sessionId,
     capabilities,
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
@@ -271,4 +270,4 @@ export const piSession: StartSession = async (installation, options) => {
     },
   });
   return session;
-};
+});

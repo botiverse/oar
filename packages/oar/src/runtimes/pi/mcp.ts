@@ -1,8 +1,9 @@
+import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import path from "node:path";
 import type { InlineExtension, McpServerConfig } from "@earendil-works/pi-coding-agent";
 import type { McpServer, SessionOptions } from "../../contracts/session.js";
-import { checkMcpServerNames, givenMcpServers, isHttpMcpServer, mcpCredentialRedactor } from "../../shared/mcp-servers.js";
+import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
 
 /*
  * SessionOptions.mcpServers on pi: the SDK's own MCP support, as the pi CLI
@@ -125,7 +126,7 @@ export async function piMcpExtensions(options: SessionOptions, agentDir: string)
   }
   checkPiMcpServerNames(servers);
   const sdk = await import("@earendil-works/pi-coding-agent");
-  const redact = mcpCredentialRedactor(servers);
+  const { redact } = sessionCredentialRedactor(options);
   const failures: string[] = [];
   const register: InlineExtension = (pi) => {
     for (const server of servers) {

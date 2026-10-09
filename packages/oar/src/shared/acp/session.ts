@@ -1,6 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
 import { sessionEnvironment } from "../environment.js";
-import { mcpCredentialRedactor } from "../mcp-servers.js";
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
@@ -13,8 +12,7 @@ import type {
   SessionOptions,
   StartSession,
 } from "../../contracts/session.js";
-import { sealSession } from "../seal-session.js";
-import { createSessionKernel } from "../session-kernel.js";
+import { withSessionCredentials } from "../session-credentials.js";
 import { createAcpClientApp } from "./client-app.js";
 import {
   acpMcpOpenGuard,
@@ -44,7 +42,7 @@ export type { AcpSessionProfile } from "./profile.js";
  */
 
 export function acpSession(profile: AcpSessionProfile): StartSession {
-  return async (installation: AvailableInstallation, options: SessionOptions): Promise<Session> => {
+  return withSessionCredentials(async (installation: AvailableInstallation, options: SessionOptions, credentials): Promise<Session> => {
     if (installation.via !== "executable") {
       throw new Error("ACP runtimes require an executable installation");
     }
@@ -52,7 +50,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // SessionOptions.mcpServers go out in the open request (mcp-servers.ts):
     // a list with an empty or repeated name fails before anything starts,
     // and an open that fails reports no credential they carry.
-    const withoutCredentials = acpMcpOpenGuard(options.mcpServers);
+    const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const args = acpLaunchArgs(profile, options);
     const environment = sessionEnvironment(options.env);
     const terminalHost = createAcpTerminalHost(options.cwd, environment, {
@@ -77,7 +75,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       },
       extensionNotifications: profile.extensionNotifications ?? [],
     });
-    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: mcpCredentialRedactor(options.mcpServers) });
+    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
     }).catch(async (error: unknown) => {
@@ -86,7 +84,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       await terminalHost.dispose();
       throw withoutCredentials(error);
     });
-    const kernel = createSessionKernel(opened.sessionId);
+    const kernel = credentials.kernel(opened.sessionId);
     recorder.bind(kernel);
 
     let disposeRequest: RequestRecord | null = null;
@@ -131,7 +129,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         }),
       };
 
-    return sealSession({
+    return credentials.seal({
       id: kernel.sessionId,
       capabilities,
       prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
@@ -177,5 +175,5 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
         await terminalHost.dispose();
       },
     });
-  };
+  });
 }

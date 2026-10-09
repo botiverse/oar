@@ -478,6 +478,26 @@ compact/abort-compaction controls are **not exposed**.
 [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [vendor test](../../sea-trial/vendor/pi.vendor.test.ts).
 
+### Credential echoes
+
+A provider can include its API key in an error message. At open, OAR asks
+Pi's `ModelRegistry.getApiKeyAndHeaders` for the selected model's resolved
+key, before binding extensions. A hidden `model_select` handler repeats that
+lookup when an extension changes the model; Pi awaits the handler before
+its next request. Values shorter than eight characters and path-shaped values
+are excluded, just like explicit environment credentials; local-provider
+placeholders such as `ollama` do not rewrite model IDs or reply text.
+Keys already accepted remain protected for the session.
+OAR reads no credential files itself and never changes the key used by Pi.
+
+The shared [record credential rule](../spec/record-stream.md#the-rules)
+redacts known keys from every retained record and projected failure reason,
+as well as opening and later adapter errors. A real SDK regression uses a
+local provider that reflects its received auth header in a 400 response,
+then switches to a second model and key in the same session. Both keys stay
+out of live records, replay, error outcomes, JSON and diagnostic inspection;
+ordinary path text remains visible.
+
 ### Tools, permissions, extensions, and environment
 
 **Partial:** `createAgentSessionServices` loads native resources and extension

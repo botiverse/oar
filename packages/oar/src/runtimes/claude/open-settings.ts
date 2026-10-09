@@ -1,7 +1,8 @@
+import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { randomUUID } from "node:crypto";
 import type { SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
-import { mcpCredentialRedactor } from "../../shared/mcp-servers.js";
+
 import { nativeErrorCause } from "../../shared/native-error.js";
 import type { ClaudeProcess } from "./launch.js";
 import { CLAUDE_EFFORT_READBACK_MS, claudeControlResponseId, claudeEffortRefusal, claudeSettingsRequest } from "./effort.js";
@@ -29,7 +30,7 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
   const confirm = async (method: Method, option: "effort" | "serviceTier", options: SessionOptions): Promise<void> => {
     const requested = options[option];
     if (requested === undefined) { return; }
-    const redact = mcpCredentialRedactor(options.mcpServers);
+    const { redact } = sessionCredentialRedactor(options);
     const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
     const id = `oar-${option}-${randomUUID()}`;
     pending = { id, method, settle: resolve };

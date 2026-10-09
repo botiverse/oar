@@ -107,7 +107,8 @@ function deliver(observer: RawEventObserver, record: RawEvent): void {
   }
 }
 
-export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID()): SessionKernel {
+/** An optional session credential redactor runs before retention and observer delivery; native command inputs remain unchanged. */
+export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: <T extends RawEvent>(record: T) => T): SessionKernel {
   const observers = new Set<RawEventObserver>();
   const log: RawEvent[] = [];
   const nodes = new Map<string, { readonly id: string }>([[sessionId, { id: sessionId }]]);
@@ -132,7 +133,8 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       receivedAt: Date.now(),
     });
     seq += 1;
-    log.push(record);
+    const retained = redact === undefined ? record : redact(record);
+    log.push(retained);
     if (record.kind === "response" && record.body.kind === "exited") {
       exited = true;
     }
@@ -140,9 +142,9 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       disposing = true;
     }
     for (const observer of observers) {
-      deliver(observer, record);
+      deliver(observer, retained);
     }
-    return record;
+    return retained;
   };
 
   const unreachable = (): ReturnType<SessionKernel["unreachable"]> => {
@@ -164,7 +166,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
     async control(body, decide, at) {
       const blocked = unreachable();
       const issued = request("toRuntime", body, at);
-      const decided = blocked ?? emptyInputRefusal(body) ?? await settle(decide, issued);
+      const decided = blocked ?? emptyInputRefusal(body) ?? await settle(decide, { ...issued, body });
       return { request: issued, response: respond(issued.id, decided, at) };
     },
     unreachable,

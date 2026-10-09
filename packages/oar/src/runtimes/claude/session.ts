@@ -11,8 +11,7 @@ import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { asRecord, parseJson } from "../../shared/json.js";
-import { sealSession } from "../../shared/seal-session.js";
-import { createSessionKernel } from "../../shared/session-kernel.js";
+import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { claudeOpenSettings } from "./open-settings.js";
 import { claudeContextBreakdownReader } from "./context-breakdown.js";
 import { launchClaude, type ClaudeProcess } from "./launch.js";
@@ -60,7 +59,7 @@ interface ClaudeSessionState {
   disposed: boolean;
 }
 
-export const claudeSession: StartSession = async (installation, options) => {
+export const claudeSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") {
     throw new Error("The claude session adapter needs an executable installation");
   }
@@ -70,7 +69,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   const sessionId = options.resume ?? randomUUID();
   const child = await launchClaude(installation.command, sessionId, options);
 
-  const kernel = createSessionKernel(sessionId);
+  const kernel = credentials.kernel(sessionId);
   const state: ClaudeSessionState = {
     child,
     active: null,
@@ -165,7 +164,7 @@ export const claudeSession: StartSession = async (installation, options) => {
 
   let interruptCounter = 0;
   const capabilities = { queue: { durable: false }, attribution: "attributed", images: true } as const;
-  const session: Session = sealSession({
+  const session: Session = credentials.seal({
     id: kernel.sessionId,
     capabilities,
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
@@ -269,4 +268,4 @@ export const claudeSession: StartSession = async (installation, options) => {
     },
   });
   return session;
-};
+});
