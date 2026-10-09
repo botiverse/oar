@@ -85,7 +85,8 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 </table>
 
 [Pi Durable](docs/runtimes/pi-durable.md) also runs through a host-owned Harness,
-including in a browser via `@botiverse/oar/browser`.
+including in a browser via `@botiverse/oar/pi-durable` and the portable
+core in `@botiverse/oar/browser`. The host installs its optional native peers.
 
 ## Library
 

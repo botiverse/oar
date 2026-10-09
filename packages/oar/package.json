@@ -42,6 +42,10 @@
     "./browser": {
       "types": "./dist/browser.d.ts",
       "import": "./dist/browser.js"
+    },
+    "./pi-durable": {
+      "types": "./dist/pi-durable.d.ts",
+      "import": "./dist/pi-durable.js"
     }
   },
   "files": [
@@ -68,25 +72,33 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.4.0",
-    "@earendil-works/chord": "1.1.0",
     "@earendil-works/pi-ai": "^1.1.0",
     "@earendil-works/pi-coding-agent": "^1.1.0",
-    "@earendil-works/pi-durable": "1.1.0",
     "cross-spawn": "^7.0.6",
     "undici": "8.10.2",
     "which": "^2.0.2"
   },
   "peerDependencies": {
-    "@cursor/sdk": "1.0.37"
+    "@cursor/sdk": "1.0.37",
+    "@earendil-works/pi-durable": "~1.1.0",
+    "@earendil-works/chord": "~1.1.0"
   },
   "peerDependenciesMeta": {
     "@cursor/sdk": {
+      "optional": true
+    },
+    "@earendil-works/pi-durable": {
+      "optional": true
+    },
+    "@earendil-works/chord": {
       "optional": true
     }
   },
   "devDependencies": {
     "@cursor/sdk": "1.0.37",
     "@types/cross-spawn": "^6.0.6",
-    "@types/which": "^2.0.2"
+    "@types/which": "^2.0.2",
+    "@earendil-works/pi-durable": "1.1.0",
+    "@earendil-works/chord": "1.1.0"
   }
 }

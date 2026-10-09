@@ -18,7 +18,7 @@ import type { ToolOutputPart } from "./tool-output.js";
  * Semantics live in docs/spec; the session control surface that produces
  * these records is in ./session.ts.
  */
-
+// ─── The record stream ────────────────────────────────────────────────────
 /**
  * Self-certifying envelope on every record (docs/spec/attribution.md).
  * Identity and ordering rest on `seq` alone; `receivedAt` is best-effort

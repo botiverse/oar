@@ -65,7 +65,7 @@ echoes by identity, including steer → queue fallback. See the
 The package has these public entry points, plus `@botiverse/oar/community` for community runtimes (below):
 
 - `@botiverse/oar`: the runtime registry and adapters, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
-- `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, branding and `createPiDurableRuntime({ harness, models })`. No Node adapters, process helpers or local image-file loaders.
+- `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
   It also supplies `failureAdvice` (one retry policy per `FailureClass`) and `noticeText`, `noticeTone`, `phaseLabel`, `failureText` and `taskStatusLabel`, alongside `toolActionLabel` and `toolGroupSummary`: English display wording for OAR types, usable in JavaScriptCore too. Wording may change in a minor release; hosts must use the typed values for decisions, not parse the text ([display wording](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#display-wording)).
@@ -162,8 +162,13 @@ TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module
 
 ## Host-owned durable sessions
 
+Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.1.0 @earendil-works/chord@~1.1.0`.
+The factory lives only in `@botiverse/oar/pi-durable`, usable in Node and browsers.
+The root and browser core entries load without these peers.
+
 ```ts
-import { createPiDurableRuntime, viewOf } from "@botiverse/oar/browser";
+import { viewOf } from "@botiverse/oar/browser";
+import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
 
 // Use the same Models instance that the host passed to Harness.open.
 const runtime = createPiDurableRuntime({ harness, models });

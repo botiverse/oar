@@ -6,7 +6,8 @@ these contracts, see [`docs/runtimes/`](../../../docs/runtimes/README.md).
 ```text
 src/
   index.ts                 # public exports + built-in composition
-  browser.ts               # portable composition: contracts/kernel/observe/report and the host-owned durable runtime
+  browser.ts               # portable core composition: contracts/kernel/observe/report
+  pi-durable.ts            # host-owned durable runtime, optional native peers
   registry.ts              # runtime collection and lookup
   voyage.ts                # oar-voyage/3 evidence log: line builders + recorder
   brands.ts                # @botiverse/oar/brands: browser-safe names and icons

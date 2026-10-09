@@ -83,7 +83,6 @@ console.log(JSON.stringify({ kinds, models }));
  */
 const REPORT_PROBE = `
 import assert from "node:assert/strict";
-import { build } from "esbuild";
 import { registerHooks } from "node:module";
 const loaded = [];
 registerHooks({
@@ -184,6 +183,7 @@ assert.deepEqual(Object.values(browser.metafile.outputs).flatMap((output) => out
 
 run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
+assert.equal(readdirSync(path.join(host, "node_modules/@earendil-works")).includes("pi-durable"), false, "pi-durable was installed without being asked for");
 const bare = probe();
 assert.equal(bare.kinds.cursor, undefined);
 assert.ok(Object.values(bare.kinds).every((kind) => typeof kind === "string"), JSON.stringify(bare.kinds));
@@ -191,6 +191,26 @@ assert.deepEqual(typecheck(ENTRIES), []);
 const forgotten = typecheck(ADD_CURSOR);
 assert.equal(forgotten.length, 1, forgotten.join("\n"));
 assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
+
+// The host supplies the native peers only when it opts into this subpath.
+npmInstall("@earendil-works/pi-durable@1.1.0", "@earendil-works/chord@1.1.0");
+run(process.execPath, ["--input-type=module", "-e", `
+import assert from "node:assert/strict";
+import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
+import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
+import { createModels } from "@earendil-works/pi-ai/models";
+import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+const models = createModels();
+const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+try {
+  const runtime = createPiDurableRuntime({ harness, models });
+  const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/" });
+  assert.equal(session.status().value.kind, "idle");
+  await session.dispose();
+} finally { await harness.close(BACKGROUND_CONTEXT); }
+`], host);
+const durable = await build({ stdin: { contents: 'export * from "@botiverse/oar/pi-durable";', resolveDir: host }, bundle: true, platform: "browser", format: "esm", write: false, metafile: true });
+assert.deepEqual(Object.values(durable.metafile.outputs).flatMap((output) => output.imports), []);
 
 npmInstall(`@cursor/sdk@${cursorPeerVersion()}`);
 assert.deepEqual(typecheck(ENTRIES), []);

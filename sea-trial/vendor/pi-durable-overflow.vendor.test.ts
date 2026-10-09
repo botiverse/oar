@@ -12,7 +12,7 @@ vi.mock("@earendil-works/pi-durable", async (importOriginal) => {
 
 // Delay a real watch listener. The SDK itself supplies its bounded-backlog snapshot;
 // neither the batch nor its terminal receipt is mocked.
-test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock")("overflow preserves the snapshot and queries an actual terminal receipt", async () => {
+test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock").each([false, true])("overflow recovery preserves observation when receipt query fails: %s", async (queryFails) => {
   const watch = vi.mocked(watchEvents);
   const nativeWatch = watch.getMockImplementation();
   assert.ok(nativeWatch);
@@ -39,7 +39,22 @@ test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock")("overflow preserves th
     await entered.promise;
     await conversation.abort(BACKGROUND_CONTEXT);
     for (let index = 0; index < 110; index += 1) { await conversation.configure({ instructions: `revision ${String(index)}` }, BACKGROUND_CONTEXT); }
+    const failure = new Error("receipt query failed");
+    if (queryFails) { vi.spyOn(fixture.harness, "submission").mockRejectedValueOnce(failure); }
     gate.resolve();
+    if (queryFails) {
+      await vi.waitFor(() => {
+        const failed = session.records().find((entry) => entry.kind === "frame" && entry.body.type === "pi-durable/submissions_error");
+        assert.ok(failed?.kind === "frame");
+        expect(failed.body.native).toEqual({ message: "receipt query failed", error: failure });
+      });
+      const count = session.records().length;
+      await conversation.configure({ instructions: "still watching" }, BACKGROUND_CONTEXT);
+      await vi.waitFor(() => { expect(session.records().length).toBeGreaterThan(count); });
+      expect(session.records().some((entry) => entry.kind === "response" && entry.body.kind === "exited")).toBe(false);
+      await session.dispose();
+      return;
+    }
     await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
     expect(statusOf(session.records(), session.id)).toEqual(session.status());
     const frames = session.records().filter((entry) => entry.kind === "frame");

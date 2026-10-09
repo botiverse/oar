@@ -24,12 +24,14 @@ replacement snapshot instead of the intervening batches.
 
 The host passes the **same `Models` instance** it supplied to `Harness.open`:
 Harness exposes no public catalog getter, so OAR cannot verify this identity.
-The host's Harness and OAR must use compatible 1.1.0 native packages. The
-experimental event projection is pinned to that version; upgrading it requires
-rerunning the native probe and vendor tests below.
+The host installs `@earendil-works/pi-durable@~1.1.0` and
+`@earendil-works/chord@~1.1.0`, both optional peers of OAR. OAR operates on
+the host's native package instances, without bundling another copy. Tests
+pin 1.1.0; upgrading this experimental API requires rerunning the native
+probe and vendor tests below.
 
 ```ts
-import { createPiDurableRuntime } from "@botiverse/oar/browser";
+import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
 
 // harness and models were opened/configured by the host with the native SDK.
 const runtime = createPiDurableRuntime({ harness, models });
@@ -41,8 +43,9 @@ await session.prompt("Inspect the project", { inputId });
 // Keep session.id with the identity of the host's storage for later resume.
 ```
 
-The constructor is exported by both the Node root and the portable
-`@botiverse/oar/browser` entry. It is absent from `defaultRuntimes` and the
+The constructor is exported only by `@botiverse/oar/pi-durable`, usable in
+Node and browsers. The root and portable `@botiverse/oar/browser` core do not
+import this adapter and load without its optional peers. It is absent from `defaultRuntimes` and the
 CLI: the host must supply its Harness. `installation()` reports bundled and
 available without probing a binary or credentials. Login, account quota,
 updates and inventories are not implemented by this adapter.
@@ -52,7 +55,7 @@ updates and inventories are not implemented by this adapter.
 | OAR operation | Native operation | Meaning |
 |---|---|---|
 | `session({ resume })` | conversation lookup, configure, `watchEvents`, `Harness.resume()` | Attaches to saved work and enables scheduling of unfinished tasks; no new input is submitted |
-| `prompt` | `submit({ whenBusy: "reject" })` | A native `ConversationBusy` becomes `rejected: busy` |
+| `prompt` | `submit({ whenBusy: "reject" })` | Fresh input while locally running is refused busy; an unseen native run is runtime_refused |
 | `steer` | `submit({ whenBusy: "steer" })` | Joins an active run at its next input boundary; idle requests are refused |
 | `queue` | `submit({ whenBusy: "followUp" })` | Durable follow-up input; `capabilities.queue.durable` is true |
 | `withdraw(inputId)` | lookup by request id, `submission.abort()` | Accepted only while native cancellation says `aborted`; already placed/settled or missing is `not_queued` |
@@ -66,6 +69,20 @@ stops its invocations but leaves durable work recoverable; opening an OAR
 Session resumes that scheduler. Recovery may repeat an interrupted provider
 request or a replayable tool, so submission deduplication is not a promise of
 exactly-once external side effects. Extension replay policy remains native.
+
+If the watch ends without this controller disposing it (stopped, cancelled,
+session_closed, retired or listener_error), its native WatchEnd is retained
+in a frame, followed by an `exited` response with code null. This ends the
+observed turn and makes later control return `runtime_exited`; it does not
+claim that shared Harness execution stopped. A failed submission query during
+snapshot recovery is an error frame, preserving observation without guessing
+a turn outcome.
+
+Fresh prompts use the session status immediately before their request: running
+means local `busy`, without submitting; idle never returns `busy`. If another
+controller started work before the watch caught up, native `ConversationBusy`
+is `runtime_refused` with the native message. A previously submitted inputId
+is instead accepted as a retry, even while running, without new submission.
 
 An open or resumed snapshot with a run emits `turn_active`, making status
 running before any model output. It creates a view turn only if none is

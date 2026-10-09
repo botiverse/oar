@@ -1,4 +1,4 @@
-/** Portable contracts, observations and the host-owned durable runtime. No Node-only image-file helpers. */
+/** Portable contracts, observations and session core. No Node-only image-file helpers. */
 export * from "./contracts/index.js";
 export { createRuntimeRegistry, RuntimeRegistry } from "./registry.js";
 export { createSessionKernel } from "./shared/session-kernel.js";
@@ -8,5 +8,4 @@ export { withdrawHeld } from "./shared/held-input.js";
 export type { HeldInput } from "./shared/held-input.js";
 export * from "./observe/index.js";
 export * from "./agents/report.js";
-export { createPiDurableRuntime, type PiDurableRuntimeOptions } from "./runtimes/pi-durable/index.js";
 export { runtimeBrands, runtimeBrandIcon, type RuntimeBrand } from "./brands.js";
