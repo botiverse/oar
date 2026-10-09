@@ -26,10 +26,9 @@ import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
 
 /**
- * The chat-UI projection: one `SessionView` is everything a conversation
- * surface needs — grouped messages, agent status, model/usage/context, and
- * the runtime requests still awaiting an answer. Pure over the record
- * stream (docs/design/chat-ui.md): replayable from a log, no clock, no IO.
+ * The chat-UI projection: grouped messages, agent status, model/usage/context
+ * and runtime requests awaiting answers. Pure over the record stream
+ * (docs/design/chat-ui.md): replayable from a log, no clock, no IO.
  *
  * Grouping rules, all derived never synthesized:
  * - A TURN is a display segment: it opens on its prompt request or on the
@@ -48,10 +47,12 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   refused input enters where it was refused; a retry of it that must wait
  *   for its echo takes it back out. A dropped input enters at its discard/exit; a withdrawn input leaves `pendingInputs`
  *   and `messages`; the segment its request sealed stays sealed.
- * - A SECTION is a contiguous run of one lane (`sessionId`, `agentPath`)
- *   inside a turn. Sub-agent and child-session activity nests inside the
- *   parent turn as sections; a child session's own `turn_ended` degrades
- *   to a notice part, it never closes the root turn.
+ * - A SECTION groups one lane (`sessionId`, `agentPath`), in first-appearance
+ *   order. Named text and readable reasoning rejoin the same kind/messageId
+ *   part anywhere in that lane's current segment, never across an input seal.
+ *   Tools, notices and unnamed content keep stream order; unnamed messages
+ *   can still fragment. Redacted/empty reasoning stay lifecycle-only parts.
+ *   A child agent's or session's `turn_ended` is a notice, never a root end.
  * - A TOOL part is one per lane and callId: a progress or end settles it in
  *   the turn its start landed in, even after that turn ended; only a call
  *   whose start was never seen becomes a `?` part. A root turn end or exit
@@ -59,8 +60,7 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   or tool end time. Later native results still replace that unknown result.
  * - A root exit stamps the record-derived status outcome on its open turn:
  *   aborted after an accepted abort or dispose request, failed otherwise.
- *   Flat events alone lack accepted controls; that path records exit and
- *   ends unresolved tools without assigning a turn outcome.
+ *   Flat events lack accepted controls: exit ends tools without a turn outcome.
  */
 
 export type ViewNotice =
@@ -85,7 +85,7 @@ export type ViewNotice =
 export type ViewPart =
   /** One assistant message's text; `messageId` when the runtime named the message (`text_delta.messageId`). */
   | { readonly kind: "text"; readonly text: string; readonly messageId?: string }
-  | { readonly kind: "reasoning"; readonly content: ReasoningContent }
+  | { readonly kind: "reasoning"; readonly content: ReasoningContent; readonly messageId?: string }
   | {
       readonly kind: "tool";
       readonly callId: string;
@@ -120,7 +120,7 @@ export type ViewPart =
       readonly body?: unknown;
     };
 
-/** One contiguous lane run inside a turn. */
+/** One lane's parts in first-appearance order; named messages can continue in place. */
 export interface ViewSection {
   readonly sessionId: string;
   readonly agentPath: readonly string[];

@@ -149,6 +149,33 @@ Evidence: [local steer identity probes](../runtimes/steer-delivery.md). Regressi
 coverage includes pure reducer cases, mock fallback, and Codex/Claude native
 harnesses with a local scripted provider.
 
+## Session view message grouping
+
+`reduceSessionView` and `viewOf` project the records into inputs and turn
+segments for a chat surface ([design](../design/chat-ui.md)). Each segment
+contains sections attributed to a lane: `(sessionId, agentPath)`.
+
+A named message stays in one part of each content kind. `text_delta` and
+readable `reasoning` carrying a `messageId` append to the existing text or
+reasoning part with that ID in the same lane and current segment, wherever
+it sits. Sections and parts keep their order of first appearance. For
+example, child `A1`, root `B1`, child `A2`, root `B2`, with one message ID
+per lane, render as child `A1A2` then root `B1B2`. Equal IDs in different
+lanes never join. `ViewPart.messageId` preserves the native identity on both
+text and reasoning parts.
+
+An input entering mid-turn still seals the current segment. The same
+message continuing after that boundary starts a new part in the new
+segment; it never appends above the input. A pending input seals only when
+it enters the transcript, according to the input rules above.
+
+Tools, notices and text or reasoning without a `messageId` keep their
+existing stream order and lane-switch sections. Without an ID (including
+Pi and ACP text), interleaved lanes can still fragment a message. Redacted
+and empty reasoning remain separate lifecycle-only parts; they neither
+replace readable reasoning nor invent text. This grouping changes only the
+view: the records and flat events retain their original order.
+
 ## Dropped input
 
 `input_dropped {inputId, reason: "turn_interrupted"}` is a runtime event.
