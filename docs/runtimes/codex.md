@@ -15,6 +15,11 @@ later observations name their own version. Versions are evidence baselines,
 not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
+The [October 9 daily check](../../experiments/runtime-version-checks/2026-10-09.md)
+passed conversation, tool detail and resume on **0.162.0** (Linux x64,
+`gpt-6-luna`), plus 34 native vendor tests and all 16 applicable shared
+behavior cases using a local provider. No adapter change was needed.
+
 ## Native concepts and calling interfaces
 
 Codex owns the agent loop, tools, model context, persistence, and policy

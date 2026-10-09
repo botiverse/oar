@@ -5,7 +5,7 @@ live contract ([`experiments/live-contract.ts claude`](../../experiments/live-co
 ran on **claude 2.1.268** (darwin arm64, haiku, 2026-09-11); the probes on
 **2.1.237** and **2.1.261** (linux x64) are listed in the
 [experiments index](../../experiments/README.md); later observations carry
-their version inline. The latest daily check re-ran `basic`, `tool-detail` and
+their version inline. The October 7 daily check re-ran `basic`, `tool-detail` and
 `resume` on **2.1.292** (2026-10-07,
 [report](../../experiments/runtime-version-checks/2026-10-07.md)), along with
 14 native vendor tests, including MCP attachment and resume. An evening
@@ -16,6 +16,13 @@ below. Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
 for status labels.
+
+The [October 9 daily check](../../experiments/runtime-version-checks/2026-10-09.md)
+passed the same three live scenarios on **2.1.295** (Linux x64,
+`claude-haiku-5-5`), after a native session-limit reset. All 36 native vendor
+tests and 17 applicable shared behavior cases passed using a local provider.
+The original limited attempt remains in the evidence; no adapter change was
+needed.
 
 ## Native concepts and calling interfaces
 

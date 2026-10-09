@@ -19,6 +19,12 @@ range; source-supported claims are not a live check of a newer binary. The
 [spec](../spec/README.md) is not current OAR behavior. See the
 [runtime index](README.md) for evidence and status conventions.
 
+The [October 9 daily check](../../experiments/runtime-version-checks/2026-10-09.md)
+passed conversation, tool detail and resume on **1.0.50** (Linux x64,
+`grok-4.7`). Its local-provider prompt probe also confirmed that the
+replacement/append precedence and append-only resume refusal below remain
+necessary. This is focused validation, not a repeat of the full live battery.
+
 ## Native concepts and calling interfaces
 
 Grok is a coding-agent harness. Its process owns sessions; each session owns
