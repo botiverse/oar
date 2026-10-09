@@ -221,6 +221,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
       expect(records.slice(0, open).some((record) => record.kind === "request" && record.direction === "toRuntime")).toBe(false);
       expect(types.indexOf("request:prompt")).toBeGreaterThan(open);
       expect(types).toContain("turn/started");
+      const activity = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "turn/started" ? record.body.events : []);
+      expect(activity).toEqual([{ kind: "turn_active" }, { kind: "turn_active" }]);
       expect(types).toContain("item/completed");
       expect(types.filter((type) => type === "turn/completed")).toHaveLength(2);
       expect(types.at(-2)).toBe("request:dispose");

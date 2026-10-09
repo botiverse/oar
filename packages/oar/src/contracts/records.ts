@@ -1,7 +1,7 @@
 import type { CredentialProblem, FailureClass } from "./failure.js";
 import type { InputImage, InputOrigin } from "./input.js";
+import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
 import type { TaskEventBody } from "./tasks.js";
-import type { ToolOutputPart } from "./tool-output.js";
 
 /**
  * The record stream and the events read off it. Three words, three layers:
@@ -160,8 +160,7 @@ export type RuntimeEventBody = UserMessage
       /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, pi), never derived from `result` or output. */
       readonly exitCode?: number | null;
     }
-  /** Partial output of a running tool call, when the runtime streams it (pi `tool_execution_update`, codex `item/commandExecution/outputDelta`, an ACP `tool_call_update` carrying `rawOutput`). claude streams none; cursor's shell output deltas are recorded with no event. */
-  | { readonly kind: "tool_call_progress"; readonly callId: string; readonly output?: string }
+  | ToolCallProgress
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
   /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex: none). claude reports only the boundary after the fact, so it never says this. */

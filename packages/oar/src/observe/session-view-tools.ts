@@ -39,6 +39,13 @@ type ToolInput = Extract<Event, { kind: "tool_call_input" }>;
 type ToolPart = Extract<ViewPart, { kind: "tool" }>;
 type ToolResult = ToolPart["result"];
 
+/** A snapshot replaces the current preview; a delta appends to it. */
+export function toolPreview(previous: string | undefined, event: Extract<Event, { kind: "tool_call_progress" }>): { readonly output?: string } {
+  const snapshot = event.output ?? previous;
+  const output = event.outputDelta === undefined ? snapshot : (snapshot ?? "") + event.outputDelta;
+  return output === undefined ? {} : { output };
+}
+
 /**
  * Settle a call's tool part in place, in whichever turn its start landed
  * (one part per lane and callId): a runtime may report a call's last output
@@ -53,7 +60,7 @@ export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResu
       return { ...settled, ...(event.content === undefined ? {} : { content: event.content }), result, endedAt: event.receivedAt };
     }
     // A late output delta adds evidence; it cannot reopen an ended call.
-    return { ...part, ...(event.output === undefined ? {} : { output: event.output }) };
+    return { ...part, ...toolPreview(part.output, event) };
   });
 }
 
@@ -91,4 +98,3 @@ function replaceToolPart(draft: Draft, event: ToolUpdate | ToolInput, next: (par
   }
   return false;
 }
-

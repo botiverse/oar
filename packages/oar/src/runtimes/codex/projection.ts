@@ -167,6 +167,8 @@ function spanIdOf(params: JsonRecord): string | undefined {
 
 function viewsFor(state: CodexProjectionState, reporter: string, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
+    case "turn/started":
+      return [{ kind: "turn_active" }];
     case "item/agentMessage/delta":
       // `itemId` names the agentMessage item: one turn can say several.
       return typeof params.delta === "string"
@@ -175,7 +177,7 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
     case "item/commandExecution/outputDelta":
       // Streamed stdout of a running command item; `itemId` is the tool call.
       return typeof params.itemId === "string"
-        ? [{ kind: "tool_call_progress", callId: params.itemId, ...(typeof params.delta === "string" ? { output: params.delta } : {}) }]
+        ? [{ kind: "tool_call_progress", callId: params.itemId, ...(typeof params.delta === "string" ? { outputDelta: params.delta } : {}) }]
         : [];
     case "serverRequest/resolved": {
       // oar answers no codex request, so a resolved one is codex clearing it

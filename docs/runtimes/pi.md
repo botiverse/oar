@@ -329,11 +329,12 @@ new pi event type a compile error.
 
 | Pi SDK event | OAR events |
 |---|---|
+| `agent_start` | `turn_active`, including SDK-started runs without an OAR prompt; does not reopen an already running turn |
 | `message_update` text / thinking deltas | `text_delta`; `reasoning` (`empty` for a thinking block with no text) |
 | `message_start` of a user message | `user_message` (`evidence: "conversation"`; see [input identity](#user-input-identity-and-observation)) |
 | `message_end` of an assistant message | cumulative token `usage` from its usage |
 | `tool_execution_start` | `tool_call_started`, input = pi's `args` as JSON |
-| `tool_execution_update` | `tool_call_progress`, `output` = the partial result as JSON |
+| `tool_execution_update` | `tool_call_progress`, `output` = the whole current partial result as JSON, replacing the earlier preview |
 | `tool_execution_end` | `tool_call_ended` (below) |
 | `compaction_start` | `compaction_started`, `trigger` = pi's reason (`manual` / `threshold` / `overflow`) |
 | `compaction_end` | `compaction_ended`: `aborted` → aborted, an `errorMessage` → failed with that reason, else completed; `willRetry` stays in `native` and the retry announces itself |
@@ -341,7 +342,7 @@ new pi event type a compile error.
 | `thinking_level_changed` | `effort` |
 | `agent_settled` | `turn_ended`, plus a context `usage` event |
 
-Agent and turn boundaries, assistant `message_start`, queue, entry,
+Other agent and turn boundaries, assistant `message_start`, queue, entry,
 session-info, bash execution and the other retry events are in the stream
 with no event.
 

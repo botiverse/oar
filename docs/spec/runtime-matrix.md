@@ -72,12 +72,20 @@ where the member is absent.
 
 ## Native active turns
 
-`turn_started` is the projection of an OAR prompt request. `turn_active` is a
-runtime observation, emitted by pi-durable for an initial active snapshot and
-`run_start`; it can adopt existing work without an OAR request id. Status
-becomes running when idle and preserves the current phase when already
-running. The session view opens a turn only if none is open. Other adapters
-do not yet emit `turn_active`.
+`turn_started` is the projection of an OAR prompt request. `turn_active` is
+an observation from the runtime and carries no request id:
+
+| Runtime | Native activity source |
+|---|---|
+| codex | `turn/started`, including queued turns without another OAR prompt |
+| pi | `agent_start`, including runs started directly through the SDK |
+| pi-durable | Initial active snapshot and `run_start` |
+
+Status becomes running when idle and preserves the current phase when
+already running. The session view opens a turn only if none is open, so a
+prompt followed by native activity remains one turn. Child activity keeps
+its own attribution and never starts the root turn. Other adapters do not
+yet emit `turn_active`.
 
 ## Tool outcomes
 

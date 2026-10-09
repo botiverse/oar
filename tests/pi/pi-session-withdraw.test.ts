@@ -141,3 +141,16 @@ test("an abort taken over before agent_start reaches the SDK when its run starts
   expect(await awaitTurnEnd(session, started.seq)).toEqual({ kind: "aborted" });
   await session.dispose();
 });
+
+// Extensions can start runs through the SDK without an OAR prompt request.
+test("a native Pi run is running before its first content, with no invented prompt", async () => {
+  const { session, pi } = await open();
+  const nativeRun = pi.prompt("native extension input");
+  const record = session.records().at(-1);
+  expect(session.status().value).toEqual({ kind: "running", phase: "waiting_model", sinceSeq: record?.seq, lastEventAt: record?.receivedAt });
+  expect(session.records().filter((item) => item.kind === "request")).toHaveLength(0);
+  pi.end();
+  await nativeRun;
+  expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
+  await session.dispose();
+});

@@ -1,5 +1,7 @@
+/* oxlint-disable eslint/max-lines -- Stream/control sequencing tests share the scripted app-server below. */
 import { afterEach, expect, test, vi } from "vitest";
 import type { ControlResult, ResponseBody, RawEvent } from "../../packages/oar/src/contracts/session.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -113,7 +115,7 @@ test("a prompt is one request/response pair, the turn ends on codex's own turn/c
     "event thread/start → model",
     "toRuntime prompt",
     "response accepted",
-    "event turn/started span=turn-1",
+    "event turn/started span=turn-1 → turn_active",
     "event item/agentMessage/delta span=turn-1 → text_delta",
     "event turn/completed span=turn-1 → turn_ended",
     "toRuntime dispose",
@@ -282,5 +284,21 @@ test("a completed turn cancels the abort deadline before another turn starts", a
   await session.prompt("hold");
   await vi.advanceTimersByTimeAsync(10_000);
   expect(fake.killed()).toBe(false);
+  await session.dispose();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Follow native adoption, child isolation and settlement through one adapter stream.
+test("native Codex activity adopts a turn, while child activity does not start the root", async () => {
+  const fake = scriptedAppServer();
+  const session = await codexSession(installation, { cwd: "/work" });
+  notify(fake, "turn/started", { threadId: "child", turn: { id: "child-turn" } });
+  expect(session.status().value).toEqual({ kind: "idle" });
+  notify(fake, "turn/started", { threadId, turn: { id: "native-turn" } });
+  const record = session.records().at(-1);
+  expect(session.status().value).toEqual({ kind: "running", phase: "waiting_model", sinceSeq: record?.seq, lastEventAt: record?.receivedAt });
+  expect(session.records().filter((item) => item.kind === "request")).toHaveLength(0);
+  expect(viewOf(session.records(), session.id).messages.filter((item) => item.kind === "turn")).toHaveLength(1);
+  notify(fake, "turn/completed", { threadId, turn: { id: "native-turn", status: "completed" } });
+  expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
   await session.dispose();
 });
