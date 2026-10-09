@@ -300,7 +300,10 @@ decisions, `failureAdvice(failure)` gives recovery timing per `FailureClass`:
 `retry` is `now` (retry with ordinary backoff: `rate_limited`, `overloaded`,
 `provider`, `runtime_exited`), `later` (wait for a limit to reset, typically
 hours: `quota`) or `no`; `userAction` says a person has to act first (`auth`,
-`billing`, `model_unavailable`, `input_too_large`). A `RuntimeFailureError`
+`billing`, `model_unavailable`, `input_too_large`). A failed turn's
+`resetsAt`, where the runtime reports it, is when the limit that refused the
+turn resets, whatever its class says ([when a limit resets](runtime-matrix.md#when-a-limit-resets));
+continuing then is the host's policy. A `RuntimeFailureError`
 from `session()` carries the same `failure`.
 
 This timing does not establish whether replaying an input or a whole turn

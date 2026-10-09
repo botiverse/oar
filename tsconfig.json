@@ -1,7 +1,14 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    // The CLI sources the tests import resolve @botiverse/oar to the same
+    // sources as the tests, not to its built dist: one copy of each type, so
+    // UtcInstant's unique-symbol brand matches on both sides.
+    "paths": {
+      "@botiverse/oar": ["./packages/oar/src/index.ts"],
+      "@botiverse/oar/*": ["./packages/oar/src/*/index.ts", "./packages/oar/src/*.ts"]
+    }
   },
   "include": [
     "packages/oar/src",

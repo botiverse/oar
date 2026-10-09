@@ -15,6 +15,10 @@
  * - `overloaded`: the provider is temporarily overloaded.
  * - `provider`: another provider-side error (a 5xx).
  * - `runtime_exited`: the runtime process ended before the turn did.
+ *
+ * Whatever the class, a failed turn a limit refused carries `resetsAt` when
+ * the runtime reports when that limit resets (claude's subscription limits,
+ * which claude's own `rate_limit` category makes `rate_limited`).
  */
 export type FailureClass =
   | "auth"

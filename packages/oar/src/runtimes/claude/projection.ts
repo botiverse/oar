@@ -1,4 +1,5 @@
 import { claudeServiceTierEvents } from "./service-tier.js";
+import type { UtcInstant } from "../../contracts/account-usage.js";
 import type {
   FrameBody,
   RuntimeEventBody,
@@ -6,7 +7,7 @@ import type {
   TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
-import { claudeFailure } from "./failure.js";
+import { claudeFailure, claudeLimitReset } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
@@ -46,7 +47,10 @@ export type ProjectionCommand =
  * that tool call's agent plus the call; nested Task calls nest the path.
  * `tokens` accumulates per-agent result usage so usage events are cumulative.
  * `failureCategory` is the `error` of the turn's last root assistant frame,
- * which classifies a failed result (failure.ts).
+ * which classifies a failed result (failure.ts). `limitResetsAt` is the
+ * reset of the limit the latest `rate_limit_event` says refuses requests,
+ * kept across turns until another event replaces it (claude reports a
+ * change, not every refusal), and given to a turn that fails on `rate_limit`.
  */
 export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
@@ -54,6 +58,7 @@ export interface ClaudeProjectionState {
   readonly tokens: ReadonlyMap<string, TokenTotals>;
   readonly partials: ClaudePartials;
   readonly failureCategory: string | null;
+  readonly limitResetsAt: UtcInstant | null;
 }
 
 export const initialClaudeProjection: ClaudeProjectionState = {
@@ -62,6 +67,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   tokens: new Map(),
   partials: new Map(),
   failureCategory: null,
+  limitResetsAt: null,
 };
 
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
@@ -111,6 +117,7 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnO
       category: state.failureCategory,
       status: asNumber(message.api_error_status),
       terminalReason: typeof message.terminal_reason === "string" ? message.terminal_reason : null,
+      limitResetsAt: state.limitResetsAt,
     });
   }
   return { kind: "completed" };
@@ -253,6 +260,9 @@ export function foldClaudeStdout(
         ],
       };
     }
+    case "rate_limit_event":
+      // claude's view of the subscription limits changed: read for a failed turn's resetsAt, no event of its own.
+      return event({ events: [] }, { ...state, limitResetsAt: claudeLimitReset(asRecord(message.rate_limit_info)) });
     case "control_cancel_request":
       // claude withdrew a request it had sent us (an interrupt cancels a pending question).
       return event({ events: typeof message.request_id === "string" ? [{ kind: "app_request_cancelled", requestId: message.request_id }] : [] });

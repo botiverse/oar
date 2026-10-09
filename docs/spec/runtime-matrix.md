@@ -364,6 +364,9 @@ until it is observed: claude's `oauth_org_not_allowed`, `account_on_hold`,
 `request_too_large` and `permission_error`; OpenAI's spend-limit and
 `slow_down` codes.
 
+`resetsAt` is set only where the runtime reports, for the failure, when the
+limit that refused it resets ([below](#when-a-limit-resets)).
+
 `credential` is set only where the runtime makes it plain: claude's
 `authentication_failed` with no request sent (`missing`) or a 401
 (`rejected`), and cursor's `AuthenticationError` at open (`rejected`).
@@ -446,7 +449,8 @@ After a tool call the fields are the same; an oversized context first tries
 compaction (`system/status` `compacting`). Other `error` values claude 2.1.292
 declares: `oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
 `overloaded`, `max_output_tokens`, `cloud_credential_error` `[sym]`; a
-subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed.
+subscription's limits arrive as `rate_limit_event` frames `[sym]`, not observed
+(read for a failed turn's `resetsAt`, [below](#when-a-limit-resets)).
 
 ### codex
 
@@ -540,6 +544,22 @@ a tool call.
 
 "info" is `codexErrorInfo`; "text" is a message that only prose matching can
 read; "nothing" means the turn looks completed or never ends.
+
+### When a limit resets
+
+A failed turn carries `resetsAt` (a `UtcInstant`) only where the runtime
+reports, for that failure, when the limit that refused it resets: never
+derived from an account-usage read, a usage snapshot, a retry delay or the
+runtime's prose. It is a fact for the host; oar does not continue the session
+when it passes. Only claude reports one.
+
+| runtime | what it reports | `resetsAt` |
+|---|---|---|
+| claude | `rate_limit_event` `{status, resetsAt (unix seconds), rateLimitType, overageStatus, …}` whenever its view of a claude.ai subscription's limits changes, a refused request included, before the turn's error frame (`rate_limit`, 429) and `result` `[src]` (Agent SDK 0.3.295 `SDKRateLimitInfo`) `[sym]` (2.1.289); none on an API key | the latest event's `resetsAt` when it says `rejected` and overage does not take the requests (`overageStatus` absent or `rejected`), on a failure claude categorizes `rate_limit`. Not observed: a run needs a subscription at its limit ([claude](../runtimes/claude.md#usage-limits)) |
+| codex | `usageLimitExceeded` carries no data; the time is only in the message, in codex's local time to the minute ("Try again at 3:05 PM.") `[src]`. `account/rateLimits/updated` is a usage snapshot of every window, not the failure's | none |
+| pi, pi-durable | the provider's error text; for a ChatGPT plan pi-ai words it "Try again in ~N min." `[src]` (pi-ai 1.1.0) | none |
+| opencode, kimi, grok, antigravity | nothing in the observed answers (above) | none |
+| cursor | `RateLimitError` has `code`, `status` and `isRetryable`, no time `[src]` (`errors.d.ts`, 1.0.37) | none |
 
 ## Adapter red lines
 
