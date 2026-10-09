@@ -96,6 +96,9 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   kimi: { Bash: "run_command" },
   opencode: {
     bash: "run_command",
+    shell: "run_command",
+    subagent: "other",
+    execute: "other", // Native Code Mode can run MCP tools or plain JavaScript/fetch; its name alone proves neither.
     read: "read_file",
     write: "edit_file",
     edit: "edit_file",
@@ -179,7 +182,7 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   cursor: { shell: (input) => stringFields(input, false) },
   grok: { run_terminal_command: (input) => stringFields(input, true) },
   kimi: { Bash: (input) => stringFields(input, false) },
-  opencode: { bash: (input) => stringFields(input, false) },
+  opencode: { bash: (input) => stringFields(input, false), shell: (input) => stringFields(input, false) },
 };
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];

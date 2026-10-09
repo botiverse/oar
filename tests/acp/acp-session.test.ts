@@ -76,7 +76,7 @@ test("ACP session rejects a second prompt busy and drains its host-held queue as
 
 // oxlint-disable-next-line eslint/max-statements -- both answers and the single end are one scenario.
 test("ACP native steer (send-now) folds both prompt answers into one turn with one end", async () => {
-  const session = await start({ steerParams: () => ({ _meta: { sendNow: true } }) });
+  const session = await start({ steerSupersedesPrompt: true, steerParams: () => ({ _meta: { sendNow: true } }) });
   const base = await session.prompt("steer-base");
   const steered = await steer(session, "steer-new");
   assert.equal(steered.response.body.kind, "accepted");
@@ -100,7 +100,7 @@ test("a profile that cannot inject gives a session without steer; steerOrQueue a
 });
 
 test("a steer with nothing active is rejected no_active_turn", async () => {
-  const session = await start({ steerParams: () => ({ _meta: { sendNow: true } }) });
+  const session = await start({ steerSupersedesPrompt: true, steerParams: () => ({ _meta: { sendNow: true } }) });
   const idle = await steer(session, "nothing active");
   assert.deepEqual(idle.response.body, { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" });
   await session.dispose();

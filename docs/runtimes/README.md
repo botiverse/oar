@@ -25,7 +25,7 @@ selecting live probes.
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Prompt delivery, independent child sessions, client execution, context versus billing |
 | [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
-| [OpenCode](opencode.md) | `opencode acp`, ACP | Upstream's own ACP layer over its HTTP server, mid-turn prompts joining the running loop, effort menus per model, why not the SDK |
+| [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
 | [Pi Durable](pi-durable.md) | Host-owned `@earendil-works/pi-durable` Harness and `watchEvents` | Durable submissions, adopted runs, snapshot recovery, controller-only disposal and browser use |

@@ -3,17 +3,14 @@ import { createInterface } from "node:readline";
 import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
+import refuseSteer from "./fake-acp-refusal.mjs";
 
 const mode = process.argv[2] ?? "session";
 const pendingPrompts = new Map();
 const reverseRequests = new Map();
 let reverseId = 0;
-// Mode "antigravity" replays agy_acp_server 1.2.1: no `close` (exits 3 if sent), no usage_update,
-// and every open starts at mode `default`, which a "mode" prompt reports.
 const antigravity = mode === "antigravity";
-// Mode "listed" answers `session/list` with one session that lives in FAKE_ACP_SESSION_CWD.
-// Mode "opencode" replays `opencode acp` 1.18.30: a prompt sent while one runs joins the running
-// loop, and every pending prompt is answered when that loop goes idle. Lists sessions like "listed".
+// OpenCode v1: mid-turn prompts join its loop; all answers arrive at idle.
 const opencode = mode === "opencode";
 const sessionCapabilities = { opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
@@ -99,6 +96,9 @@ function handleRpcRequest(message) {
 
 function handleSessionPrompt(message) {
   const text = promptText(message.params);
+  if (refuseSteer({ text, pending: pendingPrompts, id: message.id, result, error })) {
+    return;
+  }
   if (opencode && pendingPrompts.size > 0) {
     update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `merged:${[...pendingPrompts.values(), text].join("+")}` } });
     for (const id of [...pendingPrompts.keys(), message.id]) {

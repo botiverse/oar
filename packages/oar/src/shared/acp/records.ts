@@ -5,6 +5,7 @@ import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
 import type { UsageUpdateGate } from "./usage-wait.js";
+import type { AcpSessionProfile } from "./profile.js";
 
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
@@ -78,7 +79,7 @@ function linkFromExtension(kernel: SessionKernel, params: JsonRecord): void {
   }
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"]): AcpRecorder {
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
     let state = projections.get(sessionId);
@@ -106,8 +107,12 @@ export function createAcpRecorder(usageGate: UsageUpdateGate): AcpRecorder {
     },
     update(notification) {
       write((kernel) => {
+        const source = attributeUpdate?.(notification);
         const update = asRecord(notification.update);
-        const { sessionId } = notification;
+        const sessionId = source?.sessionId ?? notification.sessionId;
+        if (source?.parent !== undefined) {
+          kernel.link({ parent: source.parent, child: sessionId, via: "tool_call" });
+        }
         const foreign = sessionId !== kernel.sessionId;
         if (foreign) {
           kernel.node(sessionId);

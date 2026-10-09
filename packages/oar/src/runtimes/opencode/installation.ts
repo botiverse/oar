@@ -14,7 +14,7 @@ export function opencodeInstalledExecutableCandidates(
   return [paths.join(home, ".opencode", "bin", platform === "win32" ? "opencode.exe" : "opencode")];
 }
 
-/** `opencode --version` (1.18.30) prints the bare release and takes about 2 s to start. */
+/** `opencode --version` is retained verbatim: v1 prints 1.x; v2 prints "opencode v2.x". */
 export const opencodeInstallation = executableInstallation(
   "OAR_OPENCODE_BIN",
   "opencode",

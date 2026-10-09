@@ -12,6 +12,8 @@ export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
 
 export interface AcpSessionProfile {
+  /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
+  readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);
   /** Where SessionOptions.launchArgs join `args` when not after them (grok: before `stdio`); launch-args.ts. */
   readonly withLaunchArgs?: (args: readonly string[], launchArgs: readonly string[]) => readonly string[];
@@ -22,10 +24,8 @@ export interface AcpSessionProfile {
   /** Compatibility for agents that put a fully quoted shell line in `command`. */
   readonly terminalShellCommand?: boolean;
   /**
-   * Vendor notification methods beyond `session/update` to subscribe to and
-   * record verbatim (child-session lifecycle, background tasks, usage).
-   * The SDK routes only registered methods, so a name missing here is a
-   * frame oar never sees, so list everything the runtime is known to emit.
+   * Vendor notifications to record verbatim (children, tasks, usage).
+   * The SDK only routes registered methods: list every known method.
    */
   readonly extensionNotifications?: readonly string[];
   /** Credential-only exception to verbatim recording; applied before queuing or publishing a notification. */
@@ -56,6 +56,8 @@ export interface AcpSessionProfile {
   }) => Promise<void>;
   /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. */
   readonly steerParams?: (input: string) => JsonRecord;
+  /** A steer replaces the native prompt: fold all admitted answers as one turn (grok sendNow). Otherwise only the original prompt ends the turn. */
+  readonly steerSupersedesPrompt?: boolean;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   /**
    * The tokens ONE `session/prompt` answer bills for that prompt alone (grok

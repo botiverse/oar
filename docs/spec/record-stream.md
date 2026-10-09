@@ -243,7 +243,7 @@ interface FrameBody {
 }
 // RuntimeEventBody:
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
-//   input_dropped {inputId, reason: "turn_interrupted"} (conversation.md) |
+//   input_dropped {inputId, reason: "turn_interrupted" | "runtime_refused"} (conversation.md) |
 //   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_input {callId, input} |

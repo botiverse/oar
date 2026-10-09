@@ -1,3 +1,5 @@
+import { opencodeMajor } from "./version.js";
+import { opencodeChildAttribution } from "./attribution.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import type { StartSession, Session } from "../../contracts/session.js";
@@ -42,6 +44,19 @@ export const opencodeAcpProfile: AcpSessionProfile = {
 };
 
 const directSession = acpSession(opencodeAcpProfile);
+const { steerParams: _v1SteerParams, ...commonProfile } = opencodeAcpProfile;
+export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = {
+  ...opencodeRefusedSessionOptions,
+  appendSystemPrompt: "opencode v2 does not load the instructions configuration used for session-local appended prompts; ACP exposes no equivalent transient instruction channel",
+  systemPrompt: "opencode v2 uses agents.<id>.system, but ACP exposes no per-session replacement and OAR cannot yet safely resolve and override the selected agent across new sessions and resume",
+};
+export const opencodeV2AcpProfile: AcpSessionProfile = {
+  ...commonProfile,
+  capabilities: { queue: { durable: false }, attribution: "nested" },
+  attributeUpdate: opencodeChildAttribution,
+  validateOptions: (options) => { refuseSessionOptions(opencodeV2RefusedSessionOptions, options); },
+};
+const directV2Session = acpSession(opencodeV2AcpProfile);
 
 function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Session {
   let unsubscribe: (() => void) | undefined = undefined;
@@ -73,17 +88,18 @@ function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Sess
 
 export const opencodeSession: StartSession = async (installation, options) => {
   refuseSessionOptions(opencodeRefusedSessionOptions, options);
+  // Invalid MCP entries fail before even the release-line helper can start.
+  checkMcpServerNames(options.mcpServers ?? []);
+  if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
+  if (await opencodeMajor(installation, options) === 2) {
+    return directV2Session(installation, options);
+  }
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
     return directSession(installation, options);
   }
   // The prompts travel in OPENCODE_CONFIG_CONTENT, the session's MCP servers
-  // in the ACP open as on the direct path; a list no runtime can attach fails
-  // before the prompts are prepared.
-  checkMcpServerNames(options.mcpServers ?? []);
+  // in the ACP open as on the direct path, after validation above.
   validateOpenCodePrompts(options);
-  if (installation.via !== "executable") {
-    throw new Error("opencode requires an executable installation");
-  }
   const prepared = await prepareOpenCodePrompts(installation.command, options);
   try {
     const session = await acpSession({

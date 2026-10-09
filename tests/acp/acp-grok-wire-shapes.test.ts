@@ -213,7 +213,7 @@ test("the same push on an unlisted method is a frame oar never sees (the SDK dis
 // (640, 19968) sum the same way; neither ledger names a cache write, so the
 // total has no `cacheWrite`.
 test("a send-now steer's two answers are two per-prompt ledgers: summed once, stamped cumulative", async () => {
-  const session = await start({ ...grokProfile, steerParams: () => ({ _meta: { sendNow: true } }) });
+  const session = await start({ ...grokProfile, steerSupersedesPrompt: true, steerParams: () => ({ _meta: { sendNow: true } }) });
   const base = await session.prompt("grok-steer-base");
   assert.equal(base.response.body.kind, "accepted");
   const steered = await steer(session, "grok-steer-new");

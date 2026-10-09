@@ -3,6 +3,12 @@
 Independent inventories: not implemented for OpenCode yet.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
+The installed executable selects the adapter behavior: v1 (`opencode-ai`)
+and v2 (`@opencode/cli`) share the `opencode` runtime ID. OAR preserves the
+reported version string, including v2's `opencode v2.0.26` prefix. Updating
+within a line and migrating to another line are separate user decisions.
+The sections below describe v1 unless they explicitly name v2.
+
 Evidence baseline: **opencode 1.18.30** (linux x64, `opencode acp`, the free
 model `opencode/big-pickle` with no login) on 2026-10-06 through
 [`experiments/live-contract.ts opencode`](../../experiments/live-contract.ts)
@@ -25,6 +31,55 @@ including both prompts combined with session MCP servers. This adds current
 ACP session evidence; it does not repeat the separate HTTP-server
 investigation or the direct model-switching probes. See the
 [October 7 report](../../experiments/runtime-version-checks/2026-10-07.md).
+
+## OpenCode v2
+
+The v2 adapter follows `@opencode/cli` **2.0.26**. Its ACP subprocess owns a
+standalone native server; OAR does not connect to or leave a persistent
+daemon. [Boundary probe](../../experiments/opencode-release-lines.ts) and
+[October 9 evidence](../../experiments/opencode-v2-2026-10-09.md) distinguish
+native observations from source-only findings.
+
+- **Control:** v2 refuses a concurrent `session/prompt`. The session has no
+  `steer` member; `steerOrQueue` and `deliver` queue the input for another
+  turn. Queueing remains an OAR memory FIFO, not durable native storage.
+  Native abort and disposal during a shell call both ended as `aborted`.
+- **Children:** standard updates arrive on the parent's envelope with
+  `update._meta["opencode/child-session"]` (`id`, `parentID`, `depth`,
+  `title`). OAR records them under the named child session, links its real
+  parent in the graph and declares `nested` attribution. Child text, tools
+  and usage do not become root output. Native notifications remain
+  verbatim. The native tool `name` wins over its display title, so a
+  child's `shell` stays `shell` even when its title has a child prefix.
+- **Tool names:** `shell` is a command with its reported `command` input;
+  v1 `bash` remains supported. `subagent` and Code Mode `execute` retain
+  their names and classify as `other`. `execute` can run MCP calls, ordinary
+  JavaScript or `fetch`; the name alone cannot prove an MCP operation.
+- **MCP:** stdio servers supplied at new and resumed session open were
+  callable through `execute`. Its input code, result and native metadata
+  are retained, including the names of the enclosed MCP calls.
+- **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
+  refused before ACP startup, including resume. The v2 instruction loader
+  does not consume the v1 `instructions` configuration. v2 has native
+  `agents.<id>.system`, but OAR has not verified a safe session-local path
+  that resolves the actual agent on both creation and resume. This is an
+  adapter boundary, not a claim that v2 lacks system prompts. Configure
+  v2's native settings directly when those settings are intended.
+- **Models:** queries use `models --standalone`, never `--verbose` or a
+  persistent service. On 2.0.26 it exits before the cold catalog is ready;
+  an empty native response becomes `unsupported` with
+  [upstream issue #53724](https://github.com/anomalyco/opencode/issues/53724),
+  not `ok` with zero models. OAR creates no throwaway session for a read-only
+  query. A nonempty native listing supplies IDs only; no effort menu is
+  fabricated. Once upstream returns a ready catalog, this normal path can
+  use it. An isolated `api agent.list --standalone` also returned `[]`.
+- **Defaults and configuration:** the native default model was
+  `opencode/exo-free`, and the initial effort was `default`; these are
+  observations, not OAR defaults. v2 can rewrite v1's `autoupdate` config
+  into `update` on its first launch. OAR does not migrate or rewrite that
+  user configuration. Explicit model selection still uses native readback.
+- **Interaction limits:** no elicitation capability is advertised. v2's
+  question path remains outside the verified host-answer contract.
 
 ## Image-only input
 
@@ -131,7 +186,11 @@ when the session goes idle, each after a `usage_update`
 ([src] `acp/service.ts` `runUntilIdle`). Live, a steer sent mid-turn landed
 in the same turn's final reply (steer: "ALPHA BRAVO MANGO"). OAR therefore
 gives the session a `steer` with no extra prompt parameters, and the turn
-ends once, on the last answer.
+ends once, on the original prompt answer. Both native answers remain
+recorded. If a steering RPC later refuses, its error frame reports
+`input_dropped {inputId, reason: "runtime_refused"}`; the active turn keeps
+its own outcome. Acceptance stays immediate rather than blocking until
+OpenCode becomes idle.
 
 `session/cancel` aborts the loop; the prompt answers `cancelled` about 0.1 s
 later, the running shell call is closed, and the turn ends `aborted` (abort).
