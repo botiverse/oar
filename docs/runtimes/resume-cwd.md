@@ -21,6 +21,13 @@ the shell runs in B.
 | kimi | 2.1.1 | Natively kept in A without a word (its shell ran `cd <A> && pwd`); OAR refuses at open after reading the session's directory from `session/list` |
 | opencode | 1.18.30, opencode/big-pickle (2026-10-05) | Natively kept in A without a word (`pwd` printed A, the transcript intact); OAR refuses at open after reading the session's directory from `session/list`, for a git repository in B too |
 
+Current OAR maps the verified missing-target signals to
+`SessionNotFoundError` ([mapping and scope](../spec/runtime-matrix.md#missing-resume-targets)).
+For Pi and Grok this means absent for the supplied cwd; for Cursor it means
+not found by the SDK with the supplied configuration. Persist and reuse the
+original cwd before deciding the old conversation is gone. The table above
+records the historical native errors, not a global absence guarantee.
+
 A refusal is the runtime's (or for kimi and opencode, OAR's) error from
 `session()`, so a host that tries a resume in B and falls back to a handoff
 on refusal never runs in a directory it did not ask for. Kimi's and

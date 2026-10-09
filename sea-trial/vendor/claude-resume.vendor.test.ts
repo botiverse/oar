@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeSession, SessionNotFoundError, type Session } from "../../packages/oar/src/index.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 
@@ -29,7 +29,8 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude missing resume fai
     const id = randomUUID();
     const failure: unknown = await claudeSession(installation, { cwd: directory, resume: id, env: { ...provider.env, CLAUDE_CONFIG_DIR: directory, ANTHROPIC_AUTH_TOKEN: null, CLAUDE_CODE_OAUTH_TOKEN: null } })
       .then((session) => { opened.session = session; return session; }, (error: unknown) => error);
-    expect(failure).toBeInstanceOf(Error);
+    expect(failure).toBeInstanceOf(SessionNotFoundError);
+    expect(failure).toMatchObject({ sessionId: id });
     expect(failure).toMatchObject({ message: `No conversation found with session ID: ${id}`, cause: { method: "initialize", native: { type: "result", subtype: "error_during_execution", is_error: true, errors: [`No conversation found with session ID: ${id}`], num_turns: 0 } } });
     expect(provider.mock.getRequests()).toEqual([]);
   } finally {

@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 
 /*
@@ -68,9 +69,10 @@ export async function piFindSessionFile(
   const sessions = await lister.list(cwd, sessionDir);
   const found = sessions.find((session) => session.id === id);
   if (found === undefined) {
-    throw new Error(
+    throw new SessionNotFoundError(id,
       `pi session ${id} not found: no session file with that id under ${sessionDir} `
       + `(${sessions.length} session(s) there for cwd ${cwd}; pi persists a session on its first message)`,
+      { method: "SessionManager.list", native: { cwd, sessionDir, sessionCount: sessions.length } },
     );
   }
   return found.path;

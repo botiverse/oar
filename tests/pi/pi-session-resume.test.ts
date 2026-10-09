@@ -1,3 +1,4 @@
+import { SessionNotFoundError } from "../../packages/oar/src/index.js";
 import { expect, test } from "vitest";
 import { join } from "node:path";
 import {
@@ -70,4 +71,15 @@ test("piResolveModel explains an unregistered model and points at the list", () 
   expect(() => piResolveModel(lookup, "xai/grok-9")).toThrow(
     "pi model xai/grok-9 is not registered: provider xai has no model grok-9 (see `oar models pi` for the usable list)",
   );
+});
+
+test("Pi lookup absence is typed with the actual searched scope", async () => {
+  const opening = piFindSessionFile({ list: async () => [] }, "missing", "/proj", "/dir");
+  await expect(opening).rejects.toBeInstanceOf(SessionNotFoundError);
+  await expect(opening).rejects.toMatchObject({ sessionId: "missing", cause: { method: "SessionManager.list", native: { cwd: "/proj", sessionDir: "/dir", sessionCount: 0 } } });
+});
+
+test("a failed Pi list is not evidence that a session is missing", async () => {
+  const error = new Error("session store unreadable");
+  await expect(piFindSessionFile({ list: async () => { throw error; } }, "missing", "/proj", "/dir")).rejects.toBe(error);
 });
