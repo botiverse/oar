@@ -29,6 +29,19 @@ export interface PiModelLookup<TModel> {
 }
 
 /**
+ * pi's global config home (auth.json, models.json, settings, sessions) for
+ * every pi entry point: `OAR_PI_AGENT_DIR`, else pi's own (`fallback`, pi's
+ * `getAgentDir`: `PI_CODING_AGENT_DIR` or `~/.pi/agent`). Empty counts as
+ * unset, as pi treats an empty `PI_CODING_AGENT_DIR`; kept, it would join
+ * into relative paths and put auth.json in the working directory. Here, free
+ * of pi imports, so the entry points that load pi lazily can share it.
+ */
+export function piAgentDir(fallback: () => string): string {
+  const pinned = process.env.OAR_PI_AGENT_DIR;
+  return pinned === undefined || pinned === "" ? fallback() : pinned;
+}
+
+/**
  * Mirrors pi's unexported `getDefaultSessionDirPath` (session-manager.js
  * 0.84.2): the cwd is resolved, its leading separator dropped, every `/ \ :`
  * turned into `-`, and wrapped in `--…--` under `<agentDir>/sessions`. Kept
