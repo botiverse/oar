@@ -58,18 +58,21 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude native service
     try {
       const fresh = await subject.startSession({ model: "opus", effort: "low", serviceTier: "fast" });
       try {
-        expect(fresh.serviceTier().value).toBe("fast");
+        expect(fresh.serviceTier().value).toBeNull();
         await runTurn(fresh, "hello fast");
+        expect(fresh.serviceTier().value).toBe("fast");
       } finally { await fresh.dispose(); }
       const resumed = await subject.startSession({ resume: fresh.id, model: "opus", serviceTier: "default" });
       try {
-        expect(resumed.serviceTier().value).toBe("default");
+        expect(resumed.serviceTier().value).toBeNull();
         await runTurn(resumed, "hello default");
+        expect(resumed.serviceTier().value).toBe("default");
       } finally { await resumed.dispose(); }
       const fastAgain = await subject.startSession({ resume: fresh.id, model: "opus", serviceTier: "fast" });
       try {
-        expect(fastAgain.serviceTier().value).toBe("fast");
+        expect(fastAgain.serviceTier().value).toBeNull();
         await runTurn(fastAgain, "hello fast again");
+        expect(fastAgain.serviceTier().value).toBe("fast");
       } finally { await fastAgain.dispose(); }
       expect(env.raw.map((request) => asRecord(request.body)).filter((body) => Array.isArray(body?.messages)).map((body) => body?.speed)).toEqual(["fast", undefined, "fast"]);
       expect(env.raw.map((request) => asRecord(request.body)).find((body) => Array.isArray(body?.messages))?.output_config).toMatchObject({ effort: "low" });

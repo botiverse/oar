@@ -28,9 +28,9 @@ import {
  * native system/init ... result frames establish those boundaries. The
  * interrupt's control_response acknowledges abort, not turn completion.
  * The adapter owns pending controls and queue drain; projection owns facts.
- * Effort read-back is private plumbing: get_settings contains user config
- * and credentials, so that one response is consumed before projection; so
- * is the answer to a contextBreakdown() query, a reading never recorded.
+ * Open readbacks are private plumbing: get_settings contains user config
+ * and credentials, initialize contains account details. Both are consumed
+ * before projection, as is the unrecorded contextBreakdown() query answer.
  * Native mappings and live evidence: docs/runtimes/claude.md.
  */
 
