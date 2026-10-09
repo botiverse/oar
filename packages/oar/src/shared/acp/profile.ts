@@ -3,7 +3,7 @@ import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
-import { acpOpenStep, type AcpFailureReader } from "./failure.js";
+import { acpResumeFailure, acpOpenStep, type AcpFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import { refuseResumeElsewhere } from "./resume-cwd.js";
@@ -44,6 +44,8 @@ export interface AcpSessionProfile {
    * session run where the host did not ask.
    */
   readonly resumeKeepsSessionCwd?: boolean;
+  /** Native resume/load refusal only. `listed` is false only after a complete session/list walk, null when unknown. */
+  readonly isResumeNotFound?: (native: JsonRecord, listed: boolean | null) => boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
   readonly validateOptions?: (options: SessionOptions) => void;
@@ -208,8 +210,9 @@ async function createOrResume(
   const timeoutMs = profile.requestTimeoutMs ?? 15_000;
   if (options.resume !== undefined) {
     const sessionId = options.resume;
+    let listed: boolean | null = null;
     if (profile.resumeKeepsSessionCwd === true && hasAcpCapability(sessionCapabilities?.list)) {
-      await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
+      listed = await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
     }
     const params = { ...baseParams, sessionId };
     let method: typeof methods.agent.session.resume | typeof methods.agent.session.load | undefined = undefined;
@@ -226,7 +229,9 @@ async function createOrResume(
       method,
       timeoutMs,
       (requestOptions) => process.connection.agent.request(method, params, requestOptions),
-    );
+    ).catch((error: unknown) => {
+      throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native, listed) === true);
+    });
     return { response: responseRecord(method, resumed), sessionId, openMethod: method };
   }
 

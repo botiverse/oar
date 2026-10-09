@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { inspect } from "node:util";
 import { afterEach, expect, test, vi } from "vitest";
+import { SessionNotFoundError } from "../../packages/oar/src/index.js";
 import { CLAUDE_EFFORT_READBACK_MS } from "../../packages/oar/src/runtimes/claude/effort.js";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -21,7 +22,8 @@ test("resume rejects at open on the native missing-session result, preserving it
   spawnLineProcess.mockReturnValue(fake);
   const opened = await claudeSession(installation, { cwd: process.cwd(), resume: secret, env: { API_KEY: secret } }).catch((error: unknown) => error);
   try {
-    expect(opened).toBeInstanceOf(Error);
+    expect(opened).toBeInstanceOf(SessionNotFoundError);
+    expect(opened).toMatchObject({ name: "SessionNotFoundError", sessionId: "[redacted]" });
     expect(opened).toMatchObject({ message: "No conversation found with session ID: [redacted]", cause: { method: "initialize", native: { ...missing, errors: ["No conversation found with session ID: [redacted]"], session_id: "[redacted]" } } });
     expect(inspect(opened, { depth: null })).not.toContain(secret);
     expect(fake.killed()).toBe(true);
@@ -123,4 +125,38 @@ test("a fresh open without readback options sends no initialize", async () => {
   const session = await claudeSession(installation, { cwd: process.cwd() });
   expect(fake.written).toEqual([]);
   await session.dispose();
+});
+
+test.each([
+  { errors: ["Authentication failed"] },
+  { errors: ["Provider unavailable", "No conversation found with session ID: missing"] },
+  { errors: ["unexpected: No conversation found with session ID: missing"] },
+  { subtype: "error_during_tool_execution" },
+])("other Claude result errors never mean a missing session: %j", async (change) => {
+  const fake = fakeLineProcess((_text, child) => { child.emit(`${JSON.stringify({ ...missing, ...change })}\n`); child.end(1); });
+  spawnLineProcess.mockReturnValue(fake);
+  const failure: unknown = await claudeSession(installation, { cwd: process.cwd(), resume: "missing" }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(Error);
+  expect(failure).not.toBeInstanceOf(SessionNotFoundError);
+});
+
+test("Claude never maps a missing-session-looking result on a fresh open", async () => {
+  const fake = fakeLineProcess((_text, child) => { child.emit(`${JSON.stringify(missing)}\n`); });
+  spawnLineProcess.mockReturnValue(fake);
+  const failure: unknown = await claudeSession(installation, { cwd: process.cwd(), serviceTier: "default" }).catch((error: unknown) => error);
+  expect(failure).not.toBeInstanceOf(SessionNotFoundError);
+  expect(failure).toMatchObject({ cause: { method: "initialize", native: missing } });
+});
+
+test("a missing-looking result after initialize succeeds is not a missing resume", async () => {
+  const fake = fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    const method = asRecord(request?.request)?.subtype;
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: method === "get_settings" ? { applied: { effort: "low" } } : {} } })}\n`);
+    if (method === "initialize") { child.emit(`${JSON.stringify(missing)}\n`); }
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const failure: unknown = await claudeSession(installation, { cwd: process.cwd(), resume: "existing", effort: "low" }).catch((error: unknown) => error);
+  expect(failure).not.toBeInstanceOf(SessionNotFoundError);
+  expect(failure).toMatchObject({ cause: { method: "get_settings", native: missing } });
 });

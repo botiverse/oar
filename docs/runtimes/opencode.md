@@ -170,6 +170,14 @@ directory](resume-cwd.md)). Every non-git directory belongs to the one
 `global` project, yet `session/list` without a directory still found a
 session from a non-git directory when the resume named a git repository.
 
+On both release lines, a complete `session/list` with no matching id plus a
+native resume failure yields `SessionNotFoundError`, retaining the requested
+`sessionId` and method/native error in `cause`. V1's generic `-32603`
+`OpenCode service failure` cannot prove absence by itself: a listed id's
+failure keeps its original type. Missing/incomplete lists and authentication
+failures are likewise not mapped
+([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+
 ### Interrupted input
 
 On 1.18.35, steering followed immediately by `session/cancel` kept the

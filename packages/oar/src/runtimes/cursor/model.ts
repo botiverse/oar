@@ -1,7 +1,7 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
-import { cursorOpenFailure } from "./failure.js";
+import { cursorOpenFailure, cursorResumeFailure } from "./failure.js";
 import type { CursorAgent, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
 
 /**
@@ -100,7 +100,8 @@ async function latestRunModel(sdk: CursorSdk, agentId: string, cwd: string): Pro
   let cursor: string | null = null;
   do {
     // oxlint-disable-next-line no-await-in-loop -- pages are sequential by construction.
-    const page = await sdk.Agent.listRuns(agentId, { runtime: "local", cwd, ...(cursor === null ? {} : { cursor }) });
+    const page: Awaited<ReturnType<CursorSdk["Agent"]["listRuns"]>> = await sdk.Agent.listRuns(agentId, { runtime: "local", cwd, ...(cursor === null ? {} : { cursor }) })
+      .catch((error: unknown) => { throw cursorResumeFailure(error, agentId, "Agent.listRuns"); });
     for (const run of page.items) {
       if (run.model !== undefined && (latest === null || (run.createdAt ?? 0) >= (latest.createdAt ?? 0))) {
         latest = run;
@@ -135,6 +136,10 @@ export async function openCursorAgent(sdk: CursorSdk, options: SessionOptions): 
   };
   const opening = options.resume === undefined ? sdk.Agent.create(agentOptions) : sdk.Agent.resume(options.resume, agentOptions);
   return opening.catch((error: unknown) => {
+    if (options.resume !== undefined) {
+      const missing = cursorResumeFailure(error, options.resume, "Agent.resume");
+      if (missing !== error) { throw missing; }
+    }
     const denial = cursorToolDenialError(error, options);
     throw denial === error ? cursorOpenFailure(error) : denial;
   });

@@ -122,8 +122,13 @@ const resumed = await antigravityRuntime.session(installation, {
 const next = resumed.prompt("Continue");
 ```
 
-`session/load` (with replay) is advertised and unused. Unknown ids,
-concurrent same-id controllers, and continuing in-flight work across OAR
+A resume/load error `-32002` becomes `SessionNotFoundError` with the requested
+`sessionId` and method/native error in `cause`. On 1.3.0 it means missing
+under the active `GEMINI_HOME`, and the native data names the expected file
+([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+
+`session/load` (with replay) is advertised and unused when resume is available.
+Concurrent same-id controllers, and continuing in-flight work across OAR
 subprocesses are **unverified**. Native `session/list` is advertised; OAR
 does not expose it.
 

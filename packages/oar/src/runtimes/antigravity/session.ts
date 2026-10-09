@@ -71,6 +71,7 @@ export function antigravityToolDenials(options: SessionOptions): void {
 
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
+  isResumeNotFound: (native) => native.code === -32_002,
   // Subagents run inside the harness and never reach ACP under their own
   // ids: opaque (tier #1, docs/spec/attribution.md). The method set has no
   // steer, so the profile has no `steerParams` and the session no `steer`.
