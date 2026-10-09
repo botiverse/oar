@@ -40,6 +40,7 @@ Cross-runtime investigations:
 - [Native skills, MCP and tool inventories](inventory.md) (local probes, 2026-09-16): what each runtime's own discovery calls return.
 - [Live model and effort changes](live-configure.md) (local probes, 2026-09-29): native setters that change a running session without a restart, and the adapter queues they meet.
 - [Runtime updaters](update.md) (sandbox probes, 2026-10-01): how each runtime updates itself and how its updater can claim success without upgrading.
+- [Runtime installers](install.md) (sandbox runs, 2026-10-09): what each vendor installer put where, whether the runtime's own updater recognizes the copy, and an install that exits 0 having installed nothing.
 - [Crash and resume](crash-resume.md) (live probes, 2026-10-02): what claude, codex and pi keep when the process tree dies mid tool call, and what they do by themselves on reopen.
 
 Live-probe investigations of runtimes without an adapter live under

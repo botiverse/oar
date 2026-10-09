@@ -135,6 +135,20 @@ yet; Pi and Cursor have neither, their SDK versions following oar's (Pi's
 SDK is a dependency, Cursor's an exact peer dependency).
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
+`runtime.installPlan()` reports what installing a runtime would run on this
+machine (the vendor's documented installer and the page that documents it)
+or why it would run nothing (`platform`, `requires_privileges`,
+`requires_gui`, `missing_tool`); `runtime.install()` runs it, without a
+terminal and never with sudo, when `installation()` finds no copy, and
+judges the result by `installation()` afterwards, never by the installer's
+exit code. oar never installs on its own. Claude, Codex, Grok, Kimi and
+OpenCode install through their vendors' macOS and Linux scripts; OpenCode
+declares two release lines in `runtime.installLines` (`v1`, `v2`) and takes
+the host's choice as `line` (oar picks none), and a copy of either line is
+`already_installed`, never replaced. Antigravity's plan is `requires_gui`;
+Pi and Cursor have neither member.
+See [runtime install](https://github.com/botiverse/oar/blob/main/docs/spec/install.md).
+
 `runtime.login(installation, interaction)` logs an installation in through
 the runtime's own login, without a terminal: the sign-in URL or device code
 arrives as a `ProviderLoginInteraction` event, and a code the person pastes

@@ -398,7 +398,11 @@ checks `OAR_ANTIGRAVITY_BIN` and PATH `agy_acp_server.par`
 (`agy_acp_server.exe` on Windows), reading `Build label: <version>` from
 `--version` with a 30 second timeout. The ACP registry ships a zip with no
 installer, so there is no fallback path: put the binary on PATH or name it in
-`OAR_ANTIGRAVITY_BIN`. `checkUpdate` compares the installed version with that
+`OAR_ANTIGRAVITY_BIN`. Google documents installing the agent only from an
+editor's agent registry
+([Zed](https://antigravity.google/docs/ide/extensions/zed): External
+Agents, Install from Registry), so `installPlan` and `install` answer
+`unsupported` `requires_gui` ([runtime install](../spec/install.md)). `checkUpdate` compares the installed version with that
 registry entry, the only release listing (it can trail Google's downloads),
 and counts only a newer registry version as an update; the server has no
 updater, so there is no `upgrade` ([runtime updates](update.md)).

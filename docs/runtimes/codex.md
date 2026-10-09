@@ -784,8 +784,17 @@ retry decision
 
 Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
 desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
-per-user installs), and requires `codex app-server --help` to succeed; a
-codex without the app-server surface is unsupported. Account usage is a
+per-user installs), then the standalone installer's launcher
+(`$CODEX_INSTALL_DIR/codex`, `~/.local/bin/codex`), and requires
+`codex app-server --help` to succeed; a codex without the app-server surface
+is unsupported. When none is found, `install` runs OpenAI's standalone
+installer, `curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh`
+([README](https://github.com/openai/codex#installing-and-running-codex-cli);
+macOS and Linux; [runtime install](../spec/install.md),
+[sandbox run](install.md)). That method because `codex update` reruns the
+standalone installer for its copy: `codex doctor` reports the update action
+`standalone installer`, so `checkUpdate` and `upgrade` work on it, where a
+copied binary would be `manual or unknown`. Account usage is a
 separate reader on its own app-server process (`initialize`, `account/read`,
 `account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
 rate-limit buckets merged as the codex TUI does); neither it nor installation
@@ -798,7 +807,8 @@ the probe deadline is unchanged, and an ordinary nonzero readiness exit still
 classifies the installation as unsupported.
 [Installation](../../packages/oar/src/runtimes/codex/installation.ts),
 [account usage](../../packages/oar/src/runtimes/codex/account-usage.ts),
-[update](../../packages/oar/src/runtimes/codex/update.ts).
+[update](../../packages/oar/src/runtimes/codex/update.ts),
+[install](../../packages/oar/src/runtimes/codex/install.ts).
 
 ### Login
 

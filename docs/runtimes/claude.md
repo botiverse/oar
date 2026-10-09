@@ -552,8 +552,17 @@ provider request and further Claude output after the recorded exit in the
 (Claude 2.1.292). The host-exit hook runs the same tree cleanup synchronously;
 see the [lifetime limits](../spec/record-stream.md#the-rules).
 
-Installation checks `OAR_CLAUDE_BIN`/PATH; update checks and upgrades are
-covered in [runtime updaters](update.md). Account usage is separate from
+Installation checks `OAR_CLAUDE_BIN`, PATH, then the native installer's
+launcher `~/.local/bin/claude` (`%USERPROFILE%\.local\bin\claude.exe` on
+Windows), which a GUI or service process's PATH can miss. When none is
+found, `install` runs Anthropic's native installer,
+`curl -fsSL https://claude.ai/install.sh | bash`
+([setup docs](https://code.claude.com/docs/en/setup); macOS and Linux;
+[runtime install](../spec/install.md), [sandbox run](install.md)). That
+method because its copy is the native install `claude update` updates:
+claude records `installMethod: native`, and `checkUpdate` reads the release
+pointer for it. Update checks and upgrades are covered in
+[runtime updaters](update.md). Account usage is separate from
 session context: the reader runs claude with `--safe-mode` (no user hooks or
 MCP servers; a CLI without the flag is `unsupported/unsupported_installation`,
 and a `--help` probe that times out rejects)
@@ -569,7 +578,8 @@ experimental (verified on 2.1.273); older versions can lack it. Login is
 mapped [below](#login).
 [Installation](../../packages/oar/src/runtimes/claude/installation.ts),
 [account usage](../../packages/oar/src/runtimes/claude/account-usage.ts),
-[updater](../../packages/oar/src/runtimes/claude/update.ts).
+[updater](../../packages/oar/src/runtimes/claude/update.ts),
+[installer](../../packages/oar/src/runtimes/claude/install.ts).
 
 ### Login
 

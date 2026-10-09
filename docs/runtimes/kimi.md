@@ -527,7 +527,15 @@ descendants ([test](../../tests/session-dispose.test.ts)). See
 checks `OAR_KIMI_BIN`, PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,
 `~/.kimi-code/bin/kimi`, and the legacy `kimi-code` name, probing
 `kimi acp --help` with 30-second timeouts; it does not prove compatibility
-with Python kimi-cli.
+with Python kimi-cli. When none is found,
+[`install`](../../packages/oar/src/runtimes/kimi/install.ts) runs Moonshot's
+native installer, `curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash`
+([README](https://github.com/MoonshotAI/kimi-code#install); macOS and Linux;
+[runtime install](../spec/install.md), [sandbox run](install.md)). That
+method because its copy is the native one `kimi upgrade -y` updates (it
+answered "already up to date" for it, where an npm copy gets the manual
+command); the installer records region `mainland-cn`, so `checkUpdate`
+reads `code.kimi.com`.
 
 `checkUpdate` reads the release pointer kimi's own updater installs from, and
 `upgrade` runs `kimi upgrade -y`; a kimi older than 0.43.0 has no

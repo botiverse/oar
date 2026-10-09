@@ -631,7 +631,13 @@ See [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
 
 Installation checks `OAR_GROK_BIN`, PATH, and the official script/npm layouts
 (`$GROK_BIN_DIR`, `$GROK_HOME/bin`, `~/.grok/bin`), probing with
-`grok agent stdio --help`. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)
+`grok agent stdio --help`. When none is found, `install` runs xAI's script,
+`curl -fsSL https://x.ai/cli/install.sh | bash`
+([Grok Build docs](https://docs.x.ai/build/overview); macOS and Linux;
+[runtime install](../spec/install.md), [sandbox run](install.md)). That
+method because its copy is the one `grok update` updates: `grok update
+--check --json` reports installer `internal`, where an npm install would be
+a second copy. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)
 separately opens a connection and queries `_x.ai/billing` (plus
 `_x.ai/auth/info` for the email). No billing `config` is `unsupported`
 `quota_unavailable`; a config that carries none of `creditUsagePercent`,
@@ -639,7 +645,8 @@ separately opens a connection and queries `_x.ai/billing` (plus
 (1.0.46, an unused account; [account usage](../spec/account-usage.md),
 [test](../../tests/grok/grok-account-usage-reader.test.ts)). Account quota,
 prompt billing, and context occupancy are distinct APIs and measurements.
-[Installation](../../packages/oar/src/runtimes/grok/installation.ts).
+[Installation](../../packages/oar/src/runtimes/grok/installation.ts),
+[install](../../packages/oar/src/runtimes/grok/install.ts).
 
 Grok updates itself by default. Launched from `~/.grok/bin`, as the script
 install puts it, `grok agent stdio` (OAR's own launch) checks for a release

@@ -13,6 +13,7 @@ test("release versions are read out of --version lines and release pointers", ()
   assert.equal(releaseVersion("codex-cli 0.158.0"), "0.158.0");
   assert.equal(releaseVersion("grok 1.0.46 (2765805b9442) [stable]"), "1.0.46");
   assert.equal(releaseVersion("0.161.0-alpha.9"), "0.161.0-alpha.9");
+  assert.equal(releaseVersion("opencode v2.0.26"), "2.0.26");
   assert.equal(releaseVersion("no version here"), undefined);
   assert.equal(versionAtLeast("0.43.0", "0.43.0"), true);
   assert.equal(versionAtLeast("2.1.1", "0.43.0"), true);

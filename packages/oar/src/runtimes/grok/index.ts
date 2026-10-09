@@ -3,6 +3,7 @@ import { grokSkills, grokMcpServers } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { grokAccountUsage } from "./account-usage.js";
 import { grokInstallation } from "./installation.js";
+import { grokInstall, grokInstallPlan } from "./install.js";
 import { grokListModels } from "./list-models.js";
 import { grokCheckUpdate, grokUpgrade } from "./update.js";
 import { grokRefusedSessionOptions, grokSession } from "./session.js";
@@ -15,6 +16,8 @@ export const grokRuntime = defineRuntime({
   mcpServers: grokMcpServers,
 
   installation: grokInstallation,
+  installPlan: grokInstallPlan,
+  install: grokInstall,
   accountUsage: grokAccountUsage,
   listModels: grokListModels,
   checkUpdate: grokCheckUpdate,

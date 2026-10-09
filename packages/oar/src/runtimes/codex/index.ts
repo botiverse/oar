@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
 import { codexSkills, codexMcpServers, codexTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
@@ -5,6 +6,7 @@ import { codexAuthStatus, codexLogin } from "./login.js";
 import { codexLogout } from "./logout.js";
 import { codexAccountUsage } from "./account-usage.js";
 import { codexInstallation } from "./installation.js";
+import { codexInstall, codexInstallPlan } from "./install.js";
 import { codexListModels } from "./list-models.js";
 import { codexCheckUpdate, codexUpgrade } from "./update.js";
 import { codexSession } from "./session.js";
@@ -16,6 +18,8 @@ export const codexRuntime = defineRuntime({
   mcpServers: codexMcpServers,
   tools: codexTools,
   installation: codexInstallation,
+  installPlan: codexInstallPlan,
+  install: codexInstall,
   accountUsage: codexAccountUsage,
   listModels: codexListModels,
   checkUpdate: codexCheckUpdate,
