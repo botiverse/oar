@@ -33,8 +33,7 @@ test.each(["initialize", "thread/start", "thread/resume"])("%s failure keeps its
       ],
     }).catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(Error);
-    const cause = failure instanceof Error ? failure.cause : undefined;
-    const nativeCause = cause instanceof Error ? cause.cause : cause;
+    const nativeCause = failure instanceof Error ? failure.cause : undefined;
     expect(nativeCause).toEqual({
       method,
       native: { code: -32_603, message: "refused [redacted]", data: { detail: ["[redacted]", { "[redacted]": "[redacted]" }], retryable: false } },

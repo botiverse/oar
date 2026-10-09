@@ -174,7 +174,7 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
 Missing or unloadable threads reject as `codex thread/resume failed:
-<message>`; its cause chain keeps `{ method, native }`, where `native` is
+<message>`; its `cause` keeps `{ method, native }`, where `native` is
 the JSON-RPC error, including `code`, `message` and any `data`. The same
 context is kept for `initialize` and other pre-session RPC failures, when
 no Session exists for the host to inspect records. MCP credential values

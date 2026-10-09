@@ -102,7 +102,7 @@ The `authenticate` answer's `_meta` carries the account email and
 `grokRuntime.session(...)`; a failed open kills the process before rejecting.
 
 The shared ACP transport retains protocol failures in the thrown error's
-cause chain as `{ method, native }`, including native `code`, `message`
+`cause` as `{ method, native }`, including native `code`, `message`
 and `data`. The SDK error class and existing auth/model classification are
 preserved. MCP credential values are removed from both `data` and the
 cause before the error reaches the host; previously only message/stack

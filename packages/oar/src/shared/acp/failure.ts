@@ -30,10 +30,10 @@ export function acpOpenFailure(error: unknown, step: "open" | "model"): unknown 
     return error;
   }
   if (code === AUTH_REQUIRED) {
-    return new RuntimeFailureError("auth", error.message, { cause: error });
+    return new RuntimeFailureError("auth", error.message, { cause: error.cause ?? error });
   }
   if (step === "model" && code === INVALID_PARAMS) {
-    return new RuntimeFailureError("model_unavailable", error.message, { cause: error });
+    return new RuntimeFailureError("model_unavailable", error.message, { cause: error.cause ?? error });
   }
   return error;
 }
