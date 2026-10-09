@@ -32,7 +32,7 @@ test("resume rejects at open on the native missing-session result, preserving it
 
 
 // oxlint-disable-next-line eslint/max-statements -- Keep the pending/unrelated/matched response ordering visible in one scenario.
-test("resume does not resolve until its own initialize succeeds, and preserves the native answer", async () => {
+test("resume does not resolve until its own initialize succeeds, and keeps the answer private", async () => {
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);
   let resolved = false;
@@ -51,7 +51,7 @@ test("resume does not resolve until its own initialize succeeds, and preserves t
   fake.emit(`${JSON.stringify(answer)}\n`);
   const session = await opening;
   expect(session.id).toBe("existing-session");
-  expect(session.records().some((record) => record.kind === "frame" && JSON.stringify(record.body.native) === JSON.stringify(answer))).toBe(true);
+  expect(session.records().some((record) => record.kind === "frame" && JSON.stringify(record.body.native) === JSON.stringify(answer))).toBe(false);
   expect(fake.written).toHaveLength(1);
   await session.dispose();
 });
@@ -107,7 +107,7 @@ test("resume confirms initialize before effort and reuses that answer to confirm
   spawnLineProcess.mockReturnValue(fake);
   const session = await claudeSession(installation, { cwd: process.cwd(), resume: "old-id", effort: "low", serviceTier: "fast" });
   expect(methods).toEqual(["initialize", "get_settings"]);
-  expect(session.serviceTier().value).toBe("fast");
+  expect(session.serviceTier().value).toBeNull();
   await session.dispose();
 });
 

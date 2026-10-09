@@ -119,9 +119,11 @@ request. [Recorded frame](../../tests/fixtures/claude-missing-resume.json),
 [readback regressions](../../tests/claude/claude-resume.test.ts),
 [real CLI and local-provider tests](../../sea-trial/vendor/claude-resume.vendor.test.ts).
 
-A successful resumed stream contains the native initialization response.
-This establishes readiness, not proof of restored history; a prompt's outcome
-still establishes continuity. The reopened adapter keeps the native session
+The successful initialization response is not recorded because it carries
+account details, including email, organization and subscription, plus a
+process ID and a home-directory path. The private readback establishes
+readiness, not proof of restored history; a prompt's outcome still
+establishes continuity. The reopened adapter keeps the native session
 id, but has fresh observers, sequence numbers and an empty queue. It takes
 startup options again and restores neither old control handles nor historical
 OAR records. [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
@@ -307,10 +309,11 @@ confirm requested fast, and opening fails with both the request and native
 status/reason. The wait is bounded to 30 seconds and failure stops the child.
 Native error answers to this `initialize` or the effort `get_settings`
 call are retained as `{ method, native }` in the thrown error's `cause`,
-with the session's MCP credentials redacted. A successful `get_settings`
-answer is never attached, even on a readback mismatch: it includes private
-merged settings. Spawn failures retain their existing safe diagnostic
-fields without the original Node error or its arguments.
+with known session credentials redacted. Successful `initialize` and
+`get_settings` answers are never attached, even on a readback mismatch:
+they include private account details and merged settings. Spawn failures
+retain their existing safe diagnostic fields without the original Node error
+or its arguments.
 `get_settings.effective.fastMode` is **not** sufficient: it is configuration
 intent, and `applied` currently carries no fast-mode status. Sonnet with
 fastMode true still reports off and is correctly refused before a model call.
@@ -320,11 +323,13 @@ Another `--settings` in `launchArgs` can override that choice; if the applied
 mode no longer matches the requested tier, readback rejects the open instead
 of silently accepting the override.
 
-The initialization response is recorded verbatim; its report and later
-`system/init` / `result` reports produce `service_tier` events. `on` maps to
-fast, `off` and temporary `cooldown` to default. Native reasons remain in the
-frame. A provider can downgrade fast after opening, so this is observable
-state rather than a promise about future capacity or billing.
+The initialization response is not recorded because it carries account
+details. Success confirms the requested tier at open, but produces no
+`service_tier` event; `Session.serviceTier()` remains null until a turn
+reports it through `system/init` or `result`. Those reports map `on` to
+fast, `off` and temporary `cooldown` to default. Native reasons remain in
+the frame. A provider can downgrade fast after opening, so this is
+observable state rather than a promise about future capacity or billing.
 
 Real-binary tests in a fresh Claude config directory confirmed Messages
 `speed: "fast"`, its removal on a resume with default, and fast again on

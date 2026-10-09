@@ -30,7 +30,7 @@ function refusalFor(answer: JsonRecord | Error, option: Option, requested: strin
   return options.serviceTier === undefined ? null : claudeServiceTierRefusal(options.serviceTier, answer);
 }
 
-/** Never attach a successful get_settings response: it contains private merged configuration. */
+/** Successful readbacks contain private configuration or account details, never error diagnostics. */
 function failureNative(answer: JsonRecord | Error): JsonRecord | undefined {
   if (answer instanceof Error) { return undefined; }
   if (failedInitialization(answer)) { return answer; }
@@ -44,13 +44,13 @@ interface Pending {
   readonly settle: (answer: JsonRecord | Error) => void;
 }
 interface OpenSettings {
-  /** True only for private get_settings, whose credentials must not enter records. */
+  /** True for private readbacks, whose account details and configuration must not enter records. */
   consume(message: JsonRecord): boolean;
   exited(code: number | null): void;
   confirm(options: SessionOptions): Promise<void>;
 }
 
-/** Bounded native readbacks at open. Initialization remains in the ordinary projection stream. */
+/** Bounded native readbacks at open, consumed before the ordinary projection stream. */
 export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
   let pending: Pending | null = null;
   const privateIds = new Set<string>();
@@ -64,7 +64,7 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
     const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
     const id = `oar-${option}-${randomUUID()}`;
     pending = { id, method, settle: resolve };
-    if (method === "get_settings") { privateIds.add(id); }
+    privateIds.add(id);
     const timer = setTimeout(() => { resolve(new Error(`claude did not answer ${method} within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`)); }, CLAUDE_EFFORT_READBACK_MS);
     try {
       if (lifetime.failure !== null) { resolve(lifetime.failure); }

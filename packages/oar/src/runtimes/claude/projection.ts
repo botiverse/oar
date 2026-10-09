@@ -227,11 +227,6 @@ export function foldClaudeStdout(
       // is not also recorded as an event. A control_response we cannot pair
       // is recorded as a plain event.
       const response = asRecord(message.response);
-      const initialized = asRecord(response?.response);
-      if (response?.subtype === "success" && initialized !== null) {
-        const events = claudeServiceTierEvents(initialized);
-        if (events.length > 0) { return event({ events }); }
-      }
       const requestId = typeof response?.request_id === "string" ? response.request_id : null;
       if (requestId === null) {
         return event({ events: [] });

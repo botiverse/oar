@@ -498,9 +498,11 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 - `service_tier`: the tier reported by the runtime, never the requested option
   echoed. Codex reads `serviceTier` from open replies and settings updates;
   native null means `default` (no special tier), a missing field means no
-  event. Claude reads `fast_mode_state` from initialization and later
-  system/init or result frames: on maps to `fast`, off or cooldown to
-  `default`. The native frame retains the reason for a downgrade.
+  event. Claude reads `fast_mode_state` from system/init or result frames:
+  on maps to `fast`, off or cooldown to `default`. Its initialization
+  readback confirms an open option privately, produces no event and is not
+  recorded because it carries account details. The native turn frame
+  retains the reason for a downgrade.
   `Session.serviceTier()`, `serviceTierOf` and `SessionView.serviceTier` read
   the latest root report, with null before any. Child reports do not change
   the root's selection. The voyage header's optional `serviceTier` is the

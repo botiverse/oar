@@ -27,8 +27,8 @@ test.each([undefined, "old-id"])("per-process settings and initialization confir
   const session = await claudeSession(installation, { cwd: "/work", serviceTier: "fast", ...(resume === undefined ? {} : { resume }) });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(expect.arrayContaining(["--settings", '{"fastMode":true}']));
   expect(child.written).toHaveLength(1);
-  expect(session.serviceTier().value).toBe("fast");
-  expect(session.records().flatMap((record) => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "service_tier", serviceTier: "fast" });
+  expect(session.serviceTier().value).toBeNull();
+  expect(session.records()).toEqual([]);
   child.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "opus", fast_mode_state: "cooldown" })}\n`);
   expect(session.serviceTier().value).toBe("default");
   child.emit(`${JSON.stringify({ type: "result", subtype: "success", fast_mode_state: "on" })}\n`);
@@ -40,7 +40,7 @@ test("explicit default disables fast instead of inheriting user settings", async
   scripted({ fast_mode_state: "off" });
   const session = await claudeSession(installation, { cwd: "/work", serviceTier: "default" });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(expect.arrayContaining(["--settings", '{"fastMode":false}']));
-  expect(session.serviceTier().value).toBe("default");
+  expect(session.serviceTier().value).toBeNull();
   await session.dispose();
 });
 

@@ -41,7 +41,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude existing resume co
     await current.dispose();
     current = await claudeSession(installation, { ...options, resume: id });
     expect(current.id).toBe(id);
-    expect(current.records().some((record) => record.kind === "frame" && record.body.type === "control_response")).toBe(true);
+    expect(current.records().some((record) => record.kind === "frame" && record.body.type === "control_response")).toBe(false);
     await expect(runTurn(current, "second")).resolves.toEqual({ kind: "completed" });
   } finally {
     await current?.dispose();
