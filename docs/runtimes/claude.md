@@ -383,6 +383,25 @@ fact (mapping table above).
 [Usage calculation](../../packages/oar/src/runtimes/claude/context-usage.ts),
 [native usage](https://code.claude.com/docs/en/agent-sdk/cost-tracking).
 
+`Session.contextBreakdown()` asks claude itself what fills the window: the
+`get_context_usage` control request with `detail: "full"`, the data `/context`
+draws. claude 2.1.292 answered without a model call, and mid-turn in 0.5 s
+while a Bash tool ran. Its `categories` keep claude's names and order (System
+prompt, System tools, System tools (deferred), MCP server instructions, MCP
+tools, MCP tools (deferred), Memory files, Skills, Custom agents, Messages,
+Autocompact buffer, Free space); its kinds `used`, `deferred`, `buffer` and
+`free` become `used`, `deferred`, `reserved` and `free`, and any other kind
+is kept as `unknown`. `tokens` is `totalTokens`, the sum of the `used`
+categories; `contextWindow` is `maxTokens`, which every category but the
+deferred ones sums to. Four lists itemize their category: `memoryFiles` by
+path, `skills.skillFrontmatter` by name, `agents` by agent type, and
+`mcpTools` by tool name, under MCP tools when `isLoaded` and under MCP tools
+(deferred) when not. The answer is consumed before the projection, so it
+enters no record; a refusal rejects with claude's words, and after the exit
+the answer is null.
+[Reader](../../packages/oar/src/runtimes/claude/context-breakdown.ts),
+[test](../../tests/claude/claude-context-breakdown.test.ts).
+
 ### Tools, permissions, and extensions
 
 Native Claude supports tool selection, MCP, agents, skills, plugins,

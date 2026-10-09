@@ -74,6 +74,9 @@ export type { RefusableSessionOption, RefusedSessionOptions, Runtime } from "./c
 export type {
   AdapterSession,
   AttributionTier,
+  ContextBreakdown,
+  ContextCategory,
+  ContextItem,
   ContextUsage,
   ControlAction,
   ControlEventBody,

@@ -145,6 +145,15 @@ Further rules:
   host's) have no `resources` member
   ([process-resources.ts](../../packages/oar/src/shared/executable/process-resources.ts),
   [test](../../tests/session-resources.test.ts)).
+- **A context breakdown is read, never recorded.**
+  `Session.contextBreakdown()` asks the runtime now what fills its context
+  window, by its own categories (`ContextBreakdown`), the way an inventory
+  query asks what is installed: the session does nothing different for it, so
+  it enters no record, and its answer is consumed before the projection. It is
+  `null` once the process has exited. Only claude itemizes its context
+  ([claude.md](../runtimes/claude.md)); every other session has no
+  `contextBreakdown` member, and `contextUsage()` stays the fold of what each
+  runtime reported on its own.
 - **A turn is a span on the stream, not a control object.** The envelope's
   optional `spanId` holds only runtime-native ids (red line in
   [runtime-matrix.md](runtime-matrix.md)); records without a native turn

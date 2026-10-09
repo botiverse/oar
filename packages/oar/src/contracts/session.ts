@@ -13,10 +13,12 @@ import type { DeliverOptions, DeliverResult } from "./deliver.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
+import type { ContextBreakdown } from "./context-breakdown.js";
 import type { SessionOptions } from "./session-options.js";
 
 export type { McpServer, SessionOptions } from "./session-options.js";
 export type { CredentialProblem, FailureClass } from "./failure.js";
+export type { ContextBreakdown, ContextCategory, ContextItem } from "./context-breakdown.js";
 export type {
   ContextUsage,
   ControlAction,
@@ -206,6 +208,7 @@ export interface AdapterSession {
   records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
   resources?(): Promise<SessionResources | null>; // the runtime's memory, read now (`SessionResources`); null once its process has exited, and on Windows (no reader yet). ABSENT where the runtime has no process of its own (pi, cursor: its memory is the host's).
+  contextBreakdown?(): Promise<ContextBreakdown | null>; // what fills the context window, by the runtime's own categories, asked of the runtime now and never recorded (`ContextBreakdown`); null once its process has exited. ABSENT where the runtime cannot itemize its context (all but claude): a host then shows `contextUsage()`.
   dispose(): Promise<void>; // records a dispose request, interrupts active work, releases the runtime, records the exit; idempotent. After an exit the stream already holds (the runtime died on its own), the request is answered `accepted` immediately; nothing is left to release. ALWAYS settles: a runtime process is stopped together with every process it started (on POSIX its process group, and its descendants that left the group), and killed outright when it ignores the stop past a grace period.
 }
 
