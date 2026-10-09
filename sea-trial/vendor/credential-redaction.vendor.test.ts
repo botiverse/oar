@@ -87,7 +87,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude provider-echoed en
   } finally {
     await session?.dispose();
     await provider.stop();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);
 
@@ -102,7 +102,7 @@ test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi provider-echoed SDK keys a
     });
   } finally {
     await provider.stop();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);
 
@@ -128,6 +128,6 @@ test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi short local-provider keys 
     });
   } finally {
     await mock.stop();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);
