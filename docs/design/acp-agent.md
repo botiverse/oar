@@ -1,8 +1,9 @@
 # Serving runtimes over ACP
 
-Status: proposal (2026-10-06), for review before any code. Asked for in
-Raft `#new-runtimes:5d69cb37` (messages `993d718d`, `f263df4f`, `beee6531`,
-`6b182f38`).
+Status: proposal (2026-10-06, revised 2026-10-09), for review before any
+code. Asked for in Raft `#new-runtimes:5d69cb37` (messages `993d718d`,
+`f263df4f`, `beee6531`, `6b182f38`); host dialects made optional and equal
+on the owner's word (`90fefdc8`, `ddee9ce9`, `269039dd`).
 
 ACP clients (Zed, JetBrains AIR, Lody, editor plugins) start an agent
 command and speak the Agent Client Protocol to it over stdio. OAR already
@@ -59,7 +60,7 @@ once it stabilizes.
 | `session/prompt` (idle) | `Session.prompt` | Answered at `turn_ended`: `completed` is `end_turn`, `aborted` is `cancelled`, `failed` is a JSON-RPC error whose data carries the `FailureClass` and reason. |
 | `session/prompt` (running) | `Session.queue` | A later turn, as in `claude-agent-acp` and Lody's v2 codex. Answered when that spontaneous turn ends. |
 | `$/cancel_request` on a queued prompt | `Session.withdraw` | Accepted means the input was never sent, answered `cancelled`. Absent `withdraw` (codex today) leaves it queued, and the request says so. |
-| `_lody/session/steer` | `Session.steer` | Offered only when `steer` exists. `injected` on accepted; `_lody/session/steer_applied` when the runtime's `user_message` evidence for that `inputId` arrives. |
+| steer in the negotiated host dialect (Lody: `_lody/session/steer`) | `Session.steer` | Offered only when `steer` exists. Lody's form: `injected` on accepted; `_lody/session/steer_applied` when the runtime's `user_message` evidence for that `inputId` arrives. Pure ACP: no steer. |
 | `session/cancel` | `Session.abort`, then `withdraw` each held input | Pending permission requests are answered `cancelled`, as ACP requires. |
 | `session/set_config_option` (`model`, `effort`) | dispose at a turn boundary, `resume` with the new options | What Ferry does today. Confirmed by the reopened session's `model` / `effort` events, then `config_option_update`. A live `Session.configure` ([roadmap](roadmap.md) item 5) would replace the restart. |
 | `session/resume` | `SessionOptions.resume` | No replay, as ACP requires. |
@@ -79,7 +80,7 @@ once it stabilizes.
 | `model`, `effort` | `config_option_update` |
 | `app_request` | `session/request_permission` (prerequisite 1) |
 | `exited` | the open prompt fails with `runtime_exited` |
-| child records (`agentPath`, child sessions) | `_lody/subagents/event` when the client negotiates it, else the parent's tool call only |
+| child records (`agentPath`, child sessions) | the negotiated host dialect's subagent event (Lody: `_lody/subagents/event`), else the parent's tool call only |
 
 Shell output follows Zed's `_meta.terminal_*` display convention when the
 client opts in, as both reference adapters do: display only, built from
@@ -99,27 +100,40 @@ the decision's reopen condition ("a host whose sessions are created outside
 it and that must render them"); if editors need it, the question returns
 there, not here.
 
-## Beyond ACP: which extension
+## Beyond ACP: host dialects
 
 ACP v1 has no steer, no subagent attribution and no per segment usage;
 its `SessionUpdate` union is closed, so a new update kind breaks stock
-clients. Extra facts must ride in `_meta` or `_`-prefixed methods.
+clients. Extra facts must ride in `_meta` or `_`-prefixed methods, and
+each host that needs them has defined its own: a host dialect.
 
-Speak Lody's extension (`acp-extension-core`) for exactly the facts OAR
-has and ACP lacks, and nothing else. It is the only published,
-capability-negotiated scheme with a real client (each feature is
-`{ version: 1 }` under `agentCapabilities._meta.lody`, absent means
-unsupported), and its semantics match OAR's: steer is inject or refuse
-with an applied acknowledgement, a subagent run carries its parent tool
-call, usage totals are cumulative within a scope. Withdraw needs no
-extension: ACP's standard `$/cancel_request` is it. No `_oar/*` method
-until a fact has no home in either.
+In `oar acp` OAR is the guest, so the dialects it speaks are the hosts'.
+(The other direction, OAR as the client of an ACP agent, already speaks
+each guest's own conventions in that runtime's profile: grok's
+`_meta.sendNow`, opencode's prompt-while-running. Those are runtime
+integration details, not dialects of this bridge.)
 
-The package is 0.1.x and its specs are drafts, so the bridge pins each
-feature's version. Upstream RFDs to track: Subagent Sessions (Draft,
-unstable `subagent_update`), End-Turn Token Usage (Draft), v2 Prompt
-Lifecycle (Active). When one stabilizes, the bridge serves it beside the
-`_lody` form.
+- **Pure ACP by default.** With no dialect negotiated, the bridge speaks
+  standard ACP only, and a fact ACP has no place for is not sent.
+- **Every dialect optional and equal.** A dialect is one module that maps
+  the OAR facts ACP lacks (steer, subagents, usage segments) to that
+  host's wire form, with its source and version cited and its own tests.
+  None is preferred: the bridge speaks a dialect when the client declares
+  it in `initialize` (Lody: `clientCapabilities._meta.lody`), or when the
+  host serving the bridge turns it on for a client that cannot declare
+  it. Several can be on at once; each fact goes out in every dialect on.
+- **Lody's is the first** (`acp-extension-core`, 0.1.x, specs in draft,
+  so the module pins each feature's version): each feature is
+  `{ version: 1 }` under `agentCapabilities._meta.lody`, absent means
+  unsupported; steer is inject or refuse with an applied acknowledgement;
+  a subagent run carries its parent tool call; usage totals are
+  cumulative within a scope.
+- **The ACP RFDs are dialects too** when they stabilize (Subagent
+  Sessions, unstable `subagent_update`; End-Turn Token Usage; v2 Prompt
+  Lifecycle): a module beside the others, not a replacement.
+- Withdraw needs no dialect: ACP's standard `$/cancel_request` is it. No
+  `_oar/*` method until a fact has no home in standard ACP or any host's
+  dialect.
 
 ## Against the reference adapters
 
@@ -135,14 +149,14 @@ with source versions and file and line for each claim:
 | Row | codex references | claude references | `oar acp` | Judgment |
 |---|---|---|---|---|
 | Text streaming | token deltas | token deltas (partial messages) | codex, pi: token deltas; claude: whole blocks | Close in OAR (prerequisite 5) |
-| Steer | Lody: `_lody` steer to `turn/steer` | `_session/steering`, Lody `_lody` steer | every runtime with `steer`, one semantics | Better: one meaning across runtimes |
+| Steer | Lody: `_lody` steer to `turn/steer` | `_session/steering`, Lody `_lody` steer | every runtime with `steer`, one semantics, in each negotiated host dialect | Better: one meaning across runtimes |
 | Queue and withdraw | Lody v2 queues in the adapter | queued in Claude Code; 0.86 drops a cancelled one | `queue`; `$/cancel_request` withdraws where `withdraw` exists | Same; codex withdraw closes in OAR (prerequisite 6) |
 | Cancel | `turn/interrupt` | `interrupt()` with a 30 s backstop | `abort`; the outcome is the runtime's own `turn_ended`, and `dispose` always settles | Same |
 | Approvals and modes | forwarded; 3 or 4 sandbox modes | forwarded; permission modes; always allow persisted by Claude Code | none: OAR runs every runtime with full access | Close in OAR (prerequisite 1); modes declined (below) |
 | Plan | from `turn/plan/updated` | from `TodoWrite` | not read | Close in OAR (prerequisite 2) |
 | File diffs | per hunk `diff` content | `diff` content for Edit and Write | not read | Close in OAR (prerequisite 3) |
 | Client MCP servers | merged into codex config | handed to the CLI | not passed | Close in OAR (prerequisite 4) |
-| Subagents | Lody: child threads as `_lody` events or draft child sessions; Zed: none | flattened with `parentToolUseId`, draft child sessions, Lody `_lody` events | `agentPath` and child sessions on every runtime that reports them, as `_lody` events | Better for runtimes the references lack; phase 3 |
+| Subagents | Lody: child threads as `_lody` events or draft child sessions; Zed: none | flattened with `parentToolUseId`, draft child sessions, Lody `_lody` events | `agentPath` and child sessions on every runtime that reports them, in each negotiated host dialect | Better for runtimes the references lack; phase 3 |
 | Usage | `usage_update`; Lody per turn and per model | `usage_update` with cost; per model | `usage_update`; token totals | Same; no cost: claude's figure is a client side estimate, which Lody drops too |
 | Failures | JSON-RPC error with codex detail | errors and `authRequired` | `FailureClass` on every runtime | Better: one classification |
 | Login | browser, API key, Lody device code | terminal login run by the client | `Runtime.login` through elicitation | Same for claude and codex; other runtimes follow `login` |
@@ -222,7 +236,8 @@ Phase 1 needs none of them and serves all eight runtimes with full access.
 ## Phases
 
 1. `@botiverse/oar/acp` and `oar acp`: the standard v1 mapping, queue,
-   withdraw, cancel, `_lody` steering, resume, store backed load and list,
+   withdraw, cancel, the dialect layer with Lody's steer, resume, store
+   backed load and list,
    model and effort by restart, `usage_update`, login by elicitation. All
    eight runtimes, full access.
 2. Prerequisites 1 to 6, each in OAR with its own record; the bridge maps
