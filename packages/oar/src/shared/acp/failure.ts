@@ -1,3 +1,5 @@
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
+import { asRecord, type JsonRecord } from "../json.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import type { FrameBody, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../failure-class.js";
@@ -34,6 +36,19 @@ export function acpOpenFailure(error: unknown, step: "open" | "model"): unknown 
   }
   if (step === "model" && code === INVALID_PARAMS) {
     return new RuntimeFailureError("model_unavailable", error.message, { cause: error.cause ?? error });
+  }
+  return error;
+}
+
+/** A failed native resume/load call, under its runtime's missing-target rule. */
+export function acpResumeFailure(error: unknown, method: string, sessionId: string, isNotFound: (native: JsonRecord) => boolean): unknown {
+  // Auth refusals retain their type even if a list was empty.
+  const failure = acpOpenFailure(error, "open");
+  if (failure !== error) { return failure; }
+  const cause = asRecord(error instanceof Error ? error.cause : undefined);
+  const native = asRecord(cause?.native);
+  if (error instanceof Error && cause?.method === method && native !== null && isNotFound(native)) {
+    return new SessionNotFoundError(sessionId, error.message, { method, native });
   }
   return error;
 }

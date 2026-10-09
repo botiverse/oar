@@ -67,7 +67,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   const started = await openThread(client, openMethod, async () => {
     const reply = await client.request(openMethod, filteredOpenParams, markOpen);
     return reply;
-  }, options.serviceTier);
+  }, options.serviceTier, options.resume);
   const threadId = asRecord(started.thread)?.id;
   if (typeof threadId !== "string") {
     client.kill();

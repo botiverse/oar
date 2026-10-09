@@ -96,6 +96,14 @@ without `SessionOptions.model` OAR reopens with the model of the agent's
 latest run (`Agent.listRuns`), or `default` when it has none. The next prompt
 recalls what was taught before disposal (`resume`).
 
+An SDK `agent_not_found` error from either the run lookup or `Agent.resume`
+becomes `SessionNotFoundError`, retaining the requested `sessionId` and a
+JSON-safe `cause: { method, native }` with the SDK's name, message, code,
+operation and retryability. This means "not found by the SDK with this
+configuration". The 1.0.37 probe used no `CURSOR_API_KEY` and did not test a
+real id; it does not establish global absence
+([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+
 The agent's store holds its last run as active until the agent object that
 started that run ends it. After a process that died mid run, or a session
 closed before its first prompt, every `send` on the resumed agent is refused

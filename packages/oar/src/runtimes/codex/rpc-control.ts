@@ -1,3 +1,4 @@
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { emptyInputRefusal } from "../../shared/control-input.js";
 import type {
   ControlResult,
@@ -6,7 +7,7 @@ import type {
   ResponseBody,
   ResponseRecord,
 } from "../../contracts/session.js";
-import type { JsonRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "../../shared/json.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import type { AppServerClient } from "./app-server-client.js";
 
@@ -85,12 +86,21 @@ export async function openThread(
   method: "thread/start" | "thread/resume",
   send: () => Promise<JsonRecord>,
   serviceTier?: string,
+  resumeId?: string,
 ): Promise<JsonRecord> {
   try {
     return await send();
   } catch (error) {
     client.kill();
     const message = error instanceof Error ? error.message : String(error);
+    const cause = asRecord(error instanceof Error ? error.cause : undefined);
+    const native = asRecord(cause?.native);
+    // Codex 0.162.0 also uses -32600 for active writers and sub-agents.
+    // Prose is the last resort, pinned by missing-resume-errors.json.
+    if (method === "thread/resume" && resumeId !== undefined && cause?.method === method && native?.code === -32_600
+      && typeof native.message === "string" && native.message.startsWith("no rollout found for thread id")) {
+      throw new SessionNotFoundError(resumeId, `codex ${method} failed: ${message}`, { method, native });
+    }
     const detail = serviceTier === undefined ? message : `serviceTier ${serviceTier} could not be confirmed (actual unreported): ${message}`;
     // oxlint-disable-next-line eslint/preserve-caught-error -- Keep the native diagnostic directly in cause, without another Error layer.
     throw new Error(`codex ${method} failed: ${detail}`, { cause: error instanceof Error ? error.cause ?? error : error });

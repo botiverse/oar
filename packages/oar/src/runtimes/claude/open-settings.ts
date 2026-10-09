@@ -1,3 +1,4 @@
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { randomUUID } from "node:crypto";
 import type { SessionOptions } from "../../contracts/session.js";
@@ -85,6 +86,13 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
       if (refusal !== null) {
         const native = failureNative(answer);
         const cause = native === undefined ? undefined : nativeErrorCause(method, native, redact);
+        // Only a missing-resume result that won the initialize readback.
+        // Prose is the last resort, pinned by claude-missing-resume.json.
+        if (option === "resume" && method === "initialize" && native !== undefined && failedInitialization(native)
+          && Array.isArray(native.errors) && typeof native.errors[0] === "string"
+          && native.errors[0].startsWith("No conversation found with session ID") && cause !== undefined) {
+          throw new SessionNotFoundError(requested, redact(refusal), cause);
+        }
         throw new Error(redact(refusal), cause === undefined ? undefined : { cause });
       }
     } catch (error) {

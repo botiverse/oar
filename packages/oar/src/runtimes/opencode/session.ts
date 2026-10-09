@@ -42,6 +42,8 @@ export const opencodeAcpProfile: AcpSessionProfile = {
   // 2026-10-05: `pwd` printed the original directory), so a resume
   // elsewhere is refused from `session/list` (profile.ts).
   resumeKeepsSessionCwd: true,
+  // These runtimes lack a unique native missing-session code (#294).
+  isResumeNotFound: (_native, listed) => listed === false,
 };
 
 const directSession = acpSession(opencodeAcpProfile);

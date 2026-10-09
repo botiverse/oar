@@ -131,6 +131,13 @@ and nothing restores observer positions or a controller lease. Resume sends
 no `experimentalRawEvents`, which would be inert there
 ([reasoning](#observation-children-and-history)).
 
+A `thread/resume` error with code `-32600` and message starting exactly
+`no rollout found for thread id` rejects with `SessionNotFoundError`, the
+requested `sessionId`, and the original method/native error in `cause`.
+The code alone also covers active writers and unloaded sub-agents, so those
+refusals keep their own errors. This prose fallback is pinned by the
+0.162.0 recording ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+
 **Token totals after a resume (mapped,
 [#169](https://github.com/botiverse/oar/issues/169)).** codex's
 `tokenUsage.total` spans the thread's life, across processes. Right after
