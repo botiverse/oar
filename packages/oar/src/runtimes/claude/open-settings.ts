@@ -7,8 +7,9 @@ import { nativeErrorCause } from "../../shared/native-error.js";
 import type { ClaudeProcess } from "./launch.js";
 import { CLAUDE_EFFORT_READBACK_MS, claudeControlResponseId, claudeEffortRefusal, claudeSettingsRequest } from "./effort.js";
 import { claudeServiceTierRefusal } from "./service-tier.js";
+import { claudeUsageBaseline, type ClaudeUsageBaseline } from "./token-usage.js";
 
-type Method = "get_settings" | "initialize";
+type Method = "get_settings" | "initialize" | "get_usage";
 type Option = "effort" | "serviceTier" | "resume";
 
 function failedInitialization(message: JsonRecord): boolean {
@@ -48,6 +49,15 @@ interface OpenSettings {
   consume(message: JsonRecord): boolean;
   exited(code: number | null): void;
   confirm(options: SessionOptions): Promise<void>;
+  /**
+   * A resume's token baseline: claude's `get_usage` `session.model_usage`,
+   * the running total the resumed process continues (token-usage.ts). Never
+   * throws or stops the process: a timeout, an exit, an error answer or one
+   * without session totals is an unknown baseline. The answer also carries
+   * account data (subscription, rate-limit windows), so it stays private
+   * like the others.
+   */
+  usageBaseline(): Promise<ClaudeUsageBaseline>;
 }
 
 /** Bounded native readbacks at open, consumed before the ordinary projection stream. */
@@ -100,6 +110,22 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
       lifetime.exited = true;
       lifetime.code = code;
       if (pending !== null) { pending.settle(exitError(pending.method)); }
+    },
+    async usageBaseline() {
+      if (lifetime.exited) { return { kind: "unknown" }; }
+      const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
+      const id = `oar-usage-${randomUUID()}`;
+      pending = { id, method: "get_usage", settle: resolve };
+      privateIds.add(id);
+      const timer = setTimeout(() => { resolve(new Error(`claude did not answer get_usage within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`)); }, CLAUDE_EFFORT_READBACK_MS);
+      try {
+        // skip_behaviors: the answer's local-transcript scan is not needed.
+        child.write(`${JSON.stringify({ type: "control_request", request_id: id, request: { subtype: "get_usage", skip_behaviors: true } })}\n`);
+        return claudeUsageBaseline(await promise);
+      } finally {
+        clearTimeout(timer);
+        pending = null;
+      }
     },
     async confirm(options) {
       try {

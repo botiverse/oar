@@ -96,7 +96,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     model: () => modelOf(adapterSession.records(), adapterSession.id),
     effort: () => effortOf(adapterSession.records(), adapterSession.id),
     serviceTier: () => serviceTierOf(adapterSession.records(), adapterSession.id),
-    usage: () => usageOf(adapterSession.records(), adapterSession.id),
+    usage: () => usageOf(adapterSession.records(), adapterSession.id, adapterSession.graph()),
     contextUsage: () => contextUsageOf(adapterSession.records(), adapterSession.id),
     status: () => statusOf(adapterSession.records(), adapterSession.id),
     steerOrQueue,

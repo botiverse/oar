@@ -32,6 +32,10 @@ function scriptedClaude(applied: Record<string, unknown> | { readonly error: str
       process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: {} } }));
       return;
     }
+    if (message?.type === "control_request" && request?.subtype === "get_usage") {
+      process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: { session: { model_usage: {} } } } }));
+      return;
+    }
     if (message?.type !== "control_request" || request?.subtype !== "get_settings") {
       return;
     }

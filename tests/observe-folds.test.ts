@@ -91,7 +91,7 @@ function assertChildFoldsByItsOwnId(records: readonly RawEvent[]): void {
 
 function assertRootReadbackSeqs(session: ReturnType<typeof sealSession>): void {
   assert.equal(session.model().seq, 1, "model fold rests on the last root record consumed");
-  assert.equal(session.usage().seq, 1, "usage fold rests on the last root record consumed");
+  assert.equal(session.usage().seq, 3, "usage fold rests on the last record consumed, the derived child's included (withChildren)");
   assert.equal(session.contextUsage().seq, 1, "context fold rests on the last root record consumed");
 }
 
@@ -116,7 +116,7 @@ test("model, usage and contextUsage fold only the root session's records", () =>
   rootAndChildReport(kernel);
 
   assert.equal(session.model().value, "root-model");
-  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 } }, "the child's cumulative figure neither overwrites nor joins the root's");
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 }, withChildren: { input: 600, output: 60 } }, "the child's cumulative figure neither overwrites nor joins the root's; withChildren adds it");
   assert.deepEqual(session.contextUsage().value, { tokens: 100, contextWindow: null, percent: null });
   assertRootReadbackSeqs(session);
   assertChildFoldsByItsOwnId(session.records());
@@ -128,8 +128,79 @@ test("model, usage and contextUsage fold only the root session's records", () =>
       { agentPath: [], tokens: { input: 100, output: 10 } },
       { agentPath: ["worker"], tokens: { input: 120, output: 12 } },
     ],
+    withChildren: { input: 720, output: 72 },
   }, "sub-agents of this session (agentPath) still aggregate");
 });
+
+// #282: what this session spent with everything it derived, counted by OAR so
+// a host need not know whether a runtime's parent total includes its children
+// (codex child threads, grok child sessions and OpenCode v2 children never do).
+// SYNTHETIC frames, codex-shaped as above.
+function reports(kernel: SessionKernel, sessionId: string, [input, output]: readonly [number, number]): void {
+  kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(input, output)] }, sessionId === ROOT ? {} : { sessionId });
+}
+
+/** Two children of the root share one grandchild (a diamond), and one id on the wire has no edge from the root. */
+function family(): ReturnType<typeof sealSession> {
+  const kernel = createSessionKernel(ROOT);
+  for (const [parent, child] of [[ROOT, "a"], [ROOT, "b"], ["a", "c"], ["b", "c"]] as const) {
+    kernel.link({ parent, child, via: "tool_call" });
+  }
+  kernel.node("stray");
+  // Each session's running total is its latest report: a's 20 is replaced by its 30.
+  const reported = [[ROOT, [100, 10]], ["a", [20, 2]], ["b", [3, 1]], ["c", [7, 1]], ["a", [30, 3]], ["stray", [1000, 100]]] as const;
+  for (const [sessionId, counts] of reported) {
+    reports(kernel, sessionId, counts);
+  }
+  return sealSession(sessionOver(kernel));
+}
+
+test("withChildren is absent until a derived child session reports, and a child that has not reported adds nothing", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  reports(kernel, ROOT, [100, 10]);
+  kernel.link({ parent: ROOT, child: "a", via: "tool_call" });
+  kernel.link({ parent: ROOT, child: "b", via: "tool_call" });
+  assert.equal(session.usage().value.withChildren, undefined);
+  reports(kernel, "a", [20, 2]);
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 }, withChildren: { input: 120, output: 12 } });
+});
+
+test("withChildren adds every derived child session's total once, nested ones too, and nothing outside the graph", () => {
+  const session = family();
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 }, withChildren: { input: 140, output: 15 } }, "a 30, b 3 and c 7 once each; stray is not derived from the root");
+  assert.deepEqual(usageOf(session.records(), "a", session.graph()).value, { total: { input: 30, output: 3 }, withChildren: { input: 37, output: 4 } }, "a child's own answer adds its own descendants");
+  assert.deepEqual(usageOf(session.records(), ROOT).value, { total: { input: 100, output: 10 } }, "without the graph, the session alone");
+});
+
+test("withChildren is absent while the session's own total is unknown", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  // A resumed codex thread without a baseline: context only, no tokens.
+  kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [{ kind: "usage", usage: { context: { tokens: 10, contextWindow: null, percent: null } } }] });
+  kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" });
+  kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(500, 50)] }, { sessionId: CHILD });
+  assert.deepEqual(session.usage().value, { total: null });
+});
+
+// #282: a runtime's own session total (claude's modelUsage) beyond its
+// agents' figures: the total is the runtime's, the rest unattributed.
+test("a reported session total is the total; what no agent accounts for is unattributed", () => {
+  const kernel = createSessionKernel(ROOT);
+  const session = sealSession(sessionOver(kernel));
+  kernel.frame({ type: "result", native: {}, events: [{ kind: "usage", usage: { tokens: { input: 100, output: 10, cacheRead: 60, cacheWrite: 30 }, total: { input: 100, output: 10, cacheRead: 60, cacheWrite: 30 } } }] });
+  assert.deepEqual(session.usage().value, { total: { input: 100, output: 10, cacheRead: 60, cacheWrite: 30 } }, "all of it the root's: no breakdown");
+  kernel.frame({ type: "result", native: {}, events: [{ kind: "usage", usage: { tokens: { input: 150, output: 15, cacheRead: 80, cacheWrite: 40 }, total: { input: 400, output: 25, cacheRead: 200, cacheWrite: 90 } } }] });
+  assert.deepEqual(session.usage().value, {
+    total: { input: 400, output: 25, cacheRead: 200, cacheWrite: 90 },
+    byAgent: [{ agentPath: [], tokens: { input: 150, output: 15, cacheRead: 80, cacheWrite: 40 } }],
+    unattributed: { input: 250, output: 10, cacheRead: 120, cacheWrite: 50 },
+  });
+  // A later frame without a session total keeps the last one.
+  kernel.frame({ type: "result", native: {}, events: [{ kind: "usage", usage: { context: { tokens: 1, contextWindow: null, percent: null } } }] });
+  assert.deepEqual(session.usage().value.total, { input: 400, output: 25, cacheRead: 200, cacheWrite: 90 });
+});
+
 
 function tokens(body: { input: number; output: number; cacheRead?: number; cacheWrite?: number }): FrameBody {
   return { type: "result", native: {}, events: [{ kind: "usage", usage: { tokens: body } }] };

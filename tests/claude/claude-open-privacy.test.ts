@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import type { SessionOptions, RawEvent } from "../../packages/oar/src/index.js";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { getUsageAnswer, privateUsageValues, savedModelUsage } from "../fixtures/claude-usage.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<() => FakeLineProcess>());
@@ -12,7 +13,8 @@ const installation = { kind: "available", via: "executable", command: "claude" }
 // Native 2.1.295 shape from an isolated config home; account identity is synthetic.
 const fixture = readFileSync(new URL("../fixtures/claude-initialize-private.json", import.meta.url), "utf8");
 const initialized = asRecord(JSON.parse(fixture));
-const privateValues = ["oar-private-account@example.test", "oar-private-organization", "oar-private-plan", "oar-private-user", "654321"];
+// A resume's get_usage answer (#282) carries account data as well.
+const privateValues = ["oar-private-account@example.test", "oar-private-organization", "oar-private-plan", "oar-private-user", "654321", ...privateUsageValues];
 const options: SessionOptions[] = [
   { cwd: "/work", resume: "old-id" },
   { cwd: "/work", serviceTier: "fast" },
@@ -25,6 +27,10 @@ function script(fastMode = "on", effort = "low"): FakeLineProcess {
   const fake = fakeLineProcess((text, child) => {
     const request = asRecord(JSON.parse(text));
     const method = asRecord(request?.request)?.subtype;
+    if (method === "get_usage") {
+      child.emit(`${JSON.stringify(getUsageAnswer(request?.request_id, savedModelUsage))}\n`);
+      return;
+    }
     const response = method === "initialize" ? { ...initialized, fast_mode_state: fastMode } : { applied: { effort } };
     child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response } })}\n`);
   });

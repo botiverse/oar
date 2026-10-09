@@ -111,10 +111,15 @@ export interface TokenTotals {
  * `agentPath` counted from when this Session opened, resolved by the adapter
  * (the authoritative figure, deduplication and what a resumed runtime had
  * already counted never cross this surface; docs/spec/attribution.md).
+ * `total` is the session's own running total, counted the same way, where
+ * the runtime reports one that covers more than its agents' figures (claude's
+ * `modelUsage`: subagents, sidechains and compaction too); absent elsewhere,
+ * where the agents' figures sum to the session's.
  */
 export interface UsageReport {
   readonly context?: ContextUsage;
   readonly tokens?: TokenTotals;
+  readonly total?: TokenTotals;
 }
 
 /** A native user-message observation, not proof of model consumption. */

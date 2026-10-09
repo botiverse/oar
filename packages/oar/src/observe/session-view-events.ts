@@ -196,6 +196,9 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
             tokens: event.usage.tokens,
           });
         }
+        if (event.usage.total !== undefined) {
+          draft.usageTotal = event.usage.total;
+        }
         if (event.usage.context !== undefined && event.agentPath.length === 0) {
           draft.context = event.usage.context;
         }

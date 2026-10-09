@@ -61,7 +61,7 @@ provider's echoed authentication header across live delivery and replay.
 | CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. Its exit is an `exited` response record (answering `dispose` when OAR caused it). |
 | Persistent session ID | `Session.id`, passed as `--session-id` or `--resume`. Every record carries it as `sessionId`. |
 | stream-json frame | One `Frame` record per stdout line (control traffic below and the effort read-back at open are the exceptions): `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, user_message, turn_ended, usage, model, task_*, compaction_ended). Frames OAR does not interpret (`system/thinking_tokens`, …) carry no events; nor does `rate_limit_event`, read only for a failed turn's `resetsAt` ([below](#usage-limits)). No `spanId`: claude frames carry no turn id. |
-| User turn and `result` | The `prompt` request record starts the turn; the `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event. |
+| User turn and `result` | The `prompt` request record starts the turn; the `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | `tool_call_started` (`callId`, `tool`, `input`) and `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
@@ -104,8 +104,10 @@ Resume restores context for new requests, not a prior process.
 **Mapped:** `await claudeSession(installation, { cwd, resume: sessionId })`
 sends the native `initialize` control request and waits for success within
 the existing 30-second readback bound. A requested `serviceTier` uses that
-same answer, and requested `effort` is read back afterward. Fresh opens
-without either setting keep the immediate post-spawn path.
+same answer, and requested `effort` is read back afterward. Then a resume
+asks `get_usage` for its [token baseline](#token-totals), within the same
+bound; that answer never fails the open. Fresh opens without either setting
+keep the immediate post-spawn path; no fresh open sends `get_usage`.
 
 A missing resume ID reports `result/error_during_execution` before answering
 `initialize`, then exits. OAR rejects the opening call with Claude's `errors`
@@ -121,7 +123,9 @@ request. [Recorded frame](../../tests/fixtures/claude-missing-resume.json),
 
 The successful initialization response is not recorded because it carries
 account details, including email, organization and subscription, plus a
-process ID and a home-directory path. The private readback establishes
+process ID and a home-directory path; nor is the `get_usage` answer, which
+carries the subscription type, rate-limit windows and credit amounts beside
+the session totals. The private readback establishes
 readiness, not proof of restored history; a prompt's outcome still
 establishes continuity. The reopened adapter keeps the native session
 id, but has fresh observers, sequence numbers and an empty queue. It takes
@@ -326,10 +330,10 @@ state). With 2.1.293, a background Task against the scripted provider
 reported complete child thinking/text blocks after the root result, but no
 child `stream_event` frames. The partial-output flag does not make that
 native child path incremental; its completed blocks remain the source of
-child events. There is no child control handle. No child `result` frame has been
-observed, so child usage stays unattributed and `usage()` is root-only;
-whether a child ever reports usage, and the interleaving of concurrent
-children, are **unverified**. [Native subagents][native-subagents].
+child events. There is no child control handle. A subagent's spend is in the session
+total but has no `byAgent` entry of its own: it is `unattributed`
+([tokens](#token-totals)). The interleaving of concurrent children is
+**unverified**. [Native subagents][native-subagents].
 
 `rawEvents(observer, cursor)` replays the retained records after `afterSeq`
 for the lifetime of the adapter process (a mid-turn subscribe replays exactly
@@ -449,16 +453,10 @@ survive manual `/compact`.
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
 
 Context reporting is **partial**. The `result` frame's `usage` event carries
-input/cache counts as context fullness and the running per-agent token total
+input/cache counts as context fullness and the token totals below
 (`Session.contextUsage()` and `usage()` fold these events): across three
 one-word turns `usage().value.total.input` grew by about 22k per turn (cache
-reads included) while `contextUsage().value.tokens` stayed near 22k. The
-total's `input` is `input_tokens + cache_read_input_tokens +
-cache_creation_input_tokens`; the last two also accumulate per agent as
-`cacheRead` and `cacheWrite`, each present once a `result` reported it
-(recorded: input 39009 = 4 + 29198 read + 9807 written,
-[replay](../../tests/replay/fixtures/claude-background-tasks.projected.txt);
-[spec](../spec/attribution.md#cache-reads-and-writes)). Official
+reads included) while `contextUsage().value.tokens` stayed near 22k. Official
 documentation describes result usage as aggregate main-loop usage for the
 user turn, so the context figure is **unverified as current fullness** across
 multiple model steps. Native compaction still runs and is reported after the
@@ -489,6 +487,70 @@ projection, so it enters no record; a refusal rejects with claude's words,
 and from the start of a dispose, and after the exit, the answer is null.
 [Reader](../../packages/oar/src/runtimes/claude/context-breakdown.ts),
 [test](../../tests/claude/claude-context-breakdown.test.ts).
+
+### Token totals
+
+claude reports two figures on each `result` ([#282](https://github.com/botiverse/oar/issues/282)).
+Its schema (2.1.289) calls `usage` "MAIN AGENT LOOP ONLY — excludes Task
+subagent, sidechain, and auxiliary model calls, and is per-turn in
+streaming-input sessions. Prefer modelUsage for token/cost accounting", and
+`modelUsage` the per-model totals of "every model call made through the
+query pipeline … main loop, Task subagents, sidechains, and internal calls
+such as compaction and Workflow agents", cumulative across turns: each
+result carries the running total. [sym]
+
+**Mapped:**
+
+- `usage().total` is the latest `modelUsage`, summed over models: `input`
+  is `inputTokens + cacheReadInputTokens + cacheCreationInputTokens`
+  (`inputTokens` excludes the cache, like `input_tokens`), `output` is
+  `outputTokens`, and the two cache counts are `cacheRead` and `cacheWrite`
+  ([spec](../spec/attribution.md#cache-reads-and-writes)). It is read, never
+  summed across results.
+- The root agent's `byAgent` entry is the main loop: each result's `usage`
+  added up, as before, its `input` `input_tokens + cache_read_input_tokens +
+  cache_creation_input_tokens` (recorded: 39009 = 4 + 29198 read + 9807
+  written, [replay](../../tests/replay/fixtures/claude-background-tasks.projected.txt)).
+- `unattributed` is the rest: the subagents', sidechains' and compaction's
+  calls. A subagent gets no entry, because the stream does not say what it
+  spent: only its first `assistant` frame carries `parent_tool_use_id`, and
+  that frame's `message.usage` is the stream-start value (3 output tokens
+  in the recording), not the request's final usage, which claude's schema
+  says "arrive[s] on the result message". [env 2.1.292]
+- A result with a zeroed `modelUsage` (claude's crash and startup-error
+  results: `{}` on the missing-resume result) leaves the total where it
+  was. A total lower than the last one is claude resetting its running total
+  (its schema: "a mid-session /clear resets the running total"): what this
+  Session counted before stays, and counting restarts from zero. [sym; not
+  recorded]
+- **Resume.** The resumed process's `modelUsage` continues the previous
+  process's running total (and so does `total_cost_usd`): its first result
+  already carries the earlier turns. Before the first turn the adapter
+  sends `get_usage` (`skip_behaviors: true`); its `session.model_usage` is
+  that running total (`{}` when nothing was saved), consumed privately
+  ([above](#session-creation-and-resume)), and every later `modelUsage` is
+  less it, model by model, so `usage()` counts from when this Session
+  opened ([spec](../spec/attribution.md#usage-one-constraint)). Don't know,
+  don't report: when `get_usage` times out, fails, or answers without
+  `session`, the Session's `usage` events carry `context` only and
+  `usage().total` stays null, never the session's lifetime figure.
+  `get_session_cost` is not used: it answers only human-readable text.
+
+Recorded on 2.1.292 (haiku, 2026-10-09; [frames](../../tests/replay/fixtures/claude-usage-subagent-compact.raw.jsonl),
+[projection](../../tests/replay/fixtures/claude-usage-subagent-compact.projected.txt),
+[regressions](../../tests/claude/claude-token-usage.test.ts)): a turn that
+ran one Task subagent reported main-loop input 43876 / output 834 and
+`modelUsage` 69147 / 1011, so 25271 / 177 unattributed; a plain turn grew
+both by the same 22563 / 29; a manual `/compact` reported a zeroed `usage`
+while `modelUsage` grew by 23987 / 1173. The
+[resumed process](../../tests/replay/fixtures/claude-usage-resume.raw.jsonl)
+reported `modelUsage` 137784 / 2249 for one turn whose main loop spent 22087
+/ 36: the previous process's 115697 / 2213 plus that turn. With the
+`get_usage` baseline, `usage().total` is 22087 / 36. The `get_usage` answer
+in the regressions is shaped from the schema, its `model_usage` the previous
+process's last `modelUsage`, which a live read found identical
+([adapter regressions](../../tests/claude/claude-usage-baseline.test.ts),
+[token usage](../../packages/oar/src/runtimes/claude/token-usage.ts)).
 
 ### Tools, permissions, and extensions
 
@@ -922,8 +984,8 @@ provider only) and against a project- or local-scope server, an effort
 clamp by `maxEffortLevel` or an override by
 `CLAUDE_CODE_EFFORT_LEVEL` (the read-back refuses either; neither was
 exercised), accepted-input receipt under load,
-late interrupts across turns, context fullness after multi-step work, child
-usage attribution and concurrent-child interleaving, native identity changes
+late interrupts across turns, context fullness after multi-step work, a
+recorded `/clear` and `get_usage` answer, concurrent-child interleaving, native identity changes
 after conversation reset, the resumability floor of a session JSONL, and
 whether anything ever collects `sessions/<pid>.json` or `session-env/<uuid>/`.
 

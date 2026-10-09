@@ -18,8 +18,10 @@ import { launchClaude, type ClaudeProcess } from "./launch.js";
 import {
   claudeAbortRequested,
   claudePrompted,
+  claudeUsageBaselined,
   foldClaudeStdout,
   initialClaudeProjection,
+  resumedClaudeProjection,
   type ClaudeProjectionState,
 } from "./projection.js";
 
@@ -29,8 +31,9 @@ import {
  * interrupt's control_response acknowledges abort, not turn completion.
  * The adapter owns pending controls and queue drain; projection owns facts.
  * Open readbacks are private plumbing: get_settings contains user config
- * and credentials, initialize contains account details. Both are consumed
- * before projection, as is the unrecorded contextBreakdown() query answer.
+ * and credentials, initialize and a resume's get_usage (its token baseline)
+ * account details. All are consumed before projection, as is the unrecorded
+ * contextBreakdown() query answer.
  * Native mappings and live evidence: docs/runtimes/claude.md.
  */
 
@@ -74,7 +77,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     child,
     active: null,
     spontaneous: false,
-    projection: initialClaudeProjection,
+    projection: options.resume === undefined ? initialClaudeProjection : resumedClaudeProjection,
     disposed: false,
   };
   // claude cannot hold input for a LATER turn natively (an active-turn write
@@ -161,6 +164,11 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   });
 
   await readback.confirm(options);
+  if (options.resume !== undefined) {
+    // Before the first turn: where this Session's share of the running total
+    // the resumed process continues starts (token-usage.ts).
+    state.projection = claudeUsageBaselined(state.projection, await readback.usageBaseline());
+  }
 
   let interruptCounter = 0;
   const capabilities = { queue: { durable: false }, attribution: "attributed", images: true } as const;

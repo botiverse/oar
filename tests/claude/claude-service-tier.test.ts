@@ -12,7 +12,13 @@ afterEach(() => { spawnLineProcess.mockReset(); vi.useRealTimers(); });
 function scripted(applied: Record<string, unknown>, error?: string): FakeLineProcess {
   const child = fakeLineProcess((line, process) => {
     const request = asRecord(JSON.parse(line));
-    if (asRecord(request?.request)?.subtype !== "initialize") { return; }
+    const subtype = asRecord(request?.request)?.subtype;
+    if (subtype === "get_usage") {
+      // A resume's token baseline (#282): nothing saved.
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: { session: { model_usage: {} } } } })}\n`);
+      return;
+    }
+    if (subtype !== "initialize") { return; }
     process.emit(`${JSON.stringify({ type: "control_response", response: error === undefined
       ? { subtype: "success", request_id: request?.request_id, response: applied }
       : { subtype: "error", request_id: request?.request_id, error } })}\n`);
@@ -26,7 +32,7 @@ test.each([undefined, "old-id"])("per-process settings and initialization confir
   const child = scripted({ fast_mode_state: "on" });
   const session = await claudeSession(installation, { cwd: "/work", serviceTier: "fast", ...(resume === undefined ? {} : { resume }) });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(expect.arrayContaining(["--settings", '{"fastMode":true}']));
-  expect(child.written).toHaveLength(1);
+  expect(child.written).toHaveLength(resume === undefined ? 1 : 2);
   expect(session.serviceTier().value).toBeNull();
   expect(session.records()).toEqual([]);
   child.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "opus", fast_mode_state: "cooldown" })}\n`);

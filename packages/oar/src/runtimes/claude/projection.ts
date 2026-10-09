@@ -9,9 +9,9 @@ import type {
 } from "../../contracts/session.js";
 import { claudeFailure, claudeLimitReset } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
+import { foldModelUsage, freshModelUsage, resumedModelUsage, withBaseline, withMainLoop, type ClaudeModelUsage, type ClaudeUsageBaseline } from "./token-usage.js";
 import { claudeTaskViews } from "./tasks.js";
 import { claudeContent, contentBlocks, type ClaudePartials } from "./content.js";
 
@@ -45,31 +45,44 @@ export type ProjectionCommand =
  * completed. `agents` maps every tool_use id seen to the agentPath of the
  * message that carried it, so a frame with `parent_tool_use_id` attributes to
  * that tool call's agent plus the call; nested Task calls nest the path.
- * `tokens` accumulates per-agent result usage so usage events are cumulative.
- * `failureCategory` is the `error` of the turn's last root assistant frame,
- * which classifies a failed result (failure.ts). `limitResetsAt` is the
- * reset of the limit the latest `rate_limit_event` says refuses requests,
- * kept across turns until another event replaces it (claude reports a
- * change, not every refusal): a turn that then fails on `rate_limit` is
- * `quota` with that `resetsAt`.
+ * `tokens` accumulates the main loop's per-turn result usage (the root
+ * agent's), so usage events are cumulative; `modelUsage` is the session's
+ * own running total and where this Session's share of it starts
+ * (token-usage.ts). `failureCategory` is the `error` of the turn's last root
+ * assistant frame, which classifies a failed result (failure.ts).
+ * `limitResetsAt` is the reset of the limit the latest `rate_limit_event`
+ * says refuses requests, kept across turns until another event replaces it
+ * (claude reports a change, not every refusal): a turn that then fails on
+ * `rate_limit` is `quota` with that `resetsAt`.
  */
 export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
+  readonly modelUsage: ClaudeModelUsage;
   readonly partials: ClaudePartials;
   readonly failureCategory: string | null;
   readonly limitResetsAt: UtcInstant | null;
 }
 
+/** A new session's fold. */
 export const initialClaudeProjection: ClaudeProjectionState = {
   abortRequested: false,
   agents: new Map(),
   tokens: new Map(),
+  modelUsage: freshModelUsage,
   partials: new Map(),
   failureCategory: null,
   limitResetsAt: null,
 };
+
+/** A resumed session's fold: it counts no tokens until `claudeUsageBaselined` says where its share starts. */
+export const resumedClaudeProjection: ClaudeProjectionState = { ...initialClaudeProjection, modelUsage: resumedModelUsage };
+
+/** The adapter's `get_usage` read-back at open: where a resumed Session's share of claude's running total starts. */
+export function claudeUsageBaselined(state: ClaudeProjectionState, baseline: ClaudeUsageBaseline): ClaudeProjectionState {
+  return { ...state, modelUsage: withBaseline(state.modelUsage, baseline) };
+}
 
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
 export function claudePrompted(state: ClaudeProjectionState): ClaudeProjectionState {
@@ -156,20 +169,19 @@ function frameType(message: JsonRecord): string {
   return typeof message.subtype === "string" ? `${type}/${message.subtype}` : type;
 }
 
-/** Cumulative per-agent tokens after folding this result frame's own turn usage. */
+/**
+ * Cumulative per-agent tokens after folding this result frame's own turn
+ * usage: the main loop's (claude's word), so the root agent's. None while a
+ * resumed Session's share is unknown. Subagents get no entry: only a
+ * subagent's first assistant frame carries `parent_tool_use_id`, and its
+ * `message.usage` is the stream-start value, not final ([env] 2.1.292), so
+ * their spend stays in the session total, unattributed.
+ */
 function accumulate(state: ClaudeProjectionState, agentPath: readonly string[], message: JsonRecord): { state: ClaudeProjectionState; tokens: TokenTotals } | null {
-  const usage = asRecord(message.usage);
-  if (usage === null) {
+  const tokens = state.modelUsage.baseline.kind === "known" ? withMainLoop(state.tokens.get(pathKey(agentPath)), message) : null;
+  if (tokens === null) {
     return null;
   }
-  // `input_tokens` excludes the cache reads and writes, so input counts them
-  // back in; each also stands as its own part when the frame reports it.
-  const cache = cacheParts(usage, { read: "cache_read_input_tokens", write: "cache_creation_input_tokens" });
-  const tokens = addTokens(state.tokens.get(pathKey(agentPath)) ?? noTokens, {
-    input: (asNumber(usage.input_tokens) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
-    output: asNumber(usage.output_tokens) ?? 0,
-    ...cache,
-  });
   const next = new Map([...state.tokens, [pathKey(agentPath), tokens]]);
   return { state: { ...state, tokens: next }, tokens };
 }
@@ -209,14 +221,16 @@ export function foldClaudeStdout(
     case "result": {
       const events: RuntimeEventBody[] = [...claudeServiceTierEvents(message), { kind: "turn_ended", outcome: resultOutcome(state, message) }];
       const accumulated = accumulate(state, agentPath, message);
+      const running = foldModelUsage(state.modelUsage, message);
       const context = claudeContextUsageFromResult(message);
-      if (accumulated !== null || context !== null) {
+      if (accumulated !== null || context !== null || running.total !== null) {
         events.push({ kind: "usage", usage: {
           ...(context === null ? {} : { context }),
           ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
+          ...(running.total === null ? {} : { total: running.total }),
         } });
       }
-      return event({ events }, { ...(accumulated?.state ?? state), abortRequested: false, failureCategory: null });
+      return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage, abortRequested: false, failureCategory: null });
     }
     case "system": {
       if (message.subtype === "compact_boundary") {

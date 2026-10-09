@@ -155,10 +155,7 @@ export interface PendingRequest {
   readonly body?: unknown;
 }
 
-export interface AgentTokens {
-  readonly agentPath: readonly string[];
-  readonly tokens: TokenTotals;
-}
+export interface AgentTokens { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }
 
 export interface SessionView {
   readonly messages: readonly ViewMessage[];
@@ -186,6 +183,8 @@ export interface SessionView {
   /** sessionId of the latest prompt request: whose `turn_ended` closes turns. */
   readonly rootSessionId: string | undefined;
   readonly usageByAgent: ReadonlyMap<string, AgentTokens>;
+  /** The runtime's own session total, when it reports one beyond its agents' (`UsageReport.total`); null otherwise. */
+  readonly usageTotal: TokenTotals | null;
 }
 
 export function initialSessionView(): SessionView {
@@ -204,6 +203,7 @@ export function initialSessionView(): SessionView {
     conversation: initialConversation(),
     rootSessionId: undefined,
     usageByAgent: new Map(),
+    usageTotal: null,
   };
 }
 
