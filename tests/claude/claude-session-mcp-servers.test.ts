@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vitest";
 import type { McpServer } from "../../packages/oar/src/contracts/session.js";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
+import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
@@ -97,7 +98,10 @@ test("mcpServers reach claude through --mcp-config, never argv: a FIFO gone once
 });
 
 test("a resume passes them again: claude remembers no --mcp-config", async () => {
-  spawnLineProcess.mockReturnValue(fakeLineProcess());
+  spawnLineProcess.mockReturnValue(fakeLineProcess((text, child) => {
+    const request = asRecord(JSON.parse(text));
+    child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: {} } })}\n`);
+  }));
   const session = await claudeSession(installation, { cwd: "/work", resume: "claude-session-1", mcpServers: servers });
   const { argv, config } = spawned();
   expect(argv.slice(argv.indexOf("--resume"), argv.indexOf("--resume") + 2)).toEqual(["--resume", "claude-session-1"]);

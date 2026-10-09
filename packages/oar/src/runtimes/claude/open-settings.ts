@@ -9,6 +9,35 @@ import { CLAUDE_EFFORT_READBACK_MS, claudeControlResponseId, claudeEffortRefusal
 import { claudeServiceTierRefusal } from "./service-tier.js";
 
 type Method = "get_settings" | "initialize";
+type Option = "effort" | "serviceTier" | "resume";
+
+function failedInitialization(message: JsonRecord): boolean {
+  return message.type === "result" && message.subtype === "error_during_execution";
+}
+
+function refusalFor(answer: JsonRecord | Error, option: Option, requested: string, options: SessionOptions): string | null {
+  if (answer instanceof Error) { return `${answer.message}, so ${option} ${requested} cannot be confirmed`; }
+  if (failedInitialization(answer)) {
+    const errors = Array.isArray(answer.errors) ? answer.errors.filter((error): error is string => typeof error === "string") : [];
+    return errors.join("\n") || "claude initialization failed (result/error_during_execution)";
+  }
+  if (option === "effort") { return claudeEffortRefusal(requested, answer); }
+  if (option === "serviceTier") { return claudeServiceTierRefusal(requested, answer); }
+  const response = asRecord(answer.response);
+  if (response?.subtype !== "success") {
+    return `claude could not resume ${requested} (initialize: ${typeof response?.error === "string" ? response.error : "no success answer"})`;
+  }
+  return options.serviceTier === undefined ? null : claudeServiceTierRefusal(options.serviceTier, answer);
+}
+
+/** Never attach a successful get_settings response: it contains private merged configuration. */
+function failureNative(answer: JsonRecord | Error): JsonRecord | undefined {
+  if (answer instanceof Error) { return undefined; }
+  if (failedInitialization(answer)) { return answer; }
+  const response = asRecord(answer.response);
+  return response?.subtype === "error" ? response : undefined;
+}
+
 interface Pending {
   readonly id: string;
   readonly method: Method;
@@ -25,9 +54,10 @@ interface OpenSettings {
 export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
   let pending: Pending | null = null;
   const privateIds = new Set<string>();
-  const lifetime: { exited: boolean; code: number | null } = { exited: false, code: null };
+  const lifetime: { exited: boolean; code: number | null; failure: JsonRecord | null } = { exited: false, code: null, failure: null };
+  let opening = true;
   const exitError = (method: Method): Error => new Error(`claude exited (code ${String(lifetime.code)}) before answering ${method}`);
-  const confirm = async (method: Method, option: "effort" | "serviceTier", options: SessionOptions): Promise<void> => {
+  const confirm = async (method: Method, option: Option, options: SessionOptions): Promise<void> => {
     const requested = options[option];
     if (requested === undefined) { return; }
     const { redact } = sessionCredentialRedactor(options);
@@ -37,16 +67,14 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
     if (method === "get_settings") { privateIds.add(id); }
     const timer = setTimeout(() => { resolve(new Error(`claude did not answer ${method} within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`)); }, CLAUDE_EFFORT_READBACK_MS);
     try {
-      if (lifetime.exited) { resolve(exitError(method)); }
+      if (lifetime.failure !== null) { resolve(lifetime.failure); }
+      else if (lifetime.exited) { resolve(exitError(method)); }
       else { child.write(method === "get_settings" ? claudeSettingsRequest(id) : `${JSON.stringify({ type: "control_request", request_id: id, request: { subtype: method } })}\n`); }
       const answer = await promise;
-      const refusal = answer instanceof Error ? `${answer.message}, so ${option} ${requested} cannot be confirmed`
-        : (option === "effort" ? claudeEffortRefusal(requested, answer) : claudeServiceTierRefusal(requested, answer));
+      const refusal = refusalFor(answer, option, requested, options);
       if (refusal !== null) {
-        const response = answer instanceof Error ? null : asRecord(answer.response);
-        // A successful get_settings contains merged user config, including
-        // credentials unknown to OAR. Only a protocol error belongs here.
-        const cause = response?.subtype === "error" ? nativeErrorCause(method, response, redact) : undefined;
+        const native = failureNative(answer);
+        const cause = native === undefined ? undefined : nativeErrorCause(method, native, redact);
         throw new Error(redact(refusal), cause === undefined ? undefined : { cause });
       }
     } catch (error) {
@@ -60,6 +88,10 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
   };
   return {
     consume(message) {
+      if (opening && failedInitialization(message)) {
+        lifetime.failure = message;
+        pending?.settle(message);
+      }
       const id = claudeControlResponseId(message);
       if (pending !== null && id === pending.id) { pending.settle(message); }
       return id !== null && privateIds.has(id);
@@ -70,8 +102,16 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
       if (pending !== null) { pending.settle(exitError(pending.method)); }
     },
     async confirm(options) {
-      if (options.effort !== undefined) { await confirm("get_settings", "effort", options); }
-      if (options.serviceTier !== undefined) { await confirm("initialize", "serviceTier", options); }
+      try {
+        // Missing resumes report a result error and exit without an initialize
+        // answer. Confirm that handshake before any settings readback.
+        if (options.resume !== undefined) { await confirm("initialize", "resume", options); }
+        if (options.effort !== undefined) { await confirm("get_settings", "effort", options); }
+        if (options.serviceTier !== undefined && options.resume === undefined) { await confirm("initialize", "serviceTier", options); }
+      } finally {
+        opening = false;
+        lifetime.failure = null;
+      }
     },
   };
 }

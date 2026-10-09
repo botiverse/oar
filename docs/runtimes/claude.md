@@ -102,20 +102,34 @@ Resume restores context for new requests, not a prior process.
 [SDK sessions][native-sessions].
 
 **Mapped:** `await claudeSession(installation, { cwd, resume: sessionId })`
-resolves once the process is spawned and any requested `effort` or `serviceTier`
-has passed its native readback, **before any native resume acknowledgment**.
-Without a tier readback the resumed stream starts empty; with one, it contains
-the `initialize` response, which confirms settings but not restored history. A resumed session
-keeps the id and recalls the earlier transcript (same cwd), but only a
-prompt's outcome establishes that history was restored. The reopened adapter
-has fresh observers, sequence numbers, and an empty queue; it takes startup
-options again and restores neither old control handles nor historical OAR
-records. [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
+sends the native `initialize` control request and waits for success within
+the existing 30-second readback bound. A requested `serviceTier` uses that
+same answer, and requested `effort` is read back afterward. Fresh opens
+without either setting keep the immediate post-spawn path.
+
+A missing resume ID reports `result/error_during_execution` before answering
+`initialize`, then exits. OAR rejects the opening call with Claude's `errors`
+text and `cause: { method: "initialize", native: <result frame> }`, under the
+shared credential-redaction rules. An exit without a result names the exit
+code; an unanswered handshake reaches the readback deadline. Both fail the
+open and release the process. Observed on 2.1.292 and repeated on 2.1.295
+(2026-10-09): the missing-ID result arrived at about 0.8 seconds, followed by
+exit code 1 at about 1.2 seconds, with no initialization answer or model
+request. [Recorded frame](../../tests/fixtures/claude-missing-resume.json),
+[readback regressions](../../tests/claude/claude-resume.test.ts),
+[real CLI and local-provider tests](../../sea-trial/vendor/claude-resume.vendor.test.ts).
+
+A successful resumed stream contains the native initialization response.
+This establishes readiness, not proof of restored history; a prompt's outcome
+still establishes continuity. The reopened adapter keeps the native session
+id, but has fresh observers, sequence numbers and an empty queue. It takes
+startup options again and restores neither old control handles nor historical
+OAR records. [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [kernel](../../packages/oar/src/shared/session-kernel.ts).
 
 Fork, session listing, history retrieval, rewind, and reset identity management
-are **not exposed**. Missing-ID error timing, duplicate transcripts, and
-concurrent controllers resuming one ID are **unverified**.
+are **not exposed**. Duplicate transcripts and concurrent controllers resuming
+one ID are **unverified**.
 
 ### Interrupted input
 
@@ -689,7 +703,7 @@ former only.
 | Transport cursor | None. Frames carry no sequence number and no turn id; `seq` is assigned by OAR's kernel and does not outlive the process. `--replay-user-messages` echoes user messages and is not a position. | source [projection](../../packages/oar/src/runtimes/claude/projection.ts), [kernel](../../packages/oar/src/shared/session-kernel.ts); vendor [CLI reference][native-cli] |
 | Event stream scope | Per process: frames go to the stdout of the process that produced them; nothing is broadcast to a second reader. | source adapter |
 | Runtime side resume material | The native transcript, `<sessionId>.jsonl` under the Claude config home in a per `cwd` directory. It holds message content, not OAR's stream (question 2). `--resume` feeds it back to the model as context and replays no frames to OAR. Diagnostic reference only: OAR never replays observers from this file. | observed transcript 2.1.237; source [resume section](#session-creation-and-resume) |
-| Vendor claim versus evidence | Confirmed by observation: resume continuity on the same `cwd` and in another one (2.1.288), interrupt through the control channel, subagent attribution through `parent_tool_use_id`. Vendor only: print mode transcript persistence identical to interactive mode. Unverified either way: two controllers resuming one id at once, missing id error timing. Vendor quirk observed: `result` frames with subtype `success` and `is_error: true`. | this page, [open gaps](#verification-and-open-gaps) |
+| Vendor claim versus evidence | Confirmed by observation: resume continuity on the same `cwd` and in another one (2.1.288), interrupt through the control channel, subagent attribution through `parent_tool_use_id`. Vendor only: print mode transcript persistence identical to interactive mode. Unverified either way: two controllers resuming one id at once. Missing-ID resume fails before initialize succeeds (2.1.295). Vendor quirk observed: `result` frames with subtype `success` and `is_error: true`. | this page, [open gaps](#verification-and-open-gaps) |
 
 ### Eight dimensions
 
@@ -857,7 +871,7 @@ Open gaps: session MCP servers on a real login (verified against a scripted
 provider only) and against a project- or local-scope server, an effort
 clamp by `maxEffortLevel` or an override by
 `CLAUDE_CODE_EFFORT_LEVEL` (the read-back refuses either; neither was
-exercised), missing-ID resume behavior, accepted-input receipt under load,
+exercised), accepted-input receipt under load,
 late interrupts across turns, context fullness after multi-step work, child
 usage attribution and concurrent-child interleaving, native identity changes
 after conversation reset, the resumability floor of a session JSONL, and
@@ -889,4 +903,4 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`. Both take several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR passes them unchecked: a flag that changes the stream-json protocol (`--output-format`, `--input-format`) breaks the session, and an unknown flag makes claude exit at once, so the session opens with the exit as its first record. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`. Both take several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR passes them unchecked: a flag that changes the stream-json protocol (`--output-format`, `--input-format`) breaks the session, and an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).

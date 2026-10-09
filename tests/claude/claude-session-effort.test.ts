@@ -24,9 +24,14 @@ function line(value: Record<string, unknown>): string {
  * `env` block standing in for a user's secrets).
  */
 function scriptedClaude(applied: Record<string, unknown> | { readonly error: string }): FakeLineProcess {
+  // oxlint-disable-next-line eslint/max-statements -- Script the initialization and settings answers on the same process.
   const fake = fakeLineProcess((text, process) => {
     const message = asRecord(JSON.parse(text));
     const request = asRecord(message?.request);
+    if (message?.type === "control_request" && request?.subtype === "initialize") {
+      process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: {} } }));
+      return;
+    }
     if (message?.type !== "control_request" || request?.subtype !== "get_settings") {
       return;
     }

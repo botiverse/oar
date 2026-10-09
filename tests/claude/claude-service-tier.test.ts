@@ -21,10 +21,12 @@ function scripted(applied: Record<string, unknown>, error?: string): FakeLinePro
   return child;
 }
 
+// oxlint-disable-next-line eslint/max-statements -- Open confirmation and later native tier changes share one session.
 test.each([undefined, "old-id"])("per-process settings and initialization confirm fast before open (resume=%s)", async (resume) => {
   const child = scripted({ fast_mode_state: "on" });
   const session = await claudeSession(installation, { cwd: "/work", serviceTier: "fast", ...(resume === undefined ? {} : { resume }) });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(expect.arrayContaining(["--settings", '{"fastMode":true}']));
+  expect(child.written).toHaveLength(1);
   expect(session.serviceTier().value).toBe("fast");
   expect(session.records().flatMap((record) => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "service_tier", serviceTier: "fast" });
   child.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "opus", fast_mode_state: "cooldown" })}\n`);
