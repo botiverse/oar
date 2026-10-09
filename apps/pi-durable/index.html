@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OAR · Pi Durable in your browser</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; background: #f3f4f0; color: #202c29; }
+    body { max-width: 780px; margin: 0 auto; padding: 40px 20px; }
+    h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); letter-spacing: -.04em; margin: 10px 0; }
+    .eyebrow { font-size: .75rem; letter-spacing: .15em; font-weight: 700; }
+    .hint { color: #56635e; font-size: .9rem; line-height: 1.6; }
+    .panel { padding: 22px; background: #fff; border: 1px solid #dce1d9; border-radius: 14px; margin: 20px 0; }
+    fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+    label { display: block; font-size: .85rem; font-weight: 600; margin: 14px 0 6px; }
+    input, select, textarea { box-sizing: border-box; width: 100%; border: 1px solid #b5c2ba; border-radius: 7px; padding: 11px; font: inherit; background: #fff; color: inherit; }
+    textarea { resize: vertical; min-height: 88px; }
+    button { padding: 10px 16px; border-radius: 7px; border: 1px solid #c1cdc5; background: #f2f5ef; color: #243c30; cursor: pointer; font: inherit; }
+    button.primary { background: #254b39; color: #fff; border-color: #254b39; }
+    button:disabled { opacity: .5; cursor: default; }
+    :focus-visible { outline: 3px solid #6b9d83; outline-offset: 2px; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+    #status { flex: 1; font-size: .9rem; }
+    #error { color: #a12e25; white-space: pre-wrap; overflow-wrap: anywhere; }
+    #conversation { min-height: 100px; }
+    article { padding: 18px 0; border-bottom: 1px solid #e5e9e1; }
+    article:last-child { border-bottom: 0; }
+    article h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: #4f675a; }
+    article p, article pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.6; }
+    .reasoning, .notice, .outcome { color: #66736b; font-size: .85rem; }
+    @media (prefers-color-scheme: dark) {
+      :root { background: #16201b; color: #e1e9df; }
+      .panel, input, select, textarea { background: #202c25; border-color: #415446; }
+      .hint, .reasoning, .notice, .outcome, article h2 { color: #b2c3b6; }
+      article { border-color: #415446; }
+      button { background: #2c3e31; color: #e1e9df; border-color: #526b59; }
+      button.primary { background: #acd4b8; color: #163722; }
+      #error { color: #ffb4a9; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">OAR / PI DURABLE</div>
+    <h1>An agent, right in your browser.</h1>
+    <p class="hint">The conversation runs in this page with memory storage and no tools. Reloading clears it. Your key stays in memory and is sent directly to Anthropic.</p>
+  </header>
+  <form id="setup" class="panel">
+    <fieldset id="settings">
+      <label for="key">Anthropic API key</label>
+      <input id="key" type="password" required autocomplete="off" placeholder="Enter your API key">
+      <label for="model">Model</label>
+      <select id="model" required><option value="">Choose a model</option></select>
+      <div class="actions"><button class="primary" type="submit">Start conversation</button></div>
+    </fieldset>
+  </form>
+  <div id="error" role="alert"></div>
+  <section class="panel" aria-label="Conversation">
+    <div id="conversation"><p class="hint">Start a conversation to send a message.</p></div>
+    <form id="composer">
+      <fieldset id="controls" disabled>
+        <label for="prompt">Your message</label>
+        <textarea id="prompt" required placeholder="Ask something…"></textarea>
+        <div class="actions">
+          <button id="send" class="primary" type="submit">Send</button>
+          <button id="stop" type="button" disabled>Stop</button>
+          <button id="end" type="button">End session</button>
+          <span id="status" role="status" aria-live="polite" data-state="disconnected">Not connected</span>
+        </div>
+      </fieldset>
+    </form>
+  </section>
+  <p class="hint">Model calls use your Anthropic API account. No key or conversation is saved to browser storage.</p>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

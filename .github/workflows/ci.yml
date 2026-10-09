@@ -40,6 +40,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run clean-install
 
+  # Real browser and SDK, with provider HTTP routed to a local scripted server.
+  browser-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run durable-demo:smoke
+
   # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
   # backend. aimock backends run the REAL claude/codex binaries against a
   # scripted local provider (no login, no tokens), so they can run on every
