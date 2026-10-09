@@ -179,7 +179,8 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
         : [];
     case "serverRequest/resolved": {
       // oar answers no codex request, so a resolved one is codex clearing it
-      // itself (an interrupted turn, a non-blocking question that timed out).
+      // itself (observed after turn/interrupt, 0.160.1). codex sends it after a
+      // client's answer too: an answer path must not read that as cancelled.
       // Request ids are recorded as strings (app-server-client.ts).
       const id = params.requestId;
       return typeof id === "string" || typeof id === "number" ? [{ kind: "app_request_cancelled", requestId: String(id) }] : [];
