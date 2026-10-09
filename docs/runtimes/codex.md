@@ -790,6 +790,8 @@ per-user installs), then the standalone installer's launcher
 is unsupported. When none is found, `install` runs OpenAI's standalone
 installer, `curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh`
 ([README](https://github.com/openai/codex#installing-and-running-codex-cli);
+`CODEX_NON_INTERACTIVE=1` is the switch install.sh's own usage text
+(`install.sh --help`) declares for skipping its prompts, not in the README;
 macOS and Linux; [runtime install](../spec/install.md),
 [sandbox run](install.md)). That method because `codex update` reruns the
 standalone installer for its copy: `codex doctor` reports the update action

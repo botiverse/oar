@@ -60,7 +60,8 @@ installation found, when its version tells (`already_installed` with
 ## Plan
 
 `plan` carries the `steps` (`command`: the program and arguments `install`
-spawns; `display`: the step as the vendor documents it), the `source` page,
+spawns; `display`: the step as the vendor documents it, plus the installer's
+own declared non-interactive switch where it has one), the `source` page,
 and two constants: `network: true` (every installer downloads) and
 `privileges: false` (an installer that needs more rights than the user has
 is `unsupported` instead).

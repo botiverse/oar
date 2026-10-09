@@ -11,7 +11,9 @@ import { codexInstallation } from "./installation.js";
  * `~/.local/bin/codex`) there: the layout `codex doctor` reports as
  * `standalone installer` and `codex update` reruns. `CODEX_NON_INTERACTIVE=1`
  * is the installer's own switch that skips its prompts (start codex now,
- * remove an npm or Homebrew copy). It adds its folder to PATH in the shell
+ * remove an npm or Homebrew copy); the README doesn't name it, install.sh's
+ * own usage text does (`install.sh --help`: "CODEX_NON_INTERACTIVE  Set to 1,
+ * true, or yes to skip prompts."). It adds its folder to PATH in the shell
  * profile, which a running host does not read, so the probe looks there too.
  */
 export const codexInstallMethod: ScriptInstallMethod = {

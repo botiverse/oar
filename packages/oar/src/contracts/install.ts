@@ -37,7 +37,11 @@ export interface InstallLine {
 export interface InstallStep {
   /** The program, then its arguments: exactly what `install()` spawns. */
   readonly command: readonly string[];
-  /** The step as the vendor documents it, for a person to read before pressing Install. */
+  /**
+   * The step as the vendor documents it, plus the installer's own declared
+   * non-interactive switch where it has one (codex: `CODEX_NON_INTERACTIVE=1`,
+   * from install.sh's usage text), for a person to read before pressing Install.
+   */
   readonly display: string;
 }
 
