@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { test } from "vitest";
-import { claudeInstallation } from "../packages/oar/src/runtimes/claude/installation.js";
-import { codexInstallation } from "../packages/oar/src/runtimes/codex/installation.js";
+import { claudeInstallation, claudeInstalledExecutableCandidates } from "../packages/oar/src/runtimes/claude/installation.js";
+import { codexInstallation, codexInstalledExecutableCandidates } from "../packages/oar/src/runtimes/codex/installation.js";
 import { cursorInstallation, cursorInstallationFor } from "../packages/oar/src/runtimes/cursor/installation.js";
 import {
   grokInstallation,
@@ -168,6 +168,26 @@ test("kimi candidates match the official native-installer layouts", () => {
       "kimi-code",
     ],
   );
+});
+
+test("claude candidates are the native installer's launcher", () => {
+  assert.deepEqual(claudeInstalledExecutableCandidates("linux", "/home/oar"), ["/home/oar/.local/bin/claude"]);
+  assert.deepEqual(claudeInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`), [String.raw`C:\Users\oar\.local\bin\claude.exe`]);
+});
+
+test("codex candidates are the desktop app bundles, then the standalone installer's launcher", () => {
+  assert.deepEqual(codexInstalledExecutableCandidates("linux", "/home/oar", { CODEX_INSTALL_DIR: "/opt/codex/bin" }), [
+    "/opt/codex/bin/codex",
+    "/home/oar/.local/bin/codex",
+  ]);
+  assert.deepEqual(codexInstalledExecutableCandidates("darwin", "/Users/oar", {}), [
+    "/Applications/ChatGPT.app/Contents/Resources/codex",
+    "/Applications/Codex.app/Contents/Resources/codex",
+    "/Users/oar/Applications/ChatGPT.app/Contents/Resources/codex",
+    "/Users/oar/Applications/Codex.app/Contents/Resources/codex",
+    "/Users/oar/.local/bin/codex",
+  ]);
+  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, {}), []);
 });
 
 test("readiness gates each candidate", async () => {

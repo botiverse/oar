@@ -1,5 +1,5 @@
 export { resolveExecutable, resolveExecutableAll } from "./resolve.js";
-export { runIsolated, type IsolatedResult } from "./isolated.js";
+export { isolatedOutput, runIsolated, type IsolatedResult } from "./isolated.js";
 export type { ExecutableResult, ExecutableRunner, ExecutableRunOptions } from "./run.js";
 export { runExecutable } from "./run.js";
 export { readExecutableVersion, type VersionReader } from "./version.js";

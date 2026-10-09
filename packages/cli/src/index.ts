@@ -56,6 +56,7 @@ program
       id: runtime.id,
       session: true,
       installation: runtime.installation !== undefined,
+      install: runtime.install !== undefined,
       accountUsage: runtime.accountUsage !== undefined,
       listModels: runtime.listModels !== undefined,
       checkUpdate: runtime.checkUpdate !== undefined,

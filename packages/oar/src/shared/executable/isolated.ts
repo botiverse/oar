@@ -85,3 +85,12 @@ export async function runIsolated(command: string, args: readonly string[], opti
   clearTimeout(timer);
   return { exitCode: stop.timedOut ? null : exitCode, timedOut: stop.timedOut, stdout, stderr };
 }
+
+/**
+ * A run's stdout then stderr, verbatim, with oar's note when the timeout
+ * stopped it. `what` names the command for that note ("updater", "installer").
+ */
+export function isolatedOutput(result: IsolatedResult, timeoutMs: number, what: string): string {
+  const output = `${result.stdout}${result.stderr}`;
+  return result.timedOut ? `${output}\n[oar: stopped the ${what} after ${String(timeoutMs)} ms]\n` : output;
+}

@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
 import { claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
@@ -5,6 +6,7 @@ import { claudeAuthStatus, claudeLogin } from "./login.js";
 import { claudeLogout } from "./logout.js";
 import { claudeAccountUsage } from "./account-usage.js";
 import { claudeInstallation } from "./installation.js";
+import { claudeInstall, claudeInstallPlan } from "./install.js";
 import { claudeListModels } from "./list-models.js";
 import { claudeCheckUpdate, claudeUpgrade } from "./update.js";
 import { claudeSession } from "./session.js";
@@ -17,6 +19,8 @@ export const claudeRuntime = defineRuntime({
   tools: claudeTools,
 
   installation: claudeInstallation,
+  installPlan: claudeInstallPlan,
+  install: claudeInstall,
   accountUsage: claudeAccountUsage,
   listModels: claudeListModels,
   checkUpdate: claudeCheckUpdate,

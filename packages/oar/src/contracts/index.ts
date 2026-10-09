@@ -38,6 +38,17 @@ export type {
   ModelLister,
 } from "./list-models.js";
 export type {
+  InstallLine,
+  InstallOptions,
+  InstallPlan,
+  InstallPlanner,
+  InstallResult,
+  InstallStep,
+  InstallUnsupported,
+  InstallUnsupportedReason,
+  Installer,
+} from "./install.js";
+export type {
   UpdateCheck,
   UpdateChecker,
   UpdateCheckOptions,

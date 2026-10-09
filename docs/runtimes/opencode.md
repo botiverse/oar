@@ -341,8 +341,26 @@ no terminal and no file access. It inherits the session's environment, so a
 crew child's environment reaches its tools. Installation is the `opencode`
 executable on PATH (npm `opencode-ai`, Homebrew, Scoop) or the install
 script's `~/.opencode/bin/opencode`, pinned with `OAR_OPENCODE_BIN`.
-`opencode upgrade` exists but OAR does not drive it yet, and there is no
-account usage query.
+
+OpenCode ships two major lines of that one command: OpenCode 1 (npm
+`opencode-ai`, 1.x; `--version` prints `1.18.35`) and OpenCode 2 (npm
+`@opencode/cli`, 2.x; `opencode v2.0.26`). They do not install side by side:
+both scripts write `~/.opencode/bin/opencode`, the 2 installer replaces a 1
+binary ([migrating from 1](https://opencode.ai/v2/docs/migrate-v1)) and the 1
+script silently replaces a 2 binary
+([anomalyco/opencode#54084](https://github.com/anomalyco/opencode/issues/54084)).
+So the runtime declares `installLines` `v1` and `v2`, and
+[`install`](../../packages/oar/src/runtimes/opencode/install.ts) takes the
+host's `line` (none is `line_required`: OAR does not choose) and runs that
+line's script when nothing is found: `curl -fsSL https://opencode.ai/install | bash`
+([docs](https://opencode.ai/docs/#install)) or
+`curl -fsSL https://opencode.ai/v2/install | bash`
+([v2 docs](https://opencode.ai/v2/docs/)), macOS and Linux. A copy of either
+line already found is `already_installed` with its `line`, never replaced.
+Those scripts because each line's `opencode upgrade` takes its script install
+as the `curl` method and stays on the line ([runtime install](../spec/install.md),
+[sandbox run](install.md)). `opencode upgrade` exists but OAR does not drive
+it yet, and there is no account usage query.
 
 ### Session MCP servers
 

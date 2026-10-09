@@ -527,7 +527,22 @@ descendants ([test](../../tests/session-dispose.test.ts)). See
 checks `OAR_KIMI_BIN`, PATH `kimi`, `$KIMI_INSTALL_DIR/bin/kimi`,
 `~/.kimi-code/bin/kimi`, and the legacy `kimi-code` name, probing
 `kimi acp --help` with 30-second timeouts; it does not prove compatibility
-with Python kimi-cli.
+with Python kimi-cli. When none is found,
+[`install`](../../packages/oar/src/runtimes/kimi/install.ts) runs Moonshot's
+native installer, `curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash`
+([README](https://github.com/MoonshotAI/kimi-code#install); macOS and Linux;
+[runtime install](../spec/install.md), [sandbox run](install.md)). That
+method because its copy is the native one `kimi upgrade -y` updates (it
+answered "already up to date" for it, where an npm copy gets the manual
+command); the installer records region `mainland-cn`, so `checkUpdate`
+reads `code.kimi.com`.
+
+The region marker (`~/.kimi-code/region`) only seeds the first login: once
+signed in, the login's own host decides. So a copy from this installer signs
+in to Moonshot's mainland China service by default. People outside mainland
+China sign in with `kimi login --region global` (OAR has no kimi login yet,
+see [runtime login](../spec/login.md)). The installer never overwrites an
+existing marker.
 
 `checkUpdate` reads the release pointer kimi's own updater installs from, and
 `upgrade` runs `kimi upgrade -y`; a kimi older than 0.43.0 has no
@@ -588,7 +603,12 @@ controllers and in-flight work across OAR subprocesses, and any child usage
 (the transport carries none). [Session MCP servers](#session-mcp-servers)
 ran against a scripted provider only, not on the real login and model, and
 their vendor test runs locally (`OAR_TEST=kimi-aimock`), not in CI; whether
-a hidden same-name user server still starts is unmeasured. Keep native API
+a hidden same-name user server still starts is unmeasured. Install by
+region is open too: the install script's comments name a global mirror
+(`code.kimi.ai/kimi-code/install.sh`, which records region `global`), but
+Moonshot's README documents only `code.kimi.com`, so `install` runs that one.
+Choose the source by region once kimi documents the mirror, or once OAR has a
+kimi login that needs a regional install. Keep native API
 capabilities, transport
 limitations, OAR omissions, and unexecuted checks separate when designing or
 claiming support.

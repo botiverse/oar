@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { UpdateCheck, UpdateChecker, UpgradeOptions, UpgradeResult } from "../contracts/update.js";
-import { readExecutableVersion, runIsolated, type IsolatedResult } from "./executable/index.js";
+import { isolatedOutput, readExecutableVersion, runIsolated, type IsolatedResult } from "./executable/index.js";
 import { parseJson } from "./json.js";
 
 export const CHECK_TIMEOUT_MS = 20_000;
@@ -9,9 +9,9 @@ const UPGRADE_TIMEOUT_MS = 600_000;
 /** The slowest installation probe (kimi) allows 30 s for `--version`; a kimi start after an upgrade also swaps the staged binary in. */
 const VERSION_TIMEOUT_MS = 30_000;
 
-/** The release version inside a `--version` line or release pointer: a semver. */
+/** The release version inside a `--version` line or release pointer: a semver, after a `v` or not (`opencode v2.0.26`). */
 export function releaseVersion(text: string): string | undefined {
-  return /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u.exec(text)?.[0];
+  return /\bv?(\d+\.\d+\.\d+(?:-[\w.]+)?)\b/u.exec(text)?.[1];
 }
 
 function numericParts(value: string): number[] {
@@ -134,11 +134,6 @@ export interface NativeUpdater {
   readonly args: readonly string[];
 }
 
-function runOutput(run: IsolatedResult, timeoutMs: number): string {
-  const output = `${run.stdout}${run.stderr}`;
-  return run.timedOut ? `${output}\n[oar: stopped the updater after ${String(timeoutMs)} ms]\n` : output;
-}
-
 /**
  * Read the executable's version, check, then run the runtime's own updater
  * on the same executable and judge the outcome by the version it reports
@@ -165,7 +160,7 @@ export async function upgradeExecutable(
   const before = now ?? (check.kind === "ok" ? check.installed : undefined);
   const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
   const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(), timeoutMs });
-  const output = runOutput(run, timeoutMs);
+  const output = isolatedOutput(run, timeoutMs, "updater");
   const after = await versionNow(installation.command);
   if (before !== undefined && after !== undefined && after !== before) {
     return { kind: "upgraded", from: before, to: after, output };

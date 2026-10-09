@@ -12,9 +12,10 @@ updater behaved when probed.
 ## Principles
 
 - **Only the runtime's own updater installs.** Each updater knows how its copy
-  was installed (official script, npm, Homebrew) and updates that copy. oar
-  never runs an install script itself, because a second copy installed
-  another way would compete on PATH.
+  was installed (official script, npm, Homebrew) and updates that copy.
+  `upgrade` never runs an install script, because a second copy installed
+  another way would compete on PATH; the vendor's installer runs only through
+  [`install`](install.md), and only when the probe finds no copy.
 - **The version decides, not the exit code.** Updaters exit 0 without
   upgrading: codex when its download failed, claude when Homebrew owns the
   copy, grok when it updated a different copy, kimi when it needs a

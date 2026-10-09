@@ -17,9 +17,10 @@ tools, each used only where the one before does not fit.
 
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
-`listModels`, `checkUpdate`, `upgrade`, `login`, `logout` and `authStatus`
-already work this way (antigravity, whose terms rule out a sign-in through
-OAR, has no `login`, and only the runtimes OAR signs in have a `logout`);
+`listModels`, `installPlan`, `install`, `checkUpdate`, `upgrade`, `login`,
+`logout` and `authStatus` already work this way (antigravity, whose terms
+rule out a sign-in through OAR, has no `login`, only the runtimes OAR signs
+in have a `logout`, and bundled pi and cursor have no `install`);
 `Session` `steer`, `withdraw` and `resources` do too: a session that cannot
 steer has no `steer`, one whose queue OAR does not hold (codex) has no
 `withdraw`, and one whose runtime runs in the host process (pi, cursor) has
@@ -56,6 +57,10 @@ front:
 
 - `Runtime.refusedSessionOptions`: the options a runtime refuses at open,
   each with its reason.
+- `Runtime.installLines`: the parallel release lines a runtime installs
+  (opencode `v1`, `v2`), so a host offers the choice OAR does not make
+  before it plans an install; `install` answers `line_required` from the
+  same list.
 - `Session.capabilities`: per-session facts that are not operations
   (`images`, the `attribution` tier, whether held input is `durable`), some
   known only after the runtime's handshake.

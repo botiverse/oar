@@ -1,4 +1,5 @@
 import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
+import type { InstallLine, InstallPlanner, Installer } from "./install.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
 import type { AccountUsageReader } from "./account-usage.js";
@@ -33,6 +34,21 @@ export interface Runtime extends RuntimeInventories {
    */
   readonly refusedSessionOptions?: RefusedSessionOptions;
   readonly installation?: InstallationProbe;
+  /** Read only: what `install` would run here, or why it would run nothing. Present exactly when `install` is. */
+  readonly installPlan?: InstallPlanner;
+  /**
+   * Runs the runtime's own installer when `installation` finds none, judged by
+   * `installation` afterwards; changes the machine, so only on the host's
+   * explicit call. Absent when there is nothing to install (a bundled SDK).
+   */
+  readonly install?: Installer;
+  /**
+   * Declared by a runtime whose vendor ships parallel release lines of one
+   * command (opencode: `v1`, `v2`), so a host offers the choice before
+   * planning: `installPlan` and `install` take one as `options.line` and
+   * answer `line_required` without it. Absent for a runtime with one line.
+   */
+  readonly installLines?: readonly InstallLine[];
   readonly accountUsage?: AccountUsageReader;
   readonly listModels?: ModelLister;
   /** Read only: the version the runtime's own updater would install. */

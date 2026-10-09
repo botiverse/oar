@@ -2,6 +2,7 @@ import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { kimiAccountUsage } from "./account-usage.js";
 import { kimiInstallation } from "./installation.js";
+import { kimiInstall, kimiInstallPlan } from "./install.js";
 import { kimiListModels } from "./list-models.js";
 import { kimiCheckUpdate, kimiUpgrade } from "./update.js";
 import { kimiRefusedSessionOptions, kimiSession } from "./session.js";
@@ -10,6 +11,8 @@ export const kimiRuntime = defineRuntime({
   id: "kimi",
   brand: runtimeBrands.kimi,
   installation: kimiInstallation,
+  installPlan: kimiInstallPlan,
+  install: kimiInstall,
   accountUsage: kimiAccountUsage,
   listModels: kimiListModels,
   checkUpdate: kimiCheckUpdate,
