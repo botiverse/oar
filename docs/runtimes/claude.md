@@ -386,7 +386,10 @@ fact (mapping table above).
 `Session.contextBreakdown()` asks claude itself what fills the window: the
 `get_context_usage` control request with `detail: "full"`, the data `/context`
 draws. claude 2.1.292 answered without a model call, and mid-turn in 0.5 s
-while a Bash tool ran. Its `categories` keep claude's names and order (System
+while a Bash tool ran; each read does send the provider a batch of
+`/v1/messages/count_tokens` requests (16 with tool search off and 28 with it
+on, for one MCP tool, one agent, one memory file and 14 skills; more with
+more), so a host reads it when the user asks and does not poll. Its `categories` keep claude's names and order (System
 prompt, System tools, System tools (deferred), MCP server instructions, MCP
 tools, MCP tools (deferred), Memory files, Skills, Custom agents, Messages,
 Autocompact buffer, Free space); its kinds `used`, `deferred`, `buffer` and
@@ -395,10 +398,12 @@ is kept as `unknown`. `tokens` is `totalTokens`, the sum of the `used`
 categories; `contextWindow` is `maxTokens`, which every category but the
 deferred ones sums to. Four lists itemize their category: `memoryFiles` by
 path, `skills.skillFrontmatter` by name, `agents` by agent type, and
-`mcpTools` by tool name, under MCP tools when `isLoaded` and under MCP tools
-(deferred) when not. The answer is consumed before the projection, so it
-enters no record; a refusal rejects with claude's words, and after the exit
-the answer is null.
+`mcpTools` by tool name under the MCP category the answer has. `isLoaded`
+does not follow the category (with tool search off the only category is MCP
+tools, yet every tool says `isLoaded: false`), so it splits the tools only
+when both MCP categories are there. The answer is consumed before the
+projection, so it enters no record; a refusal rejects with claude's words,
+and from the start of a dispose, and after the exit, the answer is null.
 [Reader](../../packages/oar/src/runtimes/claude/context-breakdown.ts),
 [test](../../tests/claude/claude-context-breakdown.test.ts).
 

@@ -4,7 +4,12 @@ import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/
 import type { ClaudeProcess } from "./launch.js";
 import { claudeControlResponseId } from "./effort.js";
 
-/** How long claude gets to answer. It answered in 0.5 s, mid-turn too (2.1.292). */
+/**
+ * How long claude gets to answer. It answered in 0.5 s, mid-turn too
+ * (2.1.292). No model call, but each read sends the provider a batch of
+ * `count_tokens` requests (16 to 28 for a small setup, more with more tools
+ * and skills), so a host reads on demand and does not poll.
+ */
 export const CLAUDE_CONTEXT_BREAKDOWN_MS = 10_000;
 
 const KINDS: Readonly<Record<string, ContextCategory["kind"]>> = { used: "used", deferred: "deferred", buffer: "reserved", free: "free" };
@@ -14,15 +19,32 @@ function item(name: unknown, tokens: unknown): ContextItem[] {
   return typeof name === "string" && count !== null ? [{ name, tokens: count }] : [];
 }
 
+const MCP_LOADED = "MCP tools";
+const MCP_DEFERRED = "MCP tools (deferred)";
+
+/**
+ * claude's MCP tools under the MCP category its answer has. `isLoaded` does
+ * not follow the category on 2.1.292: with tool search off the only category
+ * is MCP tools, yet every tool says `isLoaded: false`. So `isLoaded` splits
+ * them only when both categories are there.
+ */
+function mcpItems(payload: JsonRecord, names: ReadonlySet<string>): [string, ContextItem[]][] {
+  const tools = asRecordList(payload.mcpTools);
+  const listed = (filter: (tool: JsonRecord) => boolean): ContextItem[] => tools.filter((tool) => filter(tool)).flatMap((tool) => item(tool.name, tool.tokens));
+  if (names.has(MCP_LOADED) && names.has(MCP_DEFERRED)) {
+    return [[MCP_LOADED, listed((tool) => tool.isLoaded === true)], [MCP_DEFERRED, listed((tool) => tool.isLoaded !== true)]];
+  }
+  const only = names.has(MCP_LOADED) ? MCP_LOADED : MCP_DEFERRED;
+  return [[only, listed(() => true)]];
+}
+
 /** claude's per-entry lists, under the category each one makes up. */
-function itemsByCategory(payload: JsonRecord): ReadonlyMap<string, readonly ContextItem[]> {
-  const mcpTools = asRecordList(payload.mcpTools);
+function itemsByCategory(payload: JsonRecord, names: ReadonlySet<string>): ReadonlyMap<string, readonly ContextItem[]> {
   return new Map([
     ["Memory files", asRecordList(payload.memoryFiles).flatMap((file) => item(file.path, file.tokens))],
     ["Skills", asRecordList(asRecord(payload.skills)?.skillFrontmatter).flatMap((skill) => item(skill.name, skill.tokens))],
     ["Custom agents", asRecordList(payload.agents).flatMap((agent) => item(agent.agentType, agent.tokens))],
-    ["MCP tools", mcpTools.filter((tool) => tool.isLoaded !== false).flatMap((tool) => item(tool.name, tool.tokens))],
-    ["MCP tools (deferred)", mcpTools.filter((tool) => tool.isLoaded === false).flatMap((tool) => item(tool.name, tool.tokens))],
+    ...mcpItems(payload, names),
   ]);
 }
 
@@ -33,8 +55,9 @@ export function claudeContextBreakdown(payload: JsonRecord): ContextBreakdown {
   if (tokens === null || contextWindow === null) {
     throw new Error("claude's get_context_usage answer has no totalTokens or maxTokens");
   }
-  const items = itemsByCategory(payload);
-  const categories = asRecordList(payload.categories).flatMap((category): ContextCategory[] => {
+  const native = asRecordList(payload.categories);
+  const items = itemsByCategory(payload, new Set(native.flatMap((category) => typeof category.name === "string" ? [category.name] : [])));
+  const categories = native.flatMap((category): ContextCategory[] => {
     const tokensIn = asNumber(category.tokens);
     if (typeof category.name !== "string" || tokensIn === null) { return []; }
     const listed = items.get(category.name) ?? [];
@@ -57,7 +80,7 @@ interface Pending {
 export interface ClaudeContextBreakdownReader {
   /** True for the answer to one of these queries, which then goes no further. */
   consume(message: JsonRecord): boolean;
-  /** The process is gone: a read in flight, and every later one, is null. */
+  /** The process is gone, or its stdin ended for a dispose: a read in flight, and every later one, is null. */
   exited(): void;
   readonly read: () => Promise<ContextBreakdown | null>;
 }

@@ -65,6 +65,17 @@ test("claude's lists itemize the category each one makes up", () => {
   expect(items.Messages).toBeUndefined();
 });
 
+test("with one MCP category, every MCP tool goes under it whatever isLoaded says", () => {
+  // claude 2.1.292 with tool search off: only MCP tools (used), its tool `isLoaded: false`.
+  const mcpOnly = ANSWER.categories.filter((category) => category.name !== "MCP tools (deferred)");
+  const items = Object.fromEntries(claudeContextBreakdown({ ...ANSWER, categories: mcpOnly }).categories.map((category) => [category.name, category.items]));
+  expect(items["MCP tools"]).toEqual([{ name: "mcp__echo__echo", tokens: 120 }, { name: "mcp__docs__search", tokens: 165 }]);
+  // Tool search on: only the deferred category.
+  const deferredOnly = ANSWER.categories.filter((category) => category.name !== "MCP tools");
+  const deferred = Object.fromEntries(claudeContextBreakdown({ ...ANSWER, categories: deferredOnly }).categories.map((category) => [category.name, category.items]));
+  expect(deferred["MCP tools (deferred)"]).toEqual([{ name: "mcp__echo__echo", tokens: 120 }, { name: "mcp__docs__search", tokens: 165 }]);
+});
+
 test("an answer without totals is an error, not an empty breakdown", () => {
   expect(() => claudeContextBreakdown({ categories: [] })).toThrow(/totalTokens or maxTokens/u);
 });
@@ -106,6 +117,25 @@ test("claude's refusal rejects with its words", async () => {
   const session = await claudeSession(installation, { cwd: "/work" });
   await expect(session.contextBreakdown?.()).rejects.toThrow(/not supported in this context/u);
   await session.dispose();
+});
+
+/** As a real claude: kill() ends stdin at once, and the exit comes later. */
+function slowToExit(child: FakeLineProcess): FakeLineProcess {
+  let stdinEnded = false;
+  const write = child.write.bind(child);
+  child.write = (text) => { if (stdinEnded) { throw new Error("write after end"); } write(text); };
+  child.kill = () => { stdinEnded = true; };
+  return child;
+}
+
+test("null from the moment dispose begins, without writing to the ended stdin", async () => {
+  const child = slowToExit(scripted(ANSWER));
+  const session = await claudeSession(installation, { cwd: "/work" });
+  const disposing = session.dispose();
+  expect(await session.contextBreakdown?.()).toBeNull();
+  expect(asked(child)).toEqual([]);
+  child.end(null);
+  await disposing;
 });
 
 test("null once the process has exited, for a read in flight and every later one", async () => {

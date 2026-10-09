@@ -255,6 +255,8 @@ export const claudeSession: StartSession = async (installation, options) => {
         return;
       }
       state.disposed = true;
+      // stdin ends now: no query may write to it any more.
+      contextBreakdown.exited();
       const gone = kernel.unreachable() !== null; // only an observed exit can say so before this dispose is recorded
       disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
       if (gone) {
