@@ -147,6 +147,7 @@ export const grokRefusedSessionOptions: RefusedSessionOptions = {
 
 export const grokAcpProfile: AcpSessionProfile = {
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
+  isResumeNotFound: (native) => asRecord(native.data)?.code === "FS_NOT_FOUND",
   // `grok agent [OPTIONS] stdio [OPTIONS]`: agent options (--model,
   // --agent-profile, --plugin-dir, ...) go before `stdio`, which itself
   // takes only --debug and --leader-socket.

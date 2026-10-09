@@ -310,6 +310,44 @@ read, not the open's ([env] opencode 1.18.30). A
 level a runtime does not offer is a plain error naming the level, not this
 one.
 
+## Missing resume targets
+
+`session({ resume })` rejects with the exported `SessionNotFoundError` only
+when the evidence below identifies a missing native conversation. It has
+`name: "SessionNotFoundError"`, `sessionId` (the requested id), and
+`cause: { method, native }` under the same credential-redaction rules as other
+open errors. It is not a `FailureClass`: no turn exists yet. A host can
+separate a missing resume target from authentication, model, quota, transport,
+and other failed opens without parsing messages. Other failures keep their
+existing types and causes; OAR never starts a replacement conversation.
+
+| Runtime | Evidence required | Scope of "not found" |
+|---|---|---|
+| antigravity | `session/resume` or `session/load` JSON-RPC error `-32002` | The active `GEMINI_HOME`; native data names the expected path. |
+| grok | Resume/load error `data.code === "FS_NOT_FOUND"` | This cwd, including a real id saved under another cwd. |
+| cursor | SDK error `code === "agent_not_found"` from `Agent.listRuns` or `Agent.resume` | Not found by the SDK with this configuration; the 1.0.37 probe had no `CURSOR_API_KEY`, and did not test a real id. |
+| pi | OAR's `SessionManager.list(cwd, sessionDir)` lookup has no matching id | This cwd and agent directory, including a real id saved under another cwd. The cause reports the lookup scope and count, not an invented native error. |
+| kimi, opencode v1/v2 | A complete `session/list` walk has no matching id, then resume/load returns a native error | The runtime's session list. A listed id's generic error, an unavailable/incomplete list, or a successful resume never means missing. Authentication refusals retain `RuntimeFailureError`. |
+| claude | During resume, before the `initialize` answer, `result/error_during_execution` with `errors[0]` starting `No conversation found with session ID` | The active Claude configuration; exact prose is the last resort. |
+| codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
+
+Hosts should persist the cwd with the session id and reuse it on resume.
+Kimi and OpenCode still reject a listed session from another cwd with
+`UnsupportedOptionError` on `cwd`, which does not mean missing. Codex's
+`-32600` also covers an active writer and the unloaded sub-agent refusal;
+neither is mapped. OpenCode v1's generic `-32603` alone is not evidence.
+Runtimes not listed above never throw `SessionNotFoundError`.
+
+Evidence: opens without prompts on 2026-10-09, Claude 2.1.292, Codex 0.162.0,
+Pi SDK 1.1.0, Grok 1.0.50, Kimi 2.1.1, OpenCode 1.18.30/2.0.26,
+Antigravity 1.3.0 and Cursor SDK 1.0.37
+([decision](https://github.com/botiverse/oar/issues/294#issuecomment-6090251442)).
+Native answers, with ids/temporary paths normalized, are pinned in
+[`missing-resume-errors.json`](../../tests/fixtures/missing-resume-errors.json)
+and [`claude-missing-resume.json`](../../tests/fixtures/claude-missing-resume.json).
+Tests exercise the opening paths, full pagination, redaction and the
+must-not-match refusals.
+
 ## Failure evidence
 
 What each runtime reports when a session fails for a common cause, and the

@@ -13,6 +13,7 @@ test.each(["browser", "pi-durable"])("the complete %s entry bundles without Node
   expect(Object.values(result.metafile.outputs).flatMap((output) => output.imports)).toEqual([]);
   expect(result.outputFiles[0]?.text).toContain(entry === "browser" ? "createSessionKernel" : "createPiDurableRuntime");
   if (entry === "browser") {
+    expect(result.outputFiles[0]?.text).toContain("SessionNotFoundError");
     expect(Object.keys(result.metafile.inputs).filter((file) => /pi-durable|chord/u.test(file))).toEqual([]);
   }
 });

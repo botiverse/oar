@@ -145,7 +145,12 @@ itself refuses a resume naming another directory than the session's own:
 `session()` rejects with its `Path not found.` (1.0.46, 2026-10-03,
 [resume in another directory](resume-cwd.md)). Native
 persistence errors carry [stable error data](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/session/persistence.rs#L2496-L2516);
-OAR propagates opening failures without a separate resume-error result type.
+A resume/load failure with `data.code === "FS_NOT_FOUND"` becomes
+`SessionNotFoundError`, retaining the requested `sessionId` and method/native
+error in `cause`. This is absence for the supplied cwd, not a claim about
+other directories; reuse the cwd stored with the id. Other opening failures
+keep their original errors
+([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
 The 1.0.5 snapshot establishes advertised resume support, not all
 newer-source details.
 

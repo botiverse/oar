@@ -110,9 +110,12 @@ bound; that answer never fails the open. Fresh opens without either setting
 keep the immediate post-spawn path; no fresh open sends `get_usage`.
 
 A missing resume ID reports `result/error_during_execution` before answering
-`initialize`, then exits. OAR rejects the opening call with Claude's `errors`
-text and `cause: { method: "initialize", native: <result frame> }`, under the
-shared credential-redaction rules. An exit without a result names the exit
+`initialize`, then exits. When `errors[0]` starts exactly with
+`No conversation found with session ID`, OAR rejects with
+`SessionNotFoundError`, the requested `sessionId`, Claude's `errors` text and `cause: { method: "initialize", native: <result frame> }`, under the
+shared credential-redaction rules. This narrowly pinned prose is a last resort;
+other execution failures keep their original errors
+([missing targets](../spec/runtime-matrix.md#missing-resume-targets)). An exit without a result names the exit
 code; an unanswered handshake reaches the readback deadline. Both fail the
 open and release the process. Observed on 2.1.292 and repeated on 2.1.295
 (2026-10-09): the missing-ID result arrived at about 0.8 seconds, followed by

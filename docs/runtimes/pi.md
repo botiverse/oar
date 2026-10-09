@@ -146,7 +146,11 @@ place. The adapter calls `SessionManager.list(cwd, sessionDir)`, matches the
 native header ID and opens that path. Search is scoped to that cwd and agent
 directory: a session started elsewhere is not found, and the error names the
 directory searched ([resume in another directory](resume-cwd.md)). A missing
-match throws; pi writes the file on the first
+match throws `SessionNotFoundError`, with the requested `sessionId` and
+`cause: { method: "SessionManager.list", native: { cwd, sessionDir, sessionCount } }`.
+This means not found for this cwd, not absent from every Pi directory; failed
+list calls keep their original errors
+([missing targets](../spec/runtime-matrix.md#missing-resume-targets)). Pi writes the file on the first
 message, so a session that never received one has no file. Live, resume by
 header id finds the file, keeps the id and recalls the earlier transcript
 (`resume` scenario; also [`session-resume.ts`](../../experiments/README.md)).

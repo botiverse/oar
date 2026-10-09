@@ -1,3 +1,4 @@
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 
 /*
@@ -14,4 +15,19 @@ export function cursorOpenFailure(error: unknown): unknown {
   }
   const status = "status" in error && typeof error.status === "number" ? error.status : undefined;
   return new RuntimeFailureError("auth", error.message, { credential: "rejected", ...(status === undefined ? {} : { status }), cause: error });
+}
+
+/** Only the SDK's structural agent-not-found code, never an arbitrary failed open. */
+export function cursorResumeFailure(error: unknown, sessionId: string, method: "Agent.listRuns" | "Agent.resume"): unknown {
+  if (!(error instanceof Error) || !("code" in error) || error.code !== "agent_not_found") { return error; }
+  // SDK Error instances are not JSON-safe. Keep its observed diagnostic fields,
+  // not the original Error/cause graph or arbitrary SDK internals.
+  const native = {
+    name: error.name,
+    message: error.message,
+    code: error.code,
+    ...("operation" in error && typeof error.operation === "string" ? { operation: error.operation } : {}),
+    ...("isRetryable" in error && typeof error.isRetryable === "boolean" ? { isRetryable: error.isRetryable } : {}),
+  };
+  return new SessionNotFoundError(sessionId, error.message, { method, native });
 }
