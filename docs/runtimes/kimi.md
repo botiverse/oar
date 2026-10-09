@@ -537,6 +537,13 @@ answered "already up to date" for it, where an npm copy gets the manual
 command); the installer records region `mainland-cn`, so `checkUpdate`
 reads `code.kimi.com`.
 
+The region marker (`~/.kimi-code/region`) only seeds the first login: once
+signed in, the login's own host decides. So a copy from this installer signs
+in to Moonshot's mainland China service by default. People outside mainland
+China sign in with `kimi login --region global` (OAR has no kimi login yet,
+see [runtime login](../spec/login.md)). The installer never overwrites an
+existing marker.
+
 `checkUpdate` reads the release pointer kimi's own updater installs from, and
 `upgrade` runs `kimi upgrade -y`; a kimi older than 0.43.0 has no
 non-interactive upgrade, so `upgrade` answers `unsupported`
