@@ -121,7 +121,9 @@ answered.
 | grok, kimi, opencode, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
-Pi's provider logins are on `createPiProviderAuth`.
+Pi's provider logins are on `createPiProviderAuth`, whose
+`loginProviders()` lists every provider pi's `/login` offers, with its methods
+([pi page](../runtimes/pi.md#process-ownership-installation-login-and-account-usage)).
 
 ## Logout
 

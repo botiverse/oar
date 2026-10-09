@@ -22,6 +22,56 @@ export interface ProviderAuthStatus {
   readonly subscription?: boolean;
 }
 
+/**
+ * One way a provider accepts a login, in the backend's own words. `method` is
+ * what {@link ProviderAuthFacade.login} takes.
+ */
+export type LoginProviderMethod =
+  | {
+      readonly method: "oauth";
+      /** The backend's name for this sign-in, e.g. `"Anthropic (Claude Pro/Max)"`. */
+      readonly name: string;
+      /**
+       * True when the account behind it is a provider subscription (Claude
+       * Pro/Max, ChatGPT, SuperGrok); false for a plain account sign-in
+       * (OpenRouter, Radius).
+       */
+      readonly subscription: boolean;
+      /**
+       * The vendor's own label for this sign-in, e.g. `"Sign in with ChatGPT"`;
+       * absent when it has none. Pi shows it in place of "Sign in with an
+       * account" when a person asks to sign in to this provider (`/login openai`).
+       */
+      readonly loginLabel?: string;
+      /**
+       * The backend offers this sign-in on its own, beside its account list
+       * (which still has it): pi's Radius, the gateway pi's makers run,
+       * "Sign in with Radius", last in pi's top login menu. Absent on every
+       * other sign-in.
+       */
+      readonly featured?: true;
+    }
+  | {
+      readonly method: "api_key";
+      /** The backend's name for the credential, e.g. `"Anthropic API key"` or `"AWS credentials or bearer token"`. */
+      readonly name: string;
+      /**
+       * True when the backend has no prompt for it: the credential is
+       * configured outside the backend (the environment, a cloud profile), so
+       * `login` and `setApiKey` reject it and a host can only say so.
+       */
+      readonly ambient?: true;
+    };
+
+/** One provider a person can log in to, as the backend's registry has it. */
+export interface LoginProvider {
+  readonly providerId: string;
+  /** The provider's display name, e.g. `"Anthropic"`. */
+  readonly name: string;
+  /** The ways it accepts a login, `oauth` before `api_key`; never empty. */
+  readonly methods: readonly LoginProviderMethod[];
+}
+
 /** An event surfaced while a login flow runs. */
 export type ProviderLoginEvent =
   | { readonly kind: "auth_url"; readonly url: string; readonly instructions?: string }
@@ -65,6 +115,16 @@ export interface ProviderLoginInteraction {
 export interface ProviderAuthFacade {
   /** Every provider that has a configured credential, with its non-secret status. */
   listProviders(): Promise<readonly ProviderAuthStatus[]>;
+  /**
+   * Every provider a person can log in to, configured or not, straight from
+   * the backend's own registry (oar keeps no list of its own), in the order
+   * its login menu shows them. Pi's `/login` builds its top menu from the
+   * same registry: "Sign in with an account" lists the providers with an
+   * `oauth` method, "Sign in with an API key" those with an `api_key` method,
+   * and the `featured` sign-in comes last as "Sign in with" its provider's
+   * name. Read only, no credential read: `status` says how one is signed in.
+   */
+  loginProviders(): readonly LoginProvider[];
   /** The status of one provider (`configured: false` when nothing is stored). */
   status(providerId: string): Promise<ProviderAuthStatus>;
   /** Run the provider's OAuth or API-key login flow and persist the result. */

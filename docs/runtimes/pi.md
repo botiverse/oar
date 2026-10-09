@@ -104,7 +104,7 @@ creates services and one `AgentSession`, not the replacement-oriented
 | Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Every open starts a new record stream at seq 0; history is not rebuilt. |
 | Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | History tree and replacement APIs | Resume is mapped; branch navigation, fork, import and history access are not exposed. |
-| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
+| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`withdraw`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
 | Provider HTTP | The adapter sets undici's global dispatcher to an `EnvHttpProxyAgent`: the proxy half of what every pi entry point installs, without pi's global fetch replacement ([details](#http-plane-and-proxies)). |
@@ -624,6 +624,34 @@ unauthenticated state.
 [provider auth](../../packages/oar/src/runtimes/pi/auth.ts),
 [runtime registration](../../packages/oar/src/runtimes/pi/index.ts).
 
+`loginProviders()` lists what pi's own `/login` offers, straight from pi's
+registry (`getLoginProviderOptions` and `showLoginAuthTypeSelector` in pi's
+interactive mode): every provider of `ModelRuntime.getProviders()`,
+configured or not, sorted by name, with its methods in pi's order (OAuth,
+then API key). OAR keeps no list of its own; the one id it names is
+`radius`, pi's `RADIUS_PROVIDER_ID`, which pi does not export. An OAuth
+method carries pi's `isSubscription` as `subscription` and the vendor's
+`loginLabel` ("Sign in with ChatGPT"), which pi shows instead of "Sign in
+with an account" for `/login <provider>`. An API key pi has no prompt for
+(`ApiKeyAuth.login` absent) is `ambient`: pi says it is configured outside
+pi, and `login`/`setApiKey` reject it. Pi's top menu is "Sign in with an
+account" (the providers with an OAuth method), "Sign in with an API key"
+(those with an API-key method) and, last, "Sign in with Radius": the OAuth
+sign-in of provider `radius`, the gateway pi's makers run
+(`https://radius.pi.dev`, `PI_RADIUS_GATEWAY` overrides it), the one
+`featured` method, which stays in the account list too. On 1.1.0 that is 42
+built-in providers, 9 with an OAuth sign-in (7 of them subscriptions;
+OpenRouter and Radius are not) and 41 with an API key, none ambient. The
+facade loads no extensions, so a provider an extension registers is not
+listed; `models.json` providers are (`modelsPath`). The list reads no
+credential; `status(id)` says how each provider is signed in. Its
+`subscription` is pi's `isUsingSubscription` computed from the `checkAuth`
+result, since pi's own reads an availability snapshot that the facade
+(`refreshOnCreate: false`) never fills, and so said `false` for a Claude
+Pro/Max login.
+[Test](../../tests/providers/provider-auth.test.ts) against pi's real
+registry, with stored fake credentials for the status.
+
 ### User input identity and observation
 
 Input requests retain a logical `inputId`, including steer → queue fallback.
@@ -655,7 +683,9 @@ job. The
 recorded tool-round fixture and the settled/abort/error classification; the
 unit tests under [`tests/pi/`](../../tests/pi/) pin the session-directory
 formula, id lookup, model spelling/resolution, model readback, tool result
-text and the HTTP plane.
+text and the HTTP plane, and
+[`tests/providers/`](../../tests/providers/) the provider-auth bridge, the
+login providers and the model catalog.
 
 Open gaps: accepted steering through retry/compaction; distinct queued turns
 under races; extension-generated activity (children, permission gates,

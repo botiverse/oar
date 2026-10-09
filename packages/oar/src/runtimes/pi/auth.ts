@@ -1,4 +1,6 @@
 import type {
+  LoginProvider,
+  LoginProviderMethod,
   ProviderAuthFacade,
   ProviderAuthStatus,
   ProviderLoginEvent,
@@ -64,6 +66,49 @@ export function toLoginPrompt(prompt: PiAuthPrompt): ProviderLoginPrompt {
   };
 }
 
+/**
+ * The provider pi's `/login` offers on its own, last in its top menu ("Sign in
+ * with Radius"): `RADIUS_PROVIDER_ID` in pi's `core/radius.js`, which its
+ * public export does not carry.
+ */
+const PI_FEATURED_PROVIDER_ID = "radius";
+
+/** The part of a pi `Provider` its `/login` menu reads; every `Provider` is one. */
+export interface PiLoginProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly auth: {
+    readonly oauth?: { readonly name: string; readonly isSubscription?: boolean; readonly loginLabel?: string };
+    readonly apiKey?: { readonly name: string; readonly login?: unknown };
+  };
+}
+
+/**
+ * One provider as pi's `/login` offers it (`getLoginProviderOptions`,
+ * `showLoginAuthTypeSelector`): its OAuth sign-in, featured for Radius, then
+ * its API key, ambient when pi has no prompt for it (pi: "configured outside
+ * pi"). Undefined when it accepts neither.
+ */
+export function piLoginProvider(provider: PiLoginProvider): LoginProvider | undefined {
+  const { oauth, apiKey } = provider.auth;
+  const methods: LoginProviderMethod[] = [];
+  if (oauth !== undefined) {
+    methods.push({
+      method: "oauth",
+      name: oauth.name,
+      subscription: oauth.isSubscription === true,
+      ...(oauth.loginLabel === undefined ? {} : { loginLabel: oauth.loginLabel }),
+      ...(provider.id === PI_FEATURED_PROVIDER_ID ? { featured: true } : {}),
+    });
+  }
+  if (apiKey !== undefined) {
+    methods.push(apiKey.login === undefined
+      ? { method: "api_key", name: apiKey.name, ambient: true }
+      : { method: "api_key", name: apiKey.name });
+  }
+  return methods.length === 0 ? undefined : { providerId: provider.id, name: provider.name, methods };
+}
+
 /** Bridge an oar {@link ProviderLoginInteraction} into Pi's interaction shape. */
 function toPiInteraction(interaction: ProviderLoginInteraction): PiInteraction {
   return {
@@ -110,7 +155,9 @@ class PiProviderAuth implements ProviderAuthFacade {
       configured: true,
       method: check.type === "oauth" ? "oauth" : "api_key",
       ...(label === undefined ? {} : { label }),
-      subscription: this.#runtime.isUsingSubscription(providerId),
+      // Pi's `isUsingSubscription`, read from this check: pi's own reads the
+      // availability snapshot, which `refreshOnCreate: false` leaves empty.
+      subscription: check.type === "oauth" && this.#runtime.getProvider(providerId)?.auth.oauth?.isSubscription === true,
     };
   }
 
@@ -120,6 +167,12 @@ class PiProviderAuth implements ProviderAuthFacade {
       const status = await this.#statusOf(credential.providerId);
       return status;
     }));
+  }
+
+  loginProviders(): readonly LoginProvider[] {
+    // Pi's `/login` lists its providers by name.
+    const providers = this.#runtime.getProviders().toSorted((left, right) => left.name.localeCompare(right.name));
+    return providers.flatMap((provider) => piLoginProvider(provider) ?? []);
   }
 
   async status(providerId: string): Promise<ProviderAuthStatus> {
@@ -153,6 +206,8 @@ class PiProviderAuth implements ProviderAuthFacade {
 export interface PiProviderAuthOptions {
   /** Path to Pi's `auth.json`; defaults to Pi's `~/.pi/agent/auth.json`. */
   readonly authPath?: string;
+  /** Path to Pi's `models.json` (custom providers, listed by `loginProviders()` too); `null` disables the static config. */
+  readonly modelsPath?: string | null;
 }
 
 /** Create a {@link ProviderAuthFacade} backed by Pi's `ModelRuntime`. */
@@ -163,6 +218,7 @@ export async function createPiProviderAuth(options: PiProviderAuthOptions = {}):
   await configurePiHttp(SettingsManager.create(process.cwd(), process.env.OAR_PI_AGENT_DIR ?? getAgentDir()));
   const runtime = await ModelRuntime.create({
     ...(options.authPath === undefined ? {} : { authPath: options.authPath }),
+    ...(options.modelsPath === undefined ? {} : { modelsPath: options.modelsPath }),
     allowModelNetwork: false,
     refreshOnCreate: false,
   });
