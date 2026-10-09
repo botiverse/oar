@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
+import { LLMock } from "@copilotkit/aimock";
 import { claudeInstallation, claudeSession, piSession, type RawEvent, type Session } from "../../packages/oar/src/index.js";
 import { runTurn, withProcessEnv } from "./support/asserts.js";
 
@@ -101,6 +102,32 @@ test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi provider-echoed SDK keys a
     });
   } finally {
     await provider.stop();
+    await rm(directory, { recursive: true, force: true });
+  }
+}, 120_000);
+
+
+test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi short local-provider keys preserve model IDs and response text", async () => {
+  const mock = new LLMock({ port: 0 });
+  mock.onMessage("hello", { content: "ollama says hello" });
+  await mock.start();
+  const directory = await mkdtemp(path.join(tmpdir(), "oar-pi-short-key-test-"));
+  try {
+    const model = { id: "ollama-model", name: "ollama-model", reasoning: false, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 200_000, maxTokens: 1024 };
+    await writeFile(path.join(directory, "models.json"), JSON.stringify({ providers: { ollama: { api: "anthropic-messages", baseUrl: mock.url, apiKey: "ollama", models: [model] } } }));
+    await withProcessEnv({ OAR_PI_AGENT_DIR: directory, PI_PACKAGE_DIR: "" }, async () => {
+      const session = await piSession({ kind: "available", via: "bundled" }, { cwd: directory, model: "ollama/ollama-model" });
+      try {
+        let text = "";
+        session.events((event) => { if (event.kind === "text_delta") { text += event.text; } });
+        await expect(runTurn(session, "hello")).resolves.toEqual({ kind: "completed" });
+        expect(session.model().value).toBe("ollama/ollama-model");
+        expect(text).toBe("ollama says hello");
+        expect(JSON.stringify(session.records())).not.toContain("[redacted]");
+      } finally { await session.dispose(); }
+    });
+  } finally {
+    await mock.stop();
     await rm(directory, { recursive: true, force: true });
   }
 }, 120_000);

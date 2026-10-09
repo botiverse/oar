@@ -1,28 +1,26 @@
 import type { AvailableInstallation } from "../contracts/installation.js";
 import type { AdapterSession, Session, SessionOptions, StartSession } from "../contracts/session.js";
-import { sessionCredentialRedactor } from "./credential-redactor.js";
-import { redactText } from "./redact-text.js";
+import { sessionCredentialRedactor, type CredentialRedactor } from "./credential-redactor.js";
 import { sealSession } from "./seal-session.js";
 import { createSessionKernel, type SessionKernel } from "./session-kernel.js";
 
-export interface SessionCredentials {
-  add(this: void, value: string | undefined): void;
-  redact(this: void, text: string): string;
+export interface SessionCredentials extends CredentialRedactor {
   kernel(id: string): SessionKernel;
   seal(adapter: AdapterSession): Session;
 }
 
 /** Credentials supplied for this session, plus native keys the adapter resolves. No inherited environment or credential-file scan. */
 function sessionCredentials(options: SessionOptions): SessionCredentials {
-  const { add, redact } = sessionCredentialRedactor(options);
+  const { add, redact, redactValue } = sessionCredentialRedactor(options);
   const guard = <Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>): ((...args: Args) => Promise<Result>) =>
     async (...args) => {
-      try { return await method(...args); } catch (error) { throw redactText(error, redact); }
+      try { return await method(...args); } catch (error) { throw redactValue(error); }
     };
   return {
     add,
     redact,
-    kernel: (id) => createSessionKernel(id, redact),
+    redactValue,
+    kernel: (id) => createSessionKernel(id, redactValue),
     seal: (adapter) => sealSession({
       ...adapter,
       prompt: guard(adapter.prompt.bind(adapter)),
@@ -42,6 +40,6 @@ export function withSessionCredentials(open: (installation: AvailableInstallatio
   return async (installation, options) => {
     const credentials = sessionCredentials(options);
     try { return await open(installation, options, credentials); }
-    catch (error) { throw redactText(error, credentials.redact); }
+    catch (error) { throw credentials.redactValue(error); }
   };
 }

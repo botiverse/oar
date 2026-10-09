@@ -484,7 +484,10 @@ A provider can include its API key in an error message. At open, OAR asks
 Pi's `ModelRegistry.getApiKeyAndHeaders` for the selected model's resolved
 key, before binding extensions. A hidden `model_select` handler repeats that
 lookup when an extension changes the model; Pi awaits the handler before
-its next request. Keys already seen remain protected for the session.
+its next request. Values shorter than eight characters and path-shaped values
+are excluded, just like explicit environment credentials; local-provider
+placeholders such as `ollama` do not rewrite model IDs or reply text.
+Keys already accepted remain protected for the session.
 OAR reads no credential files itself and never changes the key used by Pi.
 
 The shared [record credential rule](../spec/record-stream.md#the-rules)

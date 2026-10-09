@@ -1,6 +1,21 @@
 /* oxlint-disable import/prefer-default-export -- Shared named helper. */
 /** Copy diagnostic data, including Error fields and cause chains, replacing known strings without mutating native inputs. */
-export function redactText<T>(value: T, redact: (text: string) => string): T {
+export function redactText<T>(value: T, redact: (text: string) => string, contains: (text: string) => boolean): T {
+  const scanned = new Set<object>();
+  const matches = (entry: unknown): boolean => {
+    if (typeof entry === "string") { return contains(entry); }
+    if (entry === null || typeof entry !== "object" || scanned.has(entry)) { return false; }
+    scanned.add(entry);
+    if (Array.isArray(entry)) { return entry.some((item) => matches(item)); }
+    return Object.getOwnPropertyNames(entry).some((key) => {
+      if (contains(key)) { return true; }
+      const descriptor = Object.getOwnPropertyDescriptor(entry, key);
+      if (descriptor !== undefined && "value" in descriptor) { return matches(descriptor.value); }
+      return entry instanceof Error && key === "stack" && matches(entry.stack);
+    });
+  };
+  if (!matches(value)) { return value; }
+
   const seen = new Map<object, unknown>();
   const copy = (entry: unknown): unknown => {
     if (typeof entry === "string") { return redact(entry); }

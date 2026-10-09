@@ -35,8 +35,8 @@ test("uses longest-first across env, MCP and SDK keys, and retains previous keys
 
 // oxlint-disable-next-line eslint/max-statements -- One stream, checked across control, live delivery and replay.
 test("redacts before retention and delivery, while control receives original input and native data is unchanged", async () => {
-  const { redact } = sessionCredentialRedactor({ cwd: "/work", env: { API_KEY: secret } });
-  const kernel = createSessionKernel("session", redact);
+  const { redactValue } = sessionCredentialRedactor({ cwd: "/work", env: { API_KEY: secret } });
+  const kernel = createSessionKernel("session", redactValue);
   const live: RawEvent[] = [];
   kernel.rawEvents((record) => { live.push(record); });
   const result = await kernel.control({ kind: "prompt", input: secret }, (request) => {
@@ -89,4 +89,33 @@ test("errors from later session methods use the same redactor", async () => {
   await expect(session.prompt("hello")).rejects.toMatchObject({ message: "[redacted]", cause: { detail: "[redacted]" } });
   await expect(session.queue("hello")).rejects.toBe("[redacted]");
   await expect(session.dispose()).rejects.toThrow("[redacted]");
+});
+
+
+test.each([{}, { API_KEY: secret }])("retains unmatched frame objects without copying (env %j)", (env) => {
+  const { redactValue } = sessionCredentialRedactor({ cwd: "/work", env });
+  const kernel = createSessionKernel("session", redactValue);
+  const body = { type: "tool/output", native: { output: "ordinary output", nested: ["unchanged"] }, events: [] };
+  const frame = kernel.frame(body);
+  expect(frame.body).toBe(body);
+  expect(kernel.records()[0]).toBe(frame);
+  expect(redactValue(frame)).toBe(frame);
+});
+
+test("a key learned after opening enables redaction for subsequent records", () => {
+  const { redactValue, add } = sessionCredentialRedactor({ cwd: "/work" });
+  const kernel = createSessionKernel("session", redactValue);
+  const body = { type: "native/error", native: { message: secret }, events: [] };
+  expect(kernel.frame(body).body).toBe(body);
+  add(secret);
+  expect(kernel.frame(body).body.native).toEqual({ message: "[redacted]" });
+  expect(body.native.message).toBe(secret);
+});
+
+
+test.each(["ollama", "EMPTY", "none", "x", "/path/to/credential", "~/credential", String.raw`C:\credentials\key`])("ignores short or path-shaped SDK key %s", (key) => {
+  const { add, redactValue } = sessionCredentialRedactor({ cwd: "/work" });
+  add(key);
+  const native = { model: `${key}/model`, text: `provider ${key}` };
+  expect(redactValue(native)).toBe(native);
 });

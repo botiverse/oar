@@ -1,4 +1,3 @@
-import { redactText } from "./redact-text.js";
 import { emptyInputRefusal } from "./control-input.js";
 import type {
   ControlResult,
@@ -109,7 +108,7 @@ function deliver(observer: RawEventObserver, record: RawEvent): void {
 }
 
 /** An optional session credential redactor runs before retention and observer delivery; native command inputs remain unchanged. */
-export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: (text: string) => string): SessionKernel {
+export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: <T extends RawEvent>(record: T) => T): SessionKernel {
   const observers = new Set<RawEventObserver>();
   const log: RawEvent[] = [];
   const nodes = new Map<string, { readonly id: string }>([[sessionId, { id: sessionId }]]);
@@ -134,7 +133,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       receivedAt: Date.now(),
     });
     seq += 1;
-    const retained = redact === undefined ? record : redactText(record, redact);
+    const retained = redact === undefined ? record : redact(record);
     log.push(retained);
     if (record.kind === "response" && record.body.kind === "exited") {
       exited = true;

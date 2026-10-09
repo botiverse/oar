@@ -71,7 +71,8 @@ Further rules:
   inputs and configuration sent to the runtime keep their original values.
   Opening errors and later adapter errors use the same rule, including
   `message`, `stack` and structured `cause` data. Credential values are
-  replaced longest first.
+  replaced longest first. Records without a matching string keep their original
+  objects; no known credentials means no traversal or copy.
 
   For `SessionOptions.env`, a name's last underscore-separated segment must
   be `KEY`, `APIKEY`, `TOKEN`, `SECRET`, `PASSWORD`, `PASSWD`, `PASSPHRASE`,
@@ -85,7 +86,10 @@ Further rules:
 
   Pi additionally resolves the selected model's API key through its SDK at
   open and on native model changes, keeping previous keys protected for the
-  rest of the session. OAR does not scan the host environment or credential
+  rest of the session. SDK keys use the same eight-character minimum and
+  path exclusion as environment values, so short local-provider placeholders
+  such as `ollama`, `EMPTY`, `none` or `x` do not alter ordinary text.
+  OAR does not scan the host environment or credential
   files. Keys a subprocess runtime independently reads from its login or
   configuration are outside this value-based rule. Unlike the structural
   `redactRecord` rules above, this needs the session's known values and does

@@ -179,7 +179,7 @@ export async function startPiAimock(
       aimock: {
         name: "aimock",
         baseUrl: url,
-        apiKey: "oar-pi-aimock-api-key",
+        apiKey: "aimock",
         api: "anthropic-messages",
         models: [
           { ...model("aimock-model", false), name: "aimock" },
