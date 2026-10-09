@@ -136,7 +136,9 @@ function reap(pids: readonly number[], dir: string): void {
       }
     }
   }
-  rmSync(dir, { recursive: true, force: true });
+  // Windows releases a killed process's open files a moment after the kill,
+  // so the removal can meet EPERM; rmSync retries that (and EBUSY) itself.
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
 
 /**
