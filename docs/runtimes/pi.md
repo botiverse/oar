@@ -516,8 +516,10 @@ without changing the host environment. Pi refuses removals combined with
 stdio MCP servers: see below and the
 [environment contract](../spec/runtime-matrix.md#session-environment).
 Provider configuration uses native model/agent-dir channels;
-`OAR_PI_AGENT_DIR` is process-level.
-[Opener](../../packages/oar/src/runtimes/pi/open.ts),
+`OAR_PI_AGENT_DIR` is process-level, and an empty value counts as unset (as
+pi treats an empty `PI_CODING_AGENT_DIR`), so it never becomes a relative
+path. [Agent dir](../../packages/oar/src/runtimes/pi/resolve.ts),
+[opener](../../packages/oar/src/runtimes/pi/open.ts),
 [native extensions][native-extensions].
 
 ### Session MCP servers
@@ -597,7 +599,7 @@ failed"`, `agent_settled` → `failed`) while the `pi` CLI works.
 its global-class replacement is no footprint for an embedding library). Before
 a session, model listing, login or catalog reaches a provider, it sets
 undici's global dispatcher itself to an `EnvHttpProxyAgent` built from the
-settings manager those entry points read (`OAR_PI_AGENT_DIR ?? getAgentDir()`).
+settings manager those entry points read (`OAR_PI_AGENT_DIR`, else `getAgentDir()`).
 `undici` is a direct dependency of `@botiverse/oar`, pinned to the version pi
 uses (8.10.2, one instance in the tree). An env proxy wins; pi's `httpProxy`
 setting fills both http and https when the env names none (pi's own `??=`
@@ -641,7 +643,7 @@ outside the session interface. It and `createPiModelCatalog` read
 (`OAR_PI_AGENT_DIR`, else pi's own), unless `authPath` or `modelsPath`
 name others, so a login reaches the next session; before 0.50.0 they used
 pi's own dir even with `OAR_PI_AGENT_DIR` set.
-[Facade paths](../../packages/oar/src/runtimes/pi/agent-dir.ts).
+[Facade paths](../../packages/oar/src/runtimes/pi/facade-runtime.ts).
 OAR has **no accountUsage reader** for Pi: it
 runs on provider credentials and has no subscription usage surface to
 observe. An empty usable-model catalog does not establish a universal

@@ -7,7 +7,7 @@ import { piCredentialExtension, rememberPiKey } from "./credentials.js";
 import { configurePiHttp } from "./http.js";
 import { disposePiAgentSession } from "./lifecycle.js";
 import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
-import { piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
+import { piAgentDir, piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
 
 /*
  * Opening the bundled pi SDK session: services, session file (create or
@@ -118,7 +118,7 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // settings/sessions); same namespaced-env-pin pattern as OAR_CLAUDE_BIN.
   // This is how a host (or the pi-aimock behavior backend) points the
   // in-process model plane somewhere else.
-  const agentDir = process.env.OAR_PI_AGENT_DIR ?? sdk.getAgentDir();
+  const agentDir = piAgentDir(() => sdk.getAgentDir());
   // YOLO by default (repo policy): pi gates tool execution on project trust,
   // which is an approval prompt no embedded host can answer; pre-trust the
   // session cwd the same way pi's own Trust button would (auditable in

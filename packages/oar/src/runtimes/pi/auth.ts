@@ -9,7 +9,7 @@ import type {
   ProviderLoginPrompt,
 } from "../../contracts/provider-auth.js";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { piFacadeRuntime, type PiModelRuntimePaths } from "./agent-dir.js";
+import { piFacadeRuntime, type PiModelRuntimePaths } from "./facade-runtime.js";
 
 /*
  * Pi's `ModelRuntime.login` takes its own `AuthInteraction` / `AuthType`, whose

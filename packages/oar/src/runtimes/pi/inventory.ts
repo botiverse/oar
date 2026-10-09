@@ -3,6 +3,7 @@ import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { asRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
+import { piAgentDir } from "./resolve.js";
 
 interface PiReaders {
   readonly skills: () => InventoryResult<SkillEntry>;
@@ -39,7 +40,7 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>): In
     // the eventual session is still disposed. No trust-store write or model prompt.
     const result = await inventoryRead(async () => {
       const sdk = await import("@earendil-works/pi-coding-agent");
-      const agentDir = process.env.OAR_PI_AGENT_DIR ?? sdk.getAgentDir();
+      const agentDir = piAgentDir(() => sdk.getAgentDir());
       const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir });
       const { session } = await sdk.createAgentSessionFromServices({
         services, sessionManager: sdk.SessionManager.inMemory(scope.cwd),

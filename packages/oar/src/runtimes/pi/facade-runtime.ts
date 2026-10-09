@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { getAgentDir, ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { configurePiHttp } from "./http.js";
+import { piAgentDir } from "./resolve.js";
 
 /** Where a facade's `ModelRuntime` keeps credentials and custom providers; both default into the agent dir. */
 export interface PiModelRuntimePaths {
@@ -21,7 +22,7 @@ type ModelRuntimeOptions = NonNullable<Parameters<typeof ModelRuntime.create>[0]
  * that dir's settings (see http.ts).
  */
 export async function piFacadeRuntime(paths: PiModelRuntimePaths, options: Omit<ModelRuntimeOptions, "authPath" | "modelsPath">): Promise<ModelRuntime> {
-  const agentDir = process.env.OAR_PI_AGENT_DIR ?? getAgentDir();
+  const agentDir = piAgentDir(getAgentDir);
   await configurePiHttp(SettingsManager.create(process.cwd(), agentDir));
   return ModelRuntime.create({
     ...options,

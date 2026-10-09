@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createPiProviderAuth } from "../../packages/oar/src/runtimes/pi/auth.js";
 import { createPiModelCatalog } from "../../packages/oar/src/runtimes/pi/catalog.js";
+import { piAgentDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
 
 // oar#289: with OAR_PI_AGENT_DIR set, the facades read and write the agent
 // dir's auth.json and models.json, the ones sessions use, not pi's own dir.
@@ -46,4 +47,15 @@ test("explicit paths still win over the agent dir", async () => {
   const auth = await createPiProviderAuth({ authPath: join(other, "auth.json"), modelsPath: null });
   const status = await auth.status("deepseek");
   expect(status.configured).toBe(false);
+});
+
+test("an empty OAR_PI_AGENT_DIR counts as unset: pi's own dir, never a relative path", async () => {
+  expect(piAgentDir(() => "/pi-own")).toBe(agentDir);
+  vi.stubEnv("OAR_PI_AGENT_DIR", "");
+  expect(piAgentDir(() => "/pi-own")).toBe("/pi-own");
+  const auth = await createPiProviderAuth();
+  await auth.setApiKey("groq", "fake-groq-key");
+  expect(existsSync(join(piHome, "auth.json"))).toBe(true);
+  const relative = join(process.cwd(), "auth.json");
+  expect(existsSync(relative)).toBe(false);
 });
