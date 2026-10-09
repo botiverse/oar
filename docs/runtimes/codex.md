@@ -540,6 +540,19 @@ It does not read deprecated `additionalSpeedTiers`. No tier is invented for
 home-initialization coordination as other app-server clients.
 [Model listing][oar-models], [regressions](../../tests/codex/codex-service-tier.test.ts).
 
+An empty `CODEX_HOME` without credentials still returns the built-in fallback
+catalog: with Codex 0.161.0, `account/read` reported no account and OAR returned
+`ok` with eight models. This lister does not return `unauthenticated`; listing
+success is not evidence that the account can run those models. Startup, RPC,
+malformed-response and timeout failures remain errors rather than empty lists.
+
+The former `debug models` surface and the new picker returned the same seven
+visible model IDs under the same existing login and provider configuration.
+In the empty-home comparison, both returned the same eight IDs, with a different
+order. This observation does not promise identical catalogs across future
+versions or other providers. The native picker now also supplies service-tier
+metadata. [Comparison and reproduction](../../experiments/service-tier-2026-10-08.md#model-catalog-comparison-2026-10-09).
+
 **Context (mapped):** native usage separates `total`, `last`, and nullable
 `modelContextWindow`. Each `thread/tokenUsage/updated` frame carries a
 `usage` event: `context` = `last.totalTokens` (the last model call's input,

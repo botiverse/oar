@@ -1,83 +1,67 @@
 /**
- * CODEX MODEL LIST: pins `codex debug models` as the usable-models surface.
+ * Compare OAR's app-server model/list picker with the former debug models
+ * surface under the SAME home, environment and executable. Lists metadata
+ * only: no model prompts, login changes, or account identifiers in output.
  *
- * The question for a unified listModels is not "what models exist in a static
- * catalog" but "what can this account use right now". Codex answers that:
- * `codex debug models` fetches the list live from the *active configured
- * provider* (here a custom `cortex` proxy via base_url + wire_api
- * "responses"), so the result is scoped to the current provider config and
- * login state, then cached to ~/.codex/models_cache.json
- * `{client_version, fetched_at, models}`.
+ * Run: OAR_CODEX_BIN=/path/to/codex pnpm tsx experiments/codex-list-models.ts
+ * For the logged-out case, run in an empty working directory with CODEX_HOME
+ * pointing at a fresh directory and no OPENAI_API_KEY or CODEX_API_KEY.
+ * model/list runs first, before debug models can populate the model cache.
  *
- * Run: pnpm tsx experiments/codex-list-models.ts
- * Exits non-zero on any unmet expectation. No tokens consumed.
- *
- * ── OBSERVED 2026-09-04, codex 0.149.0, linux x64 ──
- *
- * Stdout is pure JSON: `{"models":[...]}`, 43 entries, ~1.8MB, because each
- * model embeds its full instruction templates. Consumers MUST project fields;
- * shipping the raw payload downstream is not viable.
- *
- * Per-model fields: `slug` (stable identity), `display_name` (UNRELIABLE as
- * identity: claude-fable-5 renders as "GPT 5.6 Sol"), `description`,
- * `default_reasoning_level`, `supported_reasoning_levels`
- * (low/medium/high/xhigh/max/ultra), `shell_type`, `visibility`
- * ("list" | "hide"; hidden entries are present in the payload),
- * `supported_in_api`, `priority`, `service_tiers`, `availability_nux`,
- * `upgrade`. So: identity = slug, display_name is presentation only, and the
- * payload carries its own visibility + effort-level enumeration.
+ * Observations and limits: service-tier-2026-10-08.md.
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { codexListModels } from "../packages/oar/src/runtimes/codex/list-models.js";
+import { startAppServerClient } from "../packages/oar/src/runtimes/codex/app-server-client.js";
+import { asRecord, asRecordList } from "../packages/oar/src/shared/json.js";
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? Object.fromEntries(Object.entries(value))
-    : null;
-}
-
-function asRecordList(value: unknown): Record<string, unknown>[] {
-  if (!Array.isArray(value)) {
-    return [];
+/** Only login presence, never the account payload (which can identify its owner). */
+async function accountPresent(command: string): Promise<boolean> {
+  const client = startAppServerClient(command);
+  const timer = setTimeout(() => { client.kill(); }, 15_000);
+  try {
+    await client.spawned;
+    client.handle({ onNotification: () => {}, onServerRequest: () => {} });
+    await client.request("initialize", { clientInfo: { name: "oar-model-comparison", version: "0" } });
+    client.notify("initialized", {});
+    const reply = await client.request("account/read", { refreshToken: false });
+    assert.ok("account" in reply, "account/read did not report account presence");
+    return reply.account !== null;
+  } finally {
+    clearTimeout(timer);
+    client.kill();
+    await client.exited;
   }
-  const entries: unknown[] = value;
-  const records: Record<string, unknown>[] = [];
-  for (const entry of entries) {
-    const record = asRecord(entry);
-    if (record !== null) {
-      records.push(record);
-    }
-  }
-  return records;
 }
 
-const stdout = execFileSync("codex", ["debug", "models"], {
-  maxBuffer: 64 * 1024 * 1024,
-  encoding: "utf8",
-});
-
-const parsed: unknown = JSON.parse(stdout);
-const top = asRecord(parsed);
-assert.ok(top !== null, "stdout was not a JSON object");
-const models = asRecordList(top.models);
-assert.ok(models.length > 0, "models[] empty");
-
-for (const model of models) {
-  assert.equal(typeof model.slug, "string", "model without slug");
-  assert.ok(
-    Array.isArray(model.supported_reasoning_levels),
-    `${String(model.slug)}: no supported_reasoning_levels`,
-  );
-  assert.ok(
-    model.visibility === "list" || model.visibility === "hide",
-    `${String(model.slug)}: unexpected visibility ${String(model.visibility)}`,
-  );
+function debugModelIds(command: string): readonly string[] {
+  const stdout = execFileSync(command, ["debug", "models"], {
+    maxBuffer: 64 * 1024 * 1024,
+    timeout: 15_000,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const parsed: unknown = JSON.parse(stdout);
+  const models = asRecord(parsed)?.models;
+  assert.ok(Array.isArray(models), "debug models did not return a models array");
+  return asRecordList(models).flatMap((model) =>
+    typeof model.slug === "string" && model.slug.length > 0 && model.visibility !== "hide" ? [model.slug] : []);
 }
 
-const listed = models.filter((model) => model.visibility === "list");
+const command = process.env.OAR_CODEX_BIN ?? "codex";
+const version = execFileSync(command, ["--version"], { encoding: "utf8", timeout: 15_000 }).trim();
+const listing = await codexListModels({ kind: "available", via: "executable", command });
+const authenticated = await accountPresent(command);
+const debugIds = debugModelIds(command);
+const pickerIds = listing.kind === "ok" ? listing.models.map((model) => model.id) : [];
 process.stdout.write(`${JSON.stringify({
-  totalModels: models.length,
-  listedModels: listed.length,
-  payloadBytes: stdout.length,
-  sampleSlugs: models.slice(0, 5).map((model) => model.slug),
+  version,
+  authenticated,
+  listingKind: listing.kind,
+  debugIds,
+  pickerIds,
+  onlyDebug: debugIds.filter((id) => !pickerIds.includes(id)),
+  onlyPicker: pickerIds.filter((id) => !debugIds.includes(id)),
+  serviceTiers: listing.kind === "ok" ? listing.models.map(({ id, serviceTiers }) => ({ id, serviceTiers })) : [],
 }, null, 2)}\n`);

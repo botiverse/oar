@@ -282,6 +282,11 @@ status/reason. The wait is bounded to 30 seconds and failure stops the child.
 intent, and `applied` currently carries no fast-mode status. Sonnet with
 fastMode true still reports off and is correctly refused before a model call.
 
+OAR passes its `--settings '{"fastMode":…}'` before the host's `launchArgs`.
+Another `--settings` in `launchArgs` can override that choice; if the applied
+mode no longer matches the requested tier, readback rejects the open instead
+of silently accepting the override.
+
 The initialization response is recorded verbatim; its report and later
 `system/init` / `result` reports produce `service_tier` events. `on` maps to
 fast, `off` and temporary `cooldown` to default. Native reasons remain in the

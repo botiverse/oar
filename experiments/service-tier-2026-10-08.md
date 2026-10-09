@@ -51,6 +51,39 @@ The other six core adapters explicitly refuse the option until a native
 per-session setting and readback are verified. No service tiers are invented
 for them.
 
+## Model catalog comparison, 2026-10-09
+
+The lister changes from `debug models` to app-server `model/list`, so this
+comparison checks the host-visible IDs as well as the added tier metadata.
+Both commands used Codex 0.161.0 and the same configuration in each case.
+
+| Environment | Native account present | OAR result | Former visible IDs | New picker IDs | ID differences |
+|---|---|---|---|---|---|
+| Existing authorized xxwork login | yes | `ok` | 7 | 7 | none, including order |
+| Fresh empty `CODEX_HOME`, empty working directory, no API key | no | `ok` | 8 | 8 | none; order differs |
+
+The authenticated set was `gpt-6.1-sol`, `gpt-6-astra`, `gpt-6-sol`,
+`gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna`. Each picker
+entry supplied `priority`. The logged-out fallback also included `gpt-5.5`;
+`debug models` placed `gpt-6-astra` first, while the picker placed
+`gpt-6.1-sol` first. These are dated observations, not a static model allowlist.
+
+The empty home had no configuration, credentials or model cache at launch.
+OAR's public `codexListModels` ran first, before `debug models` could seed a
+cache. A separate `account/read` reported null. The new lister therefore still
+returns a built-in fallback without authentication, not `unauthenticated`;
+hosts must not interpret a successful list as proof of model access. Native
+startup/RPC failures and malformed replies still throw.
+
+[codex-list-models.ts](codex-list-models.ts) reproduces the comparison and
+prints only model metadata and login presence. Set `OAR_CODEX_BIN` to the
+executable to compare. Run once under the existing configuration, then in an
+empty working directory with `CODEX_HOME` pointing at a new empty directory
+and authentication environment variables such as `OPENAI_API_KEY` and
+`CODEX_API_KEY` removed. No model prompts were submitted. The result is scoped
+to this runtime version and these environments; other providers and later
+versions may produce different IDs.
+
 ## Reproduction and limits
 
 The reusable regression is
