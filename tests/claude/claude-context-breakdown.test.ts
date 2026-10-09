@@ -138,6 +138,16 @@ test("null from the moment dispose begins, without writing to the ended stdin", 
   await disposing;
 });
 
+test("null once stdin has ended without a dispose (the abort fallback's kill), and nothing is written", async () => {
+  const child = slowToExit(scripted(ANSWER));
+  const session = await claudeSession(installation, { cwd: "/work" });
+  child.stdin.end();
+  expect(await session.contextBreakdown?.()).toBeNull();
+  expect(asked(child)).toEqual([]);
+  child.end(null);
+  await session.dispose();
+});
+
 test("null once the process has exited, for a read in flight and every later one", async () => {
   const child = fakeLineProcess();
   spawnLineProcess.mockReturnValue(child);

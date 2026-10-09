@@ -128,7 +128,8 @@ export function claudeContextBreakdownReader(child: ClaudeProcess): ClaudeContex
       pending?.settle(null);
     },
     read: async () => {
-      if (gone) { return null; }
+      // Ended stdin without a dispose: the abort fallback's kill, its exit still to come.
+      if (gone || child.stdin.writableEnded || child.stdin.destroyed) { return null; }
       // Concurrent calls share the read in flight.
       inFlight ??= shared();
       const breakdown = await inFlight;
