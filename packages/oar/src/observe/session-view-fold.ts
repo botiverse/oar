@@ -186,11 +186,10 @@ export function noticePart(draft: Draft, event: Event, streamId: string, notice:
   laneFor(draft, event, streamId)?.parts.push({ kind: "notice", notice });
 }
 
-export function markRequestAnswered(draft: Draft, requestId: string): void {
-  const index = draft.pendingRequests.findIndex((request) => request.requestId === requestId);
-  if (index !== -1) {
-    draft.pendingRequests.splice(index, 1);
-  }
+type AppRequestPart = Extract<ViewPart, { kind: "app_request" }>;
+
+/** Rewrite the part that shows `requestId`, latest turn first; nothing when no part shows it. */
+export function updateRequestPart(draft: Draft, requestId: string, change: (part: AppRequestPart) => AppRequestPart): void {
   for (let m = draft.messages.length - 1; m >= 0; m -= 1) {
     const message = draft.messages[m];
     if (message?.kind !== "turn") {
@@ -207,7 +206,7 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
         continue;
       }
       const parts = [...section.parts];
-      parts[partIndex] = { ...part, answered: true };
+      parts[partIndex] = change(part);
       const sections = [...message.sections];
       sections[s] = { ...section, parts };
       draft.messages[m] = { ...message, sections };
@@ -217,6 +216,24 @@ export function markRequestAnswered(draft: Draft, requestId: string): void {
       return;
     }
   }
+}
+
+function dropPending(draft: Draft, requestId: string): void {
+  const index = draft.pendingRequests.findIndex((request) => request.requestId === requestId);
+  if (index !== -1) {
+    draft.pendingRequests.splice(index, 1);
+  }
+}
+
+export function markRequestAnswered(draft: Draft, requestId: string): void {
+  dropPending(draft, requestId);
+  updateRequestPart(draft, requestId, (part) => ({ ...part, answered: true }));
+}
+
+/** The runtime withdrew the request: nobody is waited on for it any more. */
+export function markRequestCancelled(draft: Draft, requestId: string): void {
+  dropPending(draft, requestId);
+  updateRequestPart(draft, requestId, (part) => ({ ...part, cancelled: true }));
 }
 
 /** Drop a turn the runtime says never began (rejected prompt), when still empty. */

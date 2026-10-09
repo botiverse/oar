@@ -112,6 +112,8 @@ export function createProgressRenderer(
         return [`${agent}[retry ${String(event.attempt)}${event.maxAttempts === undefined ? "" : `/${String(event.maxAttempts)}`}]${event.reason === undefined ? "" : ` ${event.reason}`}`];
       case "app_request":
         return [`${agent}[waiting for app: ${event.type}]`];
+      case "app_request_cancelled":
+        return [`${agent}[runtime withdrew its request]`];
       case "control_rejected":
         return [`${agent}[${event.action} rejected] ${event.reason}`];
       case "exited":

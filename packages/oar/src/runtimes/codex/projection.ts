@@ -177,6 +177,13 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       return typeof params.itemId === "string"
         ? [{ kind: "tool_call_progress", callId: params.itemId, ...(typeof params.delta === "string" ? { output: params.delta } : {}) }]
         : [];
+    case "serverRequest/resolved": {
+      // oar answers no codex request, so a resolved one is codex clearing it
+      // itself (an interrupted turn, a non-blocking question that timed out).
+      // Request ids are recorded as strings (app-server-client.ts).
+      const id = params.requestId;
+      return typeof id === "string" || typeof id === "number" ? [{ kind: "app_request_cancelled", requestId: String(id) }] : [];
+    }
     case "thread/compacted":
       return state.compacting ? [{ kind: "compaction_ended", outcome: "completed" }] : [];
     case "rawResponseItem/completed": {

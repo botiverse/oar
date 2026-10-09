@@ -182,7 +182,9 @@ export type RuntimeEventBody = UserMessage
   /** The reasoning-effort level the runtime reports as in effect, in its own spelling (codex `reasoningEffort`, an ACP `thought_level` option's current value, pi `thinkingLevel`, cursor's reasoning parameter): its own report, never the request echoed. claude's stream carries none. */
   | { readonly kind: "effort"; readonly effort: string }
   /** The runtime-reported service tier; `default` means explicitly no special tier. */
-  | { readonly kind: "service_tier"; readonly serviceTier: string };
+  | { readonly kind: "service_tier"; readonly serviceTier: string }
+  /** The runtime withdrew a `toApp` request it had sent (`app_request` with this `requestId`) and no longer waits on an answer: claude `control_cancel_request`, codex `serverRequest/resolved` (oar answers no codex request, so a resolved one was cleared by codex itself). Never inferred from a turn ending. */
+  | { readonly kind: "app_request_cancelled"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
 export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose";
@@ -286,11 +288,7 @@ export type TurnOutcome =
     readonly status?: number;
   };
 
-/**
- * Current context fullness, borrowed from pi's shape because it already
- * models the hard case: `tokens` is null when unknown (right after compaction,
- * before the next model response), and `percent` follows.
- */
+/** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
 export interface ContextUsage {
   readonly tokens: number | null;
   readonly contextWindow: number | null;
