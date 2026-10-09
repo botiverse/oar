@@ -1,4 +1,4 @@
-import { noticeText, type SessionView, type ViewPart } from "../../packages/oar/src/browser.js";
+import { appRequestText, noticeText, type SessionView, type ViewPart } from "../../packages/oar/src/browser.js";
 
 function text(tag: string, value: string, className = ""): HTMLElement {
   const element = document.createElement(tag);
@@ -13,7 +13,10 @@ function partElement(part: ViewPart): HTMLElement {
     case "reasoning": return text("p", part.content.kind === "text" ? part.content.text : "Reasoning", "reasoning");
     case "tool": return text("pre", `${part.tool}: ${part.result}\n${part.output ?? ""}`);
     case "notice": return text("p", noticeText(part.notice), "notice");
-    case "app_request": return text("p", `${part.type}: ${part.answered ? "answered" : "awaiting answer"}`, "notice");
+    case "app_request": {
+      const state = part.answered ? "answered" : (part.cancelled === true ? "withdrawn by the runtime" : "awaiting answer");
+      return text("p", `${appRequestText(part.type, part.body) ?? part.type}: ${state}`, "notice");
+    }
   }
   throw new Error("Unknown view part");
 }

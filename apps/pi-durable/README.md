@@ -47,6 +47,7 @@ pnpm durable-demo:smoke
 The smoke test runs Chromium with the real Harness, OAR adapter and native
 fetch provider. Playwright redirects provider HTTP to a local aimock server
 and supplies only a synthetic test key. It verifies a completed conversation,
-literal rendering of model-supplied HTML, abort, session cleanup, and absence
-of saved browser data. It uses no account, login or model quota. CI runs this
+literal rendering of model-supplied HTML, request content and answered,
+withdrawn and pending states, abort, session cleanup, and absence of saved
+browser data. It uses no account, login or model quota. CI runs this
 test on Linux; the portable-entry bundle gate also runs on all three systems.

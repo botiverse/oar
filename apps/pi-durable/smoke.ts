@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 import { LLMock } from "@copilotkit/aimock";
 import { startDemo } from "./host.js";
+import { verifyRequestRendering } from "./smoke-requests.js";
 
 const mock = new LLMock({ port: 0 });
 mock.onMessage(/slow/u, { content: "late reply" }, { latency: 1200 });
@@ -42,8 +43,9 @@ try {
   await page.locator('#status[data-state="disconnected"]').waitFor();
   assert.equal(await page.getByLabel("Anthropic API key").inputValue(), "");
   assert.deepEqual(await page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.length })), { local: 0, session: 0 });
+  await verifyRequestRendering(page);
   assert.deepEqual(errors, []);
-  process.stdout.write("browser smoke passed: native fetch provider, SessionView, abort, cleanup and no stored key\n");
+  process.stdout.write("browser smoke passed: native fetch provider, SessionView, request states, abort, cleanup and no stored key\n");
 } finally {
   // Aborting the browser request does not cancel route.fetch's Node request.
   // Let that local response finish before disposing its request context.
