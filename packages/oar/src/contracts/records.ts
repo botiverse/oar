@@ -1,8 +1,7 @@
-import type { CredentialProblem, FailureClass } from "./failure.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
+import type { FailedTurn } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
-import type { UtcInstant } from "./account-usage.js";
 
 /**
  * The record stream and the events read off it. Three words, three layers:
@@ -260,7 +259,11 @@ export type RejectionCode =
   /** The adapter could not deliver (a thrown transport error); `reason` is the exception message. */
   | "error";
 
-/** Control responses answer only "accepted or not"; final states and landing points are always events. The remaining bodies are outcomes only oar observes: its own answer to a runtime→app request, and the process exit. */
+/**
+ * Control responses answer only "accepted or not"; final states and landing
+ * points are always events. The remaining bodies are outcomes only oar
+ * observes: its own answer to a runtime→app request, and the process exit.
+ */
 export type ResponseBody =
   /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
   | { readonly kind: "accepted"; readonly native?: unknown }
@@ -271,20 +274,8 @@ export type ResponseBody =
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
   | { readonly kind: "exited"; readonly code: number | null };
 
-export type TurnOutcome =
-  | { readonly kind: "completed" }
-  | { readonly kind: "aborted" }
-  | {
-    readonly kind: "failed";
-    readonly reason: string;
-    readonly failure: FailureClass;
-    /** With `auth`, where the runtime says which. */
-    readonly credential?: CredentialProblem;
-    /** The provider's HTTP status, where the runtime reports one. */
-    readonly status?: number;
-    /** When the limit that refused the turn resets, where the runtime reports that time for this failure (claude only; docs/spec/runtime-matrix.md#when-a-limit-resets). Absent otherwise, never derived from an account-usage read or the runtime's prose. It is the runtime's last report, which may be older than the failure: a time already past means the host should treat the reset as unknown. A fact, not a retry: oar does not continue the session when it passes. */
-    readonly resetsAt?: UtcInstant;
-  };
+/** How a turn ended; `failed` is a `FailedTurn`, tagged by its `failure`. */
+export type TurnOutcome = { readonly kind: "completed" } | { readonly kind: "aborted" } | FailedTurn;
 
 /** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
 export interface ContextUsage {

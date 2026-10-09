@@ -300,9 +300,11 @@ decisions, `failureAdvice(failure)` gives recovery timing per `FailureClass`:
 `retry` is `now` (retry with ordinary backoff: `rate_limited`, `overloaded`,
 `provider`, `runtime_exited`), `later` (wait for a limit to reset, typically
 hours: `quota`) or `no`; `userAction` says a person has to act first (`auth`,
-`billing`, `model_unavailable`, `input_too_large`). A `quota` failure's
-`resetsAt`, where the runtime reports it (claude's subscription limits), is
-when the limit resets; a time already past means unknown
+`billing`, `model_unavailable`, `input_too_large`). A failed turn is a
+`FailedTurn`, tagged by `failure`: an `auth` failure's `credential` and a
+`quota` failure's `resetsAt` are read after checking `failure`. `resetsAt`,
+where the runtime reports it (claude's subscription limits), is when the
+limit resets; a time already past means unknown
 ([when a limit resets](runtime-matrix.md#when-a-limit-resets)). Continuing
 then is the host's policy. A `RuntimeFailureError`
 from `session()` carries the same `failure`.

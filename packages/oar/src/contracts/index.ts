@@ -92,6 +92,7 @@ export type {
   EventObserver,
   EventsOptions,
   CredentialProblem,
+  FailedTurn,
   FailureClass,
   Frame,
   FrameBody,

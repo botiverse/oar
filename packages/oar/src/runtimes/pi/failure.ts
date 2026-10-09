@@ -1,4 +1,4 @@
-import type { TurnOutcome } from "../../contracts/session.js";
+import type { FailedTurn } from "../../contracts/session.js";
 import { failureFromErrorBody, failureFromStatus } from "../../shared/failure-class.js";
 
 /*
@@ -17,7 +17,7 @@ export interface PiProviderError {
 }
 
 /** Classify the run pi failed with `error`. */
-export function piFailure(error: PiProviderError): Extract<TurnOutcome, { kind: "failed" }> {
+export function piFailure(error: PiProviderError): FailedTurn {
   const { message, overflow } = error;
   const prefixed = /^(?<status>\d{3}) (?<body>[\s\S]*)$/u.exec(message);
   const status = prefixed?.groups?.status === undefined ? null : Number(prefixed.groups.status);

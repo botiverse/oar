@@ -1,6 +1,6 @@
 import type { UtcInstant } from "../../contracts/account-usage.js";
-import type { TurnOutcome } from "../../contracts/session.js";
-import { anthropicLimitText, failureFromStatus, type Classified } from "../../shared/failure-class.js";
+import type { FailedTurn, FailureClass } from "../../contracts/session.js";
+import { anthropicLimitText, failureFromStatus } from "../../shared/failure-class.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, type JsonRecord } from "../../shared/json.js";
 
@@ -18,7 +18,7 @@ import { asNumber, type JsonRecord } from "../../shared/json.js";
  */
 
 /** The categories observed, by what they mean; `server_error` is decided by its status (a 529 is overload). */
-const CATEGORIES: Readonly<Partial<Record<string, Classified["failure"]>>> = {
+const CATEGORIES: Readonly<Partial<Record<string, FailureClass>>> = {
   authentication_failed: "auth",
   model_not_found: "model_unavailable",
   rate_limit: "rate_limited",
@@ -65,22 +65,21 @@ export function claudeLimitReset(info: JsonRecord | null): UtcInstant | null {
 }
 
 /** Classify a failed claude turn whose `result` says `reason`. */
-export function claudeFailure(reason: string, facts: ClaudeFailureFacts): Extract<TurnOutcome, { kind: "failed" }> {
+export function claudeFailure(reason: string, facts: ClaudeFailureFacts): FailedTurn {
   const { category, status, terminalReason, limitResetsAt } = facts;
   const withStatus = status === null ? {} : { status };
-  const failed = (failure: Classified["failure"], extra: Omit<Classified, "failure"> & { readonly resetsAt?: UtcInstant } = {}): Extract<TurnOutcome, { kind: "failed" }> =>
-    ({ kind: "failed", reason, failure, ...withStatus, ...extra });
+  const failed = (failure: FailureClass): FailedTurn => ({ kind: "failed", reason, failure, ...withStatus });
   if (terminalReason === "prompt_too_long") {
     return failed("input_too_large");
   }
   if (category === "authentication_failed") {
     // No request sent: no credential at all ("Not logged in"). A 401: refused.
-    if (status === null) { return failed("auth", { credential: "missing" }); }
-    return failed("auth", status === 401 ? { credential: "rejected" } : {});
+    if (status === null) { return { kind: "failed", reason, failure: "auth", credential: "missing" }; }
+    return { kind: "failed", reason, failure: "auth", status, ...(status === 401 ? { credential: "rejected" } : {}) };
   }
   if (category === "rate_limit" && limitResetsAt !== null) {
     // A subscription limit refuses requests until a reset claude named: a usage limit, not throttling.
-    return failed("quota", { resetsAt: limitResetsAt });
+    return { kind: "failed", reason, failure: "quota", ...withStatus, resetsAt: limitResetsAt };
   }
   const named = category === null ? undefined : CATEGORIES[category];
   if (named !== undefined) {

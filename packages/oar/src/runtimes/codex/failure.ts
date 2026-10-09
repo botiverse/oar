@@ -1,4 +1,4 @@
-import type { TurnOutcome } from "../../contracts/session.js";
+import type { FailedTurn } from "../../contracts/session.js";
 import { failureFromErrorBody, failureFromStatus, type Classified } from "../../shared/failure-class.js";
 import { asNumber, asRecord } from "../../shared/json.js";
 
@@ -41,7 +41,7 @@ function fromInfo(info: unknown, message: string): Classified {
 }
 
 /** Classify a failed codex turn whose reason is `reason`, from its `turn.error`. */
-export function codexFailure(reason: string, turnError: unknown): Extract<TurnOutcome, { kind: "failed" }> {
+export function codexFailure(reason: string, turnError: unknown): FailedTurn {
   const error = asRecord(turnError);
   const message = typeof error?.message === "string" ? error.message : "";
   return { kind: "failed", reason, ...fromInfo(error?.codexErrorInfo, message) };

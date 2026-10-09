@@ -367,8 +367,11 @@ until it is observed: claude's `oauth_org_not_allowed`, `account_on_hold`,
 ([below](#when-a-limit-resets)). Only a subscription at its limit makes
 claude send that event, and oar never triggers an error on a real account.
 
-`resetsAt` is set only where the runtime reports, for the failure, when the
-limit that refused it resets ([below](#when-a-limit-resets)).
+A failed turn (`FailedTurn`) is tagged by `failure`: `credential` exists
+only on `auth`, `resetsAt` only on `quota`, `status` on every class. A host
+checks `failure` before reading either. `resetsAt` is set only where the
+runtime reports, for the failure, when the limit that refused it resets
+([below](#when-a-limit-resets)).
 
 `credential` is set only where the runtime makes it plain: claude's
 `authentication_failed` with no request sent (`missing`) or a 401
@@ -551,7 +554,7 @@ read; "nothing" means the turn looks completed or never ends.
 
 ### When a limit resets
 
-A failed turn carries `resetsAt` (a `UtcInstant`) only where the runtime
+A `quota` failure carries `resetsAt` (a `UtcInstant`) only where the runtime
 reports, for that failure, when the limit that refused it resets: never
 derived from an account-usage read, a usage snapshot, a retry delay or the
 runtime's prose. It is the runtime's last report, which may predate the
