@@ -4,15 +4,17 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @botiverse/oar build && pnpm --filter @botiverse/oar-cli build",
-    "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings --ignore-pattern \"tests/community/**\" packages/oar/src packages/cli/src apps/arena experiments sea-trial tests vitest.config.ts",
+    "typecheck": "pnpm --filter @botiverse/oar typecheck && pnpm --filter @botiverse/oar-cli typecheck && tsc --noEmit && tsc -p apps/pi-durable/tsconfig.json",
+    "lint": "oxlint --type-aware --deny-warnings --ignore-pattern \"tests/community/**\" packages/oar/src packages/cli/src apps/arena apps/pi-durable experiments sea-trial tests vitest.config.ts",
     "test": "vitest run",
     "check": "pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run sea-trial",
     "oar": "pnpm run build && node packages/cli/dist/index.js",
     "arena": "tsx apps/arena/server.ts",
     "sea-trial": "tsx sea-trial/main.ts",
     "sea-trial:record": "tsx sea-trial/record.ts",
-    "clean-install": "tsx tests/clean-install.ts"
+    "clean-install": "tsx tests/clean-install.ts",
+    "durable-demo": "tsx apps/pi-durable/server.ts",
+    "durable-demo:smoke": "tsx apps/pi-durable/smoke.ts"
   },
   "devDependencies": {
     "@copilotkit/aimock": "^1.39.0",
@@ -25,6 +27,7 @@
     "esbuild": "0.28.2",
     "oxlint": "^1.79.0",
     "oxlint-tsgolint": "^7.0.2001",
+    "playwright": "1.64.0",
     "tsx": "^4.23.12",
     "typescript": "~6.0.3",
     "undici": "8.10.2",

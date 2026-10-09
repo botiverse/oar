@@ -184,3 +184,9 @@ and native backlog overflow. Pure projection, option and browser-bundle checks
 live under `tests/pi-durable`, `tests/turn-active.test.ts` and
 `tests/browser-entry.test.ts`. These checks need no login or model quota;
 they do not establish behavior of an arbitrary host extension or provider.
+
+The [browser demo](../../apps/pi-durable/README.md) runs a host-owned Harness
+with MemoryStorage and the native Anthropic fetch provider. Its Chromium
+smoke test covers conversation rendering, abort and cleanup against local
+scripted HTTP responses, with no real credentials. Run
+`pnpm durable-demo:smoke` after installing Playwright's Chromium.

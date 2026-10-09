@@ -134,13 +134,16 @@ the backend you touched. Rebase on origin/main before pushing.
 
 CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
 or pull request whose changes are all Markdown files or under `docs/` or
-`assets/`. Otherwise it runs three jobs:
+`assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,
   `pnpm run sea-trial` plus that backend's vendor tests.
+- `browser-demo`: `pnpm durable-demo:smoke` in headless Chromium on Linux.
+  The real Pi Durable Harness and native fetch provider run in the browser;
+  provider requests go to local scripted responses using a synthetic key.
 - `clean-install`: `pnpm run clean-install`
   ([`tests/clean-install.ts`](../tests/clean-install.ts)) on Linux. Both
   packages are packed and `npm install`ed into an empty project: without the
