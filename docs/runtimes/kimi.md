@@ -603,7 +603,12 @@ controllers and in-flight work across OAR subprocesses, and any child usage
 (the transport carries none). [Session MCP servers](#session-mcp-servers)
 ran against a scripted provider only, not on the real login and model, and
 their vendor test runs locally (`OAR_TEST=kimi-aimock`), not in CI; whether
-a hidden same-name user server still starts is unmeasured. Keep native API
+a hidden same-name user server still starts is unmeasured. Install by
+region is open too: the install script's comments name a global mirror
+(`code.kimi.ai/kimi-code/install.sh`, which records region `global`), but
+Moonshot's README documents only `code.kimi.com`, so `install` runs that one.
+Choose the source by region once kimi documents the mirror, or once OAR has a
+kimi login that needs a regional install. Keep native API
 capabilities, transport
 limitations, OAR omissions, and unexecuted checks separate when designing or
 claiming support.
