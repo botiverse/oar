@@ -56,6 +56,14 @@ false, the adapter holds queued input in this process.
 | antigravity (ACP) | no | yes | no |
 | opencode (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
 
+## Context breakdown
+
+`contextBreakdown` is a member a session may lack, like `steer`: only claude
+itemizes its context (`get_context_usage`,
+[claude.md](../runtimes/claude.md)). codex, pi and the ACP runtimes report a
+total and a window at most, which `contextUsage()` folds; a host shows that
+where the member is absent.
+
 ## Tool outcomes
 
 Native sources for the `tool_call_ended` fields (the rule that they are

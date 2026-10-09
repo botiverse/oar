@@ -14,6 +14,7 @@ import { asRecord, parseJson } from "../../shared/json.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { claudeOpenSettings } from "./open-settings.js";
+import { claudeContextBreakdownReader } from "./context-breakdown.js";
 import { launchClaude, type ClaudeProcess } from "./launch.js";
 import {
   claudeAbortRequested,
@@ -29,7 +30,8 @@ import {
  * interrupt's control_response acknowledges abort, not turn completion.
  * The adapter owns pending controls and queue drain; projection owns facts.
  * Effort read-back is private plumbing: get_settings contains user config
- * and credentials, so that one response is consumed before projection.
+ * and credentials, so that one response is consumed before projection; so
+ * is the answer to a contextBreakdown() query, a reading never recorded.
  * Native mappings and live evidence: docs/runtimes/claude.md.
  */
 
@@ -85,6 +87,7 @@ export const claudeSession: StartSession = async (installation, options) => {
   const pendingInterrupts = new Map<string, () => void>();
   let disposeRequest: RequestRecord | null = null;
   const readback = claudeOpenSettings(child);
+  const contextBreakdown = claudeContextBreakdownReader(child);
 
   // Drive the pure projection fold, applying its commands to the kernel. The
   // fold owns event translation and attribution; this owns only transport
@@ -94,7 +97,7 @@ export const claudeSession: StartSession = async (installation, options) => {
     if (message === null) {
       return;
     }
-    if (readback.consume(message)) { return; }
+    if (readback.consume(message) || contextBreakdown.consume(message)) { return; }
     // A system/init while nothing is active is claude starting a turn on its
     // own (a queued or late-steered message): a spontaneous turn.
     if (message.type === "system" && message.subtype === "init" && !busy()) {
@@ -155,6 +158,7 @@ export const claudeSession: StartSession = async (installation, options) => {
       kernel.respond(requestId, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
     }
     readback.exited(code);
+    contextBreakdown.exited();
   });
 
   await readback.confirm(options);
@@ -245,11 +249,14 @@ export const claudeSession: StartSession = async (installation, options) => {
     records: () => kernel.records(),
     graph: () => kernel.graph(),
     resources: child.resources,
+    contextBreakdown: contextBreakdown.read,
     dispose: async () => {
       if (state.disposed) {
         return;
       }
       state.disposed = true;
+      // stdin ends now: no query may write to it any more.
+      contextBreakdown.exited();
       const gone = kernel.unreachable() !== null; // only an observed exit can say so before this dispose is recorded
       disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
       if (gone) {

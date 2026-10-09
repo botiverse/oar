@@ -170,6 +170,7 @@ export function spawnLineProcess(
   if (stdin === null || stdout === null) {
     throw new Error("line process stdio must be piped");
   }
+  stdin.on("error", () => {}); // EPIPE from a child already gone: its exit is what gets recorded.
   const lineHandlers: ((line: string) => void)[] = [];
   const exitHandlers: ((code: number | null) => void)[] = [];
   let buffer = "";
@@ -241,9 +242,8 @@ export function spawnLineProcess(
       exitCode, signal: exitSignal, stderr: stderr.text(),
       ...(spawnError === undefined ? {} : { error: spawnError }),
     }),
-    write: (text) => {
-      stdin.write(text);
-    },
+    // Never once kill() ended stdin: a write after end is an unhandled 'error'.
+    write: (text) => { if (!stdin.writableEnded && !stdin.destroyed) { stdin.write(text); } },
     onLine(handler) {
       lineHandlers.push(handler);
       if (!readingLines) {

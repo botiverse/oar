@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, test, vi } from "vitest";
 import { KILL_GRACE_MS, killGraceMs, requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 import { readProcessTable } from "../packages/oar/src/shared/executable/process-tree.js";
@@ -229,5 +230,29 @@ describe.skipIf(process.platform === "win32")("kill with killTree also takes the
       assert.deepEqual([await gone(tree.agent), await gone(tree.grandchild, 1000), await gone(late, 1000)], [true, true, true],
         "the child, its tool and the one started on SIGTERM are gone");
     });
+  });
+});
+
+/** Run with a short kill grace, restoring the host's setting after. */
+async function withKillGrace(ms: number, run: () => Promise<void>): Promise<void> {
+  const previous = process.env.OAR_KILL_GRACE_MS;
+  process.env.OAR_KILL_GRACE_MS = String(ms);
+  try {
+    await run();
+  } finally {
+    if (previous === undefined) { delete process.env.OAR_KILL_GRACE_MS; } else { process.env.OAR_KILL_GRACE_MS = previous; }
+  }
+}
+
+test("a write after kill() ended stdin is dropped, not an unhandled error that takes the host down", async () => {
+  // A child that ignores SIGTERM: stdin ends at kill(), the exit comes at the SIGKILL.
+  await withKillGrace(300, async () => {
+    const child = spawnLineProcess(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);"]);
+    await child.spawned;
+    child.kill();
+    child.write("late\n");
+    // An 'error' from the write would surface on the next turns of the loop.
+    await delay(50);
+    await child.exited;
   });
 });
