@@ -54,8 +54,12 @@ suite("Pi Durable watch boundaries", () => {
     const result = await session.prompt("raced");
     assert.equal(result.kind, "rejected");
     expect(result.code).toBe("runtime_refused");
-    assert.ok(result.response.body.kind === "rejected" && result.response.body.native instanceof Error);
-    expect(result.reason).toBe(result.response.body.native.message);
+    // Exercise the persisted JSON format, not an in-memory structured clone.
+    const serialized = JSON.stringify(session.records());
+    const persisted: unknown = JSON.parse(serialized);
+    expect(persisted).toEqual(expect.arrayContaining([expect.objectContaining({ body: {
+      kind: "rejected", code: "runtime_refused", reason: result.reason, native: { name: "ConversationBusy", message: result.reason },
+    } })]));
   });
 
   test("locally running prompt is busy even after native work ended, while duplicate ids stay accepted", async () => {
@@ -99,7 +103,7 @@ suite("Pi Durable watch boundaries", () => {
     const ended = Promise.withResolvers<WatchEnd>();
     watch.mockImplementation(async (...args) => {
       const stream = await nativeWatch(...args);
-      return { snapshot: stream.snapshot, closed: ended.promise, start: stream.start.bind(stream), stop: stream.stop.bind(stream) };
+      return { snapshot: stream.snapshot, closed: ended.promise, start: stream.start.bind(stream), stop: async () => { await stream.stop(); const result = await ended.promise; return result; } };
     });
     const { session } = await setup();
     ended.resolve(end);
@@ -108,7 +112,15 @@ suite("Pi Durable watch boundaries", () => {
     expect(refused.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
     const closed = session.records().find((record) => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
     assert.ok(closed?.kind === "frame");
-    expect(closed.body.native).toBe(end);
+    const native = end.reason === "listener_error" ? { reason: "listener_error", error: { name: "Error", message: "listener failed" } } : end;
+    expect(closed.body.native).toEqual(native);
     await session.dispose();
+    // Exercise the persisted JSON format, not an in-memory structured clone.
+    const serialized = JSON.stringify(session.records());
+    const persisted: unknown = JSON.parse(serialized);
+    expect(persisted).toEqual(expect.arrayContaining([
+      expect.objectContaining({ body: { type: "pi-durable/watch_closed", native, events: [] } }),
+      expect.objectContaining({ body: { kind: "accepted", native } }),
+    ]));
   });
 });

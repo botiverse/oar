@@ -76,7 +76,8 @@ in a frame, followed by an `exited` response with code null. This ends the
 observed turn and makes later control return `runtime_exited`; it does not
 claim that shared Harness execution stopped. A failed submission query during
 snapshot recovery is an error frame, preserving observation without guessing
-a turn outcome.
+a turn outcome. API and watch-listener errors retain JSON-safe `name`,
+`message` and a scalar `code` when present, without Error objects or cause chains.
 
 Fresh prompts use the session status immediately before their request: running
 means local `busy`, without submitting; idle never returns `busy`. If another

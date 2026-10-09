@@ -39,15 +39,22 @@ test.skipIf(process.env.OAR_TEST !== "pi-durable-aimock").each([false, true])("o
     await entered.promise;
     await conversation.abort(BACKGROUND_CONTEXT);
     for (let index = 0; index < 110; index += 1) { await conversation.configure({ instructions: `revision ${String(index)}` }, BACKGROUND_CONTEXT); }
-    const failure = new Error("receipt query failed");
+    const failure = Object.assign(new Error("receipt query failed"), { code: "TEST_QUERY" });
+    failure.cause = failure;
     if (queryFails) { vi.spyOn(fixture.harness, "submission").mockRejectedValueOnce(failure); }
     gate.resolve();
     if (queryFails) {
       await vi.waitFor(() => {
         const failed = session.records().find((entry) => entry.kind === "frame" && entry.body.type === "pi-durable/submissions_error");
         assert.ok(failed?.kind === "frame");
-        expect(failed.body.native).toEqual({ message: "receipt query failed", error: failure });
+        expect(failed.body.native).toEqual({ name: "Error", message: "receipt query failed", code: "TEST_QUERY" });
       });
+      // Exercise the persisted JSON format, not an in-memory structured clone.
+    const serialized = JSON.stringify(session.records());
+    const persisted: unknown = JSON.parse(serialized);
+      expect(persisted).toEqual(expect.arrayContaining([expect.objectContaining({ body: {
+        type: "pi-durable/submissions_error", native: { name: "Error", message: "receipt query failed", code: "TEST_QUERY" }, events: [],
+      } })]));
       const count = session.records().length;
       await conversation.configure({ instructions: "still watching" }, BACKGROUND_CONTEXT);
       await vi.waitFor(() => { expect(session.records().length).toBeGreaterThan(count); });

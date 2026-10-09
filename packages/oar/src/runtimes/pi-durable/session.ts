@@ -1,6 +1,6 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import type { Models } from "@earendil-works/pi-ai";
-import { watchEvents, type Conversation, type Harness, type SubmissionRecord } from "@earendil-works/pi-durable";
+import { watchEvents, type Conversation, type Harness, type SubmissionRecord, type WatchEnd } from "@earendil-works/pi-durable";
 import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -11,6 +11,16 @@ import { foldDurableBatch, initialDurableProjection, submissionOutcome } from ".
 function settledOutcome(record: SubmissionRecord): readonly RuntimeEventBody[] {
   const outcome = submissionOutcome([record]);
   return outcome === undefined ? [] : [{ kind: "turn_ended", outcome }];
+}
+
+function errorSummary(error: unknown): { readonly name: string; readonly message: string; readonly code?: string | number } {
+  const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+  return { name: error instanceof Error ? error.name : "Error", message: error instanceof Error ? error.message : String(error),
+    ...(typeof code === "string" || (typeof code === "number" && Number.isFinite(code)) ? { code } : {}) };
+}
+
+function watchEndSummary(end: WatchEnd): unknown {
+  return end.reason === "listener_error" ? { reason: end.reason, error: errorSummary(end.error) } : end;
 }
 
 async function withdraw(harness: Harness, conversation: Conversation, inputId: string): Promise<ResponseBody> {
@@ -41,12 +51,12 @@ export async function piDurableSession(harness: Harness, models: Models, options
         }));
         const outcome = submissionOutcome(native);
         kernel.frame({ type: "pi-durable/submissions", native, events: outcome === undefined ? [] : [{ kind: "turn_ended", outcome }] });
-      } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: { message: error instanceof Error ? error.message : String(error), error }, events: [] }); }
+      } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
     }
   });
   void (async (): Promise<void> => {
     const native = await stream.closed;
-    kernel.frame({ type: "pi-durable/watch_closed", native, events: [] });
+    kernel.frame({ type: "pi-durable/watch_closed", native: watchEndSummary(native), events: [] });
     if (native.reason !== "stopped" || kernel.unreachable()?.code !== "disposed") { kernel.respond("", { kind: "exited", code: null }); }
   })();
   // The host owns scheduling, but opening an OAR Session asks to control work,
@@ -69,7 +79,8 @@ export async function piDurableSession(harness: Harness, models: Models, options
       kernel.frame({ type: "pi-durable/submission", native, events: [] });
       return { kind: "accepted", native };
     } catch (error) {
-      return { kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : String(error), native: error };
+      const native = errorSummary(error);
+      return { kind: "rejected", code: "runtime_refused", reason: native.message, native };
     }
   };
   const inputControl = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions = {}): Promise<ControlResult> => {
@@ -109,6 +120,6 @@ export async function piDurableSession(harness: Harness, models: Models, options
 
   async function stopWatching(request: RequestRecord): Promise<void> {
     const native = await stream.stop();
-    kernel.respond(request.id, { kind: "accepted", native });
+    kernel.respond(request.id, { kind: "accepted", native: watchEndSummary(native) });
   }
 }
