@@ -48,8 +48,7 @@ export function acpMcpServersParam(servers: readonly McpServer[] | undefined, in
  * an empty or repeated name, and returns what a failed open's error becomes:
  * the same error without the credentials the entries carry.
  */
-export function acpMcpOpenGuard(servers: readonly McpServer[] | undefined): (error: unknown) => unknown {
+export function acpMcpOpenGuard(servers: readonly McpServer[] | undefined, redact = mcpCredentialRedactor(servers)): (error: unknown) => unknown {
   checkMcpServerNames(servers ?? []);
-  const redact = mcpCredentialRedactor(servers);
   return (error) => redactError(error, redact);
 }

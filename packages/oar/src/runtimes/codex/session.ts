@@ -5,8 +5,7 @@ import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { acceptCodexSteer, codexUserInput } from "./input-delivery.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
-import { sealSession } from "../../shared/seal-session.js";
-import { createSessionKernel } from "../../shared/session-kernel.js";
+import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadOpen } from "./open.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
@@ -30,7 +29,7 @@ interface CodexSessionState {
   codexTurnId: string | null;
   projection: CodexProjectionState;
 }
-export const codexSession: StartSession = async (installation, options) => {
+export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") {
     throw new Error("The codex session adapter needs an executable installation");
   }
@@ -82,7 +81,7 @@ export const codexSession: StartSession = async (installation, options) => {
     await client.exited;
     throw new Error(readback.refusal);
   }
-  const kernel = createSessionKernel(threadId);
+  const kernel = credentials.kernel(threadId);
   const state: CodexSessionState = {
     active: null,
     spontaneous: false,
@@ -265,7 +264,7 @@ export const codexSession: StartSession = async (installation, options) => {
       },
     };
   };
-  const session: Session = sealSession({
+  const session: Session = credentials.seal({
     id: kernel.sessionId,
     capabilities,
     prompt: via(promptPlan),
@@ -296,4 +295,4 @@ export const codexSession: StartSession = async (installation, options) => {
     },
   });
   return session;
-};
+});

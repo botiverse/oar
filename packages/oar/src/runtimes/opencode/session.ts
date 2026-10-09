@@ -1,3 +1,4 @@
+import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeMajor } from "./version.js";
 import { opencodeChildAttribution } from "./attribution.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
@@ -86,7 +87,7 @@ function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Sess
   return { ...session, dispose: async () => { disposal ??= release(); await disposal; } };
 }
 
-export const opencodeSession: StartSession = async (installation, options) => {
+export const opencodeSession: StartSession = withSessionCredentials(async (installation, options) => {
   refuseSessionOptions(opencodeRefusedSessionOptions, options);
   // Invalid MCP entries fail before even the release-line helper can start.
   checkMcpServerNames(options.mcpServers ?? []);
@@ -117,4 +118,4 @@ export const opencodeSession: StartSession = async (installation, options) => {
     await prepared.cleanup();
     throw error;
   }
-};
+});

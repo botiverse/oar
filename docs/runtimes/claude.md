@@ -48,6 +48,12 @@ Programs have two entry points:
   retrieval, and fork. OAR does not use the SDK.
   [SDK sessions][native-sessions], [permissions][native-permissions].
 
+Known credentials passed through `SessionOptions.env` are removed from OAR
+records and errors even if a provider echoes them in a failure. See the
+[shared credential rules](../spec/record-stream.md#the-rules) for the exact
+name, length and path rules. A real CLI regression verifies a local
+provider's echoed authentication header across live delivery and replay.
+
 ## High-level mapping to OAR
 
 | Native concept or interface | OAR mapping (record stream) |

@@ -58,7 +58,7 @@ export function checkMcpServerNames(servers: readonly McpServer[]): void {
 const CREDENTIAL_MIN_LENGTH = 4;
 
 /** Every credential value in the entries: each `env` and `headers` value, longest first. */
-function credentialValues(servers: readonly McpServer[]): readonly string[] {
+export function mcpCredentialValues(servers: readonly McpServer[]): readonly string[] {
   const values = servers.flatMap((server) => Object.values((isHttpMcpServer(server) ? server.headers : server.env) ?? {}));
   return [...new Set(values.filter((value) => typeof value === "string" && value.length >= CREDENTIAL_MIN_LENGTH))].toSorted((left, right) => right.length - left.length);
 }
@@ -70,7 +70,7 @@ function credentialValues(servers: readonly McpServer[]): readonly string[] {
  * entries hold none.
  */
 export function mcpCredentialRedactor(servers: readonly McpServer[] | undefined): (text: string) => string {
-  const values = credentialValues(servers ?? []);
+  const values = mcpCredentialValues(servers ?? []);
   if (values.length === 0) {
     return (text) => text;
   }
