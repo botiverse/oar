@@ -8,7 +8,6 @@ import {
   type ProjectionCommand,
 } from "../../packages/oar/src/runtimes/codex/projection.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
-
 /**
  * Record/replay for codex, same shape as the claude test. A REAL recorded
  * codex notification stream (fixtures/*.raw.jsonl from `pnpm sea-trial:record
@@ -37,6 +36,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "turn_ended":
             return `turn_ended ${view.outcome.kind}`;
           case "text_delta":
+          case "turn_active":
           case "tool_call_ended":
           case "service_tier": case "app_request_cancelled":
           case "input_dropped":

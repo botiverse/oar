@@ -19,8 +19,6 @@ import type { ToolOutputPart } from "./tool-output.js";
  * these records is in ./session.ts.
  */
 
-// ─── The record stream ────────────────────────────────────────────────────
-
 /**
  * Self-certifying envelope on every record (docs/spec/attribution.md).
  * Identity and ordering rest on `seq` alone; `receivedAt` is best-effort
@@ -135,6 +133,8 @@ export interface UserMessage {
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody = UserMessage
+  /** The runtime reports an active turn, including one adopted without a prompt request. Not a second turn when `turn_started` already opened it. */
+  | { readonly kind: "turn_active" }
   /** The runtime discarded an input on interruption, established by its native marker or documented behavior. Returns ownership to the caller for resend; never inferred by a view from turn completion. */
   | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "turn_interrupted" }
   /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
@@ -162,7 +162,7 @@ export type RuntimeEventBody = UserMessage
     }
   /** Partial output of a running tool call, when the runtime streams it (pi `tool_execution_update`, codex `item/commandExecution/outputDelta`, an ACP `tool_call_update` carrying `rawOutput`). claude streams none; cursor's shell output deltas are recorded with no event. */
   | { readonly kind: "tool_call_progress"; readonly callId: string; readonly output?: string }
-  /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_end`, an ACP prompt answer). The turn's start is the prompt request record itself; if a runtime reports no end, none appears. */
+  /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
   /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex: none). claude reports only the boundary after the fact, so it never says this. */
   | { readonly kind: "compaction_started"; readonly trigger?: string }

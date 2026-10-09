@@ -64,6 +64,12 @@ Further rules:
   changes; `frameTypePrefixes` lists the `body.type` prefixes a rule can
   change, and a frame matching none is never changed, so storage can be
   pre-filtered by them.
+- **Native activity can precede this controller.** A runtime frame can report
+  `turn_active` without a prompt request. It adopts an idle root as running,
+  with no invented request id, and preserves the phase of an already running
+  turn. The session view opens at most one turn across a prompt request
+  (`turn_started`) and its native activity report. Only a native completion
+  report supplies `turn_ended`.
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.
@@ -293,8 +299,11 @@ returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
 (the two answers a toRuntime control can get), a rejection has its `code`
 and `reason` at hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
 takes), and `request` / `response` are still the records themselves.
-`dispose()` returns void: its request and the `exited` response are read
-from the stream like everything else. The turn helpers build on this:
+`dispose()` returns void: its request and response are read from the stream.
+Process adapters release owned work and record `exited`. A Session borrowing
+a host-owned durable Harness detaches its watch and answers `accepted`; it
+does not abort work, delete history, close the Harness or fabricate an exit.
+Call `abort()` first when stopping that durable work is intended. The turn helpers build on this:
 `promptAndWait(session, input, { timeoutMs?, signal? })` prompts and waits
 for the runtime's own turn end (aborting when a limit fires, and reporting
 that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
@@ -353,6 +362,7 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 // ControlEventBody, read off request/response records so the consumer
 // never handles record kinds:
 //   turn_started {requestId, input}                    ← a prompt request
+//   turn_active                                       ← native activity, possibly adopted
 //   input_withdrawn {requestId, inputId}               ← an accepted withdraw response
 //   control_rejected {requestId, action, code, reason} ← a rejected response
 //   app_request {requestId, type}                      ← a toApp request

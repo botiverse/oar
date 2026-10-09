@@ -1,5 +1,4 @@
 import { emptyInputRefusal } from "./control-input.js";
-import { randomUUID } from "node:crypto";
 import type {
   ControlResult,
   Cursor,
@@ -108,7 +107,7 @@ function deliver(observer: RawEventObserver, record: RawEvent): void {
   }
 }
 
-export function createSessionKernel(sessionId: string = randomUUID()): SessionKernel {
+export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID()): SessionKernel {
   const observers = new Set<RawEventObserver>();
   const log: RawEvent[] = [];
   const nodes = new Map<string, { readonly id: string }>([[sessionId, { id: sessionId }]]);
@@ -153,7 +152,7 @@ export function createSessionKernel(sessionId: string = randomUUID()): SessionKe
     return disposing ? { kind: "rejected", code: "disposed", reason: "session disposed" } : null;
   };
   const request: SessionKernel["request"] = (direction, body, at) =>
-    append((envelope) => ({ ...envelope, kind: "request", id: at?.id ?? randomUUID(), direction, body }), at);
+    append((envelope) => ({ ...envelope, kind: "request", id: at?.id ?? globalThis.crypto.randomUUID(), direction, body }), at);
   const respond: SessionKernel["respond"] = (requestId, body, at) =>
     append((envelope) => ({ ...envelope, kind: "response", requestId, body }), at);
 

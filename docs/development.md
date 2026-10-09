@@ -82,13 +82,13 @@ runtimes may legitimately differ.
   binaries or network; the default validation for any change to contracts or
   session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
-  `pi-aimock`): the real vendor binary and adapter with only the model
+  `pi-aimock`, `pi-durable-aimock`): the real vendor binary and adapter with only the model
   provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends concurrently,
-  by default mock plus the three aimock backends. Use it before pushing a
+  by default mock plus the four aimock backends. Use it before pushing a
   change to shared runtime machinery.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`): your local installation and login. The final word when
@@ -137,6 +137,8 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs three jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
+  The browser-entry unit test bundles the complete portable entry for a
+  browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,
   `pnpm run sea-trial` plus that backend's vendor tests.
 - `clean-install`: `pnpm run clean-install`
@@ -203,6 +205,8 @@ error, signal, timeout, exit code and stderr tail in their exception too.
    and add it to `allRuntimes` in `sea-trial/harness/runtimes.ts` and to the
    CLI's registry in `packages/cli/src/runtimes.ts`
    ([capabilities](design/capabilities.md#a-runtimes-own-settings)).
+   A runtime with host-owned execution/storage, such as pi-durable, stays out
+   of the default and CLI registries; test it with its configured fixture.
 4. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
    against your real local installation. The cases in `sea-trial/cases/` are
    the contract: make the runtime pass them, don't loosen them to fit. A case

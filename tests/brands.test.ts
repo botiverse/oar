@@ -1,22 +1,38 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "vitest";
-import { runtimeBrandIcon, runtimeBrands } from "../packages/oar/src/brands.js";
-import { defineRuntime } from "../packages/oar/src/index.js";
+import { runtimeBrandIcon, runtimeBrands, type RuntimeBrand } from "../packages/oar/src/brands.js";
+import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+import { createModels } from "@earendil-works/pi-ai/models";
+import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
+import { createPiDurableRuntime, defineRuntime } from "../packages/oar/src/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 
-test("built-in brands are offline SVGs matching the distributed assets", () => {
-  for (const [id, brand] of Object.entries(runtimeBrands)) {
-    assert.equal(allRuntimes.require(id).brand, brand);
-    assert.ok(brand.name.length > 0);
-    assert.ok(brand.icon.startsWith("data:image/svg+xml,"));
-    const svg = decodeURIComponent(brand.icon.slice("data:image/svg+xml,".length));
-    assert.equal(svg, readFileSync(new URL(`../packages/oar/assets/brands/${id}.svg`, import.meta.url), "utf8"));
-    assert.match(svg, /<svg\s/u);
-    assert.doesNotMatch(svg, /<script|<foreignObject|\son\w+=|(?:href|src)=/iu);
+async function durableFixture() {
+  const models = createModels();
+  const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+  const durable = createPiDurableRuntime({ harness, models });
+  return { harness, durable };
+}
 
+function assertAsset(id: string, brand: RuntimeBrand) {
+  assert.ok(brand.name.length > 0);
+  assert.ok(brand.icon?.startsWith("data:image/svg+xml,") === true);
+  const svg = decodeURIComponent(brand.icon.slice("data:image/svg+xml,".length));
+  assert.equal(svg, readFileSync(new URL(`../packages/oar/assets/brands/${id}.svg`, import.meta.url), "utf8"));
+  assert.match(svg, /<svg\s/u);
+  assert.doesNotMatch(svg, /<script|<foreignObject|\son\w+=|(?:href|src)=/iu);
+}
+
+test("built-in brands are offline SVGs matching the distributed assets", async () => {
+  const { harness, durable } = await durableFixture();
+  try {
+  for (const [id, brand] of Object.entries(runtimeBrands)) {
+    assert.equal((id === durable.id ? durable : allRuntimes.require(id)).brand, brand);
+    assertAsset(id, brand);
   }
+  } finally { await harness.close(BACKGROUND_CONTEXT); }
 });
 
 test("custom runtimes receive a neutral brand and can provide their own", () => {

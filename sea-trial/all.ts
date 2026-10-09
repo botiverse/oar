@@ -10,7 +10,7 @@ import path from "node:path";
 import { resolveRunDir } from "./harness/trace.js";
 
 const backends = process.argv.slice(2);
-const targets = backends.length > 0 ? backends : ["mock", "claude-aimock", "codex-aimock", "pi-aimock"];
+const targets = backends.length > 0 ? backends : ["mock", "claude-aimock", "codex-aimock", "pi-aimock", "pi-durable-aimock"];
 const runDir = resolveRunDir();
 
 const results = await Promise.all(targets.map(async (target) => {

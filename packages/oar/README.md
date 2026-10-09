@@ -1,6 +1,6 @@
 # @botiverse/oar
 
-Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, Cursor, Grok, Kimi, OpenCode, and Pi.
+Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, Cursor, Grok, Kimi, OpenCode, Pi, and Pi Durable.
 
 ```ts
 import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
@@ -31,7 +31,7 @@ tasks and subagents started, updated and ended, runtime→app requests and oar's
 answers, control rejections, withdrawn inputs, the process exit), each carrying
 the `seq` and `agentPath` of the record it was read from. Kinds a runtime never
 says (claude has no compaction start, ACP runtimes and cursor no compaction,
-only pi says retry) never appear; the runtime pages say which. It is a
+pi and pi-durable report retry) never appear; the runtime pages say which. It is a
 projection over the record stream, which `session.rawEvents()` and
 `session.records()` expose (`RawEvent`: `Frame` with the native payload
 verbatim, `RequestRecord`, `ResponseRecord`) for consumers who need the
@@ -48,12 +48,12 @@ is absent. `session.withdraw(inputId)` takes a queued input back before it is
 sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
 `deliver`). It exists where OAR holds the queue itself (claude, pi, cursor
-and the ACP runtimes), not on codex, whose queue is its own.
+and the ACP runtimes), and on pi-durable through native submission cancellation, not on codex.
 `session.resources()` reads the memory a runtime takes on the host: resident
 bytes and a process count over the runtime process, its group and its
 descendants, `null` once it has exited (and on Windows). It is a reading only,
 never a handle: no pid leaves OAR. Sessions whose runtime runs in the host
-process (pi, cursor) have none.
+process (pi, pi-durable, cursor) have none.
 
 For conversation UIs, use the browser-safe `reduceConversation` projection
 over `session.rawEvents()`. It joins input requests, responses and native
@@ -65,6 +65,7 @@ echoes by identity, including steer → queue fallback. See the
 The package has these public entry points, plus `@botiverse/oar/community` for community runtimes (below):
 
 - `@botiverse/oar`: the runtime registry and adapters, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, branding and `createPiDurableRuntime({ harness, models })`. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
   It also supplies `failureAdvice` (one retry policy per `FailureClass`) and `noticeText`, `noticeTone`, `phaseLabel`, `failureText` and `taskStatusLabel`, alongside `toolActionLabel` and `toolGroupSummary`: English display wording for OAR types, usable in JavaScriptCore too. Wording may change in a minor release; hosts must use the typed values for decisions, not parse the text ([display wording](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#display-wording)).
@@ -107,7 +108,7 @@ one session, on top of the runtime's own: claude reads them from a 0600
 FIFO that never puts them on a disk (a temporary file on Windows), codex
 from its thread config overrides, grok, kimi, opencode and antigravity from
 ACP `session/new` / `session/resume`, pi from an extension that registers
-them; cursor refuses them. Give them again on `resume`. Their `env` and `headers` values never
+them; cursor and pi-durable refuse them. Give them again on `resume`. Their `env` and `headers` values never
 appear in a record or an error; antigravity, which would store them in its
 conversation database, refuses an entry carrying them. See the
 [channels](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options)
@@ -158,6 +159,29 @@ the runtime takes them; an input it cannot deliver is rejected whole. See
 [Images](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#images).
 
 TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module: nodenext`, importing `@botiverse/oar` alone reports errors inside the pi SDK's own declarations (`@earendil-works/pi-ai` imports JSON without an import attribute, TS1543); OAR's own declarations check clean. A host that installs `@cursor/sdk` and checks library files also needs the DOM lib for its `@connectrpc/connect` dependency (`HeadersInit`).
+
+## Host-owned durable sessions
+
+```ts
+import { createPiDurableRuntime, viewOf } from "@botiverse/oar/browser";
+
+// Use the same Models instance that the host passed to Harness.open.
+const runtime = createPiDurableRuntime({ harness, models });
+const session = await runtime.session({ kind: "available", via: "bundled" }, {
+  cwd: "/workspace", model: "provider/model",
+});
+session.rawEvents(() => render(viewOf(session.records())));
+await session.prompt("Hello", { inputId: crypto.randomUUID() });
+```
+
+The host owns its Pi Durable 1.1.0 Harness, providers, credentials, extensions
+and storage. `resume: session.id` attaches to that storage's conversation and
+resumes unfinished work. Queue and input-id deduplication are native and
+durable. `dispose()` detaches the observer; it does not stop work or close the
+Harness. Use `abort()` to stop a run. The portable entry needs Web Crypto.
+See [Pi Durable](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md)
+for configuration, snapshot and recovery semantics. This constructor is not
+in the default registry or CLI.
 
 ## Native inventories
 

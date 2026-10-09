@@ -38,7 +38,11 @@
       "types": "./dist/community/index.d.ts",
       "import": "./dist/community/index.js"
     },
-    "./assets/brands/*": "./assets/brands/*"
+    "./assets/brands/*": "./assets/brands/*",
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
+    }
   },
   "files": [
     "dist",
@@ -64,8 +68,10 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@agentclientprotocol/sdk": "^1.4.0",
+    "@earendil-works/chord": "1.1.0",
     "@earendil-works/pi-ai": "^1.1.0",
     "@earendil-works/pi-coding-agent": "^1.1.0",
+    "@earendil-works/pi-durable": "1.1.0",
     "cross-spawn": "^7.0.6",
     "undici": "8.10.2",
     "which": "^2.0.2"

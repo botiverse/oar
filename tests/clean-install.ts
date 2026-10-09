@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { build } from "esbuild";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -58,7 +59,7 @@ function cursorPeerVersion(): string {
  */
 const PROBE = `
 import { createCursorRuntime, defaultRuntimes } from "@botiverse/oar";
-for (const entry of ["observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
+for (const entry of ["browser", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
   await import("@botiverse/oar/" + entry);
 }
 const kinds = {};
@@ -82,6 +83,7 @@ console.log(JSON.stringify({ kinds, models }));
  */
 const REPORT_PROBE = `
 import assert from "node:assert/strict";
+import { build } from "esbuild";
 import { registerHooks } from "node:module";
 const loaded = [];
 registerHooks({
@@ -112,6 +114,7 @@ assert.ok(loaded.every((file) => !file.startsWith("dist/runtimes/")), "Pure entr
 
 const ENTRIES = `
 import * as oar from "@botiverse/oar";
+import * as browser from "@botiverse/oar/browser";
 import * as agents from "@botiverse/oar/agents";
 import * as report from "@botiverse/oar/agents/report";
 import type { SubagentReport } from "@botiverse/oar/agents/report";
@@ -120,7 +123,7 @@ import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
-export const entries = [oar, agents, report, brands, kernel, observe, testing];
+export const entries = [oar, browser, agents, report, brands, kernel, observe, testing];
 export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r), parsed: report.parseReport(report.formatReport(r)) });
 export const display = [observe.noticeText, observe.noticeTone, observe.phaseLabel, observe.failureText, observe.taskStatusLabel];
 `;
@@ -173,6 +176,12 @@ writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", pr
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
+const browser = await build({
+  stdin: { contents: 'export * from "@botiverse/oar/browser";', resolveDir: host },
+  bundle: true, platform: "browser", format: "esm", write: false, metafile: true,
+});
+assert.deepEqual(Object.values(browser.metafile.outputs).flatMap((output) => output.imports), []);
+
 run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
 const bare = probe();

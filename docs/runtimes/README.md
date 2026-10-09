@@ -28,6 +28,7 @@ selecting live probes.
 | [OpenCode](opencode.md) | `opencode acp`, ACP | Upstream's own ACP layer over its HTTP server, mid-turn prompts joining the running loop, effort menus per model, why not the SDK |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
+| [Pi Durable](pi-durable.md) | Host-owned `@earendil-works/pi-durable` Harness and `watchEvents` | Durable submissions, adopted runs, snapshot recovery, controller-only disposal and browser use |
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
 | [OpenAI Agents API](agents-api.md) | **Reference only; no OAR adapter** | Managed Codex harness over HTTP: session/turn/item model, input events as control, no-replay stream, environment as a separate object, subagent attribution fields |
 

@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type {
   ControlOutcome,
   ControlResult,
@@ -13,7 +12,7 @@ import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../ob
 import { deliverInto } from "./deliver.js";
 
 const identify = (options: InputOptions = {}): InputOptions => {
-  const inputId = options.inputId ?? randomUUID();
+  const inputId = options.inputId ?? globalThis.crypto.randomUUID();
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(inputId)) {
     throw new Error("inputId must be a UUID");
   }
