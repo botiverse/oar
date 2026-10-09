@@ -2,7 +2,9 @@
 
 A small OAR host that runs the real Pi Durable Harness inside a browser.
 It uses `MemoryStorage`, the native Anthropic fetch provider, and OAR's
-portable browser core and the separate `@botiverse/oar/pi-durable` entry. The conversation renders from `SessionView`.
+portable browser core and the separate `@botiverse/oar/pi-durable` entry.
+`observeSessionView` folds each record once and supplies the rendered
+`SessionView`; closing the session cancels the subscription.
 There is no tool registry, filesystem access or server-side agent.
 
 From the repository root, with Node.js 24+ and pnpm installed:
@@ -27,8 +29,9 @@ cleanup matters because an OAR Durable controller's `dispose()` alone only
 stops observing; it does not stop shared execution.
 
 `app.ts` owns the Harness and the same Models instance given to
-`createPiDurableRuntime`. `render.ts` projects OAR records with `viewOf` and
-renders text with `textContent`. `host.ts` bundles the portable entry and
+`createPiDurableRuntime`, and subscribes with `observeSessionView`.
+`render.ts` renders each supplied view with `textContent`.
+`host.ts` bundles the portable entry and
 serves static assets on loopback. The source import keeps this repository
 example runnable before publishing; an installed host imports
 `@botiverse/oar/browser` for the core and `@botiverse/oar/pi-durable` for

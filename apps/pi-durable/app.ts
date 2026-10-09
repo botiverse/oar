@@ -2,7 +2,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai/models";
 import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
-import { phaseLabel, viewOf, type Session } from "../../packages/oar/src/browser.js";
+import { observeSessionView, phaseLabel, type Session, type SessionView, type Unsubscribe } from "../../packages/oar/src/browser.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/pi-durable.js";
 import { renderView } from "./render.js";
 
@@ -27,11 +27,9 @@ for (const model of provider.getModels()) {
   option.textContent = model.name;
   ui.model.append(option);
 }
-let active: { readonly harness: Harness; readonly session: Session } | null = null;
+let active: { readonly harness: Harness; readonly session: Session; readonly unsubscribe: Unsubscribe } | null = null;
 
-function render(): void {
-  if (active === null) { return; }
-  const view = viewOf(active.session.records());
+function render(view: SessionView): void {
   renderView(view, ui.conversation);
   const running = view.status.kind === "running";
   ui.status.dataset.state = view.status.kind;
@@ -54,12 +52,11 @@ async function connect(): Promise<void> {
     try {
       const runtime = createPiDurableRuntime({ harness, models });
       const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/", model: ui.model.value });
-      active = { harness, session };
-      session.rawEvents(render);
+      const unsubscribe = observeSessionView(session, render);
+      active = { harness, session, unsubscribe };
     } catch (error) { await harness.close(BACKGROUND_CONTEXT); throw error; }
     ui.key.value = "";
     ui.controls.disabled = false;
-    render();
     ui.prompt.focus();
   } catch (error) { ui.settings.disabled = false; throw error; }
 }
@@ -85,6 +82,7 @@ async function close(): Promise<void> {
     await closing.session.abort();
     await closing.session.dispose();
   } finally {
+    closing.unsubscribe();
     await closing.harness.close(BACKGROUND_CONTEXT);
     active = null;
     ui.controls.disabled = true;
