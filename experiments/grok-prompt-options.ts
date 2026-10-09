@@ -5,6 +5,7 @@
  * Observed 2026-10-07, 1.0.46 (2765805b9442): native override wins over rules;
  * resume ignores new rules but honors override. The OAR mapping must combine
  * both options into one override and refuse append-only resume.
+ * Rechecked 2026-10-09 on 1.0.50 (c58f321264ba): all observations unchanged.
  *
  * Uses a disposable GROK_HOME and a custom model pointed at loopback. The
  * provider returns a deliberate 400 after capture; assertions concern the
