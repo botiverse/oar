@@ -138,6 +138,8 @@ export interface UserMessage {
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody = UserMessage
+  /** Native evidence of true session lineage, carried by the frame that names the relationship. Foreign session ids alone never establish an edge. */
+  | { readonly kind: "session_linked"; readonly parent: string; readonly child: string; readonly via: "tool_call" }
   /** The runtime reports an active turn. inputId names the input it started for; absent means unknown. After input_queued, only a matching inputId begins that input’s turn. */
   | { readonly kind: "turn_active"; readonly inputId?: string }
   /** The runtime holds this input and has not started its turn. Only this fact gates input-specific turn attribution; acceptance alone does not. */

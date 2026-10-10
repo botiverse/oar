@@ -123,13 +123,14 @@ export function createProgressRenderer(
       case "task_ended":
         return [`${agent}[task ${event.status}]${event.summary === undefined ? "" : ` ${event.summary}`}`];
       case "turn_active":
-          case "input_queued":
+      case "input_queued":
       case "turn_started":
       case "tool_call_progress":
       case "tool_call_input_delta":
       case "app_answered":
       case "input_withdrawn":
       case "input_dropped":
+      case "session_linked":
       case "user_message":
       case "usage":
       case "model":

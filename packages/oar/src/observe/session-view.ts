@@ -7,11 +7,14 @@ import type {
   ReasoningContent,
   Session,
   SessionUsage,
+  SessionGraph,
   TokenTotals,
   ToolOutputPart,
   TurnOutcome,
   Unsubscribe,
 } from "../contracts/session.js";
+import { withSessionNode } from "./graph.js";
+import type { SessionTokens } from "./usage-totals.js";
 import { initialStatus, reduceStatus, type AgentStatus } from "./agent-status.js";
 import {
   initialConversation,
@@ -184,6 +187,9 @@ export interface SessionView {
   readonly conversation: ConversationState;
   /** sessionId of the latest prompt request: whose `turn_ended` closes turns. */
   readonly rootSessionId: string | undefined;
+  /** Replay state for native lineage and every observed session's latest totals; includes children before their lineage arrives. */
+  readonly sessionGraph: SessionGraph;
+  readonly usageBySession: ReadonlyMap<string, SessionTokens>;
   readonly usageByAgent: ReadonlyMap<string, AgentTokens>;
   /** The runtime's own session total, when it reports one beyond its agents' (`UsageReport.total`); null otherwise. */
   readonly usageTotal: TokenTotals | null;
@@ -204,8 +210,9 @@ export function initialSessionView(): SessionView {
     exited: null,
     conversation: initialConversation(),
     rootSessionId: undefined,
-    usageByAgent: new Map(),
-    usageTotal: null,
+    sessionGraph: { nodes: [], edges: [] },
+    usageBySession: new Map(),
+    usageByAgent: new Map(), usageTotal: null,
   };
 }
 
@@ -225,6 +232,7 @@ export function reduceSessionView(
   }
   const draft = draftOf(previous);
   draft.rootSessionId ??= record.sessionId;
+  draft.sessionGraph = withSessionNode(draft.sessionGraph, record.sessionId);
   if (
     record.kind === "request" &&
     record.direction === "toRuntime" &&
@@ -254,22 +262,16 @@ export function reduceSessionView(
  * and logs that predate record envelopes. Input facts do not arrive this way;
  * feed them through `reduceSessionViewInput` or use the record path.
  */
-export function reduceSessionViewEvent(
-  previous: SessionView,
-  event: Event,
-  streamId = "",
-): SessionView {
+export function reduceSessionViewEvent(previous: SessionView, event: Event, streamId = ""): SessionView {
   const draft = draftOf(previous);
   draft.rootSessionId ??= event.sessionId;
+  draft.sessionGraph = withSessionNode(draft.sessionGraph, event.sessionId);
   foldEvent(draft, upgradeLegacyEvent(event), streamId);
   return assemble(draft, previous.conversation, previous.status);
 }
 
 /** Upsert a user input from a non-record source (an app's own submission log); it enters `messages` now. */
-export function reduceSessionViewInput(
-  previous: SessionView,
-  input: ConversationInput,
-): SessionView {
+export function reduceSessionViewInput(previous: SessionView, input: ConversationInput): SessionView {
   const draft = draftOf(previous);
   upsertInput(draft, input, false);
   return assemble(draft, previous.conversation, previous.status);
@@ -284,11 +286,7 @@ export function viewOf(records: readonly RawEvent[], streamId = ""): SessionView
  * The composed subscriber: folds the retained prefix, pushes the view on
  * every record after `cursor`. Mirrors `observeConversation`.
  */
-export function observeSessionView(
-  session: Session,
-  observer: (view: SessionView) => void,
-  cursor?: Cursor,
-): Unsubscribe {
+export function observeSessionView(session: Session, observer: (view: SessionView) => void, cursor?: Cursor): Unsubscribe {
   let state = initialSessionView();
   return session.rawEvents((record) => {
     state = reduceSessionView(state, record, session.id);

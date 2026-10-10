@@ -7,7 +7,7 @@ import { createAcpRecorder } from "../../packages/oar/src/shared/acp/records.js"
 import { createUsageUpdateGate } from "../../packages/oar/src/shared/acp/usage-wait.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { classifyTool } from "../../packages/oar/src/observe/tool-activity.js";
+import { classifyTool, graphOf, usageOf, viewOf } from "../../packages/oar/src/observe/index.js";
 import type { SessionNotification } from "../../packages/oar/src/shared/acp/process.js";
 
 const fixtureText = readFileSync(new URL("../replay/fixtures/opencode-acp-v2-child.json", import.meta.url), "utf8");
@@ -23,9 +23,14 @@ function recorder() {
   return { kernel, records, gate };
 }
 
+// oxlint-disable-next-line eslint/max-statements -- Recorded native attribution, persistence and its full snapshot are one regression.
 test("recorded v2 child shell and text keep their own session and verbatim parent envelope", () => {
   const { kernel, records } = recorder();
   for (const notification of notifications) { records.update(notification); }
+  // oxlint-disable-next-line typescript/no-unsafe-assignment, unicorn/prefer-structured-clone -- The host retains JSON records, never a live kernel graph.
+  const persisted: ReturnType<typeof kernel.records> = JSON.parse(JSON.stringify(kernel.records()));
+  expect(graphOf(persisted)).toEqual(kernel.graph());
+  expect(viewOf(persisted).usage).toEqual(usageOf(persisted, "root").value);
   expect(kernel.graph()).toMatchInlineSnapshot(`
     {
       "edges": [
@@ -55,6 +60,12 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
             "kind": "tool_call_started",
             "tool": "shell",
           },
+          {
+            "child": "child-1",
+            "kind": "session_linked",
+            "parent": "root",
+            "via": "tool_call",
+          },
         ],
         "sessionId": "child-1",
       },
@@ -65,11 +76,24 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
             "input": "{"command":"echo CHILD-OK-7731","cwd":"/project"}",
             "kind": "tool_call_input",
           },
+          {
+            "child": "child-1",
+            "kind": "session_linked",
+            "parent": "root",
+            "via": "tool_call",
+          },
         ],
         "sessionId": "child-1",
       },
       {
-        "events": [],
+        "events": [
+          {
+            "child": "child-1",
+            "kind": "session_linked",
+            "parent": "root",
+            "via": "tool_call",
+          },
+        ],
         "sessionId": "child-1",
       },
       {
@@ -86,6 +110,12 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
             "kind": "tool_call_ended",
             "result": "ok",
           },
+          {
+            "child": "child-1",
+            "kind": "session_linked",
+            "parent": "root",
+            "via": "tool_call",
+          },
         ],
         "sessionId": "child-1",
       },
@@ -94,6 +124,12 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
           {
             "kind": "text_delta",
             "text": "CHILD-OK-7731",
+          },
+          {
+            "child": "child-1",
+            "kind": "session_linked",
+            "parent": "root",
+            "via": "tool_call",
           },
         ],
         "sessionId": "child-1",
@@ -137,10 +173,10 @@ test("nested descendants link their reported parent and never satisfy root usage
           "id": "root",
         },
         {
-          "id": "child",
+          "id": "grandchild",
         },
         {
-          "id": "grandchild",
+          "id": "child",
         },
       ],
     }
@@ -159,6 +195,12 @@ test("nested descendants link their reported parent and never satisfy root usage
                   "tokens": 77,
                 },
               },
+            },
+            {
+              "child": "grandchild",
+              "kind": "session_linked",
+              "parent": "child",
+              "via": "tool_call",
             },
           ],
           "native": {

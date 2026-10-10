@@ -1,4 +1,5 @@
 import { emptyInputRefusal } from "./control-input.js";
+import { withSessionRecord } from "../observe/graph.js";
 import type {
   ControlResult,
   Cursor,
@@ -11,6 +12,7 @@ import type {
   ResponseRecord,
   SessionEdge,
   SessionGraph,
+  RuntimeEventBody,
   RawEventObserver,
   RawEvent,
   Unsubscribe,
@@ -38,7 +40,7 @@ export interface RecordAt {
  *   live (session-graph-and-cursor.md, "The resumable cursor");
  * - synchronous, never-awaited observer fan-out that swallows observer
  *   errors: observers are a side-tap and can never touch the run;
- * - the session graph of true sessions (`node()` / `link()` / `graph()`;
+ * - the session graph of true sessions (`link()` / `graph()`;
  *   session-graph-and-cursor.md, "The session graph");
  * - the control shape: `control()` records a `toRuntime` request, lets the
  *   adapter decide, and records the accept/reject response; and the
@@ -82,10 +84,8 @@ export interface SessionKernel {
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe;
   records(): readonly RawEvent[];
   graph(): SessionGraph;
-  /** Add a derived session and the edge that explains it; idempotent per (parent, child, via). */
-  link(edge: SessionEdge): void;
-  /** Add a session node whose lineage is not (yet) known: an id seen on the wire without an explaining edge. Never fabricate the edge. */
-  node(id: string): void;
+  /** Read lineage from a native frame: put the returned event in that frame's events before calling frame(). No out-of-band graph mutation. */
+  link(edge: SessionEdge): Extract<RuntimeEventBody, { readonly kind: "session_linked" }>;
 }
 
 async function settle(
@@ -111,8 +111,8 @@ function deliver(observer: RawEventObserver, record: RawEvent): void {
 export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: <T extends RawEvent>(record: T) => T): SessionKernel {
   const observers = new Set<RawEventObserver>();
   const log: RawEvent[] = [];
-  const nodes = new Map<string, { readonly id: string }>([[sessionId, { id: sessionId }]]);
-  const edges: SessionEdge[] = [];
+  const nodeIds = new Set([sessionId]);
+  let graph: SessionGraph = { nodes: [{ id: sessionId }], edges: [] };
   let seq = 0;
   let exited = false;
   let disposing = false;
@@ -135,6 +135,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
     seq += 1;
     const retained = redact === undefined ? record : redact(record);
     log.push(retained);
+    graph = withSessionRecord(graph, retained, nodeIds);
     if (record.kind === "response" && record.body.kind === "exited") {
       exited = true;
     }
@@ -187,22 +188,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       };
     },
     records: () => log,
-    graph: () => ({ nodes: [...nodes.values()], edges: [...edges] }),
-    node(id) {
-      if (!nodes.has(id)) {
-        nodes.set(id, { id });
-      }
-    },
-    link(edge) {
-      if (!nodes.has(edge.parent)) {
-        nodes.set(edge.parent, { id: edge.parent });
-      }
-      if (!nodes.has(edge.child)) {
-        nodes.set(edge.child, { id: edge.child });
-      }
-      if (!edges.some((known) => known.parent === edge.parent && known.child === edge.child)) {
-        edges.push(edge);
-      }
-    },
+    graph: () => graph,
+    link: (edge) => ({ kind: "session_linked", parent: edge.parent, child: edge.child, via: edge.via }),
   };
 }

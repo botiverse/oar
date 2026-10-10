@@ -1,6 +1,8 @@
 /* oxlint-disable eslint/max-lines -- Stream/control sequencing tests share the scripted app-server below. */
 import { afterEach, expect, test, vi } from "vitest";
 import type { ControlResult, ResponseBody, RawEvent } from "../../packages/oar/src/contracts/session.js";
+import { graphOf } from "../../packages/oar/src/observe/graph.js";
+import { usageOf } from "../../packages/oar/src/observe/usage.js";
 import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
@@ -301,4 +303,31 @@ test("native Codex activity adopts a turn, while child activity does not start t
   notify(fake, "turn/completed", { threadId, turn: { id: "native-turn", status: "completed" } });
   expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
   await session.dispose();
+});
+
+
+// oxlint-disable-next-line eslint/max-statements -- Verify native attribution, synchronous observation and the JSON persistence boundary together.
+test("Codex collaboration puts lineage on its source frame and usage replays without the live graph", async () => {
+  const fake = scriptedAppServer();
+  const session = await codexSession(installation, { cwd: "/work" });
+  const graphs: ReturnType<typeof graphOf>[] = [];
+  session.rawEvents((record) => {
+    if (record.kind === "frame" && record.body.events.some((event) => event.kind === "session_linked")) { graphs.push(session.graph()); }
+  });
+  try {
+    notify(fake, "thread/tokenUsage/updated", { threadId, tokenUsage: { total: { inputTokens: 10, outputTokens: 1 } } });
+    notify(fake, "thread/tokenUsage/updated", { threadId: "child", tokenUsage: { total: { inputTokens: 20, outputTokens: 2 } } });
+    notify(fake, "item/started", { threadId, turnId: "turn-1", item: { type: "collabAgentToolCall", id: "spawn", senderThreadId: threadId, receiverThreadIds: ["child"] } });
+    const source = session.records().at(-1);
+    expect(source).toMatchObject({ kind: "frame", body: { type: "item/started", events: [
+      { kind: "session_linked", parent: threadId, child: "child", via: "tool_call" },
+    ] } });
+    // oxlint-disable-next-line typescript/no-unsafe-assignment, unicorn/prefer-structured-clone -- Replaying the records a host persists is the assertion under test.
+    const records: RawEvent[] = JSON.parse(JSON.stringify(session.records()));
+    expect(graphs).toEqual([graphOf(records)]);
+    expect(session.graph()).toEqual(graphOf(records));
+    expect(session.usage().value.withChildren).toEqual({ input: 30, output: 3 });
+    expect(usageOf(records, session.id)).toEqual(session.usage());
+    expect(viewOf(records).usage).toEqual(session.usage().value);
+  } finally { await session.dispose(); }
 });

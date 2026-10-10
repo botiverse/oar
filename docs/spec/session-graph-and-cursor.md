@@ -6,7 +6,7 @@
 
 ## The session graph holds true sessions only
 
-Derived sessions (grok and codex children) form parent/child structure;
+Derived sessions (grok, codex and OpenCode v2 children) form parent/child structure;
 without an explicit graph, consumers cannot answer "where did sess-B come
 from".
 
@@ -25,6 +25,8 @@ information is not stored twice.
 - codex (app-server): a child thread is a derived child session; the edge
   comes from the collaboration item naming it
   (`subAgentActivity.agentThreadId`, `receiverThreadIds`). [env 0.149.0]
+- OpenCode v2 (ACP): `update._meta["opencode/child-session"]` names the
+  child id and its actual `parentID`, including nested children.
 - claude: `parent_tool_use_id` is agent parent/child and produces no new
   session; carried by `agentPath`, not in the graph. [sym]
 - cursor: a subagent's updates arrive inside the parent's `task` call and
@@ -53,6 +55,49 @@ sessions in the graph.
 A node's records are read by its own `sessionId`; the Session folds never
 fold a child node's records into the root
 ([record-stream.md](record-stream.md#the-rules)).
+
+## The graph is in the records
+
+The native frame establishing a pair carries
+`session_linked { parent, child, via: "tool_call" }` in its events. Codex
+collaboration items, ACP lineage notifications and OpenCode v2 child
+attribution use this same event; the original native payload stays on that
+frame. Hosts with an exhaustive event switch must handle `session_linked`.
+
+`graphOf(records)`, exported by the root, browser and observe entries, folds
+these facts into a `SessionGraph`. Each record's `sessionId` and each edge's
+endpoints establish nodes. Repeated edges are deduplicated. A foreign id
+alone establishes only a node; it never implies that the root spawned it.
+An empty log has an empty graph. `Session.graph()` retains the result of
+this same fold, updated as each record is appended, so querying it does not
+scan the log again. Node ids have a Set index. The live graph starts with
+the session's own id, preserving the root before the first record; replay
+learns the root when a record names it. Once the root is recorded, JSON
+replay and live observers see the same nodes and edges at the same cursor.
+
+Adapter authors put the event returned by `kernel.link(edge)` in the source
+frame's `events` before `kernel.frame(...)`. The helper does not mutate
+separate graph state. The former out-of-band `kernel.node(id)` is removed;
+record envelopes and `session_linked` supply all observed nodes.
+
+`usageOf(records, sessionId)` derives this graph automatically. Its optional
+explicit graph argument still overrides the derivation. The session view
+uses the same usage fold: `usage.total` remains the root's total, while
+`usage.withChildren` adds each reachable child's latest reported total,
+including nested children, once. Reports can precede lineage and repeated
+cumulative reports replace the earlier amount. Child context fullness and
+native-only ledgers do not become token totals. In particular, Grok's root
+ledger already includes its children; the children's native-only ledgers
+are not added again.
+
+For incremental views, preserve the whole checkpoint, including
+`sessionGraph` and the `usageBySession` Map and its nested `agents` Maps.
+These retain child totals that arrive before the edge. The existing root
+`usageByAgent` and `usageTotal` fields remain available. Start a fresh view
+for each recorded run; replaying raw records avoids checkpoint-version
+migration. Records from older OAR versions without `session_linked` cannot
+recover their edges, so `withChildren` stays absent unless an explicit graph
+is supplied to `usageOf`.
 
 ## The resumable cursor
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { AdapterSession, ControlResult, FrameBody, RuntimeEventBody, RawEvent, TurnOutcome } from "../packages/oar/src/index.js";
+import type { AdapterSession, ControlResult, FrameBody, RuntimeEventBody, RawEvent, SessionEdge, TurnOutcome } from "../packages/oar/src/index.js";
 import { awaitTurnEnd, turnEndAfter } from "../packages/oar/src/observe/turns.js";
 import { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "../packages/oar/src/observe/usage.js";
 import { sealSession } from "../packages/oar/src/shared/seal-session.js";
@@ -40,13 +40,17 @@ function sessionOver(kernel: SessionKernel): AdapterSession {
   };
 }
 
+function link(kernel: SessionKernel, edge: SessionEdge): void {
+  kernel.frame({ type: "synthetic/lineage", native: edge, events: [kernel.link(edge)] });
+}
+
 function turnEnded(outcome: TurnOutcome): FrameBody {
   return { type: "turn/completed", native: {}, events: [{ kind: "turn_ended", outcome }] };
 }
 
 /** A child session (own sessionId, agentPath []) reports its turn end; the root's prompt is still open. */
 function childTurnEndsFirst(kernel: SessionKernel, afterSeq: number): void {
-  kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" });
+  link(kernel, { parent: ROOT, child: CHILD, via: "tool_call" });
   const childEnd = kernel.frame(turnEnded({ kind: "completed" }), { sessionId: CHILD });
   assert.equal(childEnd.sessionId, CHILD);
   assert.deepEqual(childEnd.agentPath, []);
@@ -77,8 +81,7 @@ test("a derived child session's turn end does not end the root session's turn", 
 function rootAndChildReport(kernel: SessionKernel): void {
   kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "model", model: "root-model" }] });
   kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(100, 10)] });
-  kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" });
-  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "model", model: "child-model" }] }, { sessionId: CHILD });
+  kernel.frame({ type: "thread/start", native: {}, events: [{ kind: "model", model: "child-model" }, kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" })] }, { sessionId: CHILD });
   kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(500, 50)] }, { sessionId: CHILD });
 }
 
@@ -144,9 +147,8 @@ function reports(kernel: SessionKernel, sessionId: string, [input, output]: read
 function family(): ReturnType<typeof sealSession> {
   const kernel = createSessionKernel(ROOT);
   for (const [parent, child] of [[ROOT, "a"], [ROOT, "b"], ["a", "c"], ["b", "c"]] as const) {
-    kernel.link({ parent, child, via: "tool_call" });
+    link(kernel, { parent, child, via: "tool_call" });
   }
-  kernel.node("stray");
   // Each session's running total is its latest report: a's 20 is replaced by its 30.
   const reported = [[ROOT, [100, 10]], ["a", [20, 2]], ["b", [3, 1]], ["c", [7, 1]], ["a", [30, 3]], ["stray", [1000, 100]]] as const;
   for (const [sessionId, counts] of reported) {
@@ -159,8 +161,8 @@ test("withChildren is absent until a derived child session reports, and a child 
   const kernel = createSessionKernel(ROOT);
   const session = sealSession(sessionOver(kernel));
   reports(kernel, ROOT, [100, 10]);
-  kernel.link({ parent: ROOT, child: "a", via: "tool_call" });
-  kernel.link({ parent: ROOT, child: "b", via: "tool_call" });
+  link(kernel, { parent: ROOT, child: "a", via: "tool_call" });
+  link(kernel, { parent: ROOT, child: "b", via: "tool_call" });
   assert.equal(session.usage().value.withChildren, undefined);
   reports(kernel, "a", [20, 2]);
   assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 }, withChildren: { input: 120, output: 12 } });
@@ -170,7 +172,8 @@ test("withChildren adds every derived child session's total once, nested ones to
   const session = family();
   assert.deepEqual(session.usage().value, { total: { input: 100, output: 10 }, withChildren: { input: 140, output: 15 } }, "a 30, b 3 and c 7 once each; stray is not derived from the root");
   assert.deepEqual(usageOf(session.records(), "a", session.graph()).value, { total: { input: 30, output: 3 }, withChildren: { input: 37, output: 4 } }, "a child's own answer adds its own descendants");
-  assert.deepEqual(usageOf(session.records(), ROOT).value, { total: { input: 100, output: 10 } }, "without the graph, the session alone");
+  assert.deepEqual(usageOf(session.records(), ROOT).value, session.usage().value, "lineage comes from records by default");
+  assert.deepEqual(usageOf(session.records(), ROOT, { nodes: [], edges: [] }).value, { total: { input: 100, output: 10 } }, "an explicit graph overrides recorded lineage");
 });
 
 test("withChildren is absent while the session's own total is unknown", () => {
@@ -178,7 +181,7 @@ test("withChildren is absent while the session's own total is unknown", () => {
   const session = sealSession(sessionOver(kernel));
   // A resumed codex thread without a baseline: context only, no tokens.
   kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [{ kind: "usage", usage: { context: { tokens: 10, contextWindow: null, percent: null } } }] });
-  kernel.link({ parent: ROOT, child: CHILD, via: "tool_call" });
+  link(kernel, { parent: ROOT, child: CHILD, via: "tool_call" });
   kernel.frame({ type: "thread/tokenUsage/updated", native: {}, events: [usage(500, 50)] }, { sessionId: CHILD });
   assert.deepEqual(session.usage().value, { total: null });
 });

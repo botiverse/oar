@@ -61,7 +61,7 @@ profile declares `capabilities` `{ queue: { durable: false }, attribution:
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
 | Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
 | `session/update` notifications | One frame per notification, for every session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
-| `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded with no events under the session id its envelope names, with MCP credential values redacted; one naming a parent/child pair links `Session.graph()` (`via: "tool_call"`). |
+| `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded under the session id its envelope names, with MCP credential values redacted; one naming a parent/child pair carries `session_linked { parent, child, via: "tool_call" }` on that frame. Other vendor facts stay native-only. The live and replay graph are both `graphOf(records)`. |
 | Native child sessions | A frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier `nested`. |
 | Client-side terminal and permission duties | Every reverse request is a `toApp` request record (verbatim, under the runtime's JSON-RPC id) and OAR's automatic answer the matching `answered` response; terminals are hosted, permissions follow the fixed allow policy. `events()` reads the pair as `app_request` (method as `type`) and `app_answered`. |
 
@@ -501,7 +501,9 @@ the child's spend. The child's own ledgers (its `response_completed` per
 call, its `turn_completed`, and the parent's
 `subagent_progress`/`subagent_finished` `tokens_used`) are recorded verbatim
 (`native` only, child-envelope ones under the child's session id) and
-deliberately NOT folded a second time. (`live-contract/multi-turn`, `steer`,
+deliberately NOT folded a second time. Recording `session_linked` makes this
+graph replayable but does not turn those native-only child ledgers into
+`usage` events: `withChildren` stays absent, and hosts use the root `total`. (`live-contract/multi-turn`, `steer`,
 `subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts).)
 
 Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)

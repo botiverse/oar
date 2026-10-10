@@ -72,13 +72,6 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-function linkFromExtension(kernel: SessionKernel, params: JsonRecord): void {
-  const lineage = acpLineageOf(params);
-  if (lineage !== null) {
-    kernel.link({ ...lineage, via: "tool_call" });
-  }
-}
-
 export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"]): AcpRecorder {
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
@@ -110,14 +103,11 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const source = attributeUpdate?.(notification);
         const update = asRecord(notification.update);
         const sessionId = source?.sessionId ?? notification.sessionId;
-        if (source?.parent !== undefined) {
-          kernel.link({ parent: source.parent, child: sessionId, via: "tool_call" });
-        }
         const foreign = sessionId !== kernel.sessionId;
-        if (foreign) {
-          kernel.node(sessionId);
-        }
         const events: RuntimeEventBody[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
+        if (source?.parent !== undefined) {
+          events.push(kernel.link({ parent: source.parent, child: sessionId, via: "tool_call" }));
+        }
         const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
         const record = kernel.frame({ type, native: notification, events }, foreign ? { sessionId } : undefined);
         if (!foreign) {
@@ -135,11 +125,9 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         // `subagent_*` lifecycle) keeps the parent's envelope.
         const sessionId = stringField(params, ["sessionId"]);
         const foreign = sessionId !== null && sessionId !== kernel.sessionId;
-        if (foreign) {
-          kernel.node(sessionId);
-        }
-        kernel.frame({ type: method, native: params, events: [] }, foreign ? { sessionId } : undefined);
-        linkFromExtension(kernel, params);
+        const lineage = acpLineageOf(params);
+        const events = lineage === null ? [] : [kernel.link({ ...lineage, via: "tool_call" })];
+        kernel.frame({ type: method, native: params, events }, foreign ? { sessionId } : undefined);
       });
     },
     step(method, response) {

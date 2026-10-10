@@ -231,7 +231,11 @@ Further rules:
   `usage()` reads a derived child's records for one thing only: its
   `withChildren` adds each child session's total, once
   ([attribution](attribution.md#usage-one-constraint)), so its `seq` covers
-  those records too.
+  those records too. `session_linked` carries native lineage on its source
+  frame; `graphOf(records)` gives the live and replay graph, and `usageOf`
+  derives it by default. SessionView uses the same child totals. Old logs
+  without lineage do not guess children
+  ([graph and checkpoints](session-graph-and-cursor.md#the-graph-is-in-the-records)).
 - **Tool input distinguishes fragments from complete arguments.**
   `tool_call_started.input` is what the opening frame said, and stays so;
   it may be absent while the runtime is still writing the arguments.
@@ -311,6 +315,7 @@ interface FrameBody {
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
 //   input_dropped {inputId, reason: "turn_interrupted"} |
 //   input_dropped {inputId, reason: "runtime_refused", failure?: FailureClass, message?: string} (conversation.md) |
+//   session_linked {parent, child, via: "tool_call"} |
 //   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_input {callId, input} |
@@ -442,6 +447,10 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 ```
 
 Which runtimes say which kinds (runtime pages hold the evidence):
+
+- `session_linked`: Codex collaboration items, ACP native lineage and
+  OpenCode v2 child attribution. The source frame carries both endpoints;
+  `graphOf` deduplicates repeated edges without changing the records.
 
 - `turn_active`: codex `turn/started`, pi `agent_start`, Pi Durable's
   adopted conversation activity, and claude `system/init` when the root

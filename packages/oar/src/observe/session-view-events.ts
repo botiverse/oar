@@ -1,3 +1,5 @@
+import { withSessionLink } from "./graph.js";
+import { foldSessionTokens } from "./usage-totals.js";
 import type { Event, RawEvent } from "../contracts/session.js";
 import {
   beginTurn,
@@ -190,20 +192,13 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
       });
       sealTurn(draft);
       return;
+    case "session_linked":
+      draft.sessionGraph = withSessionLink(draft.sessionGraph, event);
+      return;
     case "usage":
-      if (event.sessionId === scope) {
-        if (event.usage.tokens !== undefined) {
-          draft.usageByAgent.set(JSON.stringify(event.agentPath), {
-            agentPath: event.agentPath,
-            tokens: event.usage.tokens,
-          });
-        }
-        if (event.usage.total !== undefined) {
-          draft.usageTotal = event.usage.total;
-        }
-        if (event.usage.context !== undefined && event.agentPath.length === 0) {
-          draft.context = event.usage.context;
-        }
+      draft.usageBySession.set(event.sessionId, foldSessionTokens(draft.usageBySession.get(event.sessionId), event.agentPath, event.usage));
+      if (event.sessionId === scope && event.usage.context !== undefined && event.agentPath.length === 0) {
+        draft.context = event.usage.context;
       }
       return;
     case "model":
