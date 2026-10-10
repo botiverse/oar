@@ -648,6 +648,14 @@ outside the session interface. It and `createPiModelCatalog` read
 name others, so a login reaches the next session; before 0.50.0 they used
 pi's own dir even with `OAR_PI_AGENT_DIR` set.
 [Facade paths](../../packages/oar/src/runtimes/pi/facade-runtime.ts).
+The catalog's `providers()` counts a provider with a key or login in
+`auth.json` as `configured` from the start, read from the file alone
+without resolving the credential; `refresh()` reads the file again. Before
+0.54.0 it did so only after a `refresh()`. An environment key counts only
+after a `refresh()`, which is when pi resolves ambient credentials
+([catalog](../../packages/oar/src/runtimes/pi/catalog.ts)). As in pi itself,
+`configured` says the provider has an entry, not that its key works: an
+empty key, a wrong `type` or a reference to an unset variable counts too.
 OAR has **no accountUsage reader** for Pi: it
 runs on provider credentials and has no subscription usage surface to
 observe. An empty usable-model catalog does not establish a universal
