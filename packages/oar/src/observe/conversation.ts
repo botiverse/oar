@@ -25,6 +25,8 @@ export interface ConversationInput {
   readonly reason?: "turn_interrupted" | "runtime_exited" | "runtime_refused";
   /** Every request that targeted the input, in fold order: delivery attempts and withdraws, each with its observed response. */
   readonly attempts: readonly InputAttempt[];
+  /** Native queue/start evidence for this attempt, separate from control acceptance and message echoes; cleared on drop or a new attempt. */
+  readonly turn?: { readonly state: "queued" | "active"; readonly seq: number; readonly streamId: string };
   /** Native observations; none of these alone proves model consumption. */
   readonly observations: readonly (UserMessage & { readonly seq: number })[];
 }
@@ -128,7 +130,13 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       if (action !== undefined) {control.set(record.requestId, action);}
     }
     for (const event of eventsOf(record, control)) {
-      if (event.kind === "input_dropped") {
+      if (event.kind === "input_queued" || (event.kind === "turn_active" && event.inputId !== undefined)) {
+        const input = event.inputId === undefined ? undefined : inputs.get(identity(record, event.inputId));
+        if (input !== undefined && (event.kind === "input_queued" || (input.turn?.state === "queued" && input.turn.streamId === streamId))) {
+          publish({ ...input, turn: { state: event.kind === "input_queued" ? "queued" : "active", seq: event.seq, streamId } });
+        }
+        updates.push({ kind: "event", event });
+      } else if (event.kind === "input_dropped") {
         const input = inputs.get(identity(record, event.inputId));
         if (input === undefined) { updates.push({ kind: "event", event }); continue; }
         const drop: InputDrop = { attempts: input.attempts.length, reason: event.reason };

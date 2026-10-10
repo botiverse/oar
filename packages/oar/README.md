@@ -24,6 +24,13 @@ if (installation?.kind === "available") {
 }
 ```
 
+`promptAndWait` uses your `inputId`, or generates a UUID, to associate native
+queued/started reports with its answer. A notification turn before the input
+starts does not satisfy that wait. Without those native reports it keeps the
+request-based fallback. For a lower-level wait, pass the inputId to
+`awaitTurnEnd(session, requestSeq, inputId)`; omitting it waits for the first
+root turn end after that cursor.
+
 `session.events()` delivers flat, attributed `Event`s (native user message
 echoes, text, reasoning, tool call start / later input / progress / end, turn
 start and end, usage, model, effort, compaction start / end, retry, background

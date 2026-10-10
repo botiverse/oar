@@ -1,13 +1,13 @@
+import { claudeInputLifecycle } from "./input-lifecycle.js";
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { claudeFailure, claudeLimitReset } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { toolContent } from "../../shared/tool-output.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
 import { foldModelUsage, freshModelUsage, resumedModelUsage, withBaseline, withMainLoop, type ClaudeModelUsage, type ClaudeUsageBaseline } from "./token-usage.js";
 import { claudeTaskViews } from "./tasks.js";
-import { claudeContent, contentBlocks, type ClaudePartials } from "./content.js";
+import { claudeContent, claudeToolResults, contentBlocks, type ClaudePartials } from "./content.js";
 
 /**
  * The claude stdout → record projection as a PURE FOLD. A reducer over the
@@ -53,6 +53,11 @@ export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
   /** Prompt requests and root init/results delimit a turn, including native spontaneous turns. */
   readonly turnActive: boolean;
+  /** Prompt identity and native queue evidence, retained across unrelated turns. */
+  readonly promptInputId: string | null;
+  /** Prompt-like writes, including queue drains; steers are never registered. */
+  readonly promptInputs: ReadonlySet<string>;
+  readonly pendingInputId: string | null;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
   readonly modelUsage: ClaudeModelUsage;
@@ -67,6 +72,9 @@ export interface ClaudeProjectionState {
 export const initialClaudeProjection: ClaudeProjectionState = {
   abortRequested: false,
   turnActive: false,
+  promptInputId: null,
+  promptInputs: new Set(),
+  pendingInputId: null,
   agents: new Map(),
   tokens: new Map(),
   modelUsage: freshModelUsage,
@@ -85,32 +93,13 @@ export function claudeUsageBaselined(state: ClaudeProjectionState, baseline: Cla
 }
 
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
-export function claudePrompted(state: ClaudeProjectionState): ClaudeProjectionState {
-  return { ...state, abortRequested: false, turnActive: true };
+export function claudePrompted(state: ClaudeProjectionState, inputId?: string, prompted = true): ClaudeProjectionState {
+  return { ...state, abortRequested: false, turnActive: prompted, promptInputId: inputId ?? null, pendingInputId: null,
+    promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]) };
 }
 
 export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
   return { ...state, abortRequested: true };
-}
-
-function toolResultViews(message: JsonRecord): RuntimeEventBody[] {
-  const out: RuntimeEventBody[] = [];
-  for (const block of contentBlocks(message)) {
-    if (block.type === "tool_result" && typeof block.tool_use_id === "string") {
-      const content = toolContent(block.content);
-      // The Messages API defines `is_error` as optional and false by
-      // default, and claude 2.1.288 leaves it out of a successful Read, Write
-      // or Edit result (Bash carries `false`): an absent field is the
-      // protocol's own "no error", not a missing report.
-      out.push({
-        kind: "tool_call_ended",
-        callId: block.tool_use_id,
-        ...(content === undefined ? {} : { content }),
-        result: block.is_error === true ? "failed" : "ok",
-      });
-    }
-  }
-  return out;
 }
 
 function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnOutcome {
@@ -199,6 +188,10 @@ export function foldClaudeStdout(
     ({ state: next, commands: [{ kind: "frame", body: { type, native: message, ...body }, agentPath }] });
 
   switch (String(message.type)) {
+    case "command_lifecycle": {
+      const folded = claudeInputLifecycle(state, message, agentPath.length === 0);
+      return event({ events: folded.events }, folded.state);
+    }
     case "assistant":
     case "stream_event": {
       const content = claudeContent(state.partials, message, agentPath);
@@ -211,7 +204,7 @@ export function foldClaudeStdout(
       return event({ events: content.events }, { ...next, failureCategory });
     }
     case "user": {
-      const views = [...toolResultViews(message)];
+      const views = [...claudeToolResults(message)];
       const body = asRecord(message.message);
       if (message.isReplay === true && typeof message.uuid === "string" && Array.isArray(body?.content)) {
         const input = body.content.map((part: unknown) => asRecord(part)).filter((part) => part?.type === "text").map((part) => typeof part?.text === "string" ? part.text : "").join("");
@@ -232,7 +225,7 @@ export function foldClaudeStdout(
         } });
       }
       return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage,
-        ...(agentPath.length === 0 ? { turnActive: false } : {}), abortRequested: false, failureCategory: null });
+        ...(agentPath.length === 0 ? { turnActive: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
     }
     case "system": {
       if (message.subtype === "compact_boundary") {

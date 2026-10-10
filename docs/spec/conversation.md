@@ -245,7 +245,18 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 `reduceSessionView` ([chat UI](../design/chat-ui.md)) places each input in
 `messages` where the runtime took it, as far as the stream shows:
 
-- A `prompt` enters at its request; its turn opens below it.
+- A `prompt` enters at its request; its provisional turn opens below it.
+  A native `input_queued` moves that input into `pendingInputs` and removes
+  its still-empty provisional turn. The matching `turn_active { inputId }`
+  places it before its actual turn. Unrelated native turns remain separate.
+  `ConversationInput.turn` stores the queued/active fact with its seq and
+  streamId, separately from acceptance and user-message observations; a
+  drop or a new delivery attempt clears that attempt's turn evidence.
+  Status checkpoints retain `pendingPrompt` across unrelated turns and name
+  the active input when known. Store that evidence with incremental state.
+  A waiting accepted prompt still occupies the adapter's input slot, so a
+  new prompt can be rejected as busy while the root is idle with pending input.
+  Without native queue evidence the existing placement rules below apply.
 - A `steer` or `queue` enters at its first `user_message` carrying its
   `inputId`, and seals the open turn segment there. Codex holds a steer until
   its current step ends, so replies to earlier input come before it. Until

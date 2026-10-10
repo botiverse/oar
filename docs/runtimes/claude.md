@@ -61,12 +61,13 @@ provider's echoed authentication header across live delivery and replay.
 | CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. Its exit is an `exited` response record (answering `dispose` when OAR caused it). |
 | Persistent session ID | `Session.id`, passed as `--session-id` or `--resume`. Every record carries it as `sessionId`. |
 | stream-json frame | One `Frame` record per stdout line (control traffic below and the effort read-back at open are the exceptions): `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, user_message, turn_ended, usage, model, task_*, compaction_ended). Frames OAR does not interpret (`system/thinking_tokens`, …) carry no events; nor does `rate_limit_event`, read only for a failed turn's `resetsAt` ([below](#usage-limits)). No `spanId`: claude frames carry no turn id. |
-| User turn and `result` | The `prompt` request record starts the turn; the `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)). |
+| User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
-| `system/init` | The reported model and service tier; additionally `turn_active` only when a root turn starts spontaneously while idle, including after a workflow completion. A host-prompted or already-running turn gets no second start event. |
+| `command_lifecycle` | For inputs OAR wrote as prompts (including an idle or drained `queue`), `queued` gives `input_queued { inputId }` and `started` gives `turn_active { inputId }`, using `command_uuid`. Steer lifecycle frames and `completed` remain native-only. |
+| `system/init` | The reported model and service tier; additionally `turn_active` without input identity when a root turn starts on its own, including while a host prompt is still natively queued. A repeated init in an active turn gives no second start. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
 
@@ -158,8 +159,8 @@ interrupt. No cancellation is inferred from an absent echo or from
 
 **Prompt (mapped):** `prompt(string)` records a `prompt` request and answers
 it `accepted` once the user message is on stdin, or `rejected` `busy` while a
-turn is active. A `system/init` arriving while nothing is active is a
-spontaneous turn (a drained queue message): events but no request of its own.
+turn or a natively queued prompt is owned. A `system/init` before a queued
+prompt has started is a separate spontaneous turn, with no prompt attached.
 A basic turn's frames are `system/init`, several `system/thinking_tokens`, a
 `rate_limit_event` (not on every turn), one `assistant` frame per content
 block (thinking, then text) and `result/success`, plus the prompt's `user`
@@ -167,6 +168,31 @@ echo that `--replay-user-messages` adds; the number of frames varies from
 turn to turn. The [multi-turn fixture](../../tests/replay/fixtures/claude-multi-turn.raw.jsonl)
 holds two such turns, recorded without the echo.
 [Projection](../../packages/oar/src/runtimes/claude/projection.ts).
+
+**Native input/turn attribution:** when `InputOptions.inputId` is supplied,
+OAR writes it as the user frame's `uuid`. Claude's `command_lifecycle queued`
+establishes that this input has not started; the matching `started` begins
+its turn, and the next root `result` ends it. Any init/result pair between
+queued and started belongs to a separate spontaneous turn. `completed` is
+not a turn boundary: it follows the prompt's result, but for a steer can
+precede that result. Steer queued/started frames are not projected as turn
+facts; its replayed user message already reports its landing. Both queue
+write paths are registered as prompt-like inputs when actually written.
+Without a matching queued report, the existing request/init/result behavior
+remains, including lower-level prompts sent without an id.
+
+`promptAndWait` sends a UUID by default (or the caller's `inputId`) and uses
+these facts to return only that prompt's answer. `awaitTurnEnd(session, seq,
+inputId)` and `turnEndAfter(records, seq, sessionId, inputId)` can use the same
+correlation. Without `inputId`, those lower-level helpers still return the
+first root end after the cursor. A process exit always releases the wait.
+
+Evidence: Claude 2.1.292 with a scripted provider, no account:
+[notification collision](../../tests/replay/fixtures/claude-workflow-prompt-collision.raw.jsonl)
+and its [two host writes](../../tests/replay/fixtures/claude-workflow-prompt-collision.stdin.jsonl),
+plus the [mid-turn steer order](../../tests/replay/fixtures/claude-steer-lifecycle.raw.jsonl).
+[Regressions](../../tests/claude/claude-command-lifecycle.test.ts) keep live
+records, pure projection and replayed status/view in agreement.
 
 **Steer (mapped, landing observed):** `steer()` writes stdin and records
 `accepted`, which hands delivery to the adapter and does not prove model
@@ -687,9 +713,10 @@ emits none of those child frames on stdout. In native withhold mode
 (`withholdScriptFromSdkEvents`), `prompt` is empty, phase names are generic,
 agent prompt previews are removed and errors are withheld.
 
-Workflow spend arrives in a later `result.modelUsage`, after the agents have
-finished; it contributes to the session total and `unattributed`, without an
-invented agent attribution. Task-frame `usage.total_tokens` sums the agents'
+Each workflow call's spend appears in the first `result.modelUsage` written
+after that call finishes. That can be the current host turn's result if the
+call finishes before it, or a later result. It contributes to the session
+total and `unattributed`, without an invented agent attribution. Task-frame `usage.total_tokens` sums the agents'
 latest calls, not all their calls, so it is not spend and is never projected
 as tokens. Closing before a later result may leave that spend unreported.
 On completion Claude starts a turn itself (`system/init`) to handle the

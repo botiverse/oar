@@ -444,8 +444,20 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 
 - `turn_active`: codex `turn/started`, pi `agent_start`, Pi Durable's
   adopted conversation activity, and claude `system/init` when the root
-  starts a turn while idle. Claude omits it when a host prompt or an earlier
-  native init already started the turn.
+  starts a turn on its own. An optional `inputId` means the runtime started
+  its turn for that input; absent means unknown. Claude also maps
+  `command_lifecycle started` for prompt-like writes (including queue drains)
+  to `turn_active { inputId: command_uuid }`. A prompted turn can have both
+  `turn_started` (the request) and `turn_active` (the native start).
+- `input_queued { inputId }`: the runtime holds this input and has not started
+  its turn. Currently Claude-only, from `command_lifecycle queued` for an
+  input OAR wrote as a prompt or queue, never a steer. This fact gates
+  attribution: until the matching `turn_active { inputId }`, other root
+  activity and its end belong to separate spontaneous turns. No queued fact
+  means existing request-based behavior. `completed` is not projected.
+  `promptAndWait` sends the caller's inputId or a generated UUID and waits for
+  that span; `awaitTurnEnd` and `turnEndAfter` opt in with an inputId and still
+  return the first root end without one. Native exits always settle waits.
 - `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
   `turn_ended`, `usage`, `model`: every shipped adapter, except that
   antigravity sent no reasoning and no usage in any probe ([env]

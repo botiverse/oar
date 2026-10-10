@@ -83,7 +83,8 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end,
   // and an entry can be withdrawn by its inputId until then.
-  const heldQueue: { input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
+  const writtenQueues = new Map<string, RequestRecord>();
+  const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
@@ -102,11 +103,22 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     if (readback.consume(message) || contextBreakdown.consume(message)) { return; }
     // A system/init while nothing is active is claude starting a turn on its
     // own (queue drain, late steer or task notification): a spontaneous turn.
-    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && !busy()) {
+    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && (!busy() || state.projection.pendingInputId !== null)) {
       state.spontaneous = true;
     }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
     state.projection = nextProjection;
+    if (message.type === "command_lifecycle" && message.state === "queued" && typeof message.command_uuid === "string") {
+      const queued = writtenQueues.get(message.command_uuid);
+      if (queued !== undefined && state.active === null) { state.active = queued; }
+    }
+    if (message.type === "command_lifecycle" && message.state === "completed" && typeof message.command_uuid === "string") {
+      writtenQueues.delete(message.command_uuid);
+    }
+    if (message.type === "command_lifecycle" && message.state === "started"
+      && state.active !== null && "inputId" in state.active.body && message.command_uuid === state.active.body.inputId) {
+      state.spontaneous = false;
+    }
     let ended = false;
     for (const command of commands) {
       switch (command.kind) {
@@ -139,11 +151,13 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     }
     if (ended) {
       abortFallback.clear();
-      state.active = null;
+      if (state.projection.pendingInputId === null) { state.active = null; }
       state.spontaneous = false;
-      if (!state.disposed) {
+      if (!state.disposed && !busy()) {
         const next = heldQueue.shift();
         if (next !== undefined) {
+          if (next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
+          state.projection = claudePrompted(state.projection, next.inputId, false);
           child.write(userMessage(next.input, next.inputId, next.images));
         }
       }
@@ -183,7 +197,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       }
       return withInputImages(capabilities, inputOptions?.images, (images) => {
         state.active = request;
-        state.projection = claudePrompted(state.projection);
+        state.projection = claudePrompted(state.projection, inputOptions?.inputId);
         child.write(userMessage(input, inputOptions?.inputId, images));
         return { kind: "accepted" };
       });
@@ -203,11 +217,13 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       return result;
     },
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
           if (busy()) {
-            heldQueue.push({ input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
+            heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
+            if (inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
+            state.projection = claudePrompted(state.projection, inputOptions?.inputId, false);
             child.write(userMessage(input, inputOptions?.inputId, images));
           }
           return { kind: "accepted" };

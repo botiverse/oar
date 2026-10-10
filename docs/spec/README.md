@@ -66,8 +66,9 @@ every adapter:
   `spanId`, and `receivedAt`;
 - every runtime frame recorded verbatim as a `Frame` (`type`, `native`)
   with oar's typed `events` beside it: nothing gated, nothing dropped,
-  nothing synthesized; the turn's start is the prompt request, its end the
-  runtime's own completion event;
+  nothing synthesized; a prompt request provisionally starts a turn, while
+  native queue/start evidence can establish that input's actual start;
+  the end is the runtime's own completion event;
 - the consumer face: `events()` delivers every reading as a flat `Event`
   (an event body plus the record's envelope): native user messages, text,
   reasoning, tool call start / progress / end, turn end, usage, model,
@@ -83,7 +84,9 @@ every adapter:
 - queries as folds: `model()`, `effort()`, `serviceTier()`, `usage()`, `contextUsage()` and
   `status()` project over `records()` and return `{ value, seq }`, where
   `seq` is the last record the fold consumed (or `-1` before any record);
-  `busy` is rejected exactly while `status()` says `running`;
+  an active turn can reject a new prompt as `busy`; an accepted prompt
+  waiting for its native start can also occupy the input slot while the
+  root status is idle (`pendingPrompt`);
 - the cursor for the lifetime of the adapter process: `rawEvents(observer,
   {sessionId, afterSeq})` (and `events(observer, { cursor })`) replays the
   retained records after that position and continues live, without loss or

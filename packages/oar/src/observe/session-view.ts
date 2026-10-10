@@ -20,8 +20,7 @@ import {
   type ConversationState,
 } from "./conversation.js";
 import { assemble, draftOf, stampTurnOutcome } from "./session-view-fold.js";
-import { awaitsEcho } from "./input-delivery.js";
-import { upsertInput } from "./session-view-inputs.js";
+import { foldInputUpdate, turnOpenedBy, upsertInput } from "./session-view-inputs.js";
 import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
 
@@ -33,13 +32,14 @@ import { upgradeLegacyEvent } from "./legacy.js";
  * Grouping rules, all derived never synthesized:
  * - A TURN is a display segment: it opens on its prompt request or on the
  *   first turn-content event while none is open (adopted: queued input
- *   consumed, mid-turn subscriber, replay slice). A rejected prompt removes
+ *   consumed, mid-turn subscriber, replay slice). Native queue evidence or a rejected prompt removes
  *   its empty turn — the turn never began (same rule as `reduceStatus`).
  *   `turn_ended` of the ROOT session stamps the open segment; an input
  *   entering mid-turn seals the current segment so seq order stays the
  *   render order, and later content opens a new segment.
  * - An INPUT enters where the runtime took it. A prompt enters at its
- *   request (it opens its turn). A steer or queue enters at its first native
+ *   request provisionally; native queue evidence moves it to pending until
+ *   its matching native turn start. A steer or queue enters at its first native
  *   echo (`user_message` with its `inputId`) when the stream echoes input
  *   ids at all, which it shows by having echoed one before (codex, claude);
  *   until then it waits in `pendingInputs`. On a stream that never echoed
@@ -162,8 +162,8 @@ export interface AgentTokens { readonly agentPath: readonly string[]; readonly t
 export interface SessionView {
   readonly messages: readonly ViewMessage[];
   /**
-   * Steered or queued inputs the runtime has not taken yet, in request order: each leaves this list for `messages` at its first native echo. A host shows them apart (above the composer, say).
-   * An input the runtime never echoes stays here; no turn end or text match places it. A withdrawn input leaves it. Always empty on a stream that never echoed an input id.
+   * Inputs the runtime has not taken yet, in request order. Native `input_queued` waits for a matching `turn_active.inputId`; otherwise steers/queues wait for their first echo on a stream that echoes ids. A host shows them apart.
+   * No unrelated turn end or text match places them. A withdrawn input leaves both lists; a dropped input enters messages. Without queue or echo evidence, inputs enter messages at their requests.
    */
   readonly pendingInputs: readonly ConversationInput[];
   /** Index of the unsealed turn segment in `messages`; -1 when none. */
@@ -239,9 +239,9 @@ export function reduceSessionView(
   const conversation = reduceConversation(previous.conversation, record, streamId);
   for (const update of conversation.updates) {
     if (update.kind === "input") {
-      upsertInput(draft, update.input, awaitsEcho(update.input, conversation));
+      foldInputUpdate(draft, update.input, conversation);
     } else {
-      foldEvent(draft, update.event, streamId);
+      foldEvent(draft, update.event, streamId, turnOpenedBy(update.event, conversation));
     }
   }
   recordFacts(draft, record, streamId);

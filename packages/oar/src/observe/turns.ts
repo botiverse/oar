@@ -4,7 +4,8 @@ import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, Turn
 
 /**
  * Turn helpers for consumers. A turn is a SPAN on the stream, not a control
- * object: it starts at the prompt request record and ends at the runtime's own
+ * object: a prompt request is its fallback start; native input_queued and
+ * turn_active with inputId can establish its actual start. It ends at the runtime's own
  * `turn_ended` event (or at the process exit oar observed). These folds locate
  * that end; they never synthesize one.
  *
@@ -18,14 +19,16 @@ import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, Turn
 /**
  * The root-agent turn end after `afterSeq`, if the stream already holds one:
  * the runtime's turn_ended event, or an observed process exit. When `sessionId`
- * is given, only that session's records count.
+ * is given, only that session's records count. inputId gates on a matching
+ * native input_queued until its turn_active; without that evidence, the first end wins.
  */
 export function turnEndAfter(
   records: readonly RawEvent[],
   afterSeq: number,
   sessionId?: string,
+  inputId?: string,
 ): TurnOutcome | null {
-  const read = turnEndReader(afterSeq, sessionId);
+  const read = turnEndReader(afterSeq, sessionId, inputId);
   for (const record of records) {
     const outcome = read(record);
     if (outcome !== null) { return outcome; }
@@ -34,21 +37,25 @@ export function turnEndAfter(
 }
 
 /** Keep request/response correlation across both the retained prefix and live records. */
-function turnEndReader(afterSeq: number, sessionId?: string): (record: RawEvent) => TurnOutcome | null {
+function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, onText?: (text: string) => void): (record: RawEvent) => TurnOutcome | null {
   let status = initialStatus;
+  let waitingForInput = false;
   return (record) => {
     if (record.agentPath.length > 0 || (sessionId !== undefined && record.sessionId !== sessionId)) {
       return null;
     }
     const previous = status;
     status = reduceStatus(previous, record, sessionId);
-    if (record.seq <= afterSeq) { return null; }
     if (record.kind === "frame") {
-      const ended = record.body.events.find((event) => event.kind === "turn_ended");
-      if (ended?.kind === "turn_ended") { return ended.outcome; }
+      for (const event of record.body.events) {
+        if (inputId !== undefined && event.kind === "input_queued" && event.inputId === inputId) { waitingForInput = true; }
+        if (inputId !== undefined && event.kind === "turn_active" && event.inputId === inputId) { waitingForInput = false; }
+        if (record.seq > afterSeq && !waitingForInput && event.kind === "text_delta") { onText?.(event.text); }
+        if (record.seq > afterSeq && !waitingForInput && event.kind === "turn_ended") { return event.outcome; }
+      }
     }
-    return record.kind === "response" && record.body.kind === "exited"
-      ? exitTurnOutcome(previous.kind === "running" ? previous.stop : undefined)
+    return record.seq > afterSeq && record.kind === "response" && record.body.kind === "exited"
+      ? exitTurnOutcome(previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop)
       : null;
   };
 }
@@ -56,25 +63,25 @@ function turnEndReader(afterSeq: number, sessionId?: string): (record: RawEvent)
 /**
  * Resolve with the first turn end of the session's root agent recorded after
  * `afterSeq`, from the retained log if it already happened, otherwise live.
- * A derived child session's turn end never satisfies it.
+ * A derived child session's turn end never satisfies it. With inputId, native
+ * queue/start evidence excludes intervening turns. Without it, behavior is unchanged.
  */
-export async function awaitTurnEnd(session: Session, afterSeq: number): Promise<TurnOutcome> {
+export async function awaitTurnEnd(session: Session, afterSeq: number, inputId?: string): Promise<TurnOutcome> {
+  const outcome = await watchTurn(session, afterSeq, inputId);
+  return outcome;
+}
+
+/** One reader owns both the turn boundary and its text, including replay before subscription. */
+async function watchTurn(session: Session, afterSeq: number, inputId?: string, onText?: (text: string) => void): Promise<TurnOutcome> {
   const { promise, resolve } = Promise.withResolvers<TurnOutcome>();
   let done = false;
-  const read = turnEndReader(afterSeq, session.id);
+  const read = turnEndReader(afterSeq, session.id, inputId, onText);
   const unsubscribe = session.rawEvents((record) => {
-    if (done) {
-      return;
-    }
+    if (done) { return; }
     const outcome = read(record);
-    if (outcome !== null) {
-      done = true;
-      resolve(outcome);
-    }
+    if (outcome !== null) { done = true; resolve(outcome); }
   }, { sessionId: session.id, afterSeq: -1 });
-  const outcome = await promise;
-  unsubscribe();
-  return outcome;
+  try { return await promise; } finally { unsubscribe(); }
 }
 
 /**
@@ -95,6 +102,8 @@ export async function awaitIdle(session: Session): Promise<TurnOutcome | null> {
 }
 
 export interface PromptRunOptions {
+  /** Input identity for native turn correlation. A fresh UUID is used when omitted. */
+  readonly inputId?: string;
   /** Abort the turn when it has not ended after this long; the run then reports `interrupted` with the observed turn outcome. */
   readonly timeoutMs?: number;
   /** Abort the turn when this fires (a caller-side cancel), reported the same way. */
@@ -113,7 +122,8 @@ export type PromptRun =
 
 /**
  * Prompt, then wait for the runtime to end the turn it opened. A rejected
- * prompt returns without waiting. With `timeoutMs` / `signal`, a turn still
+ * prompt returns without waiting. Sends the caller's inputId or a fresh UUID
+ * to correlate native queue/start facts, without requiring that evidence. With `timeoutMs` / `signal`, a turn still
  * running when either fires is aborted; the result is `interrupted` only when
  * that abort was taken over. An abort the runtime refuses because the turn
  * had just ended is the ordinary late-abort race, and the run is `ended`.
@@ -122,23 +132,15 @@ export type PromptRun =
  * `aborted`. Without either fact the helper continues waiting.
  */
 export async function promptAndWait(session: Session, input: string, options: PromptRunOptions = {}): Promise<PromptRun> {
-  const result = await session.prompt(input, options.images === undefined ? undefined : { images: options.images });
+  const inputId = options.inputId ?? globalThis.crypto.randomUUID();
+  const result = await session.prompt(input, { inputId, ...(options.images === undefined ? {} : { images: options.images }) });
   if (result.kind === "rejected") {
     return { kind: "rejected", result, code: result.code, reason: result.reason };
   }
   let text = "";
-  const stopReading = session.rawEvents((record) => {
-    if (record.kind === "frame" && record.agentPath.length === 0 && record.sessionId === session.id) {
-      for (const event of record.body.events) {
-        if (event.kind === "text_delta") {
-          text += event.text;
-        }
-      }
-    }
-  }, { sessionId: session.id, afterSeq: result.seq });
   const limit = armLimits(options);
   try {
-    const ended = awaitTurnEnd(session, result.seq);
+    const ended = watchTurn(session, result.seq, inputId, (delta) => { text += delta; });
     const first = await Promise.race([ended, limit.fired]);
     if (typeof first !== "string") {
       return { kind: "ended", result, outcome: first, text };
@@ -150,7 +152,6 @@ export async function promptAndWait(session: Session, input: string, options: Pr
       : { kind: "ended", result, outcome, text };
   } finally {
     limit.disarm();
-    stopReading();
   }
 }
 

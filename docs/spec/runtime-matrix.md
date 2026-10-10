@@ -73,19 +73,24 @@ where the member is absent.
 ## Native active turns
 
 `turn_started` is the projection of an OAR prompt request. `turn_active` is
-an observation from the runtime and carries no request id:
+an observation from the runtime and carries no request id. It may name an
+`inputId` when the runtime identifies the input it started:
 
 | Runtime | Native activity source |
 |---|---|
+| claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
 | codex | `turn/started`, including queued turns without another OAR prompt |
 | pi | `agent_start`, including runs started directly through the SDK |
 | pi-durable | Initial active snapshot and `run_start` |
 
 Status becomes running when idle and preserves the current phase when
 already running. The session view opens a turn only if none is open, so a
-prompt followed by native activity remains one turn. Child activity keeps
-its own attribution and never starts the root turn. Other adapters do not
-yet emit `turn_active`.
+prompt followed by native activity remains one turn. Claude's preceding
+`input_queued { inputId }` separates a waiting prompt from an intervening
+spontaneous turn; only its matching native start takes that pending input.
+This queue fact is currently Claude-only and excludes steer writes. Child
+activity keeps its own attribution and never starts the root turn. Other
+adapters do not yet emit `turn_active`.
 
 ## Tool outcomes
 

@@ -1,5 +1,7 @@
-import type { ConversationInput } from "./conversation.js";
-import { sealTurn, type Draft } from "./session-view-fold.js";
+import type { Event } from "../contracts/session.js";
+import { awaitsEcho } from "./input-delivery.js";
+import type { ConversationInput, ConversationState } from "./conversation.js";
+import { removeEmptyTurn, sealTurn, type Draft } from "./session-view-fold.js";
 
 /**
  * Where a user input enters the session view: the INPUT rule in the
@@ -79,4 +81,20 @@ function removeInput(draft: Draft, index: number): void {
     draft.openTurn = index - 1;
     draft.turn = null;
   }
+}
+
+/** Apply queue evidence before moving the input, so the provisional empty turn disappears too. */
+export function foldInputUpdate(draft: Draft, input: ConversationInput, conversation: ConversationState): void {
+  if (input.turn?.state === "queued") {
+    const request = input.attempts.at(-1)?.request;
+    if (request?.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
+  }
+  upsertInput(draft, input, awaitsEcho(input, conversation));
+}
+
+export function turnOpenedBy(event: Event, conversation: ConversationState): string | undefined {
+  const input = event.kind === "turn_active" && event.inputId !== undefined
+    ? conversation.inputs.get(JSON.stringify([event.sessionId, event.agentPath, event.inputId])) : undefined;
+  const request = input?.turn?.state === "active" ? input.attempts.at(-1)?.request : undefined;
+  return request?.body.kind === "prompt" ? request.id : undefined;
 }

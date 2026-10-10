@@ -23,9 +23,9 @@ import type { PendingRequest, ViewPart } from "./session-view.js";
  * there (docs/design/chat-ui.md).
  */
 
-export function foldEvent(draft: Draft, event: Event, streamId: string): void {
+export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy?: string): void {
   // Native echoes are ConversationInput observations, never a second bubble.
-  if (event.kind === "user_message" || event.kind === "input_dropped") {
+  if (event.kind === "user_message" || event.kind === "input_dropped" || event.kind === "input_queued") {
     return;
   }
   const scope = draft.rootSessionId ?? event.sessionId;
@@ -35,7 +35,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       return;
     case "turn_active":
       if (event.sessionId === scope && event.agentPath.length === 0 && draft.openTurn === -1) {
-        beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`);
+        beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`, openedBy);
       }
       return;
     case "text_delta": {
