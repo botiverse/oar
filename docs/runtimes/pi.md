@@ -610,7 +610,9 @@ setting fills both http and https when the env names none (pi's own `??=`
 precedence, but the env is not written); pi's `httpIdleTimeoutMs` setting is
 the dispatcher's headers/body timeout (pi's default equals undici's). Nothing
 is installed when neither a proxy nor a non-default timeout is configured, and
-a global dispatcher the host already set is never replaced. Node's own `fetch`
+a global dispatcher the host already set is never replaced (the `Agent` npm
+undici creates for itself counts as stock even when a bundler renamed its
+class, #328). Node's own `fetch`
 reads the dispatcher through `Symbol.for("undici.globalDispatcher.1")`, so the
 global fetch classes stay Node's. Compressed bodies decoded in the 2026-09-11
 probe (Node 26.7, whose bundled undici 8.9.0 was then also the pin), and the
@@ -624,6 +626,26 @@ entry point retries. Precedence, proxying through a local stand-in, the
 untouched env and the untouched global classes are pinned by
 [`tests/pi/pi-http.test.ts`](../../tests/pi/pi-http.test.ts).
 [HTTP plane](../../packages/oar/src/runtimes/pi/http.ts).
+
+**Bundled hosts (mapped):** pi-ai loads its sign-in flows and its Bedrock
+implementation through a computed path, so that a browser bundler does not
+follow them into Node-only code. A host bundled into one file, such as a Node
+single executable, has no such files beside it: every pi sign-in, OAuth turn
+and Bedrock call failed with "Cannot find module" (#328). At the same points
+as the HTTP plane, OAR hands pi-ai the modules itself, with the two calls pi's
+own standalone binary makes (`registerBunOAuthFlows()` from
+`@earendil-works/pi-ai/bun-oauth` and `setBedrockProviderModule` from
+`@earendil-works/pi-ai/compat`). The imports are literal, so a bundler
+follows them, and dynamic, so a host that never uses pi does not load them.
+A bundled host needs no pi dependency of its own for this. Each hand-over is
+best effort: a host that leaves Bedrock out of its bundle (its AWS SDK adds
+about 1.4 MB) keeps every sign-in, gets one `OAR_PI_MODULES` process warning,
+and Bedrock loads pi's own way; a failed hand-over is tried again on the next
+call. One thing OAR does
+not cover: pi reads images through photon, which loads `photon_rs_bg.wasm`
+from its own directory, so a single-file host ships that file beside it or
+embeds it. [Static modules](../../packages/oar/src/runtimes/pi/static-modules.ts),
+[test](../../tests/pi/pi-static-modules.test.ts).
 
 ### Process ownership, installation, login, and account usage
 

@@ -1,4 +1,4 @@
-import type { Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from "undici";
+import type { Agent, Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from "undici";
 
 /*
  * The proxy plane for an embedded pi: undici's global dispatcher set to an
@@ -66,6 +66,7 @@ export function planPiHttp(settings?: PiHttpSettings, env: PiProxyEnv = process.
 
 /** The undici exports the plane uses. */
 interface UndiciPlane {
+  readonly Agent: typeof Agent;
   readonly EnvHttpProxyAgent: typeof EnvHttpProxyAgent;
   readonly getGlobalDispatcher: typeof getGlobalDispatcher;
   readonly setGlobalDispatcher: typeof setGlobalDispatcher;
@@ -133,10 +134,14 @@ export async function configurePiHttp(settings?: PiHttpSettings): Promise<boolea
     if (installed !== null && installed.plan === key && current === installed.dispatcher) {
       return true;
     }
-    // Node's default dispatcher is its BUNDLED undici's Agent, a different
-    // class object from the npm undici this module loads, so "stock" is
-    // judged by name; anything else that is not ours belongs to the host.
-    const foreign = current.constructor.name !== "Agent" && current !== installed?.dispatcher;
+    // Stock is either Node's default dispatcher, its BUNDLED undici's Agent
+    // (a different class object from the npm undici this module loads, so
+    // judged by name), or the Agent npm undici creates itself when no global
+    // dispatcher exists yet. A bundler may rename that class (esbuild made it
+    // `Agent4` once the pi-ai modules joined a single-file host, #328), so it
+    // is judged by class. Anything else that is not ours belongs to the host.
+    const stock = current.constructor.name === "Agent" || current instanceof undici.Agent;
+    const foreign = !stock && current !== installed?.dispatcher;
     if (foreign) {
       warnOnce(new Error("the host already set a global dispatcher"));
       return false;

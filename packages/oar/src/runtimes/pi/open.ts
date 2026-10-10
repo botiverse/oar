@@ -4,7 +4,7 @@ import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
 import { piCredentialExtension, rememberPiKey } from "./credentials.js";
-import { configurePiHttp } from "./http.js";
+import { preparePi } from "./static-modules.js";
 import { disposePiAgentSession } from "./lifecycle.js";
 import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
 import { piAgentDir, piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
@@ -128,7 +128,7 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // settings manager the services get, so no second one is built (see
   // http.ts).
   const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir);
-  await configurePiHttp(settingsManager);
+  await preparePi(settingsManager);
   // SessionOptions.mcpServers: pi's MCP extension plus one registering the
   // session's servers (mcp.ts); it refuses a name pi cannot take before
   // anything loads.
