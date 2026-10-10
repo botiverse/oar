@@ -68,8 +68,12 @@ frame. Hosts with an exhaustive event switch must handle `session_linked`.
 these facts into a `SessionGraph`. Each record's `sessionId` and each edge's
 endpoints establish nodes. Repeated edges are deduplicated. A foreign id
 alone establishes only a node; it never implies that the root spawned it.
-An empty log has an empty graph. `Session.graph()` uses this same fold, so a
-JSON replay and a live observer see the same graph at the same cursor.
+An empty log has an empty graph. `Session.graph()` retains the result of
+this same fold, updated as each record is appended, so querying it does not
+scan the log again. Node ids have a Set index. The live graph starts with
+the session's own id, preserving the root before the first record; replay
+learns the root when a record names it. Once the root is recorded, JSON
+replay and live observers see the same nodes and edges at the same cursor.
 
 Adapter authors put the event returned by `kernel.link(edge)` in the source
 frame's `events` before `kernel.frame(...)`. The helper does not mutate

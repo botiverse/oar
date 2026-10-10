@@ -170,6 +170,9 @@ test("nested descendants link their reported parent and never satisfy root usage
       ],
       "nodes": [
         {
+          "id": "root",
+        },
+        {
           "id": "grandchild",
         },
         {

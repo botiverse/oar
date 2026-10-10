@@ -22,7 +22,8 @@ test("a graph is visible with its source frame, in live observers and a JSON rep
   const kernel = createSessionKernel("root");
   const seen: ReturnType<typeof graphOf>[] = [];
   kernel.rawEvents(() => { seen.push(kernel.graph()); });
-  expect(kernel.graph()).toEqual(graphOf([]));
+  expect(kernel.graph()).toEqual({ nodes: [{ id: "root" }], edges: [] });
+  expect(graphOf([])).toEqual({ nodes: [], edges: [] });
   link(kernel, "root", "child");
   link(kernel, "root", "child");
   expect(seen).toEqual([
@@ -32,6 +33,30 @@ test("a graph is visible with its source frame, in live observers and a JSON rep
   const persisted = replay(kernel.records());
   expect(graphOf(persisted)).toEqual(kernel.graph());
   expect(kernel.records().flatMap((record) => eventsOf(record)).filter((event) => event.kind === "session_linked")).toHaveLength(2);
+});
+
+test("the live graph agrees with replay after every append and preserves earlier snapshots", () => {
+  const kernel = createSessionKernel("root");
+  const comparisons: boolean[] = [];
+  kernel.rawEvents(() => {
+    const replayed = graphOf(kernel.records());
+    comparisons.push(JSON.stringify(kernel.graph()) === JSON.stringify(replayed));
+  });
+  const initial = kernel.graph();
+  const request = kernel.request("toRuntime", { kind: "prompt", input: "hello" });
+  kernel.respond(request.id, { kind: "accepted" });
+  report(kernel, "child", { tokens: { input: 20, output: 2 } });
+  const beforeLink = kernel.graph();
+  link(kernel, "root", "child");
+  link(kernel, "root", "child");
+  link(kernel, "child", "grandchild");
+  const closing = kernel.request("toRuntime", { kind: "dispose" });
+  kernel.respond(closing.id, { kind: "exited", code: 0 });
+  expect(comparisons).toEqual(Array.from({ length: kernel.records().length }, () => true));
+  expect(initial).toEqual({ nodes: [{ id: "root" }], edges: [] });
+  expect(beforeLink).toEqual({ nodes: [{ id: "root" }, { id: "child" }], edges: [] });
+  const persisted = graphOf(replay(kernel.records()));
+  expect(kernel.graph()).toEqual(persisted);
 });
 
 function family(kernel: SessionKernel): void {

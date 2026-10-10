@@ -1,5 +1,5 @@
 import { emptyInputRefusal } from "./control-input.js";
-import { graphOf } from "../observe/graph.js";
+import { withSessionRecord } from "../observe/graph.js";
 import type {
   ControlResult,
   Cursor,
@@ -111,6 +111,8 @@ function deliver(observer: RawEventObserver, record: RawEvent): void {
 export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: <T extends RawEvent>(record: T) => T): SessionKernel {
   const observers = new Set<RawEventObserver>();
   const log: RawEvent[] = [];
+  const nodeIds = new Set([sessionId]);
+  let graph: SessionGraph = { nodes: [{ id: sessionId }], edges: [] };
   let seq = 0;
   let exited = false;
   let disposing = false;
@@ -133,6 +135,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
     seq += 1;
     const retained = redact === undefined ? record : redact(record);
     log.push(retained);
+    graph = withSessionRecord(graph, retained, nodeIds);
     if (record.kind === "response" && record.body.kind === "exited") {
       exited = true;
     }
@@ -185,7 +188,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       };
     },
     records: () => log,
-    graph: () => graphOf(log),
+    graph: () => graph,
     link: (edge) => ({ kind: "session_linked", parent: edge.parent, child: edge.child, via: edge.via }),
   };
 }
