@@ -653,7 +653,9 @@ The catalog's `providers()` counts a provider with a key or login in
 without resolving the credential; `refresh()` reads the file again. Before
 0.54.0 it did so only after a `refresh()`. An environment key counts only
 after a `refresh()`, which is when pi resolves ambient credentials
-([catalog](../../packages/oar/src/runtimes/pi/catalog.ts)).
+([catalog](../../packages/oar/src/runtimes/pi/catalog.ts)). As in pi itself,
+`configured` says the provider has an entry, not that its key works: an
+empty key, a wrong `type` or a reference to an unset variable counts too.
 OAR has **no accountUsage reader** for Pi: it
 runs on provider credentials and has no subscription usage surface to
 observe. An empty usable-model catalog does not establish a universal
