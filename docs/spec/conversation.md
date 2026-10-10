@@ -179,6 +179,11 @@ view: the records and flat events retain their original order.
 ## Dropped input
 
 `input_dropped {inputId, reason: "turn_interrupted" | "runtime_refused"}` is a runtime event.
+For `runtime_refused` only, optional `failure: FailureClass` and `message`
+retain the classification and explanation supplied by the adapter. An
+input-scoped wait returns a failed outcome using those fields, defaulting
+to `unknown` and `runtime refused the input` when absent; an interruption
+returns `aborted`. Neither case synthesizes a `turn_ended`.
 Only an adapter with native evidence of discard emits it, on the frame
 that proves the discard. A turn ending alone says nothing about unread input.
 Codex emits it on an interrupted root `turn/completed`, before `turn_ended`,
@@ -209,6 +214,10 @@ Earlier accepted responses and native observations remain facts in
 `inputId` starts fresh, without an earlier accepted attempt keeping the new
 attempt accepted; its old top-level drop reason disappears. Reducer state
 retains the attempt boundary in `drops` so incremental and replay folds agree.
+This reducer behavior does not make an id reusable at the runtime: **Claude
+requires a fresh inputId for every resend**, including after cancellation
+and resume. Its ignored duplicate is reported as `runtime_refused` with
+`failure: "invalid_request"`; [native evidence](../runtimes/claude.md#prompt-steering-queueing-and-abort).
 
 An `exited` response also settles inputs still waiting in that stream and
 session lineage: `dropped`, with `reason: "runtime_exited"`. This includes

@@ -1,4 +1,4 @@
-import { claudeInputLifecycle } from "./input-lifecycle.js";
+import { claudeDuplicateInput, claudeInputLifecycle } from "./input-lifecycle.js";
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
@@ -61,6 +61,8 @@ export interface ClaudeProjectionState {
   readonly promptInputs: ReadonlySet<string>;
   /** Written prompt inputs with no native started yet, including the pre-queued window. */
   readonly unstartedInputs: ReadonlySet<string>;
+  /** Prompt-like writes with neither queued nor started since THIS write; reset when an id is reused. */
+  readonly unacknowledgedInputs: ReadonlySet<string>;
   readonly pendingInputId: string | null;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
@@ -80,6 +82,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   promptInputId: null,
   promptInputs: new Set(),
   unstartedInputs: new Set(),
+  unacknowledgedInputs: new Set(),
   pendingInputId: null,
   agents: new Map(),
   tokens: new Map(),
@@ -98,12 +101,7 @@ export function claudeUsageBaselined(state: ClaudeProjectionState, baseline: Cla
   return { ...state, modelUsage: withBaseline(state.modelUsage, baseline) };
 }
 
-/** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
-export function claudePrompted(state: ClaudeProjectionState, inputId?: string, prompted = true): ClaudeProjectionState {
-  return { ...state, abortRequested: false, turnActive: prompted, promptInputId: inputId ?? null, pendingInputId: null,
-    promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]),
-    unstartedInputs: inputId === undefined ? state.unstartedInputs : new Set([...state.unstartedInputs, inputId]) };
-}
+export { claudePrompted } from "./input-lifecycle.js";
 
 export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
   return { ...state, abortRequested: true };
@@ -217,7 +215,9 @@ export function foldClaudeStdout(
         const input = body.content.map((part: unknown) => asRecord(part)).filter((part) => part?.type === "text").map((part) => typeof part?.text === "string" ? part.text : "").join("");
         views.push({ kind: "user_message", input, inputId: message.uuid, nativeMessageId: message.uuid, evidence: "acknowledged" });
       }
-      return event({ events: views });
+      const duplicate = message.isReplay === true && typeof message.uuid === "string"
+        ? claudeDuplicateInput(state, message.uuid, agentPath.length === 0) : { state, events: [] };
+      return event({ events: [...views, ...duplicate.events] }, duplicate.state);
     }
     case "result": {
       const events: RuntimeEventBody[] = [...claudeServiceTierEvents(message), { kind: "turn_ended", outcome: resultOutcome(state, message) }];

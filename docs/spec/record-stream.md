@@ -309,7 +309,8 @@ interface FrameBody {
 }
 // RuntimeEventBody:
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
-//   input_dropped {inputId, reason: "turn_interrupted" | "runtime_refused"} (conversation.md) |
+//   input_dropped {inputId, reason: "turn_interrupted"} |
+//   input_dropped {inputId, reason: "runtime_refused", failure?: FailureClass, message?: string} (conversation.md) |
 //   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_input {callId, input} |
@@ -454,10 +455,17 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   input OAR wrote as a prompt or queue, never a steer. This fact gates
   attribution: until the matching `turn_active { inputId }`, other root
   activity and its end belong to separate spontaneous turns. No queued fact
-  means existing request-based behavior. `completed` is not projected.
+  means existing request-based behavior. `completed` never ends a turn.
+  Claude maps it (or a replayed user message) to a refused input only when
+  neither `queued` nor `started` has arrived since that registered write.
   `promptAndWait` sends the caller's inputId or a generated UUID and waits for
   that span; `awaitTurnEnd` and `turnEndAfter` opt in with an inputId and still
   return the first root end without one. Native exits always settle waits.
+- `input_dropped`: native evidence that the input was interrupted before
+  delivery, or refused. Only `reason: "runtime_refused"` permits optional
+  `failure` and `message`. Input-scoped waits use them for the failed outcome;
+  absent fields yield `unknown` / `runtime refused the input`. An interruption
+  yields `aborted`. See [dropped input](conversation.md#dropped-input).
 - `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
   `turn_ended`, `usage`, `model`: every shipped adapter, except that
   antigravity sent no reasoning and no usage in any probe ([env]

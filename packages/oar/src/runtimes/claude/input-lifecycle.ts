@@ -3,33 +3,56 @@ import type { LoadedImage } from "../../shared/input-images.js";
 import type { JsonRecord } from "../../shared/json.js";
 import type { ClaudeProjectionState } from "./projection.js";
 
+/** Control plane → state: a prompt clears stale abort intent and starts a new native input attempt. */
+export function claudePrompted(state: ClaudeProjectionState, inputId?: string, prompted = true): ClaudeProjectionState {
+  return { ...state, abortRequested: false, turnActive: prompted, promptInputId: inputId ?? null, pendingInputId: null,
+    promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]),
+    unstartedInputs: inputId === undefined ? state.unstartedInputs : new Set([...state.unstartedInputs, inputId]),
+    unacknowledgedInputs: inputId === undefined ? state.unacknowledgedInputs : new Set([...state.unacknowledgedInputs, inputId]) };
+}
+
+function forgetInput(state: ClaudeProjectionState, inputId: string): ClaudeProjectionState {
+  const promptInputs = new Set(state.promptInputs); promptInputs.delete(inputId);
+  const unstartedInputs = new Set(state.unstartedInputs); unstartedInputs.delete(inputId);
+  const unacknowledgedInputs = new Set(state.unacknowledgedInputs); unacknowledgedInputs.delete(inputId);
+  return { ...state, promptInputs, unstartedInputs, unacknowledgedInputs,
+    ...(state.promptInputId === inputId ? { promptInputId: null, turnActive: state.nativeTurnActive } : {}),
+    ...(state.pendingInputId === inputId ? { pendingInputId: null } : {}) };
+}
+
+/** A replay/completed without queued or started since this write is Claude's duplicate-id refusal. */
+export function claudeDuplicateInput(state: ClaudeProjectionState, inputId: string, root: boolean): {
+  readonly state: ClaudeProjectionState; readonly events: readonly RuntimeEventBody[];
+} {
+  return root && state.promptInputs.has(inputId) && state.unacknowledgedInputs.has(inputId)
+    ? { state: forgetInput(state, inputId), events: [{ kind: "input_dropped", inputId, reason: "runtime_refused", failure: "invalid_request",
+      message: "claude ignored the input: its inputId was already used in this session" }] }
+    : { state, events: [] };
+}
+
 /** Only prompt-like writes own a turn. A steer can be started inside the current turn. */
 export function claudeInputLifecycle(state: ClaudeProjectionState, message: JsonRecord, root: boolean): {
   readonly state: ClaudeProjectionState; readonly events: readonly RuntimeEventBody[];
 } {
   const inputId = typeof message.command_uuid === "string" ? message.command_uuid : null;
   if (inputId === null || !state.promptInputs.has(inputId) || !root) { return { state, events: [] }; }
+  const unacknowledgedInputs = new Set(state.unacknowledgedInputs); unacknowledgedInputs.delete(inputId);
   if (message.state === "queued") {
-    return { events: [{ kind: "input_queued", inputId }], state: inputId === state.promptInputId
-      ? { ...state, turnActive: false, pendingInputId: inputId } : state };
+    return { events: [{ kind: "input_queued", inputId }], state: { ...state, unacknowledgedInputs,
+      ...(inputId === state.promptInputId ? { turnActive: false, pendingInputId: inputId } : {}) } };
   }
   if (message.state === "started") {
     const unstartedInputs = new Set(state.unstartedInputs); unstartedInputs.delete(inputId);
-    return { events: [{ kind: "turn_active", inputId }], state: { ...state, turnActive: true, nativeTurnActive: true, unstartedInputs,
+    return { events: [{ kind: "turn_active", inputId }], state: { ...state, turnActive: true, nativeTurnActive: true, unstartedInputs, unacknowledgedInputs,
       ...(state.pendingInputId === inputId ? { pendingInputId: null } : {}) } };
   }
   if (message.state === "cancelled") {
-    const promptInputs = new Set(state.promptInputs); promptInputs.delete(inputId);
-    const unstartedInputs = new Set(state.unstartedInputs); unstartedInputs.delete(inputId);
-    return { events: state.unstartedInputs.has(inputId) ? [{ kind: "input_dropped", inputId, reason: "turn_interrupted" }] : [], state: { ...state, promptInputs, unstartedInputs,
-      ...(state.promptInputId === inputId ? { promptInputId: null, turnActive: state.nativeTurnActive } : {}),
-      ...(state.pendingInputId === inputId ? { pendingInputId: null } : {}) } };
+    return { events: state.unstartedInputs.has(inputId) ? [{ kind: "input_dropped", inputId, reason: "turn_interrupted" }] : [], state: forgetInput(state, inputId) };
   }
-  // completed never ends a turn. Forget only the registration it confirms.
+  // completed never ends a turn; without queued/started it confirms an ignored duplicate.
   if (message.state === "completed") {
-    const promptInputs = new Set(state.promptInputs); promptInputs.delete(inputId);
-    const unstartedInputs = new Set(state.unstartedInputs); unstartedInputs.delete(inputId);
-    return { events: [], state: { ...state, promptInputs, unstartedInputs } };
+    const duplicate = claudeDuplicateInput(state, inputId, root);
+    return { events: duplicate.events, state: forgetInput(duplicate.state, inputId) };
   }
   return { state, events: [] };
 }

@@ -7,7 +7,7 @@ import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, Turn
  * object: a prompt request is its fallback start; native input_queued and
  * turn_active with inputId can establish its actual start. It ends at the runtime's own
  * `turn_ended` event (or at the process exit oar observed). A native before-start input drop
- * also resolves an input-scoped wait as aborted, without synthesizing a turn end.
+ * also resolves an input-scoped wait (aborted for interruption, failed for refusal), without synthesizing a turn end.
  *
  * Scope: the ROOT SESSION's ROOT AGENT. A derived child session's records
  * (codex child threads, grok child sessions) carry the child's own `sessionId`
@@ -20,7 +20,9 @@ import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, Turn
  * The root-agent turn end after `afterSeq`, if the stream already holds one:
  * the runtime's turn_ended event, or an observed process exit. When `sessionId`
  * is given, only that session's records count. inputId gates on a matching
- * native input_queued until its turn_active; without that evidence, the first end wins. A matching turn_interrupted input drop resolves as aborted.
+ * native input_queued until its turn_active; without that evidence, the first
+ * end wins. A matching input drop resolves as aborted for interruption or
+ * failed for refusal.
  */
 export function turnEndAfter(
   records: readonly RawEvent[],
@@ -50,9 +52,12 @@ function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, o
       for (const event of record.body.events) {
         if (inputId !== undefined && event.kind === "input_queued" && event.inputId === inputId) { waitingForInput = true; }
         if (inputId !== undefined && event.kind === "turn_active" && event.inputId === inputId) { waitingForInput = false; }
-        if (inputId !== undefined && event.kind === "input_dropped" && event.inputId === inputId && event.reason === "turn_interrupted") {
+        if (inputId !== undefined && event.kind === "input_dropped" && event.inputId === inputId) {
           waitingForInput = false;
-          if (record.seq > afterSeq && (!onlyWhenIdle || status.kind === "idle")) { return { kind: "aborted" }; }
+          if (record.seq > afterSeq && (!onlyWhenIdle || status.kind === "idle")) {
+            return event.reason === "turn_interrupted" ? { kind: "aborted" }
+              : { kind: "failed", failure: event.failure ?? "unknown", reason: event.message ?? "runtime refused the input" };
+          }
         }
         if (record.seq > afterSeq && !waitingForInput && event.kind === "text_delta") { onText?.(event.text); }
         if (record.seq > afterSeq && !waitingForInput && event.kind === "turn_ended" && (!onlyWhenIdle || status.kind === "idle")) { return event.outcome; }
@@ -120,7 +125,7 @@ export interface PromptRunOptions {
 export type PromptRun =
   /** The prompt did not begin a turn (busy, dead runtime); nothing was waited for. */
   | { readonly kind: "rejected"; readonly result: ControlOutcome; readonly code: RejectionCode; readonly reason: string }
-  /** The runtime ended the turn on its own. `text` is the root agent's text of this turn, concatenated. */
+  /** The runtime ended the turn or dropped the input. `text` is the root agent's text of this turn, concatenated. */
   | { readonly kind: "ended"; readonly result: ControlOutcome; readonly outcome: TurnOutcome; readonly text: string }
   /** The caller's timeout or signal fired first and the abort was taken over; `outcome` is the native turn end or an observed exit after the stop. */
   | { readonly kind: "interrupted"; readonly by: "timeout" | "signal"; readonly result: ControlOutcome; readonly outcome: TurnOutcome; readonly text: string };
@@ -134,7 +139,7 @@ export type PromptRun =
  * had just ended is the ordinary late-abort race, and the run is `ended`.
  * After an accepted abort the turn's end is awaited with no further limit:
  * a native turn end keeps its outcome; exit after that accepted abort is
- * `aborted`. A native before-start input drop also resolves as `aborted`.
+ * `aborted`. A native before-start input drop resolves as `aborted` for interruption or `failed` for refusal.
  * Without one of these facts the helper continues waiting.
  */
 export async function promptAndWait(session: Session, input: string, options: PromptRunOptions = {}): Promise<PromptRun> {

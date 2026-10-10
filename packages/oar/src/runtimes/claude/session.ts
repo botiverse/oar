@@ -117,8 +117,9 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
           const record = kernel.frame(command.body, { agentPath: command.agentPath });
           if (record.agentPath.length > 0) { break; }
           ended ||= command.body.events.some((event) => event.kind === "turn_ended");
-          const cancelled = command.body.events.find((event) => event.kind === "input_dropped" && event.reason === "turn_interrupted");
+          const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
           dropped ||= cancelled !== undefined;
+          if (cancelled?.kind === "input_dropped") { writtenQueues.delete(cancelled.inputId); }
           if (cancelled?.kind === "input_dropped" && state.active !== null && "inputId" in state.active.body && cancelled.inputId === state.active.body.inputId) { state.active = null; }
           break;
         }

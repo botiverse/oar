@@ -66,7 +66,7 @@ provider's echoed authentication header across live delivery and replay.
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
-| `command_lifecycle` | For inputs OAR wrote as prompts (including an idle or drained `queue`), `queued` gives `input_queued { inputId }` and `started` gives `turn_active { inputId }`, using `command_uuid`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. Steer lifecycle frames, `completed`, and `cancelled` after `started` remain native-only. |
+| `command_lifecycle` | For inputs OAR wrote as prompts (including an idle or drained `queue`), `queued` gives `input_queued { inputId }` and `started` gives `turn_active { inputId }`, using `command_uuid`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. A replayed user message or `completed` before this write has received either `queued` or `started` proves an ignored duplicate input id and gives `input_dropped` with `reason: "runtime_refused"`, `failure: "invalid_request"` and a diagnostic `message`. Other `completed` frames, steer lifecycle frames, and `cancelled` after `started` remain native-only. |
 | `system/init` | The reported model and service tier; additionally `turn_active` without input identity when a root turn starts on its own, including while a host prompt is still natively queued. A repeated init in an active turn gives no second start. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
@@ -195,8 +195,10 @@ holds two such turns, recorded without the echo.
 **Native input/turn attribution:** OAR generates an `inputId` UUID when
 omitted, and writes it as the user frame's `uuid`. Claude's `command_lifecycle queued`
 establishes that this input has not started; the matching `started` begins
-its turn, and the next root `result` ends it. Any init/result pair between
-queued and started belongs to a separate spontaneous turn. `completed` is
+its turn, and the next root `result` ends it. A turn that ends between queued and started is a separate spontaneous turn.
+Claude can also fold a queued input into an ongoing notification turn at a
+tool boundary: its replayed user message precedes `started`, without a new
+init. That input is delivered normally and shares the following result. `completed` is
 not a turn boundary: it follows the prompt's result, but for a steer can
 precede that result. Steer queued/started frames are not projected as turn
 facts; its replayed user message already reports its landing. Both queue
@@ -216,6 +218,22 @@ correlation. Without `inputId`, those lower-level helpers still return the
 first root end after the cursor. A process exit always releases the wait.
 Direct `session.prompt()` callers can pass `result.request.body.inputId`
 (with the prompt body narrowed) to those helpers, including generated IDs.
+
+**Use a fresh inputId for every resend.** Claude remembers message UUIDs,
+including cancelled queued inputs and messages in resumed sessions. Reusing
+one can produce only a replayed user message and/or `completed`, without a
+turn. For a registered prompt-like write with no `queued` or `started`
+since that write, OAR reports `input_dropped` with `reason: "runtime_refused"`,
+`failure: "invalid_request"` and `message: "claude ignored the input: its inputId was already used in this session"`.
+This frees the prompt slot; input-scoped waits return that failed outcome
+without waiting for a turn or killing the process. A replay after `queued`
+or `started` is not a duplicate refusal. These facts reset on every write,
+so reusing an id previously queued and cancelled is still detected.
+
+[Recorded regressions](../../tests/claude/claude-duplicate-recordings.test.ts)
+cover resend after cancellation, reuse after resume, and a queued prompt
+folded into a notification turn. Each keeps the original stdin and stdout
+sequence, with local paths removed.
 
 Evidence: Claude 2.1.292 with a scripted provider, no account:
 [notification collision](../../tests/replay/fixtures/claude-workflow-prompt-collision.raw.jsonl)
