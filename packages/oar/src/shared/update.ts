@@ -132,6 +132,8 @@ export interface NativeUpdater {
   readonly check: UpdateChecker;
   /** The runtime's own non-interactive update command. */
   readonly args: readonly string[];
+  /** The environment to start from, before the script-context filter; the host's by default. */
+  readonly env?: () => NodeJS.ProcessEnv;
 }
 
 /**
@@ -159,7 +161,7 @@ export async function upgradeExecutable(
   }
   const before = now ?? (check.kind === "ok" ? check.installed : undefined);
   const timeoutMs = options.timeoutMs ?? UPGRADE_TIMEOUT_MS;
-  const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(), timeoutMs });
+  const run = await runIsolated(installation.command, updater.args, { env: updaterEnv(updater.env?.() ?? process.env), timeoutMs });
   const output = isolatedOutput(run, timeoutMs, "updater");
   const after = await versionNow(installation.command);
   if (before !== undefined && after !== undefined && after !== before) {

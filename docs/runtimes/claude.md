@@ -780,7 +780,8 @@ detached execution or a lease against other controllers. The environment
 overlay applies to the child process; `null` deletes an inherited variable
 and `CLAUDECODE` is always removed. A host started from inside Claude Code
 (its Bash tool or a hook) inherits that session's markers, and OAR removes
-them from every claude it starts, sessions and subcommands alike:
+them from sessions and from the claude subcommands it runs (auth status, login,
+logout, account usage, model list, inventory, `claude update`):
 `CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`,
 `CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_CODE_CHROME_MCP_ORG_DENIED`,
 `CLAUDE_CODE_EVAL_INTERVIEW_SESSION`, `CLAUDE_CODE_BRIDGE_SESSION_ID`,
@@ -793,6 +794,8 @@ part of the parent session (skill proposals off, org memory refused, no prompt
 history), and an inherited entrypoint replaces print mode's own `sdk-cli`.
 `TRACEPARENT` and an `AI_AGENT` set by another tool pass through. An explicit
 `SessionOptions.env` value for any of them still wins, except `CLAUDECODE`.
+The installation probe (`claude --version`) and the vendor install script run
+through the shared paths with the host environment.
 [Markers](../../packages/oar/src/runtimes/claude/environment.ts). See the
 [environment contract](../spec/runtime-matrix.md#session-environment). [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
 
