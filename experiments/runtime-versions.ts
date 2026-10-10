@@ -10,10 +10,14 @@
  * Tool selection: rerun sea-trial/vendor/disallowed-tools*.vendor.test.ts
  * on changed supporting runtimes; Cursor also needs cursor-disallowed-tools.ts
  * (real login and tokens). Revisit refused native channels in the tool-denial audit.
- * A version match is not a compatibility result. Pi and Cursor are
+ * A version match is not a compatibility result. Pi, Pi Durable and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
- * PATH. A changed OpenCode binary also needs opencode-prompt-options.ts
- * (local provider, no login) to recheck native configuration and agent selection.
+ * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check
+ * its companion Chord SDK when upgrading and run the pi-durable-aimock backend.
+ * OpenCode has separate v1/v2 release sources. Compare only the selected
+ * executable's own line; an unselected line is not an outdated installation.
+ * A changed OpenCode binary also needs opencode-release-lines.ts; v1 additionally
+ * needs opencode-prompt-options.ts to recheck native configuration and agents.
  */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -22,8 +26,9 @@ import path from "node:path";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const PI_PACKAGE = "@earendil-works/pi-coding-agent";
+const PI_DURABLE_PACKAGE = "@earendil-works/pi-durable";
 const CURSOR_PACKAGE = "@cursor/sdk";
-const sources = [
+const sources: readonly { id: string; url: string; major?: number }[] = [
   { id: "antigravity", url: "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json" },
   { id: "claude", url: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" },
   { id: "codex", url: "https://registry.npmjs.org/@openai/codex/latest" },
@@ -31,13 +36,15 @@ const sources = [
   // The stable pointer used by the official https://x.ai/cli/install.sh.
   { id: "grok", url: "https://x.ai/cli/stable" },
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },
-  // The npm package the install script and `opencode upgrade` track alike.
-  { id: "opencode", url: "https://registry.npmjs.org/opencode-ai/latest" },
+  { id: "opencode", major: 1, url: "https://registry.npmjs.org/opencode-ai/latest" },
+  { id: "opencode", major: 2, url: "https://registry.npmjs.org/@opencode/cli/latest" },
   { id: "pi", url: `https://registry.npmjs.org/${PI_PACKAGE}/latest` },
-] as const;
+  { id: "pi-durable", url: `https://registry.npmjs.org/${PI_DURABLE_PACKAGE}/latest` },
+];
 
 function versionOf(value: string): string {
-  const version = /\b\d+\.\d+\.\d+(?:-[\w.]+)?\b/u.exec(value)?.[0];
+  // OpenCode 2 prints "opencode v2.x.y", unlike the bare v1 version.
+  const version = /\bv?(?<version>\d+\.\d+\.\d+(?:-[\w.]+)?)\b/u.exec(value)?.groups?.version;
   assert.ok(version !== undefined, "version response has no recognized version");
   return version;
 }
@@ -54,6 +61,10 @@ const SDKS: Readonly<Record<string, { packageName: string; from: URL }>> = {
     packageName: CURSOR_PACKAGE,
     from: new URL("../sea-trial/harness/runtimes.ts", import.meta.url),
   },
+  "pi-durable": {
+    packageName: PI_DURABLE_PACKAGE,
+    from: new URL("../sea-trial/harness/pi-durable.ts", import.meta.url),
+  },
 };
 
 async function sdkVersion(sdk: { packageName: string; from: URL }): Promise<string> {
@@ -64,7 +75,8 @@ async function sdkVersion(sdk: { packageName: string; from: URL }): Promise<stri
   return versionOf(data.version);
 }
 
-const results = await Promise.all(sources.map(async ({ id, url }) => {
+const results = await Promise.all(sources.map(async ({ id, url, major }) => {
+  const line = major === undefined ? undefined : `v${String(major)}`;
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
     assert.ok(response.ok, `version source returned HTTP ${String(response.status)}`);
@@ -76,7 +88,7 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
       assert.ok(typeof data === "object" && data !== null && "version" in data && typeof data.version === "string");
       latest = versionOf(data.version);
     }
-    const installation = await allRuntimes.require(id).installation?.();
+    const installation = id === "pi-durable" ? undefined : await allRuntimes.require(id).installation?.();
     let installed: string | null = null;
     const sdk = SDKS[id];
     if (sdk !== undefined) {
@@ -86,16 +98,20 @@ const results = await Promise.all(sources.map(async ({ id, url }) => {
     }
     let status = "unavailable";
     if (installed !== null) {
-      status = installed === latest ? "current" : "different";
+      if (major !== undefined && installed.split(".")[0] !== String(major)) {
+        status = "other_release_line";
+      } else {
+        status = installed === latest ? "current" : "different";
+      }
     }
     return {
-      runtime: id, source: url, latest, installed,
-      installation: installation?.kind ?? "unsupported",
+      runtime: id, line, source: url, latest, installed,
+      installation: id === "pi-durable" ? "host_supplied" : installation?.kind ?? "unsupported",
       status,
     };
   } catch (error) {
     process.exitCode = 1;
-    return { runtime: id, source: url, status: "error", error: error instanceof Error ? error.message : String(error) };
+    return { runtime: id, line, source: url, status: "error", error: error instanceof Error ? error.message : String(error) };
   }
 }));
 
