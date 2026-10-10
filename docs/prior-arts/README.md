@@ -21,6 +21,7 @@
 - [Herdr](herdr-findings.md)
 - [Multica](multica-findings.md)
 - [T3 Code](t3code-findings.md)
+- ACP 适配器（为 `oar acp` 设计调研，2026-10-06）：[codex 的两个适配器](acp-codex-adapters.md)、[claude 的两个适配器](acp-claude-adapters.md)、[Lody 扩展协议与 ACP 规范](acp-lody-extension-and-spec.md)
 
 综合判断：
 
