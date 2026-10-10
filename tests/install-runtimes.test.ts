@@ -32,12 +32,16 @@ test("each built-in script install runs its vendor's documented line, cited by i
   }
 });
 
-test("an install location variable is where privileges are checked", () => {
+test("an install location variable is where privileges are checked, and the answer keeps the vendor's line", () => {
   const previous = process.env.KIMI_INSTALL_DIR;
   process.env.KIMI_INSTALL_DIR = "/usr/local";
   try {
     const plan = scriptInstallPlanOn(kimiInstallMethod, { ...linux, unwritable: (target) => (target.startsWith("/usr/local") ? "/usr/local" : null) });
     assert.equal(plan.kind === "unsupported" ? plan.reason : plan.kind, "requires_privileges");
+    assert.deepEqual(plan.kind === "unsupported" ? [plan.steps?.map((step) => step.display), plan.source] : plan, [
+      ["curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash"],
+      "https://github.com/MoonshotAI/kimi-code#install",
+    ]);
   } finally {
     if (previous === undefined) {
       delete process.env.KIMI_INSTALL_DIR;
@@ -82,6 +86,10 @@ test("opencode ships two lines and oar picks neither: the plan needs a line", as
   assert.equal(unchosen.kind === "unsupported" ? unchosen.reason : unchosen.kind, "line_required");
   const unknown = await opencodeInstallPlan({ line: "v3" });
   assert.equal(unknown.kind === "unsupported" ? unknown.reason : unknown.kind, "unknown_line");
+  // Without a line it ships, there is no vendor step to show.
+  for (const answer of [unchosen, unknown]) {
+    assert.deepEqual([Object.hasOwn(answer, "steps"), Object.hasOwn(answer, "source")], [false, false], JSON.stringify(answer));
+  }
   // A plan for v2 here, or this machine's own answer (platform on Windows), never line_required.
   const v2 = await opencodeInstallPlan({ line: "v2" });
   assert.equal(v2.kind === "plan" ? v2.source : v2.reason === "line_required", v2.kind === "plan" ? "https://opencode.ai/v2/docs/" : false);

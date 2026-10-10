@@ -130,9 +130,15 @@ test("a non-zero exit after the runtime is in place is installed, not failed", a
   assert.equal(result.output, "Installed fake 1.0.0\nerror: could not write shell completions\n");
 });
 
-test("an unsupported plan is the install's answer, and nothing runs", async () => {
+test("an unsupported plan is the install's answer, steps included, and nothing runs", async () => {
   const fake = fakeInstall("unsupported", "install");
-  const unsupported: InstallUnsupported = { kind: "unsupported", reason: "missing_tool", detail: "curl" };
+  const unsupported: InstallUnsupported = {
+    kind: "unsupported",
+    reason: "missing_tool",
+    detail: "curl",
+    steps: [{ command: [process.execPath, fakeInstaller, path.join(dir, "unsupported.json")], display: "install unsupported" }],
+    source: "https://example.invalid/install",
+  };
   const plan: InstallPlanner = async () => {
     await Promise.resolve();
     return unsupported;
@@ -195,7 +201,7 @@ test("a script plan runs the documented line through sh", () => {
   });
 });
 
-test("a script plan off macOS and Linux, or off x64 and arm64, is platform", () => {
+test("a script plan off macOS and Linux, or off x64 and arm64, is platform, without the script's steps", () => {
   const windows = scriptInstallPlanOn(method, { ...linux, platform: "win32", arch: "x64" });
   assert.equal(windows.kind === "unsupported" ? windows.reason : windows.kind, "platform");
   assert.match(windows.kind === "unsupported" ? windows.detail ?? "" : "", /irm https:\/\/example\.invalid\/install\.ps1/u);
@@ -203,16 +209,29 @@ test("a script plan off macOS and Linux, or off x64 and arm64, is platform", () 
   assert.equal(freebsd.kind === "unsupported" ? freebsd.reason : freebsd.kind, "platform");
   const ia32 = scriptInstallPlanOn(method, { ...linux, arch: "ia32" });
   assert.equal(ia32.kind === "unsupported" ? ia32.reason : ia32.kind, "platform");
+  for (const answer of [windows, freebsd, ia32]) {
+    assert.deepEqual([Object.hasOwn(answer, "steps"), Object.hasOwn(answer, "source")], [false, false], JSON.stringify(answer));
+  }
 });
 
-test("a script plan names a missing tool and a directory this user cannot write", () => {
+test("a missing tool or a directory this user cannot write still carries the steps the plan would have had", () => {
+  const planned = scriptInstallPlanOn(method, linux);
+  assert.ok(planned.kind === "plan", JSON.stringify(planned));
+  const { steps, source } = planned;
   assert.deepEqual(
     scriptInstallPlanOn(method, { ...linux, locate: (tool) => (tool === "curl" ? null : `/usr/bin/${tool}`) }),
-    { kind: "unsupported", reason: "missing_tool", detail: "curl" },
+    { kind: "unsupported", reason: "missing_tool", detail: "curl", steps, source },
   );
-  const root = scriptInstallPlanOn(method, { ...linux, unwritable: (target) => (target === "/home/oar/.example" ? "/home/oar" : null) });
-  assert.equal(root.kind === "unsupported" ? root.reason : root.kind, "requires_privileges");
-  assert.match(root.kind === "unsupported" ? root.detail ?? "" : "", /\/home\/oar is not writable/u);
+  assert.deepEqual(
+    scriptInstallPlanOn(method, { ...linux, unwritable: (target) => (target === "/home/oar/.example" ? "/home/oar" : null) }),
+    {
+      kind: "unsupported",
+      reason: "requires_privileges",
+      detail: "the installer writes /home/oar/.example, and /home/oar is not writable by this user",
+      steps,
+      source,
+    },
+  );
 });
 
 const runsAsRoot = process.getuid?.() === 0;
