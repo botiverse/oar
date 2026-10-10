@@ -12,7 +12,8 @@ export type RunningPhase =
   | "thinking"
   | "responding"
   | "compacting"
-  | { readonly tool: string; readonly callId: string };
+  /** `writing`: the runtime is still streaming the call's arguments (a `tool_call_input_delta` came, its complete `tool_call_input` not yet); absent once they are complete and for every call without streamed arguments. */
+  | { readonly tool: string; readonly callId: string; readonly writing?: true };
 
 /** Native queue evidence retained across an unrelated spontaneous turn. */
 interface PendingPrompt {

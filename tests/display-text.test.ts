@@ -76,6 +76,18 @@ test("a tool phase keeps the runtime's tool name", () => {
   expect(phaseLabel({ tool: "mcp__server__lookup", callId: "1" })).toBe("Running mcp__server__lookup");
 });
 
+test("with a runtime id, a running call reads as its action; MCP and unclassified tools by their short name (#314)", () => {
+  expect(phaseLabel({ tool: "Edit", callId: "1" }, "claude")).toBe("Editing file");
+  expect(phaseLabel({ tool: "Bash", callId: "1" }, "claude")).toBe("Running command");
+  expect(phaseLabel({ tool: "mcp__ferry__show_widget", callId: "1" }, "claude")).toBe("Running show_widget");
+  expect(phaseLabel({ tool: "SomethingNew", callId: "1" }, "claude")).toBe("Running SomethingNew");
+});
+
+test("a call whose arguments are still streaming reads as writing them (#314)", () => {
+  expect(phaseLabel({ tool: "mcp__ferry__show_widget", callId: "1", writing: true }, "claude")).toBe("Writing show_widget arguments");
+  expect(phaseLabel({ tool: "mcp__ferry__show_widget", callId: "1", writing: true })).toBe("Writing mcp__ferry__show_widget arguments");
+});
+
 const failures = {
   auth: ["auth", "Claude Code could not authenticate."],
   quota: ["quota", "Claude Code reported that its usage limit was reached."],
