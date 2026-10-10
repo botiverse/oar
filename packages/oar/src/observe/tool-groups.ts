@@ -81,6 +81,8 @@ const DONE: Record<ToolActionKind, (count: number) => string> = {
   edit_file: (n) => (n === 1 ? "edited a file" : `edited ${n} files`),
   search: (n) => (n === 1 ? "searched" : `searched ${n} times`),
   web: (n) => (n === 1 ? "searched the web" : `searched the web ${n} times`),
+  fetch: (n) => (n === 1 ? "fetched a page" : `fetched ${n} pages`),
+  subagent: (n) => (n === 1 ? "ran a subagent" : `ran ${n} subagents`),
   mcp: (n) => (n === 1 ? "used a tool" : `used ${n} tools`),
   wait: (n) => (n === 1 ? "waited" : `waited ${n} times`),
   other: (n) => (n === 1 ? "used a tool" : `used ${n} tools`),

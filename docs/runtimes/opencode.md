@@ -54,8 +54,9 @@ native observations from source-only findings.
   verbatim. The native tool `name` wins over its display title, so a
   child's `shell` stays `shell` even when its title has a child prefix.
 - **Tool names:** `shell` is a command with its reported `command` input;
-  v1 `bash` remains supported. `subagent` and Code Mode `execute` retain
-  their names and classify as `other`. `execute` can run MCP calls, ordinary
+  v1 `bash` remains supported. `subagent` classifies as `subagent`, with
+  its `description` as the detail. Code Mode `execute` retains its name and
+  classifies as `other`: it can run MCP calls, ordinary
   JavaScript or `fetch`; the name alone cannot prove an MCP operation.
 - **MCP:** stdio servers supplied at new and resumed session open were
   callable through `execute`. Its input code, result and native metadata
