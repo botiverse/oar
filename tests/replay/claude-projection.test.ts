@@ -24,7 +24,7 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 const here = import.meta.dirname;
 // usage-subagent-compact (claude 2.1.292, haiku, 2026-10-09): one process, a
 // turn that runs a Task subagent, a plain turn, then a manual /compact.
-const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks", "mcp-echo", "usage-subagent-compact"];
+const scenarios = ["tool-round", "multi-turn", "steer", "error", "background-tasks", "mcp-echo", "usage-subagent-compact", "workflow", "workflow-agent-tool", "workflow-stopped"];
 
 function describeTokens(tokens: TokenTotals): string {
   const parts = [

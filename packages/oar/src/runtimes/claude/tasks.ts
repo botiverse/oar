@@ -3,10 +3,13 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 /**
  * claude's task frames (stream-json `system/task_started`, `task_updated`,
- * `task_notification`; observed on 2.1.284, shapes as documented for the
+ * `task_progress`, `task_notification`; observed on 2.1.284 and 2.1.292, shapes as documented for the
  * Agent SDK): background and foreground commands (`local_bash`), subagents
  * (`local_agent`, `remote_agent`), and MCP calls moved to the background
- * (`mcp_task`). `background_tasks_changed` repeats the live set and maps to
+ * (`mcp_task`), workflow runs (`local_workflow`) and agent teammates.
+ * `workflow_progress` stays native: it is outside the SDK schema. Its
+ * last-call token counts are not spend; only result.modelUsage is.
+ * `background_tasks_changed` repeats the live set and maps to
  * nothing: the per-task frames carry starts, status changes and ends, though
  * a change of `ambient` alone shows only there.
  */
@@ -15,7 +18,9 @@ const TASK_TYPES: Readonly<Record<string, TaskType>> = {
   local_bash: "shell",
   local_agent: "agent",
   remote_agent: "agent",
+  in_process_teammate: "agent",
   mcp_task: "tool",
+  local_workflow: "workflow",
 };
 
 const STATUSES: Readonly<Record<string, TaskStatus>> = {
@@ -86,8 +91,7 @@ function ended(message: JsonRecord, taskId: string): TaskEventBody[] {
   }];
 }
 
-/** The task events one claude `system` frame carries; none for other subtypes. */
-export function claudeTaskViews(message: JsonRecord): TaskEventBody[] {
+function taskEvents(message: JsonRecord, previousDescription: string | undefined): TaskEventBody[] {
   const taskId = text(message.task_id);
   if (taskId === undefined) {
     return [];
@@ -97,9 +101,28 @@ export function claudeTaskViews(message: JsonRecord): TaskEventBody[] {
       return [started(message, taskId)];
     case "task_updated":
       return [updated(message, taskId)];
+    case "task_progress":
+      return typeof message.description === "string" && message.description !== previousDescription
+        ? [{ kind: "task_updated", taskId, description: message.description }]
+        : [];
     case "task_notification":
       return ended(message, taskId);
     default:
       return [];
   }
+}
+
+/** Progress repeats often; remember each task's last reported description across turns. */
+export function claudeTaskViews(
+  message: JsonRecord,
+  descriptions: ReadonlyMap<string, string>,
+  agentPath: readonly string[],
+): { events: TaskEventBody[]; descriptions: ReadonlyMap<string, string> } {
+  const key = JSON.stringify([...agentPath, message.task_id]);
+  const events = taskEvents(message, descriptions.get(key));
+  const description = events.find((event) => event.kind !== "task_ended" && event.description !== undefined);
+  if (description?.kind !== "task_ended" && description?.description !== undefined && description.description !== descriptions.get(key)) {
+    return { events, descriptions: new Map([...descriptions, [key, description.description]]) };
+  }
+  return { events, descriptions };
 }

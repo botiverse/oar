@@ -1,12 +1,6 @@
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
-import type {
-  FrameBody,
-  RuntimeEventBody,
-  ResponseBody,
-  TokenTotals,
-  TurnOutcome,
-} from "../../contracts/session.js";
+import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { claudeFailure, claudeLimitReset } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { toolContent } from "../../shared/tool-output.js";
@@ -25,8 +19,8 @@ import { claudeContent, contentBlocks, type ClaudePartials } from "./content.js"
  * shared verbatim between live and replay.
  *
  * Rules the fold enforces: EVERY frame becomes exactly one frame
- * (verbatim `native`, events in block order); nothing is gated on whether a
- * turn is "open"; the turn's end is claude's own `result` frame; attribution
+ * (verbatim `native`, events in block order), even outside a turn. Repeated
+ * init frames do not reopen an active turn; its end is claude's own `result`. Attribution
  * comes from `parent_tool_use_id` (a child's path is its parent's path plus
  * the Task tool_use id that spawned it).
  */
@@ -39,8 +33,8 @@ export type ProjectionCommand =
   | { readonly kind: "toApp"; readonly id: string; readonly type: string; readonly native: unknown };
 
 /**
- * Fold state. `abortRequested` is the one input that is NOT in the provider
- * stream: abort is a control-plane intent, and claude reports its result as
+ * Fold state. `abortRequested` is control-plane intent, not provider data:
+ * claude reports its result as
  * an ordinary result frame, so the flag is how the fold tells aborted from
  * completed. `agents` maps every tool_use id seen to the agentPath of the
  * message that carried it, so a frame with `parent_tool_use_id` attributes to
@@ -57,10 +51,14 @@ export type ProjectionCommand =
  */
 export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
+  /** Prompt requests and root init/results delimit a turn, including native spontaneous turns. */
+  readonly turnActive: boolean;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
   readonly modelUsage: ClaudeModelUsage;
   readonly partials: ClaudePartials;
+  /** Last native task description per agent/task, for progress de-duplication. */
+  readonly taskDescriptions: ReadonlyMap<string, string>;
   readonly failureCategory: string | null;
   readonly limitResetsAt: UtcInstant | null;
 }
@@ -68,10 +66,12 @@ export interface ClaudeProjectionState {
 /** A new session's fold. */
 export const initialClaudeProjection: ClaudeProjectionState = {
   abortRequested: false,
+  turnActive: false,
   agents: new Map(),
   tokens: new Map(),
   modelUsage: freshModelUsage,
   partials: new Map(),
+  taskDescriptions: new Map(),
   failureCategory: null,
   limitResetsAt: null,
 };
@@ -86,7 +86,7 @@ export function claudeUsageBaselined(state: ClaudeProjectionState, baseline: Cla
 
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
 export function claudePrompted(state: ClaudeProjectionState): ClaudeProjectionState {
-  return { ...state, abortRequested: false };
+  return { ...state, abortRequested: false, turnActive: true };
 }
 
 export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
@@ -231,7 +231,8 @@ export function foldClaudeStdout(
           ...(running.total === null ? {} : { total: running.total }),
         } });
       }
-      return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage, abortRequested: false, failureCategory: null });
+      return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage,
+        ...(agentPath.length === 0 ? { turnActive: false } : {}), abortRequested: false, failureCategory: null });
     }
     case "system": {
       if (message.subtype === "compact_boundary") {
@@ -241,8 +242,17 @@ export function foldClaudeStdout(
         const trigger = asRecord(message.compact_metadata)?.trigger;
         return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] });
       }
-      const model = message.subtype === "init" && typeof message.model === "string" ? message.model : null;
-      return event({ events: [...(model === null ? claudeTaskViews(message) : [{ kind: "model" as const, model }]), ...claudeServiceTierEvents(message)] });
+      if (message.subtype === "init") {
+        // A prompt already reports its start. Only a native spontaneous root
+        // start needs this event; retaining the fact here keeps replay equal.
+        const spontaneous = agentPath.length === 0 && !state.turnActive;
+        return event({ events: [...(spontaneous ? [{ kind: "turn_active" as const }] : []),
+          ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
+          ...claudeServiceTierEvents(message)] }, spontaneous ? { ...state, turnActive: true } : state);
+      }
+      const task = claudeTaskViews(message, state.taskDescriptions, agentPath);
+      return event({ events: [...task.events, ...claudeServiceTierEvents(message)] },
+        task.descriptions === state.taskDescriptions ? state : { ...state, taskDescriptions: task.descriptions });
     }
     case "control_response": {
       // claude answering one of OUR control_requests (interrupt): the frame IS

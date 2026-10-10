@@ -10,7 +10,7 @@ system thinking_tokens       │ event
 assistant thinking           │ event → reasoning text
 assistant text               │ event → text_delta
 result success               │ event → turn_ended completed
-system init                  │ event
+system init                  │ event → turn_active
 system thinking_tokens       │ event
 system thinking_tokens       │ event
 system thinking_tokens       │ event

@@ -43,7 +43,8 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", ...options.disallowedTools ?? []]),
   ], {
     cwd: options.cwd,
-    env: sessionEnvironment({ ...options.env, CLAUDECODE: null }),
+    // Let print mode choose sdk-cli, unless the host explicitly chose an entrypoint.
+    env: sessionEnvironment({ CLAUDE_CODE_ENTRYPOINT: null, ...options.env, CLAUDECODE: null }),
     // On Windows an npm .cmd wrapper can exit while native claude keeps
     // the provider request and stdio alive. Teardown must reach both.
     killTree: true,

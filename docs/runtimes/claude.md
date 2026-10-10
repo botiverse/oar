@@ -65,7 +65,8 @@ provider's echoed authentication header across live delivery and replay.
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
-| `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). `background_tasks_changed` (the live set) and `task_progress` carry no events. |
+| `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
+| `system/init` | The reported model and service tier; additionally `turn_active` only when a root turn starts spontaneously while idle, including after a workflow completion. A host-prompted or already-running turn gets no second start event. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
 
@@ -660,6 +661,78 @@ claude's frames name servers and their status only, never an `env` or
 `headers` value; the vendor test asserts no record holds one. A clash with a
 project-scope (`.mcp.json`) or local-scope server was not measured.
 
+### Workflows
+
+Claude's local `Workflow` tool is available in headless stream-json sessions
+[static binary inspection, 2.1.292]. It is disabled by
+`CLAUDE_CODE_DISABLE_WORKFLOWS`, the `disableWorkflows` setting, an organization
+policy that refuses `allow_workflows`, or the server's `tengu_workflows_enabled`
+flag. `CLAUDE_CODE_WORKFLOWS=0` also disables it. Unless explicitly set,
+`enableWorkflows` defaults off for Pro subscriptions and on for Max, Team and
+API-key sessions; `CLAUDE_CODE_WORKFLOWS=1` uses the server flag as the default.
+OAR does not change these gates or orchestrate the workflow.
+
+One run is one `taskType: "workflow"` task, mapped from `local_workflow`.
+Agent-team `in_process_teammate` tasks map to `agent`. For every native task
+type, a changed `task_progress.description` becomes a `task_updated`
+description, giving the host the runtime's current activity line. The task's
+identity is `task_id`; the frame's `run_id` and the tool result's workflow
+`runId` (`wf_…`) are separate native identifiers.
+
+The nested `workflow_progress` list has phase and agent summaries, including
+child tool command text, but is outside Claude's SDK schema. It stays in the
+native frame under the normal credential redaction rules. OAR creates no
+phase events, child-agent frames or per-agent tasks from that summary. Claude
+emits none of those child frames on stdout. In native withhold mode
+(`withholdScriptFromSdkEvents`), `prompt` is empty, phase names are generic,
+agent prompt previews are removed and errors are withheld.
+
+Workflow spend arrives in a later `result.modelUsage`, after the agents have
+finished; it contributes to the session total and `unattributed`, without an
+invented agent attribution. Task-frame `usage.total_tokens` sums the agents'
+latest calls, not all their calls, so it is not spend and is never projected
+as tokens. Closing before a later result may leave that spend unreported.
+On completion Claude starts a turn itself (`system/init`) to handle the
+notification. OAR reports `turn_active` and becomes busy immediately, even
+before any text arrives. `TaskStop` instead yields a `killed` patch and a
+`stopped` notification, both mapped to stopped; the recorded stopped run had
+no notification usage and no spontaneous turn. Host `stop_task` control is
+not exposed by OAR.
+
+Evidence: Claude 2.1.292, a temporary HOME and a scripted provider with a
+synthetic API key, no account. Three original recordings pin
+[two phases/two agents](../../tests/replay/fixtures/claude-workflow.raw.jsonl),
+[a child Bash call](../../tests/replay/fixtures/claude-workflow-agent-tool.raw.jsonl)
+and [a stopped run](../../tests/replay/fixtures/claude-workflow-stopped.raw.jsonl).
+Their [adapter regressions](../../tests/claude/claude-workflows.test.ts) check
+native order, descriptions, spend and spontaneous turns. Withhold mode and
+host-initiated stops were not exercised.
+
+### Idle compaction
+
+By default OAR's print-mode sessions use Claude's `sdk-cli` entrypoint,
+which does not enable its idle-compaction timer. Removing the inherited
+entrypoint prevents a parent desktop/editor session from changing that
+behavior. An explicitly supplied entrypoint can still enable the native
+path; OAR does not override that choice.
+
+Static inspection of Claude 2.1.292 found these gates: `idleCompaction` may
+disable it (true cannot force it), the server's `tengu_sunny_locket` must
+select `mode: "compact"`, auto-compaction must be enabled, the cache duration
+must be one hour, context must meet `minTokens` (default 200,000), quota must
+be allowed, and no turn may be active. The default `fireAtFraction` is 0.9,
+about 54 minutes. The session kind must not be bg/daemon, and the UI must be
+interactive or the entrypoint must be one of Claude's supported desktop,
+editor, remote, Slack, Teams or coworker entrypoints.
+
+The native report is `compact_boundary` with `trigger: "auto"`; the schema
+only distinguishes manual and auto, so OAR cannot distinguish idle from
+threshold compaction. A `compaction_ended` while idle leaves `statusOf` idle,
+including its last turn outcome. Only a running status moves to
+`waiting_model`. The live idle trigger, any transcript notice and an
+out-of-turn `system/status` were not exercised; the regression covers the
+observed boundary schema outside a turn.
+
 ### Process ownership, environment, installation, and account usage
 
 A synchronous host `exit` also kills OAR-owned process groups, including
@@ -705,7 +778,9 @@ terminal's job control: a host's Ctrl-C does not reach it, so a host that
 wants it stopped disposes the session. This supplies resource release, not
 detached execution or a lease against other controllers. The environment
 overlay applies to the child process; `null` deletes an inherited variable
-and `CLAUDECODE` is always removed. See the
+and `CLAUDECODE` is always removed. An inherited `CLAUDE_CODE_ENTRYPOINT` is
+also removed so print mode chooses its own `sdk-cli` entrypoint; an explicit
+`SessionOptions.env.CLAUDE_CODE_ENTRYPOINT` still wins. See the
 [environment contract](../spec/runtime-matrix.md#session-environment). [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
 
 On Windows, disposal and the abort fallback use `taskkill /T /F` to terminate
@@ -852,7 +927,8 @@ former only.
    `--effort` (then a `get_settings` control request before the first turn),
    `--system-prompt`, `--append-system-prompt`, `--mcp-config <file>` (for
    `SessionOptions.mcpServers`). `CLAUDECODE` is cleared from
-   the child environment. Prompts are `user` message lines on stdin. Present
+   the child environment, as is an inherited `CLAUDE_CODE_ENTRYPOINT` (an explicit
+   host entrypoint wins). Prompts are `user` message lines on stdin. Present
    in 2.1.261 help but not on the session path:
    `--fork-session`, `--no-session-persistence` (the inventory and account
    usage readers pass it), `--permission-mode`, `--permission-prompts`,
