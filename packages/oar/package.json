@@ -1,6 +1,6 @@
 {
   "name": "@botiverse/oar",
-  "version": "0.54.1",
+  "version": "0.54.2",
   "description": "A programming interface for all agent harnesses: provider-independent contracts for controlling and observing agent runtimes",
   "type": "module",
   "main": "./dist/index.js",
