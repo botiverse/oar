@@ -60,6 +60,8 @@ test("classifyTool reads page fetches and subagent calls with their recorded inp
   const opencode = { agent: "general", description: "Echo child check", prompt: "Run `echo CHILD-OK-7731` in its shell and report the output." };
   assert.deepEqual(classifyTool("opencode", "subagent", JSON.stringify(opencode)), { kind: "subagent", detail: "Echo child check", description: "Echo child check" });
   assert.deepEqual(classifyTool("claude", "Agent"), { kind: "subagent" });
+  // `Task` is Agent's alias in claude 2.1.292: a call made under it is recorded under it.
+  assert.deepEqual(classifyTool("claude", "Task", JSON.stringify(claude)), { kind: "subagent", detail: "Run echo command", description: "Run echo command" });
   assert.equal(toolActionLabel("fetch", "running"), "Fetching page");
   assert.equal(toolActionLabel("subagent", "running"), "Running subagent");
   assert.equal(toolActionLabel("web", "writing"), "Preparing web search");

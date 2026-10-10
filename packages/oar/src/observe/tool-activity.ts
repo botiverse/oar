@@ -49,7 +49,7 @@ export interface ToolAction {
   readonly command?: string;
   /**
    * The agent's own one-line account of the call, where the runtime sends one (claude `Bash`,
-   * grok `run_terminal_command`). On a `subagent` call (claude `Agent`, opencode `subagent`) it is
+   * grok `run_terminal_command`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
    * the subagent's task, also its `detail`.
    */
   readonly description?: string;
@@ -79,6 +79,7 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     WebFetch: "fetch",
     WebSearch: "web",
     Agent: "subagent",
+    Task: "subagent", // Agent's alias in 2.1.292: a call the model makes as `Task` is recorded as `Task`.
   },
   codex: {
     commandExecution: "run_command",
@@ -188,7 +189,7 @@ function waitFields(inputJson: string): InputFields {
  * there once the call's latest input is passed in.
  */
 const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
-  claude: { Bash: (input) => stringFields(input, true), Agent: taskFields },
+  claude: { Bash: (input) => stringFields(input, true), Agent: taskFields, Task: taskFields },
   codex: {
     commandExecution: (input) =>
       input.length === 0 || asRecord(parseJson(input)) !== null ? {} : { command: input },
