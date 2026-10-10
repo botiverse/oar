@@ -6,6 +6,7 @@ import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js"
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts } from "../../shared/token-totals.js";
 import { grokFailureOutcome } from "./failure.js";
+import { grokSpontaneousTokens } from "./spontaneous-usage.js";
 import { redactGrokNotification } from "../../shared/credential-redaction.js";
 
 function authMethodIds(initialized: JsonRecord): string[] {
@@ -76,10 +77,14 @@ export function grokContextUsage(response: JsonRecord): ContextUsage | null {
  * summed over its model calls (grok 1.0.25, live 2026-09-11: three one-word
  * turns billed ~16.8k input each, not a growing total; a steered turn's
  * closing answer summed its two calls). `inputTokens` includes the cached
- * reads (`cachedReadTokens` ≤ it) and, for a prompt that spawned children,
- * the children's model calls too (live-grok-c/subagent seq 159 = the four
+ * reads (`cachedReadTokens` ≤ it) and may include a child's model calls
+ * when it finishes during the parent prompt (live-grok-c/subagent seq 159 = the four
  * `response_completed` frames 48+78+119+155, two of them the child's). The
- * turn machinery sums these per session. The same ledger's `cachedReadTokens`
+ * turn machinery shares its accumulator with independent root wake ledgers
+ * (spontaneous-usage.ts). Late background child usage can still be absent;
+ * will_wake does not identify ledger inclusion
+ * (experiments/grok-background-usage-2026-10-10.md).
+ * The same ledger's `cachedReadTokens`
  * is the cache-read part of that input and `cacheCreationTokens` the
  * cache-write part (live 1.0.25 basic answer: 1280 and 0); each is read only
  * when the ledger carries it.
@@ -179,6 +184,7 @@ export const grokAcpProfile: AcpSessionProfile = {
   steerSupersedesPrompt: true,
   promptContextUsage: grokContextUsage,
   promptTokenUsage: grokPromptTokens,
+  spontaneousTokenUsage: grokSpontaneousTokens,
 };
 
 export const grokSession = acpSession(grokAcpProfile);

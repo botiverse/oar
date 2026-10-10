@@ -26,6 +26,8 @@ import { startAcpProcess } from "./process.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
 import { acpTakesImages, createAcpTurns } from "./turns.js";
+import { createAcpTokenUsage } from "./token-usage.js";
+import { createAcpOpening } from "./opening.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 
@@ -59,13 +61,15 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // The recorder queues everything until the handshake reveals the session
     // id and the kernel can be bound (records.ts).
     const usageGate = createUsageUpdateGate();
-    const recorder = createAcpRecorder(usageGate, profile.attributeUpdate);
+    const tokenUsage = createAcpTokenUsage(profile);
+    const opening = createAcpOpening();
+    const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage);
     const client = createAcpClientApp(terminalHost, {
       update: (notification) => {
         recorder.update(notification);
       },
       extension: (method, params) => {
-        recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params);
+        recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, opening.afterOpen(params));
       },
       requested: (id, method, params) => {
         recorder.requested(id, method, params);
@@ -75,7 +79,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       },
       extensionNotifications: profile.extensionNotifications ?? [],
     });
-    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact });
+    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
     }).catch(async (error: unknown) => {
@@ -89,7 +93,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
 
     let disposeRequest: RequestRecord | null = null;
     const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
-    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities });
+    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptUsage: (result) => tokenUsage.prompt(result) });
     // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
     void runtime.exited.then((code) => {
       void terminalHost.dispose();

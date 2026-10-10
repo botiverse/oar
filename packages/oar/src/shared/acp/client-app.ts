@@ -13,7 +13,7 @@ import {
   type TerminalOutputRequest,
   type WaitForTerminalExitRequest,
 } from "@agentclientprotocol/sdk";
-import { asRecord, type JsonRecord } from "../json.js";
+import type { JsonRecord } from "../json.js";
 import type { AcpTerminalHost } from "./terminal.js";
 
 /**
@@ -51,7 +51,12 @@ function requestIdOf(context: { readonly requestId: JsonRpcId }): string {
   return String(context.requestId);
 }
 
-const passthrough = (params: unknown): JsonRecord => asRecord(params) ?? {};
+// Keep the decoded object's identity so its wire arrival phase survives the
+// SDK's asynchronous handler chain. Redaction still runs before recording.
+function isParamsRecord(params: unknown): params is JsonRecord {
+  return params !== null && typeof params === "object" && !Array.isArray(params);
+}
+const passthrough = (params: unknown): JsonRecord => isParamsRecord(params) ? params : {};
 
 /** Compose OAR's typed ACP client handlers directly on the official SDK app. */
 export function createAcpClientApp(

@@ -166,9 +166,11 @@ the protocol surface.
   children, each counted once. `session_linked` records native lineage, and
   `graphOf(records)` lets both `usageOf` and SessionView compute the same
   amount in replay. Foreign session ids alone do not imply lineage.
-  Codex reports independent per-thread totals. Grok instead includes its
-  children's calls in the root's prompt ledger; its child ledgers remain
-  native-only and are not added again ([Grok evidence](../runtimes/grok.md#context-usage-billing-and-compaction)).
+  Codex reports independent per-thread totals. Grok's prompt ledger may
+  already include a child's calls, so its child ledgers remain native-only
+  to avoid double counting. The root's independent automatic follow-up is
+  counted, but a background child that finishes after its parent prompt can
+  still be missing from OAR's totals ([Grok evidence](../runtimes/grok.md#context-usage-billing-and-compaction)).
   OpenCode's context-only child reports supply no token total. The adapter
   resolves this accounting difference; hosts do not need runtime checks.
   `withChildren` is absent when no linked child reports independent token

@@ -5,7 +5,6 @@ import type {
   RequestRecord,
   ResponseBody,
   SessionCapabilities,
-  TokenTotals,
   TurnOutcome,
 } from "../../contracts/session.js";
 import { pathToFileURL } from "node:url";
@@ -19,7 +18,6 @@ import { methods, type AcpProcess } from "./process.js";
 import {
   acpErrorNative,
   acpFailureOutcome,
-  acpPromptUsage,
   defaultAcpPromptOutcome,
 } from "./projection.js";
 
@@ -81,14 +79,13 @@ export function createAcpTurns(deps: {
   readonly profile: AcpSessionProfile;
   readonly usageGate: UsageUpdateGate;
   readonly capabilities: Pick<SessionCapabilities, "images">;
+  readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
 }): AcpTurns {
-  const { kernel, runtime, profile, usageGate, capabilities } = deps;
+  const { kernel, runtime, profile, usageGate, capabilities, promptUsage } = deps;
   const rootId = kernel.sessionId;
   const held: { readonly inputId: string | undefined; readonly prompt: JsonRecord[] }[] = [];
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
-  // Running session total of the per-prompt ledgers (profile.promptTokenUsage).
-  let billed: TokenTotals = { input: 0, output: 0 };
 
   const closeTurn = (state: ActiveTurn): void => {
     if (state.fallback !== null) {
@@ -140,12 +137,11 @@ export function createAcpTurns(deps: {
         // precedes the turn end and contextUsage() at turn_ended is this
         // turn's own value.
         await usageGate.settleAfterPrompt(profile, state.abortRequested);
-        const usage = acpPromptUsage(profile.promptContextUsage?.(result) ?? null, profile.promptTokenUsage?.(result) ?? null, billed);
-        ({ billed } = usage);
+        const usage = promptUsage(result);
         finishRequest(state, requestNumber, {
           type: methods.agent.session.prompt,
           native: result,
-          context: usage.event,
+          context: usage,
           steered: steered !== undefined,
         }, profile.promptOutcome?.(result) ?? defaultAcpPromptOutcome(result));
       } catch (error) {

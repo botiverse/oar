@@ -10,6 +10,7 @@ import { spawnLineProcess } from "../executable/index.js";
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
 import { nativeErrorCause } from "../native-error.js";
 import type { SessionResources } from "../../contracts/session.js";
+import { observeAcpOpening, type AcpOpening } from "./opening.js";
 
 export { client as createAcpClient, methods } from "@agentclientprotocol/sdk";
 export type { ClientApp, SessionNotification } from "@agentclientprotocol/sdk";
@@ -38,6 +39,8 @@ export interface AcpProcessOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Session MCP credentials must not appear in protocol error messages, data or causes. */
   readonly redact?: (text: string) => string;
+  /** Track notification arrival relative to the native session-open answer. */
+  readonly opening?: AcpOpening;
 }
 
 /** A child process connected directly to an official SDK client app. */
@@ -117,7 +120,8 @@ export function startAcpProcess(
   const output = Writable.toWeb(child.stdin) as Parameters<typeof ndJsonStream>[0];
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
   const input = Readable.toWeb(child.stdout) as Parameters<typeof ndJsonStream>[1];
-  const connection = app.connect(ndJsonStream(output, input));
+  const stream = ndJsonStream(output, input);
+  const connection = app.connect(options.opening === undefined ? stream : observeAcpOpening(stream, options.opening));
   let ended = false;
   let exitCode: number | null = null;
   child.onExit((code) => {
