@@ -17,12 +17,10 @@ Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
 for status labels.
 
-The [October 9 daily check](../../experiments/runtime-version-checks/2026-10-09.md)
-passed the same three live scenarios on **2.1.295** (Linux x64,
-`claude-haiku-5-5`), after a native session-limit reset. All 36 native vendor
-tests and 17 applicable shared behavior cases passed using a local provider.
-The original limited attempt remains in the evidence; no adapter change was
-needed.
+The [October 10 daily check](../../experiments/runtime-version-checks/2026-10-10.md)
+passed the same three live scenarios on **2.1.296** (Linux x64,
+`claude-haiku-5-5`). All 40 native vendor tests and 17 applicable shared
+behavior cases passed using a local provider. No adapter change was needed.
 
 ## Native concepts and calling interfaces
 
