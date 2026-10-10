@@ -86,9 +86,12 @@ uses the same usage fold: `usage.total` remains the root's total, while
 `usage.withChildren` adds each reachable child's latest reported total,
 including nested children, once. Reports can precede lineage and repeated
 cumulative reports replace the earlier amount. Child context fullness and
-native-only ledgers do not become token totals. In particular, Grok's root
-ledger already includes its children; the children's native-only ledgers
-are not added again.
+native-only ledgers do not become token totals. Grok's root ledger may
+already include a child, so its child ledgers are not added again. Background
+children finishing after the parent prompt can be missing from OAR totals,
+although independent automatic root follow-ups are counted. Graph replay
+does not repair that
+[accounting gap](../runtimes/grok.md#context-usage-billing-and-compaction).
 
 For incremental views, preserve the whole checkpoint, including
 `sessionGraph` and the `usageBySession` Map and its nested `agents` Maps.

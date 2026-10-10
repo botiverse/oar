@@ -62,13 +62,13 @@ export interface AcpSessionProfile {
   readonly steerSupersedesPrompt?: boolean;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   /**
-   * The tokens ONE `session/prompt` answer bills for that prompt alone (grok
-   * 1.0.25 `_meta.usage`, live 2026-09-11: a per-prompt ledger summed over
-   * the prompt's model calls, not a session total). The turn machinery keeps
-   * the running session sum and stamps the cumulative figure on the answer's
-   * usage event, so `Session.usage()` is directly summable per its contract.
+   * Tokens billed by ONE prompt (grok `_meta.usage`, live 2026-09-11), summed
+   * over that prompt's model calls, not the session. The shared accumulator
+   * combines them with independent vendor ledgers and emits cumulative usage.
    */
   readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
+  /** Independent root ledger carried by a vendor notification, never overlapping promptTokenUsage. The key is the native report identity used to ignore duplicate delivery. Child notifications are excluded by the recorder. */
+  readonly spontaneousTokenUsage?: (method: string, params: JsonRecord) => { readonly key: string; readonly tokens: TokenTotals } | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
   /** Classify a prompt the agent answered with an error, from the error and the turn's frames; null leaves it to the generic rules (failure.ts). */
   readonly failureOutcome?: AcpFailureReader;

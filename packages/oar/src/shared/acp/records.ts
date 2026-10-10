@@ -6,6 +6,7 @@ import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
 import type { UsageUpdateGate } from "./usage-wait.js";
 import type { AcpSessionProfile } from "./profile.js";
+import type { AcpTokenUsage } from "./token-usage.js";
 
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
@@ -72,7 +73,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"]): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage): AcpRecorder {
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
     let state = projections.get(sessionId);
@@ -126,7 +127,9 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const sessionId = stringField(params, ["sessionId"]);
         const foreign = sessionId !== null && sessionId !== kernel.sessionId;
         const lineage = acpLineageOf(params);
-        const events = lineage === null ? [] : [kernel.link({ ...lineage, via: "tool_call" })];
+        const events: RuntimeEventBody[] = lineage === null ? [] : [kernel.link({ ...lineage, via: "tool_call" })];
+        const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params) : null;
+        if (usage !== null && usage !== undefined) { events.push(usage); }
         kernel.frame({ type: method, native: params, events }, foreign ? { sessionId } : undefined);
       });
     },

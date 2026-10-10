@@ -4,6 +4,7 @@ import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok }
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
 import refuseSteer from "./fake-acp-refusal.mjs";
+import grokBackgroundUsage from "./fake-acp-grok-usage.mjs";
 
 const mode = process.argv[2] ?? "session";
 const pendingPrompts = new Map();
@@ -15,9 +16,7 @@ const opencode = mode === "opencode";
 const sessionCapabilities = { opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
 
-function send(message) {
-  process.stdout.write(`${JSON.stringify(message)}\n`);
-}
+function send(message) { process.stdout.write(`${JSON.stringify(message)}\n`); }
 
 function result(id, value = {}) {
   send({ jsonrpc: "2.0", id, result: value });
@@ -164,6 +163,7 @@ function handleSessionPrompt(message) {
     result(message.id, { stopReason: "end_turn" });
     return;
   }
+  if (grokBackgroundUsage(text, { send, result, requestId: message.id })) { return; }
   if (text === "spawn-child-grok" || text === "grok-usage") {
     result(message.id, text === "grok-usage" ? grokUsageAnswer(send, update) : spawnChildGrok(send, update)); // grok 1.0.25's real frames
     return;

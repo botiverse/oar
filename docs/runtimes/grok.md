@@ -478,33 +478,55 @@ or redirect their session storage to inject an option.
 configures no post-answer wait (`usageUpdateAfterPrompt` unset).
 [Usage reader](../../packages/oar/src/runtimes/grok/session.ts).
 
-**Billing (mapped):** `Session.usage()` is the sum of the per-prompt
-`_meta.usage` ledgers (`inputTokens` including cached reads, `outputTokens`;
+**Billing (partial):** `Session.usage()` sums the root's `session/prompt`
+`_meta.usage` ledgers and its independent automatic follow-up ledgers
+(`inputTokens` including cached reads, `outputTokens`;
 a ledger missing either side is ignored rather than half-counted). The
 ledger's `cachedReadTokens` sums as `cacheRead` and its `cacheCreationTokens`
 as `cacheWrite`, each only from ledgers that carry it (live 1.0.25 basic
 answer: 1280 and 0; whether `inputTokens` holds a nonzero cache write is
 unverified; [spec](../spec/attribution.md#cache-reads-and-writes)). Each
-ledger is what THAT prompt billed, summed over every model call the prompt
-caused, not a session total: repeated one-word turns bill about 16.8k input
-each; a send-now steer's two answers carry two disjoint ledgers (the
-cancelled prompt's one call, 16776/222, then the steering prompt's own two
-calls, 34420/279 with `modelCalls: 2`: the re-issued tool round plus the
-final answer), so summing both counts nothing twice; and a prompt that
-spawned a child bills the child's calls inside its own ledger (53321/355,
-`modelCalls: 4` = the parent's two and the child's two `response_completed`
-frames, `input_tokens` + `cache_read_input_tokens` each, while the child's
-own `turn_completed` reports 19280/96, `modelCalls: 2`). The adapter
-therefore accumulates only the root's prompt ledgers and stamps the running
-total on each answer's `usage` event; the root's `usage()` already covers
-the child's spend. The child's own ledgers (its `response_completed` per
-call, its `turn_completed`, and the parent's
-`subagent_progress`/`subagent_finished` `tokens_used`) are recorded verbatim
-(`native` only, child-envelope ones under the child's session id) and
-deliberately NOT folded a second time. Recording `session_linked` makes this
-graph replayable but does not turn those native-only child ledgers into
-`usage` events: `withChildren` stays absent, and hosts use the root `total`. (`live-contract/multi-turn`, `steer`,
-`subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts).)
+ledger covers one native prompt's model calls, not the session's lifetime:
+repeated one-word turns bill about 16.8k input each. A send-now steer's two
+answers carry disjoint ledgers (16776/222 and 34420/279 in the 1.0.25
+recording), which OAR accumulates into a running total.
+
+The root's automatic follow-up (`prompt_id: "subagent-completed-<child>"`)
+reports its own `turn_completed.usage`, without a `session/prompt` response.
+OAR adds that root ledger to the same running total. Repeated deliveries of
+its native `_meta.eventId` are counted once; the original frames remain in
+the stream. Other `turn_completed` reports stay native-only because the
+ordinary prompt's RPC answer already supplies its ledger. A report needs
+both token sides, a native event id and an explicit root session id.
+
+**Child accounting gap:** a foreground child's spend is included
+in the parent's prompt ledger in the verified runs. A background child,
+the default for `spawn_subagent`, can also be included if it finishes before
+the parent prompt closes. If it finishes afterwards, its spend is absent
+from that prompt's ledger and later root prompts do not recover it in the
+verified run. Thus `usage().total` can still undercount child spend.
+
+The child's `response_completed` and `turn_completed`, and the parent's
+`subagent_progress` / `subagent_finished`, remain in native frames. They
+are not additional `usage` events, and `withChildren` stays absent: adding
+a child's ledger without knowing whether the parent already counted it can
+double-count. `session_linked` makes lineage replayable, not accounting
+inclusion. Neither the model's `background` tool argument nor native
+`subagent_finished.will_wake` settles that inclusion; `will_wake` describes
+automatic follow-up delivery. Nor does the order of completion
+notifications prove inclusion: Grok can apply child usage before scheduling
+the child's completion notification on another worker.
+
+The [Grok 1.0.50 probe and evidence](../../experiments/grok-background-usage-2026-10-10.md)
+compare foreground, background child-first and background parent-first
+completion without account use. Both background runs reported
+`will_wake: true`, while the parent ledgers were respectively 2800/30
+(including the child's 700/7) and 2100/23 (excluding it). The automatic
+follow-up's 10/1 is now counted in both. The late child's 700/7 is still
+missing; no child-accounting correction is inferred from notification order.
+The earlier foreground-style 1.0.25 recording (root 53321/355, child
+19280/96) establishes overlap, not coverage of every execution mode
+(`live-contract/subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts)).
 
 Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)
 exists through `x.ai/compact_conversation`; automatic compaction remains

@@ -26,6 +26,7 @@ import { startAcpProcess } from "./process.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
 import { acpTakesImages, createAcpTurns } from "./turns.js";
+import { createAcpTokenUsage } from "./token-usage.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 
@@ -59,7 +60,8 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // The recorder queues everything until the handshake reveals the session
     // id and the kernel can be bound (records.ts).
     const usageGate = createUsageUpdateGate();
-    const recorder = createAcpRecorder(usageGate, profile.attributeUpdate);
+    const tokenUsage = createAcpTokenUsage(profile);
+    const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage);
     const client = createAcpClientApp(terminalHost, {
       update: (notification) => {
         recorder.update(notification);
@@ -89,7 +91,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
 
     let disposeRequest: RequestRecord | null = null;
     const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
-    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities });
+    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptUsage: (result) => tokenUsage.prompt(result) });
     // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
     void runtime.exited.then((code) => {
       void terminalHost.dispose();
