@@ -51,12 +51,29 @@ function identity(record: RawEvent, id: string): string {
  * Input UUIDs/native message IDs can still connect observations across those streams.
  * Missing IDs never fall back to text matching. Unlinked user messages remain event updates.
  */
+/** A map copied on its first write: a record that changes nothing keeps the previous map, and its identity. Copying every map on every record made a long session's fold quadratic (#300). */
+interface CopyOnWrite<K, V> {
+  get(key: K): V | undefined;
+  set(key: K, value: V): void;
+  delete(key: K): void;
+  current(): ReadonlyMap<K, V>;
+}
+function copyOnWrite<K, V>(previous: ReadonlyMap<K, V>): CopyOnWrite<K, V> {
+  let own: Map<K, V> | null = null;
+  const written = (): Map<K, V> => { own ??= new Map(previous); return own; };
+  return {
+    get: (key) => (own ?? previous).get(key),
+    set: (key, value) => { written().set(key, value); },
+    delete: (key) => { if ((own ?? previous).has(key)) { written().delete(key); } },
+    current: () => own ?? previous,
+  };
+}
 export function reduceConversation(previous: ConversationState, record: RawEvent, streamId = ""): ConversationState {
   if (record.seq <= (previous.cursors.get(streamId) ?? -1)) {return { ...previous, updates: [] };}
-  const inputs = new Map(previous.inputs);
-  const drops = new Map(previous.drops);
-  const requests = new Map(previous.requests);
-  const actions = new Map(previous.actions);
+  const inputs = copyOnWrite(previous.inputs);
+  const drops = copyOnWrite(previous.drops);
+  const requests = copyOnWrite(previous.requests);
+  const actions = copyOnWrite(previous.actions);
   const cursors = new Map([...previous.cursors, [streamId, record.seq] as const]);
   const updates: ConversationUpdate[] = [];
   const operationKey = (id: string): string => JSON.stringify([streamId, identity(record, id)]);
@@ -94,11 +111,11 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
     }
   }
   if (record.kind === "response" && record.body.kind === "exited") {
-    for (const input of inputs.values()) {
+    for (const input of inputs.current().values()) {
       const last = input.attempts.at(-1);
       if (last?.streamId !== streamId || last.request.sessionId !== record.sessionId
         || !record.agentPath.every((part, index) => last.request.agentPath[index] === part)
-        || !awaitsEcho(input, { inputs })) { continue; }
+        || !awaitsEcho(input, { inputs: inputs.current() })) { continue; }
       const drop: InputDrop = { attempts: input.attempts.length, reason: "runtime_exited" };
       drops.set(input.id, drop);
       publish(withDeliveryState(input, input.attempts, drop));
@@ -135,7 +152,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
     }
   }
   if (record.kind === "response") {actions.delete(operationKey(record.requestId));}
-  return { drops, inputs, requests, actions, cursors, updates };
+  return { drops: drops.current(), inputs: inputs.current(), requests: requests.current(), actions: actions.current(), cursors, updates };
 }
 export function conversationOf(records: readonly RawEvent[]): ConversationState {
   return records.reduce((state, record) => reduceConversation(state, record), initialConversation());
