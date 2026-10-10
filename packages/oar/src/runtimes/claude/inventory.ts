@@ -5,6 +5,7 @@ import type { InventoryReader, InventoryResult, InventoryScope, McpServerEntry, 
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
+import { claudeEnv } from "./environment.js";
 
 export function projectClaudeSkills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(asRecord(payload.skills)?.skillFrontmatter).map((skill) => ({
@@ -36,7 +37,7 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
     const scope = workspaceScope(options);
     const child = spawnLineProcess(installation.command, [
       "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
-    ], { cwd: scope.cwd, env: { ...process.env, CLAUDECODE: undefined } });
+    ], { cwd: scope.cwd, env: claudeEnv() });
     let pending: { id: string; resolve(value: JsonRecord): void; reject(error: Error): void } | null = null;
     let closed = false;
     child.onLine((line) => {

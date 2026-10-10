@@ -5,6 +5,7 @@ import { assertRan } from "../../shared/executable/diagnostics.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
+import { claudeEnv } from "./environment.js";
 
 const HOUR_MS = 3_600_000;
 const WEEK_MS = 7 * 24 * HOUR_MS;
@@ -114,7 +115,7 @@ async function supportsSafeMode(command: string, version: string | undefined, de
     return known;
   }
   const help = await runExecutable(command, ["--help"], {
-    env: { ...process.env, CLAUDECODE: undefined },
+    env: claudeEnv(),
     timeoutMs: remainingMs(deadline, USAGE),
   });
   assertRan(help, `Failed to run ${command} --help`);
@@ -145,7 +146,7 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   const child = spawnLineProcess(installation.command, [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json",
     "--verbose", "--no-session-persistence", "--safe-mode",
-  ], { env: { ...process.env, CLAUDECODE: undefined } });
+  ], { env: claudeEnv() });
   let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
   let ended = false;
   let timedOut = false;

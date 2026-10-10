@@ -2,7 +2,8 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import { loginExecutable } from "../../shared/login.js";
 import { commandLogout, confirmedLogout, runLogoutCommand } from "../../shared/logout.js";
-import { claudeEnv, readClaudeAuthStatus } from "./auth-status.js";
+import { readClaudeAuthStatus } from "./auth-status.js";
+import { claudeEnv } from "./environment.js";
 
 /*
  * `claude auth logout` (2.1.292, read in its bundle: `authLogout`, then

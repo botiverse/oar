@@ -12,7 +12,8 @@ import {
   type LoginProcessExit,
   type LoginStop,
 } from "../../shared/login.js";
-import { claudeAuthStatus, claudeEnv } from "./auth-status.js";
+import { claudeAuthStatus } from "./auth-status.js";
+import { claudeEnv } from "./environment.js";
 
 export { claudeAuthStatus } from "./auth-status.js";
 

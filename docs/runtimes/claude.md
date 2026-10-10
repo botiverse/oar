@@ -778,9 +778,22 @@ terminal's job control: a host's Ctrl-C does not reach it, so a host that
 wants it stopped disposes the session. This supplies resource release, not
 detached execution or a lease against other controllers. The environment
 overlay applies to the child process; `null` deletes an inherited variable
-and `CLAUDECODE` is always removed. An inherited `CLAUDE_CODE_ENTRYPOINT` is
-also removed so print mode chooses its own `sdk-cli` entrypoint; an explicit
-`SessionOptions.env.CLAUDE_CODE_ENTRYPOINT` still wins. See the
+and `CLAUDECODE` is always removed. A host started from inside Claude Code
+(its Bash tool or a hook) inherits that session's markers, and OAR removes
+them from every claude it starts, sessions and subcommands alike:
+`CLAUDECODE`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_CHILD_SESSION`,
+`CLAUDE_CODE_SESSION_ATTENDED`, `CLAUDE_CODE_CHROME_MCP_ORG_DENIED`,
+`CLAUDE_CODE_EVAL_INTERVIEW_SESSION`, `CLAUDE_CODE_BRIDGE_SESSION_ID`,
+`CLAUDE_CODE_HOST_WORKTREE`, `CLAUDE_CODE_HOST_WORKTREE_FENCE`,
+`CLAUDE_CODE_ENTRYPOINT`, `CLAUDE_CODE_MESSAGING_SOCKET` and
+`CLAUDE_CODE_MESSAGING_TOKEN`. That is the list claude itself drops when it
+launches an independent claude (2.1.292), plus the parent's messaging socket
+and token. Left in, `CLAUDE_CODE_CHILD_SESSION` makes claude treat itself as
+part of the parent session (skill proposals off, org memory refused, no prompt
+history), and an inherited entrypoint replaces print mode's own `sdk-cli`.
+`TRACEPARENT` and an `AI_AGENT` set by another tool pass through. An explicit
+`SessionOptions.env` value for any of them still wins, except `CLAUDECODE`.
+[Markers](../../packages/oar/src/runtimes/claude/environment.ts). See the
 [environment contract](../spec/runtime-matrix.md#session-environment). [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
 
 On Windows, disposal and the abort fallback use `taskkill /T /F` to terminate
