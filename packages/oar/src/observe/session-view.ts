@@ -90,8 +90,10 @@ export type ViewPart =
       readonly kind: "tool";
       readonly callId: string;
       readonly tool: string;
-      /** The latest input the runtime reported: `tool_call_started.input`, replaced by each `tool_call_input`. */
+      /** The latest input: `tool_call_input_delta` appends raw text; `tool_call_input` replaces it with the complete input. OAR does not parse partial JSON. */
       readonly input?: string;
+      /** True after an argument delta, until a complete `tool_call_input` replaces it. An ended call can still have incomplete input. */
+      readonly inputPartial?: true;
       /** Current preview: `tool_call_progress.output` replaces it and `outputDelta` appends. Removed when the native result arrives. */
       readonly output?: string;
       /** The result once the call ended (`tool_call_ended.content`). */
@@ -274,10 +276,7 @@ export function reduceSessionViewInput(
 
 /** Replay a whole record log into a view. One `streamId` per call. */
 export function viewOf(records: readonly RawEvent[], streamId = ""): SessionView {
-  return records.reduce(
-    (state, record) => reduceSessionView(state, record, streamId),
-    initialSessionView(),
-  );
+  return records.reduce((state, record) => reduceSessionView(state, record, streamId), initialSessionView());
 }
 
 /**

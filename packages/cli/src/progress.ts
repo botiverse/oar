@@ -76,7 +76,7 @@ export function createProgressRenderer(
         return [action.detail === undefined ? `${agent}[${label}]` : `${agent}[${label}] ${action.detail}`];
       }
       case "tool_call_input": {
-        // Arguments that arrived after the start (an ACP runtime's later update): print the detail they add.
+        // Complete arguments that arrived after the start: print the detail they add.
         const key = `${event.agentPath.join("/")}|${event.callId}`;
         const call = started.get(key);
         if (call === undefined) {
@@ -125,6 +125,7 @@ export function createProgressRenderer(
       case "turn_active":
       case "turn_started":
       case "tool_call_progress":
+      case "tool_call_input_delta":
       case "app_answered":
       case "input_withdrawn":
       case "input_dropped":

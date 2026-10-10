@@ -75,11 +75,13 @@ export function foldEvent(draft: Draft, event: Event, streamId: string): void {
       });
       return;
     case "tool_call_input":
+    case "tool_call_input_delta":
       if (updateToolInput(draft, event)) {
         return;
       }
       // An input without a start is still a fact (mid-turn subscriber).
-      laneFor(draft, event, streamId)?.parts.push({ kind: "tool", callId: event.callId, tool: "?", input: event.input, result: "running" });
+      laneFor(draft, event, streamId)?.parts.push({ kind: "tool", callId: event.callId, tool: "?",
+        ...(event.kind === "tool_call_input_delta" ? { input: event.delta, inputPartial: true } : { input: event.input }), result: "running" });
       return;
     case "tool_call_progress":
     case "tool_call_ended": {

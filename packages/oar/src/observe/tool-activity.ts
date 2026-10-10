@@ -271,7 +271,7 @@ function detailOf(inputJson: string | undefined): string | undefined {
   return undefined;
 }
 
-/** Classify one tool call into a cross-runtime semantic action plus an extracted detail (and, for a file tool, its paths). */
+/** Classify one tool call into a cross-runtime semantic action plus an extracted detail (and, for a file tool, its paths). Pass only complete input; omit inputJson while a view part has inputPartial. */
 export function classifyTool(runtimeId: string, tool: string, inputJson?: string): ToolAction {
   const kind = kindOf(runtimeId, tool);
   const runtime = runtimeId.replace(/-aimock$/u, "");
