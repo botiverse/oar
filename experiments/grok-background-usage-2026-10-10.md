@@ -36,8 +36,10 @@ retain the three runs' prompt replies and vendor lifecycle/terminal
 notifications, with session ids normalized and disposable paths removed.
 The [adapter replay test](../tests/grok/grok-spontaneous-usage.test.ts)
 delivers each notification twice and compares live totals with JSON replay
-through `usageOf` and `viewOf`. Ordinary and child terminal ledgers are
-not added a second time. The [boundary tests](../tests/grok/grok-spontaneous-usage-edges.test.ts)
+through `usageOf` and `viewOf`. Replayed wake reports during both resume
+and load remain native-only, even on the live notification method. Ordinary
+and child terminal ledgers are not added a second time.
+The [boundary tests](../tests/grok/grok-spontaneous-usage-edges.test.ts)
 also cover incomplete reports, unknown owners, pre-bind delivery, cache
 parts, zero totals and a new native report reusing a wake prompt id.
 
@@ -63,6 +65,27 @@ OAR's accumulator is shared between prompt replies and independent root
 notifications. A later ordinary reply cannot overwrite the follow-up's
 contribution. Missing event identity, ownership or either token side
 leaves a notification native-only rather than inventing a ledger.
+
+Opening can replay old notifications. OAR starts counting only after the
+native `session/new`, `session/resume` or `session/load` success answer arrives,
+before any subsequent model/effort configuration. The SDK routes notifications
+through asynchronous handlers, so an older notification can reach the recorder
+after the open-answer callback. A first callback-based gate passed once but
+failed on repeat; that failure is retained in the local validation artifacts.
+OAR now captures each notification's phase on the decoded wire stream, before
+SDK routing or recorder buffering, without changing the message. Deterministic
+regressions deliver old notifications after the open callback and fresh ones
+before recorder binding. Recognized old identities exclude late duplicates.
+Explicit native `isReplay: true` reports also stay native-only.
+
+Grok 1.0.50 advertises resume and OAR prefers it, without retrying failures
+as load. If the resume capability is absent, OAR instead selects load.
+Lookout's independent native check found no historical terminal replay on
+resume, but four terminal reports including the old wake on direct load.
+Those load reports used `_x.ai/session/update`, whereas live reports used
+`_x.ai/session_notification`. The opening gate deliberately does not depend
+on that method-name difference. The adapter regressions replay history on
+the live method to verify the boundary.
 
 ## Why child accounting remains partial
 

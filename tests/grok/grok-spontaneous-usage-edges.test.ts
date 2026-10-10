@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import { createAcpOpening } from "../../packages/oar/src/shared/acp/opening.js";
 import { usageOf } from "../../packages/oar/src/observe/index.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { createAcpRecorder } from "../../packages/oar/src/shared/acp/records.js";
@@ -15,10 +16,12 @@ function wake(update: JsonRecord = {}): JsonRecord {
   } };
 }
 
-function recording() {
+function recording(opened = true) {
   const kernel = createSessionKernel("root");
   const usage = createAcpTokenUsage(grokAcpProfile);
-  const recorder = createAcpRecorder(createUsageUpdateGate(), undefined, usage);
+  const raw = createAcpRecorder(createUsageUpdateGate(), undefined, usage);
+  const recorder = { ...raw, extension: (eventMethod: string, params: JsonRecord, afterOpen = opened) => { raw.extension(eventMethod, params, afterOpen); } };
+  if (opened) { recorder.step("session/new", {}); }
   return { kernel, usage, recorder };
 }
 
@@ -28,6 +31,7 @@ test.each([
   { name: "response instead of terminal", params: wake({ sessionUpdate: "response_completed" }) },
   { name: "input-only ledger", params: wake({ usage: { inputTokens: 10 } }) },
   { name: "output-only ledger", params: wake({ usage: { outputTokens: 1 } }) },
+  { name: "explicit historical replay", params: { ...wake(), _meta: { eventId: "root-20", isReplay: true } } },
   { name: "no ledger", params: wake({ usage: null }) },
   { name: "no native report identity", params: { ...wake(), _meta: {} } },
   { name: "empty native report identity", params: { ...wake(), _meta: { eventId: "" } } },
@@ -38,8 +42,8 @@ test.each([
   const { kernel, recorder } = recording();
   recorder.bind(kernel);
   recorder.extension(source, params);
-  expect(kernel.records()).toHaveLength(1);
-  expect(kernel.records()[0]).toMatchObject({ body: { native: params, events: [] } });
+  expect(kernel.records()).toHaveLength(2);
+  expect(kernel.records().at(-1)).toMatchObject({ body: { native: params, events: [] } });
   expect(usageOf(kernel.records(), "root").value).toEqual({ total: null });
 });
 
@@ -55,7 +59,7 @@ test("queued root wake bills once; child cannot consume its identity; later RPC 
   const event = usage.prompt({ _meta: { usage: { inputTokens: 100, outputTokens: 2, cachedReadTokens: 30, cacheCreationTokens: 0 } } });
   kernel.frame({ type: "session/prompt", native: null, events: event === null ? [] : [event] });
   expect(usageOf(kernel.records(), "root").value).toEqual({ total: { input: 110, output: 3, cacheRead: 30, cacheWrite: 0 } });
-  expect(kernel.records()).toHaveLength(5);
+  expect(kernel.records()).toHaveLength(6);
 });
 
 test("a new native report for a reused wake prompt id is a new bill, including cache parts", () => {
@@ -72,4 +76,35 @@ test("a zero ledger is a report, and duplicate tracking is scoped to the opened 
     recorder.extension(method, wake({ usage: { inputTokens: 0, outputTokens: 0, cachedReadTokens: 0 } }));
     expect(usageOf(kernel.records(), "root").value).toEqual({ total: { input: 0, output: 0, cacheRead: 0 } });
   }
+});
+
+test("a marked replay after opening cannot become a new bill through an unmarked duplicate", () => {
+  const { kernel, recorder } = recording();
+  recorder.bind(kernel);
+  recorder.extension(method, { ...wake(), _meta: { eventId: "root-20", isReplay: true } });
+  recorder.extension(method, wake());
+  expect(usageOf(kernel.records(), "root").value).toEqual({ total: null });
+  expect(kernel.records().slice(1)).toMatchObject([{ body: { events: [] } }, { body: { events: [] } }]);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- One opening replay boundary, including buffered fresh data and a late duplicate.
+test.each(["session/new", "session/resume", "session/load"])("%s wire answer separates old and new bills despite delayed routing", (openMethod) => {
+  const { kernel, recorder } = recording(false);
+  const opening = createAcpOpening();
+  const history = wake();
+  const fresh = { ...wake(), _meta: { eventId: "root-40" } };
+  opening.outgoing({ jsonrpc: "2.0", id: 1, method: openMethod, params: {} });
+  opening.incoming({ jsonrpc: "2.0", method, params: history });
+  opening.incoming({ jsonrpc: "2.0", id: 1, result: {} });
+  opening.incoming({ jsonrpc: "2.0", method, params: fresh });
+  // SDK routing can deliver the older notification after the answer callback.
+  recorder.step(openMethod, {});
+  recorder.extension(method, history, opening.afterOpen(history));
+  recorder.extension(method, fresh, opening.afterOpen(fresh));
+  recorder.bind(kernel);
+  expect(kernel.records()[1]).toMatchObject({ kind: "frame", body: { native: history, events: [] } });
+  expect(usageOf(kernel.records(), "root").value).toEqual({ total: { input: 10, output: 1 } });
+  recorder.extension(method, wake(), true);
+  expect(kernel.records().at(-1)).toMatchObject({ kind: "frame", body: { native: wake(), events: [] } });
+  expect(usageOf(kernel.records(), "root").value).toEqual({ total: { input: 10, output: 1 } });
 });

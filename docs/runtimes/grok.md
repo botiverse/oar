@@ -498,6 +498,12 @@ its native `_meta.eventId` are counted once; the original frames remain in
 the stream. Other `turn_completed` reports stay native-only because the
 ordinary prompt's RPC answer already supplies its ledger. A report needs
 both token sides, a native event id and an explicit root session id.
+Reports arriving before the `session/new`, `session/resume` or `session/load`
+answer stay native-only; their identities are remembered so a later duplicate
+cannot bill them. Native `isReplay: true` reports are also excluded. Grok
+currently advertises `session/resume`, which OAR prefers; without that
+capability OAR selects `session/load`. A refused resume is not retried as a
+load. The opening boundary avoids charging historical follow-ups again.
 
 **Child accounting gap:** a foreground child's spend is included
 in the parent's prompt ledger in the verified runs. A background child,

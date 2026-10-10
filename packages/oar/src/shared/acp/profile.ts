@@ -67,8 +67,8 @@ export interface AcpSessionProfile {
    * combines them with independent vendor ledgers and emits cumulative usage.
    */
   readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
-  /** Independent root ledger carried by a vendor notification, never overlapping promptTokenUsage. The key is the native report identity used to ignore duplicate delivery. Child notifications are excluded by the recorder. */
-  readonly spontaneousTokenUsage?: (method: string, params: JsonRecord) => { readonly key: string; readonly tokens: TokenTotals } | null;
+  /** Independent root ledger, never overlapping promptTokenUsage. The native key deduplicates delivery; replayed reports only remember that identity. Child notifications are excluded by the recorder. */
+  readonly spontaneousTokenUsage?: (method: string, params: JsonRecord) => { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
   /** Classify a prompt the agent answered with an error, from the error and the turn's frames; null leaves it to the generic rules (failure.ts). */
   readonly failureOutcome?: AcpFailureReader;

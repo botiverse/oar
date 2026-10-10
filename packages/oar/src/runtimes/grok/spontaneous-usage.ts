@@ -8,7 +8,7 @@ import { cacheParts } from "../../shared/token-totals.js";
  * ledger is independent of RPC prompt ledgers. Never apply this to ordinary
  * turn_completed or child frames; the ACP recorder enforces root attribution.
  */
-export function grokSpontaneousTokens(method: string, params: JsonRecord): { readonly key: string; readonly tokens: TokenTotals } | null {
+export function grokSpontaneousTokens(method: string, params: JsonRecord): { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null {
   if (method !== "_x.ai/session_notification") { return null; }
   const update = asRecord(params.update);
   if (update?.sessionUpdate !== "turn_completed" || typeof update.prompt_id !== "string"
@@ -16,10 +16,11 @@ export function grokSpontaneousTokens(method: string, params: JsonRecord): { rea
   // eventId is stable across duplicate delivery. A later wake of the same
   // resumed child can reuse the prompt id, but has a different native eventId.
   // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP extension envelope.
-  const key = asRecord(params._meta)?.eventId;
+  const meta = asRecord(params._meta);
+  const key = meta?.eventId;
   const usage = asRecord(update.usage);
   const input = asNumber(usage?.inputTokens);
   const output = asNumber(usage?.outputTokens);
   if (typeof key !== "string" || key === "" || usage === null || input === null || output === null) { return null; }
-  return { key, tokens: { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }) } };
+  return { key, tokens: { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }) }, ...(meta?.isReplay === true ? { replayed: true } : {}) };
 }

@@ -19,3 +19,10 @@ export default function grokBackgroundUsage(text, { send, result, requestId }) {
   }
   return true;
 }
+
+/** Historical root wake sent before the open answer, on the live method too. */
+export function grokUsageHistory(mode, send) {
+  if (mode !== "grok-usage-load" && mode !== "grok-usage-resume") { return; }
+  const history = fixture.scenarios[1].frames.find((frame) => frame.native.update?.prompt_id?.startsWith("subagent-completed-") === true);
+  send({ jsonrpc: "2.0", method: history.type, params: { ...history.native, _meta: { eventId: "historical-wake" } } });
+}

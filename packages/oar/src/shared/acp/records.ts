@@ -25,8 +25,8 @@ export interface AcpRecorder {
    */
   bind(kernel: SessionKernel): void;
   update(notification: SessionNotification): void;
-  /** A vendor extension notification, verbatim; a parent/child session pair in it links the graph. */
-  extension(method: string, params: JsonRecord): void;
+  /** A vendor extension notification, verbatim; a parent/child session pair links the graph. afterOpen is captured on the wire, before SDK routing or recorder buffering. */
+  extension(method: string, params: JsonRecord, afterOpen?: boolean): void;
   /** A handshake answer (initialize, session/new|resume|load, session/set_model, session/set_config_option): the runtime's word, with its model and effort reports as events. */
   step(method: string, response: JsonRecord): void;
   /** A runtime→app request, verbatim, under the runtime's own request id. */
@@ -116,7 +116,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         }
       });
     },
-    extension(method, params) {
+    extension(method, params, afterOpen = false) {
       write((kernel) => {
         // The envelope says whose frame this is: a child session pushes its
         // own `response_completed` / `turn_completed` on grok's vendor method
@@ -128,7 +128,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const foreign = sessionId !== null && sessionId !== kernel.sessionId;
         const lineage = acpLineageOf(params);
         const events: RuntimeEventBody[] = lineage === null ? [] : [kernel.link({ ...lineage, via: "tool_call" })];
-        const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params) : null;
+        const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params, afterOpen) : null;
         if (usage !== null && usage !== undefined) { events.push(usage); }
         kernel.frame({ type: method, native: params, events }, foreign ? { sessionId } : undefined);
       });

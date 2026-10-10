@@ -27,6 +27,7 @@ import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
 import { acpTakesImages, createAcpTurns } from "./turns.js";
 import { createAcpTokenUsage } from "./token-usage.js";
+import { createAcpOpening } from "./opening.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 
@@ -61,13 +62,14 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     // id and the kernel can be bound (records.ts).
     const usageGate = createUsageUpdateGate();
     const tokenUsage = createAcpTokenUsage(profile);
+    const opening = createAcpOpening();
     const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage);
     const client = createAcpClientApp(terminalHost, {
       update: (notification) => {
         recorder.update(notification);
       },
       extension: (method, params) => {
-        recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params);
+        recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, opening.afterOpen(params));
       },
       requested: (id, method, params) => {
         recorder.requested(id, method, params);
@@ -77,7 +79,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       },
       extensionNotifications: profile.extensionNotifications ?? [],
     });
-    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact });
+    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
     }).catch(async (error: unknown) => {

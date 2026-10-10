@@ -4,7 +4,7 @@ import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok }
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
 import refuseSteer from "./fake-acp-refusal.mjs";
-import grokBackgroundUsage from "./fake-acp-grok-usage.mjs";
+import grokBackgroundUsage, { grokUsageHistory } from "./fake-acp-grok-usage.mjs";
 
 const mode = process.argv[2] ?? "session";
 const pendingPrompts = new Map();
@@ -13,14 +13,12 @@ let reverseId = 0;
 const antigravity = mode === "antigravity";
 // OpenCode v1: mid-turn prompts join its loop; all answers arrive at idle.
 const opencode = mode === "opencode";
-const sessionCapabilities = { opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
+const sessionCapabilities = { "grok-usage-load": {}, opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
 
 function send(message) { process.stdout.write(`${JSON.stringify(message)}\n`); }
 
-function result(id, value = {}) {
-  send({ jsonrpc: "2.0", id, result: value });
-}
+function result(id, value = {}) { send({ jsonrpc: "2.0", id, result: value }); }
 
 function error(id, code, message, data) {
   send({ jsonrpc: "2.0", id, error: { code, message, ...(data === undefined ? {} : { data }) } });
@@ -223,6 +221,7 @@ function handleSessionRequest(message) {
       break;
     case "session/resume":
     case "session/load":
+      grokUsageHistory(mode, send);
       result(message.id, {
         modes: {
           currentModeId: "default",
