@@ -16,7 +16,7 @@ afterEach(() => { vi.unstubAllEnvs(); });
 test.each(runtimes)("$id: deletion and overrides reach the runtime and its tools without changing the host", async ({ id, session: open }) => {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-session-env-"));
   const file = path.join(dir, "env.json");
-  for (const key of ["OAR_ENV_REMOVE", "OAR_ENV_OVERRIDE", "OAR_ENV_KEEP", "CLAUDECODE"]) {
+  for (const key of ["OAR_ENV_REMOVE", "OAR_ENV_OVERRIDE", "OAR_ENV_KEEP", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT"]) {
     vi.stubEnv(key, "inherited");
   }
   const env: SessionOptions["env"] = { OAR_ENV_CAPTURE_PATH: file, OAR_ENV_REMOVE: null, OAR_ENV_OVERRIDE: "replacement", OAR_ENV_EMPTY: "" };
@@ -26,7 +26,7 @@ test.each(runtimes)("$id: deletion and overrides reach the runtime and its tools
     const session = await open({ kind: "available", via: "executable", command, ...(id === "opencode" ? { version: "1.18.35" } : {}) }, { cwd: dir, env });
     try {
       expect(await eventually(() => existsSync(file), 5000)).toBe(true);
-      const expected = { OAR_ENV_OVERRIDE: "replacement", OAR_ENV_KEEP: "inherited", OAR_ENV_EMPTY: "", ...(id === "claude" ? {} : { CLAUDECODE: "inherited" }) };
+      const expected = { OAR_ENV_OVERRIDE: "replacement", OAR_ENV_KEEP: "inherited", OAR_ENV_EMPTY: "", ...(id === "claude" ? {} : { CLAUDECODE: "inherited", CLAUDE_CODE_ENTRYPOINT: "inherited" }) };
       expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ runtime: expected, tool: expected });
       expect(process.env.OAR_ENV_REMOVE).toBe("inherited");
       expect(process.env.OAR_ENV_OVERRIDE).toBe("inherited");

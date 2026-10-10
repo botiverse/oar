@@ -18,4 +18,4 @@ result success               │ event → turn_ended completed, usage in=39009 
 system task_notification     │ event → task_ended
 system background_tasks_changed │ event
 system task_updated          │ event → task_updated
-system init                  │ event → model
+system init                  │ event → turn_active, model

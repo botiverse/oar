@@ -433,7 +433,6 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 // ControlEventBody, read off request/response records so the consumer
 // never handles record kinds:
 //   turn_started {requestId, input}                    ← a prompt request
-//   turn_active                                       ← native activity, possibly adopted
 //   input_withdrawn {requestId, inputId}               ← an accepted withdraw response
 //   control_rejected {requestId, action, code, reason} ← a rejected response
 //   app_request {requestId, type}                      ← a toApp request
@@ -443,6 +442,10 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 
 Which runtimes say which kinds (runtime pages hold the evidence):
 
+- `turn_active`: codex `turn/started`, pi `agent_start`, Pi Durable's
+  adopted conversation activity, and claude `system/init` when the root
+  starts a turn while idle. Claude omits it when a host prompt or an earlier
+  native init already started the turn.
 - `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
   `turn_ended`, `usage`, `model`: every shipped adapter, except that
   antigravity sent no reasoning and no usage in any probe ([env]
@@ -488,17 +491,25 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `item/completed` for the `contextCompaction` item → completed, while the
   deprecated `thread/compacted` notification closes an open compaction only
   when the item did not already (the projection dedupes, so codex never ends
-  a compaction twice) [env 0.154.0 schema]. Cursor and ACP never.
+  a compaction twice) [env 0.154.0 schema]. Cursor and ACP never. An ended
+  compaction starts no work: `statusOf` keeps an idle agent idle, and only
+  moves an already-running agent to `waiting_model`.
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
   other shipped runtime exposes a retry (claude retries silently).
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
   beside the turn that started it. claude `system/task_started`,
   `task_updated` (its `patch`) and `task_notification` [env 2.1.284]:
-  commands (`local_bash` → shell), subagents (`local_agent`, `remote_agent`
-  → agent) and MCP calls moved to the background (`mcp_task` → tool), with
+  commands (`local_bash` → shell), subagents and teammates (`local_agent`,
+  `remote_agent`, `in_process_teammate` → agent), workflow runs
+  (`local_workflow` → workflow), and MCP calls moved to the background
+  (`mcp_task` → tool), with
   `tool_use_id` as `toolCallId`, `is_backgrounded` as `background` and
   `killed` read as `stopped`; `background_tasks_changed` repeats the live
   set and maps to nothing (a change of `ambient` alone shows only there).
+  For any Claude task type, `task_progress` emits a `task_updated` only when
+  its description changes. Nested `workflow_progress` remains native; its
+  agent/phase summaries are not child events, and task `total_tokens` is not
+  spend. `TaskType` is shell | agent | tool | workflow | other.
   codex `subAgentActivity` items on the parent thread [env 0.158.0]:
   started → `task_started` (the child thread is `taskId` and
   `childSessionId`, its `/root/name` path the description), interacted →

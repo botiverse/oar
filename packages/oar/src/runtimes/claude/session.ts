@@ -56,7 +56,7 @@ interface ClaudeSessionState {
   child: ClaudeProcess;
   /** The prompt request whose turn is running; null while idle. Spontaneous turns (a drained queue message) run with no request. */
   active: RequestRecord | null;
-  /** True while claude is executing a turn we did not prompt (queue drain). */
+  /** True while claude is executing a turn we did not prompt (queue drain or task notification). */
   spontaneous: boolean;
   projection: ClaudeProjectionState;
   disposed: boolean;
@@ -101,8 +101,8 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     }
     if (readback.consume(message) || contextBreakdown.consume(message)) { return; }
     // A system/init while nothing is active is claude starting a turn on its
-    // own (a queued or late-steered message): a spontaneous turn.
-    if (message.type === "system" && message.subtype === "init" && !busy()) {
+    // own (queue drain, late steer or task notification): a spontaneous turn.
+    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && !busy()) {
       state.spontaneous = true;
     }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);

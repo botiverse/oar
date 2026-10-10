@@ -156,7 +156,9 @@ not add `env` to pi's always-refused options.
 
 Session environment options, including removed keys, are not written to the
 record stream or voyage header. Runtime-specific removals stay in OAR:
-Claude's `CLAUDECODE` marker is always removed. Child-process and native Pi
+Claude's `CLAUDECODE` marker is always removed. An inherited
+`CLAUDE_CODE_ENTRYPOINT` is removed too; an explicit `SessionOptions.env`
+entrypoint wins so the host can deliberately choose it. Child-process and native Pi
 Bash regressions: [session-env.test.ts](../../tests/session-env.test.ts),
 [pi-env.test.ts](../../tests/providers/pi-env.test.ts).
 

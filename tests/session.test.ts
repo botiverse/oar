@@ -280,3 +280,14 @@ test("coalesceText keeps two assistant messages apart by messageId", () => {
   observer(event([{ kind: "turn_ended", outcome: { kind: "completed" } }]));
   assert.deepEqual(seen, ["m1:Got it.", "m2:Done.", "-:ab", "turn_ended"]);
 });
+
+
+test.each(["completed", "aborted", "failed"] satisfies ("completed" | "aborted" | "failed")[])("compaction ending %s outside a turn keeps idle and its last outcome", async (outcome) => {
+  const { initialStatus, reduceStatus, statusOf } = await import("../packages/oar/src/observe/agent-status.js");
+  const boundary = event([{ kind: "compaction_ended", outcome, trigger: "auto" }]);
+  expect(reduceStatus(initialStatus, boundary)).toEqual(initialStatus);
+  const ended = event([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
+  const idle = reduceStatus(initialStatus, ended);
+  expect(reduceStatus(idle, boundary)).toEqual(idle);
+  expect(statusOf([ended, boundary]).value).toEqual(idle);
+});
