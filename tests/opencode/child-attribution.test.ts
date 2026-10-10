@@ -261,7 +261,7 @@ test("tool classification retains v1 bash and recognizes v2 shell without preten
       {
         "action": {
           "detail": "echo CHILD-OK-7731",
-          "kind": "other",
+          "kind": "subagent",
         },
         "tool": "subagent",
       },

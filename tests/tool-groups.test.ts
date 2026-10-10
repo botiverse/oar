@@ -53,6 +53,8 @@ const summaries = {
   edit_file: ["edit_file", "Edited a file", "Edited 2 files"],
   search: ["search", "Searched", "Searched 2 times"],
   web: ["web", "Searched the web", "Searched the web 2 times"],
+  fetch: ["fetch", "Fetched a page", "Fetched 2 pages"],
+  subagent: ["subagent", "Ran a subagent", "Ran 2 subagents"],
   mcp: ["mcp", "Used a tool", "Used 2 tools"],
   wait: ["wait", "Waited", "Waited 2 times"],
   other: ["other", "Used a tool", "Used 2 tools"],

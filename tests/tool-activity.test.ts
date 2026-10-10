@@ -13,7 +13,7 @@ test("classifyTool maps file / search / web / mcp across runtimes", () => {
   assert.equal(classifyTool("claude", "Write").kind, "edit_file");
   assert.equal(classifyTool("codex", "fileChange").kind, "edit_file");
   assert.equal(classifyTool("pi", "grep").kind, "search");
-  assert.equal(classifyTool("claude", "WebFetch").kind, "web");
+  assert.equal(classifyTool("claude", "WebSearch").kind, "web");
   assert.equal(classifyTool("codex", "mcpToolCall").kind, "mcp");
   assert.equal(classifyTool("claude", "mcp__github__create_issue").kind, "mcp");
 });
@@ -39,7 +39,7 @@ test("classifyTool reads cursor's tool types and its shell command", () => {
   assert.deepEqual(classifyTool("cursor", "read", JSON.stringify({ path: "/tmp/note.txt" })), { kind: "read_file", detail: "/tmp/note.txt", paths: ["/tmp/note.txt"] });
   assert.equal(classifyTool("cursor", "edit").kind, "edit_file");
   assert.equal(classifyTool("cursor", "glob").kind, "search");
-  assert.equal(classifyTool("cursor", "webFetch").kind, "web");
+  assert.equal(classifyTool("cursor", "webFetch").kind, "fetch");
   assert.equal(classifyTool("cursor", "task").kind, "other");
 });
 
@@ -49,6 +49,22 @@ test("classifyTool reads a grok shell input with what it carries", () => {
     kind: "run_command", description: "List the files",
   });
   assert.deepEqual(classifyTool("grok", "run_terminal_command"), { kind: "run_command" });
+});
+
+// #321: fetching one page is not a web search, and a subagent call is a subagent, not "Running Agent".
+test("classifyTool reads page fetches and subagent calls with their recorded inputs", () => {
+  assert.deepEqual(classifyTool("claude", "WebFetch", JSON.stringify({ url: "https://example.com/a", prompt: "Summarize" })), { kind: "fetch", detail: "https://example.com/a" });
+  // claude 2.1.x tests/replay/fixtures/claude-background-tasks.raw.jsonl; opencode tests/replay/fixtures/opencode-acp-v2-child.json.
+  const claude = { description: "Run echo command", subagent_type: "general-purpose", prompt: "Run the shell command `echo SUB_OK` and report the exact output.", run_in_background: false };
+  assert.deepEqual(classifyTool("claude", "Agent", JSON.stringify(claude)), { kind: "subagent", detail: "Run echo command", description: "Run echo command" });
+  const opencode = { agent: "general", description: "Echo child check", prompt: "Run `echo CHILD-OK-7731` in its shell and report the output." };
+  assert.deepEqual(classifyTool("opencode", "subagent", JSON.stringify(opencode)), { kind: "subagent", detail: "Echo child check", description: "Echo child check" });
+  assert.deepEqual(classifyTool("claude", "Agent"), { kind: "subagent" });
+  // `Task` is Agent's alias in claude 2.1.292: a call made under it is recorded under it.
+  assert.deepEqual(classifyTool("claude", "Task", JSON.stringify(claude)), { kind: "subagent", detail: "Run echo command", description: "Run echo command" });
+  assert.equal(toolActionLabel("fetch", "running"), "Fetching page");
+  assert.equal(toolActionLabel("subagent", "running"), "Running subagent");
+  assert.equal(toolActionLabel("web", "writing"), "Preparing web search");
 });
 
 test("toolActionLabel gives tense-correct labels per state", () => {
