@@ -87,3 +87,16 @@ test("live observer folds the prefix even when callbacks start after a cursor", 
     off();
   } finally { await session.dispose(); }
 });
+
+const maps = (state: ConversationState): unknown[] => [state.inputs, state.requests, state.drops, state.actions];
+
+test("a record that changes no input keeps the previous maps, so a long fold is not quadratic (#300)", () => {
+  const before = conversationOf([request(0, "r"), response(1, "r")]);
+  const text: Frame = { ...envelope, seq: 2, kind: "frame", body: { type: "assistant", native: {}, events: [{ kind: "text_delta", text: "hello" }] } };
+  const after = reduceConversation(before, text);
+  expect(after.updates).toMatchObject([{ kind: "event", event: { kind: "text_delta" } }]);
+  expect(maps(after).every((map, index) => map === maps(before)[index])).toBe(true);
+  // A write copies: the previous state is never mutated.
+  const steered = reduceConversation(after, request(3, "r2", { inputId: "22222222-2222-4333-8444-555555555555" }));
+  expect([steered.inputs === after.inputs, after.inputs.size, steered.inputs.size]).toEqual([false, 1, 2]);
+});
