@@ -209,6 +209,15 @@ turn's result restores `waiting_model` for the pending prompt; its matching
 start places the input before its own turn. `awaitIdle` waits through the
 intervening result until the pending input completes or is cancelled.
 
+The notification's root `system/init` can arrive after OAR writes the prompt
+but before its `queued` receipt. OAR retains that init until `queued` proves
+the prompt has not started, then emits `input_queued` followed by `turn_active`
+without an inputId in that same queued frame. It does so only for an init
+observed since this write, still active and unclaimed by `started`, and not
+already reported as spontaneous. This keeps the notification's text in its
+own turn in both live views and record replay. Repeated init or queued frames
+do not report that spontaneous start again.
+
 `promptAndWait` sends a UUID by default (or the caller's `inputId`) and uses
 these facts to return only that prompt's answer. `awaitTurnEnd(session, seq,
 inputId)` and `turnEndAfter(records, seq, sessionId, inputId)` can use the same
@@ -239,6 +248,11 @@ and its [two host writes](../../tests/replay/fixtures/claude-workflow-prompt-col
 plus the [mid-turn steer order](../../tests/replay/fixtures/claude-steer-lifecycle.raw.jsonl).
 [Regressions](../../tests/claude/claude-command-lifecycle.test.ts) keep live
 records, pure projection and replayed status/view in agreement.
+The [init-before-queued regression](../../tests/claude/claude-init-before-queued.test.ts)
+uses two further Claude 2.1.292 recordings with a scripted provider: a prompt
+written 20 ms after a background Bash task's notification saw init first;
+at 0 ms it saw queued first. It also checks a prompt written while the task
+is still running, and cancellation while the notification turn remains active.
 
 **Steer (mapped, landing observed):** `steer()` writes stdin and records
 `accepted`, which hands delivery to the adapter and does not prove model

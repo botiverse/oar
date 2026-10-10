@@ -1,4 +1,4 @@
-import { claudeDuplicateInput, claudeInputLifecycle } from "./input-lifecycle.js";
+import { claudeDuplicateInput, claudeInitialized, claudeInputLifecycle } from "./input-lifecycle.js";
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
@@ -55,6 +55,8 @@ export interface ClaudeProjectionState {
   readonly turnActive: boolean;
   /** Unlike the provisional prompt start, this is an observed init/started without a result. */
   readonly nativeTurnActive: boolean;
+  /** Root init since this prompt write, not claimed by started or reported as spontaneous yet. */
+  readonly unclaimedInit: boolean;
   /** Prompt identity and native queue evidence, retained across unrelated turns. */
   readonly promptInputId: string | null;
   /** Prompt-like writes, including queue drains; steers are never registered. */
@@ -79,6 +81,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   abortRequested: false,
   turnActive: false,
   nativeTurnActive: false,
+  unclaimedInit: false,
   promptInputId: null,
   promptInputs: new Set(),
   unstartedInputs: new Set(),
@@ -232,7 +235,7 @@ export function foldClaudeStdout(
         } });
       }
       return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage,
-        ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
+        ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, unclaimedInit: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
     }
     case "system": {
       if (message.subtype === "compact_boundary") {
@@ -243,12 +246,10 @@ export function foldClaudeStdout(
         return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] });
       }
       if (message.subtype === "init") {
-        // A prompt already reports its start. Only a native spontaneous root
-        // start needs this event; retaining the fact here keeps replay equal.
-        const spontaneous = agentPath.length === 0 && !state.turnActive;
-        return event({ events: [...(spontaneous ? [{ kind: "turn_active" as const }] : []),
+        const initialized = claudeInitialized(state, agentPath.length === 0);
+        return event({ events: [...initialized.events,
           ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
-          ...claudeServiceTierEvents(message)] }, agentPath.length === 0 ? { ...state, turnActive: true, nativeTurnActive: true } : state);
+          ...claudeServiceTierEvents(message)] }, initialized.state);
       }
       const task = claudeTaskViews(message, state.taskDescriptions, agentPath);
       return event({ events: [...task.events, ...claudeServiceTierEvents(message)] },

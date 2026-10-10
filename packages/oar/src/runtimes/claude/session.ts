@@ -91,11 +91,6 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       canCancelQueued = message.capabilities.includes("interrupt_cancel_queued_v1");
     }
     if (readback.consume(message) || contextBreakdown.consume(message)) { return; }
-    // A system/init while nothing is active is claude starting a turn on its
-    // own (queue drain, late steer or task notification): a spontaneous turn.
-    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && (!busy() || state.projection.pendingInputId !== null)) {
-      state.spontaneous = true;
-    }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
     state.projection = nextProjection;
     if (message.type === "command_lifecycle" && message.state === "queued" && typeof message.command_uuid === "string") {
@@ -114,6 +109,9 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     for (const command of commands) {
       switch (command.kind) {
         case "frame": {
+          // Projection can establish a spontaneous start at init, or at a
+          // later queued receipt that proves the init did not own our prompt.
+          if (command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) { state.spontaneous = true; }
           const record = kernel.frame(command.body, { agentPath: command.agentPath });
           if (record.agentPath.length > 0) { break; }
           ended ||= command.body.events.some((event) => event.kind === "turn_ended");
