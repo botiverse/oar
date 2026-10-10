@@ -83,7 +83,9 @@ test("with a runtime id, a running call reads as its action; MCP and unclassifie
   expect(phaseLabel({ tool: "SomethingNew", callId: "1" }, "claude")).toBe("Running SomethingNew");
 });
 
-test("a call whose arguments are still streaming reads as writing them (#314)", () => {
+test("a call whose arguments are still streaming reads as preparing its action, or writing an MCP tool's arguments (#314)", () => {
+  expect(phaseLabel({ tool: "Write", callId: "1", writing: true }, "claude")).toBe("Preparing file edit");
+  expect(phaseLabel({ tool: "Bash", callId: "1", writing: true }, "claude")).toBe("Preparing command");
   expect(phaseLabel({ tool: "mcp__ferry__show_widget", callId: "1", writing: true }, "claude")).toBe("Writing show_widget arguments");
   expect(phaseLabel({ tool: "mcp__ferry__show_widget", callId: "1", writing: true })).toBe("Writing mcp__ferry__show_widget arguments");
 });

@@ -91,15 +91,17 @@ function shortToolName(tool: string): string {
  * The running phase in English, for display only. With `runtimeId`, a running call reads as its action
  * (`classifyTool`: "Editing file", "Running command"); an MCP or
  * unclassified tool by its short name. Without it, the tool id as reported.
- * A call whose arguments are still streaming reads "Writing <tool> arguments".
+ * A call whose arguments are still streaming reads as preparing its action
+ * ("Preparing file edit"), or "Writing <tool> arguments" for an MCP or
+ * unclassified tool.
  */
 export function phaseLabel(phase: RunningPhase, runtimeId?: string): string {
   if (typeof phase === "object" && "tool" in phase) {
     const name = runtimeId === undefined ? phase.tool : shortToolName(phase.tool);
-    if (phase.writing === true) { return `Writing ${name} arguments`; }
-    if (runtimeId === undefined) { return `Running ${name}`; }
-    const { kind } = classifyTool(runtimeId, phase.tool);
-    return kind === "other" || kind === "mcp" ? `Running ${name}` : toolActionLabel(kind, "running");
+    const state = phase.writing === true ? "writing" : "running";
+    const kind = runtimeId === undefined ? "other" : classifyTool(runtimeId, phase.tool).kind;
+    if (kind !== "other" && kind !== "mcp") { return toolActionLabel(kind, state); }
+    return state === "writing" ? `Writing ${name} arguments` : `Running ${name}`;
   }
   switch (phase) {
     case "waiting_model": return "Waiting for model";
