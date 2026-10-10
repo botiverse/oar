@@ -40,6 +40,6 @@ test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi MCP metadata stays readabl
   } finally {
     await provider.stop();
     http.stop();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);

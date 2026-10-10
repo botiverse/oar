@@ -201,7 +201,7 @@ export async function startPiAimock(
     stop: async () => {
       await capture?.stop();
       await mock.stop();
-      await rm(agentDir, { recursive: true, force: true });
+      await rm(agentDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     },
   };
 }

@@ -125,7 +125,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude: failure class
       await session.dispose();
     } finally {
       await env.stop();
-      await rm(home, { recursive: true, force: true });
+      await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     }
   }, 120_000);
 });

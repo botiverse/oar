@@ -46,7 +46,7 @@ export const sessionImagesCases: readonly TrialCase[] = [
         assert.deepEqual(await awaitTurnEnd(session, started.request.seq), { kind: "completed" });
       } finally {
         await session.dispose();
-        await rm(dir, { recursive: true, force: true });
+        await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
       }
     },
   },

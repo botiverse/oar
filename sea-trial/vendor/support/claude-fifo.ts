@@ -87,6 +87,6 @@ export async function lateWriterServers(command: string, env: Readonly<Record<st
     await exited.promise;
     return listed;
   } finally {
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }
