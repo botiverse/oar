@@ -176,15 +176,17 @@ See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/updat
 `runtime.installPlan()` reports what installing a runtime would run on this
 machine (the vendor's documented installer and the page that documents it)
 or why it would run nothing (`platform`, `requires_privileges`,
-`requires_gui`, `missing_tool`); `runtime.install()` runs it, without a
-terminal and never with sudo, when `installation()` finds no copy, and
-judges the result by `installation()` afterwards, never by the installer's
-exit code. oar never installs on its own. Claude, Codex, Grok, Kimi and
-OpenCode install through their vendors' macOS and Linux scripts; OpenCode
-declares two release lines in `runtime.installLines` (`v1`, `v2`) and takes
-the host's choice as `line` (oar picks none), and a copy of either line is
-`already_installed`, never replaced. Antigravity's plan is `requires_gui`;
-Pi and Cursor have neither member.
+`requires_gui`, `missing_tool`; `requires_privileges` and `missing_tool`
+still carry the vendor's `steps` and `source`, for the person to run
+themselves once they have the rights or the tool); `runtime.install()` runs
+it, without a terminal and never with sudo, when `installation()` finds no
+copy, and judges the result by `installation()` afterwards, never by the
+installer's exit code. oar never installs on its own. Claude, Codex, Grok,
+Kimi and OpenCode install through their vendors' macOS and Linux scripts;
+OpenCode declares two release lines in `runtime.installLines` (`v1`, `v2`)
+and takes the host's choice as `line` (oar picks none), and a copy of either
+line is `already_installed`, never replaced. Antigravity's plan is
+`requires_gui`; Pi and Cursor have neither member.
 See [runtime install](https://github.com/botiverse/oar/blob/main/docs/spec/install.md).
 
 `runtime.login(installation, interaction)` logs an installation in through

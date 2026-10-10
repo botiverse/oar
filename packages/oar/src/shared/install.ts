@@ -89,8 +89,11 @@ const SCRIPT_ARCHES: ReadonlySet<string> = new Set(["x64", "arm64"]);
  * programs are not on PATH, `requires_privileges` when a directory it writes
  * is not this user's to write (an install location variable pointing at
  * `/usr/local`, say), which the installer would otherwise discover midway.
+ * Those two still carry the plan's `steps` and `source`, for a person to run
+ * once they have the tool or the rights.
  */
 export function scriptInstallPlanOn(method: ScriptInstallMethod, host: InstallHost): InstallPlan {
+  const steps: readonly InstallStep[] = [{ command: ["sh", "-c", method.line], display: method.line }];
   if (!SCRIPT_PLATFORMS.has(host.platform)) {
     return {
       kind: "unsupported",
@@ -105,18 +108,18 @@ export function scriptInstallPlanOn(method: ScriptInstallMethod, host: InstallHo
   }
   for (const tool of ["sh", ...method.tools]) {
     if (host.locate(tool) === null) {
-      return { kind: "unsupported", reason: "missing_tool", detail: tool };
+      return { kind: "unsupported", reason: "missing_tool", detail: tool, steps, source: method.source };
     }
   }
   for (const dir of method.writes()) {
     const blocked = host.unwritable(dir);
     if (blocked !== null) {
-      return { kind: "unsupported", reason: "requires_privileges", detail: `the installer writes ${dir}, and ${blocked} is not writable by this user` };
+      return { kind: "unsupported", reason: "requires_privileges", detail: `the installer writes ${dir}, and ${blocked} is not writable by this user`, steps, source: method.source };
     }
   }
   return {
     kind: "plan",
-    steps: [{ command: ["sh", "-c", method.line], display: method.line }],
+    steps,
     source: method.source,
     network: true,
     privileges: false,

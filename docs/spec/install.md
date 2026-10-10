@@ -66,6 +66,13 @@ and two constants: `network: true` (every installer downloads) and
 `privileges: false` (an installer that needs more rights than the user has
 is `unsupported` instead).
 
+When oar knows the vendor's step but will not run it here
+(`requires_privileges`, `missing_tool`), the `unsupported` answer still
+carries the `steps` and `source` the plan would have had, so a host can show
+the person the vendor's documented command to run themselves once they have
+the rights or the tool. oar runs none of them. Every other reason carries
+neither.
+
 ## Install results
 
 | Kind | Meaning |
@@ -73,14 +80,14 @@ is `unsupported` instead).
 | installed | The probe after the installer finds an available installation (`installation`), whatever the installer exited with; `output` is the installer's stdout and stderr verbatim. |
 | already_installed | The probe found an available installation first; nothing ran. |
 | failed | The probe after the installer still finds nothing. `exitCode` is the installer's, 0 included (`curl \| bash` exits 0 when the download failed), or null when the timeout stopped it. |
-| unsupported | Nothing ran; `reason` below, `detail` in plain words. |
+| unsupported | Nothing ran; `reason` below, `detail` in plain words. For `requires_privileges` and `missing_tool`, `steps` and `source` are the plan's, for the person to run themselves; `install` returns the same answer as `installPlan`. |
 
 | Reason | Meaning |
 | --- | --- |
 | platform | The installer does not run here. oar runs the macOS and Linux scripts (x64, arm64); on Windows the detail names the vendor's own Windows command, which oar does not run. |
-| requires_privileges | A directory the installer writes is not writable by this user (an install location variable naming `/usr/local`, say). oar never uses sudo. |
+| requires_privileges | A directory the installer writes is not writable by this user (an install location variable naming `/usr/local`, say). oar never uses sudo. `steps` and `source` carry the vendor's command, for the person to run with the rights it needs. |
 | requires_gui | The vendor installs the runtime only from inside an app (antigravity). |
-| missing_tool | A program the documented command runs (`curl`, `bash`, `sh`) is not on PATH; `detail` names it. |
+| missing_tool | A program the documented command runs (`curl`, `bash`, `sh`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |

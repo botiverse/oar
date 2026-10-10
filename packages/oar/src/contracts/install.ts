@@ -7,9 +7,9 @@ import type { AvailableInstallation } from "./installation.js";
  */
 export type InstallUnsupportedReason =
   | "platform" // the vendor's installer does not run here, or oar does not run it on this OS (Windows)
-  | "requires_privileges" // the installer would write where this user cannot; oar never uses sudo
+  | "requires_privileges" // the installer would write where this user cannot; oar never uses sudo; carries `steps` and `source`
   | "requires_gui" // the vendor installs it only from inside an app (antigravity: an editor's agent registry)
-  | "missing_tool" // the official method needs a tool (curl, bash, npm, ...) that is not on PATH; `detail` names it
+  | "missing_tool" // the official method needs a tool (curl, bash, npm, ...) that is not on PATH; `detail` names it; carries `steps` and `source`
   | "bundled" // nothing to install: the runtime comes with the package that carries it
   | "line_required" // the runtime ships parallel release lines (`Runtime.installLines`) and no `line` was given; oar does not choose one
   | "unknown_line"; // `line` names none of the runtime's `installLines` (a runtime without lines takes none)
@@ -19,6 +19,16 @@ export interface InstallUnsupported {
   readonly reason: InstallUnsupportedReason;
   /** Plain words for a person: what is missing, or how the vendor installs it instead. */
   readonly detail?: string;
+  /**
+   * The steps the plan would have had, for a person to run themselves once
+   * they have what is missing; oar runs none of them. Present only where oar
+   * knows the vendor's step but will not run it here: `requires_privileges`
+   * (the person runs it with the rights it needs) and `missing_tool` (after
+   * installing the tool). Absent for every other reason.
+   */
+  readonly steps?: readonly InstallStep[];
+  /** The vendor's page that documents `steps` (the plan's `source`); present with `steps`. */
+  readonly source?: string;
 }
 
 /**
@@ -35,7 +45,7 @@ export interface InstallLine {
 
 /** One command the installer runs, spawned without a terminal and with stdin closed. */
 export interface InstallStep {
-  /** The program, then its arguments: exactly what `install()` spawns. */
+  /** The program, then its arguments: exactly what `install()` spawns (on an `unsupported` answer, would have spawned). */
   readonly command: readonly string[];
   /**
    * The step as the vendor documents it, plus the installer's own declared
