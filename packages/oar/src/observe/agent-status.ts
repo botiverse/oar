@@ -20,9 +20,10 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  * delegated sub-agent working is not a stalled root.
  *
  * Transition table:
- *   request prompt (toRuntime)        → running/waiting_model (the turn's start IS the request)
+ *   request prompt (toRuntime)        → running/waiting_model (provisional request-based start)
  *   response rejected → that request  → idle again (the turn never began)
- *   event turn_active                 → running/waiting_model if idle; otherwise phase unchanged
+ *   event input_queued                → arm pending input; visible status is unchanged
+ *   event turn_active                 → running at its native start; pending inputId must match
  *   event reasoning                   → running/thinking
  *   event text_delta                  → running/responding
  *   event tool_call_started           → running/{tool, callId}
@@ -62,6 +63,8 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
     sinceSeq,
     ...(requestId === undefined ? {} : { requestId }),
     ...(previous.kind === "running" && previous.stop !== undefined ? { stop: previous.stop } : {}),
+    ...(previous.kind === "running" && previous.inputId !== undefined ? { inputId: previous.inputId } : {}),
+    ...(previous.pendingPrompt === undefined ? {} : { pendingPrompt: previous.pendingPrompt }),
     phase,
     lastEventAt: record.receivedAt,
   };
@@ -77,6 +80,13 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
     // alive, so the clock moves, but the root agent's phase does not.
     return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
   }
+  if (previous.pendingPrompt !== undefined && (previous.kind === "idle" || previous.inputId === previous.pendingPrompt.inputId
+    || (record.kind === "request" && record.body.kind === "dispose")
+    || (record.kind === "response" && previous.pendingPrompt.stop?.pendingAbortIds.includes(record.requestId) === true))) {
+    const { stop: priorStop, ...pendingPrompt } = previous.pendingPrompt;
+    const stop = reduceTurnStop(priorStop, record);
+    if (stop !== priorStop) { previous = { ...previous, pendingPrompt: stop === undefined ? pendingPrompt : { ...pendingPrompt, stop } }; }
+  }
   if (previous.kind === "running") {
     const { stop: priorStop, ...active } = previous;
     const stop = reduceTurnStop(priorStop, record);
@@ -84,13 +94,14 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
   }
   switch (record.kind) {
     case "request":
-      return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle"
-        ? { kind: "running", sinceSeq: record.seq, requestId: record.id, phase: "waiting_model", lastEventAt: record.receivedAt }
+      return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle" && previous.pendingPrompt === undefined
+        ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
         : previous;
     case "response":
       if (record.body.kind === "rejected" && previous.kind === "running" && previous.requestId === record.requestId) {
         return { kind: "idle" };
       }
+      if (record.body.kind === "exited" && previous.kind === "idle") { return { kind: "idle", ...(previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }) }; }
       if (record.body.kind === "exited" && previous.kind === "running") {
         return { kind: "idle", lastTurnOutcome: exitTurnOutcome(previous.stop) };
       }
@@ -109,7 +120,20 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
 
 function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEventBody): AgentStatus {
   switch (event.kind) {
+    case "input_queued": {
+      const own = previous.kind === "running" && previous.inputId === event.inputId;
+      const pendingPrompt = { inputId: event.inputId, sinceSeq: own ? previous.sinceSeq : record.seq,
+        ...(own && previous.requestId !== undefined ? { requestId: previous.requestId } : {}),
+        ...(own && previous.stop !== undefined ? { stop: previous.stop } : {}) };
+      return { ...previous, pendingPrompt, ...(previous.kind === "running" ? { lastEventAt: record.receivedAt } : {}) };
+    }
     case "turn_active":
+      if (event.inputId !== undefined && previous.pendingPrompt?.inputId === event.inputId) {
+        return waitingForPrompt(previous.pendingPrompt, record, false);
+      }
+      if (previous.pendingPrompt !== undefined && (previous.kind === "idle" || previous.inputId === previous.pendingPrompt.inputId)) {
+        return { kind: "running", sinceSeq: record.seq, phase: "waiting_model", lastEventAt: record.receivedAt, pendingPrompt: previous.pendingPrompt };
+      }
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : running(previous, record, "waiting_model");
     case "reasoning":
       return running(previous, record, "thinking");
@@ -129,13 +153,20 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "tool_call_input_delta":
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
-      return { kind: "idle", lastTurnOutcome: event.outcome };
+      return previous.pendingPrompt === undefined
+        ? { kind: "idle", lastTurnOutcome: event.outcome }
+        : waitingForPrompt(previous.pendingPrompt, record, true);
     case "task_started":
     case "task_updated":
     case "task_ended":
       // Tasks run beside the turn; whether the agent is busy is the turn's fact, but a report is activity.
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
-    case "input_dropped":
+    case "input_dropped": {
+      if (previous.kind === "running" && previous.inputId === event.inputId) { return { kind: "idle" }; }
+      if (previous.pendingPrompt?.inputId !== event.inputId) { return previous; }
+      const { pendingPrompt: _pending, ...status } = previous;
+      return status;
+    }
     case "app_request_cancelled":
     case "user_message":
     case "usage":
@@ -145,6 +176,14 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       return previous;
   }
   return previous;
+}
+
+/** A notification can finish while the accepted host input still owns the slot. */
+function waitingForPrompt(pending: NonNullable<AgentStatus["pendingPrompt"]>, record: RawEvent, keepPending: boolean): AgentStatus {
+  return { kind: "running", sinceSeq: pending.sinceSeq, inputId: pending.inputId,
+    ...(pending.requestId === undefined ? {} : { requestId: pending.requestId }),
+    ...(pending.stop === undefined ? {} : { stop: pending.stop }),
+    ...(keepPending ? { pendingPrompt: pending } : {}), phase: "waiting_model", lastEventAt: record.receivedAt };
 }
 
 /**

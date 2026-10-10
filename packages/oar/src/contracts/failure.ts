@@ -13,7 +13,7 @@ import type { UtcInstant } from "./account-usage.js";
  * - `billing`: payment or credits.
  * - `model_unavailable`: the selected model cannot be used here (unknown, not entitled, not enabled).
  * - `input_too_large`: the context window or the payload was exceeded.
- * - `invalid_request`: the provider rejected the request itself.
+ * - `invalid_request`: the runtime or provider rejected the request itself.
  * - `overloaded`: the provider is temporarily overloaded.
  * - `provider`: another provider-side error (a 5xx).
  * - `runtime_exited`: the runtime process ended before the turn did.

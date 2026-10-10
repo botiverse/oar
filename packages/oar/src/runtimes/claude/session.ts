@@ -12,6 +12,7 @@ import { withInputImages, type LoadedImage } from "../../shared/input-images.js"
 import { withdrawControl } from "../../shared/held-input.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
+import { claudeUserMessage } from "./input-lifecycle.js";
 import { claudeOpenSettings } from "./open-settings.js";
 import { claudeContextBreakdownReader } from "./context-breakdown.js";
 import { launchClaude, type ClaudeProcess } from "./launch.js";
@@ -36,21 +37,6 @@ import {
  * contextBreakdown() query answer.
  * Native mappings and live evidence: docs/runtimes/claude.md.
  */
-
-/** One stream-json user message; images go before the text, as the Messages API recommends. */
-function userMessage(text: string, inputId?: string, images: readonly LoadedImage[] = []): string {
-  return `${JSON.stringify({
-    type: "user",
-    ...(inputId === undefined ? {} : { uuid: inputId }),
-    message: {
-      role: "user",
-      content: [
-        ...images.map((image) => ({ type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } })),
-        ...(text === "" ? [] : [{ type: "text", text }]),
-      ],
-    },
-  })}\n`;
-}
 
 interface ClaudeSessionState {
   child: ClaudeProcess;
@@ -83,8 +69,10 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   // claude cannot hold input for a LATER turn natively (an active-turn write
   // steers), so queueing is adapter-held: drained one message per turn end,
   // and an entry can be withdrawn by its inputId until then.
-  const heldQueue: { input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
+  const writtenQueues = new Map<string, RequestRecord>();
+  const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
+  let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
   let disposeRequest: RequestRecord | null = null;
@@ -99,22 +87,40 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     if (message === null) {
       return;
     }
+    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && Array.isArray(message.capabilities)) {
+      canCancelQueued = message.capabilities.includes("interrupt_cancel_queued_v1");
+    }
     if (readback.consume(message) || contextBreakdown.consume(message)) { return; }
     // A system/init while nothing is active is claude starting a turn on its
     // own (queue drain, late steer or task notification): a spontaneous turn.
-    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && !busy()) {
+    if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && (!busy() || state.projection.pendingInputId !== null)) {
       state.spontaneous = true;
     }
     const { state: nextProjection, commands } = foldClaudeStdout(state.projection, message);
     state.projection = nextProjection;
+    if (message.type === "command_lifecycle" && message.state === "queued" && typeof message.command_uuid === "string") {
+      const queued = writtenQueues.get(message.command_uuid);
+      if (queued !== undefined && state.active === null) { state.active = queued; }
+    }
+    if (message.type === "command_lifecycle" && (message.state === "completed" || message.state === "cancelled") && typeof message.command_uuid === "string") {
+      writtenQueues.delete(message.command_uuid);
+    }
+    if (message.type === "command_lifecycle" && message.state === "started"
+      && state.active !== null && "inputId" in state.active.body && message.command_uuid === state.active.body.inputId) {
+      state.spontaneous = false;
+    }
     let ended = false;
+    let dropped = false;
     for (const command of commands) {
       switch (command.kind) {
         case "frame": {
           const record = kernel.frame(command.body, { agentPath: command.agentPath });
-          if (record.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_ended")) {
-            ended = true;
-          }
+          if (record.agentPath.length > 0) { break; }
+          ended ||= command.body.events.some((event) => event.kind === "turn_ended");
+          const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
+          dropped ||= cancelled !== undefined;
+          if (cancelled?.kind === "input_dropped") { writtenQueues.delete(cancelled.inputId); }
+          if (cancelled?.kind === "input_dropped" && state.active !== null && "inputId" in state.active.body && cancelled.inputId === state.active.body.inputId) { state.active = null; }
           break;
         }
         case "respond": {
@@ -137,14 +143,16 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
           break;
       }
     }
-    if (ended) {
+    if (ended || (dropped && !busy())) {
       abortFallback.clear();
-      state.active = null;
+      if (state.projection.pendingInputId === null) { state.active = null; }
       state.spontaneous = false;
-      if (!state.disposed) {
+      if (!state.disposed && !busy()) {
         const next = heldQueue.shift();
         if (next !== undefined) {
-          child.write(userMessage(next.input, next.inputId, next.images));
+          if (next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
+          state.projection = claudePrompted(state.projection, next.inputId, false);
+          child.write(claudeUserMessage(next.input, next.inputId, next.images));
         }
       }
     }
@@ -183,8 +191,8 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       }
       return withInputImages(capabilities, inputOptions?.images, (images) => {
         state.active = request;
-        state.projection = claudePrompted(state.projection);
-        child.write(userMessage(input, inputOptions?.inputId, images));
+        state.projection = claudePrompted(state.projection, inputOptions?.inputId);
+        child.write(claudeUserMessage(input, inputOptions?.inputId, images));
         return { kind: "accepted" };
       });
       });
@@ -196,19 +204,21 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
         return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
       }
       return withInputImages(capabilities, inputOptions?.images, (images) => {
-        child.write(userMessage(input, inputOptions?.inputId, images));
+        child.write(claudeUserMessage(input, inputOptions?.inputId, images));
         return { kind: "accepted" };
       });
       });
       return result;
     },
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
+      const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
           if (busy()) {
-            heldQueue.push({ input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
+            heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
-            child.write(userMessage(input, inputOptions?.inputId, images));
+            if (inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
+            state.projection = claudePrompted(state.projection, inputOptions?.inputId, false);
+            child.write(claudeUserMessage(input, inputOptions?.inputId, images));
           }
           return { kind: "accepted" };
         }));
@@ -225,7 +235,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       // is applied here explicitly.
       const blocked = kernel.unreachable();
       const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });
-      if (blocked !== null || !busy()) {
+      if (blocked !== null || (!busy() && !(canCancelQueued && state.projection.unstartedInputs.size > 0))) {
         return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", code: "no_active_turn", reason: "no active turn" }) };
       }
       state.projection = claudeAbortRequested(state.projection);
@@ -246,7 +256,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
       child.write(`${JSON.stringify({
         type: "control_request",
         request_id: requestId,
-        request: { subtype: "interrupt" },
+        request: { subtype: "interrupt", ...(canCancelQueued && state.projection.unstartedInputs.size > 0 ? { cancel_queued: true } : {}) },
       })}\n`);
       const result = await promise;
       unsubscribe();

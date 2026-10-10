@@ -1,5 +1,7 @@
-import type { ConversationInput } from "./conversation.js";
-import { sealTurn, type Draft } from "./session-view-fold.js";
+import type { Event } from "../contracts/session.js";
+import { awaitsEcho } from "./input-delivery.js";
+import type { ConversationInput, ConversationState } from "./conversation.js";
+import { removeEmptyTurn, sealTurn, type Draft } from "./session-view-fold.js";
 
 /**
  * Where a user input enters the session view: the INPUT rule in the
@@ -79,4 +81,34 @@ function removeInput(draft: Draft, index: number): void {
     draft.openTurn = index - 1;
     draft.turn = null;
   }
+}
+
+/** Queue evidence arms attribution; only an actual conflicting turn defers a placed input. */
+export function foldInputUpdate(draft: Draft, input: ConversationInput, conversation: ConversationState): void {
+  if (input.state === "dropped") {
+    const request = input.attempts.at(-1)?.request;
+    if (request?.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
+  }
+  const wait = awaitsEcho(input, conversation);
+  upsertInput(draft, input, input.turn?.state === "queued" ? wait && draft.pendingInputs.some((pending) => pending.id === input.id) : wait);
+}
+
+/** Split a provisional prompt only when native activity actually belongs to another turn. */
+export function deferWaitingInputs(draft: Draft, event: Event, conversation: ConversationState): void {
+  if (event.kind !== "turn_active" || event.sessionId !== draft.rootSessionId || event.agentPath.length > 0) { return; }
+  for (const input of conversation.inputs.values()) {
+    const request = input.attempts.at(-1)?.request;
+    if (input.turn?.state !== "queued" || input.inputId === event.inputId
+      || request?.sessionId !== event.sessionId || request.agentPath.length > 0) { continue; }
+    if (request.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
+    sealTurn(draft);
+    upsertInput(draft, input, true);
+  }
+}
+
+export function turnOpenedBy(event: Event, conversation: ConversationState): string | undefined {
+  const input = event.kind === "turn_active" && event.inputId !== undefined
+    ? conversation.inputs.get(JSON.stringify([event.sessionId, event.agentPath, event.inputId])) : undefined;
+  const request = input?.turn?.state === "active" ? input.attempts.at(-1)?.request : undefined;
+  return request?.body.kind === "prompt" ? request.id : undefined;
 }

@@ -1,6 +1,6 @@
+import type { FailedTurn, FailureClass } from "./failure.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
-import type { FailedTurn } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
 
 /**
@@ -138,10 +138,14 @@ export interface UserMessage {
  * merges consecutive pieces for consumers who want blocks.
  */
 export type RuntimeEventBody = UserMessage
-  /** The runtime reports an active turn, including one adopted without a prompt request. Not a second turn when `turn_started` already opened it. */
-  | { readonly kind: "turn_active" }
-  /** The runtime discarded or refused an accepted input, established by native evidence. runtime_refused covers a later refused steering RPC. Returns ownership to the caller for resend; never inferred by a view from turn completion. */
-  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "turn_interrupted" | "runtime_refused" }
+  /** The runtime reports an active turn. inputId names the input it started for; absent means unknown. After input_queued, only a matching inputId begins that input’s turn. */
+  | { readonly kind: "turn_active"; readonly inputId?: string }
+  /** The runtime holds this input and has not started its turn. Only this fact gates input-specific turn attribution; acceptance alone does not. */
+  | { readonly kind: "input_queued"; readonly inputId: string }
+  /** The runtime discarded or refused an accepted input, established by native evidence. Returns ownership to the caller for resend; never inferred by a view from turn completion. */
+  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "turn_interrupted" }
+  /** A native refusal's classification and explanation, only when known. An input-scoped wait reads these as a failure, never as a turn_ended fact. */
+  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "runtime_refused"; readonly failure?: FailureClass; readonly message?: string }
   /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
   | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. `messageId` names the native message when provided, keeping streamed reasoning from distinct messages apart when coalescing. */

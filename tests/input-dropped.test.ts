@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import type { RequestRecord, RuntimeEventBody } from "../packages/oar/src/contracts/session.js";
 import { createSessionKernel, type SessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 import { conversationOf } from "../packages/oar/src/observe/conversation.js";
+import { turnEndAfter } from "../packages/oar/src/observe/turns.js";
 import { viewOf } from "../packages/oar/src/observe/session-view.js";
 
 function input(k: SessionKernel, id: string, options: { kind?: "prompt" | "steer" | "queue"; accepted?: boolean } = {}): RequestRecord {
@@ -90,4 +91,18 @@ test("native drop stays distinct from acceptance and already observed input", ()
   expect([...conversationOf(k.records()).inputs.values()].map((entry) => [entry.inputId, entry.state])).toEqual([
     ["prompt", "accepted"], ["read", "accepted"], ["unread", "dropped"],
   ]);
+});
+
+
+test.each([
+  { detail: {}, failure: "unknown", reason: "runtime refused the input" },
+  { detail: { failure: "invalid_request", message: "native refusal" }, failure: "invalid_request", reason: "native refusal" },
+] as const)("an input-scoped refusal uses contract details or unknown without ending the turn: $failure", ({ detail, failure, reason }) => {
+  const k = createSessionKernel("root");
+  const request = input(k, "owned", { kind: "prompt" });
+  frame(k, [{ kind: "input_dropped", inputId: "other", reason: "runtime_refused", ...detail }]);
+  expect(turnEndAfter(k.records(), request.seq, "root", "owned")).toBeNull();
+  frame(k, [{ kind: "input_dropped", inputId: "owned", reason: "runtime_refused", ...detail }]);
+  expect(turnEndAfter(k.records(), request.seq, "root", "owned")).toEqual({ kind: "failed", failure, reason });
+  expect(turnEndAfter(k.records(), request.seq, "root")).toBeNull();
 });

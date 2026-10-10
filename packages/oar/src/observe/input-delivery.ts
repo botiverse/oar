@@ -20,12 +20,14 @@ export function deliveryState(attempts: readonly InputAttempt[], drop?: InputDro
 
 /** An observed input's new control state; old drop reasons never survive a retry. */
 export function withDeliveryState(input: ConversationInput, attempts: readonly InputAttempt[], drop?: InputDrop): ConversationInput {
-  const { reason: _reason, ...rest } = input;
-  return { ...rest, attempts, ...deliveryState(attempts, drop) };
+  const { reason: _reason, turn, ...rest } = input;
+  return { ...rest, ...(drop === undefined && turn !== undefined ? { turn } : {}), attempts, ...deliveryState(attempts, drop) };
 }
 
 /** Whether the stream has established that this input waits for a native echo. */
 export function awaitsEcho(input: ConversationInput, conversation: Pick<ConversationState, "inputs">): boolean {
+  if (input.turn?.state === "queued" && input.state !== "dropped" && input.state !== "withdrawn" && input.state !== "rejected") { return true; }
+  if (input.turn?.state === "active") { return false; }
   if (input.observations.length > 0 || input.state === "rejected" || input.state === "withdrawn" || input.state === "dropped") { return false; }
   if (input.attempts.some((attempt) => attempt.request.body.kind === "prompt" && attempt.state !== "rejected")) { return false; }
   for (const known of conversation.inputs.values()) {

@@ -78,7 +78,7 @@ held (`capabilities.queue.durable: false`).
 - **Reopening is not always quiet.** codex may start a turn, and claude may
   close a stopped background task before the host says anything.
 
-## Open defect: claude's reopen result can end the host's turn
+## Claude's reopen result and the host's turn
 
 The `result` frame claude emits on reopen for a stopped background task is
 projected as `turn_ended`, like every `result`. When a host prompts right
@@ -90,10 +90,16 @@ the real answer came after it. The frame is distinguishable: a turn claude
 starts by itself carries `origin` (here `task-notification`, with
 `num_turns: 0` when no model ran), and the host's prompt has a
 `command_lifecycle` entry naming its `inputId`. The same race exists without a
-crash whenever a background task ends as the host prompts. Open as
-[issue #55](https://github.com/botiverse/oar/issues/55); the claude
-projection still reads every `result` as `turn_ended`
-([projection.ts](../../packages/oar/src/runtimes/claude/projection.ts)).
+crash whenever a background task ends as the host prompts.
+
+[Issue #308](https://github.com/botiverse/oar/issues/308) addresses this
+attribution: Claude's `queued` becomes `input_queued`, and `started` becomes
+`turn_active` carrying the input id. `promptAndWait` supplies an id by default
+and waits through the notification for its own turn. Lower-level wait helpers
+can opt in with an input id. Every native result remains `turn_ended`; without
+native queue evidence the legacy first-result behavior remains. The original
+observation belongs to [issue #55](https://github.com/botiverse/oar/issues/55),
+and the [Claude page](claude.md#prompt-steering-queueing-and-abort) describes the mapping.
 
 ## Evidence
 
