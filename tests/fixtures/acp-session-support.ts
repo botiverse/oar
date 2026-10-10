@@ -71,6 +71,7 @@ export function describe(record: RawEvent): string {
           case "usage":
           case "tool_call_progress":
           case "tool_call_input":
+          case "tool_call_input_delta":
           case "compaction_started":
           case "compaction_ended":
           case "retry":

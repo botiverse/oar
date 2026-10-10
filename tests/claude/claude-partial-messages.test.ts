@@ -39,7 +39,7 @@ test("native deltas arrive before the final block without repeating text or reas
   expect(read(final("m1", [{ type: "text", text: "Alpha beta" }]))).toEqual([]);
 });
 
-test("tool JSON and signatures stay raw; tool calls start once with complete input", () => {
+test("unidentified tool JSON and signatures stay raw; an unstreamed call starts once with complete input", () => {
   const read = reader();
   read(start("m2"));
   read(block(0, "tool_use"));

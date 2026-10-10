@@ -34,7 +34,7 @@ function group(runtimeId: string, index: number, parts: readonly (ToolPart | Rea
   const counts = new Map<ToolActionKind, number>();
   const tools = parts.filter((part): part is ToolPart => part.kind === "tool");
   for (const tool of tools) {
-    const { kind } = classifyTool(runtimeId, tool.tool, tool.input);
+    const { kind } = classifyTool(runtimeId, tool.tool, tool.inputPartial === true ? undefined : tool.input);
     counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
   const failed = tools.filter((tool) => tool.result === "failed").length;

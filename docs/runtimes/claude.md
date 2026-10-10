@@ -63,7 +63,7 @@ provider's echoed authentication header across live delivery and replay.
 | stream-json frame | One `Frame` record per stdout line (control traffic below and the effort read-back at open are the exceptions): `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, user_message, turn_ended, usage, model, task_*, compaction_ended). Frames OAR does not interpret (`system/thinking_tokens`, …) carry no events; nor does `rate_limit_event`, read only for a failed turn's `resetsAt` ([below](#usage-limits)). No `spanId`: claude frames carry no turn id. |
 | User turn and `result` | The `prompt` request record starts the turn; the `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
-| `tool_use` / `tool_result` blocks | `tool_call_started` (`callId`, `tool`, `input`) and `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
+| `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). `background_tasks_changed` (the live set) and `task_progress` carry no events. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
@@ -298,8 +298,7 @@ and resumes. Every `stream_event` becomes a frame, including message/block
 boundaries, signatures and partial tool JSON. Text and thinking deltas become
 `text_delta` and readable `reasoning`, with the API `message.id` carried from
 `message_start` as `messageId`. A completed `assistant` block only projects
-text or reasoning that was not already streamed; tools still start once,
-with their complete input and original IDs. Redacted and empty thinking
+text or reasoning that was not already streamed. Redacted and empty thinking
 remain distinguishable. Final result usage is unchanged.
 
 Claude 2.1.293 emits each completed block just before its
@@ -308,8 +307,33 @@ Deduplication tracks blocks independently within each agent's message, so
 parallel child output does not suppress root output or another child. A
 `message_stop` releases that agent's partial projection state; its raw
 records remain available.
-`input_json_delta` has no tool event: its raw frame is still activity for
-`stallOf`, while the incomplete input remains available in `native`.
+
+Tools start once, with their original IDs. A partial `content_block_start`
+for `tool_use` gives `tool_call_started` without input. Each
+`input_json_delta.partial_json` becomes `tool_call_input_delta {callId, delta}`,
+using the block index within that agent's current API message to find the
+call. OAR does not parse or accumulate these fragments in the adapter. The
+completed `assistant.tool_use` emits `tool_call_input` with the complete
+input, replacing the preview even if it differs from the fragments. Without
+a partial opening, including children that only report completed blocks,
+the original single `tool_call_started` carries the full input.
+
+`SessionView` appends argument text and sets `inputPartial: true` after a
+delta; the complete input clears it. Interrupted tools retain any partial
+input, and later input can replace it without changing their ended state.
+Hosts consuming events directly must allow the opening event to have no
+input and use the complete input event before parsing arguments.
+
+Evidence: the [Claude 2.1.292 recording](../../tests/replay/fixtures/claude-tool-input-stream.raw.jsonl)
+from 2026-10-10 uses a mock provider and local MCP echo tool, with sanitized
+paths and no account. A root tool's 20 KB input arrives in 313 fragments,
+then the complete assistant block, then `content_block_stop`. The fragment
+sizes reflect the mock provider's 64-character chunk setting, not a native
+guarantee. A child in the same recording has only a completed block.
+[Replay assertions](../../tests/claude/claude-tool-input-stream.test.ts)
+pin both paths and preserve every raw frame;
+[native regression](../../sea-trial/vendor/tool-input-stream.vendor.test.ts)
+checks long, escaped Unicode input on new and resumed sessions.
 
 This emits more, smaller records, comparable to Codex's streamed deltas;
 hosts retaining records should budget for them. `events(observer,

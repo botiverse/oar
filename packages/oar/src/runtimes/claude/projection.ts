@@ -151,7 +151,9 @@ function attributionOf(state: ClaudeProjectionState, message: JsonRecord): reado
 }
 
 function rememberToolUses(state: ClaudeProjectionState, message: JsonRecord, agentPath: readonly string[]): ClaudeProjectionState {
-  const ids = contentBlocks(message)
+  const event = asRecord(message.event);
+  const partial = event?.type === "content_block_start" ? asRecord(event.content_block) : null;
+  const ids = (partial === null ? contentBlocks(message) : [partial])
     .filter((block) => block.type === "tool_use" && typeof block.id === "string")
     .map((block) => String(block.id));
   if (ids.length === 0) {
@@ -200,14 +202,13 @@ export function foldClaudeStdout(
     case "assistant":
     case "stream_event": {
       const content = claudeContent(state.partials, message, agentPath);
-      const next = { ...state, partials: content.partials };
+      const next = rememberToolUses({ ...state, partials: content.partials }, message, agentPath);
       if (message.type !== "assistant") {
         return event({ events: content.events }, next);
       }
-      const remembered = rememberToolUses(next, message, agentPath);
       // The category of an error claude reports as an assistant message.
-      const failureCategory = agentPath.length === 0 && typeof message.error === "string" ? message.error : remembered.failureCategory;
-      return event({ events: content.events }, { ...remembered, failureCategory });
+      const failureCategory = agentPath.length === 0 && typeof message.error === "string" ? message.error : next.failureCategory;
+      return event({ events: content.events }, { ...next, failureCategory });
     }
     case "user": {
       const views = [...toolResultViews(message)];

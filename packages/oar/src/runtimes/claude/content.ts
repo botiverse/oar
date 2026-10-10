@@ -1,11 +1,16 @@
 import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
-interface PartialBlock {
+interface PartialText {
   readonly type: "text" | "thinking";
   readonly text: string;
   readonly finalized: boolean;
 }
+interface PartialTool {
+  readonly type: "tool_use";
+  readonly callId: string;
+}
+type PartialBlock = PartialText | PartialTool;
 interface PartialMessage {
   readonly id?: string;
   readonly blocks: ReadonlyMap<number, PartialBlock>;
@@ -25,7 +30,7 @@ function textEvent(type: "text" | "thinking", text: string, id?: string): Runtim
     : { kind: "reasoning", content: { kind: "text", text }, ...identity };
 }
 
-/** Partial frames never start a tool: its full input still comes from assistant. */
+/** Keep only a tool's identity: argument fragments are emitted, never parsed or accumulated here. */
 function streamContent(previous: PartialMessage | undefined, event: JsonRecord): { message: PartialMessage | undefined; events: RuntimeEventBody[] } {
   if (event.type === "message_start") {
     const id = asRecord(event.message)?.id;
@@ -34,16 +39,26 @@ function streamContent(previous: PartialMessage | undefined, event: JsonRecord):
   const message = previous ?? { blocks: new Map<number, PartialBlock>() };
   const body = event.type === "content_block_start" ? asRecord(event.content_block)
     : (event.type === "content_block_delta" ? asRecord(event.delta) : null);
+  if (typeof event.index !== "number") { return { message: previous, events: [] }; }
+  const blocks = new Map(message.blocks);
+  if (body?.type === "tool_use" && typeof body.id === "string" && typeof body.name === "string") {
+    const prior = blocks.get(event.index);
+    blocks.set(event.index, { type: "tool_use", callId: body.id });
+    return { message: { ...message, blocks }, events: prior?.type === "tool_use" && prior.callId === body.id ? [] : [{ kind: "tool_call_started", callId: body.id, tool: body.name }] };
+  }
+  if (body?.type === "input_json_delta" && typeof body.partial_json === "string") {
+    const tool = blocks.get(event.index);
+    return { message: previous, events: tool?.type === "tool_use" ? [{ kind: "tool_call_input_delta", callId: tool.callId, delta: body.partial_json }] : [] };
+  }
   const type = body?.type === "text" || body?.type === "text_delta" ? "text"
     : (body?.type === "thinking" || body?.type === "thinking_delta" ? "thinking" : null);
-  if (type === null || typeof event.index !== "number") {
+  if (type === null) {
     return { message: previous, events: [] };
   }
   const value = body?.[type];
   const text = typeof value === "string" ? value : "";
-  const blocks = new Map(message.blocks);
   const prior = event.type === "content_block_start" ? undefined : blocks.get(event.index);
-  blocks.set(event.index, { type, text: (prior?.text ?? "") + text, finalized: false });
+  blocks.set(event.index, { type, text: (prior?.type === type ? prior.text : "") + text, finalized: false });
   return { message: { ...message, blocks }, events: text.length === 0 ? [] : [textEvent(type, text, message.id)] };
 }
 
@@ -58,7 +73,7 @@ function finalContent(message: JsonRecord, partial: PartialMessage | undefined):
     if (typeof id !== "string" || partial?.id !== id) {
       return full;
     }
-    const pending = [...blocks].find(([, block]) => block.type === type && !block.finalized);
+    const pending = [...blocks].find((entry): entry is [number, PartialText] => entry[1].type === type && !entry[1].finalized);
     if (pending === undefined) {
       return full;
     }
@@ -89,6 +104,13 @@ function finalContent(message: JsonRecord, partial: PartialMessage | undefined):
         events.push({ kind: "reasoning", content: { kind: "redacted" }, ...identity });
         break;
       case "tool_use": {
+        // A streamed start already announced this call. The completed block
+        // replaces its input, even before content_block_stop (native order).
+        const started = (partial?.id === id || partial?.id === undefined) && [...blocks.values()].some((item) => item.type === "tool_use" && item.callId === block.id);
+        if (started) {
+          if (block.input !== undefined) { events.push({ kind: "tool_call_input", callId: String(block.id), input: JSON.stringify(block.input) }); }
+          break;
+        }
         events.push({
           kind: "tool_call_started",
           callId: typeof block.id === "string" ? block.id : "unknown",

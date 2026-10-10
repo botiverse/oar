@@ -70,18 +70,21 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude partial messag
         const activity: { at: number; stalled: boolean; started: boolean }[] = [];
         session.rawEvents((record) => {
           if (record.kind !== "frame" || asRecord(partialEvent(record)?.delta)?.type !== "input_json_delta") { return; }
-          expect(record.body.events).toEqual([]);
+          expect(record.body.events).toEqual([{ kind: "tool_call_input_delta", callId: "call_partial", delta: asRecord(partialEvent(record)?.delta)?.partial_json }]);
           activity.push({ at: record.receivedAt, stalled: stallOf(session.status().value, Date.now(), 500) !== null,
             started: session.records().some((entry) => entry.kind === "frame" && entry.body.events.some((event) => event.kind === "tool_call_started")) });
         });
         expect(await promptAndWait(session, "PARTIAL_TOOL", { timeoutMs: 30_000 })).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
         expect(activity.length).toBeGreaterThan(2);
         expect((activity.at(-1)?.at ?? 0) - (activity[0]?.at ?? 0)).toBeGreaterThan(500);
-        expect(activity.every((sample) => !sample.stalled && !sample.started)).toBe(true);
+        expect(activity.every((sample) => !sample.stalled && sample.started)).toBe(true);
         const tools = session.records().flatMap((record) => record.kind === "frame" ? record.body.events : []).filter((event) => event.kind === "tool_call_started");
         expect(tools).toHaveLength(1);
         expect(tools[0]).toMatchObject({ callId: "call_partial", tool: "Bash" });
-        expect(JSON.parse(tools[0]?.input ?? "null")).toMatchObject({ command });
+        expect(tools[0]).not.toHaveProperty("input");
+        const inputs = session.records().flatMap((record) => record.kind === "frame" ? record.body.events : []).filter((event) => event.kind === "tool_call_input");
+        expect(inputs).toHaveLength(1);
+        expect(JSON.parse(inputs[0]?.input ?? "null")).toMatchObject({ command });
       } finally { await session.dispose(); }
     } finally { await env.stop(); }
   }, 60_000);

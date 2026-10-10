@@ -37,6 +37,14 @@ projection over the record stream, which `session.rawEvents()` and
 verbatim, `RequestRecord`, `ResponseRecord`) for consumers who need the
 runtime's own frames.
 
+Tool arguments can arrive while the model is still writing them. Append
+`tool_call_input_delta.delta` as raw text; `tool_call_input.input` replaces
+the whole input when complete. `SessionView` does this for you, marking a
+tool's preview with `inputPartial: true` until the complete input arrives.
+Claude's streamed `tool_call_started` carries no input, so read the later
+input event before parsing arguments. Calls without a partial stream still
+start with their complete input.
+
 `session.deliver(input, { when, origin })` sends input the host produces (a
 subagent's result, a finished job) at the right moment: a new turn when the
 session is idle, so the agent wakes, otherwise steered into the turn or queued

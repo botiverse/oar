@@ -35,7 +35,7 @@ function endRootSectionTools(section: ViewSection, sessionId: string): ViewSecti
 }
 
 type ToolUpdate = Extract<Event, { kind: "tool_call_progress" | "tool_call_ended" }>;
-type ToolInput = Extract<Event, { kind: "tool_call_input" }>;
+type ToolInput = Extract<Event, { kind: "tool_call_input" | "tool_call_input_delta" }>;
 type ToolPart = Extract<ViewPart, { kind: "tool" }>;
 type ToolResult = ToolPart["result"];
 
@@ -64,9 +64,13 @@ export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResu
   });
 }
 
-/** The latest input the runtime reported replaces the call's earlier one; its state is untouched. False when no part holds the callId. */
+/** Append raw fragments, or replace them with the complete input, without changing the call's state. False when no part holds the callId. */
 export function updateToolInput(draft: Draft, event: ToolInput): boolean {
-  return replaceToolPart(draft, event, (part) => ({ ...part, input: event.input }));
+  return replaceToolPart(draft, event, (part) => {
+    if (event.kind === "tool_call_input_delta") { return { ...part, input: (part.input ?? "") + event.delta, inputPartial: true }; }
+    const { inputPartial: _partial, ...complete } = part;
+    return { ...complete, input: event.input };
+  });
 }
 
 function replaceToolPart(draft: Draft, event: ToolUpdate | ToolInput, next: (part: ToolPart) => ToolPart): boolean {

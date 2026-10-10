@@ -656,6 +656,16 @@ path once, and `detail` is the first of them
 OAR projects command execution, file changes, MCP calls, web search and
 sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
 dynamic-tool execution callback, MCP management, or elicitation API.
+
+Codex 0.162.0 has no native notification for streamed tool arguments, so OAR
+emits no `tool_call_input_delta` for it. Verified 2026-10-10 with
+`codex app-server generate-json-schema --experimental --out <dir>`: among
+84 server notifications, `item/mcpToolCall/progress` carries only
+`itemId`, `message`, `threadId`, `turnId`; its message is MCP progress, not
+argument text. `mcpToolCall` and `dynamicToolCall` items carry whole
+`arguments` fields, and `commandExecution` carries the whole `command`.
+Output deltas describe tool output, not input being generated.
+
 Runtime-owned tools (MCP servers, skills, plugins) come from native
 configuration, plus the session's own MCP servers
 ([below](#session-mcp-servers)). The inventories read them on their own app-server process:

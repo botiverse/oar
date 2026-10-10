@@ -113,7 +113,7 @@ Further rules:
   after `env` or `echo $KEY`), its short text deltas commonly split that key.
   The complete tool-output frame is redacted, but the model's fragments are
   not: `SessionView` body text and `events({ coalesceText: true })` can
-  reconstruct the original key. Split text or tool-output deltas are outside
+  reconstruct the original key. Split text, tool-input or tool-output deltas are outside
   this guarantee. This rule neither buffers the live stream nor rewrites
   previously delivered fragments.
 - **Native activity can precede this controller.** A runtime frame can report
@@ -232,16 +232,25 @@ Further rules:
   `withChildren` adds each child session's total, once
   ([attribution](attribution.md#usage-one-constraint)), so its `seq` covers
   those records too.
-- **A tool's input is the latest one the runtime reported.**
-  `tool_call_started.input` is what the opening frame said, and stays so. A
-  runtime that sends the arguments later (an ACP `tool_call_update` whose
-  `rawInput` differs from the input last read for the call: opencode's
-  opening `tool_call` carries only `cwd` or nothing, kimi's no `rawInput`)
-  adds a `tool_call_input` holding the whole input in the same form,
-  replacing the earlier one, never a delta. An unchanged repeat adds none;
-  on the frame that ends the call it comes before `tool_call_ended`, and
-  none follows the end. The session view's tool part keeps the latest, and
-  `classifyTool` is handed that one.
+- **Tool input distinguishes fragments from complete arguments.**
+  `tool_call_started.input` is what the opening frame said, and stays so;
+  it may be absent while the runtime is still writing the arguments.
+  `tool_call_input_delta.delta` appends the native fragment verbatim. OAR
+  never parses partial JSON. `tool_call_input.input` replaces the whole
+  input, even when it differs from the accumulated fragments. The session
+  view applies both within the call's session/agent lane: a delta sets
+  `inputPartial: true`, and a complete input removes that flag. An interrupted
+  tool can retain partial input; late input updates it without reopening it.
+  Hosts can render the raw preview and wait for complete input before
+  parsing it or passing it to `classifyTool`.
+
+  Claude starts at the native `tool_use` block opening, appends
+  `input_json_delta.partial_json`, then replaces with the completed block's
+  input. Without a partial opening it keeps one `tool_call_started` carrying
+  the complete input. ACP still emits only whole `tool_call_input` snapshots
+  when `rawInput` changes for a call that has not ended. An unchanged repeat
+  adds none; on the frame that ends an ACP call the input comes before
+  `tool_call_ended`.
 - **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.
@@ -304,6 +313,7 @@ interface FrameBody {
 //   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
 //   tool_call_input {callId, input} |
+//   tool_call_input_delta {callId, delta} |
 //   tool_call_progress {callId, output?, outputDelta?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
 //   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
@@ -457,8 +467,15 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   ended, carrying a `rawInput` that differs from the input last read for
   it: opencode's arguments (the opening frame has `{cwd}` or `{}`), kimi's
   full `rawInput` after its streamed `content` chunks, grok's update adding
-  `is_background` and `variant` to `{command, description}`. No other
-  shipped adapter emits it.
+  `is_background` and `variant` to `{command, description}`. Claude's
+  completed `assistant.tool_use` emits it if the partial stream already
+  started that call. In every case it holds a complete replacement.
+- `tool_call_input_delta`: append-only argument text, currently Claude's
+  `input_json_delta.partial_json`, attributed by block index to its tool-use
+  id within the agent's current message. Each record keeps only its fragment,
+  not an ever-growing input. It may be incomplete JSON; it is separate from
+  both complete `tool_call_input` and tool output `tool_call_progress`.
+  Codex 0.162.0 exposes no corresponding native argument notification.
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger). Never claude (it reports only the
