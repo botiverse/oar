@@ -1,5 +1,6 @@
 import { claudeServiceTierArgs } from "./service-tier.js";
 import { sessionEnvironment } from "../../shared/environment.js";
+import { claudeSessionEnv } from "./environment.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
@@ -43,8 +44,9 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", ...options.disallowedTools ?? []]),
   ], {
     cwd: options.cwd,
-    // Let print mode choose sdk-cli, unless the host explicitly chose an entrypoint.
-    env: sessionEnvironment({ CLAUDE_CODE_ENTRYPOINT: null, ...options.env, CLAUDECODE: null }),
+    // Without the parent session's markers, so print mode chooses sdk-cli and
+    // claude is not a child of the host's own claude (environment.ts).
+    env: sessionEnvironment(claudeSessionEnv(options.env)),
     // On Windows an npm .cmd wrapper can exit while native claude keeps
     // the provider request and stdio alive. Teardown must reach both.
     killTree: true,

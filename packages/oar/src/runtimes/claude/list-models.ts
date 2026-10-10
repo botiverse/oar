@@ -3,6 +3,7 @@ import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
+import { claudeEnv } from "./environment.js";
 
 type ReadOutcome =
   | { readonly kind: "ok"; readonly payload: unknown }
@@ -64,7 +65,7 @@ async function readListModels(command: string, timeoutMs: number): Promise<ReadO
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose",
-  ], { env: { ...process.env, CLAUDECODE: undefined } });
+  ], { env: claudeEnv() });
   const requestId = `oar-list-models-${randomUUID()}`;
   const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
   child.onLine((line) => {

@@ -13,6 +13,7 @@ import {
   upgradeExecutable,
   versionAtLeast,
 } from "../../shared/update.js";
+import { claudeEnv } from "./environment.js";
 
 /**
  * Claude has no check-only command, so the check reads what `claude update`
@@ -125,6 +126,7 @@ export function claudeUpdateCheck(from: ClaudeUpdateSources = sources): UpdateCh
 export const claudeCheckUpdate = claudeUpdateCheck();
 
 export async function claudeUpgrade(installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
-  const result = await upgradeExecutable(installation, { check: claudeCheckUpdate, args: ["update"] }, options);
+  // Without the parent Claude Code session's markers, as every other claude OAR starts (environment.ts).
+  const result = await upgradeExecutable(installation, { check: claudeCheckUpdate, args: ["update"], env: claudeEnv }, options);
   return result;
 }

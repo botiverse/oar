@@ -2,14 +2,11 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginAccount } from "../../contracts/login.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { asRecord, parseJson } from "../../shared/json.js";
+import { claudeEnv } from "./environment.js";
 
 const STATUS_TIMEOUT_MS = 20_000;
 const STATUS_SOURCE = "claude auth status --json";
 
-export function claudeEnv(): NodeJS.ProcessEnv {
-  // As for sessions: a claude started from inside a claude session must not think it is nested.
-  return { ...process.env, CLAUDECODE: undefined };
-}
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
