@@ -17,6 +17,7 @@ export type RunningPhase =
 /** Native queue evidence retained across an unrelated spontaneous turn. */
 interface PendingPrompt {
   readonly inputId: string;
+  readonly sinceSeq: number;
   readonly requestId?: string;
   readonly stop?: { readonly pendingAbortIds: readonly string[]; readonly abortedOnExit: boolean };
 }

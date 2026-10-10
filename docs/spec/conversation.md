@@ -187,6 +187,13 @@ apply to Codex's durable queue, another turn, or an echoed steer.
 [Runtime evidence](../../experiments/input-interruption-2026-10-08.md)
 distinguishes runtimes that retain input and the remaining Grok ambiguity.
 
+Claude also emits `turn_interrupted` for a registered prompt-like input's
+native `command_lifecycle cancelled`, only before that input has received
+`started`. After `started`, cancellation is the ordinary end of an aborted
+turn and does not return the input. An input-scoped wait resolves as `aborted`
+on the before-start drop, even when no `turn_ended` follows.
+[Native cases and capability gate](../runtimes/claude.md#interrupted-input).
+
 ACP steering is accepted when written, since some runtimes answer the RPC
 only when the whole turn ends. If the runtime later refuses that RPC, its
 error frame carries `input_dropped` with `reason: "runtime_refused"`. The
@@ -246,16 +253,20 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 `messages` where the runtime took it, as far as the stream shows:
 
 - A `prompt` enters at its request; its provisional turn opens below it.
-  A native `input_queued` moves that input into `pendingInputs` and removes
-  its still-empty provisional turn. The matching `turn_active { inputId }`
-  places it before its actual turn. Unrelated native turns remain separate.
+  A native `input_queued` arms attribution without moving the input or changing
+  visible status. Only a conflicting `turn_active` moves that input into
+  `pendingInputs` and removes its still-empty provisional turn. The matching
+  `turn_active { inputId }` places it before its actual turn. The ordinary
+  queued → started path keeps the original layout; unrelated turns stay separate.
   `ConversationInput.turn` stores the queued/active fact with its seq and
   streamId, separately from acceptance and user-message observations; a
   drop or a new delivery attempt clears that attempt's turn evidence.
   Status checkpoints retain `pendingPrompt` across unrelated turns and name
   the active input when known. Store that evidence with incremental state.
-  A waiting accepted prompt still occupies the adapter's input slot, so a
-  new prompt can be rejected as busy while the root is idle with pending input.
+  After an intervening turn ends, status returns to `running/waiting_model`
+  for the pending prompt. It still owns the adapter's input slot and `awaitIdle`
+  continues waiting. A native drop clears that ownership without inventing a
+  turn end; other active turns continue to keep the session running.
   Without native queue evidence the existing placement rules below apply.
 - A `steer` or `queue` enters at its first `user_message` carrying its
   `inputId`, and seals the open turn segment there. Codex holds a steer until

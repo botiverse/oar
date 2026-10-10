@@ -5,7 +5,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { claudeSession } from "../../packages/oar/src/runtimes/claude/session.js";
 import { claudePrompted, foldClaudeStdout, initialClaudeProjection } from "../../packages/oar/src/runtimes/claude/projection.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
-import { awaitTurnEnd, promptAndWait, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
+import { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
 import { statusOf } from "../../packages/oar/src/observe/agent-status.js";
 import { initialSessionView, reduceSessionView, viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { fakeLineProcess } from "../fixtures/fake-line-process.js";
@@ -16,6 +16,9 @@ afterEach(() => { spawnLineProcess.mockReset(); });
 const installation = { kind: "available", via: "executable", command: "claude", version: "2.1.292" } as const;
 const fixture = (suffix: string) => readFileSync(new URL(`../replay/fixtures/claude-workflow-prompt-collision.${suffix}.jsonl`, import.meta.url), "utf8")
   .trim().split("\n").map((line) => asRecord(parseJson(line))).filter((row) => row !== null);
+const layout = (view: ReturnType<typeof viewOf>) => view.messages.map((message) => message.kind === "input"
+    ? { kind: message.kind, id: message.id, input: message.input.input, state: message.input.state }
+    : message);
 const firstId = "6f1c2d3e-0001-4a5b-8c7d-000000000001";
 const secondId = "6f1c2d3e-0002-4a5b-8c7d-000000000002";
 const firstText = "RUN-WORKFLOW-FIXTURE: run the two-phase workflow.";
@@ -52,13 +55,14 @@ test("recorded notification collision: the queued prompt owns only its started â
         assert.ok(request?.kind === "request"); secondSeq = request.seq;
       }
       if (index === 54) {
-        expect(live.pendingInputs.map((input) => input.inputId)).toContain(secondId);
-        expect(live.messages.filter((item) => item.kind === "turn")).toHaveLength(1);
-        expect(session.status().value.kind).toBe("idle");
+        expect(live.pendingInputs).toHaveLength(0);
+        expect(live.messages.filter((item) => item.kind === "turn")).toHaveLength(2);
+        expect(session.status().value).toMatchObject({ kind: "running", inputId: secondId, phase: "waiting_model" });
       }
       if (index === 55) {
         expect(session.status().value).toMatchObject({ kind: "running" });
         expect(session.status().value).not.toHaveProperty("requestId");
+        expect(live.pendingInputs.map((input) => input.inputId)).toContain(secondId);
       }
       if (index === 66) {
 
@@ -86,6 +90,57 @@ test("recorded notification collision: the queued prompt owns only its started â
     assert.ok(turns[1] !== undefined);
     expect(hostInput).toBeGreaterThan(live.messages.indexOf(turns[1]));
     expect(await awaitTurnEnd(session, secondSeq, secondId)).toEqual({ kind: "completed" });
+  } finally { await session.dispose(); }
+});
+
+test("queued then started preserves the prompt's visible status and layout until its result", async () => {
+  const child = fakeLineProcess(); spawnLineProcess.mockReturnValue(child);
+  const session = await claudeSession(installation, { cwd: "/work" });
+  const request = await session.prompt("hello", { inputId: firstId });
+  const before = viewOf(session.records());
+
+  let idle = false;
+  try {
+    child.emit(`${JSON.stringify({ type: "command_lifecycle", command_uuid: firstId, state: "queued" })}\n`);
+    const waiting = (async () => { const outcome = await awaitIdle(session); idle = true; return outcome; })();
+    await Promise.resolve();
+    expect(idle).toBe(false);
+    for (const state of ["queued", "started"]) {
+      if (state === "started") { child.emit(`${JSON.stringify({ type: "command_lifecycle", command_uuid: firstId, state })}\n`); }
+      const view = viewOf(session.records());
+      expect(view.status).toMatchObject({ kind: "running", sinceSeq: request.seq, requestId: request.request.id, inputId: firstId, phase: "waiting_model" });
+      expect(layout(view)).toEqual(layout(before));
+      expect(view.pendingInputs).toEqual(before.pendingInputs);
+      expect(view.openTurn).toBe(before.openTurn);
+    }
+    child.emit(`${JSON.stringify({ type: "result", is_error: false })}\n`);
+    expect(await waiting).toEqual({ kind: "completed" });
+    expect(session.status().value.kind).toBe("idle");
+  } finally { await session.dispose(); }
+});
+
+test.each(["queued", "intervening", "after-intervening"])("awaitIdle from %s waits for the owned input's result", async (at) => {
+  const child = fakeLineProcess(); spawnLineProcess.mockReturnValue(child);
+  const session = await claudeSession(installation, { cwd: "/work" });
+  await session.prompt("hello", { inputId: firstId });
+  const emit = (message: unknown): void => { child.emit(`${JSON.stringify(message)}\n`); };
+  let settled = false;
+  const tracker: { waiting?: ReturnType<typeof awaitIdle> } = {};
+  const wait = (): void => { tracker.waiting = (async () => { const outcome = await awaitIdle(session); settled = true; return outcome; })(); };
+  try {
+    emit({ type: "command_lifecycle", command_uuid: firstId, state: "queued" });
+    if (at === "queued") { wait(); }
+    emit({ type: "system", subtype: "init" });
+    if (at === "intervening") { wait(); }
+    emit({ type: "result", is_error: true, result: "notification failed" });
+    if (at === "after-intervening") { wait(); }
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(settled).toBe(false);
+    expect(session.status().value).toMatchObject({ kind: "running", inputId: firstId, phase: "waiting_model" });
+    emit({ type: "command_lifecycle", command_uuid: firstId, state: "started" });
+    emit({ type: "result", is_error: false });
+    assert.ok(tracker.waiting !== undefined);
+    expect(await tracker.waiting).toEqual({ kind: "completed" });
   } finally { await session.dispose(); }
 });
 
@@ -173,7 +228,7 @@ test.each([true, false])("promptAndWait supplies an id and falls back without qu
   } finally { await session.dispose(); }
 });
 
-test("a prompt without an id keeps the existing init/result behavior", async () => {
+test("unrelated lifecycle ids keep the existing init/result behavior", async () => {
   const child = fakeLineProcess(); spawnLineProcess.mockReturnValue(child);
   const session = await claudeSession(installation, { cwd: "/work" });
   await session.prompt("legacy");

@@ -84,9 +84,9 @@ every adapter:
 - queries as folds: `model()`, `effort()`, `serviceTier()`, `usage()`, `contextUsage()` and
   `status()` project over `records()` and return `{ value, seq }`, where
   `seq` is the last record the fold consumed (or `-1` before any record);
-  an active turn can reject a new prompt as `busy`; an accepted prompt
-  waiting for its native start can also occupy the input slot while the
-  root status is idle (`pendingPrompt`);
+  an active turn or accepted prompt waiting for its native start can reject a
+  new prompt as `busy`. Pending prompt evidence survives unrelated turns;
+  after their end, its visible phase returns to `running/waiting_model`;
 - the cursor for the lifetime of the adapter process: `rawEvents(observer,
   {sessionId, afterSeq})` (and `events(observer, { cursor })`) replays the
   retained records after that position and continues live, without loss or

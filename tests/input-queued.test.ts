@@ -19,7 +19,7 @@ test("queue evidence survives unrelated turns, serialization and a cursor inside
   const serialized = JSON.stringify(beforeCheckpoint);
   const checkpoint: unknown = JSON.parse(serialized);
   assert.deepEqual(checkpoint, beforeCheckpoint);
-  expect(checkpoint).toMatchObject({ kind: "idle", pendingPrompt: { inputId: "own", requestId: request.id } });
+  expect(checkpoint).toMatchObject({ kind: "running", pendingPrompt: { inputId: "own", requestId: request.id } });
   frame(kernel, { kind: "turn_active" }, { kind: "text_delta", text: "notice" });
   frame(kernel, { kind: "turn_ended", outcome: { kind: "failed", reason: "notice failed", failure: "unknown" } });
   expect(turnEndAfter(kernel.records(), request.seq, "root")).toMatchObject({ kind: "failed" });
@@ -44,9 +44,9 @@ test("a child's queue and start cannot change the root prompt's attribution", ()
   kernel.respond(request.id, { kind: "accepted" });
   frame(kernel, { kind: "input_queued", inputId: "own" });
   kernel.frame({ type: "child", native: {}, events: [{ kind: "turn_active", inputId: "own" }, { kind: "turn_ended", outcome: { kind: "completed" } }] }, { agentPath: ["child"] });
-  expect(statusOf(kernel.records(), "root").value).toMatchObject({ kind: "idle", pendingPrompt: { inputId: "own" } });
+  expect(statusOf(kernel.records(), "root").value).toMatchObject({ kind: "running", pendingPrompt: { inputId: "own" } });
   expect(turnEndAfter(kernel.records(), request.seq, "root", "own")).toBeNull();
-  expect(viewOf(kernel.records()).pendingInputs).toHaveLength(1);
+  expect(viewOf(kernel.records()).pendingInputs).toHaveLength(0);
 });
 
 test.each([false, true])("an exit releases a queued wait even before its native start: dispose=%s", (dispose) => {

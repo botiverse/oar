@@ -13,8 +13,11 @@ ask: a `withdraw` request of its own targeting the earlier input by `inputId`,
 answered `accepted` only when the held entry was removed before dispatch and
 `not_queued` otherwise, with the queue request and its response left as they
 were ([record stream](../spec/record-stream.md#withdrawing-held-input)). It
-removes OAR's own held entries only; the native leads below (claude
-`cancel_queued`, grok `x.ai/queue/*`, pi `clearQueue()`) stay unmapped. Codex
+removes OAR's own held entries only. Claude's capability-gated bulk
+`cancel_queued` is now used by `abort()` when a written prompt has not started;
+[the current mapping](claude.md#interrupted-input) pins before/after-start
+cancellation and its effects on queued notifications. Grok `x.ai/queue/*` and
+Pi `clearQueue()` remain unmapped. Codex
 has no `withdraw`: its queue is native, and `thread/queue/delete` waits on the
 validation listed at the end. The 2026-09-16 research below is kept as found;
 the Cursor row comes from the `@cursor/sdk` adapter (2026-10-03).

@@ -66,7 +66,7 @@ provider's echoed authentication header across live delivery and replay.
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
-| `command_lifecycle` | For inputs OAR wrote as prompts (including an idle or drained `queue`), `queued` gives `input_queued { inputId }` and `started` gives `turn_active { inputId }`, using `command_uuid`. Steer lifecycle frames and `completed` remain native-only. |
+| `command_lifecycle` | For inputs OAR wrote as prompts (including an idle or drained `queue`), `queued` gives `input_queued { inputId }` and `started` gives `turn_active { inputId }`, using `command_uuid`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. Steer lifecycle frames, `completed`, and `cancelled` after `started` remain native-only. |
 | `system/init` | The reported model and service tier; additionally `turn_active` without input identity when a root turn starts on its own, including while a host prompt is still natively queued. A repeated init in an active turn gives no second start. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
@@ -149,11 +149,34 @@ A plain interrupt preserves unread steering input. On 2.1.293, the
 provider request contained the input, so OAR does not emit `input_dropped`
 from that interrupt or from its result. The installed binary documents
 `cancel_queued: true` as a separate interrupt option, advertised by
-`interrupt_cancel_queued_v1`, with cancelled UUIDs in `cancelled`; OAR does
-not send that option. It is not a discard marker emitted by an ordinary
-interrupt. No cancellation is inferred from an absent echo or from
-`still_queued` being empty.
-[Native probe and marker evidence](../../experiments/input-interruption-2026-10-08.md).
+`interrupt_cancel_queued_v1`. OAR sends it only when that capability has
+been declared by `system/init` and OAR has written a prompt-like input that
+has not received `command_lifecycle started` yet. This includes the short
+window before `queued` arrives. All other aborts use an ordinary interrupt.
+The bulk option also removes queued task notifications without UUIDs; those
+notifications are not listed in the receipt. It does not clear OAR's held queue.
+
+The native `command_lifecycle cancelled` returns the input via `input_dropped`
+only if that prompt-like input has not received `started`. It clears the
+pending input even without an OAR abort request. After `started`, an ordinary
+abort also ends with `cancelled`, after the turn's result; this is not an input
+discard and remains native-only. A matching input wait resolves as `aborted`
+on the drop, without synthesizing `turn_ended`. The status becomes idle only
+if no other native turn is running. An `awaitIdle` during that other turn
+continues until it too ends.
+
+Without the declared capability, the ordinary interrupt targets the running
+turn; a pending prompt reported in `still_queued` may run afterward. No
+cancellation is inferred from an absent echo or an empty `still_queued`.
+[Earlier plain-interrupt probe](../../experiments/input-interruption-2026-10-08.md).
+Four Claude 2.1.292 recordings with a scripted provider pin the distinction:
+[collision](../../tests/replay/fixtures/claude-cancel-queued-collision.raw.jsonl),
+[before start](../../tests/replay/fixtures/claude-cancel-queued-before-start.raw.jsonl),
+[cancel-queued after start](../../tests/replay/fixtures/claude-cancel-queued-after-start.raw.jsonl),
+and [ordinary interrupt after start](../../tests/replay/fixtures/claude-plain-interrupt-after-start.raw.jsonl).
+The before-start case has no init or result at all. Adjacent `.stdin.jsonl`
+files preserve each experiment's requests; the after-start experiment forced
+`cancel_queued`, whereas OAR sends an ordinary interrupt once `started` is known.
 
 ### Prompt, steering, queueing, and abort
 
@@ -169,8 +192,8 @@ turn to turn. The [multi-turn fixture](../../tests/replay/fixtures/claude-multi-
 holds two such turns, recorded without the echo.
 [Projection](../../packages/oar/src/runtimes/claude/projection.ts).
 
-**Native input/turn attribution:** when `InputOptions.inputId` is supplied,
-OAR writes it as the user frame's `uuid`. Claude's `command_lifecycle queued`
+**Native input/turn attribution:** OAR generates an `inputId` UUID when
+omitted, and writes it as the user frame's `uuid`. Claude's `command_lifecycle queued`
 establishes that this input has not started; the matching `started` begins
 its turn, and the next root `result` ends it. Any init/result pair between
 queued and started belongs to a separate spontaneous turn. `completed` is
@@ -179,13 +202,20 @@ precede that result. Steer queued/started frames are not projected as turn
 facts; its replayed user message already reports its landing. Both queue
 write paths are registered as prompt-like inputs when actually written.
 Without a matching queued report, the existing request/init/result behavior
-remains, including lower-level prompts sent without an id.
+remains. Queue evidence alone changes no visible phase or input placement:
+the prompt remains `running/waiting_model`. A conflicting native turn moves
+its input to pending and removes only its empty provisional segment. That
+turn's result restores `waiting_model` for the pending prompt; its matching
+start places the input before its own turn. `awaitIdle` waits through the
+intervening result until the pending input completes or is cancelled.
 
 `promptAndWait` sends a UUID by default (or the caller's `inputId`) and uses
 these facts to return only that prompt's answer. `awaitTurnEnd(session, seq,
 inputId)` and `turnEndAfter(records, seq, sessionId, inputId)` can use the same
 correlation. Without `inputId`, those lower-level helpers still return the
 first root end after the cursor. A process exit always releases the wait.
+Direct `session.prompt()` callers can pass `result.request.body.inputId`
+(with the prompt body narrowed) to those helpers, including generated IDs.
 
 Evidence: Claude 2.1.292 with a scripted provider, no account:
 [notification collision](../../tests/replay/fixtures/claude-workflow-prompt-collision.raw.jsonl)
@@ -233,7 +263,7 @@ false`), drained one message per turn end; the queued input runs as a
 spontaneous turn with no prompt request of its own. A queue while idle is
 written at once. `withdraw(inputId)` takes a held message back before a turn
 end writes it (`accepted`) and answers `not_queued` once it is on stdin;
-claude's own `cancel_queued` markers stay unmapped
+this is independent of the native bulk cancellation used for a pending prompt
 ([input cancellation](input-cancellation.md),
 [test](../../tests/claude/claude-session-withdraw.test.ts)).
 
@@ -249,7 +279,8 @@ interrupt is answered once with `rejected: runtime_exited`. If the turn is
 still running ten seconds after the first abort, OAR accepts its pending
 interrupts before terminating the process using the cleanup described below.
 A late `control_response` remains a frame only. The timer follows the turn,
-even after an interrupt acknowledgement, and is cleared when the turn ends;
+even after an interrupt acknowledgement, and is cleared when the turn ends
+or a native drop leaves no turn or prompt pending;
 a native refusal cancels only that attempt. The folds read exit after an
 accepted abort as `aborted`, and an unrequested exit as `failed:
 runtime_exited`. A native `result` arriving first keeps its own outcome.

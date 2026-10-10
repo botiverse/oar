@@ -29,7 +29,11 @@ queued/started reports with its answer. A notification turn before the input
 starts does not satisfy that wait. Without those native reports it keeps the
 request-based fallback. For a lower-level wait, pass the inputId to
 `awaitTurnEnd(session, requestSeq, inputId)`; omitting it waits for the first
-root turn end after that cursor.
+root turn end after that cursor. `session.prompt()` already generates an id
+when omitted; it is recorded on the returned prompt request. A native
+before-start cancellation resolves an input-scoped wait as `aborted`, even
+without a turn-end event. `awaitIdle` waits through an intervening notification
+while a host prompt remains pending.
 
 `session.events()` delivers flat, attributed `Event`s (native user message
 echoes, text, reasoning, tool call start / later input / progress / end, turn

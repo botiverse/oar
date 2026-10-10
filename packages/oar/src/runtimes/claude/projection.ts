@@ -53,10 +53,14 @@ export interface ClaudeProjectionState {
   readonly abortRequested: boolean;
   /** Prompt requests and root init/results delimit a turn, including native spontaneous turns. */
   readonly turnActive: boolean;
+  /** Unlike the provisional prompt start, this is an observed init/started without a result. */
+  readonly nativeTurnActive: boolean;
   /** Prompt identity and native queue evidence, retained across unrelated turns. */
   readonly promptInputId: string | null;
   /** Prompt-like writes, including queue drains; steers are never registered. */
   readonly promptInputs: ReadonlySet<string>;
+  /** Written prompt inputs with no native started yet, including the pre-queued window. */
+  readonly unstartedInputs: ReadonlySet<string>;
   readonly pendingInputId: string | null;
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
@@ -72,8 +76,10 @@ export interface ClaudeProjectionState {
 export const initialClaudeProjection: ClaudeProjectionState = {
   abortRequested: false,
   turnActive: false,
+  nativeTurnActive: false,
   promptInputId: null,
   promptInputs: new Set(),
+  unstartedInputs: new Set(),
   pendingInputId: null,
   agents: new Map(),
   tokens: new Map(),
@@ -95,7 +101,8 @@ export function claudeUsageBaselined(state: ClaudeProjectionState, baseline: Cla
 /** Control plane → state: a prompt clears any stale abort intent; an abort arms it. */
 export function claudePrompted(state: ClaudeProjectionState, inputId?: string, prompted = true): ClaudeProjectionState {
   return { ...state, abortRequested: false, turnActive: prompted, promptInputId: inputId ?? null, pendingInputId: null,
-    promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]) };
+    promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]),
+    unstartedInputs: inputId === undefined ? state.unstartedInputs : new Set([...state.unstartedInputs, inputId]) };
 }
 
 export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
@@ -225,7 +232,7 @@ export function foldClaudeStdout(
         } });
       }
       return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage,
-        ...(agentPath.length === 0 ? { turnActive: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
+        ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
     }
     case "system": {
       if (message.subtype === "compact_boundary") {
@@ -241,7 +248,7 @@ export function foldClaudeStdout(
         const spontaneous = agentPath.length === 0 && !state.turnActive;
         return event({ events: [...(spontaneous ? [{ kind: "turn_active" as const }] : []),
           ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
-          ...claudeServiceTierEvents(message)] }, spontaneous ? { ...state, turnActive: true } : state);
+          ...claudeServiceTierEvents(message)] }, agentPath.length === 0 ? { ...state, turnActive: true, nativeTurnActive: true } : state);
       }
       const task = claudeTaskViews(message, state.taskDescriptions, agentPath);
       return event({ events: [...task.events, ...claudeServiceTierEvents(message)] },

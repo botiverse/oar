@@ -83,13 +83,27 @@ function removeInput(draft: Draft, index: number): void {
   }
 }
 
-/** Apply queue evidence before moving the input, so the provisional empty turn disappears too. */
+/** Queue evidence arms attribution; only an actual conflicting turn defers a placed input. */
 export function foldInputUpdate(draft: Draft, input: ConversationInput, conversation: ConversationState): void {
-  if (input.turn?.state === "queued") {
+  if (input.state === "dropped") {
     const request = input.attempts.at(-1)?.request;
     if (request?.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
   }
-  upsertInput(draft, input, awaitsEcho(input, conversation));
+  const wait = awaitsEcho(input, conversation);
+  upsertInput(draft, input, input.turn?.state === "queued" ? wait && draft.pendingInputs.some((pending) => pending.id === input.id) : wait);
+}
+
+/** Split a provisional prompt only when native activity actually belongs to another turn. */
+export function deferWaitingInputs(draft: Draft, event: Event, conversation: ConversationState): void {
+  if (event.kind !== "turn_active" || event.sessionId !== draft.rootSessionId || event.agentPath.length > 0) { return; }
+  for (const input of conversation.inputs.values()) {
+    const request = input.attempts.at(-1)?.request;
+    if (input.turn?.state !== "queued" || input.inputId === event.inputId
+      || request?.sessionId !== event.sessionId || request.agentPath.length > 0) { continue; }
+    if (request.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
+    sealTurn(draft);
+    upsertInput(draft, input, true);
+  }
 }
 
 export function turnOpenedBy(event: Event, conversation: ConversationState): string | undefined {
