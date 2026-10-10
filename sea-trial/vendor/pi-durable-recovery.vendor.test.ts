@@ -47,6 +47,6 @@ nativeTest("JSONL recovery adopts a pending run, preserves queued input and dedu
   } finally {
     await reopened?.close(BACKGROUND_CONTEXT);
     await fixture.close();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 });

@@ -77,6 +77,6 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude native service
       expect(env.raw.map((request) => asRecord(request.body)).filter((body) => Array.isArray(body?.messages)).map((body) => body?.speed)).toEqual(["fast", undefined, "fast"]);
       expect(env.raw.map((request) => asRecord(request.body)).find((body) => Array.isArray(body?.messages))?.output_config).toMatchObject({ effort: "low" });
       await expect(subject.startSession({ model: "sonnet", serviceTier: "fast" })).rejects.toThrow(/off.*fast/u);
-    } finally { await env.stop(); await rm(configDir, { recursive: true, force: true }); }
+    } finally { await env.stop(); await rm(configDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
   }, 180_000);
 });

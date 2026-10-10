@@ -69,7 +69,7 @@ function environment(started: Started, env: Readonly<Record<string, string>>): A
     stop: async () => {
       await started.capture.stop();
       await started.mock.stop();
-      await rm(started.root, { recursive: true, force: true });
+      await rm(started.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     },
   };
 }

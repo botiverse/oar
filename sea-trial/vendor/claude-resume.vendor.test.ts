@@ -36,7 +36,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude missing resume fai
   } finally {
     await opened.session?.dispose();
     await provider.stop();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);
 
@@ -62,6 +62,6 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude existing resume co
   } finally {
     await current?.dispose();
     await provider.stop();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);
