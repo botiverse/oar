@@ -30,32 +30,14 @@ export type ToolGroupSegment =
   | { readonly kind: "part"; readonly index: number; readonly part: ViewPart }
   | ToolGroup;
 
-/**
- * Each part's kind, per runtime. A view replaces a part on every change and
- * never mutates one, so a part object's kind is fixed: a live host that
- * groups a turn on every record classifies only the parts that changed, not
- * every call's whole input again (#318).
- */
-const kinds = new Map<string, WeakMap<ToolPart, ToolActionKind>>();
-
-function kindOf(runtimeId: string, tool: ToolPart): ToolActionKind {
-  let known = kinds.get(runtimeId);
-  if (known === undefined) {
-    known = new WeakMap();
-    kinds.set(runtimeId, known);
-  }
-  const cached = known.get(tool);
-  if (cached !== undefined) { return cached; }
-  const { kind } = classifyTool(runtimeId, tool.tool, tool.inputPartial === true ? undefined : tool.input);
-  known.set(tool, kind);
-  return kind;
-}
-
 function group(runtimeId: string, index: number, parts: readonly (ToolPart | ReasoningPart)[]): ToolGroup {
   const counts = new Map<ToolActionKind, number>();
   const tools = parts.filter((part): part is ToolPart => part.kind === "tool");
   for (const tool of tools) {
-    const kind = kindOf(runtimeId, tool);
+    // A call's kind depends on its runtime and tool name only, never its
+    // input: parsing every call's input again on each grouping made a live
+    // host pay tools x input per record (#318).
+    const { kind } = classifyTool(runtimeId, tool.tool);
     counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
   const failed = tools.filter((tool) => tool.result === "failed").length;
