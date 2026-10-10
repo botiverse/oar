@@ -625,6 +625,22 @@ untouched env and the untouched global classes are pinned by
 [`tests/pi/pi-http.test.ts`](../../tests/pi/pi-http.test.ts).
 [HTTP plane](../../packages/oar/src/runtimes/pi/http.ts).
 
+**Bundled hosts (mapped):** pi-ai loads its sign-in flows and its Bedrock
+implementation through a computed path, so that a browser bundler does not
+follow them into Node-only code. A host bundled into one file, such as a Node
+single executable, has no such files beside it: every pi sign-in, OAuth turn
+and Bedrock call failed with "Cannot find module" (#328). At the same points
+as the HTTP plane, OAR hands pi-ai the modules itself, with the two calls pi's
+own standalone binary makes (`registerBunOAuthFlows()` from
+`@earendil-works/pi-ai/bun-oauth` and `setBedrockProviderModule` from
+`@earendil-works/pi-ai/compat`). The imports are literal, so a bundler
+follows them, and dynamic, so a host that never uses pi does not load them.
+A bundled host needs no pi dependency of its own for this. One thing OAR does
+not cover: pi reads images through photon, which loads `photon_rs_bg.wasm`
+from its own directory, so a single-file host ships that file beside it or
+embeds it. [Static modules](../../packages/oar/src/runtimes/pi/static-modules.ts),
+[test](../../tests/pi/pi-static-modules.test.ts).
+
 ### Process ownership, installation, login, and account usage
 
 The SDK shares its host process. Global configuration, lazy environment reads

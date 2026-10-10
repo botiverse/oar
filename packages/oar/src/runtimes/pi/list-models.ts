@@ -1,5 +1,5 @@
 import type { ModelLister } from "../../contracts/list-models.js";
-import { configurePiHttp } from "./http.js";
+import { preparePi } from "./static-modules.js";
 import { piAgentDir } from "./resolve.js";
 
 import { projectPiModels, type PiListedModel, type PiAvailabilitySource, type PiThinkingLevelsOf } from "./model-projection.js";
@@ -54,7 +54,7 @@ export const piListModels: ModelLister = createPiListModels(async (signal) => {
   // plane first, from the same settings manager the services get (see
   // http.ts).
   const settingsManager = SettingsManager.create(process.cwd(), agentDir);
-  await configurePiHttp(settingsManager);
+  await preparePi(settingsManager);
   const services = await createAgentSessionServices({
     cwd: process.cwd(),
     agentDir,

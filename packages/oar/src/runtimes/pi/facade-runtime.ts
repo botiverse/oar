@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { getAgentDir, ModelRuntime, SettingsManager } from "@earendil-works/pi-coding-agent";
-import { configurePiHttp } from "./http.js";
 import { piAgentDir } from "./resolve.js";
+import { preparePi } from "./static-modules.js";
 
 /** Where a facade's `ModelRuntime` keeps credentials and custom providers; both default into the agent dir. */
 export interface PiModelRuntimePaths {
@@ -19,11 +19,12 @@ type ModelRuntimeOptions = NonNullable<Parameters<typeof ModelRuntime.create>[0]
  * Left to pi, `auth.json` and `models.json` would come from pi's own dir even
  * with `OAR_PI_AGENT_DIR` set, so a login would not reach the next session.
  * Network calls (OAuth, catalog refresh) need the proxy plane first, from
- * that dir's settings (see http.ts).
+ * that dir's settings (see http.ts), and pi-ai its provider modules
+ * (static-modules.ts).
  */
 export async function piFacadeRuntime(paths: PiModelRuntimePaths, options: Omit<ModelRuntimeOptions, "authPath" | "modelsPath">): Promise<ModelRuntime> {
   const agentDir = piAgentDir(getAgentDir);
-  await configurePiHttp(SettingsManager.create(process.cwd(), agentDir));
+  await preparePi(SettingsManager.create(process.cwd(), agentDir));
   return ModelRuntime.create({
     ...options,
     authPath: paths.authPath ?? join(agentDir, "auth.json"),
