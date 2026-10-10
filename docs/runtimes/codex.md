@@ -65,7 +65,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. `serverRequest/resolved {threadId, requestId}` (0.160.1 schema) reads as `app_request_cancelled`: OAR answered nothing, so codex cleared the request itself. Through OAR (`approvalPolicy: never`) neither question reaches the host: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` (numeric id 0, recorded as "0"), right after the interrupted `turn/completed`. codex also sends it after a client's answer, so once OAR answers codex requests this reading must tell the two apart. |
-| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` adds a `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
+| Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` emits `session_linked` on that frame for the `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
 Implementation: [session adapter][oar-session], [open request and
@@ -400,8 +400,9 @@ records (`sessionId` is the child thread, a `graph()` node) and adds a
 reported the item) to each `receiverThreadIds` / `agentThreadId` entry that
 is not the sender. Lineage (an edge) stays distinct from observation (a
 node), and no edge is fabricated. `agentPath` stays `[]` on every record:
-attribution is `nested` (child session ids). Collaboration items carry no events,
-except that `item/completed` for a `subAgentActivity` about the reporting
+attribution is `nested` (child session ids). Each explaining item frame carries
+`session_linked { parent, child, via: "tool_call" }`, so `graphOf(records)`
+and replayed usage agree with the live session. Also, `item/completed` for a `subAgentActivity` about the reporting
 thread's own child is a task event with the child thread as task id (and as
 `childSessionId` on `task_started`): `started` → `task_started` (the
 `agentPath` as description), `interacted` → `task_updated` running,

@@ -161,15 +161,20 @@ the protocol surface.
   attributes its spend without guessing; claude's subagents get none
   ([claude](../runtimes/claude.md#token-totals)). Absent when the agents
   account for all of it.
-- **Derived child sessions, added by OAR.** A derived child session's usage
-  is in its own records, never in its parent's `total` (codex child threads,
-  grok child sessions and OpenCode v2 children each report their own).
-  `withChildren` is the total plus the total of every session derived from
-  it in `graph()`, nested ones too, each counted once, so a host never needs
-  to know per runtime whether a parent's figure already includes its
-  children's. No shipped runtime's does; one that did would be added once
-  in its adapter. Absent when no child session reported usage, and while the
-  session's own total is null.
+- **Derived child sessions, added once.** `withChildren` is the root total
+  plus each reachable child's independently reported total, including nested
+  children, each counted once. `session_linked` records native lineage, and
+  `graphOf(records)` lets both `usageOf` and SessionView compute the same
+  amount in replay. Foreign session ids alone do not imply lineage.
+  Codex reports independent per-thread totals. Grok instead includes its
+  children's calls in the root's prompt ledger; its child ledgers remain
+  native-only and are not added again ([Grok evidence](../runtimes/grok.md#context-usage-billing-and-compaction)).
+  OpenCode's context-only child reports supply no token total. The adapter
+  resolves this accounting difference; hosts do not need runtime checks.
+  `withChildren` is absent when no linked child reports independent token
+  usage, and while the root's total is null. Older logs without lineage also
+  leave it absent, unless a caller supplies an explicit graph to `usageOf`.
+
 
 The protocol carries no usage `origin` or accounting-basis label
 ([decision](../design/decisions.md#a-usage-basis-label-2026-09-03)).

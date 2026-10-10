@@ -4,9 +4,9 @@ import type {
   RawEvent,
   SessionGraph,
   SessionUsage,
-  TokenTotals,
 } from "../contracts/session.js";
-import { addTokens, noTokens, subtractTokens } from "../shared/token-totals.js";
+import { graphOf } from "./graph.js";
+import { derivedFrom, foldSessionTokens, usageFromSessions, type SessionTokens } from "./usage-totals.js";
 
 /**
  * Query = projection over the stream. Model, token usage and context
@@ -25,10 +25,6 @@ import { addTokens, noTokens, subtractTokens } from "../shared/token-totals.js";
  * totals on the parent's connection, and without this scope the child's
  * figure overwrote the root's under the same `agentPath []` key.
  */
-
-function pathKey(agentPath: readonly string[]): string {
-  return JSON.stringify(agentPath);
-}
 
 function inSession(record: RawEvent, sessionId: string | undefined): boolean {
   return sessionId === undefined || record.sessionId === sessionId;
@@ -94,64 +90,6 @@ export function contextUsageOf(records: readonly RawEvent[], sessionId?: string)
   return { value, seq };
 }
 
-/** One agent's latest running total. */
-interface AgentTotal {
-  readonly agentPath: readonly string[];
-  readonly tokens: TokenTotals;
-}
-
-/** What one session's records said about tokens: each agent's latest running total, and the runtime's own session total when it reports one. */
-interface SessionTokens {
-  readonly agents: Map<string, AgentTotal>;
-  total: TokenTotals | null;
-}
-
-function hasTokens(tokens: TokenTotals): boolean {
-  return tokens.input > 0 || tokens.output > 0;
-}
-
-/**
- * A session's usage from each agent's latest running total and, where the
- * runtime reports one beyond its agents' figures (claude's `modelUsage`), its
- * own session total: then the total is the runtime's, and what no agent
- * accounts for is `unattributed`, the difference, never split by estimate.
- * Elsewhere the agents' figures sum to the total. Shared by `usageOf` and the
- * session view.
- */
-export function sessionUsageFrom(byAgent: readonly AgentTotal[], reported: TokenTotals | null): SessionUsage {
-  if (byAgent.length === 0 && reported === null) {
-    // Nothing reported yet (or a runtime whose interface never carries token
-    // totals): null, never a guessed zero.
-    return { total: null };
-  }
-  // A cache part is in the total once any agent reported it, summed over those that did.
-  const attributed = byAgent.reduce<TokenTotals>((sum, entry) => addTokens(sum, entry.tokens), noTokens);
-  const remainder = reported === null ? null : subtractTokens(reported, attributed);
-  const unattributed = remainder !== null && hasTokens(remainder) ? remainder : null;
-  const onlyRoot = byAgent.length <= 1 && byAgent.every((entry) => entry.agentPath.length === 0);
-  return {
-    total: reported ?? attributed,
-    ...(onlyRoot && unattributed === null ? {} : { byAgent }),
-    ...(unattributed === null ? {} : { unattributed }),
-  };
-}
-
-/** Every session derived from `sessionId` in the graph, nested ones too, each once; never `sessionId` itself. */
-function derivedFrom(graph: SessionGraph, sessionId: string): ReadonlySet<string> {
-  const found = new Set<string>();
-  const queue = [sessionId];
-  while (queue.length > 0) {
-    const parent = queue.shift();
-    for (const edge of graph.edges) {
-      if (edge.parent === parent && edge.child !== sessionId && !found.has(edge.child)) {
-        found.add(edge.child);
-        queue.push(edge.child);
-      }
-    }
-  }
-  return found;
-}
-
 /**
  * Session total plus a per-agent breakdown. Each agent's totals are the
  * LATEST figure its records reported (adapters resolve their runtime's
@@ -160,42 +98,31 @@ function derivedFrom(graph: SessionGraph, sessionId: string): ReadonlySet<string
  * construction; with the runtime's own session total, when it reports one,
  * the breakdown plus `unattributed` sums to the total. Agents are the
  * `agentPath`s of THIS session; derived child sessions are not agents of it.
- * Given the session graph, each derived child session's total (folded from
+ * The graph defaults to graphOf(records); an explicit graph overrides it.
+ * Each derived child session's total (folded from
  * its own records the same way) is added once into `withChildren`, and the
  * answer's `seq` covers those records too.
  */
 export function usageOf(records: readonly RawEvent[], sessionId?: string, graph?: SessionGraph): QueryResult<SessionUsage> {
-  const children = sessionId === undefined || graph === undefined ? new Set<string>() : derivedFrom(graph, sessionId);
+  const lineage = graph ?? graphOf(records);
+  const children = sessionId === undefined ? new Set<string>() : derivedFrom(lineage, sessionId);
   const sessions = new Map<string, SessionTokens>();
   let seq = -1;
   for (const record of records) {
-    if (!inSession(record, sessionId) && !children.has(record.sessionId)) { continue; }
-    seq = record.seq;
+    const related = inSession(record, sessionId) || children.has(record.sessionId);
+    const linked = record.kind === "frame" && record.body.events.some((event) =>
+      event.kind === "session_linked" && children.has(event.child) && (event.parent === sessionId || children.has(event.parent)));
+    if (related || linked) { seq = record.seq; }
+    if (!related) { continue; }
     if (record.kind !== "frame") {
       continue;
     }
     // Unscoped, every session folds into one (the collision the scope exists to avoid).
     const key = sessionId === undefined ? "" : record.sessionId;
-    const session = sessions.get(key) ?? { agents: new Map(), total: null };
-    sessions.set(key, session);
     for (const event of record.body.events) {
       if (event.kind !== "usage") { continue; }
-      if (event.usage.tokens !== undefined) {
-        session.agents.set(pathKey(record.agentPath), { agentPath: record.agentPath, tokens: event.usage.tokens });
-      }
-      if (event.usage.total !== undefined) {
-        session.total = event.usage.total;
-      }
+      sessions.set(key, foldSessionTokens(sessions.get(key), record.agentPath, event.usage));
     }
   }
-  const usageOfSession = (id: string): SessionUsage => {
-    const session = sessions.get(id);
-    return session === undefined ? { total: null } : sessionUsageFrom([...session.agents.values()], session.total);
-  };
-  const own = usageOfSession(sessionId ?? "");
-  const childTotals = [...children].flatMap((child) => usageOfSession(child).total ?? []);
-  if (own.total === null || childTotals.length === 0) {
-    return { value: own, seq };
-  }
-  return { value: { ...own, withChildren: childTotals.reduce<TokenTotals>((sum, tokens) => addTokens(sum, tokens), own.total) }, seq };
+  return { value: usageFromSessions(sessions, sessionId ?? "", sessionId === undefined ? { nodes: [], edges: [] } : lineage), seq };
 }

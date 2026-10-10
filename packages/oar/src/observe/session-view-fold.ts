@@ -1,14 +1,13 @@
 import type {
   ContextUsage,
   Event,
-  TokenTotals,
+  SessionGraph,
   TurnOutcome,
 } from "../contracts/session.js";
-import { sessionUsageFrom } from "./usage.js";
+import { usageFromSessions, type SessionTokens } from "./usage-totals.js";
 import type { AgentStatus } from "./agent-status.js";
 import type { ConversationInput, ConversationState } from "./conversation.js";
 import type {
-  AgentTokens,
   PendingRequest,
   SessionView,
   ViewMessage,
@@ -37,8 +36,8 @@ export interface Draft {
   serviceTier: string | null;
   context: ContextUsage | null;
   exited: { readonly code: number | null } | null;
-  usageByAgent: Map<string, AgentTokens>;
-  usageTotal: TokenTotals | null;
+  usageBySession: Map<string, SessionTokens>;
+  sessionGraph: SessionGraph;
   rootSessionId: string | undefined;
 }
 
@@ -54,8 +53,8 @@ export function draftOf(state: SessionView): Draft {
     serviceTier: state.serviceTier,
     context: state.context,
     exited: state.exited,
-    usageByAgent: new Map(state.usageByAgent),
-    usageTotal: state.usageTotal,
+    usageBySession: new Map(state.usageBySession),
+    sessionGraph: state.sessionGraph,
     rootSessionId: state.rootSessionId,
   };
 }
@@ -65,7 +64,8 @@ export function assemble(
   conversation: ConversationState,
   status: AgentStatus,
 ): SessionView {
-  const usage = sessionUsageFrom([...draft.usageByAgent.values()], draft.usageTotal);
+  const usage = usageFromSessions(draft.usageBySession, draft.rootSessionId ?? "", draft.sessionGraph);
+  const own = draft.usageBySession.get(draft.rootSessionId ?? "");
   return {
     messages: draft.messages,
     pendingInputs: draft.pendingInputs,
@@ -80,8 +80,10 @@ export function assemble(
     exited: draft.exited,
     conversation,
     rootSessionId: draft.rootSessionId,
-    usageByAgent: draft.usageByAgent,
-    usageTotal: draft.usageTotal,
+    usageBySession: draft.usageBySession,
+    sessionGraph: draft.sessionGraph,
+    usageByAgent: own?.agents ?? new Map(),
+    usageTotal: own?.total ?? null,
   };
 }
 

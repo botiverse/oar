@@ -241,8 +241,9 @@ export interface Session extends AdapterSession {
    * runtime counts them (claude's `modelUsage`). With a per-agent breakdown
    * when sub-agents reported or part of the total is no agent's:
    * deduplicated, `byAgent` plus `unattributed` sum to `total`. A derived
-   * child session (own `sessionId`, in `graph()`) is not in `total`; its
-   * usage is in its own records, and `withChildren` adds it, each child once.
+   * child session (own `sessionId`, in `graph()`) reports independent usage
+   * in its own records, added once by `withChildren`. Grok already includes
+   * child spend in the root ledger, so its child ledgers stay native-only.
    */
   usage(): QueryResult<SessionUsage>;
   /** Latest context fullness the runtime reported for this session's root agent; null before any. */
@@ -278,7 +279,7 @@ export interface SessionUsage {
   readonly byAgent?: readonly { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }[];
   /** What `total` includes that no `byAgent` entry accounts for (claude's subagents, sidechains and compaction, which its stream does not attribute per agent): `total` less every entry, never split by estimate. Absent when the agents account for all of it. */
   readonly unattributed?: TokenTotals;
-  /** `total` plus the `total` of every session derived from this one in `graph()` (codex child threads, grok child sessions, OpenCode v2 children), nested ones too, each counted once; no shipped runtime's parent total includes its children's. Absent when no child session reported usage, and while `total` is null. */
+  /** `total` plus each derived session's independently reported token total, nested children too, each counted once. Grok's root ledger already includes child spend: its child ledgers stay native-only and are not added again. Absent when no child session reported independent usage, and while `total` is null. */
   readonly withChildren?: TokenTotals;
 }
 

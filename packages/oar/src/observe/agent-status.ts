@@ -176,6 +176,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       return status;
     }
     case "app_request_cancelled":
+    case "session_linked":
     case "user_message":
     case "usage":
     case "model":

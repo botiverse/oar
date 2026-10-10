@@ -198,7 +198,7 @@ test("a subscribed extension notification is recorded verbatim and links parent 
   const lifecycle = session.records().find((record) => record.kind === "frame" && record.body.type === "_x.ai/session_notification");
   assert.ok(lifecycle?.kind === "frame");
   assert.deepEqual(lifecycle.body.native, { parentSessionId: "fake-session", sessionId: "fake-child", kind: "spawned" });
-  assert.deepEqual(lifecycle.body.events, []);
+  assert.deepEqual(lifecycle.body.events, [{ kind: "session_linked", parent: "fake-session", child: "fake-child", via: "tool_call" }]);
   assert.deepEqual(session.graph().edges, [{ parent: "fake-session", child: "fake-child", via: "tool_call" }]);
   await session.dispose();
 });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import type { Frame } from "../../packages/oar/src/contracts/session.js";
-import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
+import type { Frame, RawEvent } from "../../packages/oar/src/contracts/session.js";
+import { awaitTurnEnd, graphOf, promptAndWait, usageOf, viewOf } from "../../packages/oar/src/observe/index.js";
 import {
   GROK_EXTENSION_NOTIFICATIONS,
   grokContextUsage,
@@ -118,7 +118,7 @@ const grokProfile = {
   promptTokenUsage: grokPromptTokens,
 };
 
-// oxlint-disable-next-line eslint/max-statements -- one child spawn, asserted end to end.
+// oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- One child spawn, live/replay attribution and no double-counting asserted together.
 test("a grok child session gets its graph edge from the vendor session_notification, and its records keep their own id", async () => {
   const session = await start(grokProfile);
   const run = await promptAndWait(session, "spawn-child-grok");
@@ -135,7 +135,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   );
   for (const record of vendor) {
     assert.ok(record.kind === "frame");
-    assert.deepEqual(record.body.events, []);
+    assert.deepEqual(record.body.events, record.sessionId === "fake-session" ? [{ kind: "session_linked", parent: "fake-session", child: "fake-child-grok", via: "tool_call" }] : []);
   }
   const [spawned] = lifecycle;
   assert.ok(spawned?.kind === "frame");
@@ -163,6 +163,11 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   // The root's prompt ledger already sums the child's calls (live seq 159);
   // the child's own ledgers are native-only and never folded a second time.
   assert.deepEqual(session.usage().value, { total: { input: 200, output: 20 } });
+  // oxlint-disable-next-line typescript/no-unsafe-assignment, unicorn/prefer-structured-clone -- JSON persistence must retain native lineage, not the live kernel's memory.
+  const persisted: RawEvent[] = JSON.parse(JSON.stringify(session.records()));
+  assert.deepEqual(graphOf(persisted), session.graph());
+  assert.deepEqual(usageOf(persisted, session.id), session.usage());
+  assert.deepEqual(viewOf(persisted).usage, session.usage().value);
   assert.deepEqual(session.contextUsage().value, { tokens: 300, contextWindow: null, percent: null });
   await session.dispose();
 });

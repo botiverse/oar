@@ -116,19 +116,16 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     }
     const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, params);
     state.projection = nextProjection;
+    const links = commands.flatMap((command) => command.kind === "link" ? [kernel.link(command.edge)] : []);
     for (const command of commands) {
       switch (command.kind) {
         case "frame":
-          if (command.sessionId !== undefined) {
-            kernel.node(command.sessionId);
-          }
-          kernel.frame(command.body, {
+          kernel.frame({ ...command.body, events: [...command.body.events, ...links] }, {
             ...(command.sessionId === undefined ? {} : { sessionId: command.sessionId }),
             ...(command.spanId === undefined ? {} : { spanId: command.spanId }),
           });
           break;
         case "link":
-          kernel.link(command.edge);
           break;
         default:
           break;
