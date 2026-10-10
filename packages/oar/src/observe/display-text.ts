@@ -1,5 +1,6 @@
 import type { ControlAction, CredentialProblem, FailureClass, RunningPhase, TaskStatus, TurnOutcome } from "../contracts/session.js";
 import type { ViewNotice } from "./session-view.js";
+import { classifyTool, toolActionLabel } from "./tool-activity.js";
 
 /** English display wording may change in a minor release. Use the types, not these strings, for decisions. */
 export type NoticeTone = "quiet" | "warning" | "danger";
@@ -80,10 +81,27 @@ export function noticeTone(notice: ViewNotice): NoticeTone {
   }
 }
 
-/** The running phase in English, for display only. Tool names remain the runtime's own. */
-export function phaseLabel(phase: RunningPhase): string {
+/** An MCP tool's own name (`mcp__server__tool` → `tool`); any other tool id as it is. */
+function shortToolName(tool: string): string {
+  const separator = tool.lastIndexOf("__");
+  return tool.startsWith("mcp__") && separator > "mcp__".length ? tool.slice(separator + 2) : tool;
+}
+
+/**
+ * The running phase in English, for display only. With `runtimeId`, a running call reads as its action
+ * (`classifyTool`: "Editing file", "Running command"); an MCP or
+ * unclassified tool by its short name. Without it, the tool id as reported.
+ * A call whose arguments are still streaming reads as preparing its action
+ * ("Preparing file edit"), or "Writing <tool> arguments" for an MCP or
+ * unclassified tool.
+ */
+export function phaseLabel(phase: RunningPhase, runtimeId?: string): string {
   if (typeof phase === "object" && "tool" in phase) {
-    return `Running ${phase.tool}`;
+    const name = runtimeId === undefined ? phase.tool : shortToolName(phase.tool);
+    const state = phase.writing === true ? "writing" : "running";
+    const kind = runtimeId === undefined ? "other" : classifyTool(runtimeId, phase.tool).kind;
+    if (kind !== "other" && kind !== "mcp") { return toolActionLabel(kind, state); }
+    return state === "writing" ? `Writing ${name} arguments` : `Running ${name}`;
   }
   switch (phase) {
     case "waiting_model": return "Waiting for model";

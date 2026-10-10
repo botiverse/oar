@@ -320,7 +320,7 @@ same wording works in a browser or JavaScriptCore:
 | --- | --- |
 | `noticeText(notice)` | A `ViewNotice` to text, including its native reason and available retry details. Child turn outcomes are objects, read by their `kind`. |
 | `noticeTone(notice)` | A `ViewNotice` to `quiet`, `warning` or `danger`. Completed work and a zero exit are quiet; retries, refusals, aborts and an unknown exit code warn; failed work and a nonzero exit are danger. |
-| `phaseLabel(phase)` | A `RunningPhase` to a label such as `Waiting for model` or `Running <tool>`. |
+| `phaseLabel(phase, runtimeId?)` | A `RunningPhase` to a label such as `Waiting for model` or `Running <tool>`. With `runtimeId`, a running call reads as its action (`Editing file`, `Running command`), and an MCP or unclassified tool by its short name. A tool phase with `writing` (its arguments still streaming, claude only) reads as preparing its action (`Preparing file edit`), or `Writing <tool> arguments` for an MCP or unclassified tool. |
 | `failureText(failure, runtimeName, credential?)` | A `FailureClass` to a neutral sentence such as `Claude Code reported that its usage limit was reached.` With `auth`, a failed outcome's `credential` words it as a missing login (`Claude Code is not signed in.`) or a refused credential (`Claude Code's credentials were rejected.`); without it, `Claude Code could not authenticate.` The host adds any sign-in or recovery instructions. |
 | `taskStatusLabel(status)` | A `TaskStatus` to its display label. |
 | `toolGroupSummary(counts, state?)` | A tool group's English summary. With no calls, the reasoning-only group reads `Thought`, or `Thinking…` when `state` is `running`; `state` defaults to `done`. Tool counts retain their existing wording. |

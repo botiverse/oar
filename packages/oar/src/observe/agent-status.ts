@@ -29,8 +29,8 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *   event tool_call_started           → running/{tool, callId}
  *   event tool_call_ended             → running/waiting_model   (the model consumes the result next)
  *   event tool_call_progress          → running, phase unchanged (the clock moves)
- *   event tool_call_input             → running, phase unchanged (the clock moves)
- *   event tool_call_input_delta       → running, phase unchanged (the clock moves)
+ *   event tool_call_input_delta       → running/{tool, callId, writing} for that call's tool phase
+ *   event tool_call_input             → running/{tool, callId} (arguments complete; the clock moves)
  *   event compaction_started          → running/compacting
  *   event compaction_ended           → running/waiting_model only if already running; idle stays idle
  *   event retry                      → running/waiting_model
@@ -148,9 +148,17 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
     case "compaction_started":
       return running(previous, record, "compacting");
-    case "tool_call_progress":
-    case "tool_call_input":
     case "tool_call_input_delta":
+    case "tool_call_input": {
+      if (previous.kind !== "running") { return previous; }
+      const { phase } = previous;
+      // Only the current call's phase changes: writing while its arguments stream, running once they are complete.
+      if (typeof phase === "object" && phase.callId === event.callId) {
+        return { ...previous, phase: event.kind === "tool_call_input_delta" ? { tool: phase.tool, callId: phase.callId, writing: true } : { tool: phase.tool, callId: phase.callId }, lastEventAt: record.receivedAt };
+      }
+      return { ...previous, lastEventAt: record.receivedAt };
+    }
+    case "tool_call_progress":
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
       return previous.pendingPrompt === undefined

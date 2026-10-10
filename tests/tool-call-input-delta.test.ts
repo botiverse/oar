@@ -66,3 +66,17 @@ test("interleaved inputs keep their session and agent lane; late input never reo
   expect(tools(live.view)[0]).not.toHaveProperty("inputPartial");
   expect(live.view).toEqual(viewOf(kernel.records()));
 });
+
+test("the tool phase says writing while its arguments stream, and running once they are complete (#314)", () => {
+  const { kernel, push } = fixture();
+  const phase = (): unknown => { const status = statusOf(kernel.records()).value; return status.kind === "running" ? status.phase : status.kind; };
+  push({ kind: "tool_call_started", callId: "call", tool: "show_widget" });
+  expect(phase()).toEqual({ tool: "show_widget", callId: "call" });
+  push({ kind: "tool_call_input_delta", callId: "call", delta: '{"widget_code":"' });
+  expect(phase()).toEqual({ tool: "show_widget", callId: "call", writing: true });
+  // Another call's arguments never change the current phase.
+  push({ kind: "tool_call_input", callId: "other", input: "{}" });
+  expect(phase()).toEqual({ tool: "show_widget", callId: "call", writing: true });
+  push({ kind: "tool_call_input", callId: "call", input: '{"widget_code":"x"}' });
+  expect(phase()).toEqual({ tool: "show_widget", callId: "call" });
+});

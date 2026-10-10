@@ -281,18 +281,19 @@ export function classifyTool(runtimeId: string, tool: string, inputJson?: string
   return { kind, ...(detail === undefined ? {} : { detail }), ...(paths.length === 0 ? {} : { paths }), ...fields };
 }
 
-const LABELS: Record<ToolActionKind, { running: string; done: string; failed: string }> = {
-  run_command: { running: "Running command", done: "Ran command", failed: "Command failed" },
-  read_file: { running: "Reading file", done: "Read file", failed: "Read failed" },
-  edit_file: { running: "Editing file", done: "Edited file", failed: "Edit failed" },
-  search: { running: "Searching", done: "Searched", failed: "Search failed" },
-  web: { running: "Searching the web", done: "Searched the web", failed: "Web request failed" },
-  mcp: { running: "Using a tool", done: "Used a tool", failed: "Tool failed" },
-  wait: { running: "Waiting", done: "Waited", failed: "Wait failed" },
-  other: { running: "Working", done: "Done", failed: "Failed" },
+/** `writing`: the call's arguments are still streaming (claude), before it runs. */
+const LABELS: Record<ToolActionKind, { writing: string; running: string; done: string; failed: string }> = {
+  run_command: { writing: "Preparing command", running: "Running command", done: "Ran command", failed: "Command failed" },
+  read_file: { writing: "Preparing file read", running: "Reading file", done: "Read file", failed: "Read failed" },
+  edit_file: { writing: "Preparing file edit", running: "Editing file", done: "Edited file", failed: "Edit failed" },
+  search: { writing: "Preparing search", running: "Searching", done: "Searched", failed: "Search failed" },
+  web: { writing: "Preparing web request", running: "Searching the web", done: "Searched the web", failed: "Web request failed" },
+  mcp: { writing: "Preparing a tool call", running: "Using a tool", done: "Used a tool", failed: "Tool failed" },
+  wait: { writing: "Preparing to wait", running: "Waiting", done: "Waited", failed: "Wait failed" },
+  other: { writing: "Preparing", running: "Working", done: "Done", failed: "Failed" },
 };
 
 /** The human label for an action in a given lifecycle state; tense centralized here so events stay consistent. */
-export function toolActionLabel(kind: ToolActionKind, state: "running" | "done" | "failed"): string {
+export function toolActionLabel(kind: ToolActionKind, state: "writing" | "running" | "done" | "failed"): string {
   return LABELS[kind][state];
 }
