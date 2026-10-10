@@ -5,10 +5,21 @@ import type { ClaudeProjectionState } from "./projection.js";
 
 /** Control plane → state: a prompt clears stale abort intent and starts a new native input attempt. */
 export function claudePrompted(state: ClaudeProjectionState, inputId?: string, prompted = true): ClaudeProjectionState {
-  return { ...state, abortRequested: false, turnActive: prompted, promptInputId: inputId ?? null, pendingInputId: null,
+  return { ...state, abortRequested: false, turnActive: prompted, unclaimedInit: false, promptInputId: inputId ?? null, pendingInputId: null,
     promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]),
     unstartedInputs: inputId === undefined ? state.unstartedInputs : new Set([...state.unstartedInputs, inputId]),
     unacknowledgedInputs: inputId === undefined ? state.unacknowledgedInputs : new Set([...state.unacknowledgedInputs, inputId]) };
+}
+
+/** Keep an unclaimed root init until queued can prove it belongs to a spontaneous turn. */
+export function claudeInitialized(state: ClaudeProjectionState, root: boolean): {
+  readonly state: ClaudeProjectionState; readonly events: readonly RuntimeEventBody[];
+} {
+  if (!root) { return { state, events: [] }; }
+  const spontaneous = !state.turnActive;
+  const unclaimedInit = state.unclaimedInit || (!spontaneous && !state.nativeTurnActive && state.promptInputId !== null && state.unstartedInputs.has(state.promptInputId));
+  return { state: { ...state, turnActive: true, nativeTurnActive: true, unclaimedInit },
+    events: spontaneous ? [{ kind: "turn_active" }] : [] };
 }
 
 function forgetInput(state: ClaudeProjectionState, inputId: string): ClaudeProjectionState {
@@ -16,7 +27,7 @@ function forgetInput(state: ClaudeProjectionState, inputId: string): ClaudeProje
   const unstartedInputs = new Set(state.unstartedInputs); unstartedInputs.delete(inputId);
   const unacknowledgedInputs = new Set(state.unacknowledgedInputs); unacknowledgedInputs.delete(inputId);
   return { ...state, promptInputs, unstartedInputs, unacknowledgedInputs,
-    ...(state.promptInputId === inputId ? { promptInputId: null, turnActive: state.nativeTurnActive } : {}),
+    ...(state.promptInputId === inputId ? { promptInputId: null, turnActive: state.nativeTurnActive, unclaimedInit: false } : {}),
     ...(state.pendingInputId === inputId ? { pendingInputId: null } : {}) };
 }
 
@@ -38,12 +49,15 @@ export function claudeInputLifecycle(state: ClaudeProjectionState, message: Json
   if (inputId === null || !state.promptInputs.has(inputId) || !root) { return { state, events: [] }; }
   const unacknowledgedInputs = new Set(state.unacknowledgedInputs); unacknowledgedInputs.delete(inputId);
   if (message.state === "queued") {
-    return { events: [{ kind: "input_queued", inputId }], state: { ...state, unacknowledgedInputs,
-      ...(inputId === state.promptInputId ? { turnActive: false, pendingInputId: inputId } : {}) } };
+    // An init can beat this receipt after the host writes. Only now is it
+    // known to belong to another turn; preserve the facts in this frame's order.
+    const spontaneous = inputId === state.promptInputId && state.unclaimedInit;
+    return { events: [{ kind: "input_queued", inputId }, ...(spontaneous ? [{ kind: "turn_active" as const }] : [])], state: { ...state, unacknowledgedInputs,
+      ...(inputId === state.promptInputId ? { turnActive: state.nativeTurnActive, unclaimedInit: false, pendingInputId: inputId } : {}) } };
   }
   if (message.state === "started") {
     const unstartedInputs = new Set(state.unstartedInputs); unstartedInputs.delete(inputId);
-    return { events: [{ kind: "turn_active", inputId }], state: { ...state, turnActive: true, nativeTurnActive: true, unstartedInputs, unacknowledgedInputs,
+    return { events: [{ kind: "turn_active", inputId }], state: { ...state, turnActive: true, nativeTurnActive: true, unclaimedInit: false, unstartedInputs, unacknowledgedInputs,
       ...(state.pendingInputId === inputId ? { pendingInputId: null } : {}) } };
   }
   if (message.state === "cancelled") {
