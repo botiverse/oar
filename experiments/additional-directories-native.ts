@@ -23,7 +23,7 @@ async function claude(cwd: string, extra: string, home: string): Promise<void> {
     try {
       const result = await promptAndWait(session, "Say ok", { timeoutMs: 30_000 });
       assert.equal(result.kind, "ended");
-      assert.ok(JSON.stringify(provider.raw.at(-1)?.body).includes(extra));
+      assert.ok(JSON.stringify(provider.raw.at(-1)?.body).includes(JSON.stringify(extra).slice(1, -1)));
       const loaded = JSON.stringify(provider.raw.at(-1)?.body).includes("OAR_EXTRA_RULE_729");
       assert.equal(loaded, enabled);
       console.log(`PASS Claude extra directory known; CLAUDE.md loaded=${String(loaded)}, opt-in=${String(enabled)}`);

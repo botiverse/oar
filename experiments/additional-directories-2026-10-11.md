@@ -94,3 +94,19 @@ and Kimi new-session context plus explicit resume refusal. The native
 Claude/Codex and Kimi/OpenCode experiment scripts passed with their final
 assertions. Cursor's real-login results above are separate from those
 repeatable, account-free checks.
+
+## Windows CI follow-up
+
+The first cross-platform run exposed two test assumptions. Claude's request
+kept the original Windows short path, but the assertion searched serialized
+JSON with an unescaped path. The corrected comparison escapes both sides.
+Codex's root readback likewise kept the exact short-path spelling.
+
+Codex's `workspace-write` case selected `readOnly` already at new-session
+open, before resume. Its native
+[`effective_sandbox_mode`](https://github.com/openai/codex/blob/rust-v0.162.1/codex-rs/config/src/config_toml.rs#L820)
+fallback selects read-only on Windows when the native Windows sandbox is
+disabled. The vendor regression now also opens and cold-resumes a session
+without extra directories, then requires both directory-override opens to
+keep that same native sandbox selection. This tests the platform baseline
+separately from the workspace-root mapping.

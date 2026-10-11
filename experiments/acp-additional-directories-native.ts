@@ -44,8 +44,8 @@ try {
   if (provider !== undefined) {
     await request("session/prompt", () => native.connection.agent.request(methods.agent.session.prompt, { sessionId: opened.sessionId, prompt: [{ type: "text", text: "Say ok" }] }));
     const body = JSON.stringify(provider.raw.at(-1)?.body);
-    log("provider-new", { first: body.includes(first), second: body.includes(second) });
-    assert.ok(body.includes(first));
+    log("provider-new", { first: body.includes(JSON.stringify(first).slice(1, -1)), second: body.includes(JSON.stringify(second).slice(1, -1)) });
+    assert.ok(body.includes(JSON.stringify(first).slice(1, -1)));
   }
   await checkList("list-new", [first]);
   await request("session/close", () => native.connection.agent.request(methods.agent.session.close, { sessionId: opened.sessionId }));
@@ -61,8 +61,8 @@ try {
   if (provider !== undefined) {
     await request("session/prompt", () => native.connection.agent.request(methods.agent.session.prompt, { sessionId: opened.sessionId, prompt: [{ type: "text", text: "Say ok again" }] }));
     const body = JSON.stringify(provider.raw.at(-1)?.body);
-    log("provider-resume", { first: body.includes(first), second: body.includes(second) });
-    assert.ok(!body.includes(second));
+    log("provider-resume", { first: body.includes(JSON.stringify(first).slice(1, -1)), second: body.includes(JSON.stringify(second).slice(1, -1)) });
+    assert.ok(!body.includes(JSON.stringify(second).slice(1, -1)));
   }
   await checkList("list-resume", [second]);
   await request("session/close", () => native.connection.agent.request(methods.agent.session.close, { sessionId: opened.sessionId }));
