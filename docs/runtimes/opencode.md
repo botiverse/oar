@@ -32,6 +32,13 @@ ACP session evidence; it does not repeat the separate HTTP-server
 investigation or the direct model-switching probes. See the
 [October 7 report](../../experiments/runtime-version-checks/2026-10-07.md).
 
+On **1.19.0**, the eight applicable native vendor tests, prompt-options
+experiment and eight selected live checks passed on 2026-10-11. The live
+checks covered the model catalog, basic/tool turns, resume, steering, MCP,
+abort and disposal using free Big Pickle without an account. They did not
+repeat the full historical battery or change the v2 evidence. See the
+[October 11 report](../../experiments/runtime-version-checks/2026-10-11.md).
+
 ## OpenCode v2
 
 The v2 adapter follows `@opencode/cli` **2.0.26**. Its ACP subprocess owns a
