@@ -648,3 +648,12 @@ leaves native restoration alone; OAR does not reconstruct workspace state
 from an older conversation's context.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is declared refused and fails before launch.
+No final-answer schema channel was found through the selected Kimi ACP
+interface or its launch configuration. OAR does not imitate native output
+constraints by adding prompt instructions.
+
+[Native channel audit](../../experiments/structured-output-2026-10-11.md).

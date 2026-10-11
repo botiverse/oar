@@ -2,7 +2,7 @@ import type { RefusableSessionOption, RefusedSessionOptions } from "../contracts
 import type { SessionOptions } from "../contracts/session.js";
 import { UnsupportedOptionError } from "../contracts/errors.js";
 
-/** Whether `options` gives `key`: any scalar value, a non-empty map for `env`, a non-empty list for list options. */
+/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
   if (key === "env") {
     return options.env !== undefined && Object.keys(options.env).length > 0;
@@ -15,7 +15,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
 
 /** Reject an open that gives an option the runtime declares refused: an `UnsupportedOptionError` naming it, with the declared reason. */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema"] as const) {
     const reason = refused[key];
     if (reason !== undefined && sessionOptionGiven(options, key)) {
       throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);

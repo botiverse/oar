@@ -490,3 +490,11 @@ workspace list is built from cwd and skill directories, ignoring that input.
 OAR rejects rather than silently discarding it.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is declared refused and fails before launch.
+The selected ACP server has no verified final-answer schema input in its
+protocol, launch arguments or configuration. Tool input schemas are unrelated.
+
+[Native channel audit](../../experiments/structured-output-2026-10-11.md).

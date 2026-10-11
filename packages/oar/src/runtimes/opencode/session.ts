@@ -14,6 +14,7 @@ import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } 
  * mapping is upstream's.
  */
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
+  outputSchema: "OpenCode ACP exposes no final-output schema channel; its HTTP prompt format is not configurable through ACP",
   serviceTier: "opencode exposes no verified per-session service-tier setting and readback",
   disallowedTools: "opencode ACP has no session tool denylist; global permission rules can be overridden by agent rules and do not use the tool-name vocabulary consistently",
 };

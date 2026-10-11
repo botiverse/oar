@@ -804,3 +804,12 @@ provide a workspace configuration channel, and OAR does not simulate one
 with prompt text or tool wrappers.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is declared refused and fails before session
+creation. Pi's SDK exposes no final-answer schema option. Tool parameter
+schemas do not impose a schema on the agent's final output; OAR does not
+install an extension or rewrite instructions to imitate that capability.
+
+[Native channel audit](../../experiments/structured-output-2026-10-11.md).

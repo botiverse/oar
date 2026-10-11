@@ -608,3 +608,12 @@ probe's answers. Workspace metadata is verified; rule/skill loading and OS
 access enforcement are not established by this result.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is declared refused and fails before opening.
+SDK 1.0.37 exposes no final-answer schema in its agent or send options. The
+SDK's MCP tool `outputSchema` describes a tool result, not the agent's final
+answer; OAR does not substitute that unrelated field or a prompt instruction.
+
+[Native channel audit](../../experiments/structured-output-2026-10-11.md).

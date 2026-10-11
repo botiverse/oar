@@ -168,7 +168,7 @@ Further rules:
   at its boundary. A native turn end that arrives first keeps its outcome.
   `promptAndWait` reports `interrupted` with outcome `aborted` when its own
   timeout or signal caused the accepted abort and the turn ended by exit.
-  `TurnOutcome` has no extra fields; the exit code remains on `exited`.
+  The aborted outcome has no extra fields; the exit code remains on `exited`.
   OAR synthesizes neither a `turn_ended` frame nor a `timeout` rejection.
   The incremental `reduceStatus` keeps optional `stop` evidence in a running
   status (pending abort ids and `abortedOnExit`) so checkpoints preserve the
@@ -330,10 +330,14 @@ interface FrameBody {
 //   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
 //   task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
 //   task_ended {taskId, status: completed | failed | stopped, summary?, outputFile?}
-// TurnOutcome: {kind: completed} | {kind: aborted} | FailedTurn, tagged by `failure`:
+// TurnOutcome: {kind: completed, structuredOutput?: unknown} | {kind: aborted} | FailedTurn, tagged by `failure`:
 //   {kind: failed, failure: auth, reason, status?, credential?} |
 //   {kind: failed, failure: quota, reason, status?, resetsAt?} |
 //   {kind: failed, failure: <any other FailureClass>, reason, status?}
+// structuredOutput is the native value, present only on completed turns
+// when reported by Claude or Grok, never parsed from Codex text. OAR does
+// not validate it. Missing differs from null. The same outcome is returned
+// by promptAndWait/awaitTurnEnd and retained by status and the session view.
 // `events` is a LIST because one frame can say several things (a claude
 // assistant message with thinking + text + tool_use is one frame carrying
 // three events) and one frame must stay one record: splitting it would

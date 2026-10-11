@@ -56,7 +56,7 @@ test("failed effort validation rolls back saved options on resume", async () => 
 });
 
 test.each([
-  { systemPrompt: "replacement" }, { env: { TEST: "value" } }, { launchArgs: ["--flag"] }, { serviceTier: "fast" },
+  { outputSchema: {} }, { systemPrompt: "replacement" }, { env: { TEST: "value" } }, { launchArgs: ["--flag"] }, { serviceTier: "fast" },
   { additionalDirectories: ["/extra"] }, { mcpServers: [{ name: "test", command: "unused" }] }, { disallowedTools: ["read"] },
 ])("declared option refusal happens before creating a conversation: %j", async (option) => {
   const { harness, runtime } = await setup();

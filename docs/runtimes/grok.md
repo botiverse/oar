@@ -768,3 +768,24 @@ and its resume path rejects the ACP field. OAR does not invent workspace
 scope by appending paths to the prompt.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` supplies the native ACP extension
+`session/prompt._meta.outputSchema`. OAR includes it on every prompt, held
+queue drain and send-now steer, preserving `_meta.sendNow`. Pass it again
+on resume. It is a request setting, with no guarantee for autonomous work
+that runs without an OAR prompt request.
+
+Grok 1.0.50 validates the output natively. A successful prompt answer carries
+`_meta.structuredOutput`, which OAR passes unchanged to the completed
+`TurnOutcome.structuredOutput`. Invalid values or schemas instead carry
+`_meta.structuredOutputError`, even with `stopReason: "end_turn"`; OAR records
+a failed turn (`failure: "unknown"`) with that native reason and no structured
+value. A cancelled answer remains aborted. OAR neither validates the result
+nor parses message text into a value. Raw prompt answers are retained, and
+`promptAndWait`, status and SessionView preserve the same outcome on replay.
+
+Verified with the native binary and a local scripted provider: new and cold
+resumed sessions, steer, queued input, wrong-typed output and malformed schema.
+[Evidence and regressions](../../experiments/structured-output-2026-10-11.md).

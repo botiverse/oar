@@ -79,9 +79,10 @@ export function createAcpTurns(deps: {
   readonly profile: AcpSessionProfile;
   readonly usageGate: UsageUpdateGate;
   readonly capabilities: Pick<SessionCapabilities, "images">;
+  readonly promptMeta?: JsonRecord | undefined;
   readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
 }): AcpTurns {
-  const { kernel, runtime, profile, usageGate, capabilities, promptUsage } = deps;
+  const { kernel, runtime, profile, usageGate, capabilities, promptUsage, promptMeta } = deps;
   const rootId = kernel.sessionId;
   const held: { readonly inputId: string | undefined; readonly prompt: JsonRecord[] }[] = [];
   let active: ActiveTurn | null = null;
@@ -131,7 +132,9 @@ export function createAcpTurns(deps: {
     void (async (): Promise<void> => {
       try {
         usageGate.arm();
-        const result = await promptAcp(runtime, rootId, prompt, extraParams);
+        // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the native ACP extension envelope.
+        const params = promptMeta === undefined ? extraParams : { ...extraParams, _meta: { ...promptMeta, ...asRecord(extraParams._meta) } };
+        const result = await promptAcp(runtime, rootId, prompt, params);
         // Deliberate ordering: the answer's event waits (bounded) for the
         // usage_update kimi pushes AFTER answering, so the usage record
         // precedes the turn end and contextUsage() at turn_ended is this

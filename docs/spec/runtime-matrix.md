@@ -224,6 +224,40 @@ deltas project immediately with the native API message ID; completed blocks
 do not repeat them. Tool-argument chunks remain raw activity until the full
 call arrives. See [Claude observation](../runtimes/claude.md#observation-children-and-history).
 
+## Structured output
+
+`SessionOptions.outputSchema` is a JSON Schema object passed unchanged to
+native output controls. It applies for the opened OAR Session; give it again
+on resume and reopen to change it. There is no per-turn override and OAR
+does not validate schemas, validate results, or rewrite instructions to
+imitate a missing native channel. Unsupported runtimes refuse even `{}`.
+
+| Runtime | Native scope | Final result |
+|---|---|---|
+| claude | `--json-schema` for the process, including queued and spontaneous turns | A successful native `result.structured_output` is passed unchanged to `turn_ended.outcome.structuredOutput`. Exhausted validation retries fail the turn. |
+| codex | `turn/start.outputSchema` on every OAR prompt; steer retains the active turn's setting | Native text only, including text that violates the schema when the provider does not enforce it. No `structuredOutput` is synthesized. Provider schema refusals remain failed turns. |
+| grok | `session/prompt._meta.outputSchema` on prompt, held queue drain and send-now steer | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
+| cursor, kimi, opencode (both lines), antigravity, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
+
+**Codex's native queue cannot carry a schema**, so `queue()` returns
+`rejected: unsupported` when `outputSchema` is set. Send a new prompt after
+the turn finishes instead. Codex can also start a new turn by itself for an
+unfinished goal; those autonomous continuations have no schema. OAR does not
+intercept or prevent native goals. A resumed thread's already queued native
+inputs are likewise outside the OAR `turn/start` setting. Grok's setting is
+also request-scoped; it does not promise a schema for autonomous work that
+makes no OAR prompt request.
+
+Only completed outcomes can carry `structuredOutput`. Absence and an
+explicit native `null` differ. `promptAndWait`, `awaitTurnEnd`, status and
+SessionView retain the same native value live and after record replay;
+ordinary text and raw frames remain available. Hosts consuming Codex text
+must parse and validate it themselves when their application needs a value
+conforming to the schema. Claude retry exhaustion and Grok validation
+failures currently retain `failure: "unknown"` with the native reason.
+
+[Native evidence, failure probes and limits](../../experiments/structured-output-2026-10-11.md).
+
 ## Additional directories
 
 `SessionOptions.additionalDirectories` supplies extra workspace paths through
@@ -264,17 +298,18 @@ reading the message.
 non-empty one), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
-out instead of naming runtimes.
+out instead of naming runtimes. `outputSchema` is considered given even
+when it is an empty object.
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback |
-| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback; no verified final-output schema channel |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified final-output schema channel |
+| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel |
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
-| opencode, both lines | `disallowedTools`, `serviceTier` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel |
-| pi | `launchArgs`, `serviceTier`, `additionalDirectories` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
+| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback; no verified final-output schema channel |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel; no verified final-output schema channel |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel |
 | claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent

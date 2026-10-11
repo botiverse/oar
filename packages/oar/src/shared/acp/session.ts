@@ -93,7 +93,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
 
     let disposeRequest: RequestRecord | null = null;
     const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
-    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptUsage: (result) => tokenUsage.prompt(result) });
+    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result) });
     // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
     void runtime.exited.then((code) => {
       void terminalHost.dispose();

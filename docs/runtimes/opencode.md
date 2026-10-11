@@ -664,3 +664,13 @@ rules for `external_directory` are a different setting and are not used as
 a substitute. cwd remains primary on both lines.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is declared refused on both release lines and
+fails before launch. OpenCode has a JSON-schema format on its HTTP prompt
+API, but its ACP prompt path does not forward that setting, and no ACP
+launch/configuration equivalent was verified. OAR uses ACP and does not
+silently switch interfaces or replace the schema with prompt instructions.
+
+[Native channel audit](../../experiments/structured-output-2026-10-11.md).

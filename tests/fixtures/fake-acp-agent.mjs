@@ -92,6 +92,7 @@ function handleRpcRequest(message) {
 }
 
 function handleSessionPrompt(message) {
+  if (message.params?._meta?.outputSchema !== undefined) { send({ jsonrpc: "2.0", method: "fixture/prompt-schema", params: message.params }); }
   const text = promptText(message.params);
   if (refuseSteer({ text, pending: pendingPrompts, id: message.id, result, error })) {
     return;

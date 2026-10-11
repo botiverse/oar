@@ -131,7 +131,7 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnO
       limitResetsAt: state.limitResetsAt,
     });
   }
-  return { kind: "completed" };
+  return { kind: "completed", ...(Object.hasOwn(message, "structured_output") ? { structuredOutput: message.structured_output } : {}) };
 }
 
 function pathKey(agentPath: readonly string[]): string {

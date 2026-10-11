@@ -1,7 +1,10 @@
-import type { FailedTurn, FailureClass } from "./failure.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
+import type { FailureClass } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
+import type { TurnOutcome } from "./turn-outcome.js";
+
+export type { TurnOutcome } from "./turn-outcome.js";
 
 /**
  * The record stream and the events read off it. Three words, three layers:
@@ -286,9 +289,6 @@ export type ResponseBody =
   | { readonly kind: "answered"; readonly native: unknown }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
   | { readonly kind: "exited"; readonly code: number | null };
-
-/** How a turn ended; `failed` is a `FailedTurn`, tagged by its `failure`. */
-export type TurnOutcome = { readonly kind: "completed" } | { readonly kind: "aborted" } | FailedTurn;
 
 /** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
 export interface ContextUsage {

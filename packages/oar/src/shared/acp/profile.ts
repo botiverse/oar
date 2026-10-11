@@ -11,7 +11,6 @@ import { refuseResumeElsewhere } from "./resume-cwd.js";
 
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
-
 export interface AcpSessionProfile {
   /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
   readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;
@@ -48,6 +47,8 @@ export interface AcpSessionProfile {
   /** Native resume/load refusal only. `listed` is false only after a complete session/list walk, null when unknown. */
   readonly isResumeNotFound?: (native: JsonRecord, listed: boolean | null) => boolean;
   readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
+  /** Native metadata on every prompt RPC, including held queue entries and steer. */
+  readonly promptMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
   readonly validateOptions?: (options: SessionOptions) => void;
   readonly configureSession?: (context: {
@@ -86,7 +87,6 @@ export interface AcpSessionProfile {
   /** Bound for `usageUpdateAfterPrompt`; default 500 ms. */
   readonly usageUpdateTimeoutMs?: number;
 }
-
 export interface OpenedAcpSession {
   readonly initialized: JsonRecord;
   readonly response: JsonRecord;

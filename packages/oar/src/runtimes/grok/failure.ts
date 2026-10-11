@@ -1,6 +1,6 @@
-import type { FailureClass, FrameBody } from "../../contracts/session.js";
+import type { FailureClass, FrameBody, TurnOutcome } from "../../contracts/session.js";
 import { acpErrorReason, rpcErrorCode, type AcpFailureReader } from "../../shared/acp/failure.js";
-import { asRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 /*
  * A prompt grok answered with an error (docs/spec/runtime-matrix.md#opencode-kimi-grok-antigravity-acp),
@@ -39,3 +39,14 @@ export const grokFailureOutcome: AcpFailureReader = (error, frames) => {
   const named = typeof update?.error_type === "string" ? ERROR_TYPES[update.error_type] : undefined;
   return named === undefined ? null : { kind: "failed", reason, failure: named };
 };
+
+/** Grok validates its schema and reports either a value or a typed error field, even with end_turn. */
+export function grokPromptOutcome(response: JsonRecord): TurnOutcome {
+  if (response.stopReason === "cancelled") { return { kind: "aborted" }; }
+  // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the native ACP extension envelope.
+  const meta = asRecord(response._meta);
+  if (typeof meta?.structuredOutputError === "string") {
+    return { kind: "failed", failure: "unknown", reason: meta.structuredOutputError };
+  }
+  return { kind: "completed", ...(meta !== null && Object.hasOwn(meta, "structuredOutput") ? { structuredOutput: meta.structuredOutput } : {}) };
+}

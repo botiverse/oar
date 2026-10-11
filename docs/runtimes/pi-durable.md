@@ -199,3 +199,12 @@ cwd; the host owns the Harness filesystem environment. There is no verified
 per-conversation multi-root directory option.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is declared refused before creating or watching
+a conversation. The native Harness exposes no final-answer schema option.
+Tool parameter schemas are unrelated; OAR does not rewrite conversation
+instructions to imitate native validation.
+
+[Native channel audit](../../experiments/structured-output-2026-10-11.md).

@@ -232,8 +232,9 @@ included). Completion is codex's
 `multi-turn`). A basic one-word turn was 33 records with event kinds `model,
 reasoning, text_delta, usage, turn_ended`, one `spanId`, dense seqs, every
 frame carrying `native`, and `dispose` answered `exited { code: null }`
-(live-contract `basic`). No skill input, structured-output schema, or per-turn
-configuration is exposed. [Adapter][oar-session].
+(live-contract `basic`). No skill input or per-turn configuration override
+is exposed. A session-level `outputSchema` is sent on each OAR prompt; see
+[structured output](#structured-output). [Adapter][oar-session].
 
 **Images (mapped):** `InputOptions.images` follow the text as `{ type:
 "localImage", path }` items on `turn/start`, `turn/steer` and
@@ -1403,3 +1404,30 @@ and on both new and resumed sessions; OAR does not override this fallback. Extra
 turn a read-only sandbox into a writable one.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
+
+## Structured output
+
+`SessionOptions.outputSchema` is sent unchanged as `turn/start.outputSchema`
+on every OAR prompt, including after resume. Give the option again on resume;
+there is no per-turn override. Native `turn/steer` stays in the active turn
+and keeps its setting. `thread/queue/add` has no schema field, so OAR refuses
+`queue()` with `code: "unsupported"` when this option is present. Use a new
+prompt after the current turn ends.
+
+Codex 0.162.1 forwards it as the provider's strict JSON Schema `text.format`.
+Its final result is still `agentMessage.text`, exposed as ordinary text;
+there is no native structured value to put on `TurnOutcome.structuredOutput`.
+A scripted provider returning wrong-typed JSON or even non-JSON text still
+completed successfully. OAR never parses or validates that text: hosts that
+need schema-conforming data must do so themselves. A provider's schema
+refusal remains a failed turn (the tested HTTP 400 `invalid_request_error`
+was `failure: "invalid_request"`).
+
+The setting covers OAR `turn/start` requests only. An unfinished native goal
+can open its own continuation turn without that schema. The native probe
+sent one client `turn/start`, observed two native turns, and saw the second
+turn's provider requests omit the format. OAR leaves this native goal
+behavior intact. Inputs already in Codex's durable queue likewise do not
+gain the setting when the thread is resumed.
+
+[Native evidence, goal-continuation probe and regressions](../../experiments/structured-output-2026-10-11.md).

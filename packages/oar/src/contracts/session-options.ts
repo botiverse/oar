@@ -83,6 +83,19 @@ export interface SessionOptions {
    */
   readonly serviceTier?: string;
   /**
+   * JSON Schema for the session's final output, passed through unchanged.
+   * Claude applies it at process launch to every turn, including spontaneous
+   * turns, and reports a native value in TurnOutcome.structuredOutput.
+   * Codex sends it on each OAR turn/start; steer keeps that turn's schema,
+   * queue is refused, and autonomous goal turns have no schema. Codex delegates
+   * validation to its provider and returns text only: the host parses and
+   * validates it. Grok sends it on every prompt, queue drain and steer and
+   * returns its native validated value. OAR never validates a schema or its
+   * output. Give it again on resume; reopen to change it. Other core runtimes
+   * refuse this option.
+   */
+  readonly outputSchema?: Readonly<Record<string, unknown>>;
+  /**
    * Resume the native conversation identified by a previous Session.id.
    * Verified missing-target signals reject with SessionNotFoundError; all
    * other failed opens keep their own errors. Missing is scoped to the

@@ -138,11 +138,10 @@ What a runtime cannot honor is refused, never dropped: `runtime.session()`
 rejects with an `UnsupportedOptionError` (`option` names the refused
 `SessionOptions` key, the message is the reason), so a host can try and fall
 back on it. `runtime.refusedSessionOptions` names the options a runtime
-refuses at open (`systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`),
-each with the reason, so a host can leave them out before opening: cursor
-refuses all four, kimi, antigravity and opencode the two prompt options. Kimi and
-opencode also refuse a `resume` in another directory than the session's own
-(`option: "cwd"`). See
+refuses at open, each with the reason, so a host can leave them out before
+opening. Some refusals depend on the value or operation: Kimi and OpenCode
+refuse a `resume` in another directory than the session's own (`option:
+"cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
 
 A missing resume target rejects with `SessionNotFoundError` on verified native
@@ -158,6 +157,40 @@ override. It keeps the primary `cwd` and does not change the sandbox mode.
 Project rules or instruction files in those directories may or may not load;
 this option does not guarantee their loading. Resume and configuration rules differ by runtime; see
 [additional directories](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#additional-directories).
+
+`SessionOptions.outputSchema` supplies a JSON Schema object for final output.
+Claude and Grok report their native validated value on a completed
+`TurnOutcome.structuredOutput`; `promptAndWait`, status and SessionView
+preserve it. Codex sends the schema to its provider but returns text only;
+OAR never parses or validates that text. Give the schema again on resume.
+
+```ts
+import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
+
+const runtime = defaultRuntimes.require("claude");
+const installation = await runtime.installation?.();
+if (installation?.kind !== "available") throw new Error("Claude unavailable");
+const session = await runtime.session(installation, {
+  cwd: process.cwd(),
+  outputSchema: {
+    type: "object", properties: { answer: { type: "integer" } },
+    required: ["answer"], additionalProperties: false,
+  },
+});
+try {
+  const run = await promptAndWait(session, "What is 2 + 2?");
+  if (run.kind !== "rejected" && run.outcome.kind === "completed") {
+    console.log(run.outcome.structuredOutput);
+  }
+} finally { await session.dispose(); }
+```
+
+The schema's scope is native: Claude applies it to the whole process; Grok
+to each prompt, queue drain and steer; Codex to each OAR `turn/start`, while
+steer retains the current turn's setting. Codex refuses `queue` when this
+option is set because its queue cannot carry a schema. Its autonomous goal
+continuations have no schema. Other core runtimes refuse `outputSchema` at open.
+See [structured output and failure boundaries](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#structured-output).
 
 `SessionOptions.mcpServers` attaches MCP servers (stdio `{name, command,
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to

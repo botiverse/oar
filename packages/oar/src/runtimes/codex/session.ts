@@ -200,7 +200,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       return null;
     },
     method: "turn/start",
-    params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId }),
+    params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId, ...(options.outputSchema === undefined ? {} : { outputSchema: options.outputSchema }) }),
     onReply: (reply) => {
       const turnId = asRecord(reply.turn)?.id;
       if (typeof turnId !== "string") {
@@ -234,7 +234,8 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   // The reply carries the runtime's submission id; it is retained on the response.
   const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
     body: { kind: "queue", input, ...inputOptions },
-    gate: () => inputImagesRefusal(capabilities, inputOptions?.images),
+    gate: () => options.outputSchema === undefined ? inputImagesRefusal(capabilities, inputOptions?.images)
+      : { kind: "rejected", code: "unsupported", reason: "codex queued input cannot carry outputSchema; use prompt after the current turn ends" },
     method: "thread/queue/add",
     params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
     onReply: (reply) => ({ kind: "accepted", native: reply }),

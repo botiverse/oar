@@ -37,6 +37,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     ...tierArgs,
+    ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
     // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of

@@ -5,7 +5,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts } from "../../shared/token-totals.js";
-import { grokFailureOutcome } from "./failure.js";
+import { grokFailureOutcome, grokPromptOutcome } from "./failure.js";
 import { grokSpontaneousTokens } from "./spontaneous-usage.js";
 import { redactGrokNotification } from "../../shared/credential-redaction.js";
 
@@ -183,6 +183,8 @@ export const grokAcpProfile: AcpSessionProfile = {
   // into the one oar turn (turns.ts).
   steerParams: () => ({ _meta: { sendNow: true } }),
   steerSupersedesPrompt: true,
+  promptMeta: (options) => options.outputSchema === undefined ? undefined : { outputSchema: options.outputSchema },
+  promptOutcome: grokPromptOutcome,
   promptContextUsage: grokContextUsage,
   promptTokenUsage: grokPromptTokens,
   spontaneousTokenUsage: grokSpontaneousTokens,
