@@ -179,12 +179,14 @@ const session = await runtime.session(installation, {
 });
 try {
   const run = await promptAndWait(session, "What is 2 + 2?");
-  if (run.kind !== "rejected" && run.outcome.kind === "completed") {
+  if (run.kind !== "rejected" && run.outcome.kind === "completed" && "structuredOutput" in run.outcome) {
     console.log(run.outcome.structuredOutput);
   }
 } finally { await session.dispose(); }
 ```
 
+Even with a schema, Claude may complete without `structuredOutput` when the
+model does not supply it; check the field's presence as well as the outcome.
 The schema's scope is native: Claude applies it to the whole process; Grok
 to each prompt, queue drain and steer; Codex to each OAR `turn/start`, while
 steer retains the current turn's setting. Codex refuses `queue` when this

@@ -26,6 +26,16 @@ open. Grok's native validation errors are also `failed: unknown`, preserving
 the error string. The Codex provider error was `failed: invalid_request`.
 No new failure class is introduced here.
 
+Lookout's independent review probes additionally found that Claude can end
+successfully without a value even when a schema was supplied. If the model
+never calls `StructuredOutput`, or switches to plain text after one invalid
+call, Claude reminds it once and then reports `result/success`, `is_error:
+false`, without `structured_output`. OAR correctly preserves completed with
+no field. Only repeated invalid StructuredOutput calls exercise the retry
+exhaustion above. Hosts must check field presence; completed alone does not
+establish a schema-conforming result. Lookout also verified that a background
+task notification's spontaneous turn can return a native structured value.
+
 The Claude native result fixtures retain the successful result and exhausted
 retry result, without the session id or message uuid. Grok's three prompt
 reply fixtures retain the successful value, wrong-typed value error and

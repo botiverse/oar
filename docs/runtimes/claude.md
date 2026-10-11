@@ -1259,6 +1259,13 @@ stays absent, and an explicit `null` is retained. Failed and aborted outcomes
 do not carry it. `promptAndWait`, status and SessionView preserve the same
 outcome live and from saved records.
 
+**Completed does not guarantee a structured value, even with `outputSchema`.**
+When the model never calls `StructuredOutput`, or returns plain text after
+an invalid call, Claude can remind it once and then end with `result/success`,
+`is_error: false` and no `structured_output`. OAR preserves that completed
+outcome without the field. Hosts must check whether `structuredOutput` is
+present, not just whether `kind` is `completed`.
+
 With Claude 2.1.296 and a scripted provider, incorrect values exhausted native
 StructuredOutput retries and ended with `error_max_structured_output_retries`
 (`terminal_reason: structured_output_retry_exhausted`), mapped to

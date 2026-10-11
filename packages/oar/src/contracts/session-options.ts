@@ -85,7 +85,8 @@ export interface SessionOptions {
   /**
    * JSON Schema for the session's final output, passed through unchanged.
    * Claude applies it at process launch to every turn, including spontaneous
-   * turns, and reports a native value in TurnOutcome.structuredOutput.
+   * turns. A completed Claude turn can still omit structuredOutput if the
+   * model never supplies it; hosts must check for the field, not just kind.
    * Codex sends it on each OAR turn/start; steer keeps that turn's schema,
    * queue is refused, and autonomous goal turns have no schema. Codex delegates
    * validation to its provider and returns text only: the host parses and

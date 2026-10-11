@@ -7,8 +7,9 @@ export type TurnOutcome = {
    * The runtime's native structured result, when it reports one (Claude's
    * result.structured_output, Grok's prompt _meta.structuredOutput). Passed
    * through without parsing or validation; absence differs from a reported
-   * null. Codex returns text instead, even
-   * with outputSchema. Read the runtime's page for its validation guarantees.
+   * null. Even with outputSchema, Claude can complete without this field
+   * when the model does not supply one; hosts must check for it.
+   * Codex returns text instead. See the runtime page for validation guarantees.
    */
   readonly structuredOutput?: unknown;
 } | { readonly kind: "aborted" } | FailedTurn;

@@ -251,7 +251,10 @@ makes no OAR prompt request.
 Only completed outcomes can carry `structuredOutput`. Absence and an
 explicit native `null` differ. `promptAndWait`, `awaitTurnEnd`, status and
 SessionView retain the same native value live and after record replay;
-ordinary text and raw frames remain available. Hosts consuming Codex text
+ordinary text and raw frames remain available.
+Claude can complete without a structured value even with a schema when the
+model never supplies one; hosts must check for the field, not just `kind`.
+Hosts consuming Codex text
 must parse and validate it themselves when their application needs a value
 conforming to the schema. Claude retry exhaustion and Grok validation
 failures currently retain `failure: "unknown"` with the native reason.
