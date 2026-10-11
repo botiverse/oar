@@ -33,7 +33,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude includes additiona
     session = await claudeSession(installation, { cwd, env, resume: id, additionalDirectories: [second] });
     expect(await runTurn(session, "Say ok again")).toEqual({ kind: "completed" });
     expect(JSON.stringify(provider.raw.at(-1)?.body)).toContain(JSON.stringify(second).slice(1, -1));
-  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true }); }
+  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
 }, 120_000);
 
 /** The native reply already recorded at open, including the applied sandbox. */
@@ -78,7 +78,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock").each([
     expect(codexOpen(session)).toMatchObject({ runtimeWorkspaceRoots: [cwd, second], sandbox: { type: nativeType } });
     expect(session.model().value).toBe("gpt-5.1");
     expect(await runTurn(session, "Say ok again")).toEqual({ kind: "completed" });
-  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true }); }
+  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
 }, 120_000);
 
 test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi supplies new-session directories in native context and refuses a resume override", async () => {
@@ -95,5 +95,5 @@ test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi supplies new-session d
     await session.dispose();
     await expect(kimiSession(installation, { cwd, env: provider.env, resume: id, additionalDirectories: [first] }))
       .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "additionalDirectories" });
-  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true }); }
+  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
 }, 120_000);
