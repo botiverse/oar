@@ -632,3 +632,19 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` go after `acp`. `kimi acp` reads only its own options there (`--login`, `--region`) and exits on any other (2.1.1); the root command's options, placed before `acp`, do not reach the ACP server either, so kimi currently has no useful launch argument. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+`SessionOptions.additionalDirectories` goes to ACP
+`session/new.additionalDirectories` only when initialize advertises that
+session capability. Paths resolve against cwd. Kimi 2.1.1's real provider
+request contained the extra directory when a session was created.
+
+**A non-empty list on resume is refused before starting Kimi**, with
+`UnsupportedOptionError` on `additionalDirectories` explaining that it has
+no effect on resume. Native resume/load warn and ignore the field; a cold
+resume probe never included the newly requested directory. Omission or empty
+leaves native restoration alone; OAR does not reconstruct workspace state
+from an older conversation's context.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

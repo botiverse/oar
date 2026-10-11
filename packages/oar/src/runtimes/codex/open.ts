@@ -1,4 +1,6 @@
 import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
+import path from "node:path";
+import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { validateCodexToolDenials } from "./tool-denials.js";
 import type { McpServer, RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -46,6 +48,12 @@ function configParams(config: JsonRecord): JsonRecord {
   return Object.keys(config).length === 0 ? {} : { config };
 }
 
+/** Native runtime roots replace the list, so retain the primary cwd too. */
+function workspaceRoots(options: SessionOptions): string[] | null {
+  const directories = resolvedAdditionalDirectories(options);
+  return directories.length === 0 ? null : [...new Set([path.resolve(options.cwd), ...directories])];
+}
+
 /**
  * The open request for these options: a new thread, or a resume of
  * `options.resume`; and the redactor for the MCP credentials its `config`
@@ -81,12 +89,15 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   const mcpConfig = mcpServers === null ? {} : { mcp_servers: codexMcpServersConfig(mcpServers) };
   const tierParams = options.serviceTier === undefined ? {} : { serviceTier: options.serviceTier };
   const modelParams = options.model === undefined ? {} : { model: options.model };
+  const roots = workspaceRoots(options);
+  const directoryParams = roots === null ? {} : { runtimeWorkspaceRoots: roots };
   if (options.resume === undefined) {
     return {
       method: "thread/start",
       redact,
       params: {
         cwd: options.cwd,
+        ...directoryParams,
         ...modelParams,
         ...tierParams,
         approvalPolicy: "never",
@@ -106,6 +117,7 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
       threadId: options.resume,
       excludeTurns: true,
       cwd: options.cwd,
+      ...directoryParams,
       // Same-runtime model switch = resume the same thread id with a new
       // model. thread/resume accepts `model` (codex rust-v0.153.4,
       // protocol/v2/thread.rs ThreadResumeParams) and applies it when the
@@ -154,6 +166,11 @@ export function codexOpenReadback(
     ...(effort === null ? [] : [{ kind: "effort" as const, effort }]),
     ...codexServiceTierEvents(reply),
   ];
+  const roots = workspaceRoots(options);
+  const reportedRoots = reply.runtimeWorkspaceRoots;
+  if (roots !== null && (!Array.isArray(reportedRoots) || roots.some((root) => !reportedRoots.includes(root)))) {
+    return { events, refusal: `codex ${method} did not confirm the requested additionalDirectories in runtimeWorkspaceRoots`, resumeEffort: null };
+  }
   if (options.model !== undefined && model !== null && model !== options.model) {
     return { events, refusal: `codex ${method} kept model ${model} although ${options.model} was requested`, resumeEffort: null };
   }

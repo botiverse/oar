@@ -146,6 +146,7 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
 ];
 
 export const grokRefusedSessionOptions: RefusedSessionOptions = {
+  additionalDirectories: "grok ACP exposes no effective additional workspace directory setting",
   serviceTier: "grok exposes no verified per-session service-tier setting and readback",
   disallowedTools: "grok agent stdio does not forward the CLI tool denylist; supplying an agent profile would replace the user's selected harness rather than overlay its tools",
 };

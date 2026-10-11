@@ -2,6 +2,7 @@
 import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
+import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import { acpResumeFailure, acpOpenStep, type AcpFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
@@ -98,12 +99,10 @@ export interface OpenedAcpSession {
   readonly setModelResponse?: JsonRecord;
 }
 
-/** Observer for the handshake: every runtime answer, in order, so the adapter can record them as events. */
+/** Native handshake answers in wire order, for opening records. */
 export type AcpOpenObserver = (step: { readonly method: string; readonly response: JsonRecord }) => void;
 
-export function hasAcpCapability(value: unknown): boolean {
-  return value === true || asRecord(value) !== null;
-}
+export function hasAcpCapability(value: unknown): boolean { return value === true || asRecord(value) !== null; }
 
 function responseRecord(method: string, value: unknown): JsonRecord {
   const response = asRecord(value);
@@ -200,13 +199,14 @@ async function createOrResume(
   options: SessionOptions,
   meta: JsonRecord | undefined,
 ): Promise<Pick<OpenedAcpSession, "response" | "sessionId" | "openMethod">> {
+  const capabilities = asRecord(initialized.agentCapabilities);
+  const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);
   const baseParams = {
     cwd: options.cwd,
+    ...acpAdditionalDirectories(options, initialized),
     mcpServers: acpMcpServersParam(options.mcpServers, initialized),
     ...(meta === undefined ? {} : { _meta: meta }),
   };
-  const capabilities = asRecord(initialized.agentCapabilities);
-  const sessionCapabilities = asRecord(capabilities?.sessionCapabilities);
   const timeoutMs = profile.requestTimeoutMs ?? 15_000;
   if (options.resume !== undefined) {
     const sessionId = options.resume;

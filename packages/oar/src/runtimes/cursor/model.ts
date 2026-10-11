@@ -1,5 +1,6 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { cursorOpenFailure, cursorResumeFailure } from "./failure.js";
 import type { CursorAgent, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
@@ -129,10 +130,11 @@ export function cursorToolDenialError(error: unknown, options: SessionOptions): 
  * Cursor refuses as a `RuntimeFailureError` (failure.ts).
  */
 export async function openCursorAgent(sdk: CursorSdk, options: SessionOptions): Promise<CursorAgent> {
+  const directories = resolvedAdditionalDirectories(options);
   const agentOptions = {
     model: await cursorModelSelection(sdk, options),
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: [...options.disallowedTools] }),
-    local: { cwd: options.cwd, sandboxOptions: { enabled: false } },
+    local: { cwd: options.cwd, ...(directories.length === 0 ? {} : { dirs: directories }), sandboxOptions: { enabled: false } },
   };
   const opening = options.resume === undefined ? sdk.Agent.create(agentOptions) : sdk.Agent.resume(options.resume, agentOptions);
   return opening.catch((error: unknown) => {

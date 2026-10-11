@@ -32,6 +32,20 @@ export type McpServer =
 export interface SessionOptions {
   /** Working directory the runtime operates in. With `resume`, a directory other than the session's own is refused where the runtime would run in its own instead (kimi, opencode: `UnsupportedOptionError` on `cwd`); pi and grok can report SessionNotFoundError for that cwd; Cursor reports what its SDK can find with this configuration (docs/runtimes/resume-cwd.md). */
   readonly cwd: string;
+  /**
+   * Additional workspace directories, resolved relative to cwd. Uses the
+   * runtime's native workspace/access setting; cwd remains the primary
+   * directory. This neither changes the sandbox mode nor guarantees OS
+   * isolation. Loading project rules or instruction files in extra directories
+   * varies by runtime and is not guaranteed by this option.
+   * Omitted or empty adds no override: native configuration and
+   * restore rules apply. Supply again on resume where supported; Kimi
+   * refuses a non-empty list on resume because its native path ignores it.
+   * Unsupported runtimes reject with UnsupportedOptionError. See
+   * docs/spec/runtime-matrix.md#additional-directories for native scope and
+   * persistence, including Codex's replacement of runtime workspace roots.
+   */
+  readonly additionalDirectories?: readonly string[];
   /** Runtime-native model identifier; the runtime's default when omitted. */
   readonly model?: string;
   /**

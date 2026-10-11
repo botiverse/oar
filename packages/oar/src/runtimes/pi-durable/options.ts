@@ -8,6 +8,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
+  additionalDirectories: "pi-durable has no per-conversation additional workspace directory option; the host owns its filesystem environment",
   systemPrompt: "pi-durable instructions append to extension sections; there is no system-prompt replacement channel",
   env: "The host owns the Harness execution environment",
   launchArgs: "pi-durable has no child process to configure",

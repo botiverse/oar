@@ -18,8 +18,14 @@ export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "opencode ACP has no session tool denylist; global permission rules can be overridden by agent rules and do not use the tool-name vocabulary consistently",
 };
 
+export const opencodeV1RefusedSessionOptions: RefusedSessionOptions = {
+  ...opencodeRefusedSessionOptions,
+  additionalDirectories: "opencode v1 ACP exposes no additional workspace directory setting",
+};
+
 export const opencodeAcpProfile: AcpSessionProfile = {
   args: ["acp"],
+  validateOptions: (options) => { refuseSessionOptions(opencodeV1RefusedSessionOptions, options); },
   // The ACP layer forwards only its own sessions' parts: a `task` subagent
   // runs in a child session whose frames never reach this transport, so the
   // call shows only as the parent's tool call (opaque, tier #1).
@@ -97,6 +103,7 @@ export const opencodeSession: StartSession = withSessionCredentials(async (insta
   if (await opencodeMajor(installation, options) === 2) {
     return directV2Session(installation, options);
   }
+  refuseSessionOptions(opencodeV1RefusedSessionOptions, options);
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
     return directSession(installation, options);
   }

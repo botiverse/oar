@@ -16,11 +16,15 @@ export function mcpCapabilities() {
 const OPENS = new Set(["session/new", "session/load", "session/resume"]);
 
 /** Log an open's `mcpServers`, and fail it when asked: true when this answered the request. */
+// oxlint-disable-next-line eslint/max-statements -- Independent optional wire logs and one scripted failure.
 export function answeredMcpOpen(message, error) {
   if (!OPENS.has(message.method)) {
     return false;
   }
   const servers = message.params?.mcpServers;
+  if (process.env.FAKE_ACP_DIRECTORIES_LOG !== undefined) {
+    appendFileSync(process.env.FAKE_ACP_DIRECTORIES_LOG, `${JSON.stringify({ method: message.method, additionalDirectories: message.params?.additionalDirectories })}\n`);
+  }
   if (process.env.FAKE_ACP_MCP_LOG !== undefined) {
     appendFileSync(process.env.FAKE_ACP_MCP_LOG, `${JSON.stringify({ method: message.method, mcpServers: servers })}\n`);
   }

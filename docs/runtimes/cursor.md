@@ -591,3 +591,20 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: the SDK's local agent runs in the host process, so a session has no command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+`SessionOptions.additionalDirectories` maps to SDK `local.dirs` on
+`Agent.create` and `Agent.resume`, resolved against cwd. The SDK keeps cwd as
+the primary shell/store directory and includes it first in the deduplicated
+workspace list. Supply the list again on resume; OAR does not change the
+sandbox setting.
+
+With SDK 1.0.37, two real model turns reported the current primary and extra
+workspace paths, including a different extra path after resume. The SDK's
+declaration also promises project rules and skills for every root, but
+neither `.cursor/rules` nor `AGENTS.md` verification markers appeared in this
+probe's answers. Workspace metadata is verified; rule/skill loading and OS
+access enforcement are not established by this result.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

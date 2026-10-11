@@ -151,6 +151,14 @@ Other failed opens retain their own errors. Missing is scoped to the runtime's
 configuration and, for Pi/Grok, the supplied cwd; save and reuse the cwd with
 the id. See [missing resume targets](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#missing-resume-targets).
 
+`SessionOptions.additionalDirectories` adds native workspace paths, resolved
+relative to `cwd`. Claude, Codex, Cursor, Kimi (new sessions only), and
+OpenCode v2 support it; other runtimes refuse it. Empty or omitted adds no
+override. It keeps the primary `cwd` and does not change the sandbox mode.
+Project rules or instruction files in those directories may or may not load;
+this option does not guarantee their loading. Resume and configuration rules differ by runtime; see
+[additional directories](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#additional-directories).
+
 `SessionOptions.mcpServers` attaches MCP servers (stdio `{name, command,
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
 one session, on top of the runtime's own: claude reads them from a 0600

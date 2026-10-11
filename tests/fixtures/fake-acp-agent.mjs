@@ -197,7 +197,7 @@ function handleSessionRequest(message) {
         protocolVersion: 1,
         agentCapabilities: {
           loadSession: true, ...mcpCapabilities(),
-          sessionCapabilities: sessionCapabilities[mode] ?? { resume: {}, close: {} },
+          sessionCapabilities: { ...(sessionCapabilities[mode] ?? { resume: {}, close: {} }), ...(process.env.FAKE_ACP_DIRECTORIES === "1" ? { additionalDirectories: {} } : {}) },
           promptCapabilities: { image: mode !== "no-images" },
         },
         authMethods: [{ id: "cached", name: "Cached login" }],

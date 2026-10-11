@@ -1223,3 +1223,23 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`. Both take several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR passes them unchecked: a flag that changes the stream-json protocol (`--output-format`, `--input-format`) breaks the session, and an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+`SessionOptions.additionalDirectories` maps to `--add-dir`, after the host's
+launch arguments and before the other variadic flags. Paths resolve against
+`cwd`; cwd stays primary. The same flag is supplied on resume. Empty or
+omitted adds no override to native configuration. This does not change OAR's
+permission mode or provide OS isolation.
+
+Claude 2.1.296 placed the extra path in the provider request's user environment
+context, under “Additional working directories”, on both new and resumed
+sessions. The regression uses the real binary with a local provider.
+
+The extra directory's `CLAUDE.md` was not loaded by default. Setting native
+`CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` loaded its marker in the
+same probe; hosts may pass that variable through `env` when wanted. Loading
+project rules or instruction files varies by runtime and is not guaranteed
+by `additionalDirectories`.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

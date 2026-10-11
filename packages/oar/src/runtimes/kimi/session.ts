@@ -2,6 +2,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 
 export function selectKimiAuthMethod(initialized: JsonRecord): string | undefined {
   const methods = Array.isArray(initialized.authMethods) ? initialized.authMethods : [];
@@ -43,6 +44,9 @@ export const kimiAcpProfile: AcpSessionProfile = {
   selectAuthMethod: selectKimiAuthMethod,
   validateOptions: (options) => {
     refuseSessionOptions(kimiRefusedSessionOptions, options);
+    if (options.resume !== undefined && (options.additionalDirectories?.length ?? 0) > 0) {
+      throw new UnsupportedOptionError("additionalDirectories", "kimi applies additionalDirectories only when creating a session; they have no effect on resume");
+    }
   },
   // kimi-code f9ca33376 acp-server session.ts onTurnEnded: prompt answered
   // first, usage_update pushed afterwards from an un-awaited async task.

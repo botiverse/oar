@@ -190,3 +190,12 @@ with MemoryStorage and the native Anthropic fetch provider. Its Chromium
 smoke test covers conversation rendering, abort and cleanup against local
 scripted HTTP responses, with no real credentials. Run
 `pnpm durable-demo:smoke` after installing Playwright's Chromium.
+
+## Additional directories
+
+A non-empty `SessionOptions.additionalDirectories` is declared refused
+before creating or changing a conversation. Version 1.1.0 exposes one agent
+cwd; the host owns the Harness filesystem environment. There is no verified
+per-conversation multi-root directory option.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

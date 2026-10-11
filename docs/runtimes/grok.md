@@ -758,3 +758,13 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` go before `stdio`: `grok agent [OPTIONS] stdio [OPTIONS]` takes the agent's options (`--model`, `--agent-profile`, `--plugin-dir`) before `stdio`, which itself takes only `--debug` and `--leader-socket`. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+A non-empty `SessionOptions.additionalDirectories` is declared refused and
+fails before launch. Grok 1.0.50 advertises no ACP additional-directory
+capability; its source ignores imported Claude `additionalDirectories`,
+and its resume path rejects the ACP field. OAR does not invent workspace
+scope by appending paths to the prompt.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

@@ -1,4 +1,5 @@
 import { claudeServiceTierArgs } from "./service-tier.js";
+import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { claudeSessionEnv } from "./environment.js";
 import type { SessionOptions } from "../../contracts/session.js";
@@ -22,6 +23,7 @@ import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
 export type ClaudeProcess = LineProcess;
 
 function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierArgs: readonly string[]): LineProcess {
+  const directories = resolvedAdditionalDirectories(options);
   return spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
@@ -38,8 +40,9 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
     ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
     // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of
-    // the two variadic flags below so neither swallows them as values.
+    // the variadic flags below so none swallows them as values.
     ...options.launchArgs ?? [],
+    ...(directories.length === 0 ? [] : ["--add-dir", ...directories]),
     ...(mcpConfig === null ? [] : ["--mcp-config", mcpConfig]),
     ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--disallowed-tools", ...options.disallowedTools ?? []]),
   ], {

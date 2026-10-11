@@ -794,3 +794,13 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: pi runs in the host process through its SDK, so a session has no command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+A non-empty `SessionOptions.additionalDirectories` is declared refused.
+The 1.1.0 SDK's session options select one cwd and expose no native additional
+workspace-directory setting. Pi tools accepting absolute paths does not
+provide a workspace configuration channel, and OAR does not simulate one
+with prompt text or tool wrappers.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

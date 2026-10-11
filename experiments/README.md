@@ -15,6 +15,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| `additional-directories-native.ts`, `acp-additional-directories-native.ts`, `cursor-additional-directories.ts` | Native workspace roots, resume and refusals; project-rule loading is separate. | [report](additional-directories-2026-10-11.md) | 2026-10-11 |
 | `live-contract.ts cursor --only tool-detail` | Model shell tool identity versus standalone shell output; native chunks versus replacement previews. | [report](tool-output-2026-10-09.md) | 2026-10-09, Cursor SDK 1.0.37: real tool start/end share a call id; standalone shell delta schema has none |
 | [`service-tier.vendor.test.ts`](../sea-trial/vendor/service-tier.vendor.test.ts) | Native tier selection, readback, resume defaults and provider request fields. | [report](service-tier-2026-10-08.md) | 2026-10-08: Codex 0.161.0 and Claude 2.1.293 against local scripted providers |
 | [`image-only.vendor.test.ts`](../sea-trial/vendor/image-only.vendor.test.ts) | Image-only input at the adapter and scripted model boundaries; native labels, model image capabilities and Grok minimum image size. | [report](image-only-2026-10-08.md) | 2026-10-08: seven native runtimes; Cursor SDK argument shape only, backend unverified |

@@ -648,3 +648,19 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` go after `acp`, on the process the session runs; OAR's helper queries (`opencode agent list`) do not get them. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+`SessionOptions.additionalDirectories` is supported on **v2** through the
+native ACP field on `session/new` and `session/resume`, after initialize
+advertises `sessionCapabilities.additionalDirectories`. Paths resolve
+against cwd. In 2.0.26, `session/list` reported the supplied roots on new and
+resumed sessions. A cold resume with the field omitted lost the extra roots,
+so supply the list again. Empty has the same OAR meaning as omission.
+
+**v1 refuses** a non-empty list before prompt preparation or ACP opening;
+1.18.35 has no advertised/effective native directory channel. Permission
+rules for `external_directory` are a different setting and are not used as
+a substitute. cwd remains primary on both lines.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).

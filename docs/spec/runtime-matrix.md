@@ -199,7 +199,7 @@ the list again when resuming; OAR does not persist host options.
 
 `SessionOptions.launchArgs` adds the host's own command-line arguments to
 the runtime process a session starts, for a flag OAR does not model (codex
-`-c service_tier="fast"`, claude `--add-dir`). OAR passes them unchecked:
+`-c service_tier="fast"`, claude `--settings`). OAR passes them unchecked:
 it promises nothing about their effect, and one that changes the protocol
 OAR speaks breaks the session. A flag the runtime does not know usually
 makes it exit: claude, codex, grok, kimi and opencode all did (2026-10-08),
@@ -224,6 +224,32 @@ deltas project immediately with the native API message ID; completed blocks
 do not repeat them. Tool-argument chunks remain raw activity until the full
 call arrives. See [Claude observation](../runtimes/claude.md#observation-children-and-history).
 
+## Additional directories
+
+`SessionOptions.additionalDirectories` supplies extra workspace paths through
+native settings. Relative paths resolve against `cwd`; duplicates are removed,
+and `cwd` stays the primary directory. Omitted or empty adds no override.
+This does not select a sandbox mode or promise filesystem isolation. Directory
+existence, permissions and tool access remain the runtime's responsibility.
+Loading project rules or instruction files in extra directories varies by
+runtime and is not guaranteed by this option.
+
+| Runtime | Native mapping | Resume |
+|---|---|---|
+| claude | `--add-dir` | Pass the list again for the new process. |
+| codex | `thread/start.runtimeWorkspaceRoots`, with cwd first | `thread/resume.runtimeWorkspaceRoots`; the explicit list replaces native runtime roots, including roots from configuration. OAR checks the reply and fails an unconfirmed override. Sandbox mode is unchanged. |
+| cursor | SDK `local.dirs`, cwd kept separately | Pass again to `Agent.resume`; current workspace metadata changes accordingly. Project-rule loading was not confirmed in the native probe. |
+| kimi | ACP `session/new.additionalDirectories`, after capability advertisement | A non-empty list is refused before launch: the native resume ignores it. |
+| opencode v2 | ACP `additionalDirectories`, after capability advertisement | Pass again; a cold resume without it does not restore the extra roots. |
+| opencode v1, grok, antigravity, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+
+The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
+Kimi's resume restriction and OpenCode's release-line restriction are checked
+at open; they are not unconditional runtime declarations. An ACP binary that
+stops advertising the extension is refused before `session/new` or resume.
+
+[Native evidence, boundaries and upgrade checks](../../experiments/additional-directories-2026-10-11.md).
+
 ## Refused session options
 
 What a runtime cannot honor is refused, never dropped: `session()` rejects
@@ -234,7 +260,7 @@ on that error, and tells it from a failed login or a network error without
 reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
-`SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`: a
+`SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
 non-empty one), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
@@ -244,11 +270,11 @@ out instead of naming runtimes.
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback |
-| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback |
-| grok | `disallowedTools`, `serviceTier` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback |
+| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
+| grok | `disallowedTools`, `serviceTier`, `additionalDirectories` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
 | opencode, both lines | `disallowedTools`, `serviceTier` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `launchArgs`, `serviceTier` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
 | claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent

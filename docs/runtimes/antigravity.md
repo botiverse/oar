@@ -480,3 +480,13 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 ## Launch arguments
 
 `SessionOptions.launchArgs` go after OAR's own arguments to the ACP server. OAR passes them unchecked and never records them; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+## Additional directories
+
+A non-empty `SessionOptions.additionalDirectories` is declared refused and
+fails before launch. Server 1.3.0 advertises no ACP additional-directory
+capability. Its new-session signature accepts the field, but the harness
+workspace list is built from cwd and skill directories, ignoring that input.
+OAR rejects rather than silently discarding it.
+
+[Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
