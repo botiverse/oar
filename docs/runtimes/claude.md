@@ -1277,6 +1277,10 @@ that every invalid schema fails at open.
 
 ## Command discovery
 
+Independent inventory, model-list and account-usage control readers stop
+their owned process tree during cleanup, including Windows npm launchers and
+their native children, and wait for the process exit before returning.
+
 `commands(installation, { cwd })` reads the `commands` array from a fresh
 print-mode `initialize` response, with session persistence disabled and no
 user prompt. It reuses the inventory handshake once, extracts only command

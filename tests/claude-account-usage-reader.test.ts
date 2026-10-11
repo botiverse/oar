@@ -57,7 +57,7 @@ test("native usage uses correlated control requests, never a prompt or credentia
   expect(spawnLineProcess).toHaveBeenCalledExactlyOnceWith("claude", [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
     "--safe-mode",
-  ], expect.objectContaining({}));
+  ], expect.objectContaining({ killTree: true }));
   expect(spawnLineProcess.mock.calls[0]?.[2].env?.CLAUDECODE).toBeUndefined();
   expect(fake.killed()).toBe(true);
 });

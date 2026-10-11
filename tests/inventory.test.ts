@@ -8,7 +8,7 @@ import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-process.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(
-  command: string, args: readonly string[], options?: { cwd?: string; env?: NodeJS.ProcessEnv },
+  command: string, args: readonly string[], options?: { cwd?: string; env?: NodeJS.ProcessEnv; killTree?: boolean },
 ) => FakeLineProcess>());
 vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
 const executable = { kind: "available", via: "executable", command: "fake" } as const;
@@ -30,6 +30,14 @@ function control(serve: (method: string) => unknown): FakeLineProcess {
     self.emit(`${JSON.stringify({ type: "control_response", response: { request_id: "other", subtype: "success", response: {} } })  }\n`);
     self.emit(`${JSON.stringify({ type: "control_response", response: { request_id: request?.request_id, subtype: "success", response } })  }\n`);
   });
+}
+
+function observeSettlement<T>(reading: Promise<T>): { settled(): boolean; result: Promise<T> } {
+  let settled = false;
+  const result = (async () => {
+    try { return await reading; } finally { settled = true; }
+  })();
+  return { settled: () => settled, result };
 }
 
 test("Codex forwards resolved cwd and preserves disabled skills without creating a thread", async () => {
@@ -141,8 +149,21 @@ test("Claude command discovery uses one private initialize answer, including ali
       },
     ]
   `);
-  expect(methods).toEqual(["initialize"]);
+  expect({ methods, killTree: spawnLineProcess.mock.calls[0]?.[2]?.killTree }).toEqual({ methods: ["initialize"], killTree: true });
   expect(JSON.stringify(result)).not.toMatch(/secret|private@example\.test/u);
+});
+
+test.each([{ commands: [] }, {}])("Claude inventory waits for process exit after answering or rejecting the query", async (payload) => {
+  vi.useFakeTimers();
+  const fake = control(() => payload);
+  const kill = vi.spyOn(fake, "kill").mockImplementation(() => {});
+  spawnLineProcess.mockReturnValue(fake);
+  const reading = observeSettlement(claudeCommands(executable));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(kill).toHaveBeenCalledOnce();
+  expect(reading.settled()).toBe(false);
+  fake.end(null);
+  await expect(reading.result).resolves.toMatchObject({ kind: "commands" in payload ? "ok" : "unavailable" });
 });
 
 test.each([{}, { commands: {} }, { commands: [{ name: "x", aliases: [3] }] }])("Claude malformed command catalog is unavailable", async (payload) => {
@@ -203,6 +224,19 @@ test.each([codexSkills, claudeSkills, claudeCommands, grokSkills])("timeout rele
   expect(fake.killed()).toBe(true);
 });
 
+test.each([claudeCommands, grokSkills])("inventory timeout waits for teardown before returning", async (read) => {
+  vi.useFakeTimers();
+  const fake = fakeLineProcess();
+  const kill = vi.spyOn(fake, "kill").mockImplementation(() => {});
+  spawnLineProcess.mockReturnValue(fake);
+  const reading = observeSettlement(read(executable, { timeoutMs: 30 }));
+  await vi.advanceTimersByTimeAsync(30);
+  expect({ calls: kill.mock.calls.length, settled: reading.settled(), killTree: spawnLineProcess.mock.calls[0]?.[2]?.killTree })
+    .toEqual({ calls: 1, settled: false, killTree: true });
+  fake.end(null);
+  await expect(reading.result).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
+});
+
 test.each([claudeSkills, grokMcpServers])("malformed native list never becomes an empty success", async (read) => {
   const fake = read === claudeSkills ? control(() => ({})) : fakeLineProcess();
   spawnLineProcess.mockImplementation(() => {
@@ -225,6 +259,7 @@ test("Grok independent discovery never authenticates or creates a session", asyn
     kind: "ok", view: "discovered", items: [{ id: "compat", name: "compat", source: "project" }],
   });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(["inspect", "--json"]);
+  expect(spawnLineProcess.mock.calls[0]?.[2]?.killTree).toBe(true);
   expect(fake.written).toEqual([]);
 });
 

@@ -22,7 +22,7 @@ function reader<T>(project: (payload: JsonRecord) => T[]): InventoryReader<T> {
       return unsupportedInventory("installation_unsupported", "Grok inventory requires an executable");
     }
     const scope = workspaceScope(options);
-    const child = spawnLineProcess(installation.command, ["inspect", "--json"], { cwd: scope.cwd });
+    const child = spawnLineProcess(installation.command, ["inspect", "--json"], { cwd: scope.cwd, killTree: true });
     let stdout = "";
     child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
     try {

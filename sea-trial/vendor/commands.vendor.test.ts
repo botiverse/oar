@@ -59,7 +59,7 @@ test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi independently lists extens
     await mkdir(other);
     const scoped = await runtime.commands(installation, { cwd: other });
     assert.equal(commands(scoped).some((entry) => entry.name === "oar-project"), false);
-  } finally { vi.unstubAllEnvs(); await rm(root, { recursive: true, force: true }); }
+  } finally { vi.unstubAllEnvs(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
 }, 60_000);
 
 test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude commands come from a prompt-free initialize in the queried workspace", async () => {
@@ -83,5 +83,5 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude commands come from
     const other = join(root, "other");
     await mkdir(other);
     assert.deepEqual(commands(await runtime.commands(installation, { cwd: other })), []);
-  } finally { vi.unstubAllEnvs(); await rm(root, { recursive: true, force: true }); }
+  } finally { vi.unstubAllEnvs(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
 }, 60_000);

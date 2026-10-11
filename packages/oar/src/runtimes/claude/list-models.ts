@@ -65,7 +65,7 @@ async function readListModels(command: string, timeoutMs: number): Promise<ReadO
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose",
-  ], { env: claudeEnv() });
+  ], { env: claudeEnv(), killTree: true });
   const requestId = `oar-list-models-${randomUUID()}`;
   const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
   child.onLine((line) => {

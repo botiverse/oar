@@ -6,7 +6,7 @@ import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-proc
 const spawnLineProcess = vi.hoisted(() => vi.fn<(
   command: string,
   args: readonly string[],
-  options: { env?: NodeJS.ProcessEnv },
+  options: { env?: NodeJS.ProcessEnv; killTree?: boolean },
 ) => FakeLineProcess>());
 vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
 
@@ -52,6 +52,7 @@ test("claude lister answers from the matching control_response only", async () =
   const [, args, options] = spawnLineProcess.mock.calls[0] ?? [];
   expect(args).toEqual(["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"]);
   expect(options?.env?.CLAUDECODE).toBeUndefined();
+  expect(options?.killTree).toBe(true);
 });
 
 test("claude lister maps a login error to unauthenticated", async () => {
