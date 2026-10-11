@@ -39,7 +39,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [runtime-matrix.md](runtime-matrix.md) | Which attribution tier does each shipped adapter declare, on what native evidence, and what are adapters forbidden to do? |
 | [conversation.md](conversation.md) | Input identity, native user messages and replayable conversation projection |
 | [subagents.md](subagents.md) | Child sessions as subagents: spawn, reports, follow-ups, delivery into a parent, limits, and `oar mcp` |
-| [inventory.md](inventory.md) | Independent skills, MCP and tool queries, cwd defaults, coverage and failure semantics |
+| [inventory.md](inventory.md) | Independent skills, commands, MCP and tool queries, cwd defaults, coverage and failure semantics |
 | [account-usage.md](account-usage.md) | Account quota queries and failure reason semantics |
 | [update.md](update.md) | Runtime update checks and upgrades through each runtime's own updater, and how outcomes are judged |
 | [install.md](install.md) | Installing a runtime that is not found with its vendor's own installer, the read-only plan shown first, and how the outcome is judged |

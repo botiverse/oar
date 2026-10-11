@@ -1,6 +1,6 @@
 # Kimi
 
-Independent inventories (2026-09-16): all three independent queries return unsupported on the selected interface. The separately probed Web API is not used.
+Independent inventories: skills, commands, MCP servers and tools return unsupported on the selected interface. The separately probed Web API is not used.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
 Evidence baseline: native source

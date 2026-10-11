@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
-import { piSkills, piTools } from "../../packages/oar/src/runtimes/pi/inventory.js";
+import { piCommands, piSkills, piTools } from "../../packages/oar/src/runtimes/pi/inventory.js";
 
 const sdk = vi.hoisted(() => ({
   getAgentDir: vi.fn(() => "/fake/agent"),
@@ -16,11 +16,22 @@ afterEach(() => { vi.clearAllMocks(); vi.useRealTimers(); });
 function session() {
   return {
     resourceLoader: {
+      getPrompts: (): { prompts: { name: string; description: string; argumentHint?: string; content: string; sourceInfo: { source: string } }[]; diagnostics: unknown[] } => ({ prompts: [
+        { name: "review", description: "Review code", argumentHint: "<file>", content: "PRIVATE TEMPLATE", sourceInfo: { source: "local" } },
+      ], diagnostics: [] }),
+      getExtensions: (): { errors: unknown[] } => ({ errors: [] }),
       getSkills: () => ({
         skills: [{ name: "review", description: "Review", filePath: "/skills/review",
           disableModelInvocation: true, sourceInfo: { source: "project" } }],
         diagnostics: [{ message: "private diagnostic" }],
       }),
+    },
+    extensionRunner: {
+      getRegisteredCommands: () => [
+        { name: "review", invocationName: "review:1", description: "Extension one", handler: () => { throw new Error("must not run"); } },
+        { name: "review", invocationName: "review:2" },
+      ],
+      getCommandDiagnostics: (): unknown[] => [],
     },
     getAllTools: () => [
       { name: "read", description: "Read", parameters: { type: "object" } },
@@ -42,6 +53,60 @@ test("Pi independently discovers skills, retaining invocation restrictions and d
   });
   expect(sdk.createAgentSessionServices).toHaveBeenCalledWith({ cwd, agentDir: "/fake/agent" });
   expect(sdk.SessionManager.inMemory).toHaveBeenCalledWith(cwd);
+  expect(agent.dispose).toHaveBeenCalledOnce();
+});
+
+test("Pi commands use native invocation names and expose templates without bodies or skill entries", async () => {
+  const agent = session();
+  sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+  const result = await piCommands(bundled, { cwd: "project-commands" });
+  expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false,
+    scope: { kind: "workspace", cwd: resolve("project-commands") } });
+  if (result.kind !== "ok") { throw new Error("expected native commands"); }
+  expect(result.items).toMatchInlineSnapshot(`
+    [
+      {
+        "description": "Extension one",
+        "name": "review:1",
+        "source": "extension",
+      },
+      {
+        "name": "review:2",
+        "source": "extension",
+      },
+      {
+        "argumentHint": "<file>",
+        "description": "Review code",
+        "name": "review",
+        "source": "prompt",
+      },
+    ]
+  `);
+  expect(agent.dispose).toHaveBeenCalledOnce();
+});
+
+function addDiagnostic(agent: ReturnType<typeof session>, source: string, diagnostic: unknown): void {
+  if (source === "prompts") { agent.resourceLoader.getPrompts = () => ({ prompts: [], diagnostics: [diagnostic] }); }
+  if (source === "extensions") { agent.resourceLoader.getExtensions = () => ({ errors: [diagnostic] }); }
+  if (source === "commands") { agent.extensionRunner.getCommandDiagnostics = () => [diagnostic]; }
+}
+
+test.each(["prompts", "extensions", "commands"])("Pi %s diagnostics keep command discovery partial without exposing diagnostics", async (source) => {
+  const agent = session();
+  const privateError = { message: "private native diagnostic" };
+  addDiagnostic(agent, source, privateError);
+  sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+  const result = await piCommands(bundled);
+  expect(result).toMatchObject({ kind: "ok", partial: true });
+  expect(JSON.stringify(result)).not.toContain(privateError.message);
+  expect(agent.dispose).toHaveBeenCalledOnce();
+});
+
+test("Pi command read failure releases the session and hides native errors", async () => {
+  const agent = session();
+  agent.extensionRunner.getRegisteredCommands = () => { throw new Error("token=private"); };
+  sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+  await expect(piCommands(bundled)).resolves.toMatchObject({ kind: "unavailable", code: "query_failed", reason: "Native inventory query failed" });
   expect(agent.dispose).toHaveBeenCalledOnce();
 });
 
@@ -67,12 +132,12 @@ test("Pi query failure disposes the temporary session", async () => {
   expect(agent.dispose).toHaveBeenCalledOnce();
 });
 
-test("Pi startup resolving after the query deadline still disposes its session", async () => {
+test.each([piTools, piCommands])("Pi startup resolving after the query deadline still disposes its session", async (reader) => {
   vi.useFakeTimers();
   const agent = session();
   const opening = Promise.withResolvers<{ session: ReturnType<typeof session> }>();
   sdk.createAgentSessionFromServices.mockReturnValue(opening.promise);
-  const reading = piTools(bundled, { timeoutMs: 20 });
+  const reading = reader(bundled, { timeoutMs: 20 });
   await vi.advanceTimersByTimeAsync(20);
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
   opening.resolve({ session: agent });

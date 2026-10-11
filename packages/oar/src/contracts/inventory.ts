@@ -16,6 +16,16 @@ export interface SkillEntry {
   readonly enabled?: boolean;
   readonly disableModelInvocation?: boolean;
 }
+/** Native slash-command metadata, separate from skill discovery. */
+export interface CommandEntry {
+  /** Native invocation name, without a leading slash on the mapped runtimes. */
+  readonly name: string;
+  readonly description?: string;
+  /** Native origin when reported: Pi extension/prompt, Claude builtin. */
+  readonly source?: string;
+  readonly argumentHint?: string;
+  readonly aliases?: readonly string[];
+}
 export interface McpServerEntry {
   readonly id: string;
   readonly name: string;
@@ -62,6 +72,8 @@ export type InventoryResult<T> =
 export type InventoryReader<T> = (installation: AvailableInstallation, options?: InventoryOptions) => Promise<InventoryResult<T>>;
 export interface RuntimeInventories {
   readonly skills: InventoryReader<SkillEntry>;
+  /** Independent command catalog; not a live session's command state. */
+  readonly commands: InventoryReader<CommandEntry>;
   readonly mcpServers: InventoryReader<McpServerEntry>;
   readonly tools: InventoryReader<ToolEntry>;
 }

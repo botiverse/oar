@@ -1,7 +1,7 @@
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
-import type { InventoryReader, InventoryResult, InventoryScope, McpServerEntry, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
+import type { CommandEntry, InventoryReader, InventoryResult, InventoryScope, McpServerEntry, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
@@ -11,6 +11,20 @@ export function projectClaudeSkills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(asRecord(payload.skills)?.skillFrontmatter).map((skill) => ({
     name: named(skill), ...textField("source", skill.source),
   }));
+}
+export function projectClaudeCommands(payload: JsonRecord): CommandEntry[] {
+  return nativeRows(payload.commands).map((command) => {
+    const aliases = command.aliases;
+    if (aliases !== undefined && (!Array.isArray(aliases) || !aliases.every((alias: unknown) => typeof alias === "string"))) {
+      throw new TypeError("Native command aliases are not strings");
+    }
+    return {
+      name: named(command), ...textField("description", command.description),
+      ...textField("argumentHint", command.argumentHint),
+      ...(command.builtin === true ? { source: "builtin" } : {}),
+      ...(aliases === undefined ? {} : { aliases }),
+    };
+  });
 }
 export function projectClaudeServers(servers: readonly JsonRecord[]): McpServerEntry[] {
   return servers.map((server) => ({
@@ -29,7 +43,7 @@ export function projectClaudeTools(servers: readonly JsonRecord[]): ToolEntry[] 
 class UnsupportedControlError extends Error {
   override name = "UnsupportedControlError";
 }
-function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope) => Promise<InventoryResult<T>>): InventoryReader<T> {
+function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope, initialized: JsonRecord) => Promise<InventoryResult<T>> | InventoryResult<T>): InventoryReader<T> {
   return async (installation, options = {}) => {
     if (installation.via !== "executable") {
       return unsupportedInventory("installation_unsupported", "Claude inventory requires an executable");
@@ -75,8 +89,8 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
       return await inventoryRead(async () => {
         try {
           await child.spawned;
-          await request("initialize", {});
-          return await read(request, scope);
+          const initialized = await request("initialize", {});
+          return await read(request, scope, initialized);
         } catch (error) {
           if (error instanceof UnsupportedControlError) {
             return unsupportedInventory("native_query_unavailable", "This Claude build does not expose the inventory query");
@@ -108,6 +122,8 @@ export const claudeSkills = reader(async (request, scope) => {
   const payload = await request("get_context_usage", { detail: "summary" });
   return inventoryOk(scope, "context", projectClaudeSkills(payload));
 });
+export const claudeCommands = reader((_request, scope, initialized) =>
+  inventoryOk(scope, "discovered", projectClaudeCommands(initialized)));
 export const claudeMcpServers = reader(async (request, scope) => {
   const servers = await readServers(request);
   return inventoryOk(scope, "discovered", projectClaudeServers(servers), partial(servers));

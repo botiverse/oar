@@ -18,7 +18,7 @@ function runtime(id: string, probe: Runtime["installation"]): Runtime {
       await Promise.resolve();
       throw new Error("not exercised");
     },
-    skills: noInventory,
+    skills: noInventory, commands: noInventory,
     mcpServers: noInventory,
     tools: noInventory,
     ...(probe === undefined ? {} : { installation: probe }),

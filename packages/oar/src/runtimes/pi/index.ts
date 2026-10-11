@@ -1,5 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
-import { piSkills, piTools } from "./inventory.js";
+import { piCommands, piSkills, piTools } from "./inventory.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { piInstallation } from "./installation.js";
 import { piListModels } from "./list-models.js";
@@ -16,6 +16,7 @@ export const piRuntime = defineRuntime({
   brand: runtimeBrands.pi,
   refusedSessionOptions: piRefusedSessionOptions,
   skills: piSkills,
+  commands: piCommands,
   tools: piTools,
   installation: piInstallation,
   listModels: piListModels,

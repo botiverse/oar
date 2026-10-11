@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { resolve } from "node:path";
 import { codexSkills, codexTools, codexMcpServers } from "../packages/oar/src/runtimes/codex/inventory.js";
-import { claudeSkills, claudeTools, claudeMcpServers } from "../packages/oar/src/runtimes/claude/inventory.js";
+import { claudeCommands, claudeSkills, claudeTools, claudeMcpServers } from "../packages/oar/src/runtimes/claude/inventory.js";
 import { grokSkills, grokMcpServers } from "../packages/oar/src/runtimes/grok/inventory.js";
 import { defaultRuntimes } from "../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
@@ -111,6 +111,52 @@ test("Claude skills are context entries, never initialize command aliases", asyn
   expect(fake.killed()).toBe(true);
 });
 
+test("Claude command discovery uses one private initialize answer, including aliases and hints", async () => {
+  const methods: string[] = [];
+  const fake = control((method) => {
+    methods.push(method);
+    return { commands: [
+      { name: "review", description: "Review", argumentHint: "<path>", aliases: ["audit"], builtin: true },
+      { name: "project-command", description: "Project", private: "secret command body" },
+    ], account: { email: "private@example.test" }, organization: "secret org" };
+  });
+  spawnLineProcess.mockReturnValue(fake);
+  const result = await claudeCommands(executable, { cwd: "project-command" });
+  expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false });
+  if (result.kind !== "ok") { throw new Error("expected native commands"); }
+  expect(result.items).toMatchInlineSnapshot(`
+    [
+      {
+        "aliases": [
+          "audit",
+        ],
+        "argumentHint": "<path>",
+        "description": "Review",
+        "name": "review",
+        "source": "builtin",
+      },
+      {
+        "description": "Project",
+        "name": "project-command",
+      },
+    ]
+  `);
+  expect(methods).toEqual(["initialize"]);
+  expect(JSON.stringify(result)).not.toMatch(/secret|private@example\.test/u);
+});
+
+test.each([{}, { commands: {} }, { commands: [{ name: "x", aliases: [3] }] }])("Claude malformed command catalog is unavailable", async (payload) => {
+  const fake = control(() => payload);
+  spawnLineProcess.mockReturnValue(fake);
+  await expect(claudeCommands(executable)).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
+  expect(fake.killed()).toBe(true);
+});
+
+test("Claude reports a native empty command catalog as a successful empty result", async () => {
+  spawnLineProcess.mockReturnValue(control(() => ({ commands: [] })));
+  await expect(claudeCommands(executable)).resolves.toMatchObject({ kind: "ok", items: [], partial: false });
+});
+
 test("Claude pending MCP waits for startup; failure remains partial and strips native error secrets", async () => {
   vi.useFakeTimers();
   let reads = 0;
@@ -147,7 +193,7 @@ test("Claude native unsupported is distinct from query failure", async () => {
   expect(fake.killed()).toBe(true);
 });
 
-test.each([codexSkills, claudeSkills, grokSkills])("timeout releases owned discovery process", async (read) => {
+test.each([codexSkills, claudeSkills, claudeCommands, grokSkills])("timeout releases owned discovery process", async (read) => {
   vi.useFakeTimers();
   const fake = fakeLineProcess();
   spawnLineProcess.mockReturnValue(fake);
@@ -186,5 +232,10 @@ test("unavailable native surfaces return unsupported without starting a runtime"
   await expect(defaultRuntimes.require("kimi").skills(executable)).resolves.toMatchObject({ kind: "unsupported" });
   await expect(defaultRuntimes.require("grok").tools(executable)).resolves.toMatchObject({ kind: "unsupported" });
   await expect(defaultRuntimes.require("pi").mcpServers({ kind: "available", via: "bundled" })).resolves.toMatchObject({ kind: "unsupported" });
+  expect(spawnLineProcess).not.toHaveBeenCalled();
+});
+
+test.each(["codex", "grok", "kimi", "opencode", "antigravity"])("%s has no independent command query on its selected transport", async (id) => {
+  await expect(defaultRuntimes.require(id).commands(executable)).resolves.toMatchObject({ kind: "unsupported", code: "transport_unavailable" });
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });

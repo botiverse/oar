@@ -59,7 +59,7 @@ result, the others still report, and the exit code is 1.
   a reduced environment, so give its `oar` entry
   `env_vars = ["OAR_SUBAGENT_DEPTH"]` for the nesting limit to hold. See
   [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md).
-- `oar skills|mcps|tools [runtime]`: native inventories, see
+- `oar skills|commands|mcps|tools [runtime]`: native inventories, see
   [below](#native-inventories).
 
 ## `oar run`: the run-and-verify entrypoint
@@ -158,6 +158,7 @@ a crashed run still leaves a readable prefix.
 
 ```sh
 oar skills codex --cwd /path/to/project
+oar commands pi --cwd /path/to/project
 oar mcps claude --cwd /path/to/project --timeout 15000
 oar tools pi
 ```

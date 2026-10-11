@@ -15,6 +15,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [`commands-native.ts`](commands-native.ts) `[claude-executable]` | Pi extension invocation names and prompt templates; Claude initialize command metadata, no model prompts. | [report](commands-2026-10-11.md) | 2026-10-11, Pi SDK 1.1.0 and Claude 2.1.296 |
 | `additional-directories-native.ts`, `acp-additional-directories-native.ts`, `cursor-additional-directories.ts` | Native workspace roots, resume and refusals; project-rule loading is separate. | [report](additional-directories-2026-10-11.md) | 2026-10-11 |
 | [`structured-output-native.ts`](structured-output-native.ts) `<claude\|codex> <output-dir>` | Native schema request, valid result and failure frames, with a local provider and no account. | [boundaries](structured-output-2026-10-11.md) | 2026-10-11, Claude 2.1.296 validates and returns a native value; Codex 0.162.1 forwards the format but returns text without local validation |
 | [`grok-structured-output-native.ts`](grok-structured-output-native.ts) | Direct ACP schema extension, native validated value and validation errors, no account. | [boundaries](structured-output-2026-10-11.md) | 2026-10-11, Grok 1.0.50: value and schema failures both have end_turn plus a structuredOutputError |

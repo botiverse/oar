@@ -39,7 +39,7 @@ const noInventory = async () => ({
 
 function runtime(id: string, extra: Partial<Runtime>): Runtime {
   return {
-    skills: noInventory,
+    skills: noInventory, commands: noInventory,
     mcpServers: noInventory,
     tools: noInventory,
     id,

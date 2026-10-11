@@ -1,12 +1,13 @@
 # Independent runtime inventories
 
-OAR exposes three independent native queries on every runtime:
+OAR exposes four independent native queries on every runtime:
 
 ```ts
 const runtime = defaultRuntimes.require("codex");
 const installation = await runtime.installation?.();
 if (installation?.kind === "available") {
   const skills = await runtime.skills(installation, { cwd: "/my/project" });
+  const commands = await runtime.commands(installation, { cwd: "/my/project" });
   const servers = await runtime.mcpServers(installation, { cwd: "/my/project" });
   const tools = await runtime.tools(installation, { cwd: "/my/project" });
 }
@@ -58,15 +59,43 @@ are separate concepts. Names and descriptions are native strings; OAR never
 manufactures parameter schemas. A tool can reference its server through
 `mcpServerId`.
 
+## Commands
+
+`CommandEntry` carries the native invocation `name`, with `description`,
+`source`, `argumentHint` and `aliases` only when the native interface supplies
+them. Names have no leading slash on the mapped runtimes. Descriptions and
+argument hints are display metadata, not a parameter schema. No command
+handler or prompt-template body is returned.
+
+Pi lists extension commands and prompt templates, with `source: "extension"`
+and `"prompt"` as in its native command catalog. Duplicate extension names
+use Pi's resolved invocation names (for example `review:1` and `review:2`),
+not an OAR-generated suffix. It does not add skill commands or terminal UI
+built-ins. Skills remain in `skills()`; a host combines the two catalogs.
+Discovery does not run extension commands or bind `session_start` hooks, so
+this is the initial loaded catalog, not commands a live session adds later.
+
+Claude lists `initialize.commands`, including native aliases and argument
+hints. An explicit native `builtin: true` becomes `source: "builtin"`;
+other provenance stays absent. The native catalog can contain skill-backed
+commands also represented by `skills()`, so hosts merging the catalogs
+should avoid duplicate picker entries. Account data from initialize is
+never part of the inventory result.
+
+A catalog describes native discovery, not a promise that each command starts
+a model turn or works without interactive UI. The reader never executes a
+command. Other selected interfaces return `unsupported`; in particular an
+ACP session's `available_commands_update` is not an independent query.
+
 ## Implemented mapping
 
-| Runtime | skills | mcpServers | tools |
-|---|---|---|---|
-| Codex | `skills/list` | Paginated `mcpServerStatus/list` | Same native MCP catalog, including input schemas |
-| Claude | `get_context_usage` skill frontmatter | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
-| Grok | `inspect --json` skills | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
-| Pi | SDK resource loader | Unsupported | SDK registered tools, parameter schemas and active membership |
-| Kimi, Cursor, Antigravity, OpenCode | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Runtime | skills | commands | mcpServers | tools |
+|---|---|---|---|---|
+| Codex | `skills/list` | Unsupported on app-server | Paginated `mcpServerStatus/list` | Same native MCP catalog, including input schemas |
+| Claude | `get_context_usage` skill frontmatter | `initialize.commands` | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
+| Grok | `inspect --json` skills | Unsupported for independent queries | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
+| Pi | SDK resource loader | SDK extension runner and prompt templates | Unsupported | SDK registered tools, parameter schemas and active membership |
+| Kimi, Cursor, Antigravity, OpenCode, Pi Durable | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi's separate native Web API was probed but is not integrated. Grok's
 session-only MCP tool view is not used. Claude's historical session-init tool
@@ -74,16 +103,19 @@ list is not used for these independent queries.
 [Native evidence and limits](../runtimes/inventory.md).
 
 The CLI exposes the same operations as JSON:
-`oar skills|mcps|tools [runtime] [--cwd directory] [--timeout milliseconds]`.
+`oar skills|commands|mcps|tools [runtime] [--cwd directory] [--timeout milliseconds]`.
 Omitting runtime queries all registered runtimes.
 
 ## Extension and verification
 
 Custom runtimes should use `defineRuntime({id, session, ...})`: it fills missing
 inventory methods with explicit unsupported results. A manually constructed
-object typed as `Runtime` must implement all three methods.
+object typed as `Runtime` must implement all four methods.
 
 Protocol tests cover cwd forwarding, pagination, malformed responses, partial
 startup, response correlation, secret-bearing config exclusion, timeout cleanup,
 and unsupported queries without subprocess launch. Mocked Pi SDK tests cover
-registered versus active tools and cleanup after late startup.
+registered versus active tools, command metadata and cleanup after late startup.
+Native SDK/binary tests pin Pi command collisions, template scope, partial
+load failures and unchanged skills, plus Claude command discovery without
+a prompt. [Evidence and reproduction](../../experiments/commands-2026-10-11.md).

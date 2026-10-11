@@ -96,7 +96,7 @@ program
     }));
   });
 
-for (const [command, method] of [["skills", "skills"], ["mcps", "mcpServers"], ["tools", "tools"]] as const) {
+for (const [command, method] of [["skills", "skills"], ["commands", "commands"], ["mcps", "mcpServers"], ["tools", "tools"]] as const) {
   program.command(`${command  } [runtime]`)
     .description(`Query native ${  command  } inventory for a working directory (JSON)`)
     .option("--cwd <directory>", "working directory; defaults to process.cwd()")

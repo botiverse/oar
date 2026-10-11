@@ -299,7 +299,7 @@ in the default registry or CLI.
 ## Native inventories
 
 Every runtime exposes `skills(installation, options?)`,
-`mcpServers(installation, options?)`, and `tools(installation, options?)`.
+`commands(installation, options?)`, `mcpServers(installation, options?)`, and `tools(installation, options?)`.
 Options are `{ cwd?: string, timeoutMs?: number }`; cwd defaults to
 `process.cwd()`. Queries discover native information independently: they do
 not inspect an existing Session or submit a model prompt, though native
@@ -312,12 +312,30 @@ absent, and an unsupported query never pretends to be an empty catalog.
 
 Codex and Claude expose skills and MCP discovery (tools are MCP-only); Grok
 exposes independent skills and MCP configuration discovery; Pi exposes skills
-and registered tools with active membership. Antigravity, Cursor, Kimi and
+and registered tools with active membership. Pi commands include extension
+commands and prompt templates; Claude commands come from native initialize.
+Other core runtimes return unsupported for independent command discovery.
+Antigravity, Cursor, Kimi and
 OpenCode inventory queries are unsupported.
+
+```ts
+const catalog = await runtime.commands(installation, { cwd: "/my/project" });
+if (catalog.kind === "ok") {
+  for (const command of catalog.items) {
+    console.log(command.name, command.description, command.argumentHint);
+  }
+}
+```
+
+Command entries use native invocation names (Pi resolves duplicate extension
+names itself), with optional source and aliases. Skills stay in `skills()`;
+hosts merge catalogs for a picker. Claude's native catalogs can overlap.
+This is discovery, not execution or a live session's command state.
+[Command scope and limits](https://github.com/botiverse/oar/blob/main/docs/spec/inventory.md#commands).
 
 Custom runtimes should use `defineRuntime`, which fills missing inventory
 methods with explicit unsupported results. A manually constructed `Runtime`
-must implement the three methods.
+must implement the four methods, including `commands`.
 
 ### Runtime branding
 

@@ -1,12 +1,13 @@
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import type { InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
+import type { CommandEntry, InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { asRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { piAgentDir } from "./resolve.js";
 
 interface PiReaders {
   readonly skills: () => InventoryResult<SkillEntry>;
+  readonly commands: () => InventoryResult<CommandEntry>;
   readonly tools: () => InventoryResult<ToolEntry>;
 }
 function piInventories(session: AgentSession, scope: InventoryScope): PiReaders {
@@ -18,6 +19,23 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
         disableModelInvocation: skill.disableModelInvocation, source: skill.sourceInfo.source,
       }));
       return inventoryOk(scope, "discovered", items, result.diagnostics.length > 0);
+    },
+    commands: () => {
+      const runner = session.extensionRunner;
+      const result = session.resourceLoader.getPrompts();
+      const items: CommandEntry[] = [
+        ...runner.getRegisteredCommands().map((command) => ({
+          name: command.invocationName, source: "extension",
+          ...(command.description === undefined ? {} : { description: command.description }),
+        })),
+        ...result.prompts.map((template) => ({
+          name: template.name, description: template.description, source: "prompt",
+          ...(template.argumentHint === undefined ? {} : { argumentHint: template.argumentHint }),
+        })),
+      ];
+      const partial = result.diagnostics.length > 0 || session.resourceLoader.getExtensions().errors.length > 0
+        || runner.getCommandDiagnostics().length > 0;
+      return inventoryOk(scope, "discovered", items, partial);
     },
     tools: () => {
       const active = new Set(session.getActiveToolNames());
@@ -55,4 +73,5 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>): In
   };
 }
 export const piSkills = reader((readers) => readers.skills);
+export const piCommands = reader((readers) => readers.commands);
 export const piTools = reader((readers) => readers.tools);

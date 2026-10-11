@@ -221,7 +221,7 @@ for (const runtime of defaultRuntimes.list()) {
 - **Updates:** `checkUpdate()` reports the version the runtime's own updater
   would install, and `upgrade()` runs that updater and judges it by the
   version afterwards ([reference](docs/spec/update.md)).
-- **Inventories:** `skills()`, `mcpServers()` and `tools()` read what the
+- **Inventories:** `skills()`, `commands()`, `mcpServers()` and `tools()` read what the
   runtime has configured natively ([reference](docs/spec/inventory.md)).
 - **Session options:** `refusedSessionOptions` says which session options a
   runtime refuses, before anything opens; `session()` rejects them with an
@@ -232,7 +232,7 @@ for (const runtime of defaultRuntimes.list()) {
 
 The CLI exposes the same queries: `oar installation`, `oar login`
 (`--status` only reports), `oar logout`, `oar usage`, `oar models`,
-`oar upgrade --check`, and `oar skills`, `oar mcps` and `oar tools`.
+`oar upgrade --check`, and `oar skills`, `oar commands`, `oar mcps` and `oar tools`.
 
 ## CLI
 

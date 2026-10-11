@@ -1274,3 +1274,24 @@ process exit; it did not produce a validated value. This is not a promise
 that every invalid schema fails at open.
 
 [Native evidence and regressions](../../experiments/structured-output-2026-10-11.md).
+
+## Command discovery
+
+`commands(installation, { cwd })` reads the `commands` array from a fresh
+print-mode `initialize` response, with session persistence disabled and no
+user prompt. It reuses the inventory handshake once, extracts only command
+metadata, and closes the process. Account, organization and other initialize
+fields never leave this reader. Missing or malformed lists return
+`unavailable`, not an empty catalog.
+
+Names, descriptions, argument hints and aliases come from the native array.
+Native `builtin: true` gives `source: "builtin"`; absent provenance stays
+absent. The catalog can overlap `skills()` and includes native built-ins;
+it does not promise that every entry works without an interactive UI or
+starts a model turn. OAR does not execute or emulate commands for discovery.
+
+On Claude 2.1.296 (2026-10-11), isolated configuration and one project command
+produced 49 entries. The project command retained its native description and
+argument hint, and another workspace excluded it. No login or model request
+was needed. Counts depend on native configuration and are not a contract.
+[Probe and evidence](../../experiments/commands-2026-10-11.md).

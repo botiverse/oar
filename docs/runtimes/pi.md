@@ -1,8 +1,9 @@
 # Pi
 
-Independent inventories (2026-09-16): resource-loader skills, and registered
-tools with parameter schemas and active membership. Core MCP discovery is
-unsupported. See the [query contract](../spec/inventory.md) and
+Independent inventories: resource-loader skills, registered tools with
+parameter schemas and active membership, plus extension commands and prompt
+templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
+[query contract](../spec/inventory.md) and
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
@@ -813,3 +814,28 @@ schemas do not impose a schema on the agent's final output; OAR does not
 install an extension or rewrite instructions to imitate that capability.
 
 [Native channel audit](../../experiments/structured-output-2026-10-11.md).
+
+## Command discovery
+
+`commands(installation, { cwd })` opens the same kind of temporary in-memory
+SDK session as the skills and tools readers. It reads
+`extensionRunner.getRegisteredCommands()` and `resourceLoader.getPrompts()`.
+Names use each extension command's `invocationName`, including native suffixes
+for duplicate names. Sources are `extension` and `prompt`, matching Pi's
+native `get_commands` catalog. Templates retain native `argumentHint`; OAR
+does not turn completion callbacks into hints or return template content.
+
+Skill entries remain exclusively in `skills()`; the command reader does not
+append Pi's `skill:<name>` aliases or terminal UI built-ins. This query loads
+extensions but does not bind session-start hooks or invoke handlers. Commands
+registered later by a live session are outside this independent snapshot.
+Native prompt or command diagnostics, or extension load errors, make `partial` true;
+raw diagnostics are not exposed. Timeout cleanup also disposes a session
+whose startup completes after the caller's deadline.
+
+The [native experiment](../../experiments/commands-native.ts) and
+[vendor tests](../../sea-trial/vendor/commands.vendor.test.ts) verified SDK
+1.1.0 without model requests: two extensions registering the same name,
+user and project templates, argument hints, unchanged skills, partial extension
+load failures, workspace changes, and no persisted session or trust grant.
+[Report](../../experiments/commands-2026-10-11.md).

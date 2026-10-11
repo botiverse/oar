@@ -1,4 +1,4 @@
-# Native skills, MCP and tool inventories
+# Native runtime inventories
 
 Local probes, **2026-09-16**, workspace `rao`. The survey calls installed native
 interfaces; it does not scan configuration files, ask a model to describe its
@@ -168,9 +168,20 @@ Preserve the native boundary:
 5. Do not reconstruct catalogs by scanning configuration, connect to MCP servers
    independently, or synthesize tool schemas to fill missing native fields.
 
-OAR implements three independent queries (skills, MCP servers, tools) on this
+The 2026-09-16 implementation added three independent queries (skills, MCP servers, tools) on this
 basis, with no Session query API; see the [mapping and validation](../spec/inventory.md).
 Remaining native evidence gaps: Kimi nonempty MCP responses, Pi
 extension-provided MCP provenance, built-in tool catalogs on Codex/Grok, and a
 fresh Claude 2.1.273 post-prompt init snapshot. No model prompt was sent to
 close them.
+
+## Commands (2026-10-11)
+
+The independent inventory contract now also exposes `commands()`. Pi SDK
+1.1.0 supplies extension invocation names and prompt templates from the
+loaded SDK session; Claude 2.1.296 supplies `initialize.commands`. Neither
+reader prompts a model. The other core runtime interfaces currently return
+unsupported for this independent query; their interactive or session-bound
+commands are not guessed from files or terminal help.
+[Current mapping](../spec/inventory.md#commands),
+[per-interface evidence and reproduction](../../experiments/commands-2026-10-11.md).
