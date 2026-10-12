@@ -1,6 +1,8 @@
 /* oxlint-disable eslint/max-statements, eslint/max-lines-per-function -- Each native probe keeps its control sequence and assertions together. */
 /**
- * OpenCode v1/v2 boundary probe, October 9, 2026. Uses only the free Big Pickle model.
+ * OpenCode v1/v2 boundary probe. Uses only the free Big Pickle model.
+ * Rechecked October 12, 2026: v2 2.0.27 returns a nonempty cold model catalog.
+ * The historical empty-catalog observation for 2.0.26 is in opencode-v2-2026-10-09.md.
  * pnpm tsx experiments/opencode-release-lines.ts <binary> <cwd> <output-directory> [check ...]
  * Records complete native frames, graph attribution, controls, prompt options and resume.
  */
@@ -63,9 +65,10 @@ async function check(name: string, run: () => Promise<unknown>): Promise<void> {
 }
 
 await check("catalog", async () => {
-  const catalog = await opencodeRuntime.listModels(installation);
-  assert.equal(catalog.kind, v2 ? "unsupported" : "ok");
-  return catalog.kind === "ok" ? { kind: catalog.kind, count: catalog.models.length } : catalog;
+  const catalog = await opencodeRuntime.listModels(installation, { cwd });
+  assert.ok(catalog.kind === "ok", JSON.stringify(catalog));
+  assert.ok(catalog.models.length > 0, "native catalog must contain models");
+  return { kind: catalog.kind, count: catalog.models.length };
 });
 for (const option of ["appendSystemPrompt", "systemPrompt"] as const) {
   // oxlint-disable-next-line eslint/no-await-in-loop -- Keep native prompt-option probes separate.

@@ -5,7 +5,7 @@ See the [query contract](../spec/inventory.md) and [native probe evidence](inven
 
 The installed executable selects the adapter behavior: v1 (`opencode-ai`)
 and v2 (`@opencode/cli`) share the `opencode` runtime ID. OAR preserves the
-reported version string, including v2's `opencode v2.0.26` prefix. Updating
+reported version string, including v2's `opencode v2.0.27` prefix. Updating
 within a line and migrating to another line are separate user decisions.
 The sections below describe v1 unless they explicitly name v2.
 
@@ -41,11 +41,13 @@ repeat the full historical battery or change the v2 evidence. See the
 
 ## OpenCode v2
 
-The v2 adapter follows `@opencode/cli` **2.0.26**. Its ACP subprocess owns a
+The v2 adapter follows `@opencode/cli` **2.0.27**. Its ACP subprocess owns a
 standalone native server; OAR does not connect to or leave a persistent
 daemon. [Boundary probe](../../experiments/opencode-release-lines.ts) and
-[October 9 evidence](../../experiments/opencode-v2-2026-10-09.md) distinguish
-native observations from source-only findings.
+[October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md)
+cover the current binary, including an intermittent MCP resume failure.
+[October 9 evidence](../../experiments/opencode-v2-2026-10-09.md) records the
+original 2.0.26 investigation and distinguishes observations from source findings.
 
 - **Control:** v2 refuses a concurrent `session/prompt`. The session has no
   `steer` member; `steerOrQueue` and `deliver` queue the input for another
@@ -67,8 +69,13 @@ native observations from source-only findings.
   classifies as `other`: it can run MCP calls, ordinary
   JavaScript or `fetch`; the name alone cannot prove an MCP operation.
 - **MCP:** stdio servers supplied at new and resumed session open were
-  callable through `execute`. Its input code, result and native metadata
-  are retained, including the names of the enclosed MCP calls.
+  callable through `execute` on 2.0.26 and in a focused 2.0.27 check. An
+  earlier 2.0.27 resume instead persisted a native catalog update removing
+  the reattached tool, then completed without calling it. This intermittent
+  native catalog failure remains tracked in
+  [issue #371](https://github.com/botiverse/oar/issues/371); the successful
+  comparison does not resolve it. `execute` input code, result and native
+  metadata are retained, including the names of enclosed MCP calls.
 - **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
   refused before ACP startup, including resume. The v2 instruction loader
   does not consume the v1 `instructions` configuration. v2 has native
@@ -77,13 +84,15 @@ native observations from source-only findings.
   adapter boundary, not a claim that v2 lacks system prompts. Configure
   v2's native settings directly when those settings are intended.
 - **Models:** queries use `models --standalone`, never `--verbose` or a
-  persistent service. On 2.0.26 it exits before the cold catalog is ready;
-  an empty native response becomes `unsupported` with
-  [upstream issue #53724](https://github.com/anomalyco/opencode/issues/53724),
-  not `ok` with zero models. OAR creates no throwaway session for a read-only
-  query. A nonempty native listing supplies IDs only; no effort menu is
-  fabricated. Once upstream returns a ready catalog, this normal path can
-  use it. An isolated `api agent.list --standalone` also returned `[]`.
+  persistent service. On 2.0.27, two fresh native configurations each returned
+  the same 11 model IDs, and OAR returned that directory as `ok` without an
+  adapter change. The 2.0.26 cold-start observation returned no models;
+  an empty native response still becomes `unsupported`, not `ok` with zero
+  models ([upstream issue #53724](https://github.com/anomalyco/opencode/issues/53724)).
+  OAR creates no throwaway session for a read-only query. A nonempty native
+  listing supplies IDs only; no effort menu is fabricated. The separate
+  `api agent.list --standalone` empty result was observed on 2.0.26 and was
+  not re-probed on 2.0.27.
 - **Defaults and configuration:** the native default model was
   `opencode/exo-free`, and the initial effort was `default`; these are
   observations, not OAR defaults. v2 can rewrite v1's `autoupdate` config
@@ -382,6 +391,9 @@ as the `curl` method and stays on the line ([runtime install](../spec/install.md
 it yet, and there is no account usage query.
 
 ### Session MCP servers
+
+Known v2 issue: the first turn after resume can intermittently see a native
+catalog without the session's reattached MCP tools ([issue #371](https://github.com/botiverse/oar/issues/371)).
 
 `SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new`,
 `session/load` and `session/resume`, in ACP's `McpServer` shape (stdio
