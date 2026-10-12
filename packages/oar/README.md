@@ -185,14 +185,10 @@ try {
 } finally { await session.dispose(); }
 ```
 
-Even with a schema, Claude may complete without `structuredOutput` when the
-model does not supply it; check the field's presence as well as the outcome.
-The schema's scope is native: Claude applies it to the whole process; Grok
-to each prompt, queue drain and steer; Codex to each OAR `turn/start`, while
-steer retains the current turn's setting. Codex refuses `queue` when this
-option is set because its queue cannot carry a schema. Its autonomous goal
-continuations have no schema. Other core runtimes refuse `outputSchema` at open.
-See [structured output and failure boundaries](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#structured-output).
+Even with a schema, Claude may complete without `structuredOutput`; check
+the field's presence as well as the outcome. Other core runtimes refuse
+`outputSchema` at open. Where each runtime applies the schema, and how it
+fails: [structured output](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#structured-output).
 
 `SessionOptions.mcpServers` attaches MCP servers (stdio `{name, command,
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to

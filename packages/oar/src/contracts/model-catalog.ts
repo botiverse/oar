@@ -10,7 +10,7 @@
 export interface CatalogProvider {
   readonly id: string;
   readonly name: string;
-  /** Whether this provider has a usable configured credential. */
+  /** Whether this provider has a configured credential entry, as the runtime itself counts it; not a check that the key works. */
   readonly configured: boolean;
 }
 

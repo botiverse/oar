@@ -165,7 +165,9 @@ the protocol surface.
   plus each reachable child's independently reported total, including nested
   children, each counted once. `session_linked` records native lineage, and
   `graphOf(records)` lets both `usageOf` and SessionView compute the same
-  amount in replay. Foreign session ids alone do not imply lineage.
+  amount in replay. A child's report that arrives before its lineage still
+  counts once the edge arrives, and a repeated cumulative report replaces the
+  earlier one. Foreign session ids alone do not imply lineage.
   Codex reports independent per-thread totals. Grok's prompt ledger may
   already include a child's calls, so its child ledgers remain native-only
   to avoid double counting. The root's independent automatic follow-up is

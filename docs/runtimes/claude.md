@@ -782,7 +782,8 @@ latest calls, not all their calls, so it is not spend and is never projected
 as tokens. Closing before a later result may leave that spend unreported.
 On completion Claude starts a turn itself (`system/init`) to handle the
 notification. OAR reports `turn_active` and becomes busy immediately, even
-before any text arrives. `TaskStop` instead yields a `killed` patch and a
+before any text arrives (except when a host prompt was written just before
+that init: then the start is reported with the prompt's `queued`, as above). `TaskStop` instead yields a `killed` patch and a
 `stopped` notification, both mapped to stopped; the recorded stopped run had
 no notification usage and no spontaneous turn. Host `stop_task` control is
 not exposed by OAR.

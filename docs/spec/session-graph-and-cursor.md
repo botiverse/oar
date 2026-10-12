@@ -88,16 +88,9 @@ record envelopes and `session_linked` supply all observed nodes.
 
 `usageOf(records, sessionId)` derives this graph automatically. Its optional
 explicit graph argument still overrides the derivation. The session view
-uses the same usage fold: `usage.total` remains the root's total, while
-`usage.withChildren` adds each reachable child's latest reported total,
-including nested children, once. Reports can precede lineage and repeated
-cumulative reports replace the earlier amount. Child context fullness and
-native-only ledgers do not become token totals. Grok's root ledger may
-already include a child, so its child ledgers are not added again. Background
-children finishing after the parent prompt can be missing from OAR totals,
-although independent automatic root follow-ups are counted. Graph replay
-does not repair that
-[accounting gap](../runtimes/grok.md#context-usage-billing-and-compaction).
+uses the same usage fold, so `usage.withChildren` is the same live and on
+replay; what it adds, and which runtimes' child ledgers stay native-only, is
+in [attribution](attribution.md#usage-one-constraint).
 
 For incremental views, preserve the whole checkpoint, including
 `sessionGraph` and the `usageBySession` Map and its nested `agents` Maps.
