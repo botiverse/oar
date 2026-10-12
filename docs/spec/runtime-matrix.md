@@ -167,6 +167,28 @@ entrypoint wins so the host can deliberately choose it. Child-process and native
 Bash regressions: [session-env.test.ts](../../tests/session-env.test.ts),
 [pi-env.test.ts](../../tests/providers/pi-env.test.ts).
 
+## Custom model endpoints
+
+How to point each runtime at another model endpoint (a gateway, a self-hosted
+model, a mock), through the runtime's own configuration. OAR adds no endpoint
+option; these are the recipes the behavior backends use against a scripted
+provider ([`sea-trial/harness/aimock.ts`](../../sea-trial/harness/aimock.ts),
+[`aimock-acp.ts`](../../sea-trial/harness/aimock-acp.ts)), so each is exercised
+in CI. Keys belong in `SessionOptions.env` or the runtime's own config, never in
+`launchArgs` (visible in `ps`).
+
+| Runtime | Where | What |
+| --- | --- | --- |
+| claude | `SessionOptions.env` | `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` (Anthropic Messages API) |
+| codex | `$CODEX_HOME/config.toml`, home set with `SessionOptions.env: { CODEX_HOME }` | `model_provider = "<id>"` and `[model_providers.<id>]` with `base_url`, `env_key` (the variable holding the key) and `wire_api = "responses"` |
+| opencode | `$XDG_CONFIG_HOME/opencode/opencode.json` | a `provider.<id>` with its AI SDK `npm` package and `options.baseURL` / `apiKey`, chosen as `model` |
+| kimi | `SessionOptions.env` | `KIMI_MODEL_NAME`, `KIMI_MODEL_BASE_URL`, `KIMI_MODEL_API_KEY`, `KIMI_MODEL_PROVIDER_TYPE = "openai"` (chat completions) |
+| grok | `$GROK_HOME/config.toml` | `[models] default = "<id>"` and `[model.<id>]` with `base_url`, `api_key`, `api_backend = "chat_completions"` |
+| antigravity | `$GEMINI_HOME` and `SessionOptions.env` | `antigravity-acp/settings.json` with `auth.type = "gemini-api-key"`, then `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL` |
+| pi | `models.json` in pi's agent dir (`OAR_PI_AGENT_DIR`) | a `providers.<id>` with `baseUrl`, `apiKey`, `api` and its models; process-wide, since pi runs in-process |
+| pi-durable | the host's own `Harness` | `models.setProvider(createProvider({ baseUrl, ... }))` |
+| cursor | none | Cursor's SDK talks to Cursor's own backend only |
+
 ## Disallowed tools
 
 `SessionOptions.disallowedTools` is a readonly list of native names, sent to

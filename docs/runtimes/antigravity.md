@@ -35,7 +35,13 @@ harness (undocumented), and `agy_acp_server`, a separate package of about
 1 GB that speaks ACP JSON-RPC over stdio. Only the ACP server has prompt,
 cancel, resume and reverse requests on one connection, so OAR uses it. The
 server keeps its own credential store under `$GEMINI_HOME/antigravity-acp/`,
-separate from the `agy` CLI's login.
+separate from the `agy` CLI's login. Its file tools are confined to the
+session's `cwd` and the skills directories, but its own `view_file` also
+allows all of `$GEMINI_HOME`, the directory that holds that credential store,
+so the agent can read the stored login (agy_acp_server 1.3.0 source:
+`server.py:3873-3890`, `acp/tools.py:72-142`). Give a session its own
+`GEMINI_HOME` in `SessionOptions.env` when the agent should not see your
+login.
 
 ## High-level mapping to OAR
 
