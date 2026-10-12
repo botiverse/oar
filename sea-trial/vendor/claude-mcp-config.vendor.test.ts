@@ -25,7 +25,10 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude --mcp-config h
       echoFixtures(mock, /call each echo twice/u, [
         { server: "echo", text: "first-stdio" },
         { server: "remote", text: "first-http" },
-        { server: "echo", text: "restarted-stdio" },
+        // The stdio server exits right after its first answer. claude restarts it
+        // only once it has seen that exit: a call sent before then gets
+        // "Connection closed" (seen on macOS CI). The delay gives claude that time.
+        { server: "echo", text: "restarted-stdio", delayMs: 1500 },
         { server: "remote", text: "reinitialized-http" },
       ]);
     }, { captureRaw: true });

@@ -48,6 +48,8 @@ export async function startHttpEcho(flags: readonly string[] = []): Promise<{ re
 export interface EchoStep {
   readonly server: string;
   readonly text: string;
+  /** How long the model takes before replying with this call (aimock's time to first token): time for the runtime to notice how the previous call ended. */
+  readonly delayMs?: number;
 }
 
 /**
@@ -94,7 +96,7 @@ export function echoFixtures(mock: LLMock, prompt: RegExp, steps: readonly EchoS
   mock.on({ predicate: currentTurnSays(prompt), hasToolResult: false }, { toolCalls: [call(first, shape)] });
   let previous = first;
   for (const step of rest) {
-    mock.on({ hasToolResult: true, toolCallId: call(previous, shape).id }, { toolCalls: [call(step, shape)] });
+    mock.on({ hasToolResult: true, toolCallId: call(previous, shape).id }, { toolCalls: [call(step, shape)] }, step.delayMs === undefined ? undefined : { streamingProfile: { ttft: step.delayMs } });
     previous = step;
   }
   mock.on({ hasToolResult: true, toolCallId: call(previous, shape).id }, { content: "echoed" });
