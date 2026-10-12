@@ -223,8 +223,8 @@ is measured in [crash and resume](crash-resume.md) (SDK 0.99.2).
 on the session manager as pi's own `--name` writes it, so no extension sees
 a rename event; pi's session list reports it. A new session gets it once the
 open's checks pass; a resumed one only if it never had a `session_info`
-entry, so a name the user gave, or cleared, stays. A blank name fails the
-open, as pi's `--name` refuses one. [Vendor test](../../sea-trial/vendor/pi-session-name.vendor.test.ts).
+entry, so a name the user gave, or cleared, stays. A blank name is refused
+(`UnsupportedOptionError`) before the open, as pi's `--name` refuses one. [Vendor test](../../sea-trial/vendor/pi-session-name.vendor.test.ts).
 
 ### Interrupted input
 

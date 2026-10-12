@@ -148,8 +148,8 @@ are pinned by the 0.162.0 recordings ([missing targets](../spec/runtime-matrix.m
 `SessionOptions.name` is set with `thread/name/set` once the thread is open
 and the open's checks pass. On a resume it is set only when the
 `thread/resume` reply's `thread.name` is empty, so a name the user gave in
-their app stays. A blank name fails the open before codex starts; another
-name codex refuses fails it with codex's words. The name shows in the
+their app stays. A blank name is refused (`UnsupportedOptionError`) before
+codex starts; another name codex refuses fails the open with codex's words. The name shows in the
 user's Codex app when the host shares `CODEX_HOME` with it; keeping a
 host's threads out of that app entirely takes a separate `CODEX_HOME`, at
 the cost of the shared login and configuration.

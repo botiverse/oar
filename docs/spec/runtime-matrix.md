@@ -317,7 +317,9 @@ and session list, so a user who shares the runtime's home with a host can
 tell the host's sessions from their own. A new session gets it. A resume
 never replaces a name the session has, which may be one the user gave. The
 name is set only once the open's own checks pass, so a refused open renames
-nothing, and a blank name fails the open before anything starts.
+nothing. A blank name, or one with a NUL character, is refused with
+`UnsupportedOptionError` before anything starts, as invalid
+`additionalDirectories` are.
 
 | Runtime | Native mapping | Resume |
 |---|---|---|

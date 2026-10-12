@@ -24,12 +24,14 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
 }
 
 /**
- * A blank SessionOptions.name fails the open before anything starts: claude
- * and pi would open unnamed without a word, and codex would refuse it only
- * after the thread opened (pi's own `--name` refuses it the same way).
+ * A blank SessionOptions.name, or one with a NUL character, is refused before
+ * anything starts, as invalid `additionalDirectories` are: claude and pi
+ * would open unnamed without a word, codex would refuse a blank one only
+ * after the thread opened (pi's own `--name` refuses it the same way), and
+ * no command line can carry a NUL.
  */
 export function checkSessionName(options: SessionOptions): void {
-  if (options.name !== undefined && options.name.trim().length === 0) {
-    throw new Error("SessionOptions.name must not be blank");
+  if (options.name !== undefined && (options.name.trim().length === 0 || options.name.includes("\0"))) {
+    throw new UnsupportedOptionError("name", "name must not be blank or contain NUL characters");
   }
 }

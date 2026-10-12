@@ -102,8 +102,9 @@ export interface SessionOptions {
    * can tell a host's sessions apart from their own. A new session gets it.
    * On resume it is set only where the runtime reports the current name and
    * there is none (codex, pi), so a name the user gave is never replaced;
-   * claude keeps whatever name it has. A blank name fails the open before
-   * anything starts. Other runtimes refuse this option.
+   * claude keeps whatever name it has. A blank name, or one with a NUL
+   * character, is refused (`UnsupportedOptionError`) before anything starts.
+   * Other runtimes refuse this option.
    */
   readonly name?: string;
   /**

@@ -59,10 +59,10 @@ test("the declarations say which options each runtime refuses", () => {
 });
 
 // claude and pi would open unnamed without a word, codex would refuse it only after the thread opened.
-test.each(["", "   "])("a blank name fails the open before anything starts on the runtimes that take one: %j", async (name) => {
+test.each(["", "   ", "a\0b"])("a blank name or one with a NUL is refused before anything starts on the runtimes that take one: %j", async (name) => {
   for (const runtime of allRuntimes.list().filter((candidate) => candidate.refusedSessionOptions?.name === undefined)) {
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
-    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", name }), runtime.id).rejects.toThrow("SessionOptions.name must not be blank");
+    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", name }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "name", message: "name must not be blank or contain NUL characters" });
   }
   expect(allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.name === undefined).map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "pi"]);
 });
