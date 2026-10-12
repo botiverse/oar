@@ -63,6 +63,8 @@ export function projectKimiModels(response: unknown): ModelEntry[] | undefined {
       ...(displayName === undefined ? {} : { displayName }),
       ...(isCurrent && effortLevels !== undefined && effortLevels.length > 0 ? { effortLevels } : {}),
       ...(isCurrent && defaultEffort !== undefined && defaultEffort !== "off" ? { defaultEffort } : {}),
+      // A new session's current model: what a session uses with no `model` set.
+      ...(isCurrent ? { default: true as const } : {}),
     });
   }
   return entries;

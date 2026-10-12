@@ -20,8 +20,8 @@ test("each model keeps its provider/model id, its name, and its variants as effo
     }),
   ].join("");
   expect(projectOpencodeModels(stdout)).toEqual([
-    { id: "opencode/big-pickle", displayName: "Big Pickle" },
-    { id: "anthropic/claude-haiku-4-5", displayName: "Claude Haiku 4.5 (latest)", effortLevels: ["high", "max"] },
+    { id: "opencode/big-pickle", displayName: "Big Pickle", provider: { id: "opencode" } },
+    { id: "anthropic/claude-haiku-4-5", displayName: "Claude Haiku 4.5 (latest)", effortLevels: ["high", "max"], provider: { id: "anthropic" } },
   ]);
 });
 

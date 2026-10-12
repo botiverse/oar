@@ -48,6 +48,8 @@ export function grokModelState(result: unknown): JsonRecord {
 export function projectGrokModels(state: unknown): ModelEntry[] {
   const root = asRecord(state) ?? {};
   const models = asRecordList(root.availableModels ?? root.available_models);
+  // The model a new session starts on, as grok reports it.
+  const current = text(root.currentModelId ?? root.current_model_id);
   const entries: ModelEntry[] = [];
   for (const model of models) {
     const id = text(model.modelId ?? model.model_id ?? model.id);
@@ -76,6 +78,7 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
       ...(displayName === undefined ? {} : { displayName }),
       ...(effortLevels === undefined ? {} : { effortLevels }),
       ...(defaultEffort === undefined ? {} : { defaultEffort }),
+      ...(id === current ? { default: true as const } : {}),
     });
   }
   return entries;

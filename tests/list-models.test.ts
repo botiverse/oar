@@ -35,11 +35,11 @@ test("codex model/list keeps native ids and service tiers, drops hidden entries"
     { id: "picker-id", model: "gpt-5.5", displayName: " GPT 5.5 ", defaultReasoningEffort: "medium",
       supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "high" }],
       serviceTiers: [{ id: "priority", name: "Fast" }, { id: "flex" }, {}], defaultServiceTier: "flex", additionalSpeedTiers: ["wrong"] },
-    { model: "hidden", hidden: true }, { displayName: "no model" }, { model: "bare" },
-    { model: "standard", serviceTiers: [], defaultServiceTier: null },
+    { model: "hidden", hidden: true }, { displayName: "no model" }, { model: "bare", isDefault: true },
+    { model: "standard", serviceTiers: [], defaultServiceTier: null, isDefault: false },
   ] })).toEqual([
     { id: "gpt-5.5", displayName: "GPT 5.5", effortLevels: ["low", "high"], defaultEffort: "medium", serviceTiers: ["priority", "flex"], defaultServiceTier: "flex" },
-    { id: "bare" }, { id: "standard", serviceTiers: [] },
+    { id: "bare", default: true }, { id: "standard", serviceTiers: [] },
   ]);
   expect(projectCodexModels(null)).toEqual([]);
 });
@@ -77,6 +77,17 @@ test("claude projection keeps alias vs resolution, native fast support and disab
   ]);
 });
 
+// #347: claude's own "Default (recommended)" entry (value `default`, recorded on 2.1.296).
+test("claude projection marks its default entry", () => {
+  expect(projectClaudeModels({ models: [
+    { value: "default", resolvedModel: "claude-opus-5-5", displayName: "Default (recommended)" },
+    { value: "opus", resolvedModel: "claude-opus-5-5", displayName: "Opus 5.5" },
+  ] })).toEqual([
+    { id: "default", resolvedId: "claude-opus-5-5", displayName: "Default (recommended)", default: true },
+    { id: "opus", resolvedId: "claude-opus-5-5", displayName: "Opus 5.5" },
+  ]);
+});
+
 test("grok projection unwraps the handler envelope and filters unselectable models", () => {
   const state = grokModelState({
     result: {
@@ -95,7 +106,7 @@ test("grok projection unwraps the handler envelope and filters unselectable mode
     },
   });
   expect(projectGrokModels(state)).toEqual([
-    { id: "grok-4", displayName: "Grok 4", effortLevels: ["low", "high"], defaultEffort: "low" },
+    { id: "grok-4", displayName: "Grok 4", effortLevels: ["low", "high"], defaultEffort: "low", default: true },
     { id: "grok-3-mini", displayName: "Grok 3 mini" },
   ]);
   expect(projectGrokModels(grokModelState({ available_models: [{ id: "flat" }] }))).toEqual([{ id: "flat" }]);
@@ -114,9 +125,9 @@ test("pi projection lists pi's thinking levels for reasoning models only", () =>
     { id: "deepseek-v3.2", provider: "openrouter", name: "DeepSeek V3.2", reasoning: true },
     { id: "deepseek-chat", provider: "openrouter", name: "DeepSeek Chat", reasoning: false },
   ], piLevels)).toEqual([
-    { id: "openai-codex/gpt-6-astra", displayName: "GPT-6 Astra", effortLevels: ["minimal", "low", "medium", "high", "xhigh", "max"] },
-    { id: "openrouter/deepseek-v3.2", displayName: "DeepSeek V3.2", effortLevels: ["off", "minimal", "low", "medium", "high"] },
-    { id: "openrouter/deepseek-chat", displayName: "DeepSeek Chat" },
+    { id: "openai-codex/gpt-6-astra", displayName: "GPT-6 Astra", effortLevels: ["minimal", "low", "medium", "high", "xhigh", "max"], provider: { id: "openai-codex" } },
+    { id: "openrouter/deepseek-v3.2", displayName: "DeepSeek V3.2", effortLevels: ["off", "minimal", "low", "medium", "high"], provider: { id: "openrouter" } },
+    { id: "openrouter/deepseek-chat", displayName: "DeepSeek Chat", provider: { id: "openrouter" } },
   ]);
 });
 
@@ -125,9 +136,26 @@ test("pi projection namespaces ids by provider", () => {
     { id: "claude-sonnet-5", provider: "anthropic", name: "Claude Sonnet 5" },
     { id: "gpt-5.5", provider: "openai", name: " " },
   ])).toEqual([
-    { id: "anthropic/claude-sonnet-5", displayName: "Claude Sonnet 5" },
-    { id: "openai/gpt-5.5", displayName: "gpt-5.5" },
+    { id: "anthropic/claude-sonnet-5", displayName: "Claude Sonnet 5", provider: { id: "anthropic" } },
+    { id: "openai/gpt-5.5", displayName: "gpt-5.5", provider: { id: "openai" } },
   ]);
+});
+
+function kimiProviderName(id: string): string | undefined {
+  return id === "kimi-coding" ? "Kimi For Coding" : undefined;
+}
+
+// #347: pi's provider display name and the default saved in pi's settings, both from pi; nothing guessed.
+test("pi projection names each provider and marks the saved default only", () => {
+  const models = [
+    { id: "kimi-k3", provider: "kimi-coding", name: "Kimi K3" },
+    { id: "kimi-k3", provider: "moonshot", name: "Kimi K3" },
+  ];
+  expect(projectPiModels(models, undefined, { providerName: kimiProviderName, savedDefault: { provider: "moonshot", id: "kimi-k3" } })).toEqual([
+    { id: "kimi-coding/kimi-k3", displayName: "Kimi K3", provider: { id: "kimi-coding", displayName: "Kimi For Coding" } },
+    { id: "moonshot/kimi-k3", displayName: "Kimi K3", provider: { id: "moonshot" }, default: true },
+  ]);
+  expect(projectPiModels(models, undefined, { savedDefault: { provider: "openai", id: "gpt-5.5" } }).some((model) => model.default === true)).toBe(false);
 });
 
 test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot", async () => {
@@ -149,7 +177,7 @@ test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot"
   });
   expect(await lister(bundled, { timeoutMs: 1000 })).toEqual({
     kind: "ok",
-    models: [{ id: "xai/grok-4.6", displayName: "Grok 4.6" }],
+    models: [{ id: "xai/grok-4.6", displayName: "Grok 4.6", provider: { id: "xai" } }],
   });
   expect(seen).toHaveLength(1);
   expect(seen[0]?.providerId).toBeUndefined();

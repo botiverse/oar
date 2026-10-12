@@ -39,7 +39,11 @@ export function createPiListModels<Model extends PiListedModel>(
       const signal = AbortSignal.timeout(options.timeoutMs ?? 15_000);
       const runtime = await createRuntime(signal);
       const available = await runtime.getAvailable(undefined, { signal });
-      return { kind: "ok", models: projectPiModels(available, await thinkingLevelsOf?.()) };
+      const context = {
+        providerName: (providerId: string): string | undefined => runtime.getProvider?.(providerId)?.name,
+        ...(runtime.savedDefault === undefined ? {} : { savedDefault: runtime.savedDefault }),
+      };
+      return { kind: "ok", models: projectPiModels(available, await thinkingLevelsOf?.(), context) };
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       return { kind: "unsupported", reason: `pi SDK could not list available models: ${detail}` };
@@ -67,7 +71,14 @@ export const piListModels: ModelLister = createPiListModels(async (signal) => {
       noContextFiles: true,
     },
   });
-  return services.modelRuntime;
+  const modelRuntime = services.modelRuntime;
+  const provider = settingsManager.getDefaultProvider();
+  const id = settingsManager.getDefaultModel();
+  return {
+    getAvailable: async (providerId, options) => { const models = await modelRuntime.getAvailable(providerId, options); return models; },
+    getProvider: (providerId) => modelRuntime.getProvider(providerId),
+    ...(provider === undefined || id === undefined ? {} : { savedDefault: { provider, id } }),
+  };
 }, async () => {
   // Pi's own function, the one AgentSession.getAvailableThinkingLevels() runs
   // (agent-session.js 0.84.2), so the menu is pi's policy, not a copy of it.

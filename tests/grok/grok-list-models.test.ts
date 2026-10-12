@@ -56,7 +56,7 @@ test("grok lister initializes, authenticates with the cached token, then lists",
   });
   await expect(grokListModels(installation)).resolves.toEqual({
     kind: "ok",
-    models: [{ id: "grok-4", displayName: "Grok 4", effortLevels: ["low", "high"] }],
+    models: [{ id: "grok-4", displayName: "Grok 4", effortLevels: ["low", "high"], default: true }],
   });
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "authenticate", "_x.ai/models/list"]);
   expect(acp.kill).toHaveBeenCalledOnce();
@@ -115,7 +115,7 @@ test("grok projection reads the effort menu grok 1.0.41 carries under _meta", ()
     ],
   });
   expect(projectGrokModels(state)).toEqual([
-    { id: "grok-4.7", displayName: "Grok 4.7", effortLevels: ["xhigh", "high", "medium", "low"], defaultEffort: "high" },
+    { id: "grok-4.7", displayName: "Grok 4.7", effortLevels: ["xhigh", "high", "medium", "low"], defaultEffort: "high", default: true },
     { id: "grok-4.5", displayName: "Grok 4.5", effortLevels: ["high", "medium", "low"], defaultEffort: "high" },
     { id: "grok-plain", displayName: "Plain" },
   ]);

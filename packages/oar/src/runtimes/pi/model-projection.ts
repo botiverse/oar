@@ -20,6 +20,16 @@ export interface PiAvailabilitySource<Model extends PiListedModel = PiListedMode
     providerId?: string,
     options?: { readonly signal?: AbortSignal },
   ): Promise<readonly Model[]>;
+  /** Pi's provider record, for its display name (the one `ModelRegistry.getProviderDisplayName` reads). */
+  getProvider?(providerId: string): { readonly name?: string } | undefined;
+  /** The default saved in pi's settings (`defaultProvider` / `defaultModel`), when one is. */
+  readonly savedDefault?: { readonly provider: string; readonly id: string };
+}
+
+/** What the listing adds from pi beyond the models themselves. */
+export interface PiModelContext {
+  readonly providerName?: (providerId: string) => string | undefined;
+  readonly savedDefault?: { readonly provider: string; readonly id: string };
 }
 
 /** Pi's own thinking-level menu for one model (pi-ai `getSupportedThinkingLevels`), injected so the projection stays pure. */
@@ -36,17 +46,27 @@ export type PiThinkingLevelsOf<Model extends PiListedModel> = (model: Model) => 
  * model without `reasoning` runs only `off` and lists no menu. No
  * `defaultEffort`: pi's default is a settings value clamped per model at
  * session creation, and the session's `effort()` reports it.
+ *
+ * `provider` is the model's provider id with pi's display name for it.
+ * `default` marks the default saved in pi's settings when it is listed; with
+ * none saved, pi picks the first available model at session creation, which
+ * OAR does not guess.
  */
 export function projectPiModels<Model extends PiListedModel>(
   models: readonly Model[],
   thinkingLevelsOf?: PiThinkingLevelsOf<Model>,
+  context: PiModelContext = {},
 ): ModelEntry[] {
   return models.map((model) => {
     const effortLevels = model.reasoning === true && thinkingLevelsOf !== undefined ? thinkingLevelsOf(model) : [];
+    const providerName = context.providerName?.(model.provider)?.trim();
+    const isDefault = context.savedDefault?.provider === model.provider && context.savedDefault.id === model.id;
     return {
       id: `${model.provider}/${model.id}`,
       displayName: model.name === undefined || model.name.trim().length === 0 ? model.id : model.name.trim(),
       ...(effortLevels.length === 0 ? {} : { effortLevels: [...effortLevels] }),
+      provider: { id: model.provider, ...(providerName === undefined || providerName.length === 0 ? {} : { displayName: providerName }) },
+      ...(isDefault ? { default: true as const } : {}),
     };
   });
 }

@@ -44,10 +44,12 @@ export function projectOpencodeModels(stdout: string): ModelEntry[] {
     const model = asRecord(parseJson(body.join("\n")));
     const displayName = text(model?.name);
     const effortLevels = Object.keys(asRecord(model?.variants) ?? {});
+    const providerId = text(model?.providerID);
     entries.push({
       id,
       ...(displayName === undefined ? {} : { displayName }),
       ...(effortLevels.length === 0 ? {} : { effortLevels }),
+      ...(providerId === undefined ? {} : { provider: { id: providerId } }),
     });
   }
   return entries;

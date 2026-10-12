@@ -34,10 +34,16 @@ test("model catalog, effort and native readback agree", async () => {
             "high",
           ],
           "id": "faux/reasoning",
+          "provider": {
+            "id": "faux",
+          },
         },
         {
           "displayName": "plain",
           "id": "faux/plain",
+          "provider": {
+            "id": "faux",
+          },
         },
       ],
     }

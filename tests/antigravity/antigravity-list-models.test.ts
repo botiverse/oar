@@ -67,7 +67,7 @@ const newSessionResponse = {
 
 test("antigravity projection lists the model option with no effort levels", () => {
   expect(projectAntigravityModels(newSessionResponse)).toEqual([
-    { id: "gemini-3.8-flash-high", displayName: "Gemini 3.8 Flash (High)" },
+    { id: "gemini-3.8-flash-high", displayName: "Gemini 3.8 Flash (High)", default: true },
     { id: "gemini-3.8-flash-low", displayName: "Gemini 3.8 Flash (Low)" },
     { id: "gemini-pro-agent", displayName: "Gemini 3.1 Pro (High)" },
   ]);

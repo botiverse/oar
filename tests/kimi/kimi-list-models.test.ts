@@ -71,7 +71,7 @@ afterEach(() => {
 
 test("kimi projection lists the model option and attaches thinking levels to the current model only", () => {
   expect(projectKimiModels(newSessionResponse)).toEqual([
-    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high" },
+    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high", default: true },
     { id: "kimi-k2-turbo-preview", displayName: "Kimi K2 Turbo" },
   ]);
 });
@@ -79,11 +79,11 @@ test("kimi projection lists the model option and attaches thinking levels to the
 test("kimi projection treats thinking off as no default and omits levels without a thinking option", () => {
   const [model, thinking] = newSessionResponse.configOptions;
   expect(projectKimiModels({ configOptions: [model, { ...thinking, currentValue: "off" }] })).toEqual([
-    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"] },
+    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], default: true },
     { id: "kimi-k2-turbo-preview", displayName: "Kimi K2 Turbo" },
   ]);
   expect(projectKimiModels({ configOptions: [model] })).toEqual([
-    { id: "kimi-for-coding", displayName: "Kimi For Coding" },
+    { id: "kimi-for-coding", displayName: "Kimi For Coding", default: true },
     { id: "kimi-k2-turbo-preview", displayName: "Kimi K2 Turbo" },
   ]);
   expect(projectKimiModels({ configOptions: [] })).toBeUndefined();
@@ -96,10 +96,10 @@ test("kimi projection treats thinking off as no default and omits levels without
 test("kimi projection reads the effort menu off the thought_level category, whatever the option's id", () => {
   const [model, thinking, mode] = newSessionResponse.configOptions;
   expect(projectKimiModels({ configOptions: [model, { ...thinking, id: "reasoning" }, mode] })?.[0]).toEqual(
-    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high" },
+    { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high", default: true },
   );
   expect(projectKimiModels({ configOptions: [model, { ...thinking, category: undefined }, mode] })?.[0]).toEqual(
-    { id: "kimi-for-coding", displayName: "Kimi For Coding" },
+    { id: "kimi-for-coding", displayName: "Kimi For Coding", default: true },
   );
 });
 
@@ -121,7 +121,7 @@ test("kimi lister initializes, authenticates with login, opens and closes a sess
   await expect(kimiListModels(installation)).resolves.toEqual({
     kind: "ok",
     models: [
-      { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high" },
+      { id: "kimi-for-coding", displayName: "Kimi For Coding", effortLevels: ["low", "high"], defaultEffort: "high", default: true },
       { id: "kimi-k2-turbo-preview", displayName: "Kimi K2 Turbo" },
     ],
   });

@@ -28,6 +28,7 @@ export function projectCodexModels(payload: unknown): ModelEntry[] {
       ...(defaultEffort === undefined ? {} : { defaultEffort }),
       ...(serviceTiers === undefined ? {} : { serviceTiers }),
       ...(defaultServiceTier === undefined ? {} : { defaultServiceTier }),
+      ...(model.isDefault === true ? { default: true as const } : {}),
     });
   }
   return entries;

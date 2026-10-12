@@ -44,6 +44,8 @@ export function projectClaudeModels(payload: unknown): ModelEntry[] {
       ...(effortLevels === undefined ? {} : { effortLevels }),
       ...(model.supportsFastMode === true ? { serviceTiers: ["fast"] } : {}),
       ...(model.disabled === true ? { disabled: { reason } } : {}),
+      // claude's own "Default (recommended)" entry: what a session runs without `--model`.
+      ...(id === "default" ? { default: true as const } : {}),
     });
   }
   return entries;

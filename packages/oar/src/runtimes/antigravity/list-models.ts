@@ -31,6 +31,8 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
   if (modelOption === undefined) {
     return undefined;
   }
+  // A new session's current model: what a session uses with no `model` set.
+  const current = text(modelOption.currentValue);
   const entries: ModelEntry[] = [];
   for (const model of asRecordList(modelOption.options)) {
     const id = text(model.value);
@@ -38,7 +40,11 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
       continue;
     }
     const displayName = text(model.name);
-    entries.push({ id, ...(displayName === undefined || displayName === id ? {} : { displayName }) });
+    entries.push({
+      id,
+      ...(displayName === undefined || displayName === id ? {} : { displayName }),
+      ...(id === current ? { default: true as const } : {}),
+    });
   }
   return entries;
 }
