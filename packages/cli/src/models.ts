@@ -1,5 +1,6 @@
 import type {
   InstallationSnapshot,
+  ListModelsOptions,
   ListModelsResult,
   Runtime,
 } from "@botiverse/oar";
@@ -17,7 +18,7 @@ export interface ModelsReport {
 
 export async function readModels(
   runtime: Runtime,
-  options?: { readonly timeoutMs?: number },
+  options?: ListModelsOptions,
 ): Promise<ModelsReport> {
   if (runtime.listModels === undefined || runtime.installation === undefined) {
     return {
@@ -72,6 +73,9 @@ export function renderModels(report: ModelsReport): string[] {
     if (model.serviceTiers !== undefined && model.serviceTiers.length > 0) {
       const marked = model.serviceTiers.map((tier) => tier === model.defaultServiceTier ? `${tier}*` : tier);
       parts.push(`tiers [${marked.join(",")}]`);
+    }
+    if (model.default === true) {
+      parts.push("(default)");
     }
     if (model.disabled !== undefined) {
       parts.push(`(disabled: ${model.disabled.reason})`);

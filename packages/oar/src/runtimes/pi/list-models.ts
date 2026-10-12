@@ -1,4 +1,5 @@
 import type { ModelLister } from "../../contracts/list-models.js";
+import { listingCwd } from "../../shared/listing-cwd.js";
 import { preparePi } from "./static-modules.js";
 import { piAgentDir } from "./resolve.js";
 
@@ -19,8 +20,11 @@ export { projectPiModels } from "./model-projection.js";
  * here: that snapshot starts empty and is only filled by an availability
  * refresh (the other half of the 2026-09-05 "no models" bug).
  *
- * Skills, prompt templates, themes, and context files are skipped: they cannot
- * register providers, and listing must not read the project's prompt files.
+ * It is built for the listing's cwd, as a session there would be: the
+ * project's settings can save another default, and its extensions (under
+ * `.pi/extensions`) load and run like the agent dir's. Skills, prompt
+ * templates, themes, and context files are skipped: they cannot register
+ * providers, and listing must not read the project's prompt files.
  * `OAR_PI_AGENT_DIR` pins the agent dir exactly as the session adapter does,
  * so the list and the session see the same providers.
  *
@@ -28,7 +32,7 @@ export { projectPiModels } from "./model-projection.js";
  * is an `ok` empty list, not `unauthenticated`.
  */
 export function createPiListModels<Model extends PiListedModel>(
-  createRuntime: (signal: AbortSignal) => Promise<PiAvailabilitySource<Model>>,
+  createRuntime: (signal: AbortSignal, cwd: string) => Promise<PiAvailabilitySource<Model>>,
   thinkingLevelsOf?: () => Promise<PiThinkingLevelsOf<Model>>,
 ): ModelLister {
   return async (installation, options = {}) => {
@@ -37,7 +41,7 @@ export function createPiListModels<Model extends PiListedModel>(
     }
     try {
       const signal = AbortSignal.timeout(options.timeoutMs ?? 15_000);
-      const runtime = await createRuntime(signal);
+      const runtime = await createRuntime(signal, listingCwd(options));
       const available = await runtime.getAvailable(undefined, { signal });
       const context = {
         providerName: (providerId: string): string | undefined => runtime.getProvider?.(providerId)?.name,
@@ -51,16 +55,16 @@ export function createPiListModels<Model extends PiListedModel>(
   };
 }
 
-export const piListModels: ModelLister = createPiListModels(async (signal) => {
+export const piListModels: ModelLister = createPiListModels(async (signal, cwd) => {
   const { createAgentSessionServices, getAgentDir, SettingsManager } = await import("@earendil-works/pi-coding-agent");
   const agentDir = piAgentDir(getAgentDir);
   // getAvailable() can refresh OAuth tokens over the network: the proxy
   // plane first, from the same settings manager the services get (see
   // http.ts).
-  const settingsManager = SettingsManager.create(process.cwd(), agentDir);
+  const settingsManager = SettingsManager.create(cwd, agentDir);
   await preparePi(settingsManager);
   const services = await createAgentSessionServices({
-    cwd: process.cwd(),
+    cwd,
     agentDir,
     settingsManager,
     modelRuntimeSignal: signal,

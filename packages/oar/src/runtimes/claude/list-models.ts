@@ -3,6 +3,7 @@ import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, asRecordList, parseJson, type JsonRecord } from "../../shared/json.js";
+import { listingCwd } from "../../shared/listing-cwd.js";
 import { claudeEnv } from "./environment.js";
 
 type ReadOutcome =
@@ -59,13 +60,13 @@ function controlError(inner: JsonRecord): string {
  * output in print mode. Matching is by `request_id`; other control traffic
  * (for example hooks or permission prompts) is ignored.
  */
-async function readListModels(command: string, timeoutMs: number): Promise<ReadOutcome> {
+async function readListModels(command: string, cwd: string, timeoutMs: number): Promise<ReadOutcome> {
   const child = spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose",
-  ], { env: claudeEnv(), killTree: true });
+  ], { cwd, env: claudeEnv(), killTree: true });
   const requestId = `oar-list-models-${randomUUID()}`;
   const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
   child.onLine((line) => {
@@ -110,9 +111,9 @@ async function readListModels(command: string, timeoutMs: number): Promise<ReadO
   }
 }
 
-async function readOutcome(command: string, timeoutMs: number): Promise<ReadOutcome> {
+async function readOutcome(command: string, cwd: string, timeoutMs: number): Promise<ReadOutcome> {
   try {
-    return await readListModels(command, timeoutMs);
+    return await readListModels(command, cwd, timeoutMs);
   } catch (error) {
     throw new Error("Failed to list Claude models", { cause: error });
   }
@@ -122,7 +123,7 @@ export const claudeListModels: ModelLister = async (installation, options = {}) 
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "claude model listing requires the claude executable" };
   }
-  const outcome = await readOutcome(installation.command, options.timeoutMs ?? 15_000);
+  const outcome = await readOutcome(installation.command, listingCwd(options), options.timeoutMs ?? 15_000);
   if (outcome.kind === "ok") {
     return { kind: "ok", models: projectClaudeModels(outcome.payload) };
   }

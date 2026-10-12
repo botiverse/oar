@@ -25,7 +25,7 @@ export interface ModelEntry {
    * The model a session uses when no `model` is set, where the runtime says
    * so: codex's configured model (else its catalog `isDefault`), a new ACP
    * session's current model (grok, kimi, antigravity), pi's saved default.
-   * Configuration is read for the host's own cwd. Absent when the runtime
+   * Configuration is read for `ListModelsOptions.cwd`. Absent when the runtime
    * cannot say (claude: its settings can pick a model its list does not
    * reflect; cursor, opencode); OAR never picks one.
    */
@@ -52,6 +52,16 @@ export type ListModelsResult =
   | { readonly kind: "unsupported"; readonly reason: string };
 
 export interface ListModelsOptions {
+  /**
+   * The directory a session would run in, resolved against the host's cwd,
+   * which is also the default. Project configuration there can change the
+   * list, its providers and `default`, so a host with several workspaces
+   * should list per workspace. Listing starts the runtime there the way a
+   * session would, so like the inventory readers it can run that workspace's
+   * code (pi loads the project's extensions): do not list in a directory you
+   * do not trust. cursor, pi-durable and morph list without one.
+   */
+  readonly cwd?: string;
   readonly timeoutMs?: number;
 }
 

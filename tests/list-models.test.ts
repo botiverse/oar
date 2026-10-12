@@ -1,3 +1,4 @@
+import path from "node:path";
 import { expect, test } from "vitest";
 import { effortLevelOf, effortLevelsOf } from "../packages/oar/src/shared/effort-levels.js";
 import { claudeListModels, projectClaudeModels } from "../packages/oar/src/runtimes/claude/list-models.js";
@@ -200,6 +201,17 @@ test("pi lister awaits getAvailable instead of reading the unrefreshed snapshot"
     },
   }));
   expect(await failing(bundled)).toMatchObject({ kind: "unsupported", reason: /registry exploded/u });
+});
+
+test("pi lister builds pi's services for the requested directory", async () => {
+  const seen: string[] = [];
+  const lister = createPiListModels(async (_signal, cwd) => {
+    seen.push(cwd);
+    return { getAvailable: async () => { await Promise.resolve(); return []; } };
+  });
+  await lister(bundled, { cwd: "workspace" });
+  await lister(bundled);
+  expect(seen).toEqual([path.resolve("workspace"), process.cwd()]);
 });
 
 test("pi lister reports a configured provider through the real SDK", async () => {

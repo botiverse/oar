@@ -11,6 +11,7 @@ import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { closeAcpSession } from "../../shared/acp/profile.js";
 import { effortLevelOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
+import { listingCwd } from "../../shared/listing-cwd.js";
 import { selectKimiAuthMethod } from "./session.js";
 
 function text(value: unknown): string | undefined {
@@ -70,8 +71,8 @@ export function projectKimiModels(response: unknown): ModelEntry[] | undefined {
   return entries;
 }
 
-async function readNewSession(command: string, timeoutMs: number): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, ["acp"], createClient({ name: "oar" }), { env: process.env });
+async function readNewSession(command: string, cwd: string, timeoutMs: number): Promise<JsonRecord> {
+  const runtime = startAcpProcess(command, ["acp"], createClient({ name: "oar" }), { cwd, env: process.env });
   try {
     const initialize = methods.agent.initialize;
     const initialized = await withAcpDeadline(
@@ -108,7 +109,7 @@ async function readNewSession(command: string, timeoutMs: number): Promise<JsonR
       timeoutMs,
       (requestOptions) => runtime.connection.agent.request<JsonRecord>(
         newSession,
-        { cwd: process.cwd(), mcpServers: [] },
+        { cwd, mcpServers: [] },
         requestOptions,
       ),
     );
@@ -130,7 +131,7 @@ export const kimiListModels: ModelLister = async (installation, options = {}) =>
     return { kind: "unsupported", reason: "kimi model listing requires the kimi executable" };
   }
   try {
-    const response = await readNewSession(installation.command, options.timeoutMs ?? 30_000);
+    const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000);
     const models = projectKimiModels(response);
     if (models === undefined) {
       return { kind: "unsupported", reason: "this kimi build returns no model config option on session/new" };

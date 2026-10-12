@@ -1,5 +1,7 @@
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
+import { startAcpProcess } from "../../packages/oar/src/shared/acp/process.js";
 import { grokListModels, grokModelState, projectGrokModels } from "../../packages/oar/src/runtimes/grok/list-models.js";
 
 const acp = vi.hoisted(() => ({
@@ -60,6 +62,12 @@ test("grok lister initializes, authenticates with the cached token, then lists",
   });
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "authenticate", "_x.ai/models/list"]);
   expect(acp.kill).toHaveBeenCalledOnce();
+});
+
+test("grok lister starts grok in the requested directory, as a session there would", async () => {
+  acp.request.mockImplementation(async (method) => (method === "_x.ai/models/list" ? { result: { availableModels: [] } } : {}));
+  await grokListModels(installation, { cwd: "workspace" });
+  expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]).toMatchObject({ cwd: path.resolve("workspace") });
 });
 
 test("grok lister maps method-not-found to unsupported", async () => {

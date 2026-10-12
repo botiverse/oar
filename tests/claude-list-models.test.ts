@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { claudeListModels } from "../packages/oar/src/runtimes/claude/list-models.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
@@ -6,7 +7,7 @@ import { fakeLineProcess, type FakeLineProcess } from "./fixtures/fake-line-proc
 const spawnLineProcess = vi.hoisted(() => vi.fn<(
   command: string,
   args: readonly string[],
-  options: { env?: NodeJS.ProcessEnv; killTree?: boolean },
+  options: { cwd?: string; env?: NodeJS.ProcessEnv; killTree?: boolean },
 ) => FakeLineProcess>());
 vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
 
@@ -52,7 +53,16 @@ test("claude lister answers from the matching control_response only", async () =
   const [, args, options] = spawnLineProcess.mock.calls[0] ?? [];
   expect(args).toEqual(["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"]);
   expect(options?.env?.CLAUDECODE).toBeUndefined();
-  expect(options?.killTree).toBe(true);
+  expect(options).toMatchObject({ cwd: process.cwd(), killTree: true });
+});
+
+// Project settings can change what claude lists, so claude starts where a session would.
+test("claude lister starts claude in the requested directory", async () => {
+  spawnLineProcess.mockReturnValue(fakeLineProcess((text, self) => {
+    self.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: requestIdOf(text), response: { models: [] } } })}\n`);
+  }));
+  await expect(claudeListModels(installation, { cwd: "workspace" })).resolves.toEqual({ kind: "ok", models: [] });
+  expect(spawnLineProcess.mock.calls[0]?.[2].cwd).toBe(path.resolve("workspace"));
 });
 
 test("claude lister maps a login error to unauthenticated", async () => {

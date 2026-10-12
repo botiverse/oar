@@ -2,6 +2,7 @@ import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { processFailure, stderrTail } from "../../shared/executable/diagnostics.js";
 import { asRecord, parseJson } from "../../shared/json.js";
+import { listingCwd } from "../../shared/listing-cwd.js";
 import { opencodeMajor } from "./version.js";
 
 function text(value: unknown): string | undefined {
@@ -55,14 +56,17 @@ export function projectOpencodeModels(stdout: string): ModelEntry[] {
   return entries;
 }
 
-/** Reads opencode's model catalog; the first run after an install also fetches models.dev. */
+/**
+ * Reads opencode's model catalog in the listing's cwd, whose project config can
+ * add providers; the first run after an install also fetches models.dev.
+ */
 export const opencodeListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "opencode model listing requires the opencode executable" };
   }
   const major = await opencodeMajor(installation);
   // v2's default command connects to a persistent daemon. Listing must not leave one behind.
-  const result = await runExecutable(installation.command, ["models", major === 2 ? "--standalone" : "--verbose"], { timeoutMs: options.timeoutMs ?? 30_000 });
+  const result = await runExecutable(installation.command, ["models", major === 2 ? "--standalone" : "--verbose"], { cwd: listingCwd(options), timeoutMs: options.timeoutMs ?? 30_000 });
   if (!result.ok) {
     throw processFailure("Failed to list opencode models", result.diagnostics ?? {
       exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),

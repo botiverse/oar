@@ -1,5 +1,7 @@
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
+import { startAcpProcess } from "../../packages/oar/src/shared/acp/process.js";
 import {
   antigravityListModels,
   projectAntigravityModels,
@@ -89,6 +91,15 @@ test("antigravity lister initializes and opens a session, then kills the process
   await expect(antigravityListModels(installation)).resolves.toMatchObject({ kind: "ok" });
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "session/new"]);
   expect(acp.kill).toHaveBeenCalledOnce();
+  expect(acp.request.mock.calls[1]?.[1]).toEqual({ cwd: process.cwd(), mcpServers: [] });
+});
+
+test("antigravity lister opens its throwaway session in the requested directory", async () => {
+  acp.request.mockImplementation(async (method) => (method === "session/new" ? newSessionResponse : {}));
+  await antigravityListModels(installation, { cwd: "workspace" });
+  const cwd = path.resolve("workspace");
+  expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]).toMatchObject({ cwd });
+  expect(acp.request.mock.calls[1]?.[1]).toEqual({ cwd, mcpServers: [] });
 });
 
 test("antigravity lister maps auth failures, a missing model option, and other failures", async () => {

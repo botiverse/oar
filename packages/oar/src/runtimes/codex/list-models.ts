@@ -1,6 +1,7 @@
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList } from "../../shared/json.js";
+import { listingCwd } from "../../shared/listing-cwd.js";
 import { startAppServerClient } from "./app-server-client.js";
 
 function text(value: unknown): string | undefined {
@@ -36,9 +37,9 @@ export function projectCodexModels(payload: unknown): ModelEntry[] {
 
 /**
  * The model a session with no `model` runs on (#347): the one codex's own
- * configuration sets (`config/read`, user and project config for the host's
- * cwd) when it is listed, else the catalog's `isDefault`. A configured model
- * that is not listed marks nothing.
+ * configuration sets (`config/read`, user and project config for the
+ * listing's cwd) when it is listed, else the catalog's `isDefault`. A
+ * configured model that is not listed marks nothing.
  */
 export function codexDefaultModel(models: readonly ModelEntry[], configured: string | undefined): ModelEntry[] {
   if (configured === undefined) {
@@ -55,6 +56,10 @@ export const codexListModels: ModelLister = async (installation, options = {}) =
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "codex model listing requires the codex executable" };
   }
+  // Started where a session's app-server starts (the host's cwd, which also
+  // resolves a relative CODEX_HOME); the project is the `config/read` cwd, as
+  // it is the thread's cwd in a session.
+  const cwd = listingCwd(options);
   const client = startAppServerClient(installation.command);
   const timeoutMs = options.timeoutMs ?? 15_000;
   const deadline = { timedOut: false };
@@ -75,7 +80,7 @@ export const codexListModels: ModelLister = async (installation, options = {}) =
       if (cursor !== null && cursors.has(cursor)) { throw new Error("codex model/list repeated a pagination cursor"); }
       if (cursor !== null) { cursors.add(cursor); }
     } while (cursor !== null);
-    const effective = await client.request("config/read", { cwd: process.cwd(), includeLayers: false });
+    const effective = await client.request("config/read", { cwd, includeLayers: false });
     return { kind: "ok", models: codexDefaultModel(models, text(asRecord(effective.config)?.model)) };
   } catch (error) {
     throw new Error(deadline.timedOut ? `Failed to list Codex models: timed out after ${String(timeoutMs)} ms` : "Failed to list Codex models", { cause: error });

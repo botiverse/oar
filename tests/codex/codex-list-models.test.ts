@@ -1,9 +1,10 @@
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { codexListModels } from "../../packages/oar/src/runtimes/codex/list-models.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
+const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[], options?: { cwd?: string }) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
 
 const installation = { kind: "available", via: "executable", command: "codex", version: "0.161.0" } as const;
@@ -65,6 +66,21 @@ test("codex lister marks the model codex's configuration sets, read for the host
   }));
   await expect(codexListModels(installation)).resolves.toEqual({ kind: "ok", models: [{ id: "gpt-6.1-sol" }, { id: "gpt-5.5", default: true }] });
   expect(requests.find((request) => request.method === "config/read")?.params).toEqual({ cwd: process.cwd(), includeLayers: false });
+});
+
+// rowrow lists per workspace: a project's .codex/config.toml can set another model.
+test("codex lister reads the configuration for the requested directory, from an app-server started like a session's", async () => {
+  const requests: { method: unknown; params: unknown }[] = [];
+  spawnLineProcess.mockReturnValue(fakeLineProcess((line, child) => {
+    const message = asRecord(parseJson(line));
+    if (typeof message?.id !== "number") { return; }
+    requests.push({ method: message.method, params: message.params });
+    const result = message.method === "model/list" ? { data: [{ model: "gpt-5.5" }], nextCursor: null } : {};
+    child.emit(`${JSON.stringify({ id: message.id, result })}\n`);
+  }));
+  await codexListModels(installation, { cwd: "workspace" });
+  expect(requests.find((request) => request.method === "config/read")?.params).toEqual({ cwd: path.resolve("workspace"), includeLayers: false });
+  expect(spawnLineProcess.mock.calls[0]?.[2]?.cwd).toBe(process.cwd());
 });
 
 test("codex lister fails on a non-zero exit instead of returning an empty list", async () => {

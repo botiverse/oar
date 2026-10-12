@@ -208,10 +208,14 @@ has it. Entries include native `effortLevels` and `serviceTiers` where supported
 `default: true` marks the model a session uses when no `model` is set, where
 the runtime says so (codex's configured model, else its catalog default; a new
 session's current model on grok, kimi and antigravity; the default saved in
-pi's settings), with configuration read for the host's own cwd. claude, cursor
-and opencode mark none: OAR never picks one. Where several providers
-serve models (pi, opencode), `provider: { id, displayName? }` says which, so a
-host never parses `id`.
+pi's settings). claude, cursor and opencode mark none: OAR never picks one.
+Where several providers serve models (pi, opencode), `provider: { id,
+displayName? }` says which, so a host never parses `id`. A project's own
+configuration can change the list and its default, so pass `options.cwd`, the
+directory a session would run in (the host's cwd by default). Like the
+inventory readers, listing starts the runtime there the way a session would
+and can run that workspace's code (pi loads the project's extensions), so do
+not list in a directory you do not trust.
 `SessionOptions.serviceTier` applies at open (also on resume) and is checked
 against the runtime's own report. Use `default` to explicitly clear a tier;
 it is not a model catalog entry. `Session.serviceTier()` reports the effective

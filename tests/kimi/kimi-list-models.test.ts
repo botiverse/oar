@@ -1,5 +1,7 @@
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
+import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
+import { startAcpProcess } from "../../packages/oar/src/shared/acp/process.js";
 import { kimiListModels, projectKimiModels } from "../../packages/oar/src/runtimes/kimi/list-models.js";
 
 const acp = vi.hoisted(() => ({
@@ -134,6 +136,14 @@ test("kimi lister initializes, authenticates with login, opens and closes a sess
   expect(acp.request.mock.calls[1]?.[1]).toEqual({ methodId: "login" });
   expect(acp.request.mock.calls[3]?.[1]).toEqual({ sessionId: "sess-1" });
   expect(acp.kill).toHaveBeenCalledOnce();
+});
+
+test("kimi lister opens its throwaway session in the requested directory", async () => {
+  acp.request.mockImplementation(async (method) => (method === "session/new" ? newSessionResponse : {}));
+  await kimiListModels(installation, { cwd: "workspace" });
+  const cwd = path.resolve("workspace");
+  expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]).toMatchObject({ cwd });
+  expect(acp.request.mock.calls.find(([method]) => method === "session/new")?.[1]).toEqual({ cwd, mcpServers: [] });
 });
 
 test("kimi lister still returns the list when session/close fails", async () => {

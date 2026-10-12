@@ -124,16 +124,21 @@ program
   .command("models [runtime]")
   .description("List models each available installation can run right now")
   .option("--json", "print the ListModelsResult per runtime as JSON")
+  .option("--cwd <directory>", "directory a session would run in, whose project config can change the list; defaults to process.cwd()")
   .option("--timeout <ms>", "per-runtime listing timeout in milliseconds")
-  .action(async (id: string | undefined, flags: { json?: boolean; timeout?: string }) => {
+  .action(async (id: string | undefined, flags: { json?: boolean; cwd?: string; timeout?: string }) => {
     const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
     if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) {
       process.stderr.write("--timeout must be a positive integer number of milliseconds\n");
       process.exitCode = 1;
       return;
     }
+    const options = {
+      ...(flags.cwd === undefined ? {} : { cwd: flags.cwd }),
+      ...(timeoutMs === undefined ? {} : { timeoutMs }),
+    };
     const reports = await readEach(selected(id), async (runtime) => {
-      const report = await readModels(runtime, timeoutMs === undefined ? undefined : { timeoutMs });
+      const report = await readModels(runtime, options);
       return report;
     });
     if (flags.json === true) {

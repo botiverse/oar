@@ -9,6 +9,7 @@ import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
 import { effortLevelOf, effortLevelsOf } from "../../shared/effort-levels.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
+import { listingCwd } from "../../shared/listing-cwd.js";
 import { grokInitializeMeta, selectGrokAuthMethod } from "./session.js";
 
 function text(value: unknown): string | undefined {
@@ -84,12 +85,12 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
   return entries;
 }
 
-async function readModelState(command: string, timeoutMs: number): Promise<JsonRecord> {
+async function readModelState(command: string, cwd: string, timeoutMs: number): Promise<JsonRecord> {
   const runtime = startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
     createClient({ name: "oar" }),
-    { env: process.env },
+    { cwd, env: process.env },
   );
   try {
     const initialize = methods.agent.initialize;
@@ -104,7 +105,7 @@ async function readModelState(command: string, timeoutMs: number): Promise<JsonR
           terminal: false,
         },
         clientInfo: { name: "oar", version: "0.0.0" },
-        _meta: grokInitializeMeta({ cwd: process.cwd() }),
+        _meta: grokInitializeMeta({ cwd }),
       }, requestOptions),
     );
     const method = selectGrokAuthMethod(asRecord(response) ?? {});
@@ -143,7 +144,7 @@ export const grokListModels: ModelLister = async (installation, options = {}) =>
     return { kind: "unsupported", reason: "grok model listing requires the grok executable" };
   }
   try {
-    const state = await readModelState(installation.command, options.timeoutMs ?? 10_000);
+    const state = await readModelState(installation.command, listingCwd(options), options.timeoutMs ?? 10_000);
     return { kind: "ok", models: projectGrokModels(state) };
   } catch (error) {
     if (error instanceof RequestError) {

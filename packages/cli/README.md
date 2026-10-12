@@ -29,9 +29,12 @@ result, the others still report, and the exit code is 1.
 - `oar usage [runtime]`: account usage for each available installation.
 - `oar models [runtime]`: models each available installation can run right
   now (login state, plan, and configured providers included). The first
-  column after the runtime is the `id` to pass to `oar run --model`; `--json`
-  prints the `ListModelsResult` per runtime, `--timeout <ms>` bounds each
-  query.
+  column after the runtime is the `id` to pass to `oar run --model`, and
+  `(default)` marks the model a session runs when none is set. `--cwd <dir>`
+  lists for the directory a session would run in (project configuration
+  there can change the list; it starts the runtime there, so only use a
+  directory you trust); `--json` prints the `ListModelsResult` per runtime,
+  `--timeout <ms>` bounds each query.
 - `oar run <runtime> <prompt>`: run one turn in a fresh (or `--resume`d)
   session and show its progress; [below](#oar-run-the-run-and-verify-entrypoint).
 - `oar upgrade [runtime]`: upgrade each available installation with the

@@ -409,7 +409,9 @@ no session, no tokens (`bad-model` scenario;
 [resolver](../../packages/oar/src/runtimes/pi/resolve.ts)). Catalog discovery
 (`oar models pi`) builds services the way `pi --list-models` does and awaits
 `getAvailable()` instead of reading an uninitialized snapshot; "nothing
-configured" is an `ok` empty list. Live model setters and detailed model
+configured" is an `ok` empty list. It builds them for `ListModelsOptions.cwd`
+as a session there would: that project's settings can save another default,
+and its extensions under `.pi/extensions` load and run. Live model setters and detailed model
 metadata are **not exposed** on the session (`createPiModelCatalog` reads
 metadata outside it).
 

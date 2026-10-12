@@ -107,6 +107,25 @@ test("renderModels distinguishes unauthenticated from an empty list", () => {
 });
 
 
+test("readModels forwards the listing directory and renderModels marks the default model", async () => {
+  const seen: unknown[] = [];
+  const runtime: Runtime = {
+    ...inventories,
+    id: "pi",
+    brand: { name: "pi", icon: null },
+    session: neverSession,
+    installation: async () => { await Promise.resolve(); return available; },
+    listModels: async (_installation, options) => {
+      seen.push(options);
+      await Promise.resolve();
+      return { kind: "ok", models: [{ id: "xai/grok-4.6", default: true }, { id: "xai/grok-4.5" }] };
+    },
+  };
+  const report = await readModels(runtime, { cwd: "/work/app" });
+  assert.deepEqual(seen, [{ cwd: "/work/app" }]);
+  assert.deepEqual(renderModels(report), ["pi\txai/grok-4.6 (default)", "pi\txai/grok-4.5"]);
+});
+
 test("renderModels shows native tier ids and marks the catalog default", () => {
   assert.deepEqual(renderModels({ runtimeId: "codex", models: { kind: "ok", models: [
     { id: "model", serviceTiers: ["priority", "flex"], defaultServiceTier: "flex" },
