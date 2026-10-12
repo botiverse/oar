@@ -50,7 +50,9 @@ export type PiThinkingLevelsOf<Model extends PiListedModel> = (model: Model) => 
  * `provider` is the model's provider id with pi's display name for it.
  * `default` marks the default saved in pi's settings when it is listed; with
  * none saved, pi picks the first available model at session creation, which
- * OAR does not guess.
+ * OAR does not guess. pi reads those settings globally and from the project
+ * at the host's own cwd, so a session opened in another project can start on
+ * that project's default instead.
  */
 export function projectPiModels<Model extends PiListedModel>(
   models: readonly Model[],
@@ -65,7 +67,8 @@ export function projectPiModels<Model extends PiListedModel>(
       id: `${model.provider}/${model.id}`,
       displayName: model.name === undefined || model.name.trim().length === 0 ? model.id : model.name.trim(),
       ...(effortLevels.length === 0 ? {} : { effortLevels: [...effortLevels] }),
-      provider: { id: model.provider, ...(providerName === undefined || providerName.length === 0 ? {} : { displayName: providerName }) },
+      // pi uses the id as a provider's name when it has none of its own: no displayName then.
+      provider: { id: model.provider, ...(providerName === undefined || providerName.length === 0 || providerName === model.provider ? {} : { displayName: providerName }) },
       ...(isDefault ? { default: true as const } : {}),
     };
   });

@@ -142,7 +142,7 @@ test("pi projection namespaces ids by provider", () => {
 });
 
 function kimiProviderName(id: string): string | undefined {
-  return id === "kimi-coding" ? "Kimi For Coding" : undefined;
+  return id === "kimi-coding" ? "Kimi For Coding" : id;
 }
 
 // #347: pi's provider display name and the default saved in pi's settings, both from pi; nothing guessed.
