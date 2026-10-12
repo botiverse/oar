@@ -41,6 +41,7 @@ function scriptTurnStart(process: FakeLineProcess, params: JsonRecord): void {
 function replyFor(method: string, params: JsonRecord, interruptFails: boolean): JsonRecord | null {
   switch (method) {
     case "thread/start":
+    case "thread/resume":
       return { thread: { id: threadId }, model: "gpt-5.5" };
     case "turn/start":
       return { turn: { id: "turn-1" } };
@@ -124,6 +125,33 @@ test("a prompt is one request/response pair, the turn ends on codex's own turn/c
     "response exited",
   ]);
   expect(fake.killed()).toBe(true);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Repeated items, repeated ids in one item and a resumed process share one stream-boundary assertion.
+test.each([undefined, threadId])("Codex emits an edge once in a fresh stream (resume=%s)", async (resume) => {
+  const fake = scriptedAppServer();
+  const session = await codexSession(installation, { cwd: "/work", ...(resume === undefined ? {} : { resume }) });
+  const item = { type: "collabAgentToolCall", id: "spawn", senderThreadId: threadId, receiverThreadIds: ["child", "child", "other"] };
+  const live: RawEvent[] = [];
+  session.rawEvents((record) => { live.push(record); });
+  try {
+    notify(fake, "item/started", { threadId, turnId: "t1", item });
+    notify(fake, "item/completed", { threadId, turnId: "t1", item });
+    notify(fake, "item/started", { threadId, turnId: "t2", item: { ...item, id: "wait" } });
+    expect(live.flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "session_linked") : [])).toEqual([
+      { kind: "session_linked", parent: threadId, child: "child", via: "tool_call" },
+      { kind: "session_linked", parent: threadId, child: "other", via: "tool_call" },
+    ]);
+    expect(live.map((record) => record.body)).toMatchObject([
+      { type: "item/started", native: { item }, events: [{ kind: "session_linked" }, { kind: "session_linked" }] },
+      { type: "item/completed", native: { item }, events: [] },
+      { type: "item/started", native: { item: { ...item, id: "wait" } }, events: [] },
+    ]);
+    const replayed: RawEvent[] = [];
+    session.rawEvents((record) => { replayed.push(record); }, { sessionId: session.id, afterSeq: -1 })();
+    expect(replayed).toEqual(session.records());
+    expect(graphOf(replayed)).toEqual(session.graph());
+  } finally { await session.dispose(); }
 });
 
 /** The response bodies of several control calls, in order. */

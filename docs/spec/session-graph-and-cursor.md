@@ -62,7 +62,13 @@ The native frame establishing a pair carries
 `session_linked { parent, child, via: "tool_call" }` in its events. Codex
 collaboration items, ACP lineage notifications and OpenCode v2 child
 attribution use this same event; the original native payload stays on that
-frame. Hosts with an exhaustive event switch must handle `session_linked`.
+frame. Each edge is emitted once per stream, on the first frame naming
+that parent/child pair. Later frames retain their native payload and other
+events but do not repeat the edge. A resume opens a fresh stream, so its
+first native report of the pair emits the edge again. Cursor replay returns
+the events already recorded, without projecting or deduplicating them
+again; older logs can therefore still contain repeated edges. Hosts with
+an exhaustive event switch must handle `session_linked`.
 
 `graphOf(records)`, exported by the root, browser and observe entries, folds
 these facts into a `SessionGraph`. Each record's `sessionId` and each edge's

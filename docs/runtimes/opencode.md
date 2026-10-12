@@ -54,8 +54,9 @@ native observations from source-only findings.
 - **Children:** standard updates arrive on the parent's envelope with
   `update._meta["opencode/child-session"]` (`id`, `parentID`, `depth`,
   `title`). OAR records them under the named child session, links its real
-  parent with `session_linked { parent, child, via: "tool_call" }` on that
-  update frame and declares `nested` attribution. `graphOf(records)` preserves
+  parent with `session_linked { parent, child, via: "tool_call" }` on the
+  first update frame naming that pair in this stream, and declares `nested`
+  attribution. Later updates do not repeat the edge. `graphOf(records)` preserves
   those edges in replay, including nested descendants. Child text, tools
   and usage do not become root output. Native notifications remain
   verbatim. The native tool `name` wins over its display title, so a

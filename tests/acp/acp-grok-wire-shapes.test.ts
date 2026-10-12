@@ -135,7 +135,7 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   );
   for (const record of vendor) {
     assert.ok(record.kind === "frame");
-    assert.deepEqual(record.body.events, record.sessionId === "fake-session" ? [{ kind: "session_linked", parent: "fake-session", child: "fake-child-grok", via: "tool_call" }] : []);
+    assert.deepEqual(record.body.events, record === lifecycle[0] ? [{ kind: "session_linked", parent: "fake-session", child: "fake-child-grok", via: "tool_call" }] : []);
   }
   const [spawned] = lifecycle;
   assert.ok(spawned?.kind === "frame");

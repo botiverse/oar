@@ -1,6 +1,7 @@
 import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { SessionKernel } from "../session-kernel.js";
+import { newSessionLinks } from "../session-links.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
@@ -107,7 +108,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const foreign = sessionId !== kernel.sessionId;
         const events: RuntimeEventBody[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
         if (source?.parent !== undefined) {
-          events.push(kernel.link({ parent: source.parent, child: sessionId, via: "tool_call" }));
+          events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));
         }
         const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
         const record = kernel.frame({ type, native: notification, events }, foreign ? { sessionId } : undefined);
@@ -127,7 +128,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const sessionId = stringField(params, ["sessionId"]);
         const foreign = sessionId !== null && sessionId !== kernel.sessionId;
         const lineage = acpLineageOf(params);
-        const events: RuntimeEventBody[] = lineage === null ? [] : [kernel.link({ ...lineage, via: "tool_call" })];
+        const events: RuntimeEventBody[] = lineage === null ? [] : newSessionLinks(kernel, [{ ...lineage, via: "tool_call" }]);
         const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params, afterOpen) : null;
         if (usage !== null && usage !== undefined) { events.push(usage); }
         kernel.frame({ type: method, native: params, events }, foreign ? { sessionId } : undefined);

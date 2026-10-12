@@ -76,24 +76,11 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
             "input": "{"command":"echo CHILD-OK-7731","cwd":"/project"}",
             "kind": "tool_call_input",
           },
-          {
-            "child": "child-1",
-            "kind": "session_linked",
-            "parent": "root",
-            "via": "tool_call",
-          },
         ],
         "sessionId": "child-1",
       },
       {
-        "events": [
-          {
-            "child": "child-1",
-            "kind": "session_linked",
-            "parent": "root",
-            "via": "tool_call",
-          },
-        ],
+        "events": [],
         "sessionId": "child-1",
       },
       {
@@ -110,12 +97,6 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
             "kind": "tool_call_ended",
             "result": "ok",
           },
-          {
-            "child": "child-1",
-            "kind": "session_linked",
-            "parent": "root",
-            "via": "tool_call",
-          },
         ],
         "sessionId": "child-1",
       },
@@ -124,12 +105,6 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
           {
             "kind": "text_delta",
             "text": "CHILD-OK-7731",
-          },
-          {
-            "child": "child-1",
-            "kind": "session_linked",
-            "parent": "root",
-            "via": "tool_call",
           },
         ],
         "sessionId": "child-1",
@@ -154,6 +129,35 @@ test("recorded v2 child shell and text keep their own session and verbatim paren
 function childUpdate(child: JsonRecord, update: SessionNotification["update"]): SessionNotification {
   return { sessionId: "root", update: { ...update, _meta: { "opencode/child-session": child } } };
 }
+
+// oxlint-disable-next-line eslint/max-statements -- Compare startup buffering, live delivery, cursor replay and a fresh resumed stream.
+test("only the first native report of each edge emits lineage, including buffered updates and fresh streams", () => {
+  const kernel = createSessionKernel("root");
+  const records = createAcpRecorder(createUsageUpdateGate(), opencodeChildAttribution);
+  const live: ReturnType<typeof kernel.records>[number][] = [];
+  kernel.rawEvents((record) => { live.push(record); });
+  records.step("session/new", { sessionId: "root" });
+  const notification = childUpdate({ id: "child", parentID: "root" }, { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "hello" } });
+  records.update(notification);
+  records.update(notification);
+  records.bind(kernel);
+  records.extension("_x.ai/session_notification", { sessionId: "root", childSessionId: "child", parentSessionId: "root" });
+  records.update(childUpdate({ id: "child", parentID: "another-parent" }, notification.update));
+  expect(kernel.records().flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "session_linked") : [])).toEqual([
+    { kind: "session_linked", parent: "root", child: "child", via: "tool_call" },
+    { kind: "session_linked", parent: "another-parent", child: "child", via: "tool_call" },
+  ]);
+  const replayed: ReturnType<typeof kernel.records>[number][] = [];
+  kernel.rawEvents((record) => { replayed.push(record); }, { sessionId: "root", afterSeq: -1 })();
+  expect(replayed).toEqual(live);
+  expect(graphOf(replayed)).toEqual(kernel.graph());
+  const resumed = recorder();
+  resumed.records.update(notification);
+  resumed.records.update(notification);
+  expect(resumed.kernel.records().flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "session_linked") : [])).toEqual([
+    { kind: "session_linked", parent: "root", child: "child", via: "tool_call" },
+  ]);
+});
 
 test("nested descendants link their reported parent and never satisfy root usage waiting", () => {
   const { kernel, records, gate } = recorder();

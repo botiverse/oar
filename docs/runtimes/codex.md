@@ -401,9 +401,11 @@ records (`sessionId` is the child thread, a `graph()` node) and adds a
 reported the item) to each `receiverThreadIds` / `agentThreadId` entry that
 is not the sender. Lineage (an edge) stays distinct from observation (a
 node), and no edge is fabricated. `agentPath` stays `[]` on every record:
-attribution is `nested` (child session ids). Each explaining item frame carries
+attribution is `nested` (child session ids). The first item frame naming a
+pair in this stream carries
 `session_linked { parent, child, via: "tool_call" }`, so `graphOf(records)`
-and replayed usage agree with the live session. Also, `item/completed` for a `subAgentActivity` about the reporting
+and replayed usage agree with the live session. Later items retain their
+native lineage but do not repeat the edge event. Also, `item/completed` for a `subAgentActivity` about the reporting
 thread's own child is a task event with the child thread as task id (and as
 `childSessionId` on `task_started`): `started` → `task_started` (the
 `agentPath` as description), `interacted` → `task_updated` running,

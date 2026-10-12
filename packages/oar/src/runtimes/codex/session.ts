@@ -6,6 +6,7 @@ import { acceptCodexSteer, codexUserInput } from "./input-delivery.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
+import { newSessionLinks } from "../../shared/session-links.js";
 import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadOpen } from "./open.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
@@ -116,7 +117,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     }
     const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, params);
     state.projection = nextProjection;
-    const links = commands.flatMap((command) => command.kind === "link" ? [kernel.link(command.edge)] : []);
+    const links = newSessionLinks(kernel, commands.flatMap((command) => command.kind === "link" ? [command.edge] : []));
     for (const command of commands) {
       switch (command.kind) {
         case "frame":
