@@ -133,10 +133,17 @@ test("pi's native aborted flag takes precedence over a provider's abort error", 
  * excludes `cacheRead` and `cacheWrite`; `cacheWrite1h` is a subset of
  * `cacheWrite`), the shape recorded in fixtures/pi-tool-round.raw.jsonl.
  */
-function assistantEnd(usage: { input: number; output: number; cacheRead: number; cacheWrite: number; cacheWrite1h?: number }): AgentSessionEvent {
+function assistantEnd(usage: { input: number; output: number; cacheRead: number; cacheWrite: number; cacheWrite1h?: number; reasoning?: number }): AgentSessionEvent {
   // oxlint-disable-next-line consistent-type-assertions, no-unsafe-type-assertion -- only the fields the fold reads matter here
   return { type: "message_end", message: { role: "assistant", usage: { ...usage, totalTokens: usage.input + usage.output + usage.cacheRead + usage.cacheWrite } } } as never;
 }
+
+test("Pi accumulates only reported reasoning, without adding it to output again", () => {
+  const first = foldPiEvent(initialPiProjection, assistantEnd({ input: 10, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: 3 }));
+  const second = foldPiEvent(first.state, assistantEnd({ input: 20, output: 4, cacheRead: 0, cacheWrite: 0 }));
+  const third = foldPiEvent(second.state, assistantEnd({ input: 30, output: 8, cacheRead: 0, cacheWrite: 0, reasoning: 0 }));
+  expect(third.state.tokens).toEqual({ input: 60, output: 17, cacheRead: 0, cacheWrite: 0, reasoning: 3 });
+});
 
 // #161: pi's cacheRead / cacheWrite are parts of input, accumulated like it
 // across turns (agent_settled ends one; the running total stays).

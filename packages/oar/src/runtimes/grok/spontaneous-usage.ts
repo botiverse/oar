@@ -1,6 +1,6 @@
 import type { TokenTotals } from "../../contracts/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { cacheParts } from "../../shared/token-totals.js";
+import { cacheParts, reasoningPart } from "../../shared/token-totals.js";
 
 /**
  * Grok injects these prompts directly into its session actor, outside ACP
@@ -22,5 +22,5 @@ export function grokSpontaneousTokens(method: string, params: JsonRecord): { rea
   const input = asNumber(usage?.inputTokens);
   const output = asNumber(usage?.outputTokens);
   if (typeof key !== "string" || key === "" || usage === null || input === null || output === null) { return null; }
-  return { key, tokens: { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }) }, ...(meta?.isReplay === true ? { replayed: true } : {}) };
+  return { key, tokens: { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }), ...reasoningPart(usage, "reasoningTokens") }, ...(meta?.isReplay === true ? { replayed: true } : {}) };
 }

@@ -582,9 +582,15 @@ metadata. [Comparison and reproduction](../../experiments/service-tier-2026-10-0
 cached tokens included, plus its output: what the context holds once the
 reply is in) against `modelContextWindow` with a rounded `percent`; `tokens`
 = `total` input/output, with `total.cachedInputTokens` as `cacheRead` and
-`total.cacheWriteInputTokens` as `cacheWrite`, less a resume's baseline so
+`total.cacheWriteInputTokens` as `cacheWrite`, and
+`total.reasoningOutputTokens` as `reasoning`, less a resume's baseline so
 they count from when this Session opened
-([resume](#connection-session-creation-and-resume)). Both are already part of `inputTokens`: codex-api
+([resume](#connection-session-creation-and-resume)). Reasoning is already
+inside `outputTokens`; it is never added to output again. A missing native
+field remains absent and a reported zero stays zero. The
+[native regression](../../sea-trial/vendor/reasoning-tokens.vendor.test.ts)
+feeds nonzero provider counts through a real app-server, including resume
+and JSON replay. Both cache parts are already part of `inputTokens`: codex-api
 `sse/responses.rs` at the pinned commit fills them from the Responses API's
 `input_tokens_details.cached_tokens` / `cache_write_tokens` (its test: input
 100 = read 40 + write 60). Live 0.154.0 read 32512 of 44166; codex-aimock on

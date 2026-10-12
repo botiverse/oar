@@ -35,8 +35,8 @@ test("codex cache reads and writes are the cumulative total's cachedInputTokens 
   const first = tokenUsage(initialCodexProjection(ROOT), { turnId: "t1", tokenUsage: { total: breakdown(10_000, { read: 0, write: 9600 }, 20), last: breakdown(10_000, { read: 0, write: 9600 }, 20), modelContextWindow: 121_600 } });
   const second = tokenUsage(first.state, { turnId: "t2", tokenUsage: { total: breakdown(22_000, { read: 9600, write: 11_900 }, 50), last: breakdown(12_000, { read: 9600, write: 2300 }, 30), modelContextWindow: 121_600 } });
   expect([...first.tokens, ...second.tokens]).toEqual([
-    { input: 10_000, output: 20, cacheRead: 0, cacheWrite: 9600 },
-    { input: 22_000, output: 50, cacheRead: 9600, cacheWrite: 11_900 },
+    { input: 10_000, output: 20, cacheRead: 0, cacheWrite: 9600, reasoning: 0 },
+    { input: 22_000, output: 50, cacheRead: 9600, cacheWrite: 11_900, reasoning: 0 },
   ]);
 });
 
@@ -45,7 +45,7 @@ test("codex cache reads and writes are the cumulative total's cachedInputTokens 
 test("codex's own zeros stay zeros", () => {
   const zero = { totalTokens: 0, inputTokens: 0, cachedInputTokens: 0, cacheWriteInputTokens: 0, outputTokens: 0, reasoningOutputTokens: 0 };
   const recorded = tokenUsage(initialCodexProjection(ROOT), { turnId: "t-1", tokenUsage: { total: zero, last: zero, modelContextWindow: 258_400 } });
-  expect(recorded.tokens).toEqual([{ input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }]);
+  expect(recorded.tokens).toEqual([{ input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0 }]);
 });
 
 // A codex built before `cacheWriteInputTokens` (openai/codex#33454) has no
@@ -53,9 +53,18 @@ test("codex's own zeros stay zeros", () => {
 // without either field has neither part.
 test("an older codex total without cacheWriteInputTokens yields only cacheRead", () => {
   const older = tokenUsage(initialCodexProjection(ROOT), { tokenUsage: { total: { totalTokens: 44_201, inputTokens: 44_166, cachedInputTokens: 32_512, outputTokens: 35, reasoningOutputTokens: 0 } } });
-  expect(older.tokens).toEqual([{ input: 44_166, output: 35, cacheRead: 32_512 }]);
+  expect(older.tokens).toEqual([{ input: 44_166, output: 35, cacheRead: 32_512, reasoning: 0 }]);
   const bare = tokenUsage(initialCodexProjection(ROOT), { tokenUsage: { total: { inputTokens: 200, outputTokens: 5 } } });
   expect(bare.tokens).toEqual([{ input: 200, output: 5 }]);
+});
+
+test("Codex reasoning is an output subset and resume subtracts its own reported baseline", () => {
+  expect(sessionTokens("thread/resume", [
+    ["thread/tokenUsage/updated", { tokenUsage: { total: { inputTokens: 100, outputTokens: 50, reasoningOutputTokens: 30 } } }],
+    ["turn/started", { turn: { id: "next" } }],
+    ["thread/tokenUsage/updated", { tokenUsage: { total: { inputTokens: 300, outputTokens: 90, reasoningOutputTokens: 55 } } }],
+  ])).toEqual([{ input: 0, output: 0, reasoning: 0 }, { input: 200, output: 40, reasoning: 25 }]);
+  expect(tokenUsage(initialCodexProjection(ROOT), { tokenUsage: { total: { inputTokens: 10, outputTokens: 5, reasoningOutputTokens: "unknown" } } }).tokens).toEqual([{ input: 10, output: 5 }]);
 });
 
 /** The root token totals a Session's projection reads out of `frames`, opened by `opened`. */

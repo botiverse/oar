@@ -4,7 +4,7 @@ import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { cacheParts } from "../../shared/token-totals.js";
+import { cacheParts, reasoningPart } from "../../shared/token-totals.js";
 import { grokFailureOutcome, grokPromptOutcome } from "./failure.js";
 import { grokSpontaneousTokens } from "./spontaneous-usage.js";
 import { redactGrokNotification } from "../../shared/credential-redaction.js";
@@ -98,7 +98,7 @@ export function grokPromptTokens(response: JsonRecord): TokenTotals | null {
   if (usage === null || input === null || output === null) {
     return null;
   }
-  return { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }) };
+  return { input, output, ...cacheParts(usage, { read: "cachedReadTokens", write: "cacheCreationTokens" }), ...reasoningPart(usage, "reasoningTokens") };
 }
 
 /**

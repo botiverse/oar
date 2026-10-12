@@ -14,7 +14,7 @@ test.each([
   try {
     await promptAndWait(session, `grok-${scenario}`);
     await promptAndWait(session, `grok-${scenario}`);
-    const usage = { total: { input, output, cacheRead: 0, cacheWrite: 0 } };
+    const usage = { total: { input, output, cacheRead: 0, cacheWrite: 0, reasoning: 0 } };
     expect(session.usage().value).toEqual(usage);
     const records = session.records();
     const wakeFrames = records.filter((record) => {
@@ -43,7 +43,7 @@ test.each(["load", "resume"])("historical wake replay during session/%s stays na
     expect(historical).toMatchObject({ kind: "frame", body: { events: [] } });
     await promptAndWait(session, "grok-background-parent-first");
     await promptAndWait(session, "grok-background-parent-first");
-    expect(session.usage().value).toEqual({ total: { input: 2120, output: 25, cacheRead: 0, cacheWrite: 0 } });
+    expect(session.usage().value).toEqual({ total: { input: 2120, output: 25, cacheRead: 0, cacheWrite: 0, reasoning: 0 } });
   } finally {
     await session.dispose();
   }

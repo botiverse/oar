@@ -7,6 +7,15 @@ const usage: Usage = { input: 10, output: 5, cacheRead: 2, cacheWrite: 3, totalT
 const empty: SnapshotEvent = { type: "snapshot", entries: [], agent: {}, inbox: [], tools: [], compactions: [], usage: { models: {}, tools: {} } };
 const message: AssistantMessage = { role: "assistant", content: [{ type: "text", text: "hello" }], api: "anthropic-messages", provider: "test", model: "model", usage, stopReason: "stop", timestamp: 1 };
 
+test("durable reasoning sums model and tool ledgers and subtracts the attachment baseline", () => {
+  const baseline: SnapshotEvent = { ...empty, usage: { models: { first: { ...usage, reasoning: 3 } }, tools: {} } };
+  const later: SnapshotEvent = { ...baseline, usage: { models: { first: { ...usage, output: 9, reasoning: 5 }, second: usage }, tools: { embedded: { ...usage, reasoning: 1 } } } };
+  const projected = foldDurableBatch(initialDurableProjection(baseline), [later]);
+  expect(projected.frame.events).toEqual([{ kind: "usage", usage: { tokens: { input: 30, output: 14, cacheRead: 4, cacheWrite: 6, reasoning: 3 } } }]);
+  expect(foldDurableBatch(projected.state, [later]).frame.events).toEqual(projected.frame.events);
+  expect(foldDurableBatch(initialDurableProjection(baseline), [baseline]).frame.events).toEqual([{ kind: "usage", usage: { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0 } } }]);
+});
+
 test("batched partials and whole blocks project each suffix once", () => {
   const native: AgentEvent[] = [
     { type: "message_start", message },

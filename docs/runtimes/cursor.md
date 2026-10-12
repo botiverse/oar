@@ -231,7 +231,11 @@ writes, so OAR adds `cacheReadTokens` and `cacheWriteTokens` to the input,
 and the totals accumulate; the two also accumulate as `cacheRead` and
 `cacheWrite` (required numbers in SDK 1.0.36's `TurnEndedUpdateSchema`, so
 both are present once a turn reported usage;
-[spec](../spec/attribution.md#cache-reads-and-writes)). It is the run's usage, recorded on the root; no
+[spec](../spec/attribution.md#cache-reads-and-writes)). SDK 1.0.37's optional
+`reasoningTokens` accumulates as `reasoning`, already included in output;
+an absent native field stays absent. This mapping is pinned by the SDK's
+usage types and projection tests, without claiming a nonzero real-provider
+measurement. It is the run's usage, recorded on the root; no
 update reports a child's own tokens, and whether the run's figure includes a
 child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),

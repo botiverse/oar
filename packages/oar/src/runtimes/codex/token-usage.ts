@@ -1,6 +1,6 @@
 import type { RuntimeEventBody, TokenTotals } from "../../contracts/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { cacheParts, noTokens, subtractTokens } from "../../shared/token-totals.js";
+import { cacheParts, noTokens, reasoningPart, subtractTokens } from "../../shared/token-totals.js";
 
 /*
  * codex's `thread/tokenUsage/updated` read as a `usage` event, and the
@@ -49,7 +49,7 @@ function reportedTotal(params: JsonRecord): TokenTotals | null {
   // 4f39251a fills them from the Responses API's `input_tokens_details`
   // `cached_tokens` / `cache_write_tokens`). A build without the write field
   // reports no `cacheWrite`.
-  return { input, output, ...cacheParts(total, { read: "cachedInputTokens", write: "cacheWriteInputTokens" }) };
+  return { input, output, ...cacheParts(total, { read: "cachedInputTokens", write: "cacheWriteInputTokens" }), ...reasoningPart(total, "reasoningOutputTokens") };
 }
 
 /**

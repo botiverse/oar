@@ -179,6 +179,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
               "cacheWrite": 0,
               "input": 1000,
               "output": 5,
+              "reasoning": 0,
             },
           },
           {
@@ -187,6 +188,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
               "cacheWrite": 0,
               "input": 1200,
               "output": 7,
+              "reasoning": 0,
             },
           },
         ]

@@ -2,6 +2,7 @@ import type { AgentEvent, AgentState, EntryRecord, SnapshotEvent, SubmissionId, 
 import type { FrameBody, RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { toolContent } from "../../shared/tool-output.js";
+import { addTokens, subtractTokens } from "../../shared/token-totals.js";
 import { foldPiEvent, initialPiProjection } from "../pi/projection.js";
 import { emptyMessage, messageChanges, wholeMessage, type MessageProjection } from "./messages.js";
 
@@ -14,11 +15,12 @@ export interface DurableProjection {
 }
 
 function usageTotal(usage: UsageState): TokenTotals {
-  return [...Object.values(usage.models), ...Object.values(usage.tools)].reduce<TokenTotals>((total, item) => ({
-    input: total.input + item.input + item.cacheRead + item.cacheWrite,
-    output: total.output + item.output,
-    cacheRead: (total.cacheRead ?? 0) + item.cacheRead,
-    cacheWrite: (total.cacheWrite ?? 0) + item.cacheWrite,
+  return [...Object.values(usage.models), ...Object.values(usage.tools)].reduce<TokenTotals>((total, item) => addTokens(total, {
+    input: item.input + item.cacheRead + item.cacheWrite,
+    output: item.output,
+    cacheRead: item.cacheRead,
+    cacheWrite: item.cacheWrite,
+    ...(item.reasoning === undefined ? {} : { reasoning: item.reasoning }),
   }), { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 }
 
@@ -35,9 +37,7 @@ function agentEvents(agent: AgentState): RuntimeEventBody[] {
 
 function usageEvent(state: DurableProjection, usage: UsageState): RuntimeEventBody {
   const total = usageTotal(usage);
-  const base = state.baseline;
-  return { kind: "usage", usage: { tokens: { input: total.input - base.input, output: total.output - base.output,
-    cacheRead: (total.cacheRead ?? 0) - (base.cacheRead ?? 0), cacheWrite: (total.cacheWrite ?? 0) - (base.cacheWrite ?? 0) } } };
+  return { kind: "usage", usage: { tokens: subtractTokens(total, state.baseline) } };
 }
 
 /** The native run's terminal submission receipts, never the adapter's abort intent. */

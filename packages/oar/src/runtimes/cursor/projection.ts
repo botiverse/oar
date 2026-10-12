@@ -1,7 +1,7 @@
 import type { RuntimeEventBody, TokenTotals, ToolOutputPart, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
+import { addTokens, cacheParts, noTokens, reasoningPart } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 import { cursorSelectionEffort } from "./model.js";
 import type { ModelSelection } from "./sdk.js";
@@ -177,6 +177,7 @@ function eventsOf(
       const tokens = addTokens(state.tokens.get(pathKey(path)) ?? noTokens, {
         input: (asNumber(usage.inputTokens) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
         output: asNumber(usage.outputTokens) ?? 0,
+        ...reasoningPart(usage, "reasoningTokens"),
         ...cache,
       });
       return { state: { tokens: new Map([...state.tokens, [pathKey(path), tokens]]) }, events: [{ kind: "usage", usage: { tokens } }] };

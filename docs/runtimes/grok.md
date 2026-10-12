@@ -491,7 +491,11 @@ unverified; [spec](../spec/attribution.md#cache-reads-and-writes)). Each
 ledger covers one native prompt's model calls, not the session's lifetime:
 repeated one-word turns bill about 16.8k input each. A send-now steer's two
 answers carry disjoint ledgers (16776/222 and 34420/279 in the 1.0.25
-recording), which OAR accumulates into a running total.
+recording), which OAR accumulates into a running total. Each ledger's
+optional `reasoningTokens` also accumulates as `TokenTotals.reasoning`,
+including the independent root follow-up below. It is already part of
+`outputTokens`, so output is unchanged. Missing reasoning counters stay
+absent, and the same ledger deduplication applies to every token part.
 
 The root's automatic follow-up (`prompt_id: "subagent-completed-<child>"`)
 reports its own `turn_completed.usage`, without a `session/prompt` response.

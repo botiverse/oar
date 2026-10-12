@@ -11,16 +11,18 @@ function sumPart(previous: number | undefined, report: number | undefined): numb
 /**
  * `previous` plus one report's counts: an adapter folding a frame's own
  * usage into its running total, or a fold summing agents into the session
- * total. `cacheRead` / `cacheWrite` add like `input` but exist only once a
+ * total. `cacheRead` / `cacheWrite` / `reasoning` add like `input` but exist only once a
  * report carried them: a report without one adds nothing to it, and one that
  * has appeared stays (TokenTotals in contracts/records.ts).
  */
 export function addTokens(previous: TokenTotals, report: TokenTotals): TokenTotals {
   const cacheRead = sumPart(previous.cacheRead, report.cacheRead);
   const cacheWrite = sumPart(previous.cacheWrite, report.cacheWrite);
+  const reasoning = sumPart(previous.reasoning, report.reasoning);
   return {
     input: previous.input + report.input,
     output: previous.output + report.output,
+    ...(reasoning === undefined ? {} : { reasoning }),
     ...(cacheRead === undefined ? {} : { cacheRead }),
     ...(cacheWrite === undefined ? {} : { cacheWrite }),
   };
@@ -38,9 +40,16 @@ export function subtractTokens(total: TokenTotals, baseline: TokenTotals): Token
   return {
     input: total.input - baseline.input,
     output: total.output - baseline.output,
+    ...(total.reasoning === undefined ? {} : { reasoning: total.reasoning - (baseline.reasoning ?? 0) }),
     ...(total.cacheRead === undefined ? {} : { cacheRead: total.cacheRead - (baseline.cacheRead ?? 0) }),
     ...(total.cacheWrite === undefined ? {} : { cacheWrite: total.cacheWrite - (baseline.cacheWrite ?? 0) }),
   };
+}
+
+/** A native reasoning subset of output; absence stays unknown, never inferred from text or effort. */
+export function reasoningPart(usage: JsonRecord, field: string): Pick<TokenTotals, "reasoning"> {
+  const reasoning = asNumber(usage[field]);
+  return reasoning === null ? {} : { reasoning };
 }
 
 /**

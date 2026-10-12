@@ -145,6 +145,13 @@ The initial snapshot is its own `snapshot` frame. Stream closure is a native
 | `auto_retry_start` | retry with native attempt and reason |
 | blocking `compaction_start` | compaction started; end has no verified outcome and stays raw |
 
+The optional `reasoning` counter in each model or tool usage entry is part
+of its output. OAR sums the reported parts and subtracts the attachment
+snapshot's reasoning total, just as it does for input, output and caches.
+Missing counters stay absent; repeated cumulative ledger reports do not
+add the same spend again. This uses Pi Durable 1.1.0's native `UsageState`
+and pi-ai `Usage`, verified by projection tests.
+
 Native model `turn_start`/`turn_end` are internal rounds, not OAR turns.
 `run_end` precedes the terminal submission event in the same native batch;
 the fold reads all receipts in the batch before deciding the outcome.

@@ -76,7 +76,7 @@ test("grok prompt answer: `_meta.usage` is the prompt's ledger, `_meta.totalToke
     },
   };
   // #161: the ledger's cachedReadTokens / cacheCreationTokens are the cache parts of its input.
-  assert.deepEqual(grokPromptTokens(answer), { input: 16_791, output: 34, cacheRead: 1280, cacheWrite: 0 });
+  assert.deepEqual(grokPromptTokens(answer), { input: 16_791, output: 34, cacheRead: 1280, cacheWrite: 0, reasoning: 28 });
   assert.deepEqual(grokContextUsage(answer), { tokens: 16_825, contextWindow: null, percent: null });
   assert.equal(grokPromptTokens({ stopReason: "end_turn" }), null);
   assert.equal(grokPromptTokens({ stopReason: "cancelled", _meta: { totalTokens: 5 } }), null);

@@ -90,9 +90,9 @@ test("codex resume: the total re-reported before the first turn is the Session's
       ],
     }
   `);
-  const own = { total: { input: 1200, output: 7, cacheRead: 0, cacheWrite: 0 } };
+  const own = { total: { input: 1200, output: 7, cacheRead: 0, cacheWrite: 0, reasoning: 0 } };
   expect([usageOf(opened).value, usageOf(resumed).value, viewOf(resumed).usage]).toEqual([
-    { total: { input: 1000, output: 5, cacheRead: 0, cacheWrite: 0 } },
+    { total: { input: 1000, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: 0 } },
     own,
     own,
   ]);

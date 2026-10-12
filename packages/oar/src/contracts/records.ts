@@ -91,17 +91,17 @@ export type ReasoningContent =
   | { readonly kind: "redacted" }
   | { readonly kind: "empty" };
 
-/**
- * Token totals for the agent the record is attributed to, counted from when this Session opened.
- * `cacheRead` / `cacheWrite` are parts of `input`, accumulated like it and
- * each present only when the runtime reports it: a reported 0 is 0, an
- * unreported part is absent (never derived), a report without a part adds
- * nothing to it, and a part once present stays (docs/spec/attribution.md).
+/** Runtime-reported totals for the attributed agent, counted from this Session's opening.
+ * Cache counts are parts of input; reasoning is part of output. Optional counts accumulate only when reported.
+ * Reported zero stays zero; unreported stays absent, never derived. Missing parts add nothing (docs/spec/attribution.md).
  */
 export interface TokenTotals {
   /** All input, cache reads and writes included. */
   readonly input: number;
+  /** All output, including reasoning when the runtime accounts for it. */
   readonly output: number;
+  /** The part of `output` used for reasoning, only when reported natively. */
+  readonly reasoning?: number;
   /** The part of `input` read from the prompt cache. */
   readonly cacheRead?: number;
   /** The part of `input` written to the prompt cache. */

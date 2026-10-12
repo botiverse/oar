@@ -467,7 +467,10 @@ per machine.
 **Context (mapped):** the `agent_settled` frame carries a `usage` event with
 native `getContextUsage()` read at that moment (post-compaction; tokens null
 when unknown), so `Session.contextUsage()` (a fold) is current at turn end.
-`usage()` is the cumulative per-session total; its input counts pi's
+`usage()` is the cumulative per-session total. The optional assistant
+`usage.reasoning` counter (pi-ai 1.1.0) accumulates as `reasoning`, a part
+already inside output. It stays absent if the provider does not report it;
+reasoning text or an effort setting never supplies a count. Its input counts pi's
 `input + cacheRead + cacheWrite`, and pi's `cacheRead` and `cacheWrite`
 accumulate as the total's own `cacheRead` and `cacheWrite` (`cacheWrite1h`, a
 subset of `cacheWrite`, is not added again;

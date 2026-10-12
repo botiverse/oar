@@ -8,7 +8,7 @@ import type {
 } from "../../contracts/session.js";
 import { piFailure, type PiProviderError } from "./failure.js";
 import { asNumber, asRecord } from "../../shared/json.js";
-import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
+import { addTokens, cacheParts, noTokens, reasoningPart } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
 
 /**
@@ -133,6 +133,7 @@ function accumulate(state: PiProjectionState, message: unknown): Step {
   const tokens = addTokens(state.tokens, {
     input: (asNumber(usage.input) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
     output: asNumber(usage.output) ?? 0,
+    ...reasoningPart(usage, "reasoning"),
     ...cache,
   });
   return { state: { ...state, tokens }, events: [{ kind: "usage", usage: { tokens } }] };

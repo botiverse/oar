@@ -29,6 +29,20 @@ const one = (update: unknown): CursorFrame => {
   return frame ?? assert.fail("no frame");
 };
 
+test("Cursor keeps native reasoning as an optional subset of output", () => {
+  const { frames } = fold([
+    { type: "turn-ended", usage: { inputTokens: 10, outputTokens: 5, reasoningTokens: 3 } },
+    { type: "turn-ended", usage: { inputTokens: 20, outputTokens: 4 } },
+    { type: "turn-ended", usage: { inputTokens: 30, outputTokens: 8, reasoningTokens: 0 } },
+  ]);
+  expect(frames.flatMap((frame) => frame.events)).toEqual([
+    { kind: "usage", usage: { tokens: { input: 10, output: 5, reasoning: 3 } } },
+    { kind: "usage", usage: { tokens: { input: 30, output: 9, reasoning: 3 } } },
+    { kind: "usage", usage: { tokens: { input: 60, output: 17, reasoning: 3 } } },
+  ]);
+  expect(one({ type: "turn-ended", usage: { inputTokens: 10, outputTokens: 5 } }).events).toEqual([{ kind: "usage", usage: { tokens: { input: 10, output: 5 } } }]);
+});
+
 test("text and thinking pieces are text and reasoning; bookkeeping updates are frames with no events", () => {
   assert.deepEqual(one({ type: "text-delta", text: "OAR-BASIC" }).events, [{ kind: "text_delta", text: "OAR-BASIC" }]);
   assert.deepEqual(one({ type: "thinking-delta", text: "I will reply" }).events, [{ kind: "reasoning", content: { kind: "text", text: "I will reply" } }]);

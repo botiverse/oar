@@ -197,8 +197,8 @@ the resumed Session's `usage` events carry `context` only and
 `usage().total` stays null ([claude](../runtimes/claude.md#token-totals)).
 codex's thread total spans the thread's life; after a resume codex
 re-reports it once, before this Session's first turn starts, and the adapter
-subtracts that report from every later root total, `cacheRead` and
-`cacheWrite` included. It subtracts codex's own number and never estimates
+subtracts that report from every later root total, `cacheRead`,
+`cacheWrite` and `reasoning` included. It subtracts codex's own number and never estimates
 one. Don't know, don't report: a resumed codex Session whose first turn
 starts without that report (codex before 0.151.0) cannot tell its share, so
 its `usage` events carry `context` only and `usage().total` stays null,
@@ -231,6 +231,37 @@ Adapter-internal (never crosses the protocol surface):
           less the total codex re-reports on resume
   pi      flat usage                 → session total only; no fabricated breakdown
 ```
+
+### Reasoning tokens
+
+`TokenTotals.reasoning?` is the runtime-reported part of `output` used for
+reasoning. `output` already includes it: never add `reasoning` to `output`
+or to `input + output`. It is independent of reasoning text and effort;
+neither proves a token count. An absent field means unreported, while a
+reported zero stays zero.
+
+The field follows the same accounting as the other totals: accumulated
+per agent, summed into session totals and `withChildren`, and subtracted
+from a native lifetime total's opening baseline. Only reported parts are
+summed; a report without the field adds nothing. `usageOf(records)` and
+SessionView preserve it through JSON replay.
+
+| Runtime | Native counter | Evidence |
+| --- | --- | --- |
+| codex | `tokenUsage.total.reasoningOutputTokens` | real app-server 0.162.0 / 0.162.1, scripted Responses `output_tokens_details.reasoning_tokens`; new and resumed sessions [env] |
+| grok | prompt `_meta.usage.reasoningTokens`; independent root follow-up `turn_completed.usage.reasoningTokens` | retained native wire fixtures; shared prompt/follow-up accounting [env] |
+| pi | assistant `usage.reasoning` | pi-ai 1.1.0 `Usage`; optional provider-reported subset of output [src] |
+| pi-durable | model and tool ledger entries' `reasoning` | Pi Durable 1.1.0 `UsageState` uses pi-ai `Usage`; subtract attachment snapshot [src] |
+| cursor | `turn-ended.usage.reasoningTokens` | SDK 1.0.37 `TokenUsage` / `TurnUsageInput`; optional subset of output [src] |
+| claude, kimi, opencode, antigravity | absent | no verified native reasoning counter on the integrated surface |
+
+[Accounting regressions](../../tests/reasoning-tokens.test.ts) pin absence,
+zero, agent/child totals and replay. The
+[Codex vendor test](../../sea-trial/vendor/reasoning-tokens.vendor.test.ts)
+checks nonzero counts on both sides of a resume without an account or model
+request to a real provider. Pi and Cursor field mappings are verified with
+their SDK types and projection tests; no real-provider nonzero count is
+claimed for those SDKs.
 
 ### Cache reads and writes
 
