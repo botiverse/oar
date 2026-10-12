@@ -20,8 +20,11 @@ defaults to 15 seconds and must be positive and finite.
 These operations discover native information independently of existing agents.
 There are **no Session inventory methods, session IDs, or session query mode**.
 A fresh process's connections or active defaults do not describe an existing
-agent. No model prompt is submitted; native startup can load extensions and
-connect configured MCP servers. Pi uses a temporary in-memory SDK session,
+agent. No model prompt is submitted, but the runtime starts in `cwd` the way
+it would for a session: it can load and run that workspace's code (pi's
+project extensions, a configured stdio MCP server) and connect configured
+MCP servers. Do not take an inventory of a directory you do not trust; this
+holds for every reader. Pi uses a temporary in-memory SDK session,
 without writing trust configuration, and disposes it after discovery.
 Inventory results never enter a session's record stream. Servers a session
 was given in `SessionOptions.mcpServers` are that session's, not the

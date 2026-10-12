@@ -125,7 +125,7 @@ test("Claude command discovery uses one private initialize answer, including ali
     methods.push(method);
     return { commands: [
       { name: "review", description: "Review", argumentHint: "<path>", aliases: ["audit"], builtin: true },
-      { name: "project-command", description: "Project", private: "secret command body" },
+      { name: "project-command", description: "Project", argumentHint: "", private: "secret command body" },
     ], account: { email: "private@example.test" }, organization: "secret org" };
   });
   spawnLineProcess.mockReturnValue(fake);

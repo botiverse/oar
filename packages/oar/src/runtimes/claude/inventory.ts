@@ -20,7 +20,8 @@ export function projectClaudeCommands(payload: JsonRecord): CommandEntry[] {
     }
     return {
       name: named(command), ...textField("description", command.description),
-      ...textField("argumentHint", command.argumentHint),
+      // claude gives "" for a command without a hint; absent reads the same as pi (#351).
+      ...(command.argumentHint === "" ? {} : textField("argumentHint", command.argumentHint)),
       ...(command.builtin === true ? { source: "builtin" } : {}),
       ...(aliases === undefined ? {} : { aliases }),
     };
