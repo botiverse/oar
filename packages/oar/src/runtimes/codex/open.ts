@@ -132,6 +132,20 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   };
 }
 
+/**
+ * SessionOptions.name (#368): the name to give the opened thread, or null. A
+ * new thread gets it; a resumed one only when the resume reply shows no name,
+ * so a name the user gave in their app is kept. The name reads back on the
+ * thread ([env] codex 0.162.0, experiments/codex-session-name.ts).
+ */
+export function codexThreadName(method: CodexOpenMethod, options: SessionOptions, reply: JsonRecord): string | null {
+  if (options.name === undefined) {
+    return null;
+  }
+  const current = method === "thread/resume" ? asRecord(reply.thread)?.name : undefined;
+  return typeof current === "string" && current.length > 0 ? null : options.name;
+}
+
 /** A reply's `reasoningEffort` (or `threadSettings.effort`): null when codex runs no explicit level (the model's default). */
 function effortIn(record: JsonRecord | null): string | null {
   const effort = record?.reasoningEffort ?? record?.effort;

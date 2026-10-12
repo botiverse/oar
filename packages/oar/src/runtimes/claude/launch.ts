@@ -35,6 +35,11 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     // safety. Isolation is the sandbox's job, not the approval flow's.
     "--dangerously-skip-permissions",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
+    // SessionOptions.name (#368) names a new session only: `--name` on a
+    // resume replaces the name the session has, which may be the user's
+    // ([env] claude 2.1.292: it reports the old one as session_title_changed
+    // at startup, and a new `--name` overwrites it).
+    ...(options.resume !== undefined || options.name === undefined ? [] : ["--name", options.name]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     ...tierArgs,

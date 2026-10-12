@@ -310,6 +310,27 @@ stops advertising the extension is refused before `session/new` or resume.
 
 [Native evidence, boundaries and upgrade checks](../../experiments/additional-directories-2026-10-11.md).
 
+## Session name
+
+`SessionOptions.name` is the session's display name in the runtime's own UI
+and session list, so a user who shares the runtime's home with a host can
+tell the host's sessions from their own. A new session gets it. A resume
+never replaces a name the session has, which may be one the user gave.
+
+| Runtime | Native mapping | Resume |
+|---|---|---|
+| claude | `--name` at launch | Left alone: `--name` on a resume replaces the session's name, and claude reports that name only once it has started (`session_title_changed`). |
+| codex | `thread/name/set` after `thread/start` | Set only when the `thread/resume` reply shows no name. |
+| pi | `AgentSession.setSessionName` after the session opens | Set only when pi's session reports no name (`getSessionName`). |
+| cursor, kimi, grok, antigravity, opencode, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+
+Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
+(codex 0.162.0) and the vendor tests
+[`codex-session-name`](../../sea-trial/vendor/codex-session-name.vendor.test.ts),
+[`claude-session-name`](../../sea-trial/vendor/claude-session-name.vendor.test.ts)
+and [`pi-session-name`](../../sea-trial/vendor/pi-session-name.vendor.test.ts),
+which read the name back through each runtime's own interface.
+
 ## Refused session options
 
 What a runtime cannot honor is refused, never dropped: `session()` rejects
@@ -329,12 +350,12 @@ when it is an empty object.
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback; no verified final-output schema channel |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified final-output schema channel |
-| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel |
-| grok | `disallowedTools`, `serviceTier`, `additionalDirectories` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel |
-| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback; no verified final-output schema channel |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel; no verified final-output schema channel |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
+| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel; no verified session name setting |
+| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified session name setting |
+| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel; no verified final-output schema channel; no session name |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel |
 | claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
 
@@ -428,8 +449,9 @@ existing types and causes; OAR never starts a replacement conversation.
 Hosts should persist the cwd with the session id and reuse it on resume.
 Kimi and OpenCode still reject a listed session from another cwd with
 `UnsupportedOptionError` on `cwd`, which does not mean missing. Codex's
-`-32600` also covers an active writer and the unloaded sub-agent refusal;
-neither is mapped. OpenCode v1's generic `-32603` alone is not evidence.
+`-32600` also covers an archived thread and an active writer
+([below](#unavailable-resume-targets)) and the unloaded sub-agent refusal,
+which is not mapped. OpenCode v1's generic `-32603` alone is not evidence.
 Runtimes not listed above never throw `SessionNotFoundError`.
 
 Evidence: opens without prompts on 2026-10-09, Claude 2.1.292, Codex 0.162.0,
@@ -441,6 +463,29 @@ Native answers, with ids/temporary paths normalized, are pinned in
 and [`claude-missing-resume.json`](../../tests/fixtures/claude-missing-resume.json).
 Tests exercise the opening paths, full pagination, redaction and the
 must-not-match refusals.
+
+## Unavailable resume targets
+
+`session({ resume })` rejects with the exported `SessionUnavailableError`
+when the runtime keeps the conversation but will not open it now. It has
+`name: "SessionUnavailableError"`, `sessionId`, `reason` and
+`cause: { method, native }`, with the runtime's words as its message, under
+the same redaction rules. Like `SessionNotFoundError` it is not a
+`FailureClass`.
+
+| reason | meaning | what a host can do |
+|---|---|---|
+| `archived` | The user archived the conversation in the runtime's own app. | Decide whether to unarchive it. OAR never does: that reverses the user's own action and puts the conversation back where the user removed it from. |
+| `in_use` | Another process, such as the user's app, holds the conversation. | Retry once that process lets it go. It is not a missing conversation. |
+
+| Runtime | Evidence required |
+|---|---|
+| codex | `thread/resume` JSON-RPC error `-32600` with message `session <id> is archived. …` (`archived`) or `thread <id> already has an active writer` (`in_use`); exact prose is the last resort |
+
+Runtimes not listed above never throw `SessionUnavailableError`. Evidence:
+[`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
+(codex 0.162.0, a second app-server standing in for the user's app) and
+[`codex-session-name.vendor.test.ts`](../../sea-trial/vendor/codex-session-name.vendor.test.ts).
 
 ## Failure evidence
 

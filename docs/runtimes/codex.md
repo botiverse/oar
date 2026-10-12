@@ -134,9 +134,24 @@ no `experimentalRawEvents`, which would be inert there
 A `thread/resume` error with code `-32600` and message starting exactly
 `no rollout found for thread id` rejects with `SessionNotFoundError`, the
 requested `sessionId`, and the original method/native error in `cause`.
-The code alone also covers active writers and unloaded sub-agents, so those
-refusals keep their own errors. This prose fallback is pinned by the
-0.162.0 recording ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+The same code with `session <id> is archived. …` (the user archived the
+thread in their app) or `thread <id> already has an active writer` (another
+app-server, such as the user's app, holds it) rejects with
+`SessionUnavailableError`, `reason` `archived` or `in_use`. OAR never
+unarchives a thread: that is the user's own action, and the host decides
+([unavailable targets](../spec/runtime-matrix.md#unavailable-resume-targets)).
+An unloaded sub-agent's refusal keeps its own error. These prose fallbacks
+are pinned by the 0.162.0 recordings ([missing targets](../spec/runtime-matrix.md#missing-resume-targets),
+[`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)).
+
+**Session name (mapped, [#368](https://github.com/botiverse/oar/issues/368)).**
+`SessionOptions.name` is set with `thread/name/set` right after
+`thread/start`. On a resume it is set only when the `thread/resume` reply's
+`thread.name` is empty, so a name the user gave in their app stays. A name
+codex refuses fails the open with codex's words. The name shows in the
+user's Codex app when the host shares `CODEX_HOME` with it; keeping a
+host's threads out of that app entirely takes a separate `CODEX_HOME`, at
+the cost of the shared login and configuration.
 
 **Token totals after a resume (mapped,
 [#169](https://github.com/botiverse/oar/issues/169)).** codex's

@@ -97,8 +97,19 @@ export interface SessionOptions {
    */
   readonly outputSchema?: Readonly<Record<string, unknown>>;
   /**
+   * The session's display name in the runtime's own UI and session list
+   * (claude `--name`, codex `thread/name/set`, pi's session name), so a user
+   * can tell a host's sessions apart from their own. A new session gets it.
+   * On resume it is set only where the runtime reports the current name and
+   * there is none (codex, pi), so a name the user gave is never replaced;
+   * claude keeps whatever name it has. Other runtimes refuse this option.
+   */
+  readonly name?: string;
+  /**
    * Resume the native conversation identified by a previous Session.id.
-   * Verified missing-target signals reject with SessionNotFoundError; all
+   * Verified missing-target signals reject with SessionNotFoundError; a
+   * target the runtime keeps but will not open now (archived, or held by
+   * another process) rejects with SessionUnavailableError; all
    * other failed opens keep their own errors. Missing is scoped to the
    * runtime's configuration, including cwd for per-directory stores. Save
    * and reuse that cwd; kimi/opencode reject a different one with

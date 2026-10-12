@@ -41,6 +41,7 @@ export const morphRefusedSessionOptions: RefusedSessionOptions = {
   env: "morph runs tools inside its Console process, which a session neither starts nor owns",
   mcpServers: "OAR does not attach MCP servers to morph: no per-session channel is known",
   launchArgs: "morph sessions run in its Console process, which a session neither starts nor owns",
+  name: "OAR knows no morph session name setting",
 };
 
 interface Held {

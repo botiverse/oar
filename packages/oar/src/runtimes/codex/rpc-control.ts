@@ -1,4 +1,5 @@
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
+import { SessionUnavailableError, type SessionUnavailableReason } from "../../contracts/session-unavailable-error.js";
 import { emptyInputRefusal } from "../../shared/control-input.js";
 import type {
   ControlResult,
@@ -77,13 +78,45 @@ export async function rpcControl(
 }
 
 /**
- * The open RPC, with its failure named after the method (a refused resume
+ * A resume target codex keeps but will not open now, by its words on the
+ * `-32600` it shares with a missing rollout ([env] codex 0.162.0,
+ * experiments/codex-session-name.ts): the user archived it in their app, or
+ * another app-server (their app) is its writer.
+ */
+function unavailableReason(message: string): SessionUnavailableReason | null {
+  if (/^session \S+ is archived\./u.test(message)) {
+    return "archived";
+  }
+  return /^thread \S+ already has an active writer$/u.test(message) ? "in_use" : null;
+}
+
+/**
+ * The typed error for a resume codex refused, or null. Codex 0.162.0 uses
+ * -32600 for a missing rollout, an archived thread, an active writer and
+ * unloaded sub-agents alike, so its words are the last resort, pinned by
+ * missing-resume-errors.json and the codex vendor test.
+ */
+function resumeError(method: string, resumeId: string | undefined, cause: JsonRecord | null, message: string): Error | null {
+  const native = asRecord(cause?.native);
+  if (method !== "thread/resume" || resumeId === undefined || cause?.method !== method || native?.code !== -32_600 || typeof native.message !== "string") {
+    return null;
+  }
+  const text = `codex ${method} failed: ${message}`;
+  if (native.message.startsWith("no rollout found for thread id")) {
+    return new SessionNotFoundError(resumeId, text, { method, native });
+  }
+  const reason = unavailableReason(native.message);
+  return reason === null ? null : new SessionUnavailableError(resumeId, text, { reason, method, native });
+}
+
+/**
+ * The open RPCs, with their failure named after the method (a refused resume
  * must say `thread/resume`: "no rollout found for thread id …" alone does
- * not) and the app-server that was started for it killed.
+ * not) and the app-server that was started for them killed.
  */
 export async function openThread(
   client: AppServerClient,
-  method: "thread/start" | "thread/resume",
+  method: "thread/start" | "thread/resume" | "thread/name/set",
   send: () => Promise<JsonRecord>,
   serviceTier?: string,
   resumeId?: string,
@@ -93,16 +126,23 @@ export async function openThread(
   } catch (error) {
     client.kill();
     const message = error instanceof Error ? error.message : String(error);
-    const cause = asRecord(error instanceof Error ? error.cause : undefined);
-    const native = asRecord(cause?.native);
-    // Codex 0.162.0 also uses -32600 for active writers and sub-agents.
-    // Prose is the last resort, pinned by missing-resume-errors.json.
-    if (method === "thread/resume" && resumeId !== undefined && cause?.method === method && native?.code === -32_600
-      && typeof native.message === "string" && native.message.startsWith("no rollout found for thread id")) {
-      throw new SessionNotFoundError(resumeId, `codex ${method} failed: ${message}`, { method, native });
+    const typed = resumeError(method, resumeId, asRecord(error instanceof Error ? error.cause : undefined), message);
+    if (typed !== null) {
+      throw typed;
     }
     const detail = serviceTier === undefined ? message : `serviceTier ${serviceTier} could not be confirmed (actual unreported): ${message}`;
     // oxlint-disable-next-line eslint/preserve-caught-error -- Keep the native diagnostic directly in cause, without another Error layer.
     throw new Error(`codex ${method} failed: ${detail}`, { cause: error instanceof Error ? error.cause ?? error : error });
   }
+}
+
+/** SessionOptions.name (#368) on the opened thread, when there is one to set (open.ts `codexThreadName`); a name codex refuses fails the open. */
+export async function nameThread(client: AppServerClient, threadId: string, name: string | null): Promise<void> {
+  if (name === null) {
+    return;
+  }
+  await openThread(client, "thread/name/set", async () => {
+    const reply = await client.request("thread/name/set", { threadId, name });
+    return reply;
+  });
 }

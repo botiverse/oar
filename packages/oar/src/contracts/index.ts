@@ -139,4 +139,5 @@ export type {
 export { defineRuntime } from "./runtime.js";
 export { UnsupportedOptionError } from "./errors.js";
 export { SessionNotFoundError } from "./session-not-found-error.js";
+export { SessionUnavailableError, type SessionUnavailableReason } from "./session-unavailable-error.js";
 export { RuntimeFailureError } from "./runtime-failure-error.js";

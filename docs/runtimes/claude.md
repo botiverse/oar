@@ -136,6 +136,14 @@ startup options again and restores neither old control handles nor historical
 OAR records. [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [kernel](../../packages/oar/src/shared/session-kernel.ts).
 
+**Session name (mapped, [#368](https://github.com/botiverse/oar/issues/368)).**
+`SessionOptions.name` launches a new session with `--name`, which claude
+reports as a `session_title_changed` frame and keeps in the transcript. A
+resume does not pass it: `--name` there replaces the name the session has,
+which may be the user's, and claude reports that name only once it has
+started ([env] 2.1.292; `rename_session` exists on the control channel but
+is not used). [Vendor test](../../sea-trial/vendor/claude-session-name.vendor.test.ts).
+
 Fork, session listing, history retrieval, rewind, and reset identity management
 are **not exposed**. Duplicate transcripts and concurrent controllers resuming
 one ID are **unverified**.

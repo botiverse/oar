@@ -34,6 +34,7 @@ export function supportsAntigravityYolo(response: JsonRecord): boolean {
 
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "Antigravity ACP and launch configuration expose no final-output schema channel",
+  name: "antigravity exposes no verified session name setting",
   additionalDirectories: "antigravity accepts but ignores ACP additionalDirectories",
   serviceTier: "antigravity exposes no verified per-session service-tier setting and readback",
   systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",

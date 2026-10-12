@@ -203,6 +203,11 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     session.dispose();
     throw new Error(refusal);
   }
+  // SessionOptions.name (#368): pi's session name, for a new session and for
+  // a resumed one that has none, so a name the user gave is kept.
+  if (options.name !== undefined && sessionManager.getSessionName() === undefined) {
+    session.setSessionName(options.name);
+  }
   // Like each CLI startup (including --resume/--continue), keep the SDK
   // default session_start reason: startup. bindExtensions emits it and
   // awaits resource discovery, whether or not MCP was requested.

@@ -19,6 +19,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   env: { env: { OAR_PROBE: "1" } },
   mcpServers: { mcpServers: [{ name: "probe", command: "/nonexistent/oar-probe" }] },
   launchArgs: { launchArgs: ["--probe"] },
+  name: { name: "probe" },
 };
 
 // Declared refusals are checked before anything starts, so an installation
@@ -32,7 +33,7 @@ test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
@@ -46,13 +47,13 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "appendSystemPrompt", "outputSchema", "serviceTier", "systemPrompt"],
+    antigravity: ["additionalDirectories", "appendSystemPrompt", "name", "outputSchema", "serviceTier", "systemPrompt"],
     claude: [],
     codex: [],
-    cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "outputSchema", "serviceTier", "systemPrompt"],
-    grok: ["additionalDirectories", "disallowedTools", "serviceTier"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "outputSchema", "serviceTier", "systemPrompt"],
-    opencode: ["disallowedTools", "outputSchema", "serviceTier"],
+    cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    grok: ["additionalDirectories", "disallowedTools", "name", "serviceTier"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    opencode: ["disallowedTools", "name", "outputSchema", "serviceTier"],
     pi: ["additionalDirectories", "launchArgs", "outputSchema", "serviceTier"],
   });
 });

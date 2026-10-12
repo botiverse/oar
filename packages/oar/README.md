@@ -107,7 +107,7 @@ See [dropped input](https://github.com/botiverse/oar/blob/main/docs/spec/convers
 
 The package has these public entry points, plus `@botiverse/oar/community` for community runtimes (below):
 
-- `@botiverse/oar`: the runtime registry and adapters, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar`: the runtime registry and adapters, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `graphOf`, `usageOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
@@ -149,6 +149,16 @@ signals, carrying `sessionId` and a redacted `cause: { method, native }`.
 Other failed opens retain their own errors. Missing is scoped to the runtime's
 configuration and, for Pi/Grok, the supplied cwd; save and reuse the cwd with
 the id. See [missing resume targets](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#missing-resume-targets).
+A target the runtime keeps but will not open now rejects with
+`SessionUnavailableError`, whose `reason` is `archived` (the user archived it
+in their app; OAR never unarchives it) or `in_use` (another process, such as
+the user's app, holds it); codex reports both. See
+[unavailable resume targets](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#unavailable-resume-targets).
+
+`SessionOptions.name` is the session's display name in the runtime's own UI
+(claude, codex and pi; other runtimes refuse it). A new session gets it; a
+resume never replaces a name the session has. See
+[session name](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-name).
 
 `SessionOptions.additionalDirectories` adds native workspace paths, resolved
 relative to `cwd`. Claude, Codex, Cursor, Kimi (new sessions only), and

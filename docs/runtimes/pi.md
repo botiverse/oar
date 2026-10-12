@@ -218,6 +218,12 @@ is measured in [crash and resume](crash-resume.md) (SDK 0.99.2).
 [Adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [kernel](../../packages/oar/src/shared/session-kernel.ts).
 
+**Session name (mapped, [#368](https://github.com/botiverse/oar/issues/368)).**
+`SessionOptions.name` is pi's session name (`AgentSession.setSessionName`, a
+`session_info` entry that pi's session list reports). A new session gets it;
+a resumed one only when `getSessionName()` reports none, so a name the user
+gave stays. [Vendor test](../../sea-trial/vendor/pi-session-name.vendor.test.ts).
+
 ### Interrupted input
 
 Pi retains steering input across the tested abort. In SDK 1.0.4,

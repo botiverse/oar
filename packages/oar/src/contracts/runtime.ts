@@ -9,7 +9,7 @@ import type { RuntimeBrand } from "./brand.js";
 import type { StartSession } from "./session.js";
 
 /** The `SessionOptions` a runtime can refuse at open. */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
