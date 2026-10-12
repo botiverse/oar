@@ -4,6 +4,7 @@ import type { CommandEntry, InventoryReader, InventoryScope, InventoryResult, Sk
 import { asRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { piAgentDir } from "./resolve.js";
+import { initPiTheme } from "./theme.js";
 
 interface PiReaders {
   readonly skills: () => InventoryResult<SkillEntry>;
@@ -59,7 +60,9 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>): In
     const result = await inventoryRead(async () => {
       const sdk = await import("@earendil-works/pi-coding-agent");
       const agentDir = piAgentDir(() => sdk.getAgentDir());
-      const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir });
+      const settingsManager = sdk.SettingsManager.create(scope.cwd, agentDir);
+      initPiTheme(sdk.initTheme, settingsManager);
+      const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir, settingsManager });
       const { session } = await sdk.createAgentSessionFromServices({
         services, sessionManager: sdk.SessionManager.inMemory(scope.cwd),
       });

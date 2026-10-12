@@ -518,7 +518,13 @@ configuration-dependent.
 
 OAR pre-trusts cwd in native `trust.json`, an observable persistent write.
 Extensions can still implement permission gates and interactive flows; OAR has
-no general approval/user-input bridge for them. `SessionOptions.env` affects
+no general approval/user-input bridge for them. Like pi's print and rpc
+modes, OAR initializes pi's theme from the settings before extensions load
+(sessions, model listing and inventory), without the file watcher pi starts
+only in interactive mode, so an extension tool that colors its output through
+`ctx.ui.theme` runs as it does under pi's CLI. That theme is one global in
+the host process, set by the latest load
+([theme](../../packages/oar/src/runtimes/pi/theme.ts)). `SessionOptions.env` affects
 subprocesses spawned by the replacement bash tool and the session's stdio
 MCP servers ([below](#session-mcp-servers)), not provider keys/base
 URLs. A `null` entry removes an inherited variable from Bash children,

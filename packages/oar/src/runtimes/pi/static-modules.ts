@@ -1,4 +1,5 @@
 import { configurePiHttp, type PiHttpSettings } from "./http.js";
+import { preparePiTheme, type PiThemeSettings } from "./theme.js";
 
 /*
  * pi's provider modules for a bundled host (#328). pi-ai loads its sign-in
@@ -58,7 +59,11 @@ export async function providePiModules(): Promise<void> {
   await provided;
 }
 
-/** pi's process-wide setup before it first reaches a provider: the proxy plane (http.ts) and pi-ai's provider modules. */
-export async function preparePi(settings: PiHttpSettings): Promise<void> {
-  await Promise.all([configurePiHttp(settings), providePiModules()]);
+/**
+ * pi's process-wide setup before it first reaches a provider or runs an
+ * extension: the proxy plane (http.ts), pi-ai's provider modules and the
+ * theme (theme.ts).
+ */
+export async function preparePi(settings: PiHttpSettings & PiThemeSettings): Promise<void> {
+  await Promise.all([configurePiHttp(settings), providePiModules(), preparePiTheme(settings)]);
 }

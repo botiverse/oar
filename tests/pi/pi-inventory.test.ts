@@ -7,6 +7,8 @@ const sdk = vi.hoisted(() => ({
   createAgentSessionServices: vi.fn(async (_options: unknown) => ({})),
   createAgentSessionFromServices: vi.fn(),
   SessionManager: { inMemory: vi.fn((cwd: string) => ({ cwd })) },
+  SettingsManager: { create: vi.fn((cwd: string) => ({ cwd, getTheme: () => "dark" })) },
+  initTheme: vi.fn(),
 }));
 vi.mock("@earendil-works/pi-coding-agent", () => sdk);
 
@@ -51,7 +53,10 @@ test("Pi independently discovers skills, retaining invocation restrictions and d
     kind: "ok", partial: true, view: "discovered", scope: { kind: "workspace", cwd },
     items: [{ name: "review", description: "Review", path: "/skills/review", source: "project", disableModelInvocation: true }],
   });
-  expect(sdk.createAgentSessionServices).toHaveBeenCalledWith({ cwd, agentDir: "/fake/agent" });
+  expect(sdk.createAgentSessionServices.mock.calls[0]?.[0]).toMatchObject({ cwd, agentDir: "/fake/agent", settingsManager: { cwd } });
+  // pi's theme from that directory's settings, before extensions load, without the watcher.
+  expect(sdk.initTheme).toHaveBeenCalledWith("dark", false);
+  expect(sdk.initTheme.mock.invocationCallOrder[0]).toBeLessThan(sdk.createAgentSessionServices.mock.invocationCallOrder[0] ?? 0);
   expect(sdk.SessionManager.inMemory).toHaveBeenCalledWith(cwd);
   expect(agent.dispose).toHaveBeenCalledOnce();
 });
