@@ -1433,3 +1433,30 @@ behavior intact. Inputs already in Codex's durable queue likewise do not
 gain the setting when the thread is resumed.
 
 [Native evidence, goal-continuation probe and regressions](../../experiments/structured-output-2026-10-11.md).
+
+## Coming from the codex SDK
+
+`@openai/codex-sdk` starts `codex exec --experimental-json` for every turn;
+OAR keeps one `codex app-server` process per session, so it can steer and
+queue during a turn, keep a session after an interrupt, and starts turns
+faster (about 100 to 170 ms against 270 to 410 ms in the
+[0.162.1 comparison, #342](https://github.com/botiverse/oar/issues/342)).
+Where an SDK option has a counterpart:
+
+| codex SDK | OAR |
+| --- | --- |
+| `startThread()`, `resumeThread(id)` | `codexRuntime.session(installation, options)`, with `SessionOptions.resume` |
+| `thread.run(input)`, `runStreamed(input)` | `promptAndWait(session, text)`; `session.records()` or `rawEvents()` for the stream |
+| a second `run` while one runs | `session.steer(text)` or `session.queue(text)` |
+| `signal` | `session.abort()` |
+| `model`, `modelReasoningEffort` | `SessionOptions.model`, `SessionOptions.effort` |
+| `workingDirectory`, `additionalDirectories` | `SessionOptions.cwd`, `SessionOptions.additionalDirectories` |
+| `skipGitRepoCheck` | not needed: app-server runs outside a git repository |
+| `sandboxMode` | `OAR_CODEX_SANDBOX` (default `danger-full-access`) |
+| `approvalPolicy` | not offered: OAR allows every tool by design |
+| `networkAccessEnabled`, `webSearchMode`, `config`, `configOverrides` | `launchArgs: ["-c", "key=value"]` |
+| `outputSchema` (per turn) | `SessionOptions.outputSchema` (every OAR turn; codex returns text) |
+| `codexPathOverride` | `OAR_CODEX_BIN` |
+| `baseUrl`, `apiKey` | a custom provider in `config.toml` or `-c`; a session-scoped key is [#344](https://github.com/botiverse/oar/issues/344) |
+| `env` (replaces the environment) | `SessionOptions.env` (merged; `null` removes a variable) |
+| `Usage` | `session.usage()` (the SDK's `reasoning_output_tokens`: [#345](https://github.com/botiverse/oar/issues/345)) |

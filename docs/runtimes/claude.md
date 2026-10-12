@@ -1298,3 +1298,44 @@ produced 49 entries. The project command retained its native description and
 argument hint, and another workspace excluded it. No login or model request
 was needed. Counts depend on native configuration and are not a contract.
 [Probe and evidence](../../experiments/commands-2026-10-11.md).
+
+## Coming from the Claude Agent SDK
+
+The Agent SDK is a library that starts the Claude Code binary and speaks the
+same stream-json control protocol this adapter speaks; OAR drives the binary
+directly and does not depend on the SDK. In common host scenarios OAR aims to
+be no worse than the SDK
+([comparison with 0.3.296, #342](https://github.com/botiverse/oar/issues/342)).
+Where an SDK option has a counterpart:
+
+| Agent SDK | OAR |
+| --- | --- |
+| `query({ prompt })`, a streamed `prompt` | `promptAndWait(session, text)`; later inputs `prompt`, `steer`, `queue` |
+| a user message pushed mid-turn (default priority) | `session.steer(text)` |
+| `priority: "later"` | `session.queue(text)` |
+| `priority: "now"` | `session.abort()`, then `prompt` |
+| `q.interrupt()` | `session.abort()` |
+| `options.resume` | `SessionOptions.resume` |
+| `options.continue`, `forkSession` | not offered; `--continue` and `--fork-session` in `launchArgs` are refused |
+| `options.model`, `options.effort` | `SessionOptions.model`, `SessionOptions.effort` (refused for a model that takes no effort) |
+| `q.setModel`, `applyFlagSettings` mid-session | not yet ([live configuration](live-configure.md)); reopen with `resume` |
+| `options.cwd`, `options.env` | `SessionOptions.cwd`, `SessionOptions.env` (parent-session markers dropped) |
+| `options.additionalDirectories` | `SessionOptions.additionalDirectories` |
+| `options.disallowedTools` | `SessionOptions.disallowedTools` |
+| `options.tools` | `launchArgs: ["--tools", "Read,Grep"]` |
+| `options.mcpServers` (stdio, http) | `SessionOptions.mcpServers` |
+| `createSdkMcpServer` (in-process tools) | not yet ([#341](https://github.com/botiverse/oar/issues/341)); run a stdio or http server |
+| `systemPrompt` string, or preset with `append` | `SessionOptions.systemPrompt`, `SessionOptions.appendSystemPrompt` |
+| `outputFormat` with a JSON schema | `SessionOptions.outputSchema`; the value in `TurnOutcome.structuredOutput` |
+| `options.agents` | `launchArgs: ["--agents", json]` |
+| `settingSources` | `launchArgs: ["--setting-sources", ""]` |
+| `plugins` | `launchArgs: ["--plugin-dir", path]` |
+| `maxTurns`, `maxBudgetUsd` | `launchArgs: ["--max-turns", "2"]`, `["--max-budget-usd", "0.5"]`; ends as `failure: "limit_reached"` |
+| `permissionMode`, `canUseTool`, hooks | not offered: OAR allows every tool by design (host approvals deferred) |
+| `listSessions`, `getSessionMessages` | not yet ([#340](https://github.com/botiverse/oar/issues/340)) |
+| `result.usage`, `modelUsage` | `session.usage()`, `contextUsage()`, `contextBreakdown()` |
+| `result.total_cost_usd` | not reported (list-price estimate) |
+| `q.accountInfo()` | `claudeRuntime.authStatus()`, `accountUsage()`, `login()` |
+| `supportedModels()` | `claudeRuntime.listModels()` |
+| `supportedCommands()` | `claudeRuntime.commands()` |
+| `pathToClaudeCodeExecutable` | `OAR_CLAUDE_BIN` |
