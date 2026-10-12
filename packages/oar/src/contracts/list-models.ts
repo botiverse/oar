@@ -22,10 +22,12 @@ export interface ModelEntry {
   /** Present when the runtime lists the model but refuses to run it as-is. */
   readonly disabled?: { readonly reason: string };
   /**
-   * The entry the runtime itself marks as what a session uses when no `model`
-   * is set: claude's `default` entry, codex's `isDefault`, a new ACP session's
-   * current model (grok, kimi, antigravity), pi's saved default. Absent when
-   * the runtime marks none; OAR never picks one.
+   * The model a session uses when no `model` is set, where the runtime says
+   * so: codex's configured model (else its catalog `isDefault`), a new ACP
+   * session's current model (grok, kimi, antigravity), pi's saved default.
+   * Configuration is read for the host's own cwd. Absent when the runtime
+   * cannot say (claude: its settings can pick a model its list does not
+   * reflect; cursor, opencode); OAR never picks one.
    */
   readonly default?: true;
   /**

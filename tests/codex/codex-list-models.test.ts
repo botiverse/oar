@@ -49,6 +49,24 @@ test("codex lister streams multi-chunk RPC replies and projects the model picker
   expect(spawnLineProcess).toHaveBeenCalledWith("codex", ["app-server", "--listen", "stdio://"], expect.anything());
 });
 
+// #347 (Lookout, codex 0.162.1): a session with no model runs on the configured one, not the catalog's isDefault.
+test("codex lister marks the model codex's configuration sets, read for the host's cwd", async () => {
+  const requests: { method: unknown; params: unknown }[] = [];
+  spawnLineProcess.mockReturnValue(fakeLineProcess((line, child) => {
+    const message = asRecord(parseJson(line));
+    if (typeof message?.id !== "number") { return; }
+    requests.push({ method: message.method, params: message.params });
+    const results: Record<string, unknown> = {
+      "model/list": { data: [{ model: "gpt-6.1-sol", isDefault: true }, { model: "gpt-5.5" }], nextCursor: null },
+      "config/read": { config: { model: "gpt-5.5" } },
+    };
+    const result = typeof message.method === "string" ? results[message.method] ?? {} : {};
+    child.emit(`${JSON.stringify({ id: message.id, result })}\n`);
+  }));
+  await expect(codexListModels(installation)).resolves.toEqual({ kind: "ok", models: [{ id: "gpt-6.1-sol" }, { id: "gpt-5.5", default: true }] });
+  expect(requests.find((request) => request.method === "config/read")?.params).toEqual({ cwd: process.cwd(), includeLayers: false });
+});
+
 test("codex lister fails on a non-zero exit instead of returning an empty list", async () => {
   scripted(["error: config broken\n"], 1);
   await expect(codexListModels(installation)).rejects.toThrow(/Failed to list Codex models/u);

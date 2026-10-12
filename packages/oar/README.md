@@ -209,11 +209,11 @@ and each runtime page's "Session MCP servers".
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. Entries include native `effortLevels` and `serviceTiers` where supported.
-`default: true` marks the entry the runtime itself names as its default
-(claude's `default` entry, codex's `isDefault`, a new session's current model on
-grok, kimi and antigravity, the default saved in pi's settings, read globally and
-for the host's own cwd); OAR never picks one, so a runtime that names none has
-no such entry. Where several providers
+`default: true` marks the model a session uses when no `model` is set, where
+the runtime says so (codex's configured model, else its catalog default; a new
+session's current model on grok, kimi and antigravity; the default saved in
+pi's settings), with configuration read for the host's own cwd. claude, cursor
+and opencode mark none: OAR never picks one. Where several providers
 serve models (pi, opencode), `provider: { id, displayName? }` says which, so a
 host never parses `id`.
 `SessionOptions.serviceTier` applies at open (also on resume) and is checked

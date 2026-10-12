@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { effortLevelOf, effortLevelsOf } from "../packages/oar/src/shared/effort-levels.js";
 import { claudeListModels, projectClaudeModels } from "../packages/oar/src/runtimes/claude/list-models.js";
-import { codexListModels, projectCodexModels } from "../packages/oar/src/runtimes/codex/list-models.js";
+import { codexDefaultModel, codexListModels, projectCodexModels } from "../packages/oar/src/runtimes/codex/list-models.js";
 import { grokListModels, grokModelState, projectGrokModels } from "../packages/oar/src/runtimes/grok/list-models.js";
 import { kimiListModels } from "../packages/oar/src/runtimes/kimi/list-models.js";
 import { createPiListModels, piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
@@ -77,15 +77,24 @@ test("claude projection keeps alias vs resolution, native fast support and disab
   ]);
 });
 
-// #347: claude's own "Default (recommended)" entry (value `default`, recorded on 2.1.296).
-test("claude projection marks its default entry", () => {
+// #347: claude's "Default (recommended)" entry is not what an unset session runs when settings
+// pick a model, and nothing in claude's answer says which, so claude marks no default (Lookout, 2.1.296).
+test("claude projection marks no default", () => {
   expect(projectClaudeModels({ models: [
     { value: "default", resolvedModel: "claude-opus-5-5", displayName: "Default (recommended)" },
     { value: "opus", resolvedModel: "claude-opus-5-5", displayName: "Opus 5.5" },
   ] })).toEqual([
-    { id: "default", resolvedId: "claude-opus-5-5", displayName: "Default (recommended)", default: true },
+    { id: "default", resolvedId: "claude-opus-5-5", displayName: "Default (recommended)" },
     { id: "opus", resolvedId: "claude-opus-5-5", displayName: "Opus 5.5" },
   ]);
+});
+
+// #347: a model codex's configuration sets wins over the catalog's isDefault; an unlisted one marks nothing.
+test("codex default follows the configured model when it is listed", () => {
+  const models = [{ id: "gpt-6.1-sol", default: true as const }, { id: "gpt-5.5" }];
+  expect(codexDefaultModel(models, undefined)).toEqual(models);
+  expect(codexDefaultModel(models, "gpt-5.5")).toEqual([{ id: "gpt-6.1-sol" }, { id: "gpt-5.5", default: true }]);
+  expect(codexDefaultModel(models, "not-listed")).toEqual([{ id: "gpt-6.1-sol" }, { id: "gpt-5.5" }]);
 });
 
 test("grok projection unwraps the handler envelope and filters unselectable models", () => {
