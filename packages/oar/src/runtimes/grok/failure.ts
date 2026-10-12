@@ -46,7 +46,7 @@ export function grokPromptOutcome(response: JsonRecord): TurnOutcome {
   // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the native ACP extension envelope.
   const meta = asRecord(response._meta);
   if (typeof meta?.structuredOutputError === "string") {
-    return { kind: "failed", failure: "unknown", reason: meta.structuredOutputError };
+    return { kind: "failed", failure: "output_schema", reason: meta.structuredOutputError };
   }
   return { kind: "completed", ...(meta !== null && Object.hasOwn(meta, "structuredOutput") ? { structuredOutput: meta.structuredOutput } : {}) };
 }

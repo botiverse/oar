@@ -2,7 +2,7 @@ import { claudeDuplicateInput, claudeInitialized, claudeInputLifecycle } from ".
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
-import { claudeFailure, claudeLimitReset } from "./failure.js";
+import { claudeFailure, claudeLimitReset, claudeResultReason } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { claudeContextUsageFromResult } from "./context-usage.js";
 import { foldModelUsage, freshModelUsage, resumedModelUsage, withBaseline, withMainLoop, type ClaudeModelUsage, type ClaudeUsageBaseline } from "./token-usage.js";
@@ -123,12 +123,12 @@ function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnO
     const subtype = typeof message.subtype === "string" && message.subtype !== "success"
       ? message.subtype
       : undefined;
-    const reason = text ?? subtype ?? "error";
-    return claudeFailure(reason, {
+    return claudeFailure(text ?? claudeResultReason(subtype, message.errors), {
       category: state.failureCategory,
       status: asNumber(message.api_error_status),
       terminalReason: typeof message.terminal_reason === "string" ? message.terminal_reason : null,
       limitResetsAt: state.limitResetsAt,
+      subtype: subtype ?? null,
     });
   }
   return { kind: "completed", ...(Object.hasOwn(message, "structured_output") ? { structuredOutput: message.structured_output } : {}) };

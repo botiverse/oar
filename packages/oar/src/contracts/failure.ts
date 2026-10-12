@@ -17,6 +17,10 @@ import type { UtcInstant } from "./account-usage.js";
  * - `overloaded`: the provider is temporarily overloaded.
  * - `provider`: another provider-side error (a 5xx).
  * - `runtime_exited`: the runtime process ended before the turn did.
+ * - `limit_reached`: the turn stopped at a limit the host set for it (claude's
+ *   max turns or max budget).
+ * - `output_schema`: the runtime could not produce output matching the
+ *   session's `outputSchema` (claude after its retries, grok's validation).
  */
 export type FailureClass =
   | "auth"
@@ -29,6 +33,8 @@ export type FailureClass =
   | "overloaded"
   | "provider"
   | "runtime_exited"
+  | "limit_reached"
+  | "output_schema"
   | "unknown";
 
 /** Which `auth` failure it is, set only where the runtime makes it plain: no credential at all, or one the provider refused. */

@@ -1,4 +1,5 @@
 import { claudeServiceTierArgs } from "./service-tier.js";
+import { refuseManagedLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { claudeSessionEnv } from "./environment.js";
@@ -61,10 +62,12 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
  * Start claude for a session (`--session-id`, or `--resume` an existing one)
  * and wait until it runs; with MCP servers, their config is handed over as
  * mcp-config.ts describes and gone at the latest when the process exits.
- * Rejects on a list with an empty or repeated name before anything starts,
+ * Rejects on a list with an empty or repeated name, or `launchArgs` that
+ * collide with a flag OAR manages (launch-args.ts), before anything starts,
  * and when claude cannot be spawned.
  */
 export async function launchClaude(command: string, sessionId: string, options: SessionOptions): Promise<ClaudeProcess> {
+  refuseManagedLaunchArgs(options.launchArgs);
   const tierArgs = claudeServiceTierArgs(options.serviceTier);
   const servers = givenMcpServers(options.mcpServers);
   // Either way, what dead hosts left behind goes first (mcp-config.ts).

@@ -32,6 +32,9 @@ const ADVICE: Readonly<Record<FailureClass, FailureAdvice>> = {
   runtime_exited: { retry: "now", userAction: false },
   quota: { retry: "later", userAction: false },
   invalid_request: { retry: "no", userAction: false },
+  // The host's own limit or schema: the same request stops the same way until the host changes it.
+  limit_reached: { retry: "no", userAction: false },
+  output_schema: { retry: "no", userAction: false },
   unknown: { retry: "no", userAction: false },
 };
 

@@ -26,6 +26,13 @@ const CATEGORIES: Readonly<Partial<Record<string, FailureClass>>> = {
   invalid_request: "invalid_request",
 };
 
+/** Result subtypes for a limit or schema the host set (#339): the session's own options stopped the turn. */
+const SUBTYPES: Readonly<Partial<Record<string, FailureClass>>> = {
+  error_max_turns: "limit_reached",
+  error_max_budget_usd: "limit_reached",
+  error_max_structured_output_retries: "output_schema",
+};
+
 /** What claude's error frames say about one failed turn. */
 export interface ClaudeFailureFacts {
   /** The `error` of the turn's last root `assistant` frame. */
@@ -34,6 +41,8 @@ export interface ClaudeFailureFacts {
   readonly status: number | null;
   /** The result's `terminal_reason`. */
   readonly terminalReason: string | null;
+  /** The result's `subtype` when it is not `success` (`error_max_turns`, `error_during_execution`, ...). */
+  readonly subtype?: string | null;
   /** The reset of the limit claude's latest `rate_limit_event` says refuses requests (`claudeLimitReset`); null when none does. */
   readonly limitResetsAt: UtcInstant | null;
 }
@@ -64,6 +73,15 @@ export function claudeLimitReset(info: JsonRecord | null): UtcInstant | null {
   return seconds === null ? null : utcInstantFromDate(new Date(seconds * 1000));
 }
 
+/** An error result's own words: the subtype, then claude's `errors` text when it gives any (#339). */
+export function claudeResultReason(subtype: string | undefined, errors: unknown): string {
+  const detail = Array.isArray(errors) ? errors.filter((error): error is string => typeof error === "string" && error.length > 0).join("; ") : "";
+  if (subtype === undefined) {
+    return detail.length > 0 ? detail : "error";
+  }
+  return detail.length > 0 ? `${subtype}: ${detail}` : subtype;
+}
+
 /** Classify a failed claude turn whose `result` says `reason`. */
 export function claudeFailure(reason: string, facts: ClaudeFailureFacts): FailedTurn {
   const { category, status, terminalReason, limitResetsAt } = facts;
@@ -71,6 +89,10 @@ export function claudeFailure(reason: string, facts: ClaudeFailureFacts): Failed
   const failed = (failure: FailureClass): FailedTurn => ({ kind: "failed", reason, failure, ...withStatus });
   if (terminalReason === "prompt_too_long") {
     return failed("input_too_large");
+  }
+  const limit = facts.subtype === undefined || facts.subtype === null ? undefined : SUBTYPES[facts.subtype];
+  if (limit !== undefined) {
+    return failed(limit);
   }
   if (category === "authentication_failed") {
     // No request sent: no credential at all ("Not logged in"). A 401: refused.
