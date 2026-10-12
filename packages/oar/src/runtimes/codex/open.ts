@@ -5,6 +5,7 @@ import { validateCodexToolDenials } from "./tool-denials.js";
 import type { McpServer, RuntimeEventBody, SessionOptions } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
+import { checkSessionName } from "../../shared/session-options.js";
 
 /*
  * Opening a codex thread: the `thread/start` / `thread/resume` request built
@@ -61,6 +62,7 @@ function workspaceRoots(options: SessionOptions): string[] | null {
  */
 export function codexThreadOpen(options: SessionOptions): { readonly method: CodexOpenMethod; readonly params: JsonRecord; readonly redact: (text: string) => string } {
   validateCodexToolDenials(options);
+  checkSessionName(options);
   const { redact } = sessionCredentialRedactor(options);
   // System prompt seams (probed 2026-08-24 via the aimock journal):
   // baseInstructions REPLACES codex's base prompt; developerInstructions

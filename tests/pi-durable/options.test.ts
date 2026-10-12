@@ -63,7 +63,7 @@ test("failed effort validation rolls back saved options on resume", async () => 
 
 test.each([
   { outputSchema: {} }, { systemPrompt: "replacement" }, { env: { TEST: "value" } }, { launchArgs: ["--flag"] }, { serviceTier: "fast" },
-  { additionalDirectories: ["/extra"] }, { mcpServers: [{ name: "test", command: "unused" }] }, { disallowedTools: ["read"] },
+  { additionalDirectories: ["/extra"] }, { mcpServers: [{ name: "test", command: "unused" }] }, { disallowedTools: ["read"] }, { name: "named" },
 ])("declared option refusal happens before creating a conversation: %j", async (option) => {
   const { harness, runtime } = await setup();
   await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", ...option })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: Object.keys(option)[0] });

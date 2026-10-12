@@ -22,3 +22,14 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
     }
   }
 }
+
+/**
+ * A blank SessionOptions.name fails the open before anything starts: claude
+ * and pi would open unnamed without a word, and codex would refuse it only
+ * after the thread opened (pi's own `--name` refuses it the same way).
+ */
+export function checkSessionName(options: SessionOptions): void {
+  if (options.name !== undefined && options.name.trim().length === 0) {
+    throw new Error("SessionOptions.name must not be blank");
+  }
+}

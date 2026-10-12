@@ -93,8 +93,9 @@ function unavailableReason(message: string): SessionUnavailableReason | null {
 /**
  * The typed error for a resume codex refused, or null. Codex 0.162.0 uses
  * -32600 for a missing rollout, an archived thread, an active writer and
- * unloaded sub-agents alike, so its words are the last resort, pinned by
- * missing-resume-errors.json and the codex vendor test.
+ * unloaded sub-agents alike, so its words are the last resort: the missing
+ * rollout's are pinned by missing-resume-errors.json, the other two by the
+ * codex-session-name vendor test.
  */
 function resumeError(method: string, resumeId: string | undefined, cause: JsonRecord | null, message: string): Error | null {
   const native = asRecord(cause?.native);

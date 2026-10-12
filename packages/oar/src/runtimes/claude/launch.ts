@@ -6,6 +6,7 @@ import { claudeSessionEnv } from "./environment.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
+import { checkSessionName } from "../../shared/session-options.js";
 import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
 
 /*
@@ -73,6 +74,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
  */
 export async function launchClaude(command: string, sessionId: string, options: SessionOptions): Promise<ClaudeProcess> {
   refuseManagedLaunchArgs(options.launchArgs);
+  checkSessionName(options);
   const tierArgs = claudeServiceTierArgs(options.serviceTier);
   const servers = givenMcpServers(options.mcpServers);
   // Either way, what dead hosts left behind goes first (mcp-config.ts).

@@ -315,13 +315,15 @@ stops advertising the extension is refused before `session/new` or resume.
 `SessionOptions.name` is the session's display name in the runtime's own UI
 and session list, so a user who shares the runtime's home with a host can
 tell the host's sessions from their own. A new session gets it. A resume
-never replaces a name the session has, which may be one the user gave.
+never replaces a name the session has, which may be one the user gave. The
+name is set only once the open's own checks pass, so a refused open renames
+nothing, and a blank name fails the open before anything starts.
 
 | Runtime | Native mapping | Resume |
 |---|---|---|
 | claude | `--name` at launch | Left alone: `--name` on a resume replaces the session's name, and claude reports that name only once it has started (`session_title_changed`). |
-| codex | `thread/name/set` after `thread/start` | Set only when the `thread/resume` reply shows no name. |
-| pi | `AgentSession.setSessionName` after the session opens | Set only when pi's session reports no name (`getSessionName`). |
+| codex | `thread/name/set` once the thread is open | Set only when the `thread/resume` reply shows no name. |
+| pi | a `session_info` entry, as pi's own `--name` writes it | Set only when the session never had one, so a name the user cleared stays cleared. |
 | cursor, kimi, grok, antigravity, opencode, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)

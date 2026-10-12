@@ -1,5 +1,5 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import { refuseSessionOptions } from "../../shared/session-options.js";
+import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
 import type { SessionOptions } from "../../contracts/session.js";
@@ -113,6 +113,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
  */
 export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
+  checkSessionName(options);
   validatePiMcpEnvironment(options);
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
   const sdk = await import("@earendil-works/pi-coding-agent");
@@ -203,10 +204,12 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     session.dispose();
     throw new Error(refusal);
   }
-  // SessionOptions.name (#368): pi's session name, for a new session and for
-  // a resumed one that has none, so a name the user gave is kept.
-  if (options.name !== undefined && sessionManager.getSessionName() === undefined) {
-    session.setSessionName(options.name);
+  // SessionOptions.name (#368), written as pi's own `--name` writes it: a
+  // session_info entry on the session manager, so no extension sees a rename
+  // event, and only once the checks above passed. A resumed session gets it
+  // only if it never had one, so a name the user gave, or cleared, is kept.
+  if (options.name !== undefined && !sessionManager.getEntries().some((entry) => entry.type === "session_info")) {
+    sessionManager.appendSessionInfo(options.name);
   }
   // Like each CLI startup (including --resume/--continue), keep the SDK
   // default session_start reason: startup. bindExtensions emits it and

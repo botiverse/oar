@@ -171,8 +171,10 @@ Context fullness is the topic metadata above.
 ### Options
 
 Refused at open (`refusedSessionOptions`): `systemPrompt` and
-`appendSystemPrompt` (no override on the API), and `env` (tools run inside
-the Console process, which the session neither starts nor owns). Because it
+`appendSystemPrompt` (no override on the API); `env` and `launchArgs` (tools
+run inside the Console process, which the session neither starts nor owns);
+`mcpServers` (no known per-session channel); and `name` (no known session
+name setting). Because it
 refuses `env`, morph cannot be an `oar mcp` subagent. Images are not
 supported (`capabilities.images: false`); the API's `file_references` upload
 path is not used.

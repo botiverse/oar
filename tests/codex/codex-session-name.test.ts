@@ -26,7 +26,7 @@ function nameSets(requests: readonly JsonRecord[]): unknown[] {
   return requests.filter((request) => request.method === "thread/name/set").map((request) => request.params);
 }
 
-test("a new thread gets the name, right after it opens", async () => {
+test("a new thread gets the name once it opens", async () => {
   const requests = server(null);
   const session = await codexSession(installation, { cwd: "/work", name: "Raft · Otter" });
   await session.dispose();

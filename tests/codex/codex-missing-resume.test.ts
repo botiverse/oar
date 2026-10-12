@@ -44,6 +44,15 @@ test.each([
   expect(fake.killed()).toBe(true);
 });
 
+test("an unavailable target's id is redacted like a missing one's", async () => {
+  const secret = "00000000-0000-4000-8000-000000000294";
+  fault({ ...errors.codex, message: `thread ${secret} already has an active writer` });
+  const failure: unknown = await codexSession(installation, { cwd: process.cwd(), resume: secret, env: { API_KEY: secret } }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(SessionUnavailableError);
+  expect(failure).toMatchObject({ sessionId: "[redacted]", reason: "in_use", cause: { native: { message: "thread [redacted] already has an active writer" } } });
+  expect(inspect(failure, { depth: null })).not.toContain(secret);
+});
+
 test.each([
   { ...errors.codex, message: "cannot resume an unloaded multi-agent v2 sub-agent through its parent; resume the sub-agent directly" },
   { ...errors.codex, message: "other error: no rollout found for thread id missing" },

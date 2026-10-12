@@ -65,6 +65,17 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex session name and
       const reader = await app();
       expect(nameOf(await reader.request("thread/read", { threadId: id }))).toBe("OAR vendor");
       await close(reader);
+
+      // An unnamed thread is named on resume.
+      const unnamed = await codexSession(installation, { cwd: process.cwd(), env: sessionEnv });
+      await promptAndWait(unnamed, "unnamed");
+      const unnamedId = unnamed.id;
+      await unnamed.dispose();
+      const named = await codexSession(installation, { cwd: process.cwd(), env: sessionEnv, resume: unnamedId, name: "named on resume" });
+      await named.dispose();
+      const checker = await app();
+      expect(nameOf(await checker.request("thread/read", { threadId: unnamedId }))).toBe("named on resume");
+      await close(checker);
     } finally {
       await env.stop();
     }
