@@ -101,6 +101,8 @@ const failures = {
   overloaded: ["overloaded", "Claude Code reported that its provider is overloaded."],
   provider: ["provider", "Claude Code reported a provider error."],
   runtime_exited: ["runtime_exited", "Claude Code exited before the turn finished."],
+  limit_reached: ["limit_reached", "Claude Code stopped at the turn or budget limit set for it."],
+  output_schema: ["output_schema", "Claude Code could not produce output matching the output schema."],
   unknown: ["unknown", "The turn failed."],
 } satisfies { [Failure in FailureClass]: [Failure, string] };
 

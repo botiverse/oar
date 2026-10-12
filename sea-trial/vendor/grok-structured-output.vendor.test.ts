@@ -37,7 +37,7 @@ test.skipIf(process.env.OAR_TEST !== "grok-aimock").each(["invalid-value", "inva
     if (installation.kind !== "available") { throw new Error("Grok unavailable"); }
     session = await grokSession(installation, { cwd: root, env: provider.env, outputSchema: mode === "invalid-schema" ? { type: "not-a-type" } : outputSchema });
     const run = await promptAndWait(session, "Answer", { timeoutMs: 30_000 });
-    expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "unknown" } });
+    expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "output_schema" } });
     if (run.kind !== "rejected") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
     expect(JSON.stringify(session.records())).toContain("structuredOutputError");
   } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true }); }

@@ -73,6 +73,8 @@ const advice = {
   runtime_exited: { retry: "now", userAction: false },
   quota: { retry: "later", userAction: false },
   invalid_request: { retry: "no", userAction: false },
+  limit_reached: { retry: "no", userAction: false },
+  output_schema: { retry: "no", userAction: false },
   unknown: { retry: "no", userAction: false },
 } satisfies Record<FailureClass, ReturnType<typeof failureAdvice>>;
 

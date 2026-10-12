@@ -34,7 +34,8 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude's exhausted schema
     if (installation.kind !== "available") { throw new Error("Claude unavailable"); }
     session = await claudeSession(installation, { cwd: root, outputSchema, env: { ...provider.env, CLAUDE_CONFIG_DIR: path.join(root, "config"), ANTHROPIC_AUTH_TOKEN: null, CLAUDE_CODE_OAUTH_TOKEN: null } });
     const run = await promptAndWait(session, "Use StructuredOutput", { timeoutMs: 30_000 });
-    expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "unknown", reason: "error_max_structured_output_retries" } });
+    expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "output_schema" } });
+    expect(run.kind === "ended" && run.outcome.kind === "failed" ? run.outcome.reason : "").toMatch(/^error_max_structured_output_retries/u);
     if (run.kind !== "rejected") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
     const frame = session.records().find((record) => record.kind === "frame" && asRecord(record.body.native)?.type === "result");
     expect(frame?.kind === "frame" ? frame.body.native : null).toMatchObject({ terminal_reason: "structured_output_retry_exhausted" });
