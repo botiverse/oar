@@ -40,7 +40,10 @@ test("no structured field is inferred from JSON text or carried on failed/aborte
   expect(outcomeOf({ type: "result", result: '{"answer":4}' })).toEqual({ kind: "completed" });
   expect(outcomeOf(frame, true)).toEqual({ kind: "aborted" });
   expect(outcomeOf({ ...frame, is_error: true, subtype: "error" })).not.toHaveProperty("structuredOutput");
-  expect(outcomeOf(resultFrame("invalid"))).toMatchObject({ kind: "failed", failure: "unknown", reason: "error_max_structured_output_retries" });
+  // #339: the class says the schema was not met; the reason keeps the subtype and claude's own `errors` text.
+  const invalid = outcomeOf(resultFrame("invalid"));
+  expect(invalid).toMatchObject({ kind: "failed", failure: "output_schema" });
+  expect(invalid.kind === "failed" ? invalid.reason : "").toMatch(/^error_max_structured_output_retries: Failed to provide valid structured output after 5 attempts/u);
 });
 
 test.each(["valid", "invalid"])("recorded %s result reaches live wait, status and JSON replay unchanged", async (mode) => {

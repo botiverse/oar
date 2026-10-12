@@ -1222,7 +1222,7 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`. Both take several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR passes them unchecked: a flag that changes the stream-json protocol (`--output-format`, `--input-format`) breaks the session, and an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`. Both take several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-mode` (OAR's `--dangerously-skip-permissions` overrides it), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 
@@ -1249,8 +1249,7 @@ by `additionalDirectories`.
 `SessionOptions.outputSchema` supplies native `--json-schema` as JSON. It
 applies to the process, including subsequent prompts, held queued inputs,
 steers within the current turn, and spontaneous turns. Pass it again when
-resuming. `launchArgs` remains unchecked: a conflicting `--json-schema`
-argument may override this setting.
+resuming. A `--json-schema` in `launchArgs` is refused.
 
 On a successful `result`, OAR carries `structured_output` unchanged on
 `turn_ended.outcome.structuredOutput`. This is Claude's own validated value;

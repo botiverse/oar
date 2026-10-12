@@ -464,6 +464,15 @@ whose code names a quota or a balance (`insufficient_quota`,
 code is `rate_limited`. Matching the words is each adapter's last resort,
 named in its table below. What none of these says is `unknown`.
 
+Two classes are the host's own settings, not the provider's: `limit_reached`
+(claude's result subtypes `error_max_turns` and `error_max_budget_usd`, from
+`--max-turns` and `--max-budget-usd`) and `output_schema` (claude's
+`error_max_structured_output_retries` and grok's `structuredOutputError`, under
+`SessionOptions.outputSchema`). `failureAdvice` says not to retry either until
+the host changes the limit or the schema. A claude error result's `reason` is
+its subtype followed by claude's own `errors` text when it gives any
+(`error_max_turns: Reached maximum number of turns (2)`).
+
 Only `[env]` cells are mapped. A value a runtime declares that no run
 produced stays unmapped (it falls through to the status or to `unknown`)
 until it is observed: claude's `oauth_org_not_allowed`, `account_on_hold`,

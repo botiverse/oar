@@ -19,7 +19,7 @@ test.each(["valid", "invalid", "bad-schema"])("Grok native %s result has the sam
   const outcome = grokPromptOutcome(native);
   expect(outcome.kind).toBe(mode === "valid" ? "completed" : "failed");
   if (mode === "valid") { expect(outcome).toEqual({ kind: "completed", structuredOutput: { answer: 4 } }); }
-  else { expect(outcome).toMatchObject({ failure: "unknown", reason: asRecord(native._meta)?.structuredOutputError }); }
+  else { expect(outcome).toMatchObject({ failure: "output_schema", reason: asRecord(native._meta)?.structuredOutputError }); }
   const session = await start({ promptOutcome: () => outcome });
   try {
     expect(await promptAndWait(session, "hello")).toMatchObject({ kind: "ended", outcome });

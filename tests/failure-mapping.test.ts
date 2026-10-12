@@ -2,7 +2,7 @@ import { RequestError } from "../packages/oar/node_modules/@agentclientprotocol/
 import { expect, test } from "vitest";
 import { RuntimeFailureError } from "../packages/oar/src/contracts/runtime-failure-error.js";
 import type { FrameBody } from "../packages/oar/src/contracts/session.js";
-import { claudeFailure } from "../packages/oar/src/runtimes/claude/failure.js";
+import { claudeFailure, claudeResultReason } from "../packages/oar/src/runtimes/claude/failure.js";
 import { codexFailure } from "../packages/oar/src/runtimes/codex/failure.js";
 import { cursorOpenFailure } from "../packages/oar/src/runtimes/cursor/failure.js";
 import { grokFailureOutcome } from "../packages/oar/src/runtimes/grok/failure.js";
@@ -32,6 +32,23 @@ test.each([
   { name: "no category and no status", reason: "error", category: null, status: null, terminalReason: null, expected: { failure: "unknown" } },
 ] as const)("claude: $name", ({ reason, category, status, terminalReason, expected }) => {
   expect(claudeFailure(reason, { category, status, terminalReason, limitResetsAt: null })).toEqual({ kind: "failed", reason, ...expected });
+});
+
+// #339 (Lookout's SDK comparison, claude 2.1.296): a limit or schema the host set is its own class.
+test.each([
+  { subtype: "error_max_turns", expected: "limit_reached" },
+  { subtype: "error_max_budget_usd", expected: "limit_reached" },
+  { subtype: "error_max_structured_output_retries", expected: "output_schema" },
+  { subtype: "error_during_execution", expected: "unknown" },
+] as const)("claude: result subtype $subtype", ({ subtype, expected }) => {
+  expect(claudeFailure(subtype, { category: null, status: null, terminalReason: null, limitResetsAt: null, subtype })).toEqual({ kind: "failed", reason: subtype, failure: expected });
+});
+
+test("claude: an error result's reason keeps the subtype and adds claude's errors text", () => {
+  expect(claudeResultReason("error_max_turns", ["Reached maximum number of turns (2)"])).toBe("error_max_turns: Reached maximum number of turns (2)");
+  expect(claudeResultReason("error_max_turns", undefined)).toBe("error_max_turns");
+  expect(claudeResultReason(undefined, ["a", 3, "", "b"])).toBe("a; b");
+  expect(claudeResultReason(undefined, [])).toBe("error");
 });
 
 // codex 0.160.1: `turn.error.codexErrorInfo`.
