@@ -55,6 +55,9 @@ result, the others still report, and the exit code is 1.
   subagent's turn, `spawn` / `send` / `wait` work in parallel, and
   `runtimes`, `list`, `interrupt` and `close` complete the tool set. Flags
   `--runtimes`, `--max-running`, `--max-depth`, `--cwd`, `--log-dir`.
+  `run`, `wait` and `list` return structured objects with output schemas,
+  plus the same JSON as text. `wait` returns `{ reports }` when any selected
+  report is available; `list` returns `{ agents, unread }`.
   Subagents run with full permissions. A codex agent starts MCP servers with
   a reduced environment, so give its `oar` entry
   `env_vars = ["OAR_SUBAGENT_DEPTH"]` for the nesting limit to hold. See

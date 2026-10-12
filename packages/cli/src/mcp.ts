@@ -64,8 +64,12 @@ async function callTool(options: McpServerOptions, params: Readonly<Record<strin
   try {
     const result = await tool.call(args, signal);
     const refused = typeof result === "object" && result !== null && "kind" in result && (result.kind === "refused" || result.kind === "rejected");
-    const note = tool.name === "wait" || tool.name === "run" ? "" : unreadNote(options.crew);
-    return { content: [{ type: "text", text: `${JSON.stringify(result, null, 2)}${note}` }], ...(refused ? { isError: true } : {}) };
+    const note = tool.name === "wait" || tool.name === "run" || tool.name === "list" ? "" : unreadNote(options.crew);
+    return {
+      content: [{ type: "text", text: `${JSON.stringify(result, null, 2)}${note}` }],
+      ...(tool.outputSchema === undefined ? {} : { structuredContent: result }),
+      ...(refused ? { isError: true } : {}),
+    };
   } catch (error) {
     if (error instanceof ToolInputError) {
       return { content: [{ type: "text", text: error.message }], isError: true };
@@ -89,7 +93,9 @@ async function answer(options: McpServerOptions, request: JsonRpcRequest, signal
     case "ping":
       return {};
     case "tools/list":
-      return { tools: options.tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })) };
+      return { tools: options.tools.map(({ name, description, inputSchema, outputSchema }) => ({
+        name, description, inputSchema, ...(outputSchema === undefined ? {} : { outputSchema }),
+      })) };
     case "tools/call": {
       const result = await callTool(options, params, signal);
       return result;

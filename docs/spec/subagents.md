@@ -155,8 +155,40 @@ A stdio MCP server (newline-delimited JSON-RPC: `initialize`, `ping`,
 | `wait` | Takes reports, waiting up to `timeoutMs` (at most 10 minutes). |
 | `list`, `interrupt`, `close` | As named. |
 
+`run`, `wait` and `list` advertise an MCP `outputSchema` and return
+`structuredContent` alongside a text block containing the same object as
+JSON. Programmatic callers can use the structured value directly:
+
+- `run` returns the full `SubagentReport` (identity, turn, outcome, text,
+  timestamp and optional name/log), or the spawn refusal. If the agent
+  closes before reporting, it returns `SubagentInfo` instead. The schema
+  covers all three. A failed turn is still a report; a spawn refusal has
+  `isError: true`.
+- `wait` returns `{ reports: SubagentReport[] }`, including an empty array
+  when no reports arrive before the timeout.
+- `list` returns `{ agents: SubagentInfo[], unread: { id, turn }[] }`.
+  The unread list names the reports `wait` can take, without consuming
+  them. This information is part of the structured object because some
+  clients, including Codex's direct MCP calls, show only that object when
+  present. The text block does not carry additional facts.
+
+`wait({ ids })` returns when **any** selected report is available. To
+collect one report from each agent, call `wait` separately for each id
+in parallel (client API spelling varies):
+
+```js
+const results = await Promise.all(ids.map(id => tools.wait({ ids: [id] })));
+const reports = results.flatMap(result => result.reports);
+```
+
+Check for empty results and repeat the corresponding wait if needed. Do
+not run an unscoped `wait` concurrently: it can consume the same reports.
+There is no wait-all mode. Unlike `next(id)` in the crew API, `wait`
+does not reserve reports for an id.
+
 An MCP server can only speak when called, so every other tool result names
-the subagents with unread reports. A call the client cancels
+the subagents with unread reports (`list.unread` for `list`, a text note for
+the others). A call the client cancels
 (`notifications/cancelled`) gets no answer and takes nothing, so a cancelled
 `run` leaves its report for `wait`. When the client goes away (stdin ends) or
 the server is stopped, pending calls are cancelled and every subagent is

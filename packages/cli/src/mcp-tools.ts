@@ -1,12 +1,15 @@
 import type { Runtime } from "@botiverse/oar";
 import type { SendMode, SpawnOptions, Subagents } from "@botiverse/oar/agents";
 import { isRuntimeFailure, readEach } from "./each-runtime.js";
+import { LIST_OUTPUT_SCHEMA, RUN_OUTPUT_SCHEMA, WAIT_OUTPUT_SCHEMA } from "./mcp-output-schemas.js";
 
 /** One MCP tool: its listing and its handler over the subagent crew. */
 export interface McpTool {
   readonly name: string;
   readonly description: string;
   readonly inputSchema: Readonly<Record<string, unknown>>;
+  /** When present, the handler returns an object, also sent as structuredContent. */
+  readonly outputSchema?: Readonly<Record<string, unknown>>;
   /** `signal` aborts when the client cancels the call or goes away. */
   readonly call: (args: Readonly<Record<string, unknown>>, signal: AbortSignal) => Promise<unknown>;
 }
@@ -90,6 +93,7 @@ export function subagentTools(crew: Subagents, runtimes: readonly Runtime[]): re
       name: "run",
       description: "Start a subagent on another agent runtime (or resume one) and wait until its turn ends; returns its final text, outcome and sessionId. Subagents run with full permissions in their working directory.",
       inputSchema: { type: "object", properties: SPAWN_PROPERTIES, required: ["runtime", "task"] },
+      outputSchema: RUN_OUTPUT_SCHEMA,
       call: async (args, signal) => {
         const spawned = await crew.spawn(spawnOptions(args));
         if (spawned.kind === "refused") {
@@ -129,25 +133,27 @@ export function subagentTools(crew: Subagents, runtimes: readonly Runtime[]): re
     },
     {
       name: "wait",
-      description: "Wait for subagents' turns to end and return their reports (final text, outcome, sessionId). Returns at once when reports are unread; an empty list means none ended before the timeout.",
+      description: "Take unread turn reports as { reports: [...] }, waiting until any selected subagent reports or timeout. Empty reports means none arrived. To gather all, call wait once per id in parallel; do not concurrently call unscoped wait, which could take those reports.",
       inputSchema: {
         type: "object",
         properties: { ids: { type: "array", items: { type: "string" } }, timeoutMs: { type: "number", description: "Default 30000, at most 600000." } },
       },
+      outputSchema: WAIT_OUTPUT_SCHEMA,
       call: async (args, signal) => {
         const ids = Array.isArray(args.ids) ? args.ids.filter((id): id is string => typeof id === "string") : undefined;
         const timeoutMs = typeof args.timeoutMs === "number" ? Math.min(Math.max(args.timeoutMs, 0), 600_000) : 30_000;
         const reports = await crew.wait({ ...(ids === undefined ? {} : { ids }), timeoutMs, signal });
-        return reports;
+        return { reports };
       },
     },
     {
       name: "list",
-      description: "List this server's subagents with their state and turns ended.",
+      description: "List this server's subagents as { agents, unread }, with their state and turns ended. unread names the reports wait can take; list does not consume them.",
       inputSchema: { type: "object", properties: {} },
+      outputSchema: LIST_OUTPUT_SCHEMA,
       call: async () => {
         await Promise.resolve();
-        return crew.list();
+        return { agents: crew.list(), unread: crew.unread().map(({ id, turn }) => ({ id, turn })) };
       },
     },
     {
