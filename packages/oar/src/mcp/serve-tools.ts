@@ -188,16 +188,16 @@ function localOrigin(request: IncomingMessage): boolean {
   }
 }
 
+/** The request body, or null past MAX_BODY_BYTES. The rest is still read: answering before the client finished sending resets its connection (seen on Windows). */
 async function body(request: IncomingMessage): Promise<string | null> {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
     size += buffer.length;
-    if (size > MAX_BODY_BYTES) { return null; }
-    chunks.push(buffer);
+    if (size <= MAX_BODY_BYTES) { chunks.push(buffer); }
   }
-  return Buffer.concat(chunks).toString("utf8");
+  return size > MAX_BODY_BYTES ? null : Buffer.concat(chunks).toString("utf8");
 }
 
 function rpcError(response: ServerResponse, code: number, message: string): void {
