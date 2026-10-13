@@ -2,7 +2,9 @@ import { once } from "node:events";
 import { createServer } from "node:http";
 import { EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from "undici";
 import { expect, test } from "vitest";
-import { configurePiHttp, planPiHttp, type PiHttpSettings } from "../../packages/oar/src/runtimes/pi/http.js";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { configurePiHttp, piDispatcherOptions, planPiHttp, type PiHttpSettings } from "../../packages/oar/src/runtimes/pi/http.js";
 
 function settingsOf(httpProxy: string | undefined, idleTimeoutMs = 300_000): PiHttpSettings {
   return {
@@ -15,6 +17,24 @@ function settingsOf(httpProxy: string | undefined, idleTimeoutMs = 300_000): PiH
 // so an env proxy wins and the setting fills both http and https), computed
 // without writing the env; the idle timeout is pi's setting verbatim (0 =
 // disabled, as in undici).
+// pi's own dispatcher (core/http-dispatcher.js) keeps HTTP/1.1, CONNECT tunnels and a 2 s
+// address-family attempt; OAR's keeps the same, so an embedded pi talks like `pi` and the
+// host's global fetch keeps Node's protocol. Read from the installed pi, so a change there fails here.
+test("the dispatcher keeps pi's own connection options", () => {
+  expect(piDispatcherOptions({ httpProxy: "http://p.example:3128", httpsProxy: undefined, idleTimeoutMs: 60_000 })).toEqual({
+    allowH2: false,
+    proxyTunnel: true,
+    connect: { autoSelectFamilyAttemptTimeout: 2000 },
+    httpProxy: "http://p.example:3128",
+    headersTimeout: 60_000,
+    bodyTimeout: 60_000,
+  });
+  const pi = readFileSync(path.resolve("packages/oar/node_modules/@earendil-works/pi-coding-agent/dist/core/http-dispatcher.js"), "utf8");
+  expect(pi).toMatch(/allowH2: false,/u);
+  expect(pi).toMatch(/proxyTunnel: true,/u);
+  expect(pi).toMatch(/DEFAULT_AUTO_SELECT_FAMILY_ATTEMPT_TIMEOUT_MS = 2_000;/u);
+});
+
 test("planPiHttp: env proxy wins, the httpProxy setting fills both when the env names none", () => {
   expect(planPiHttp(settingsOf("http://setting.example:3128", 60_000), {})).toEqual({
     httpProxy: "http://setting.example:3128",
@@ -73,10 +93,24 @@ async function withProxyEnv<T>(env: Readonly<Record<string, string>>, work: () =
 }
 
 /** A local HTTP server standing in as the proxy; records the request lines it receives. */
+/**
+ * A proxy as pi uses one: http targets arrive as a CONNECT tunnel (pi's
+ * `proxyTunnel: true`), whose request this proxy answers itself; a plain
+ * forwarded request is answered too. Each hit is `<CONNECT target> <path>` or
+ * the forwarded absolute URL.
+ */
 async function listenProxy(hits: string[]): Promise<{ url: string; close: () => void }> {
   const proxy = createServer((request, response) => {
     hits.push(request.url ?? "");
     response.end("via-proxy");
+  });
+  const origin = createServer((request, response) => {
+    hits.push(`${String(request.headers.host)} ${request.url ?? ""}`);
+    response.end("via-proxy");
+  });
+  proxy.on("connect", (_request, socket) => {
+    socket.write("HTTP/1.1 200 Connection Established\r\n\r\n");
+    origin.emit("connection", socket);
   });
   proxy.listen(0, "127.0.0.1");
   await once(proxy, "listening");
@@ -99,7 +133,7 @@ test("after configurePiHttp, fetch goes through HTTP_PROXY like pi itself", asyn
       const response = await fetch("http://oar-proxy-probe.invalid/ping");
       await expect(response.text()).resolves.toBe("via-proxy");
     });
-    expect(hits).toEqual(["http://oar-proxy-probe.invalid/ping"]);
+    expect(hits).toEqual(["oar-proxy-probe.invalid /ping"]);
   } finally {
     proxy.close();
   }
@@ -118,7 +152,7 @@ test("the settings' httpProxy is honored when the env names no proxy, and the en
       expect(process.env.HTTP_PROXY).toBeUndefined();
       expect(process.env.HTTPS_PROXY).toBeUndefined();
     });
-    expect(hits).toEqual(["http://oar-proxy-probe.invalid/settings"]);
+    expect(hits).toEqual(["oar-proxy-probe.invalid /settings"]);
   } finally {
     proxy.close();
   }

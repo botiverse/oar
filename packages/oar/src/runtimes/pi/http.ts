@@ -17,7 +17,8 @@ import type { Agent, Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlob
  * library should have. The module is not exported by the SDK either. So the
  * plane is built here with undici directly, a direct dependency pinned to
  * the version pi itself uses (8.10.2, one instance in the tree), and limited
- * to what the fix needs: the proxy agent, pi's `httpProxy` setting as the
+ * to what the fix needs: the proxy agent with pi's own connection options
+ * (`piDispatcherOptions`), pi's `httpProxy` setting as the
  * fallback when the env names no proxy (pi's own precedence), and pi's
  * `httpIdleTimeoutMs` setting as the dispatcher's headers/body timeout (pi's
  * defaults equal undici's when there is none). Node's fetch reads the global
@@ -114,6 +115,25 @@ async function loadUndici(): Promise<UndiciPlane> {
 }
 
 /**
+ * The dispatcher's options: the plan, plus the connection behavior pi's own
+ * dispatcher keeps (pi-coding-agent 1.2.0 core/http-dispatcher.js), so an
+ * embedded pi talks to providers and proxies the way `pi` does, and the host's
+ * global fetch keeps Node's protocol: HTTP/1.1 only (undici 8 would otherwise
+ * negotiate HTTP/2), CONNECT tunnels for http targets behind a proxy (as
+ * before undici 8.7), and pi's 2 s address-family attempt timeout.
+ */
+export function piDispatcherOptions(plan: PiHttpPlan): ConstructorParameters<typeof EnvHttpProxyAgent>[0] {
+  return {
+    allowH2: false,
+    proxyTunnel: true,
+    connect: { autoSelectFamilyAttemptTimeout: 2000 },
+    ...(plan.httpProxy === undefined ? {} : { httpProxy: plan.httpProxy }),
+    ...(plan.httpsProxy === undefined ? {} : { httpsProxy: plan.httpsProxy }),
+    ...(plan.idleTimeoutMs === undefined ? {} : { headersTimeout: plan.idleTimeoutMs, bodyTimeout: plan.idleTimeoutMs }),
+  };
+}
+
+/**
  * Install the proxy plane before the first provider request: undici's
  * global dispatcher becomes an `EnvHttpProxyAgent` built from the plan.
  * Nothing is installed when the plan changes nothing over Node's default
@@ -146,11 +166,7 @@ export async function configurePiHttp(settings?: PiHttpSettings): Promise<boolea
       warnOnce(new Error("the host already set a global dispatcher"));
       return false;
     }
-    const dispatcher = new undici.EnvHttpProxyAgent({
-      ...(plan.httpProxy === undefined ? {} : { httpProxy: plan.httpProxy }),
-      ...(plan.httpsProxy === undefined ? {} : { httpsProxy: plan.httpsProxy }),
-      ...(plan.idleTimeoutMs === undefined ? {} : { headersTimeout: plan.idleTimeoutMs, bodyTimeout: plan.idleTimeoutMs }),
-    });
+    const dispatcher = new undici.EnvHttpProxyAgent(piDispatcherOptions(plan));
     undici.setGlobalDispatcher(dispatcher);
     installed = { plan: key, dispatcher };
     return true;

@@ -643,9 +643,14 @@ reads the dispatcher through `Symbol.for("undici.globalDispatcher.1")`, so the
 global fetch classes stay Node's. Compressed bodies decoded in the 2026-09-11
 probe (Node 26.7, whose bundled undici 8.9.0 was then also the pin), and the
 live battery reaches the provider through the plane from a host with
-`HTTPS_PROXY` set. Not taken from pi's plane: `undici.install()`, the
-`"error"` listener pi puts on every undici client, the `allowH2`/connect
-tuning. When undici cannot be loaded, or the host's own dispatcher is kept,
+`HTTPS_PROXY` set. Taken from pi's plane as well (pi-coding-agent 1.2.0
+`core/http-dispatcher.js`), so an embedded pi connects the way `pi` does:
+`allowH2: false`, `proxyTunnel: true` and a 2 s address-family attempt
+timeout. Without them undici 8 negotiates HTTP/2 and sends http targets to a
+proxy without a CONNECT tunnel, a protocol change pi itself avoids and one
+that would reach every global `fetch` in the host; a test reads pi's file so
+a change there shows up. Not taken from pi's plane: `undici.install()` and
+the `"error"` listener pi puts on every undici client. When undici cannot be loaded, or the host's own dispatcher is kept,
 the adapter emits one `OAR_PI_PROXY_PLANE` process warning and the session
 runs on the existing dispatcher; a failed load is not cached, so a later
 entry point retries. Precedence, proxying through a local stand-in, the
