@@ -44,7 +44,7 @@ test("the entry is an http server on 127.0.0.1 behind a bearer token", async () 
   expect(entry.server.headers?.Authorization).toMatch(/^Bearer [\w-]{40,}$/u);
   expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 1, method: "ping" }, {}))).toBe(401);
   expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 1, method: "ping" }, { Authorization: "Bearer wrong" }))).toBe(401);
-  expect(await statusOf(fetch(entry.server.url, { headers: entry.server.headers }))).toBe(405);
+  expect(await statusOf(fetch(entry.server.url, { headers: entry.server.headers ?? {} }))).toBe(405);
 });
 
 test("initialize, tools/list and tools/call speak MCP", async () => {
@@ -106,7 +106,7 @@ test("close() aborts calls still running and stops listening", async () => {
 
 test("bad JSON is a 400, and names runtimes cannot take are refused up front", async () => {
   const entry = await serve([echo]);
-  expect(await statusOf(fetch(entry.server.url, { method: "POST", headers: entry.server.headers, body: "{" }))).toBe(400);
+  expect(await statusOf(fetch(entry.server.url, { method: "POST", headers: entry.server.headers ?? {}, body: "{" }))).toBe(400);
   await expect(serveMcpTools({ name: "has space", tools: [] })).rejects.toThrow("serveMcpTools name");
   await expect(serveMcpTools({ name: "host", tools: [{ ...echo, name: "a.b" }] })).rejects.toThrow("tool name");
   await expect(serveMcpTools({ name: "host", tools: [echo, echo] })).rejects.toThrow("be unique");
