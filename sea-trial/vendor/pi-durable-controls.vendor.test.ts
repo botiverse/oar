@@ -17,7 +17,7 @@ nativeTest("steer joins the tool run, follow-up starts another run, and tools re
     name: "hold", description: "hold until released", parameters: Type.Object({}), replay: "safe",
     execute: async (_args, api) => {
       api.output("before"); entered.resolve(); await release.promise; api.output(" after");
-      return { content: [{ type: "text", text: "tool result" }] };
+      return { output: [{ type: "text", text: "tool result" }] };
     },
   });
   registry.install(defineExtension({ name: "test-tools", tools: [hold] }));

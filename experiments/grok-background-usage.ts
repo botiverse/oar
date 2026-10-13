@@ -2,6 +2,7 @@
  * Does Grok's will_wake identify child spend absent from the parent ledger?
  * OAR_GROK_BIN=/path/to/grok pnpm tsx experiments/grok-background-usage.ts
  * Uses an isolated home and scripted local provider; no account or quota.
+ * Rechecked 2026-10-13 on 1.0.52; native zero reasoning is preserved too.
  */
 /* oxlint-disable import/max-dependencies -- Native probe combines adapter, provider harness and filesystem evidence. */
 import assert from "node:assert/strict";
@@ -98,7 +99,7 @@ async function run(scenario: Scenario): Promise<void> {
       assert.equal(asRecord(wakes[0]?.usage)?.outputTokens, 1);
     }
     const expected = expectedTotals[scenario];
-    assert.deepEqual(session.usage().value, { total: { ...expected, cacheRead: 0, cacheWrite: 0 } });
+    assert.deepEqual(session.usage().value, { total: { ...expected, reasoning: 0, cacheRead: 0, cacheWrite: 0 } });
     const evidence = { scenario, version: version.stdout.trim(), usage: session.usage(), terminals: terminalRecords(records), records };
     // All provider data is synthetic; paths from the disposable environment are removed.
     const serialized = JSON.stringify(evidence, null, 2).replaceAll(cwd, "/probe/work").replaceAll(env.env.HOME ?? "not-a-path", "/probe/home");

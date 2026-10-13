@@ -20,7 +20,7 @@ function errorSummary(error: unknown): { readonly name: string; readonly message
 }
 
 function watchEndSummary(end: WatchEnd): unknown {
-  return end.reason === "listener_error" ? { reason: end.reason, error: errorSummary(end.error) } : end;
+  return "error" in end ? { reason: end.reason, error: errorSummary(end.error) } : end;
 }
 
 async function withdraw(harness: Harness, conversation: Conversation, inputId: string): Promise<ResponseBody> {

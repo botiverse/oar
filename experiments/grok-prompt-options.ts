@@ -2,10 +2,12 @@
  * Native Grok ACP -> local model request probe. No login or model quota.
  * Run: OAR_GROK_BIN=/path/to/grok pnpm tsx experiments/grok-prompt-options.ts
  *
- * Observed 2026-10-07, 1.0.46 (2765805b9442): native override wins over rules;
- * resume ignores new rules but honors override. The OAR mapping must combine
- * both options into one override and refuse append-only resume.
- * Rechecked 2026-10-09 on 1.0.50 (c58f321264ba): all observations unchanged.
+ * Observed 2026-10-13, 1.0.52 (0920c8169e27): native override and rules
+ * both reach the provider on creation and resume. An append-only change on
+ * resume is still ignored, so OAR refuses it. Earlier 1.0.46 and 1.0.50
+ * ignored rules even alongside an override; the old combined override is
+ * no longer needed on 1.0.52. Blank replacements are ignored natively and
+ * are refused by OAR, with or without an append.
  *
  * Uses a disposable GROK_HOME and a custom model pointed at loopback. The
  * provider returns a deliberate 400 after capture; assertions concern the
@@ -72,7 +74,7 @@ const installation = { kind: "available", via: "executable", command } as const;
 const options: SessionOptions = { cwd, model: "oar-audit", env: { GROK_HOME: nativeHome, XAI_API_KEY: "probe-dummy" } };
 const profile = { ...grokAcpProfile, args: ["agent", "--always-approve", "--no-leader", "--cli-chat-proxy-base-url", endpoint, "stdio"] };
 const current = acpSession(profile);
-// Reproduce the vendor's two independent metadata inputs, without OAR's fix.
+// Bypass OAR's conditional refusal to measure native append-only resume.
 const raw = acpSession({
   ...profile,
   validateOptions: () => {},
@@ -122,20 +124,41 @@ max_completion_tokens = 100
   assert.equal(version.ok, true, version.stderr);
   console.log(version.stdout.trim());
   const native = await capture(raw, { systemPrompt: BASE, appendSystemPrompt: APPEND });
-  assert.equal(native.system, BASE, "native override must reproduce the missing rules");
+  assert.equal(native.system, `${BASE}\n\n<human_rules>\n${APPEND}\n</human_rules>`, "native override and rules must both reach the provider");
+  const defaults = await capture(raw, {});
+  // oxlint-disable eslint/no-await-in-loop -- Captures share a request journal and saved native session; serialize them.
+  for (const systemPrompt of ["", " \t\n"]) {
+    const blank = await capture(raw, { systemPrompt });
+    assert.equal(blank.system, defaults.system, "blank replacement retains native instructions");
+    const blankBoth = await capture(raw, { systemPrompt, appendSystemPrompt: APPEND });
+    assert.equal(blankBoth.system, `${defaults.system}\n\n<human_rules>\n${APPEND}\n</human_rules>`);
+    const blankResume = await capture(raw, { resume: native.id, systemPrompt, appendSystemPrompt: CHANGED });
+    assert.equal(blankResume.system, native.system, "blank replacement on resume leaves saved instructions unchanged");
+    for (const resume of [undefined, native.id]) {
+      for (const appendSystemPrompt of [undefined, APPEND]) {
+        await assert.rejects(current(installation, { ...options, systemPrompt,
+          ...(resume === undefined ? {} : { resume }),
+          ...(appendSystemPrompt === undefined ? {} : { appendSystemPrompt }),
+        }), (error: unknown) => error instanceof UnsupportedOptionError && error.option === "systemPrompt");
+      }
+    }
+  }
+  // oxlint-enable eslint/no-await-in-loop
   const ignored = await capture(raw, { resume: native.id, appendSystemPrompt: CHANGED });
-  assert.equal(ignored.system, BASE, "native resume must reproduce ignored rules");
+  assert.equal(ignored.system, native.system, "native resume still ignores append-only changes");
   const combined = await capture(current, { systemPrompt: BASE, appendSystemPrompt: APPEND });
-  assert.equal(combined.system, `${BASE}\n\n${APPEND}`, "both options must reach the model in order");
-  const resumed = await capture(current, { resume: combined.id, systemPrompt: CHANGED, appendSystemPrompt: APPEND });
+  assert.equal(combined.system, native.system, "OAR must preserve the native instruction channels");
+  const resumed = await capture(current, { resume: combined.id, systemPrompt: CHANGED, appendSystemPrompt: `${APPEND}_CHANGED` });
   assert.equal(resumed.id, combined.id);
-  assert.equal(resumed.system, `${CHANGED}\n\n${APPEND}`);
+  assert.equal(resumed.system, `${CHANGED}\n\n<human_rules>\n${APPEND}_CHANGED\n</human_rules>`);
+  const omitted = await capture(current, { resume: combined.id });
+  assert.equal(omitted.system, resumed.system, "omitting instructions retains both saved values");
   const replaced = await capture(current, { resume: combined.id, systemPrompt: BASE });
   assert.equal(replaced.system, BASE, "resume override itself works");
   const appended = await capture(current, { appendSystemPrompt: APPEND });
   assert.ok(appended.system.includes(APPEND) && appended.system.length > APPEND.length, "append-only must retain native instructions");
   await assert.rejects(current(installation, { ...options, resume: combined.id, appendSystemPrompt: CHANGED }), (error: unknown) => error instanceof UnsupportedOptionError && error.option === "appendSystemPrompt");
-  console.log("PASS native precedence, native resume rules, combined new/resume, resumed override, new append, refused resume append");
+  console.log("PASS native channels on new/resume, saved instructions, resumed override, new append, refused resume append and blank replacements");
 } finally {
   server.closeAllConnections();
   await new Promise<void>((resolve) => { server.close(() => { resolve(); }); });

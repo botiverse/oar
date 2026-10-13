@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { watchEvents, type ConversationId, type WatchEnd } from "@earendil-works/pi-durable";
+import { watchEvents, MemoryStorage, type ConversationId, type WatchEnd } from "@earendil-works/pi-durable";
 import { startDurableFixture, type DurableFixture } from "../harness/pi-durable.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 
@@ -21,8 +21,8 @@ afterEach(async () => {
   watch.mockImplementation(nativeWatch);
   for (const fixture of fixtures.splice(0)) { await fixture.close(); }
 });
-async function setup(): Promise<{ readonly fixture: DurableFixture; readonly session: Session }> {
-  const fixture = await startDurableFixture();
+async function setup(storage?: MemoryStorage): Promise<{ readonly fixture: DurableFixture; readonly session: Session }> {
+  const fixture = await startDurableFixture(undefined, storage);
   fixtures.push(fixture);
   const session = await fixture.runtime.session({ kind: "available", via: "bundled" }, { cwd: "/", model: "aimock/aimock-model" });
   return { fixture, session };
@@ -46,6 +46,9 @@ function delayWatch(): () => void {
   });
   return gate.resolve;
 }
+const storageError = new Error("storage failed");
+storageError.cause = storageError;
+
 const suite = describe.skipIf(process.env.OAR_TEST !== "pi-durable-aimock");
 suite("Pi Durable watch boundaries", () => {
   test("locally idle prompt sees an unobserved native run as runtime_refused, not busy", async () => {
@@ -102,7 +105,26 @@ suite("Pi Durable watch boundaries", () => {
     await session.dispose();
   });
 
-  test.each<WatchEnd>([{ reason: "stopped" }, { reason: "cancelled" }, { reason: "retired" }, { reason: "listener_error", error: new Error("listener failed") }])("unexpected watch end $reason rejects later controls", async (end) => {
+  test("a native storage failure closes the watch with a JSON-safe cause", async () => {
+    const storage = new MemoryStorage();
+    const { session } = await setup(storage);
+    const commit = vi.spyOn(storage, "commit").mockRejectedValueOnce(storageError);
+    try {
+      await session.prompt("cannot persist");
+      await vi.waitFor(() => { expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true); }, WAIT);
+      const unreachable = await session.prompt("unreachable");
+      expect(unreachable.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });
+      await session.dispose();
+      // Exercise the persisted record format, including the native cyclic cause.
+      const serialized = JSON.stringify(session.records());
+      const persisted: unknown = JSON.parse(serialized);
+      expect(persisted).toEqual(expect.arrayContaining([expect.objectContaining({ body: {
+        type: "pi-durable/watch_closed", native: { reason: "session_failed", error: { name: "Error", message: "storage failed" } }, events: [],
+      } })]));
+    } finally { commit.mockRestore(); }
+  });
+
+  test.each<WatchEnd>([{ reason: "stopped" }, { reason: "cancelled" }, { reason: "retired" }, { reason: "listener_error", error: new Error("listener failed") }, { reason: "session_failed", error: storageError }])("unexpected watch end $reason rejects later controls", async (end) => {
     const ended = Promise.withResolvers<WatchEnd>();
     watch.mockImplementation(async (...args) => {
       const stream = await nativeWatch(...args);
@@ -115,7 +137,7 @@ suite("Pi Durable watch boundaries", () => {
     expect(refused.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
     const closed = session.records().find((record) => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
     assert.ok(closed?.kind === "frame");
-    const native = end.reason === "listener_error" ? { reason: "listener_error", error: { name: "Error", message: "listener failed" } } : end;
+    const native = "error" in end ? { reason: end.reason, error: { name: "Error", message: end.error instanceof Error ? end.error.message : String(end.error) } } : end;
     expect(closed.body.native).toEqual(native);
     await session.dispose();
     // Exercise the persisted JSON format, not an in-memory structured clone.

@@ -27,11 +27,6 @@ export function selectGrokAuthMethod(initialized: JsonRecord): string | undefine
 }
 
 export function grokInitializeMeta(options: SessionOptions): JsonRecord {
-  // Grok 1.0.46 chooses override OR rules. Carry both in the override so
-  // native creation and resume each receive the complete requested prompt.
-  const override = options.systemPrompt === undefined || options.appendSystemPrompt === undefined
-    ? options.systemPrompt
-    : `${options.systemPrompt}\n\n${options.appendSystemPrompt}`;
   return {
     clientIdentifier: "oar",
     clientType: "generic",
@@ -40,8 +35,8 @@ export function grokInitializeMeta(options: SessionOptions): JsonRecord {
       skipGitStatus: true,
       skipProjectLayout: true,
     },
-    ...(override === undefined ? {} : { systemPromptOverride: override }),
-    ...(override !== undefined || options.appendSystemPrompt === undefined ? {} : { rules: options.appendSystemPrompt }),
+    ...(options.systemPrompt === undefined ? {} : { systemPromptOverride: options.systemPrompt }),
+    ...(options.appendSystemPrompt === undefined ? {} : { rules: options.appendSystemPrompt }),
   };
 }
 
@@ -172,8 +167,11 @@ export const grokAcpProfile: AcpSessionProfile = {
   initializeMeta: grokInitializeMeta,
   validateOptions: (options) => {
     refuseSessionOptions(grokRefusedSessionOptions, options);
+    if (options.systemPrompt !== undefined && options.systemPrompt.trim() === "") {
+      throw new UnsupportedOptionError("systemPrompt", "grok treats a blank systemPrompt as omitted (observed on 1.0.52)");
+    }
     if (options.resume !== undefined && options.appendSystemPrompt !== undefined && options.systemPrompt === undefined) {
-      throw new UnsupportedOptionError("appendSystemPrompt", "grok does not reapply rules when resuming a session (observed on 1.0.46)");
+      throw new UnsupportedOptionError("appendSystemPrompt", "grok does not reapply rules when resuming a session (observed on 1.0.52)");
     }
   },
   sessionMeta: () => ({ yoloMode: true }),

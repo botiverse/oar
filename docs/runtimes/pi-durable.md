@@ -2,7 +2,7 @@
 
 Pi Durable runs an agent over a host-owned `Harness`, storage, model catalog,
 extension registry and execution environment. OAR uses
-`@earendil-works/pi-durable` **1.1.0**, including its experimental
+`@earendil-works/pi-durable` **1.2.0**, including its experimental
 `watchEvents` interface. This is a separate runtime from the Pi coding-agent
 SDK: it does not load a Pi CLI login, settings directory or session file.
 
@@ -24,10 +24,10 @@ replacement snapshot instead of the intervening batches.
 
 The host passes the **same `Models` instance** it supplied to `Harness.open`:
 Harness exposes no public catalog getter, so OAR cannot verify this identity.
-The host installs `@earendil-works/pi-durable@~1.1.0` and
-`@earendil-works/chord@~1.1.0`, both optional peers of OAR. OAR operates on
+The host installs `@earendil-works/pi-durable@~1.2.0` and
+`@earendil-works/chord@~1.2.0`, both optional peers of OAR. OAR operates on
 the host's native package instances, without bundling another copy. Tests
-pin 1.1.0; upgrading this experimental API requires rerunning the native
+pin 1.2.0; upgrading this experimental API requires rerunning the native
 probe and vendor tests below.
 
 ```ts
@@ -71,13 +71,18 @@ request or a replayable tool, so submission deduplication is not a promise of
 exactly-once external side effects. Extension replay policy remains native.
 
 If the watch ends without this controller disposing it (stopped, cancelled,
-session_closed, retired or listener_error), its native WatchEnd is retained
+session_closed, session_failed, retired or listener_error), its native WatchEnd is retained
 in a frame, followed by an `exited` response with code null. This ends the
 observed turn and makes later control return `runtime_exited`; it does not
 claim that shared Harness execution stopped. A failed submission query during
 snapshot recovery is an error frame, preserving observation without guessing
-a turn outcome. API and watch-listener errors retain JSON-safe `name`,
+a turn outcome. API, storage and watch-listener errors retain JSON-safe `name`,
 `message` and a scalar `code` when present, without Error objects or cause chains.
+
+In 1.2.0 a storage failure closes the native session and ends its watch with
+`session_failed`. The error summary survives JSON persistence, including
+when the original error has a cyclic cause. Recovery requires reopening the
+host Harness from storage.
 
 Fresh prompts use the session status immediately before their request: running
 means local `busy`, without submitting; idle never returns `busy`. If another
@@ -139,17 +144,23 @@ The initial snapshot is its own `snapshot` frame. Stream closure is a native
 | user `message_end` | `user_message`, native entry id, and inputId where a submission names that entry |
 | `tool_execution_start` | tool name, call id and arguments |
 | `tool_execution_update` | whole retained output window reconstructed from native trim/append or replacement; diagnostic/details fields stay raw |
-| `tool_execution_end` | result content and ok/failed only when its native entry has a tool result; otherwise just ended |
+| `tool_execution_end` | model calls read content and ok/failed from the native tool-result entry; nested calls read ok/failed from native `result.isError`, without inventing content; no result means just ended |
 | `agent_changed` / snapshot agent | model and effort actually stored |
 | `usage_changed` / snapshot usage | conversation's own model and tool token ledgers minus the totals at attachment |
 | `auto_retry_start` | retry with native attempt and reason |
-| blocking `compaction_start` | compaction started; end has no verified outcome and stays raw |
+| blocking `compaction_start` | compaction started; end receipts, including 1.2.0 error text, stay raw |
+
+Native tool implementations return `ToolExecutionResult.output` for model
+content in 1.2.0. The model-facing transcript still uses a tool-result
+message with `content`, which OAR reads. Nested calls have their own call ids
+and result summaries, and running nested calls are adopted from
+`snapshot.nestedTools`; parent task ids and structured tool output stay raw.
 
 The optional `reasoning` counter in each model or tool usage entry is part
 of its output. OAR sums the reported parts and subtracts the attachment
 snapshot's reasoning total, just as it does for input, output and caches.
 Missing counters stay absent; repeated cumulative ledger reports do not
-add the same spend again. This uses Pi Durable 1.1.0's native `UsageState`
+add the same spend again. This uses Pi Durable 1.2.0's native `UsageState`
 and pi-ai `Usage`, verified by projection tests.
 
 Native model `turn_start`/`turn_end` are internal rounds, not OAR turns.
@@ -175,10 +186,10 @@ remain distinct artifacts.
 
 ## Evidence and verification
 
-Native source: [v1.1.0 README](https://github.com/earendil-works/pi/blob/v1.1.0/packages/durable/README.md),
-[JSON example](https://github.com/earendil-works/pi/blob/v1.1.0/packages/durable/test/examples/19-json.ts)
-and [events](https://github.com/earendil-works/pi/blob/v1.1.0/packages/durable/src/harness/events.ts).
-Reviewed at `abe508e` on 2026-10-09. The
+Native source: [v1.2.0 README](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/README.md),
+[JSON example](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/test/examples/19-json.ts)
+and [events](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/src/harness/events.ts).
+Rechecked against installed 1.2.0 on 2026-10-13. The
 [probe](../../experiments/pi-durable-probe.ts) prints actual batches and
 checks persisted instructions and request deduplication after JSONL reopen.
 
@@ -187,7 +198,8 @@ the real SDK with a local scripted provider.
 `OAR_TEST=pi-durable-aimock pnpm vitest run sea-trial/vendor/pi-durable*.test.ts`
 covers steering at a tool boundary, follow-ups, withdrawal, native abort,
 provider errors, active adoption, disposal, JSONL recovery, request deduplication
-and native backlog overflow. Pure projection, option and browser-bundle checks
+native backlog overflow, storage failure closure, and nested tool results
+and adoption. Pure projection, option and browser-bundle checks
 live under `tests/pi-durable`, `tests/turn-active.test.ts` and
 `tests/browser-entry.test.ts`. These checks need no login or model quota;
 they do not establish behavior of an arbitrary host extension or provider.
@@ -201,7 +213,7 @@ scripted HTTP responses, with no real credentials. Run
 ## Additional directories
 
 A non-empty `SessionOptions.additionalDirectories` is declared refused
-before creating or changing a conversation. Version 1.1.0 exposes one agent
+before creating or changing a conversation. Version 1.2.0 exposes one agent
 cwd; the host owns the Harness filesystem environment. There is no verified
 per-conversation multi-root directory option.
 

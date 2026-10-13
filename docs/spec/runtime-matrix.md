@@ -408,10 +408,13 @@ there is no verified session-local injection path, and its instruction loader
 ignores the v1 `instructions` configuration. This version-specific refusal
 is not in the runtime's always-refused map because v1 supports both options.
 
-Grok refuses an append-only prompt change on resume: native `rules` is not
-reapplied. A `systemPrompt`, with or without `appendSystemPrompt`, is supported
-on resume ([request evidence](../runtimes/grok.md#models-and-instructions)).
-This conditional refusal is not an always-refused option declaration.
+Grok 1.0.52 refuses an append-only prompt change on resume: native `rules`
+is not reapplied without an override. `systemPrompt` and `appendSystemPrompt`
+use separate native override/rules fields; together they are supported on
+creation and resume ([request evidence](../runtimes/grok.md#models-and-instructions)).
+Blank `systemPrompt` is likewise refused on creation and resume because the
+runtime treats it as omitted, even alongside an append. These conditional
+refusals are not always-refused option declarations.
 
 Kimi and opencode also refuse a `resume` that names another directory than
 the one their `session/list` says the session lives in (option `cwd`): they

@@ -4,7 +4,7 @@ import type { AgentEvent, SnapshotEvent } from "@earendil-works/pi-durable";
 import { foldDurableBatch, initialDurableProjection } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
 
 const usage: Usage = { input: 10, output: 5, cacheRead: 2, cacheWrite: 3, totalTokens: 20, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
-const empty: SnapshotEvent = { type: "snapshot", entries: [], agent: {}, inbox: [], tools: [], compactions: [], usage: { models: {}, tools: {} } };
+const empty: SnapshotEvent = { type: "snapshot", entries: [], agent: {}, inbox: [], tools: [], nestedTools: [], compactions: [], usage: { models: {}, tools: {} } };
 const message: AssistantMessage = { role: "assistant", content: [{ type: "text", text: "hello" }], api: "anthropic-messages", provider: "test", model: "model", usage, stopReason: "stop", timestamp: 1 };
 
 test("durable reasoning sums model and tool ledgers and subtracts the attachment baseline", () => {

@@ -424,34 +424,38 @@ changes are **unexposed** ([native surfaces](live-configure.md)).
 [test](../../tests/acp/acp-session-effort.test.ts).
 
 Grok's initialization extensions accept system-instruction configuration.
-`systemPrompt` uses `_meta.systemPromptOverride`. On a new session,
-`appendSystemPrompt` alone uses `_meta.rules`, retaining native instructions.
-When both are given, OAR sends **one override**, `systemPrompt` followed by a
-blank line and `appendSystemPrompt`. This works on both creation and resume.
-These are Grok extensions, not standard ACP fields.
+`systemPrompt` uses `_meta.systemPromptOverride`; `appendSystemPrompt` uses
+`_meta.rules`. Grok 1.0.52 retains both on creation and resume, placing the
+rules after the replacement in its native `<human_rules>` section. OAR sends
+the two native fields separately. These are Grok extensions, not standard ACP
+fields. Without a replacement, new-session rules retain native instructions.
 
 **Conditional refusal:** resuming with only `appendSystemPrompt` throws
-`UnsupportedOptionError` naming that option before launch: Grok 1.0.46 does
-not reapply `rules` on resume. A resumed `systemPrompt` is supported and
-replaces the saved system instructions. No prompt options preserves them.
+`UnsupportedOptionError` naming that option before launch: Grok 1.0.52 still
+does not reapply `rules` without an override. A resumed `systemPrompt` is
+supported and replaces the saved system instructions; both options together
+replace both values. Omitting both preserves the saved instructions.
 
-[Native request probe](../../experiments/grok-prompt-options.ts), 2026-10-07,
-**1.0.46 (`2765805b9442`)**: an isolated native home and custom model pointed
-at a local provider capture the actual system message. Raw override plus
-rules sends only the override; resumed rules leaves the old system message;
-resumed override replaces it. OAR's combined override reaches the provider
-with both strings in order on creation and resume. The provider deliberately
-stops after capture, so these are request assertions, not model-obedience
-claims. Earlier fixed-word response probes were inconclusive and are not the
-basis for refusing an option.
+An empty or whitespace-only `systemPrompt` is also refused before launch,
+naming `systemPrompt`, with or without an append and on both creation and
+resume. Native Grok treats it as omitted: a new session keeps its built-in
+instructions, while a resumed session keeps its saved instructions.
 
-The public source at
-[`2bdd1d6a`, `mvp_agent/mod.rs`](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/agent/mvp_agent/mod.rs#L976-L1030)
-likewise selects override before rules and applies rules only to new
-sessions. Its
-[`agent_ops.rs`](https://github.com/xai-org/grok-build/blob/2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8/crates/codegen/xai-grok-shell/src/agent/mvp_agent/agent_ops.rs#L4737)
-applies an override on load. That source revision is not asserted to be the
-installed binary's build revision; the request capture establishes behavior.
+[Native request probe](../../experiments/grok-prompt-options.ts), 2026-10-13,
+**1.0.52 (`0920c8169e27`)**: an isolated native home and custom model pointed
+at a local provider capture the actual system message. Both strings reach
+the provider through their native channels, including changed values on
+resume. Append-only resume still leaves the old system message; empty and whitespace
+replacements also leave the native/saved base in place. The provider
+deliberately stops after capture, so these are request assertions, not
+model-obedience claims. The
+[vendor regression](../../sea-trial/vendor/grok-prompts.vendor.test.ts)
+also checks successful new and resumed turns with a scripted provider.
+
+Earlier 1.0.46 and 1.0.50 selected override instead of rules, requiring OAR to
+combine both strings. That workaround has been removed for 1.0.52. The
+[October 13 report](../../experiments/runtime-version-checks/2026-10-13.md) records the
+resulting instruction-format change for hosts.
 
 | Session option | Native channel and result |
 | --- | --- |
@@ -460,7 +464,7 @@ installed binary's build revision; the request capture establishes behavior.
 | `model` | ACP `session/set_model`, with native read-back. |
 | `effort` | ACP `thought_level` config option; the similarly named CLI flag does not configure ACP sessions. |
 | `systemPrompt` | Initialize override, on both new and resumed sessions. |
-| `appendSystemPrompt` | Initialize rules on new sessions, or combined override with `systemPrompt`; append-only resume is refused. |
+| `appendSystemPrompt` | Native initialize rules, alongside the separate override when `systemPrompt` is supplied; append-only resume is refused. |
 | `env` | Child-process environment, including tools. |
 | `mcpServers` | ACP `mcpServers` on new and resumed sessions ([session MCP servers](#session-mcp-servers)). |
 

@@ -319,7 +319,7 @@ TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module
 
 ## Host-owned durable sessions
 
-Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.1.0 @earendil-works/chord@~1.1.0`.
+Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.2.0 @earendil-works/chord@~1.2.0`.
 The factory lives only in `@botiverse/oar/pi-durable`, usable in Node and browsers.
 The root and browser core entries load without these peers.
 
@@ -336,7 +336,7 @@ session.rawEvents(() => render(viewOf(session.records())));
 await session.prompt("Hello", { inputId: crypto.randomUUID() });
 ```
 
-The host owns its Pi Durable 1.1.0 Harness, providers, credentials, extensions
+The host owns its Pi Durable 1.2.0 Harness, providers, credentials, extensions
 and storage. `resume: session.id` attaches to that storage's conversation and
 resumes unfinished work. Queue and input-id deduplication are native and
 durable. `dispose()` detaches the observer; it does not stop work or close the

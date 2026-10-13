@@ -69,14 +69,15 @@ function entryEvents(state: DurableProjection, entry: EntryRecord): { readonly s
 }
 
 function snapshotEvents(state: DurableProjection, event: SnapshotEvent): { readonly state: DurableProjection; readonly events: readonly RuntimeEventBody[] } {
+  const tools = [...event.tools, ...event.nestedTools];
   const partial = event.generation?.message;
   const next = partial === undefined ? { state: emptyMessage, events: [] } : wholeMessage(state.message, partial);
-  return { state: { ...state, message: next.state, run: event.run?.inputs ?? [], tools: new Map(event.tools.filter((tool) => tool.status === "running").map((tool) => [tool.callId, tool.output ?? ""])) }, events: [
+  return { state: { ...state, message: next.state, run: event.run?.inputs ?? [], tools: new Map(tools.filter((tool) => tool.status === "running").map((tool) => [tool.callId, tool.output ?? ""])) }, events: [
     ...agentEvents(event.agent),
     ...(event.run === undefined ? [] : [{ kind: "turn_active" as const }]),
     ...next.events,
-    ...event.tools.filter((tool) => tool.status === "running" && !state.tools.has(tool.callId)).map((tool) => ({ kind: "tool_call_started" as const, callId: tool.callId, tool: tool.name })),
-    ...event.tools.flatMap((tool) => tool.status === "running" && tool.output !== undefined ? [{ kind: "tool_call_progress" as const, callId: tool.callId, output: tool.output }] : []),
+    ...tools.filter((tool) => tool.status === "running" && !state.tools.has(tool.callId)).map((tool) => ({ kind: "tool_call_started" as const, callId: tool.callId, tool: tool.name })),
+    ...tools.flatMap((tool) => tool.status === "running" && tool.output !== undefined ? [{ kind: "tool_call_progress" as const, callId: tool.callId, output: tool.output }] : []),
     usageEvent(state, event.usage),
   ] };
 }
@@ -110,18 +111,19 @@ function step(state: DurableProjection, event: AgentEvent): { readonly state: Du
     }
     case "tool_execution_end": {
       const result = event.entry?.model?.find((message) => message.role === "toolResult");
+      const outcome = result ?? event.result;
       const tools = new Map(state.tools);
       tools.delete(event.toolCallId);
       const content = result === undefined ? undefined : toolContent(result.content);
       return { state: { ...state, tools }, events: [{ kind: "tool_call_ended", callId: event.toolCallId,
-        ...(content === undefined ? {} : { content }), ...(result === undefined ? {} : { result: result.isError ? "failed" : "ok" }) }] };
+        ...(content === undefined ? {} : { content }), ...(outcome === undefined ? {} : { result: outcome.isError ? "failed" : "ok" }) }] };
     }
     case "agent_changed": return { state, events: agentEvents(event.agent) };
     case "usage_changed": return { state, events: [usageEvent(state, event.usage)] };
     case "auto_retry_start": return { state, events: [{ kind: "retry", attempt: event.attempt, reason: event.errorMessage }] };
     case "submission": return { state, events: [] };
     case "compaction_start": return { state, events: event.blocking ? [{ kind: "compaction_started", trigger: event.reason }] : [] };
-    // compaction_end reports only that its task disappeared, not its outcome.
+    // Compaction receipts, including native error text, stay in the raw batch.
     case "compaction_end":
     case "turn_start":
     case "turn_end":

@@ -1,7 +1,8 @@
 /**
  * Pi Durable 1.1.0, observed 2026-10-09: native run_end precedes terminal
  * submission receipts within the same batch. Instructions and requestId
- * deduplication survive JSONL close/open. No credentials or paid calls.
+ * deduplication survive JSONL close/open. Rechecked on 1.2.0, 2026-10-13.
+ * No credentials or paid calls.
  * Run: pnpm tsx experiments/pi-durable-probe.ts > durable-native.jsonl
  */
 import assert from "node:assert/strict";

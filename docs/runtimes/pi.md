@@ -7,7 +7,7 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.1.0**. Native source references are
+`@earendil-works/pi-coding-agent` SDK **1.2.0**. Native source references are
 pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
 URLs redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
@@ -54,8 +54,7 @@ change was needed then; that check used 1.0.4 with dependency ranges `^1.0.2`. S
 
 **1.1.0** adds an authoritative `aborted` flag to `agent_settled`. OAR now
 uses that native fact for cancellation, including aborts initiated by Pi
-extensions, and invokes the complete `AgentSession.abort()` path. Both Pi
-dependency floors are `^1.1.0`. The
+extensions, and invokes the complete `AgentSession.abort()` path. The
 [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
 records the local-provider regressions and upgrade checks; older live
 observations above retain their original versions.
@@ -72,6 +71,13 @@ requesting the removed provider rejects at open. The
 probe verifies these outcomes with a native 1.0.2 session file containing
 synthetic messages and a scripted fallback provider, not an Azure network
 request. Azure authentication and prompt-cache behavior were not tested.
+
+Both Pi dependency floors are `^1.2.0`. The upgrade is verified in the
+[October 13 report](../../experiments/runtime-version-checks/2026-10-13.md), including
+native controls, extension lifecycle, cross-version resume and tool handling.
+Pi extensions using `before_agent_start` must follow the SDK's new
+`messageType` distinction: a custom-message turn carries `message` rather
+than `prompt`/`images`. OAR leaves that extension API native.
 
 ## Native concepts and calling interfaces
 
