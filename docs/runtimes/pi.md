@@ -667,17 +667,24 @@ A bundled host needs no pi dependency of its own for this. The hand-over only
 works when the bundle holds **one copy of pi-ai**: OAR hands the modules to
 the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
 the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
-same version when its optional peers (the `@aws-sdk/credential-provider-node`
-group) resolve differently in the two places; the bundle then carries two
-copies, the hand-over lands on the one no session uses, and every OAuth turn
-fails with "Cannot find module" again
-([#386](https://github.com/botiverse/oar/issues/386): two `pi-ai@1.1.0` peer
-variants in one single executable). OAR cannot reach pi-coding-agent's copy
-itself: pi-coding-agent exports only `.` and `./rpc-entry`, and pi declined
-to export its own setup (earendil-works/pi#10458). So a bundled host makes
-pi-ai resolve once, for example by pinning pi's optional peers at its
-workspace root or with a package-manager override, and checks that the
-bundle names a single `@earendil-works+pi-ai@` variant. Each hand-over is
+same version when the optional peers of its `openai` dependency resolve
+differently in the two places, `undici` above all: pi-coding-agent pins
+`undici` (8.10.2 in pi 1.2.0, and OAR pins the same), so a host that depends
+on another `undici` gets a second pi-ai copy for its own imports. The bundle
+then carries two copies, the hand-over lands on the one no session uses, and
+every OAuth turn fails with "Cannot find module" again
+([#386](https://github.com/botiverse/oar/issues/386): a daemon on `undici` 7
+bundled two `pi-ai@1.1.0` variants). OAR cannot reach pi-coding-agent's copy
+itself: pi-coding-agent exports only `.` and `./rpc-entry`, and a request to
+export its own setup was closed without action (earendil-works/pi#10458,
+the same split, from a host whose `discord.js` pinned `undici` 6). So a
+bundled host resolves pi-ai once: it pins `undici` (and any other `openai`
+peer it depends on: `ws`, `zod`, the AWS SDK credential provider) to the
+versions pi-coding-agent resolves, checks that the bundle names a single
+`@earendil-works+pi-ai@` variant, and keeps a build check that derives auth
+for a dummy OAuth credential through pi-coding-agent's own `ModelRuntime`
+inside the bundle: it fails with that "Cannot find module" whenever the
+copies split again. Each hand-over is
 best effort: a host that leaves Bedrock out of its bundle (its AWS SDK adds
 about 1.4 MB) keeps every sign-in, gets one `OAR_PI_MODULES` process warning,
 and Bedrock loads pi's own way; a failed hand-over is tried again on the next
