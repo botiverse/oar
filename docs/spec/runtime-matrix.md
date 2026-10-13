@@ -448,7 +448,16 @@ JSON (no SSE stream), single or batched, and `notifications/cancelled` aborts
 the call's `signal`. Each `initialize` opens its own MCP session
 (`mcp-session-id`), so sessions sharing one served set never cancel each
 other's calls. It refuses an `Origin` other than a loopback one, as MCP asks
-of local servers. A handler's thrown error becomes an `isError` result carrying its
+of local servers.
+
+`instructions`, guidance across the tools (what the group is for, how the
+tools work together), is returned as the `initialize` result's
+`instructions` ([#378](https://github.com/botiverse/oar/issues/378)). Whether
+the model sees it is the runtime's own choice: claude, codex, opencode and
+grok hand it to the model; pi and kimi do not, so on those, guidance the
+model must have belongs in the tool descriptions. Pinned per runtime by the
+vendor test below ([env] 2026-10-13: claude 2.1.292, codex 0.162.0, pi
+1.1.0, opencode 1.18.30, kimi 2.1.1, grok 1.0.50). A handler's thrown error becomes an `isError` result carrying its
 message, which the model sees as a failed tool call; an unknown tool is a
 JSON-RPC error. Server and tool names are checked up front against the
 strictest runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$`). Native

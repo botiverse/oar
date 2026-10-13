@@ -239,7 +239,9 @@ It listens on 127.0.0.1 behind a random bearer token (in the entry's
 machine, as OAR's runtimes do. A handler returns text, or MCP content with
 `isError` for a failed call; a thrown error becomes an `isError` result with
 its message. Its `signal` aborts when the runtime cancels the call or the
-server closes. One served set can back several sessions. See
+server closes. One served set can back several sessions. `instructions` (guidance
+across the tools) goes out as the MCP server instructions; claude, codex,
+opencode and grok show them to the model, pi and kimi do not. See
 [host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
 
 `runtime.listModels(installation, options?)` lists the models an installation

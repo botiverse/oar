@@ -62,6 +62,14 @@ test("initialize, tools/list and tools/call speak MCP", async () => {
   expect(await statusOf(post(entry, { jsonrpc: "2.0", method: "notifications/initialized" }))).toBe(202);
 });
 
+test("instructions, when given, are the initialize result's instructions", async () => {
+  const entry = await serveMcpTools({ name: "host", tools: [echo], instructions: "Use echo before anything else." });
+  served.push(entry);
+  expect(await rpc(entry, "initialize", { protocolVersion: "2025-06-18" })).toMatchObject({ result: { instructions: "Use echo before anything else." } });
+  const plain = await serve([echo]);
+  expect(await rpc(plain, "initialize", { protocolVersion: "2025-06-18" })).not.toHaveProperty("result.instructions");
+});
+
 test("a handler's error is a tool error the model sees, not a protocol error", async () => {
   const entry = await serve([{ name: "boom", inputSchema: { type: "object" }, handler: () => { throw new Error("disk full"); } }]);
   expect(await rpc(entry, "tools/call", { name: "boom", arguments: {} })).toEqual({ jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text: "disk full" }], isError: true } });
