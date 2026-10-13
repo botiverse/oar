@@ -18,6 +18,8 @@ export {
   recordLine,
 } from "./voyage.js";
 export type { VoyageHeader, VoyageRecorder } from "./voyage.js";
+export { serveMcpTools } from "./mcp/serve-tools.js";
+export type { HostTool, HostToolContent, HostToolResult, ServeMcpToolsOptions, ServedMcpTools } from "./mcp/serve-tools.js";
 // Everything the browser-safe observe subpath exports, so the root is the full surface.
 export * from "./observe/index.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";

@@ -212,6 +212,36 @@ conversation database, refuses an entry carrying them. See the
 [channels](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options)
 and each runtime page's "Session MCP servers".
 
+Tools the host implements itself go through the same option. `serveMcpTools`
+serves them from an MCP server inside the host process and returns the
+`mcpServers` entry to pass, so one implementation reaches every runtime that
+takes an http entry with `headers` (all but cursor and antigravity):
+
+```ts
+import { serveMcpTools } from "@botiverse/oar";
+
+const served = await serveMcpTools({
+  name: "workspace",
+  tools: [{
+    name: "read_note",
+    description: "Read a note from the host's store",
+    inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    handler: async ({ id }, { signal }) => await notes.read(String(id), { signal }),
+  }],
+});
+const session = await runtime.session(installation, { cwd, mcpServers: [served.server] });
+// ... later, after the sessions that use it are disposed:
+await served.close();
+```
+
+It listens on 127.0.0.1 behind a random bearer token (in the entry's
+`headers`, so it never appears in a record), so the runtime must run on this
+machine, as OAR's runtimes do. A handler returns text, or MCP content with
+`isError` for a failed call; a thrown error becomes an `isError` result with
+its message. Its `signal` aborts when the runtime cancels the call or the
+server closes. One served set can back several sessions. See
+[host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
+
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. Entries include native `effortLevels` and `serviceTiers` where supported.

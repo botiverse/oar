@@ -684,7 +684,12 @@ exposed** as OAR configuration or interaction APIs. Native configuration may
 still affect execution, but OAR does not pass `--strict-mcp-config`,
 `--tools`, `--agents`, or explicit setting-source controls. Startup always passes
 `--dangerously-skip-permissions`; there is no OAR approval request/reply
-channel. [Native MCP][native-mcp], [permissions][native-permissions],
+channel, and `launchArgs` cannot carry `--permission-mode`, which that flag
+would override ([launch arguments](#launch-arguments)). A host that needs
+enforcement rather than a preference isolates the session instead: an OS
+sandbox profile or a container whose filesystem, network and credentials are
+only what the agent may touch. `disallowedTools` removes named tools from the
+session altogether ([disallowed tools](#disallowed-tools)). [Native MCP][native-mcp], [permissions][native-permissions],
 [adapter](../../packages/oar/src/runtimes/claude/session.ts).
 
 Inventories (2026-09-16) are control queries in their own

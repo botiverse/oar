@@ -429,6 +429,39 @@ read, not the open's ([env] opencode 1.18.30). A
 level a runtime does not offer is a plain error naming the level, not this
 one.
 
+## Host-served tools
+
+Tools the host implements itself reach the agent through `mcpServers` too,
+not through a channel of their own. `serveMcpTools({ name, tools })` serves
+them from a streamable HTTP MCP server inside the host process, on
+`127.0.0.1` behind a random bearer token, and returns the `mcpServers` entry
+(`{ name, type: "http", url, headers: { Authorization } }`) and `close()`.
+Each runtime then attaches it through its own MCP channel above, so it
+behaves as any http entry does there: claude, codex, pi, grok, kimi and
+opencode take it; cursor refuses `mcpServers`, and antigravity refuses an
+entry with `headers`. The runtime must reach the host's loopback address,
+which holds for every runtime OAR starts on this machine or runs in this
+process.
+
+The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
+JSON (no SSE stream), and `notifications/cancelled` aborts the call's
+`signal`. A handler's thrown error becomes an `isError` result carrying its
+message, which the model sees as a failed tool call; an unknown tool is a
+JSON-RPC error. Server and tool names are checked up front against the
+strictest runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$`). Native
+host-tool channels (codex `dynamicTools`, claude's in-process SDK MCP, pi's
+custom tools) are not used: one MCP server reaches every runtime above, and
+none of those channels adds a capability MCP lacks
+([#341](https://github.com/botiverse/oar/issues/341)).
+
+Evidence: [`serve-mcp-tools.vendor.test.ts`](../../sea-trial/vendor/serve-mcp-tools.vendor.test.ts)
+runs the real claude, codex and pi (in CI) and opencode, kimi and grok
+(locally) against a scripted provider whose model calls a tool the test
+process serves; the provider receives the words only the host's handler
+writes, and no record holds the bearer token.
+[`tests/mcp-serve-tools.test.ts`](../../tests/mcp-serve-tools.test.ts) pins
+the protocol, authorization, cancellation and `close()`.
+
 ## Missing resume targets
 
 `session({ resume })` rejects with the exported `SessionNotFoundError` only
