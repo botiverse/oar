@@ -663,7 +663,21 @@ own standalone binary makes (`registerBunOAuthFlows()` from
 `@earendil-works/pi-ai/bun-oauth` and `setBedrockProviderModule` from
 `@earendil-works/pi-ai/compat`). The imports are literal, so a bundler
 follows them, and dynamic, so a host that never uses pi does not load them.
-A bundled host needs no pi dependency of its own for this. Each hand-over is
+A bundled host needs no pi dependency of its own for this. The hand-over only
+works when the bundle holds **one copy of pi-ai**: OAR hands the modules to
+the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
+the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
+same version when its optional peers (the `@aws-sdk/credential-provider-node`
+group) resolve differently in the two places; the bundle then carries two
+copies, the hand-over lands on the one no session uses, and every OAuth turn
+fails with "Cannot find module" again
+([#386](https://github.com/botiverse/oar/issues/386): two `pi-ai@1.1.0` peer
+variants in one single executable). OAR cannot reach pi-coding-agent's copy
+itself: pi-coding-agent exports only `.` and `./rpc-entry`, and pi declined
+to export its own setup (earendil-works/pi#10458). So a bundled host makes
+pi-ai resolve once, for example by pinning pi's optional peers at its
+workspace root or with a package-manager override, and checks that the
+bundle names a single `@earendil-works+pi-ai@` variant. Each hand-over is
 best effort: a host that leaves Bedrock out of its bundle (its AWS SDK adds
 about 1.4 MB) keeps every sign-in, gets one `OAR_PI_MODULES` process warning,
 and Bedrock loads pi's own way; a failed hand-over is tried again on the next
