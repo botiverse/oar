@@ -4,7 +4,7 @@ import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { claudeFailure, claudeLimitReset, claudeResultReason } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
-import { claudeContextUsageFromResult } from "./context-usage.js";
+import { claudeContextCompacted, claudeContextSent, claudeContextUsage, initialClaudeContext, type ClaudeContextReading } from "./context-usage.js";
 import { foldModelUsage, freshModelUsage, resumedModelUsage, withBaseline, withMainLoop, type ClaudeModelUsage, type ClaudeUsageBaseline } from "./token-usage.js";
 import { claudeTaskViews } from "./tasks.js";
 import { claudeContent, claudeToolResults, contentBlocks, type ClaudePartials } from "./content.js";
@@ -69,6 +69,7 @@ export interface ClaudeProjectionState {
   readonly agents: ReadonlyMap<string, readonly string[]>;
   readonly tokens: ReadonlyMap<string, TokenTotals>;
   readonly modelUsage: ClaudeModelUsage;
+  readonly context: ClaudeContextReading;
   readonly partials: ClaudePartials;
   /** Last native task description per agent/task, for progress de-duplication. */
   readonly taskDescriptions: ReadonlyMap<string, string>;
@@ -90,6 +91,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   agents: new Map(),
   tokens: new Map(),
   modelUsage: freshModelUsage,
+  context: initialClaudeContext,
   partials: new Map(),
   taskDescriptions: new Map(),
   failureCategory: null,
@@ -204,12 +206,11 @@ export function foldClaudeStdout(
     case "stream_event": {
       const content = claudeContent(state.partials, message, agentPath);
       const next = rememberToolUses({ ...state, partials: content.partials }, message, agentPath);
-      if (message.type !== "assistant") {
+      if (message.type !== "assistant" || agentPath.length > 0) {
         return event({ events: content.events }, next);
       }
-      // The category of an error claude reports as an assistant message.
-      const failureCategory = agentPath.length === 0 && typeof message.error === "string" ? message.error : next.failureCategory;
-      return event({ events: content.events }, { ...next, failureCategory });
+      // A root model call: the category of an error claude reports as an assistant message, and the context the call sent.
+      return event({ events: content.events }, { ...next, failureCategory: typeof message.error === "string" ? message.error : next.failureCategory, context: claudeContextSent(next.context, message) });
     }
     case "user": {
       const views = [...claudeToolResults(message)];
@@ -226,7 +227,7 @@ export function foldClaudeStdout(
       const events: RuntimeEventBody[] = [...claudeServiceTierEvents(message), { kind: "turn_ended", outcome: resultOutcome(state, message) }];
       const accumulated = accumulate(state, agentPath, message);
       const running = foldModelUsage(state.modelUsage, message);
-      const context = claudeContextUsageFromResult(message);
+      const { context, reading } = claudeContextUsage(state.context, message);
       if (accumulated !== null || context !== null || running.total !== null) {
         events.push({ kind: "usage", usage: {
           ...(context === null ? {} : { context }),
@@ -234,7 +235,7 @@ export function foldClaudeStdout(
           ...(running.total === null ? {} : { total: running.total }),
         } });
       }
-      return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage,
+      return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading,
         ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, unclaimedInit: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
     }
     case "system": {
@@ -243,7 +244,7 @@ export function foldClaudeStdout(
         // carries compact_metadata {trigger: manual | auto, pre_tokens, …}
         // ([sym] 2.1.272); there is no start frame, so no compaction_started.
         const trigger = asRecord(message.compact_metadata)?.trigger;
-        return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] });
+        return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] }, agentPath.length === 0 ? { ...state, context: claudeContextCompacted(state.context) } : state);
       }
       if (message.subtype === "init") {
         const initialized = claudeInitialized(state, agentPath.length === 0);

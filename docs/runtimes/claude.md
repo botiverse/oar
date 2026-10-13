@@ -575,16 +575,23 @@ survive manual `/compact`.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
 
-Context reporting is **partial**. The `result` frame's `usage` event carries
-input/cache counts as context fullness and the token totals below
-(`Session.contextUsage()` and `usage()` fold these events): across three
-one-word turns `usage().value.total.input` grew by about 22k per turn (cache
-reads included) while `contextUsage().value.tokens` stayed near 22k. Official
-documentation describes result usage as aggregate main-loop usage for the
-user turn, so the context figure is **unverified as current fullness** across
-multiple model steps. Native compaction still runs and is reported after the
-fact (mapping table above).
+Context fullness is what the root agent's latest model call sent: its
+assistant frame's input, cache-read and cache-creation tokens (claude's own
+status-line reading; the frame's `output_tokens` is the stream's start, so
+output is left out), with the window from `result.modelUsage` for that
+call's model. The turn's `result` frame carries it as `usage.context`
+(`Session.contextUsage()` folds it). The `result` frame's own `usage` is
+not the context: claude sums it over every main-loop call of the turn
+(recorded, 2.1.292: two calls of 21,426 and 22,450 tokens gave 43,876; the
+result's `usage.iterations` keeps the last call alone), so read as the
+context it counts a turn of N tool round trips about N times, past the
+window. A subagent's calls and a message claude makes up (`<synthetic>`) are
+not the root's context. After a `compact_boundary` the context is unknown
+(`tokens: null`) until the next call: claude's `post_tokens` counts the kept
+messages only. A turn that calls no model and compacts nothing (a local
+command) reports no context, and the previous reading stands.
 [Usage calculation](../../packages/oar/src/runtimes/claude/context-usage.ts),
+[test](../../tests/claude/claude-context-usage.test.ts),
 [native usage](https://code.claude.com/docs/en/agent-sdk/cost-tracking).
 
 `Session.contextBreakdown()` asks claude itself what fills the window: the
@@ -1205,7 +1212,7 @@ provider only) and against a project- or local-scope server, an effort
 clamp by `maxEffortLevel` or an override by
 `CLAUDE_CODE_EFFORT_LEVEL` (the read-back refuses either; neither was
 exercised), accepted-input receipt under load,
-late interrupts across turns, context fullness after multi-step work, a
+late interrupts across turns, a
 recorded `/clear` and `get_usage` answer, concurrent-child interleaving, native identity changes
 after conversation reset, the resumability floor of a session JSONL, and
 whether anything ever collects `sessions/<pid>.json` or `session-env/<uuid>/`.
@@ -1347,7 +1354,7 @@ Where an SDK option has a counterpart:
 | `maxTurns`, `maxBudgetUsd` | `launchArgs: ["--max-turns", "2"]`, `["--max-budget-usd", "0.5"]`; ends as `failure: "limit_reached"` |
 | `permissionMode`, `canUseTool`, hooks | not offered: OAR allows every tool by design (host approvals deferred) |
 | `listSessions`, `getSessionMessages` | not yet ([#340](https://github.com/botiverse/oar/issues/340)) |
-| `result.usage`, `modelUsage` | `session.usage()`, `contextUsage()`, `contextBreakdown()` |
+| `result.usage`, `modelUsage` | `session.usage()`, `contextBreakdown()`; `contextUsage()` from the last call's assistant `usage` |
 | `result.total_cost_usd` | not reported (list-price estimate) |
 | `q.accountInfo()` | `claudeRuntime.authStatus()`, `accountUsage()`, `login()` |
 | `supportedModels()` | `claudeRuntime.listModels()` |

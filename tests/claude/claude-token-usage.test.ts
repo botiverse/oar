@@ -41,8 +41,15 @@ function replay(lines: readonly JsonRecord[], start: ClaudeProjectionState = cla
 const resumedAfter = (answered: JsonRecord | Error): ClaudeProjectionState => claudeUsageBaselined(resumedClaudeProjection, claudeUsageBaseline(answered));
 const baselineFrom = (modelUsage: unknown): unknown => claudeUsageBaseline(getUsageAnswer("oar-usage-1", modelUsage));
 
-function usageEvents(state: ClaudeProjectionState, frame: JsonRecord): RuntimeEventBody[] {
-  return foldClaudeStdout(state, frame).commands.flatMap((command) => command.kind === "frame" ? command.body.events.filter((event) => event.kind === "usage") : []);
+/** The usage events claude's frames fold into, from `start`. */
+function usageEvents(start: ClaudeProjectionState, frames: readonly JsonRecord[]): RuntimeEventBody[] {
+  const events: RuntimeEventBody[] = [];
+  frames.reduce((state, frame) => {
+    const { state: next, commands } = foldClaudeStdout(state, frame);
+    events.push(...commands.flatMap((command) => command.kind === "frame" ? command.body.events.filter((event) => event.kind === "usage") : []));
+    return next;
+  }, start);
+  return events;
 }
 
 const root = (tokens: SessionUsage["total"]): unknown => [{ agentPath: [], tokens }];
@@ -105,8 +112,7 @@ test.each([
   ["a timeout", resumedAfter(new Error("claude did not answer get_usage within 30000 ms"))],
   ["an answer without session totals", resumedAfter(getUsageAnswer("oar-usage-1", undefined))],
 ])("a resume without a baseline (%s) reports context only, and usage().total stays null", (_case, start) => {
-  const result = results(resumedProcess)[0] ?? {};
-  expect(usageEvents(start, result)).toEqual([{ kind: "usage", usage: { context: { tokens: 22_087, contextWindow: 200_000, percent: 11 } } }]);
+  expect(usageEvents(start, resumedProcess)).toEqual([{ kind: "usage", usage: { context: { tokens: 22_087, contextWindow: 200_000, percent: 11 } } }]);
   expect(replay(resumedProcess, start).afterResults).toEqual([{ total: null }]);
 });
 
