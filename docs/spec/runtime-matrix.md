@@ -438,14 +438,17 @@ them from a streamable HTTP MCP server inside the host process, on
 (`{ name, type: "http", url, headers: { Authorization } }`) and `close()`.
 Each runtime then attaches it through its own MCP channel above, so it
 behaves as any http entry does there: claude, codex, pi, grok, kimi and
-opencode take it; cursor refuses `mcpServers`, and antigravity refuses an
-entry with `headers`. The runtime must reach the host's loopback address,
+opencode take it; cursor and pi-durable refuse `mcpServers`, and
+antigravity refuses an entry with `headers`. The runtime must reach the host's loopback address,
 which holds for every runtime OAR starts on this machine or runs in this
 process.
 
 The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
-JSON (no SSE stream), and `notifications/cancelled` aborts the call's
-`signal`. A handler's thrown error becomes an `isError` result carrying its
+JSON (no SSE stream), single or batched, and `notifications/cancelled` aborts
+the call's `signal`. Each `initialize` opens its own MCP session
+(`mcp-session-id`), so sessions sharing one served set never cancel each
+other's calls. It refuses an `Origin` other than a loopback one, as MCP asks
+of local servers. A handler's thrown error becomes an `isError` result carrying its
 message, which the model sees as a failed tool call; an unknown tool is a
 JSON-RPC error. Server and tool names are checked up front against the
 strictest runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$`). Native

@@ -1,3 +1,4 @@
+/* oxlint-disable max-statements -- Each test follows one client conversation with the server end to end. */
 import { once } from "node:events";
 import { afterEach, expect, test } from "vitest";
 import { serveMcpTools, type HostTool, type ServedMcpTools } from "../packages/oar/src/index.js";
@@ -13,7 +14,7 @@ async function serve(tools: readonly HostTool[]): Promise<ServedMcpTools> {
   return entry;
 }
 
-async function post(entry: ServedMcpTools, message: object, headers: Record<string, string> = entry.server.headers ?? {}): Promise<Response> {
+async function post(entry: ServedMcpTools, message: object | readonly object[], headers: Record<string, string> = entry.server.headers ?? {}): Promise<Response> {
   const response = await fetch(entry.server.url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(message) });
   return response;
 }
@@ -110,4 +111,78 @@ test("bad JSON is a 400, and names runtimes cannot take are refused up front", a
   await expect(serveMcpTools({ name: "has space", tools: [] })).rejects.toThrow("serveMcpTools name");
   await expect(serveMcpTools({ name: "host", tools: [{ ...echo, name: "a.b" }] })).rejects.toThrow("tool name");
   await expect(serveMcpTools({ name: "host", tools: [echo, echo] })).rejects.toThrow("be unique");
+});
+
+/** A tool whose calls wait for their signal, reporting each call's signal as it starts. */
+function waiting(): { readonly tool: HostTool; readonly started: AbortSignal[] } {
+  const started: AbortSignal[] = [];
+  return {
+    started,
+    tool: { name: "wait", inputSchema: { type: "object" }, handler: async (_input, { signal }) => {
+      started.push(signal);
+      await once(signal, "abort");
+      return "aborted";
+    } },
+  };
+}
+
+async function sessionOf(entry: ServedMcpTools): Promise<Record<string, string>> {
+  const response = await post(entry, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } });
+  const session = response.headers.get("mcp-session-id") ?? "";
+  expect(session).not.toBe("");
+  return { ...entry.server.headers, "mcp-session-id": session };
+}
+
+test("sessions sharing a served set never cancel each other's calls, though their request ids are the same", async () => {
+  const { tool, started } = waiting();
+  const entry = await serve([tool]);
+  const [first, second] = [await sessionOf(entry), await sessionOf(entry)];
+  expect(first["mcp-session-id"]).not.toBe(second["mcp-session-id"]);
+  const call = { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "wait", arguments: {} } };
+  const firstCall = post(entry, call, first);
+  const secondCall = post(entry, call, second);
+  await expect.poll(() => started.length).toBe(2);
+  expect(await statusOf(post(entry, { jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 3 } }, first))).toBe(202);
+  const firstAnswer = await firstCall;
+  expect(await firstAnswer.json()).toMatchObject({ id: 3, result: { content: [{ text: "aborted" }] } });
+  expect(started.filter((signal) => signal.aborted)).toHaveLength(1);
+  expect(await statusOf(post(entry, { jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 3 } }, second))).toBe(202);
+  const secondAnswer = await secondCall;
+  expect(await secondAnswer.json()).toMatchObject({ id: 3, result: { content: [{ text: "aborted" }] } });
+});
+
+test("a call whose HTTP request goes away is aborted", async () => {
+  const { tool, started } = waiting();
+  const entry = await serve([tool]);
+  const controller = new AbortController();
+  const request = fetch(entry.server.url, { method: "POST", headers: entry.server.headers ?? {}, signal: controller.signal, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "wait", arguments: {} } }) });
+  await expect.poll(() => started.length).toBe(1);
+  controller.abort();
+  await expect(request).rejects.toThrow();
+  await expect.poll(() => started[0]?.aborted).toBe(true);
+});
+
+test("the protocol version is one the server speaks, and batches, client responses and parse errors follow JSON-RPC", async () => {
+  const entry = await serve([echo]);
+  expect(await rpc(entry, "initialize", { protocolVersion: "1999-bogus" })).toMatchObject({ result: { protocolVersion: "2025-06-18" } });
+  const batch = await post(entry, [{ jsonrpc: "2.0", id: 1, method: "ping" }, { jsonrpc: "2.0", method: "notifications/initialized" }, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "echo", arguments: { text: "b" } } }]);
+  expect(await batch.json()).toEqual([{ jsonrpc: "2.0", id: 1, result: {} }, { jsonrpc: "2.0", id: 2, result: { content: [{ type: "text", text: "echo:b" }] } }]);
+  expect(await statusOf(post(entry, [{ jsonrpc: "2.0", method: "notifications/initialized" }]))).toBe(202);
+  expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 9, result: {} }))).toBe(202);
+  const broken = await fetch(entry.server.url, { method: "POST", headers: entry.server.headers ?? {}, body: "{" });
+  expect(broken.status).toBe(400);
+  expect(await broken.json()).toMatchObject({ jsonrpc: "2.0", id: null, error: { code: -32_700 } });
+});
+
+test("an oversized body is a 413 that closes its connection, and the next request is served", async () => {
+  const entry = await serve([echo]);
+  const big = await fetch(entry.server.url, { method: "POST", headers: entry.server.headers ?? {}, body: "x".repeat(5 * 1024 * 1024) });
+  expect(big.status).toBe(413);
+  expect(await rpc(entry, "ping")).toEqual({ jsonrpc: "2.0", id: 1, result: {} });
+});
+
+test("a page from another origin is refused, a loopback one is served", async () => {
+  const entry = await serve([echo]);
+  expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 1, method: "ping" }, { ...entry.server.headers, Origin: "https://evil.example" }))).toBe(403);
+  expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 1, method: "ping" }, { ...entry.server.headers, Origin: "http://localhost:3000" }))).toBe(200);
 });

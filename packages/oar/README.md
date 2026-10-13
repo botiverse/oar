@@ -215,7 +215,7 @@ and each runtime page's "Session MCP servers".
 Tools the host implements itself go through the same option. `serveMcpTools`
 serves them from an MCP server inside the host process and returns the
 `mcpServers` entry to pass, so one implementation reaches every runtime that
-takes an http entry with `headers` (all but cursor and antigravity):
+takes an http entry with `headers` (all but cursor, pi-durable and antigravity):
 
 ```ts
 import { serveMcpTools } from "@botiverse/oar";
