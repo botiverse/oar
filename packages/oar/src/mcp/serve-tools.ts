@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { McpServer } from "../contracts/session-options.js";
 import { asRecord, parseJson, type JsonRecord } from "../shared/json.js";
+import { RESERVED_MCP_SERVER_NAMES } from "../shared/mcp-servers.js";
 import { authorized, body, listen, localOrigin, messagesOf, rpcError } from "./http.js";
 
 /*
@@ -41,7 +42,7 @@ export interface HostTool {
 }
 
 export interface ServeMcpToolsOptions {
-  /** The server name runtimes show and prefix tools with (`^[\w-]+$`, the strictest runtime's rule). */
+  /** The server name runtimes show and prefix tools with (`^[\w-]+$`, the strictest runtime's rule; not one of the names some runtimes drop, #395). */
   readonly name: string;
   readonly tools: readonly HostTool[];
   /**
@@ -65,8 +66,8 @@ const TOOL_NAME = /^[\w-]{1,64}$/u;
 type CallId = string | number;
 
 function checkTools(options: ServeMcpToolsOptions): ReadonlyMap<string, HostTool> {
-  if (!SERVER_NAME.test(options.name)) {
-    throw new Error(`serveMcpTools name ${JSON.stringify(options.name)} must match ${String(SERVER_NAME)}`);
+  if (!SERVER_NAME.test(options.name) || RESERVED_MCP_SERVER_NAMES.has(options.name)) {
+    throw new Error(`serveMcpTools name ${JSON.stringify(options.name)} must match ${String(SERVER_NAME)} and not be one of ${JSON.stringify([...RESERVED_MCP_SERVER_NAMES])}`);
   }
   const tools = new Map<string, HostTool>();
   for (const tool of options.tools) {

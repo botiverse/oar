@@ -75,10 +75,17 @@ function piMcpEnvironment(env: SessionOptions["env"]): Record<string, string> {
   return values;
 }
 
-/** Refuse the combination before pi opens resources or loads extensions. */
+/**
+ * Refuse names and the environment combination before pi opens resources,
+ * trusts the cwd or loads extensions.
+ */
 export function validatePiMcpEnvironment(options: SessionOptions): void {
   const servers = givenMcpServers(options.mcpServers);
-  if (servers?.some((server) => !isHttpMcpServer(server)) === true) {
+  if (servers === null) {
+    return;
+  }
+  checkPiMcpServerNames(servers);
+  if (servers.some((server) => !isHttpMcpServer(server))) {
     piMcpEnvironment(options.env);
   }
 }

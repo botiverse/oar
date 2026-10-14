@@ -97,6 +97,17 @@ test("entries without credentials are no mcpServerCredentials given, and every r
   expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor"]);
 });
 
+// Some runtimes drop a server so named without a word (#395): every runtime
+// that takes mcpServers refuses the names before anything starts.
+test.each(["__proto__", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"])("a reserved MCP server name is refused before anything starts: %s", async (name) => {
+  const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers === undefined);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codex", "grok", "kimi", "opencode", "pi"]);
+  for (const runtime of taking) {
+    // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
+    await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", mcpServers: [{ name, command: "/nonexistent/oar-probe" }] }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers", message: `mcpServers name ${JSON.stringify(name)} is reserved: some runtimes drop a server so named without a word` });
+  }
+});
+
 test("a runtime that refuses env cannot be a subagent, and spawn says why before opening", async () => {
   const base = scriptedRuntime({ id: "inproc", turn: () => assert.fail("never opened") });
   const inproc = defineRuntime({ ...base, refusedSessionOptions: { env: "no environment here" } });

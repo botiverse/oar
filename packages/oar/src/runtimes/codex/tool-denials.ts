@@ -2,6 +2,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import type { AppServerClient } from "./app-server-client.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { RESERVED_MCP_SERVER_NAMES } from "../../shared/mcp-servers.js";
 
 /** No builtin deny channel in app-server. MCP names must identify a server
  * and its native tool; the server is resolved against effective config. */
@@ -33,6 +34,11 @@ export function codexToolDenialsConfig(options: SessionOptions, effective: JsonR
     if (tool.length === 0) {
       unsupported.push(name);
       continue;
+    }
+    // A server of the user's own config named after an object member
+    // (#395) would vanish from the merged mcp_servers, its denial with it.
+    if (RESERVED_MCP_SERVER_NAMES.has(server)) {
+      throw new UnsupportedOptionError("disallowedTools", `codex cannot disable tools of the MCP server ${JSON.stringify(server)}: the name is reserved and the denial would be dropped`);
     }
     const tools = groups.get(server) ?? [];
     tools.push(tool);

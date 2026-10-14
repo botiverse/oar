@@ -148,7 +148,10 @@ export interface SessionOptions {
    * replaces it), measured on each runtime page. A stdio server
    * gets `env` on top of what the runtime passes it (claude and pi: the whole
    * environment, `SessionOptions.env` included; codex: an allowlist such as
-   * `HOME` and `PATH`). Names are unique within the list. Refused when
+   * `HOME` and `PATH`). Names are unique within the list, and none is
+   * `__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__` or
+   * `__lookupSetter__`, which some runtimes drop without a word
+   * (`UnsupportedOptionError` on every runtime, #395). Refused when
    * non-empty by cursor: `session()` rejects with `UnsupportedOptionError`
    * (`Runtime.refusedSessionOptions`,
    * docs/spec/runtime-matrix.md#refused-session-options), as it does for a
