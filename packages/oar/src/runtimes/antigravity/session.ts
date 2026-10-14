@@ -37,8 +37,7 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   additionalDirectories: "antigravity accepts but ignores ACP additionalDirectories",
   serviceTier: "antigravity exposes no verified per-session service-tier setting and readback",
   systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
-  appendSystemPrompt: "The Antigravity ACP server has no system prompt append input in its protocol, launch options, or configuration",
-  // agy_acp_server 1.3.0 writes a session's `mcpServers`, `env` and `headers`
+  // agy_acp_server 1.4.0 writes a session's `mcpServers`, `env` and `headers`
   // values included, in plain text into its conversation database
   // (`$GEMINI_HOME/antigravity-acp/conversations/<id>.db`, 0600), which
   // outlives the session and which a host cannot see or clear through ACP;
@@ -62,6 +61,28 @@ export function antigravityToolDenials(options: SessionOptions): void {
   }
 }
 
+/** 1.4.0 names session extensions under `_meta.antigravity`. */
+function sessionMeta(options: SessionOptions, initialized: JsonRecord): JsonRecord | undefined {
+  const { appendSystemPrompt, disallowedTools } = options;
+  if (appendSystemPrompt !== undefined) {
+    const capabilities = asRecord(initialized.agentCapabilities);
+    // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP metadata envelope.
+    const native = asRecord(asRecord(capabilities?._meta)?.antigravity);
+    if (asRecord(native?.systemPrompt)?.append !== true) {
+      throw new UnsupportedOptionError("appendSystemPrompt", "antigravity does not advertise systemPrompt.append");
+    }
+  }
+  if (appendSystemPrompt === undefined && disallowedTools === undefined) {
+    return undefined;
+  }
+  return {
+    antigravity: {
+      ...(appendSystemPrompt === undefined ? {} : { systemPrompt: { append: appendSystemPrompt } }),
+      ...(disallowedTools === undefined ? {} : { disabledTools: [...disallowedTools] }),
+    },
+  };
+}
+
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
   isResumeNotFound: (native) => native.code === -32_002,
@@ -78,10 +99,11 @@ export const antigravityAcpProfile: AcpSessionProfile = {
     refuseSessionOptions(antigravityRefusedSessionOptions, options);
     antigravityToolDenials(options);
   },
-  sessionMeta: (options) => options.disallowedTools === undefined ? undefined : { agy: { disabledTools: [...options.disallowedTools] } },
+  sessionMeta,
   // `session/set_model` answers `{}` and no `config_option_update` is ever
-  // pushed, so only `set_config_option` reports the switch. Effort is part
-  // of the model id and no `thought_level` option exists.
+  // pushed by this setter, so `set_config_option` reports the switch.
+  // 1.4.0 groups model variants and advertises a `thought_level` option;
+  // the shared ACP effort path applies it by its native id, thinking_level.
   modelViaConfigOption: true,
   // A resumed session comes back in mode `default`, so yolo is applied on
   // every open, not only on `session/new`.

@@ -208,7 +208,7 @@ vendor test with the omitted-list resume.
 | pi | SDK `excludeTools`, built-ins such as `bash` and directly exposed MCP names `mcp__server__tool` | native SDK name/pattern semantics apply; unmatched names are accepted silently and disable nothing |
 | cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
 | codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
-| antigravity | canonical `BuiltinTools` filter names via `_meta.agy.disabledTools`; see its page for the exact list and native group names | MCP, client file tools, unknown names; a mixed list fails as a whole before launch |
+| antigravity | canonical `BuiltinTools` filter names via `_meta.antigravity.disabledTools`; see its page for the exact list and native group names | MCP, client file tools, unknown names; a mixed list fails as a whole before launch |
 | grok, kimi, opencode | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
 
 Value-specific refusals identify the offending names. They are not listed
@@ -361,7 +361,7 @@ and ends with the entries' names
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
-| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel; no verified session name setting; it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| antigravity | `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials` | the selected server has no system prompt replacement input (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel; no verified session name setting; it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified session name setting |
 | opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel; no verified final-output schema channel; no session name |
@@ -429,8 +429,9 @@ same error ([resume in another directory](../runtimes/resume-cwd.md)).
 
 An ACP runtime whose session advertises no `thought_level` config option
 has no effort channel, so it refuses `effort` with the same error once its
-handshake shows that (antigravity, [env] agy_acp_server 1.2.1;
-`shared/acp/effort.ts`, `tests/acp/acp-session-antigravity.test.ts`). The
+handshake shows that (`shared/acp/effort.ts`,
+`tests/acp/acp-session-effort.test.ts`). Antigravity 1.4.0 advertises this
+selector for its grouped model families. The
 menu belongs to the model in effect: opencode offers one only for a model
 with variants, so after a requested model switch the switch's answer is
 read, not the open's ([env] opencode 1.18.30). A

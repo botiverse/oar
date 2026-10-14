@@ -197,7 +197,7 @@ function handleSessionRequest(message) {
       result(message.id, {
         protocolVersion: 1,
         agentCapabilities: {
-          loadSession: true, ...mcpCapabilities(),
+          loadSession: true, ...mcpCapabilities(), ...(antigravity ? { _meta: { antigravity: { systemPrompt: { append: true } } } } : {}),
           sessionCapabilities: { ...(sessionCapabilities[mode] ?? { resume: {}, close: {} }), ...(process.env.FAKE_ACP_DIRECTORIES === "1" ? { additionalDirectories: {} } : {}) },
           promptCapabilities: { image: mode !== "no-images" },
         },

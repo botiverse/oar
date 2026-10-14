@@ -11,22 +11,27 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 [abort](#prompt-steering-queueing-and-abort)), plus direct ACP probes of the
 same binary for cancel timing and the model and mode methods. The server
 ships as a packaged Python archive without a public source repository;
-the 1.3.0 archive includes its ACP Python source, inspected in the
-[launch audit](#models-instructions-and-context) below. The registry lists **1.3.0** as of
-2026-10-03; on a host without the server's own login, `basic` and
-`tool-detail` stopped while opening with the native `Authentication
-required`, so the live session behavior below is not established for 1.3.0
-([October 3](../../experiments/runtime-version-checks/2026-10-03.md), still
-open [October 4](../../experiments/runtime-version-checks/2026-10-04.md)).
-Versions are evidence baselines, not a support range; see the
+the 1.4.0 archive includes its ACP Python source. On 2026-10-14,
+**1.4.0** and its companion `localharness_external` passed native tests
+against a local scripted Gemini provider, in a temporary home with a dummy
+API key. New/resumed instruction and effort settings, MCP, tool denials,
+images and failure reporting were exercised without an account. See the
+[October 14 report](../../experiments/runtime-version-checks/2026-10-14.md)
+and [native probe](../../experiments/antigravity-native-settings.ts).
+The personal-login scenarios below remain the earlier 1.2.1 evidence;
+scripted-provider results do not extend that account-specific coverage.
+The current adapter uses the 1.4.0 metadata namespace; upgrade the server
+and companion harness together. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
 ## Native concepts and calling interfaces
 
 A native session is a persistent conversation with an id, a working
 directory, a permission mode (`default`, `auto_edit`, `yolo`), and a model.
-Effort is part of the model id (`gemini-3.8-flash-high`, `-medium`, `-low`),
-not a separate parameter. A child agent started through the `start_subagent`
+The 1.4.0 model picker groups thinking variants into model families such as
+`gemini-3.8-flash`, with a separate `thinking_level` selector in ACP
+category `thought_level`. The native session still holds a concrete variant
+such as `gemini-3.8-flash-high`. A child agent started through the `start_subagent`
 tool has its own id inside the harness but no ACP session of its own.
 
 Antigravity offers three programmatic surfaces: the `agy` CLI's print mode (a
@@ -54,7 +59,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 | --- | --- |
 | `agy_acp_server` executable | One `agy_acp_server.par --uid=` subprocess per OAR Session on Linux (no args elsewhere), spawned in the session `cwd` with the env overlay; its exit is an `exited` response record. |
 | Persistent native session | `Session.id` is the native `sessionId`; `SessionOptions.resume` attaches through `session/resume`, which replays nothing. |
-| Handshake answers and opening pushes | Answers are Frame records with `model` events where they report one; pushes are recorded in arrival order, so `Session.model()` is a fold over the stream. No `authenticate` is sent. |
+| Handshake answers and opening pushes | Answers are Frame records with `model` and `effort` events where they report them; pushes are recorded in arrival order, so queries fold the stream. No `authenticate` is sent. |
 | Native agent and turn | Every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier `opaque`: a child's activity arrives under the parent's session id with nothing that identifies it as a child. |
 | Prompt, steer, queue and cancel | A turn is one `session/prompt` RPC, its answer carrying `turn_ended`. The session has no `steer`; `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback that a running shell command reaches. |
 | Typed events, history and child graph | Events for message, tool and model updates; unknown kinds are recorded with no events. No usage, reasoning, compaction or retry frame arrived. The graph is the root session only. |
@@ -105,7 +110,7 @@ answer is `{}` and no `config_option_update` is ever pushed, so only the
 config option answer reports the switch. Every opening request has a 30
 second deadline, because a cold start unpacks the Python archive; spawn, auth
 and creation failures reject session construction with the process killed.
-The opening stream is four records before the first prompt: `initialize`,
+The 1.2.1 opening stream was four records before the first prompt: `initialize`,
 `session/new` (model event), `available_commands_update` (`/plan` and
 `/logout`), and the `session/set_config_option` answer (model event, e.g.
 `gemini-3.8-flash-low`); the `session/set_mode` answer is not a frame. Opening
@@ -253,61 +258,66 @@ does not silently ignore a requested tier or alter a global default.
 
 ### Models, instructions, and context
 
-**Mapped:** open-time model selection (`SessionOptions.model` →
-`session/set_config_option {configId: "model"}`), read back from the answer's
-`configOptions`, never from the request parameter. The server has no model
-list method, so `listModels` (and `oar models antigravity`) opens a throwaway
-session and reads the options of its `model` config option; the process is
-then killed, since there is no `session/close`. No entry carries effort
-levels.
+**Models (1.4.0):** `SessionOptions.model` goes to
+`session/set_config_option {configId: "model"}`. OAR reads the answer's
+`configOptions`, never the request parameter. The server has no model-list
+method, so `listModels` opens a throwaway session, reads its `model` option,
+and kills the process (no `session/close`). Native family ids replace the
+former per-effort entries: the scripted API-key configuration lists five
+families, including `gemini-3.8-flash` and `gemini-3.1-pro`. Other account
+and gateway configurations may offer different lists. OAR follows the
+native picker and does not parse suffixes to invent families or levels.
+`Session.model()` likewise reports the family selector, not the concrete
+variant in the separate legacy `models.currentModelId` field.
 
-**Effort (not a separate setting):** effort is folded into the model id, so
-pick `gemini-3.8-flash-high` rather than setting effort. There is no
-`thought_level` option; a `session/set_config_option` on one answers
-`-32602`. `SessionOptions.effort` is not mapped: OAR refuses the open with an
-`UnsupportedOptionError` on `effort` because no `thought_level` option is
-advertised, and no `effort` event appears
-([ACP effort channel](../../packages/oar/src/shared/acp/effort.ts)).
+**Effort:** `SessionOptions.effort` uses the `thought_level` config option,
+whose native id is `thinking_level`, after any model selection. The reply
+must report the requested level; a missing selector or a refused/different
+value fails the open. `Session.effort()` folds that native report. A fresh
+session advertises levels only for its current model, so `listModels`
+attaches `effortLevels` and `defaultEffort` only to that entry. It does not
+infer the other entries' menus. For `gemini-3.8-flash`, the measured menu is
+`low`, `medium`, `high`, with `high` selected initially. New `low` and resumed
+`high` both reached the provider's `generationConfig.thinkingConfig`.
+Omitting effort on resume selected the runtime's `high` default after a
+previous `low` turn; pass it again when that choice matters.
 
-`session()` refuses `systemPrompt` and `appendSystemPrompt` with an
-`UnsupportedOptionError`, declared before open in
-`antigravityRuntime.refusedSessionOptions`, because the selected server has
-no instruction input through its protocol, launch options or configuration
-([refused session options](../spec/runtime-matrix.md#refused-session-options)).
-
-**Native launch audit (1.3.0, 2026-10-07).** The
-[official Linux distribution](https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.3.0-linux-x86_64.zip)
-contains `agy_acp_server.par`, readable as a ZIP archive. Under
-`google3/cloud/developer_experience/antigravity_extensions/acp_server/`:
-
-- `main.py`, consistent with `--help` and `--helpfull`, defines only `debug`
-  and `notices` as application flags; the remaining flags are library flags.
-- `settings.py` accepts only `auth` and `gcp` sections and warns on unknown
-  keys. `server.py` builds the harness configuration without a system-prompt
-  or append input. No supported per-session instruction channel was found.
-- `model_selection.py` reads `AGY_ACP_DEFAULT_MODEL`, but thinking levels are
-  associated with model ids; `server.py` translates that metadata into the
-  model endpoint's thinking setting. This supplies no independent effort
-  input. OAR keeps the existing ACP model selection and readback.
+**Instructions:** `appendSystemPrompt` goes on new, load and resume as
+`_meta.antigravity.systemPrompt.append`, provided `initialize` advertises
+`agentCapabilities._meta.antigravity.systemPrompt.append: true`. Otherwise
+OAR throws `UnsupportedOptionError` before opening. The runtime appends it
+to its built-in harness instructions; the provider request carries both.
+The runtime trims surrounding whitespace and ignores an empty append.
+OAR sends the supplied value unchanged. A resume uses the new append;
+omitting it removes the prior append from the next request's system
+instructions. OAR does not rewrite the saved conversation. `systemPrompt`
+replacement remains refused and declared in `refusedSessionOptions`.
 
 | Session option | Channel used by OAR |
 | --- | --- |
 | `cwd` | ACP session creation or resume, and the subprocess working directory. |
 | `resume` | ACP `session/resume`, or `session/load` when resume is not advertised. |
 | `model` | ACP `session/set_config_option` on `model`, with readback. |
-| `effort` | Refused when no `thought_level` is advertised; choose a native model variant instead. |
+| `effort` | The advertised `thought_level` selector, with strict readback. |
 | `env` | Environment of this session's subprocess and tool subprocesses; `null` removes an inherited variable ([contract](../spec/runtime-matrix.md#session-environment)). |
 | `mcpServers` | ACP `mcpServers` on `session/new`, `session/resume` and `session/load` ([session MCP servers](#session-mcp-servers)). |
-| `systemPrompt`, `appendSystemPrompt` | Refused: no prompt input in the selected server's protocol, launcher or configuration. |
+| `appendSystemPrompt` | `_meta.antigravity.systemPrompt.append`, on every open. |
+| `systemPrompt` | Refused: no native replacement input. |
 
-This is a help and distributed-source audit, separate from the 1.2.1 live
-probes above. It does not resolve the 1.3.0 authentication gap or establish
-new steer, usage or child-attribution behavior. OAR does not change
-`GEMINI_HOME`, write user settings or use the private SDK to fill these gaps.
+The [official 1.4.0 distribution](https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.4.0-linux-x86_64.zip)
+contains the ACP sources `config_options.py`, `system_prompt.py`,
+`request_meta.py` and `server.py`. Their model grouping, append capability,
+and new/resume mapping agree with the native probe. Settings and model
+requests use only ACP; OAR does not edit user settings or invoke the private
+harness SDK. Gateway and OAuth-specific grouping were source-audited, not
+executed with real accounts. Native compaction with an append was not tested.
 
-**Context (unexposed by the runtime):** no frame carries context occupancy,
-so `contextUsage()` stays empty. Antigravity advertises no compaction through
-ACP.
+**Context:** the 1.4.0 source can emit `usage_update` when token usage and a
+context size are available. None arrived in the scripted turns here, so
+this check establishes no new context or token accounting. The new `/usage`
+command produces native message text; OAR does not parse it into account
+usage. Account-plan metadata named `tier` is not a session service-tier
+setting. Antigravity advertises no compaction through ACP.
 
 ### Tools, permissions, and extensions
 
@@ -390,6 +400,13 @@ ACP answer, notification or stderr line carried an entry's values
 (measured and probed), and a failed open's error is redacted
 (`[redacted]`).
 
+**Rechecked on 1.4.0 (2026-10-14):** direct native ACP with harmless env
+and header sentinels still wrote both into `conversations/<id>.db` and its
+WAL, mode `0600`, after process disposal. The
+[native settings probe](../../experiments/antigravity-native-settings.ts)
+reproduces this in a temporary home and removes it afterward. The
+`mcpServerCredentials` refusal therefore remains unchanged.
+
 ### Process ownership, installation, and account usage
 
 **Mapped:** OAR owns the spawned process. Disposal cancels active work, kills
@@ -446,7 +463,8 @@ no `steer`), `queue`, `abort` (fails, see above), `dispose-mid-turn`,
 [Antigravity tests](../../tests/acp/acp-session-antigravity.test.ts) use a
 fake executable for the missing `authenticate`, `yolo` on new and resumed
 sessions, dispose without `session/close`, the model switch readback and
-refused effort, a turn that ends with no usage report, the Linux-only
+applied effort on creation and resume, a turn that ends with no usage
+report, the Linux-only
 `--uid=`, and the system prompt refusal. The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes
 Antigravity.
@@ -456,18 +474,18 @@ command; OAR kills after ten seconds); child attribution (the transport
 carries none); any usage or context report; the permission path through OAR;
 `session/list` and `session/load`; unknown resume ids; a resume naming another
 directory ([not measured](resume-cwd.md)); concurrent same-id controllers;
-macOS and Windows installation; any authenticated run on 1.3.0;
+macOS and Windows installation; real-account runs on 1.4.0;
 [session MCP servers](#session-mcp-servers) on a real login and model and on
-1.2.1 (measured on 1.3.0 against a scripted provider only; their vendor test
-runs locally, `OAR_TEST=antigravity-aimock`, not in CI); whether a later
-server stops storing the entries' values, until which entries with `env` or
-`headers` are refused. Keep native
+1.2.1 (measured on 1.3.0 and 1.4.0 against a scripted provider; their vendor
+test runs locally, `OAR_TEST=antigravity-aimock`, not in CI). Credential
+persistence remains confirmed on 1.4.0, so entries with `env` or `headers`
+are refused. Keep native
 API capabilities, transport limitations, OAR omissions and unexecuted checks
 separate when designing or claiming support.
 
 ## Disallowed tools
 
-`SessionOptions.disallowedTools` goes to `_meta.agy.disabledTools` on
+`SessionOptions.disallowedTools` goes to `_meta.antigravity.disabledTools` on
 session creation and resume. Only the canonical `BuiltinTools` values from
 agy_acp_server 1.3.0's native filter are accepted: `list_directory`,
 `search_directory`, `find_file`, `view_file`, `create_file`, `edit_file`,

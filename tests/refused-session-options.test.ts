@@ -56,7 +56,7 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "appendSystemPrompt", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    antigravity: ["additionalDirectories", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt"],
     claude: [],
     codex: [],
     cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],

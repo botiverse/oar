@@ -10,6 +10,8 @@
  * Tool selection: rerun sea-trial/vendor/disallowed-tools*.vendor.test.ts
  * on changed supporting runtimes; Cursor also needs cursor-disallowed-tools.ts
  * (real login and tokens). Revisit refused native channels in the tool-denial audit.
+ * A changed Antigravity server also needs antigravity-native-settings.ts:
+ * recheck instruction/effort channels and native MCP credential persistence.
  * A version match is not a compatibility result. Pi, Pi Durable and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check

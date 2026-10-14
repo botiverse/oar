@@ -7,6 +7,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
+import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { antigravityAcpArgs } from "./session.js";
@@ -20,20 +21,25 @@ function text(value: unknown): string | undefined {
 }
 
 /**
- * Project a `session/new` response. agy_acp_server 1.2.1 has no model-list
+ * Project a `session/new` response. agy_acp_server 1.4.0 has no model-list
  * method; the account's models ride on every new session as the
  * `configOptions` entry with id `model`, the option the session switches
- * through `session/set_config_option`. Effort is part of the model id
- * (`gemini-3.8-flash-high`, `-medium`, `-low`) and no `thought_level` option
- * exists, so no entry carries effort levels.
+ * through `session/set_config_option`. Its `thought_level` menu belongs only
+ * to the current model, so only that entry gets levels and a default.
  */
 export function projectAntigravityModels(response: unknown): ModelEntry[] | undefined {
-  const modelOption = asRecordList(asRecord(response)?.configOptions).find((option) => option.id === "model");
+  const root = asRecord(response);
+  const modelOption = asRecordList(root?.configOptions).find((option) => option.id === "model");
   if (modelOption === undefined) {
     return undefined;
   }
   // A new session's current model: what a session uses with no `model` set.
   const current = text(modelOption.currentValue);
+  const thinking = acpThoughtLevelOption(root);
+  const effortLevels = asRecordList(thinking?.options)
+    .map((option) => text(option.value))
+    .filter((value): value is string => value !== undefined);
+  const defaultEffort = text(thinking?.currentValue);
   const entries: ModelEntry[] = [];
   for (const model of asRecordList(modelOption.options)) {
     const id = text(model.value);
@@ -45,6 +51,8 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
       id,
       ...(displayName === undefined || displayName === id ? {} : { displayName }),
       ...(id === current ? { default: true as const } : {}),
+      ...(id === current && effortLevels.length > 0 ? { effortLevels } : {}),
+      ...(id === current && defaultEffort !== undefined ? { defaultEffort } : {}),
     });
   }
   return entries;

@@ -15,8 +15,8 @@ import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { describe, fixture } from "../fixtures/acp-session-support.js";
 import { agentTreeModule, gone, withTreeProbe } from "../fixtures/process-tree.js";
 
-// The fixture's "antigravity" mode replays agy_acp_server 1.2.1: no `close`
-// capability, no usage_update, no effort selector, and a session mode that
+// The fixture's "antigravity" mode replays agy_acp_server 1.4.0: no `close`
+// capability, no usage_update in these turns, a thinking_level selector, and a session mode that
 // every open (new or resume) starts back at `default`. The real profile runs
 // against it, with only the launch line swapped for the fixture's.
 async function startAntigravity(options: Omit<SessionOptions, "cwd"> = {}, keepAlive = false): Promise<Session> {
@@ -70,18 +70,19 @@ test.each([false, true])("dispose ends the process without unadvertised session/
   });
 });
 
-test("a model switch goes through the model config option and effort is refused", async () => {
+test("model and effort go through their native config options on creation and resume", async () => {
   const session = await startAntigravity({ model: "requested-y" });
   const opening = session.records().map((record) => describe(record));
-  assert.ok(opening.includes("event session/set_config_option → model:requested-y"), JSON.stringify(opening));
+  assert.ok(opening.includes("event session/set_config_option → model:requested-y, effort:medium"), JSON.stringify(opening));
   assert.equal(session.model().value, "requested-y");
   await session.dispose();
 
-  await expect(startAntigravity({ effort: "high" })).rejects.toMatchObject({
-    name: "UnsupportedOptionError",
-    option: "effort",
-    message: "session/new advertises no thought_level config option, so effort high cannot be applied",
-  });
+  await Promise.all([undefined, "fake-session"].map(async (resume) => {
+    const sessionWithEffort = await startAntigravity({ effort: "high", ...(resume === undefined ? {} : { resume }) });
+    assert.equal(sessionWithEffort.effort().value, "high");
+    await sessionWithEffort.dispose();
+  }));
+  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/thinking_level=bogus was refused/u);
 });
 
 test("a turn ends on the prompt answer alone, with no usage_update to wait for", async () => {
@@ -101,7 +102,7 @@ test("the antigravity profile drops privileges only on linux and refuses a syste
   assert.equal(antigravityAcpProfile.selectAuthMethod, undefined);
   assert.equal(antigravityAcpProfile.capabilities.attribution, "opaque");
   assert.throws(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", systemPrompt: "x" }));
-  assert.throws(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", appendSystemPrompt: "x" }));
+  assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/", appendSystemPrompt: "x" }));
   assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/" }));
 });
 

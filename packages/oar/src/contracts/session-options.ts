@@ -59,7 +59,7 @@ export interface SessionOptions {
    * `effort`, and a runtime that accepts it lists the levels. A requested
    * effort is never ignored: the adapter applies it through the runtime's
    * native channel and reads the runtime's own report back. A runtime with no
-   * effort channel at all (antigravity) rejects with an
+   * effort channel for the selected model rejects with an
    * `UnsupportedOptionError` on `effort`. When the runtime refuses the level,
    * or would run another one (drop it for the model, clamp it, fall back to
    * its default), starting the session rejects with an Error naming the
@@ -130,7 +130,7 @@ export interface SessionOptions {
   readonly env?: Readonly<Record<string, string | null>>;
   /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction (pinned per vendor). Refused by cursor, kimi and antigravity: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly systemPrompt?: string;
-  /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction (pinned per vendor). Refused by cursor, kimi and antigravity: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
+  /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction (pinned per vendor). Refused by cursor, kimi and opencode v2: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly appendSystemPrompt?: string;
   /**
    * MCP servers attached to THIS session, on top of the servers the runtime

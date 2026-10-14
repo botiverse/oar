@@ -46,7 +46,7 @@ export interface AcpSessionProfile {
   readonly resumeKeepsSessionCwd?: boolean;
   /** Native resume/load refusal only. `listed` is false only after a complete session/list walk, null when unknown. */
   readonly isResumeNotFound?: (native: JsonRecord, listed: boolean | null) => boolean;
-  readonly sessionMeta?: (options: SessionOptions) => JsonRecord | undefined;
+  readonly sessionMeta?: (options: SessionOptions, initialized: JsonRecord) => JsonRecord | undefined;
   /** Native metadata on every prompt RPC, including held queue entries and steer. */
   readonly promptMeta?: (options: SessionOptions) => JsonRecord | undefined;
   readonly selectAuthMethod?: (initialized: JsonRecord) => string | undefined;
@@ -258,7 +258,7 @@ export async function openAcpSession(
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
   const initialized = await acpOpenStep(initialize(process, profile, options, observe), "open");
-  const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options)), "open");
+  const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open");
   observe({ method: opened.openMethod, response: opened.response });
   const setModelResponse = options.model === undefined
     ? undefined

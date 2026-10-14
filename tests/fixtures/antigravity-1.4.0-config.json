@@ -1,0 +1,78 @@
+{
+  "configOptions": [
+    {
+      "currentValue": "gemini-3.8-flash",
+      "options": [
+        {
+          "value": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash"
+        },
+        {
+          "value": "gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash"
+        },
+        {
+          "value": "gemini-3.6-flash",
+          "name": "Gemini 3.6 Flash"
+        },
+        {
+          "value": "gemini-3.5-flash",
+          "name": "Gemini 3.5 Flash"
+        },
+        {
+          "value": "gemini-3.1-pro",
+          "name": "Gemini 3.1 Pro"
+        }
+      ],
+      "id": "model",
+      "name": "Model",
+      "category": "model",
+      "type": "select"
+    },
+    {
+      "currentValue": "high",
+      "options": [
+        {
+          "value": "low",
+          "name": "Low"
+        },
+        {
+          "value": "medium",
+          "name": "Medium"
+        },
+        {
+          "value": "high",
+          "name": "High"
+        }
+      ],
+      "id": "thinking_level",
+      "name": "Thinking Level",
+      "category": "thought_level",
+      "type": "select"
+    },
+    {
+      "currentValue": "default",
+      "options": [
+        {
+          "value": "default",
+          "name": "Default",
+          "description": "Default permission prompt flow"
+        },
+        {
+          "value": "auto_edit",
+          "name": "Auto Edit",
+          "description": "Auto-approve file edit tools"
+        },
+        {
+          "value": "yolo",
+          "name": "YOLO",
+          "description": "Auto-approve all tools"
+        }
+      ],
+      "id": "mode",
+      "name": "Session Mode",
+      "category": "mode",
+      "type": "select"
+    }
+  ]
+}

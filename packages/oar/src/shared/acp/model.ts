@@ -42,8 +42,8 @@ export function acpReportedModel(frame: JsonRecord | null): string | null {
  * "thought/reasoning level"), read off a frame's `configOptions`. grok and
  * kimi put effort there, under their own ids ([env] 2026-09-29): grok
  * 1.0.41 `reasoning_effort` (xhigh/high/medium/low per model), kimi 2.0.0
- * `thinking` (low/high/max on k3); agy_acp_server 1.2.1 has none, its effort
- * being part of the model id. The category, not the id, is what this shared
+ * `thinking` (low/high/max on k3); agy_acp_server 1.4.0 uses
+ * `thinking_level` (low/medium/high on gemini-3.8-flash). The category, not the id, is what this shared
  * layer relies on; it carries no runtime identity. Null when the frame
  * advertises none.
  */

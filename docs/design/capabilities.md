@@ -4,7 +4,7 @@ A host picks the runtime at run time, from a user's choice or its own
 configuration, so its code cannot know which runtime it holds. Runtimes
 differ: cursor takes no environment for its tools, kimi and opencode resume
 a session only in the directory it was created in, cursor, kimi,
-antigravity and opencode take no system prompt, kimi and antigravity cannot
+antigravity and opencode v2 take no system prompt, kimi and antigravity cannot
 steer. The design question is
 how a host learns what it may ask for, and what happens when it asks for
 more.
@@ -40,10 +40,10 @@ host knows which runtime it called), never a session that quietly runs
 without it. A host may simply
 try and fall back on that error; it needs no list to do so.
 
-The error is for an option the runtime cannot take at all (antigravity has no
-effort channel); a value it refuses, such as an effort level the model does
-not offer, is a plain error naming the value. The error says which option, so
-a host can tell "not this runtime" from a failed login or a network error
+The error is for an option the runtime cannot take at all (an ACP model
+without a `thought_level` selector has no effort channel); a value it refuses,
+such as an effort level the model does not offer, is a plain error naming the
+value. The error says which option, so a host can tell "not this runtime" from a failed login or a network error
 without reading the message. Where the
 runtime's own word decides (kimi's directory comes from its `session/list`),
 the adapter throws the same error.

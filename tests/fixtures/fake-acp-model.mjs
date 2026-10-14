@@ -26,10 +26,10 @@ function modelOption(currentValue) {
 const EFFORT_ID = "fixture_effort";
 const EFFORT_LEVELS = ["low", "medium", "high"];
 
-function effortOption(currentValue) {
+function effortOption(currentValue, mode) {
   return {
     type: "select",
-    id: EFFORT_ID,
+    id: mode === "antigravity" ? "thinking_level" : EFFORT_ID,
     name: "Effort",
     category: "thought_level",
     currentValue,
@@ -39,13 +39,13 @@ function effortOption(currentValue) {
 
 /**
  * `mode` "no-thought-level": an agent that offers no effort selector at all.
- * Mode "antigravity" replays agy_acp_server 1.2.1, whose effort is part of the model id.
+ * Mode "antigravity" uses 1.4.0's thinking_level id in the same category.
  */
 export function modelReport(mode) {
   // "opencode": the open model has no variants, so no effort selector (opencode/big-pickle).
-  const effort = mode !== "no-thought-level" && mode !== "antigravity" && mode !== "opencode";
+  const effort = mode !== "no-thought-level" && mode !== "opencode";
   return {
-    configOptions: [modelOption(EFFECTIVE_MODEL), ...(effort ? [effortOption("medium")] : [])],
+    configOptions: [modelOption(EFFECTIVE_MODEL), ...(effort ? [effortOption("medium", mode)] : [])],
     models: {
       currentModelId: EFFECTIVE_MODEL,
       availableModels: [
@@ -82,9 +82,9 @@ export function setModelResponse(modelId) {
 
 /**
  * What `session/set_config_option {configId: "model", value}` does, the way
- * agy_acp_server 1.2.1 answers it: a known model is applied and answered with
- * the model option, no `config_option_update` is pushed, and there is no
- * effort selector to report. An unknown model is refused `-32602`. In mode
+ * agy_acp_server 1.4.0 answers it: a known model is applied and answered with
+ * the model and effort options; no `config_option_update` is pushed. An unknown
+ * model is refused `-32602`. In mode
  * "opencode" (1.18.30) `requested-y` has variants, so the answer also lists
  * the effort selector the open model lacked.
  */
@@ -92,7 +92,7 @@ function setModelOption(value, mode) {
   if (value !== EFFECTIVE_MODEL && value !== "requested-y") {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
   }
-  const effort = mode === "opencode" && value === "requested-y" ? [effortOption("medium")] : [];
+  const effort = mode === "antigravity" || (mode === "opencode" && value === "requested-y") ? [effortOption("medium", mode)] : [];
   return { response: { configOptions: [modelOption(value), ...effort] } };
 }
 
@@ -108,7 +108,7 @@ export function setConfigOption(params, mode) {
   if (params?.configId === "model") {
     return setModelOption(params.value, mode);
   }
-  if (params?.configId !== EFFORT_ID) {
+  if (params?.configId !== (mode === "antigravity" ? "thinking_level" : EFFORT_ID)) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
   }
   if (params.value === "sticky") {
@@ -117,8 +117,8 @@ export function setConfigOption(params, mode) {
   if (!EFFORT_LEVELS.includes(params.value)) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown ${EFFORT_ID} value` } };
   }
-  const configOptions = [modelOption(EFFECTIVE_MODEL), effortOption(params.value)];
-  return { pushedUpdate: { sessionUpdate: "config_option_update", configOptions }, response: { configOptions } };
+  const configOptions = [modelOption(EFFECTIVE_MODEL), effortOption(params.value, mode)];
+  return { ...(mode === "antigravity" ? {} : { pushedUpdate: { sessionUpdate: "config_option_update", configOptions } }), response: { configOptions } };
 }
 
 /**

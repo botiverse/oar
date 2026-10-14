@@ -19,7 +19,7 @@ selecting live probes.
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|
-| [Antigravity](antigravity.md) | `agy_acp_server --uid=`, ACP | Model id carries effort, mode reset on every open, no close or usage, personal login terms |
+| [Antigravity](antigravity.md) | `agy_acp_server --uid=`, ACP | Grouped models and effort, appended instructions, mode reset on open, MCP credentials refused |
 | [Claude Code](claude.md) | CLI print mode, bidirectional `stream-json` | Persistent conversations, user turns versus model steps, input delivery, native children, usage |
 | [Codex](codex.md) | App-server v2 over stdio | Thread/turn/item identity, bidirectional requests, native queue, collaboration threads |
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
