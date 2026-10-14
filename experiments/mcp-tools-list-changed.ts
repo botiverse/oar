@@ -59,7 +59,9 @@ function offered(requests: AimockEnv["raw"]): { readonly defined: readonly strin
 
 /**
  * A logging pass-through in front of the served URL: what the runtime's MCP
- * client asked for (GET stream, each JSON-RPC method), forwarded unchanged.
+ * client asked for (GET stream, each JSON-RPC method), forwarded with the
+ * served bearer token added. The session's entry carries no `headers`, so
+ * antigravity (which refuses entries with credentials) attaches it too.
  */
 async function logged(served: ServedMcpTools, log: string[]): Promise<{ readonly url: string; close(): Promise<void> }> {
   const target = new URL(served.server.url);
@@ -75,7 +77,7 @@ async function logged(served: ServedMcpTools, log: string[]): Promise<{ readonly
       } else {
         log.push(`${String(incoming.method)} accept=${String(incoming.headers.accept)}`);
       }
-      const forward = httpRequest({ host: target.hostname, port: target.port, path: target.pathname, method: incoming.method, headers: incoming.headers }, (answer) => {
+      const forward = httpRequest({ host: target.hostname, port: target.port, path: target.pathname, method: incoming.method, headers: { ...incoming.headers, authorization: served.server.headers?.Authorization ?? "" } }, (answer) => {
         if (incoming.method !== "POST") { log.push(`  -> ${String(answer.statusCode)}`); }
         outgoing.writeHead(answer.statusCode ?? 502, answer.headers);
         answer.on("data", (chunk: Buffer) => {
@@ -121,7 +123,7 @@ async function probe(id: string): Promise<Record<string, unknown>> {
     if (installation?.kind !== "available") {
       return { runtime: id, error: `not available: ${String(installation?.kind)}` };
     }
-    const session = await runtime.session(installation, { cwd: process.cwd(), mcpServers: [{ ...served.server, url: proxy.url }], ...(env.env === undefined ? {} : { env: env.env }) });
+    const session = await runtime.session(installation, { cwd: process.cwd(), mcpServers: [{ name: served.server.name, type: "http", url: proxy.url }], ...(env.env === undefined ? {} : { env: env.env }) });
     try {
       const first = await turn(session, "first turn: reply ok");
       const afterFirst = env.raw.length;
