@@ -1,5 +1,7 @@
 /* oxlint-disable max-statements -- Each test follows one client conversation with the server end to end. */
 import { once } from "node:events";
+import { get, type IncomingMessage } from "node:http";
+import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test } from "vitest";
 import { serveMcpTools, type HostTool, type ServedMcpTools } from "../packages/oar/src/index.js";
 
@@ -128,19 +130,24 @@ test("bad JSON is a 400, and names runtimes cannot take are refused up front", a
   await expect(serveMcpTools({ name: "host", tools: [echo, echo] })).rejects.toThrow("be unique");
 });
 
-/** The SSE stream a client opens with GET, read as text as it arrives. */
-async function openStream(entry: ServedMcpTools): Promise<{ readonly response: Response; next(): Promise<string>; readonly abort: AbortController }> {
-  const abort = new AbortController();
-  const response = await fetch(entry.server.url, { headers: { ...entry.server.headers, accept: "text/event-stream" }, signal: abort.signal });
-  const reader = (response.body ?? new ReadableStream<Uint8Array>()).getReader();
-  const decoder = new TextDecoder();
+/** The SSE stream a client opens with GET; `next()` is the next chunk of text, "" once the stream ends. */
+async function openStream(entry: ServedMcpTools): Promise<{ readonly status: number; readonly contentType: string | undefined; next(): Promise<string>; close(): void }> {
+  const { promise, resolve, reject } = Promise.withResolvers<IncomingMessage>();
+  const request = get(entry.server.url, { headers: { ...entry.server.headers, accept: "text/event-stream" } }, resolve);
+  request.once("error", reject);
+  const response = await promise;
+  const chunks: string[] = [];
+  response.on("data", (chunk: Buffer) => { chunks.push(chunk.toString("utf8")); });
   return {
-    response,
-    abort,
+    status: response.statusCode ?? 0,
+    contentType: response.headers["content-type"],
     async next() {
-      const { value } = await reader.read();
-      return decoder.decode(value);
+      if (chunks.length === 0 && !response.destroyed && !response.readableEnded) {
+        await Promise.race([once(response, "data"), once(response, "close")]);
+      }
+      return chunks.shift() ?? "";
     },
+    close() { request.destroy(); },
   };
 }
 
@@ -149,8 +156,8 @@ test("setTools replaces the served set and sends tools/list_changed on every ope
   const entry = await serve([echo]);
   const first = await openStream(entry);
   const second = await openStream(entry);
-  expect(first.response.status).toBe(200);
-  expect(first.response.headers.get("content-type")).toBe("text/event-stream");
+  expect(first.status).toBe(200);
+  expect(first.contentType).toBe("text/event-stream");
   const pong: HostTool = { name: "pong", inputSchema: { type: "object" }, handler: () => "pong" };
   const heard = Promise.all([first.next(), second.next()]);
   entry.setTools([pong]);
@@ -161,8 +168,8 @@ test("setTools replaces the served set and sends tools/list_changed on every ope
   expect(await rpc(entry, "tools/call", { name: "echo", arguments: { text: "hi" } })).toMatchObject({ error: { code: -32_602, message: "unknown tool: echo" } });
   expect(await rpc(entry, "tools/call", { name: "pong", arguments: {} })).toMatchObject({ result: { content: [{ type: "text", text: "pong" }] } });
   expect(() => { entry.setTools([pong, pong]); }).toThrow("be unique");
-  first.abort.abort();
-  second.abort.abort();
+  first.close();
+  second.close();
 });
 
 test("a call already running finishes with the tool it started with", async () => {
@@ -170,7 +177,7 @@ test("a call already running finishes with the tool it started with", async () =
   const slow: HostTool = { name: "slow", inputSchema: { type: "object" }, handler: async () => { await gate.promise; return "old handler"; } };
   const entry = await serve([slow]);
   const running = rpc(entry, "tools/call", { name: "slow", arguments: {} });
-  await new Promise((resolve) => { setTimeout(resolve, 50); });
+  await delay(50);
   entry.setTools([{ ...slow, handler: () => "new handler" }]);
   gate.resolve();
   expect(await running).toMatchObject({ result: { content: [{ type: "text", text: "old handler" }] } });
@@ -180,7 +187,7 @@ test("a call already running finishes with the tool it started with", async () =
 test("close() ends the open streams", async () => {
   const entry = await serveMcpTools({ name: "host", tools: [echo] });
   const stream = await openStream(entry);
-  const ended = stream.next().catch(() => "");
+  const ended = stream.next();
   await entry.close();
   expect(await ended).toBe("");
 });

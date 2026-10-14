@@ -42,6 +42,42 @@ export function acceptsEventStream(request: IncomingMessage): boolean {
   return (request.headers.accept ?? "").includes("text/event-stream");
 }
 
+/** How often an open stream gets a comment, so a client's idle timeout never closes it (pi's undici: 300 s). */
+const KEEP_ALIVE_MS = 15_000;
+
+/** The open server-to-client SSE streams: one per client GET, held until the client goes away. */
+export class EventStreams {
+  readonly #open = new Set<ServerResponse>();
+  #keepAlive: ReturnType<typeof setInterval> | undefined;
+
+  open(response: ServerResponse, session: string | undefined): void {
+    response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive", ...(session === undefined ? {} : { "mcp-session-id": session }) });
+    response.flushHeaders();
+    this.#open.add(response);
+    this.#keepAlive ??= setInterval(() => { this.#write(": keep-alive\n\n"); }, KEEP_ALIVE_MS).unref();
+    response.once("close", () => {
+      this.#open.delete(response);
+      if (this.#open.size === 0 && this.#keepAlive !== undefined) {
+        clearInterval(this.#keepAlive);
+        this.#keepAlive = undefined;
+      }
+    });
+  }
+
+  /** One JSON-RPC message to every open stream. */
+  message(message: JsonRecord): void {
+    this.#write(`event: message\ndata: ${JSON.stringify(message)}\n\n`);
+  }
+
+  endAll(): void {
+    for (const stream of this.#open) { stream.end(); }
+  }
+
+  #write(chunk: string): void {
+    for (const stream of this.#open) { stream.write(chunk); }
+  }
+}
+
 export function rpcError(response: ServerResponse, code: number, message: string): void {
   response.writeHead(400, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code, message } }));
 }

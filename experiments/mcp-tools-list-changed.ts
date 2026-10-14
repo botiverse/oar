@@ -1,3 +1,4 @@
+/* oxlint-disable promise/avoid-new, typescript/promise-function-async -- Native HTTP pass-through with callback-based server lifecycle; the harness starters pass their promises through. */
 /**
  * TOOLS LIST CHANGED (#399): does a running session's model see a change to
  * the tools an MCP server serves? `serveMcpTools` serves `alpha`, one turn
@@ -17,6 +18,7 @@ import { serveMcpTools, type HostTool, type Runtime, type ServedMcpTools } from 
 import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv, type LLMock } from "../sea-trial/harness/aimock.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../sea-trial/harness/aimock-acp.js";
+import { asRecord } from "../packages/oar/src/shared/json.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const ALPHA = "oar_probe_alpha";
@@ -28,15 +30,15 @@ const tool = (name: string): HostTool => ({
   handler: () => name,
 });
 
-const answer = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
+const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
 const starts: Readonly<Record<string, () => Promise<AimockEnv>>> = {
-  claude: async () => startClaudeAimock(answer, { captureRaw: true }),
-  codex: async () => startCodexAimock(answer, { captureRaw: true }),
-  pi: async () => startPiAimock(answer, { captureRaw: true }),
-  opencode: async () => startOpencodeAimock(answer),
-  kimi: async () => startKimiAimock(answer),
-  grok: async () => startGrokAimock(answer),
-  antigravity: async () => startAntigravityAimock(answer),
+  claude: () => startClaudeAimock(replyOk, { captureRaw: true }),
+  codex: () => startCodexAimock(replyOk, { captureRaw: true }),
+  pi: () => startPiAimock(replyOk, { captureRaw: true }),
+  opencode: () => startOpencodeAimock(replyOk),
+  kimi: () => startKimiAimock(replyOk),
+  grok: () => startGrokAimock(replyOk),
+  antigravity: () => startAntigravityAimock(replyOk),
 };
 
 /**
@@ -45,9 +47,8 @@ const starts: Readonly<Record<string, () => Promise<AimockEnv>>> = {
  * reminders, deferred-tool lists).
  */
 function offered(requests: AimockEnv["raw"]): { readonly defined: readonly string[]; readonly mentioned: readonly string[] } {
-  const last = requests.at(-1)?.body;
-  const record = typeof last === "object" && last !== null ? last as Record<string, unknown> : {};
-  const tools = Array.isArray(record.tools) ? record.tools as unknown[] : [];
+  const record = asRecord(requests.at(-1)?.body) ?? {};
+  const tools: unknown = record.tools ?? [];
   // The whole definitions: codex nests MCP tools under a namespace entry.
   const names = JSON.stringify(tools);
   const rest = JSON.stringify({ ...record, tools: undefined });
@@ -72,7 +73,7 @@ async function logged(served: ServedMcpTools, log: string[]): Promise<{ readonly
       const body = Buffer.concat(chunks);
       if (incoming.method === "POST") {
         const text = body.toString("utf8");
-        const methods = [...text.matchAll(/"method"\s*:\s*"([^"]+)"/gu)].map((match) => match[1]);
+        const methods = [...text.matchAll(/"method"\s*:\s*"(?<method>[^"]+)"/gu)].map((match) => match.groups?.method);
         log.push(`POST ${methods.join(",")}`);
       } else {
         log.push(`${String(incoming.method)} accept=${String(incoming.headers.accept)}`);
@@ -92,7 +93,8 @@ async function logged(served: ServedMcpTools, log: string[]): Promise<{ readonly
     });
   });
   await new Promise<void>((resolve) => { proxy.listen(0, "127.0.0.1", () => { resolve(); }); });
-  const { port } = proxy.address() as AddressInfo;
+  const address: string | AddressInfo | null = proxy.address();
+  const port = typeof address === "object" && address !== null ? address.port : 0;
   return {
     url: `http://127.0.0.1:${String(port)}/mcp`,
     async close() {

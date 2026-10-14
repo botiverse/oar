@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import type { McpServer } from "../contracts/session-options.js";
 import { asRecord, parseJson, type JsonRecord } from "../shared/json.js";
 import { RESERVED_MCP_SERVER_NAMES } from "../shared/mcp-servers.js";
-import { acceptsEventStream, authorized, body, listen, localOrigin, messagesOf, rpcError } from "./http.js";
+import { acceptsEventStream, authorized, body, EventStreams, listen, localOrigin, messagesOf, rpcError } from "./http.js";
 
 /*
  * Tools the host implements, served to any runtime that takes
@@ -115,9 +115,6 @@ interface Origin {
   readonly dropped: AbortSignal;
 }
 
-/** How often an open stream gets a comment, so a client's idle timeout never closes it (pi's undici: 300 s). */
-const KEEP_ALIVE_MS = 15_000;
-
 class ToolServer {
   readonly #name: string;
   readonly #instructions: string | undefined;
@@ -125,8 +122,7 @@ class ToolServer {
   /** Running calls by MCP session and request id: clients number requests alike, so an id alone is not one call. */
   readonly #calls = new Map<string, AbortController>();
   /** Open server-to-client SSE streams (a client's GET). */
-  readonly #streams = new Set<ServerResponse>();
-  #keepAlive: ReturnType<typeof setInterval> | undefined;
+  readonly streams = new EventStreams();
 
   constructor(options: ServeMcpToolsOptions, tools: ReadonlyMap<string, HostTool>) {
     this.#name = options.name;
@@ -136,26 +132,7 @@ class ToolServer {
 
   setTools(tools: ReadonlyMap<string, HostTool>): void {
     this.#tools = tools;
-    this.#send(`event: message\ndata: ${JSON.stringify({ jsonrpc: "2.0", method: "notifications/tools/list_changed" })}\n\n`);
-  }
-
-  /** Hold a GET open as the session's SSE stream until the client goes away. */
-  open(response: ServerResponse, session: string | undefined): void {
-    response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive", ...(session === undefined ? {} : { "mcp-session-id": session }) });
-    response.flushHeaders();
-    this.#streams.add(response);
-    this.#keepAlive ??= setInterval(() => { this.#send(": keep-alive\n\n"); }, KEEP_ALIVE_MS).unref();
-    response.once("close", () => {
-      this.#streams.delete(response);
-      if (this.#streams.size === 0 && this.#keepAlive !== undefined) {
-        clearInterval(this.#keepAlive);
-        this.#keepAlive = undefined;
-      }
-    });
-  }
-
-  #send(chunk: string): void {
-    for (const stream of this.#streams) { stream.write(chunk); }
+    this.streams.message({ jsonrpc: "2.0", method: "notifications/tools/list_changed" });
   }
 
   /** The JSON-RPC answer to one message, or null for a notification or a client's response. */
@@ -176,7 +153,7 @@ class ToolServer {
 
   abortAll(): void {
     for (const controller of this.#calls.values()) { controller.abort(); }
-    for (const stream of this.#streams) { stream.end(); }
+    this.streams.endAll();
   }
 
   async #result(id: CallId, method: string, params: JsonRecord, origin: Origin): Promise<JsonRecord> {
@@ -282,7 +259,7 @@ export async function serveMcpTools(options: ServeMcpToolsOptions): Promise<Serv
     if (!authorized(request, expected)) { response.writeHead(401).end(); return; }
     if (request.method === "GET" && acceptsEventStream(request)) {
       const session = request.headers["mcp-session-id"];
-      tools.open(response, typeof session === "string" ? session : undefined);
+      tools.streams.open(response, typeof session === "string" ? session : undefined);
       return;
     }
     if (request.method !== "POST") { response.writeHead(405, { allow: "GET, POST" }).end(); return; }
