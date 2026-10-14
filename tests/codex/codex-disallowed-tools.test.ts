@@ -1,6 +1,8 @@
 import { expect, test } from "vitest";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { codexToolDenialsConfig, withCodexToolDenials } from "../../packages/oar/src/runtimes/codex/tool-denials.js";
+import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
+import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 const cwd = "/tmp";
 test("MCP denials union with native filters and do not copy credentials or other server settings", () => {
@@ -18,6 +20,14 @@ test("session-only servers resolve; unknown or ambiguous namespaces are explicit
   expect(codexToolDenialsConfig({ cwd, mcpServers: [{ name: "echo", command: "node" }], disallowedTools: ["mcp__echo__a"] }, {})).toEqual({ echo: { disabled_tools: ["a"] } });
   expect(() => codexToolDenialsConfig({ cwd, disallowedTools: ["mcp__absent__a"] }, {})).toThrow('mcp__absent__a');
   expect(() => codexToolDenialsConfig({ cwd, disallowedTools: ["mcp__a__b__tool"] }, { mcp_servers: { a: {}, a__b: {} } })).toThrow("cannot identify one");
+});
+
+// JSON.parse keeps a "__proto__" key, but merging the denial into mcp_servers would set a prototype instead (#395).
+test("a denial on a configured server with a reserved name is refused, not dropped", () => {
+  const effective = asRecord(parseJson('{"mcp_servers":{"__proto__":{"command":"x"}}}')) ?? {};
+  expect(Object.keys(asRecord(effective.mcp_servers) ?? {})).toEqual(["__proto__"]);
+  expect(() => codexToolDenialsConfig({ cwd, disallowedTools: ["mcp____proto____danger"] }, effective)).toThrow(UnsupportedOptionError);
+  expect(() => codexToolDenialsConfig({ cwd, disallowedTools: ["mcp____proto____danger"] }, effective)).toThrow('codex cannot disable tools of the MCP server "__proto__": the name is reserved');
 });
 
 test("builtins and unqualified tool names reject before starting app-server, including mixed lists", async () => {
