@@ -45,12 +45,14 @@ test("the entry is an http server on 127.0.0.1 behind a bearer token", async () 
   expect(entry.server.headers?.Authorization).toMatch(/^Bearer [\w-]{40,}$/u);
   expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 1, method: "ping" }, {}))).toBe(401);
   expect(await statusOf(post(entry, { jsonrpc: "2.0", id: 1, method: "ping" }, { Authorization: "Bearer wrong" }))).toBe(401);
+  // A GET is the SSE stream only when it asks for one (streamable HTTP).
   expect(await statusOf(fetch(entry.server.url, { headers: entry.server.headers ?? {} }))).toBe(405);
+  expect(await statusOf(fetch(entry.server.url, { headers: { accept: "text/event-stream" } }))).toBe(401);
 });
 
 test("initialize, tools/list and tools/call speak MCP", async () => {
   const entry = await serve([echo, { name: "bare", inputSchema: { type: "object" }, handler: () => ({ content: [{ type: "text", text: "no" }], isError: true }) }]);
-  expect(await rpc(entry, "initialize", { protocolVersion: "2025-03-26" })).toMatchObject({ result: { protocolVersion: "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "host" } } });
+  expect(await rpc(entry, "initialize", { protocolVersion: "2025-03-26" })).toMatchObject({ result: { protocolVersion: "2025-03-26", capabilities: { tools: { listChanged: true } }, serverInfo: { name: "host" } } });
   expect(await rpc(entry, "tools/list")).toEqual({ jsonrpc: "2.0", id: 1, result: { tools: [
     { name: "echo", description: "Echo text", inputSchema: echo.inputSchema },
     { name: "bare", inputSchema: { type: "object" } },
@@ -124,6 +126,63 @@ test("bad JSON is a 400, and names runtimes cannot take are refused up front", a
   }
   await expect(serveMcpTools({ name: "host", tools: [{ ...echo, name: "a.b" }] })).rejects.toThrow("tool name");
   await expect(serveMcpTools({ name: "host", tools: [echo, echo] })).rejects.toThrow("be unique");
+});
+
+/** The SSE stream a client opens with GET, read as text as it arrives. */
+async function openStream(entry: ServedMcpTools): Promise<{ readonly response: Response; next(): Promise<string>; readonly abort: AbortController }> {
+  const abort = new AbortController();
+  const response = await fetch(entry.server.url, { headers: { ...entry.server.headers, accept: "text/event-stream" }, signal: abort.signal });
+  const reader = (response.body ?? new ReadableStream<Uint8Array>()).getReader();
+  const decoder = new TextDecoder();
+  return {
+    response,
+    abort,
+    async next() {
+      const { value } = await reader.read();
+      return decoder.decode(value);
+    },
+  };
+}
+
+// #399: a host changes the served set while sessions run; every open stream hears of it.
+test("setTools replaces the served set and sends tools/list_changed on every open stream", async () => {
+  const entry = await serve([echo]);
+  const first = await openStream(entry);
+  const second = await openStream(entry);
+  expect(first.response.status).toBe(200);
+  expect(first.response.headers.get("content-type")).toBe("text/event-stream");
+  const pong: HostTool = { name: "pong", inputSchema: { type: "object" }, handler: () => "pong" };
+  const heard = Promise.all([first.next(), second.next()]);
+  entry.setTools([pong]);
+  for (const text of await heard) {
+    expect(text).toBe(`event: message\ndata: ${JSON.stringify({ jsonrpc: "2.0", method: "notifications/tools/list_changed" })}\n\n`);
+  }
+  expect(await rpc(entry, "tools/list")).toEqual({ jsonrpc: "2.0", id: 1, result: { tools: [{ name: "pong", inputSchema: { type: "object" } }] } });
+  expect(await rpc(entry, "tools/call", { name: "echo", arguments: { text: "hi" } })).toMatchObject({ error: { code: -32_602, message: "unknown tool: echo" } });
+  expect(await rpc(entry, "tools/call", { name: "pong", arguments: {} })).toMatchObject({ result: { content: [{ type: "text", text: "pong" }] } });
+  expect(() => { entry.setTools([pong, pong]); }).toThrow("be unique");
+  first.abort.abort();
+  second.abort.abort();
+});
+
+test("a call already running finishes with the tool it started with", async () => {
+  const gate = Promise.withResolvers<void>();
+  const slow: HostTool = { name: "slow", inputSchema: { type: "object" }, handler: async () => { await gate.promise; return "old handler"; } };
+  const entry = await serve([slow]);
+  const running = rpc(entry, "tools/call", { name: "slow", arguments: {} });
+  await new Promise((resolve) => { setTimeout(resolve, 50); });
+  entry.setTools([{ ...slow, handler: () => "new handler" }]);
+  gate.resolve();
+  expect(await running).toMatchObject({ result: { content: [{ type: "text", text: "old handler" }] } });
+  expect(await rpc(entry, "tools/call", { name: "slow", arguments: {} })).toMatchObject({ result: { content: [{ type: "text", text: "new handler" }] } });
+});
+
+test("close() ends the open streams", async () => {
+  const entry = await serveMcpTools({ name: "host", tools: [echo] });
+  const stream = await openStream(entry);
+  const ended = stream.next().catch(() => "");
+  await entry.close();
+  expect(await ended).toBe("");
 });
 
 /** A tool whose calls wait for their signal, reporting each call's signal as it starts. */

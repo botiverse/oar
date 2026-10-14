@@ -37,6 +37,11 @@ export async function body(request: IncomingMessage): Promise<string | null> {
   return size > MAX_BODY_BYTES ? null : Buffer.concat(chunks).toString("utf8");
 }
 
+/** A GET asking for the SSE stream (streamable HTTP: `Accept` names text/event-stream). */
+export function acceptsEventStream(request: IncomingMessage): boolean {
+  return (request.headers.accept ?? "").includes("text/event-stream");
+}
+
 export function rpcError(response: ServerResponse, code: number, message: string): void {
   response.writeHead(400, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code, message } }));
 }
