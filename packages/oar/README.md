@@ -139,7 +139,10 @@ rejects with an `UnsupportedOptionError` (`option` names the refused
 `SessionOptions` key, the message is the reason), so a host can try and fall
 back on it. `runtime.refusedSessionOptions` names the options a runtime
 refuses at open, each with the reason, so a host can leave them out before
-opening. Some refusals depend on the value or operation: Kimi and OpenCode
+opening. One key names a value rather than an option: `mcpServerCredentials`,
+an `mcpServers` entry carrying `env` or `headers` (as every `serveMcpTools`
+entry does), refused by antigravity; leave such entries out. Some refusals
+depend on the value or operation: Kimi and OpenCode
 refuse a `resume` in another directory than the session's own (`option:
 "cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
