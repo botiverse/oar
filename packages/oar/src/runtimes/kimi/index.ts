@@ -19,6 +19,7 @@ export const kimiRuntime = defineRuntime({
   upgrade: kimiUpgrade,
   session: kimiSession,
   refusedSessionOptions: kimiRefusedSessionOptions,
+  mcpToolsListChanged: "none",
 });
 
 export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";

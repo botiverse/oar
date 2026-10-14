@@ -12,6 +12,7 @@ export const grokRuntime = defineRuntime({
   id: "grok",
   brand: runtimeBrands.grok,
   refusedSessionOptions: grokRefusedSessionOptions,
+  mcpToolsListChanged: "none",
   skills: grokSkills,
   mcpServers: grokMcpServers,
 

@@ -1,0 +1,42 @@
+import type { LLMock } from "@copilotkit/aimock";
+import { describe, expect, test } from "vitest";
+import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
+import { startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
+import { allRuntimes } from "../harness/runtimes.js";
+import { runtimeUnderTest } from "../harness/subject.js";
+import { classify, runToolsListChanged } from "./support/tools-list-changed.js";
+
+/**
+ * `Runtime.mcpToolsListChanged` (#399) on the real harnesses, against a
+ * scripted provider: the declaration is what a running session does when an
+ * attached server's tools change, so a runtime upgrade that changes it fails
+ * here. antigravity was measured on its own install (its tools ride in the
+ * system instruction, see experiments/mcp-tools-list-changed.ts).
+ */
+
+const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
+
+// claude, codex and pi run in CI; opencode, kimi and grok locally (CI has no ACP aimock backend).
+const backends: readonly { readonly id: string; readonly runtime: string; readonly start: () => Promise<AimockEnv> }[] = [
+  { id: "claude-aimock", runtime: "claude", start: async () => startClaudeAimock(replyOk, { captureRaw: true }) },
+  { id: "codex-aimock", runtime: "codex", start: async () => startCodexAimock(replyOk, { captureRaw: true }) },
+  { id: "pi-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
+  { id: "opencode-aimock", runtime: "opencode", start: async () => startOpencodeAimock(replyOk) },
+  { id: "kimi-aimock", runtime: "kimi", start: async () => startKimiAimock(replyOk) },
+  { id: "grok-aimock", runtime: "grok", start: async () => startGrokAimock(replyOk) },
+];
+
+for (const backend of backends) {
+  describe.skipIf(process.env.OAR_TEST !== backend.id)(`${backend.id} tools/list_changed`, () => {
+    test("a running session takes a change to the served tools as the runtime declares", async () => {
+      const runtime = allRuntimes.require(backend.runtime);
+      const env = await backend.start();
+      try {
+        const run = await runToolsListChanged(env, async (server) => runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [server] }));
+        expect(classify(run), JSON.stringify(run.log)).toBe(runtime.mcpToolsListChanged);
+      } finally {
+        await env.stop();
+      }
+    }, 120_000);
+  });
+}

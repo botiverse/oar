@@ -16,6 +16,7 @@ export const antigravityRuntime = defineRuntime({
   listModels: antigravityListModels,
   checkUpdate: antigravityCheckUpdate,
   refusedSessionOptions: antigravityRefusedSessionOptions,
+  mcpToolsListChanged: "full",
 });
 
 export { antigravitySession } from "./session.js";

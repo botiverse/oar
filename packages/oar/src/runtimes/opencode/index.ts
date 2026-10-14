@@ -9,6 +9,7 @@ export const opencodeRuntime = defineRuntime({
   id: "opencode",
   brand: runtimeBrands.opencode,
   refusedSessionOptions: opencodeRefusedSessionOptions,
+  mcpToolsListChanged: "full",
   installation: opencodeInstallation,
   installPlan: opencodeInstallPlan,
   install: opencodeInstall,

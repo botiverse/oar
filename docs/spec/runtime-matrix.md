@@ -461,7 +461,7 @@ which holds for every runtime OAR starts on this machine or runs in this
 process.
 
 The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
-JSON (no SSE stream), single or batched, and `notifications/cancelled` aborts
+JSON, single or batched, and `notifications/cancelled` aborts
 the call's `signal`. Each `initialize` opens its own MCP session
 (`mcp-session-id`), so sessions sharing one served set never cancel each
 other's calls. It refuses an `Origin` other than a loopback one, as MCP asks
@@ -484,13 +484,38 @@ custom tools) are not used: one MCP server reaches every runtime above, and
 none of those channels adds a capability MCP lacks
 ([#341](https://github.com/botiverse/oar/issues/341)).
 
+**Changing the tools mid-session** ([#399](https://github.com/botiverse/oar/issues/399)).
+`served.setTools(tools)` replaces the served set (same name rules) and sends
+`notifications/tools/list_changed` on every open stream: a client's GET with
+`Accept: text/event-stream` opens one, which carries only that notification
+and a keep-alive comment every 15 s; `initialize` declares
+`tools.listChanged`. A call already running finishes with the tool it
+started with; a call to a tool no longer served is an unknown tool. What a
+running session does with the change is the runtime's choice, declared
+before opening as `Runtime.mcpToolsListChanged` and judged by the session's
+next model request. Every client below opened the stream and heard the
+notification:
+
+| declaration | runtimes | the next model request |
+|---|---|---|
+| `full` | pi, opencode (both lines), antigravity | offers the new set: added tools appear, removed ones disappear (antigravity: its system instruction's MCP catalog; opencode 2.x: a system update) |
+| `additions` | claude | adds the new tools and keeps offering the removed ones, whose calls then fail as unknown tools |
+| `none` | codex, kimi, grok | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
+
+cursor and pi-durable take no `mcpServers` and declare nothing. A change a
+session does not take applies when the host opens its next session.
+Measured [env] 2026-10-14: pi ^1.2.0, opencode 1.18.30, 1.19.0 and 2.0.29,
+antigravity 1.4.0, claude 2.1.299, codex 0.162.0 and 0.162.1, kimi 2.1.1,
+grok 1.0.52 ([probe](../../experiments/mcp-tools-list-changed.ts),
+[vendor test](../../sea-trial/vendor/mcp-tools-list-changed.vendor.test.ts)).
+
 Evidence: [`serve-mcp-tools.vendor.test.ts`](../../sea-trial/vendor/serve-mcp-tools.vendor.test.ts)
 runs the real claude, codex and pi (in CI) and opencode, kimi and grok
 (locally) against a scripted provider whose model calls a tool the test
 process serves; the provider receives the words only the host's handler
 writes, and no record holds the bearer token.
 [`tests/mcp-serve-tools.test.ts`](../../tests/mcp-serve-tools.test.ts) pins
-the protocol, authorization, cancellation and `close()`.
+the protocol, authorization, cancellation, `setTools` and `close()`.
 
 ## Missing resume targets
 

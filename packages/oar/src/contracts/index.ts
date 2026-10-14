@@ -74,7 +74,7 @@ export type {
   RuntimeLogin,
   RuntimeLogout,
 } from "./login.js";
-export type { RefusableSessionOption, RefusedSessionOptions, Runtime } from "./runtime.js";
+export type { McpToolsListChanged, RefusableSessionOption, RefusedSessionOptions, Runtime } from "./runtime.js";
 export type {
   AdapterSession,
   AttributionTier,

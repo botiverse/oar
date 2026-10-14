@@ -18,6 +18,7 @@ export const claudeRuntime = defineRuntime({
   commands: claudeCommands,
   mcpServers: claudeMcpServers,
   tools: claudeTools,
+  mcpToolsListChanged: "additions",
 
   installation: claudeInstallation,
   installPlan: claudeInstallPlan,

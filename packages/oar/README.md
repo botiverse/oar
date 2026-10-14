@@ -244,7 +244,14 @@ machine, as OAR's runtimes do. A handler returns text, or MCP content with
 its message. Its `signal` aborts when the runtime cancels the call or the
 server closes. One served set can back several sessions. `instructions` (guidance
 across the tools) goes out as the MCP server instructions; claude, codex,
-opencode and grok show them to the model, pi and kimi do not. See
+opencode and grok show them to the model, pi and kimi do not.
+`served.setTools(tools)` replaces the tools while sessions run and sends MCP's
+`notifications/tools/list_changed`. Whether a running session's model sees
+the change is the runtime's choice, declared before opening as
+`runtime.mcpToolsListChanged`: `full` (pi, opencode, antigravity),
+`additions` (claude: new tools appear, removed ones stay offered) or `none`
+(codex, kimi, grok); a session that does not take it gets the new tools when
+the host opens its next session. See
 [host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
 
 `runtime.listModels(installation, options?)` lists the models an installation

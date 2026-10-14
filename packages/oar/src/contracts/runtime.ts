@@ -25,6 +25,17 @@ export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "en
  */
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
 
+/**
+ * Whether a running session's model sees a change an attached MCP server
+ * announces with `notifications/tools/list_changed` (#399), judged by the
+ * session's next model request: `full`, added tools appear and removed ones
+ * disappear; `additions`, added tools appear while removed ones stay offered
+ * (a call to one fails as an unknown tool); `none`, the session keeps the
+ * tools it listed when it opened. A change the session does not take applies
+ * when the host opens its next session.
+ */
+export type McpToolsListChanged = "full" | "additions" | "none";
+
 /** One provider-independent runtime adoption unit. */
 export interface Runtime extends RuntimeInventories {
   readonly id: string;
@@ -39,6 +50,13 @@ export interface Runtime extends RuntimeInventories {
    * same error.
    */
   readonly refusedSessionOptions?: RefusedSessionOptions;
+  /**
+   * How a running session takes a change to an attached MCP server's tools
+   * (`ServedMcpTools.setTools`), declared before any session opens. Absent
+   * when the runtime takes no `mcpServers` or was not measured
+   * (experiments/mcp-tools-list-changed.ts, docs/spec/runtime-matrix.md#host-served-tools).
+   */
+  readonly mcpToolsListChanged?: McpToolsListChanged;
   readonly installation?: InstallationProbe;
   /** Read only: what `install` would run here, or why it would run nothing. Present exactly when `install` is. */
   readonly installPlan?: InstallPlanner;

@@ -17,6 +17,7 @@ export const codexRuntime = defineRuntime({
   skills: codexSkills,
   mcpServers: codexMcpServers,
   tools: codexTools,
+  mcpToolsListChanged: "none",
   installation: codexInstallation,
   installPlan: codexInstallPlan,
   install: codexInstall,

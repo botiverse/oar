@@ -15,6 +15,7 @@ export const piRuntime = defineRuntime({
   id: "pi",
   brand: runtimeBrands.pi,
   refusedSessionOptions: piRefusedSessionOptions,
+  mcpToolsListChanged: "full",
   skills: piSkills,
   commands: piCommands,
   tools: piTools,
