@@ -18,6 +18,7 @@ const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> =
   appendSystemPrompt: { appendSystemPrompt: "x" },
   env: { env: { OAR_PROBE: "1" } },
   mcpServers: { mcpServers: [{ name: "probe", command: "/nonexistent/oar-probe" }] },
+  mcpServerCredentials: { mcpServers: [{ name: "served", type: "http", url: "http://127.0.0.1:9/mcp", headers: { Authorization: "Bearer probe" } }] },
   launchArgs: { launchArgs: ["--probe"] },
   name: { name: "probe" },
 };
@@ -29,17 +30,25 @@ function nowhere(id: string): AvailableInstallation {
   return id === "pi" || id === "cursor" ? { kind: "available", via: "bundled" } : { kind: "available", via: "executable", command: "/nonexistent/oar-probe" };
 }
 
+// The declared reason, followed by the refused values where the error names them.
+function refusalMessage(reason: string | undefined, key: RefusableSessionOption): string | undefined {
+  if (key === "disallowedTools") {
+    return `${String(reason)}: ${JSON.stringify(given[key].disallowedTools)}`;
+  }
+  return key === "mcpServerCredentials" ? `${String(reason)}: ["served"]` : reason;
+}
+
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
   assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
       await expect(opening, `${runtime.id} ${key}`).rejects.toBeInstanceOf(UnsupportedOptionError);
       // oxlint-disable-next-line no-await-in-loop -- the same settled open, read again.
-      await expect(opening, `${runtime.id} ${key}`).rejects.toMatchObject({ name: "UnsupportedOptionError", option: key, message: key === "disallowedTools" ? `${runtime.refusedSessionOptions?.[key]}: ${JSON.stringify(given[key].disallowedTools)}` : runtime.refusedSessionOptions?.[key] });
+      await expect(opening, `${runtime.id} ${key}`).rejects.toMatchObject({ name: "UnsupportedOptionError", option: key === "mcpServerCredentials" ? "mcpServers" : key, message: refusalMessage(runtime.refusedSessionOptions?.[key], key) });
     }
   }
 });
@@ -47,7 +56,7 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "appendSystemPrompt", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    antigravity: ["additionalDirectories", "appendSystemPrompt", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt"],
     claude: [],
     codex: [],
     cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
@@ -73,6 +82,19 @@ test("an empty mcpServers list is no MCP server given, so no runtime refuses it"
       refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", mcpServers: [] });
     }, runtime.id);
   }
+});
+
+// serveMcpTools always hands an http entry with an Authorization header, so a
+// host reads from the declarations alone whether its served tools attach.
+test("entries without credentials are no mcpServerCredentials given, and every runtime that refuses them declares so", () => {
+  const bare = [{ name: "local", command: "/bin/echo", env: {} }, { name: "remote", type: "http" as const, url: "http://127.0.0.1:9/mcp" }];
+  for (const runtime of allRuntimes.list().filter((candidate) => candidate.refusedSessionOptions?.mcpServers === undefined)) {
+    assert.doesNotThrow(() => {
+      refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", mcpServers: bare });
+    }, runtime.id);
+  }
+  const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor"]);
 });
 
 test("a runtime that refuses env cannot be a subagent, and spawn says why before opening", async () => {

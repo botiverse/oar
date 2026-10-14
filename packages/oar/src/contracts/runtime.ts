@@ -8,13 +8,19 @@ import type { ModelLister } from "./list-models.js";
 import type { RuntimeBrand } from "./brand.js";
 import type { StartSession } from "./session.js";
 
-/** The `SessionOptions` a runtime can refuse at open. */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name";
+/**
+ * The `SessionOptions` a runtime can refuse at open. `mcpServerCredentials`
+ * is the one value of an option a host can know in advance: an
+ * `mcpServers` entry carrying a credential (a non-empty `env` on a stdio
+ * entry, non-empty `headers` on an http one), which every `serveMcpTools`
+ * entry does.
+ */
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
- * non-empty one), each with the reason `session()` rejects with, in the message of an
- * `UnsupportedOptionError` naming the option. Unlisted options can still have value-specific refusals (for example,
+ * non-empty one; `mcpServerCredentials`: an entry carrying one), each with the reason `session()` rejects with, in the message of an
+ * `UnsupportedOptionError` naming the option (`mcpServers` for `mcpServerCredentials`). Unlisted options can still have value-specific refusals (for example,
  * a tool name the native filter cannot disable); see the runtime page.
  */
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;

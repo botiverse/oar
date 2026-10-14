@@ -124,7 +124,7 @@ test.each(servers)("antigravity refuses an entry carrying a credential before it
   const log = openLog();
   const opening = antigravity(installation, { cwd: process.cwd(), mcpServers: [server], env: { FAKE_ACP_MCP_LOG: log.file, FAKE_ACP_MCP_HTTP: "1" } });
   await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
-  await expect(opening).rejects.toThrow(`stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers (${JSON.stringify(server.name)})`);
+  await expect(opening).rejects.toThrow(`stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers: ${JSON.stringify([server.name])}`);
   expect(log.read()).toEqual([]);
 });
 

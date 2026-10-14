@@ -378,9 +378,12 @@ file outlives the session, a resume does not reuse what it stored, and a
 host can neither see nor clear it through ACP, while credentials may reach a
 runtime only through its native channel, never its disk. So an entry with a
 non-empty `env` or `headers` fails the open with an `UnsupportedOptionError`
-on `mcpServers` before the server starts
-([`refuseAntigravityMcpCredentials`](../../packages/oar/src/runtimes/antigravity/session.ts));
-an entry without them attaches as above (the vendor test's servers carry
+on `mcpServers` before the server starts. The refusal is declared as
+`refusedSessionOptions.mcpServerCredentials`
+([`antigravityRefusedSessionOptions`](../../packages/oar/src/runtimes/antigravity/session.ts),
+[#392](https://github.com/botiverse/oar/issues/392)), so a host knows before
+opening that tools it serves with `serveMcpTools`, whose entry always
+carries a bearer token, will not attach. An entry without them attaches as above (the vendor test's servers carry
 none, and it checks the refusal). A server that needs a secret has to get it
 some other way than the entry, for example from a file it reads itself. No
 ACP answer, notification or stderr line carried an entry's values

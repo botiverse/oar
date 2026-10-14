@@ -350,13 +350,18 @@ non-empty one), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
-when it is an empty object.
+when it is an empty object. One value of an option is declared on its own
+because a host can know it in advance: `mcpServerCredentials`, an
+`mcpServers` entry carrying a credential (a non-empty `env` on a stdio
+entry, non-empty `headers` on an http one). Its error names `mcpServers`
+and ends with the entries' names
+([#392](https://github.com/botiverse/oar/issues/392)).
 
 | runtime | refuses | why |
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
-| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel; no verified session name setting |
+| antigravity | `systemPrompt`, `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials` | the selected server has no prompt input in its protocol, launcher or configuration ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel; no verified session name setting; it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified session name setting |
 | opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel; no verified final-output schema channel; no session name |
@@ -442,7 +447,9 @@ them from a streamable HTTP MCP server inside the host process, on
 Each runtime then attaches it through its own MCP channel above, so it
 behaves as any http entry does there: claude, codex, pi, grok, kimi and
 opencode take it; cursor and pi-durable refuse `mcpServers`, and
-antigravity refuses an entry with `headers`. The runtime must reach the host's loopback address,
+antigravity refuses an entry with `headers`. A host tells before opening:
+served tools attach unless `refusedSessionOptions` declares `mcpServers` or
+`mcpServerCredentials`. The runtime must reach the host's loopback address,
 which holds for every runtime OAR starts on this machine or runs in this
 process.
 

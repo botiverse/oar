@@ -1,11 +1,20 @@
 import type { RefusableSessionOption, RefusedSessionOptions } from "../contracts/runtime.js";
 import type { SessionOptions } from "../contracts/session.js";
 import { UnsupportedOptionError } from "../contracts/errors.js";
+import { hasMcpCredentials } from "./mcp-servers.js";
 
-/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options. */
+/** The names of the `mcpServers` entries carrying a credential: `env` on a stdio entry, `headers` on an http one. */
+function credentialEntries(options: SessionOptions): readonly string[] {
+  return (options.mcpServers ?? []).filter((server) => hasMcpCredentials(server)).map((server) => server.name);
+}
+
+/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
   if (key === "env") {
     return options.env !== undefined && Object.keys(options.env).length > 0;
+  }
+  if (key === "mcpServerCredentials") {
+    return credentialEntries(options).length > 0;
   }
   if (key === "mcpServers" || key === "disallowedTools" || key === "launchArgs" || key === "additionalDirectories") {
     return options[key] !== undefined && options[key].length > 0;
@@ -13,13 +22,23 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
   return options[key] !== undefined;
 }
 
-/** Reject an open that gives an option the runtime declares refused: an `UnsupportedOptionError` naming it, with the declared reason. */
+/**
+ * Reject an open that gives an option the runtime declares refused: an
+ * `UnsupportedOptionError` naming it (`mcpServers` for
+ * `mcpServerCredentials`), with the declared reason, followed by the refused
+ * values for `disallowedTools` and the entries' names for
+ * `mcpServerCredentials`.
+ */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const) {
     const reason = refused[key];
-    if (reason !== undefined && sessionOptionGiven(options, key)) {
-      throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);
+    if (reason === undefined || !sessionOptionGiven(options, key)) {
+      continue;
     }
+    if (key === "mcpServerCredentials") {
+      throw new UnsupportedOptionError("mcpServers", `${reason}: ${JSON.stringify(credentialEntries(options))}`);
+    }
+    throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);
   }
 }
 
