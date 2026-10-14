@@ -64,13 +64,14 @@ export function antigravityToolDenials(options: SessionOptions): void {
 /** 1.4.0 names session extensions under `_meta.antigravity`. */
 function sessionMeta(options: SessionOptions, initialized: JsonRecord): JsonRecord | undefined {
   const { appendSystemPrompt, disallowedTools } = options;
-  if (appendSystemPrompt !== undefined) {
-    const capabilities = asRecord(initialized.agentCapabilities);
-    // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP metadata envelope.
-    const native = asRecord(asRecord(capabilities?._meta)?.antigravity);
-    if (asRecord(native?.systemPrompt)?.append !== true) {
-      throw new UnsupportedOptionError("appendSystemPrompt", "antigravity does not advertise systemPrompt.append");
-    }
+  const capabilities = asRecord(initialized.agentCapabilities);
+  // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP metadata envelope.
+  const native = asRecord(asRecord(capabilities?._meta)?.antigravity);
+  if (disallowedTools !== undefined && disallowedTools.length > 0 && native === null) {
+    throw new UnsupportedOptionError("disallowedTools", "antigravity tool denials require the native antigravity metadata capability (server and harness 1.4.0 or newer)");
+  }
+  if (appendSystemPrompt !== undefined && asRecord(native?.systemPrompt)?.append !== true) {
+    throw new UnsupportedOptionError("appendSystemPrompt", "antigravity does not advertise systemPrompt.append");
   }
   if (appendSystemPrompt === undefined && disallowedTools === undefined) {
     return undefined;

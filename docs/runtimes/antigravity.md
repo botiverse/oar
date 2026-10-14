@@ -495,6 +495,16 @@ identifiers: for example, the harness offers creation as `write_to_file`
 and editing as `replace_file_content`. The native filter performs that
 mapping; OAR sends no allowlist.
 
+For a non-empty list, `initialize` must advertise
+`agentCapabilities._meta.antigravity`; otherwise OAR rejects the open with
+`UnsupportedOptionError("disallowedTools", ...)` before creating or resuming
+the session. Upgrade the server and companion harness together to 1.4.0.
+The 1.3.0 parser only reads `_meta.agy`: a direct native probe confirmed that
+the new namespace opens successfully but leaves the denied tools available.
+OAR does not fall back to the old namespace. The
+[namespace probe](../../experiments/antigravity-tool-filter-meta.ts)
+compares both against a scripted provider without calling any tools.
+
 MCP names, `client_*` file tools and unknown names are refused before
 launch with `UnsupportedOptionError`, listing all offending entries. The
 native parser would merely log and ignore unknown names. OAR advertises
