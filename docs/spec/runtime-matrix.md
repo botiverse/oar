@@ -396,7 +396,13 @@ no record holds a credential. The recordings are
 `tests/replay/fixtures/{claude,codex,pi}-mcp-echo.raw.jsonl`. A list naming a
 server twice, or with an empty name, is a plain error before anything starts,
 as is a name codex (`^[\w:@/.-]+$`) or pi (`^[\w-]+$`, and two names pi folds
-into one tool namespace) would not take. A transport a runtime cannot attach
+into one tool namespace) would not take. The names `__proto__`,
+`__defineGetter__`, `__defineSetter__`, `__lookupGetter__` and
+`__lookupSetter__` are an `UnsupportedOptionError` on `mcpServers` on every
+runtime: claude 2.1.299 drops all five without a word, kimi, opencode and
+claude 2.1.296 drop `__proto__`, and grok announces none of them, while the
+session opens as usual ([#395](https://github.com/botiverse/oar/issues/395)).
+codex and pi take them, but one rule holds everywhere. A transport a runtime cannot attach
 is an `UnsupportedOptionError` on `mcpServers`: an http entry on an ACP agent
 whose `initialize` declares no `mcpCapabilities.http`; every runtime above
 attaches both. So is an entry with a non-empty `env` or `headers` on
@@ -470,7 +476,8 @@ vendor test below ([env] 2026-10-13: claude 2.1.292, codex 0.162.0, pi
 1.1.0, opencode 1.18.30, kimi 2.1.1, grok 1.0.50). A handler's thrown error becomes an `isError` result carrying its
 message, which the model sees as a failed tool call; an unknown tool is a
 JSON-RPC error. Server and tool names are checked up front against the
-strictest runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$`). Native
+strictest runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$`), and a
+server name is none of the five reserved ones above. Native
 host-tool channels (codex `dynamicTools`, claude's in-process SDK MCP, pi's
 custom tools) are not used: one MCP server reaches every runtime above, and
 none of those channels adds a capability MCP lacks

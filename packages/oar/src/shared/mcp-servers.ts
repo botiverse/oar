@@ -37,9 +37,20 @@ export function givenMcpServers(servers: readonly McpServer[] | undefined): read
 }
 
 /**
+ * Server names some runtimes drop without a word (#395): JavaScript object
+ * members their configuration parsers do not keep. claude 2.1.299 drops all
+ * five, kimi, opencode and claude 2.1.296 drop `__proto__`, and grok never
+ * announces any of them; the Claude Agent SDK refuses them since 0.3.299.
+ * Refused on every runtime, codex and pi included, so one rule holds.
+ */
+export const RESERVED_MCP_SERVER_NAMES: ReadonlySet<string> = new Set(["__proto__", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
+
+/**
  * Throw on a list no runtime can attach as given: an empty name, or a name
  * given twice (each runtime keys its servers by name, so the later entry
- * would silently replace the earlier one). The error names the value.
+ * would silently replace the earlier one), a plain error; or a reserved name,
+ * an `UnsupportedOptionError` on `mcpServers` as runtimes would drop it. The
+ * error names the value.
  */
 export function checkMcpServerNames(servers: readonly McpServer[]): void {
   givenMcpServers(servers);
@@ -50,6 +61,9 @@ export function checkMcpServerNames(servers: readonly McpServer[]): void {
     }
     if (seen.has(name)) {
       throw new Error(`mcpServers names ${JSON.stringify(name)} twice; names are unique within a session`);
+    }
+    if (RESERVED_MCP_SERVER_NAMES.has(name)) {
+      throw new UnsupportedOptionError("mcpServers", `mcpServers name ${JSON.stringify(name)} is reserved: some runtimes drop a server so named without a word`);
     }
     seen.add(name);
   }

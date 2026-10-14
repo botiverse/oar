@@ -117,6 +117,11 @@ test("bad JSON is a 400, and names runtimes cannot take are refused up front", a
   const entry = await serve([echo]);
   expect(await statusOf(fetch(entry.server.url, { method: "POST", headers: entry.server.headers ?? {}, body: "{" }))).toBe(400);
   await expect(serveMcpTools({ name: "has space", tools: [] })).rejects.toThrow("serveMcpTools name");
+  // Some runtimes drop a server so named without a word (#395).
+  for (const name of ["__proto__", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]) {
+    // oxlint-disable-next-line no-await-in-loop -- one refusal at a time keeps the failure attributable.
+    await expect(serveMcpTools({ name, tools: [] }), name).rejects.toThrow("serveMcpTools name");
+  }
   await expect(serveMcpTools({ name: "host", tools: [{ ...echo, name: "a.b" }] })).rejects.toThrow("tool name");
   await expect(serveMcpTools({ name: "host", tools: [echo, echo] })).rejects.toThrow("be unique");
 });
