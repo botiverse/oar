@@ -55,13 +55,9 @@ export class EventStreams {
     response.flushHeaders();
     this.#open.add(response);
     this.#keepAlive ??= setInterval(() => { this.#write(": keep-alive\n\n"); }, KEEP_ALIVE_MS).unref();
-    response.once("close", () => {
-      this.#open.delete(response);
-      if (this.#open.size === 0 && this.#keepAlive !== undefined) {
-        clearInterval(this.#keepAlive);
-        this.#keepAlive = undefined;
-      }
-    });
+    // A client gone mid-write is a closed stream, not a host crash.
+    response.on("error", () => { this.#forget(response); });
+    response.once("close", () => { this.#forget(response); });
   }
 
   /** One JSON-RPC message to every open stream. */
@@ -69,12 +65,26 @@ export class EventStreams {
     this.#write(`event: message\ndata: ${JSON.stringify(message)}\n\n`);
   }
 
+  /** End every stream at once: nothing is written to them afterwards, even before their close events. */
   endAll(): void {
-    for (const stream of this.#open) { stream.end(); }
+    for (const stream of this.#open) {
+      this.#forget(stream);
+      stream.end();
+    }
   }
 
   #write(chunk: string): void {
-    for (const stream of this.#open) { stream.write(chunk); }
+    for (const stream of this.#open) {
+      if (!stream.writableEnded) { stream.write(chunk); }
+    }
+  }
+
+  #forget(stream: ServerResponse): void {
+    this.#open.delete(stream);
+    if (this.#open.size === 0 && this.#keepAlive !== undefined) {
+      clearInterval(this.#keepAlive);
+      this.#keepAlive = undefined;
+    }
   }
 }
 

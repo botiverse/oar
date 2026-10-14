@@ -248,10 +248,11 @@ opencode and grok show them to the model, pi and kimi do not.
 `served.setTools(tools)` replaces the tools while sessions run and sends MCP's
 `notifications/tools/list_changed`. Whether a running session's model sees
 the change is the runtime's choice, declared before opening as
-`runtime.mcpToolsListChanged`: `full` (pi, opencode, antigravity),
-`additions` (claude: new tools appear, removed ones stay offered) or `none`
-(codex, kimi, grok); a session that does not take it gets the new tools when
-the host opens its next session. See
+`runtime.mcpToolsListChanged`: `full` (pi, opencode), `additions` (claude:
+new tools appear, removed ones stay offered) or `none` (codex, kimi, grok); a
+session that does not take it gets the new tools when the host opens its next
+session. The declaration covers any MCP server that announces a change, so
+antigravity declares `full` too, though a served entry never attaches there. See
 [host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
 
 `runtime.listModels(installation, options?)` lists the models an installation

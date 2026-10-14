@@ -184,6 +184,19 @@ test("a call already running finishes with the tool it started with", async () =
   expect(await rpc(entry, "tools/call", { name: "slow", arguments: {} })).toMatchObject({ result: { content: [{ type: "text", text: "new handler" }] } });
 });
 
+// Review of #400: a write between close() and the streams' close events crashed the host.
+test("setTools while close() runs, or after it, writes nothing and throws nothing", async () => {
+  const entry = await serveMcpTools({ name: "host", tools: [echo] });
+  const stream = await openStream(entry);
+  const closing = entry.close();
+  entry.setTools([echo]);
+  await Promise.resolve();
+  entry.setTools([echo]);
+  await closing;
+  entry.setTools([echo]);
+  expect(await stream.next()).toBe("");
+});
+
 test("close() ends the open streams", async () => {
   const entry = await serveMcpTools({ name: "host", tools: [echo] });
   const stream = await openStream(entry);

@@ -52,7 +52,8 @@ export interface Runtime extends RuntimeInventories {
   readonly refusedSessionOptions?: RefusedSessionOptions;
   /**
    * How a running session takes a change to an attached MCP server's tools
-   * (`ServedMcpTools.setTools`), declared before any session opens. Absent
+   * (any server that sends `notifications/tools/list_changed`, such as
+   * `ServedMcpTools.setTools`), declared before any session opens. Absent
    * when the runtime takes no `mcpServers` or was not measured
    * (experiments/mcp-tools-list-changed.ts, docs/spec/runtime-matrix.md#host-served-tools).
    */

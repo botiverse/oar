@@ -4,14 +4,17 @@ import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } fr
 import { startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { classify, runToolsListChanged } from "./support/tools-list-changed.js";
+import { modelView, runToolsListChanged } from "./support/tools-list-changed.js";
 
 /**
  * `Runtime.mcpToolsListChanged` (#399) on the real harnesses, against a
  * scripted provider: the declaration is what a running session does when an
  * attached server's tools change, so a runtime upgrade that changes it fails
- * here. antigravity was measured on its own install (its tools ride in the
- * system instruction, see experiments/mcp-tools-list-changed.ts).
+ * here. The client must have listed the tools before the change, and lists
+ * them again exactly when the declaration is not "none"; where the requests
+ * define MCP tools (all but grok here), the model's view must match too.
+ * antigravity and opencode 2.x list MCP tools outside `tools` and were read
+ * on their own installs (experiments/mcp-tools-list-changed.ts).
  */
 
 const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
@@ -33,7 +36,16 @@ for (const backend of backends) {
       const env = await backend.start();
       try {
         const run = await runToolsListChanged(env, async (server) => runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [server] }));
-        expect(classify(run), JSON.stringify(run.log)).toBe(runtime.mcpToolsListChanged);
+        const why = JSON.stringify(run.log);
+        // The client reached the server before the change, so "never listed again" means something.
+        expect(run.connected, why).toBe(true);
+        expect(run.relisted, why).toBe(runtime.mcpToolsListChanged !== "none");
+        // Where the requests define MCP tools, the model's view decides between full, additions and none.
+        const view = modelView(run);
+        if (view !== null) {
+          expect(view, why).toBe(runtime.mcpToolsListChanged);
+        }
+        expect(view === null, why).toBe(backend.runtime === "grok");
       } finally {
         await env.stop();
       }

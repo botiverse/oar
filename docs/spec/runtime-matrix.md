@@ -502,8 +502,11 @@ notification:
 | `additions` | claude | adds the new tools and keeps offering the removed ones, whose calls then fail as unknown tools |
 | `none` | codex, kimi, grok | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
 
-cursor and pi-durable take no `mcpServers` and declare nothing. A change a
-session does not take applies when the host opens its next session.
+cursor and pi-durable take no `mcpServers` and declare nothing. The
+declaration covers any attached MCP server that announces a change; a
+`serveMcpTools` entry never attaches to antigravity (it refuses entries with
+`headers`), so its row matters there only for credential-free servers. A
+change a session does not take applies when the host opens its next session.
 Measured [env] 2026-10-14: pi ^1.2.0, opencode 1.18.30, 1.19.0 and 2.0.29,
 antigravity 1.4.0, claude 2.1.299, codex 0.162.0 and 0.162.1, kimi 2.1.1,
 grok 1.0.52 ([probe](../../experiments/mcp-tools-list-changed.ts),

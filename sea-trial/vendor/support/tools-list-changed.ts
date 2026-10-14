@@ -47,6 +47,8 @@ export interface ToolsListChangedRun {
   readonly turns: readonly [AimockEnv["raw"], AimockEnv["raw"]];
   /** What the runtime's MCP client sent: "GET stream", each JSON-RPC method, and "setTools" where the change happened. */
   readonly log: readonly string[];
+  /** Whether the client listed the tools before the change: without it, "never listed again" proves nothing. */
+  readonly connected: boolean;
   /** Whether the client listed the tools again after the change. */
   readonly relisted: boolean;
 }
@@ -95,6 +97,14 @@ async function turn(session: Session, text: string): Promise<void> {
   await awaitTurnEnd(session, started.request.seq);
 }
 
+/** Wait until `done()` or `ms` passed, checking every 100 ms. */
+async function poll(done: () => boolean, ms: number): Promise<void> {
+  for (let waited = 0; !done() && waited < ms; waited += 100) {
+    // oxlint-disable-next-line no-await-in-loop -- polls the log.
+    await new Promise((resolve) => { setTimeout(resolve, 100); });
+  }
+}
+
 /** Run the two turns around a `setTools` on a session `open` starts with the probe server attached. */
 export async function runToolsListChanged(env: AimockEnv, open: (server: { readonly name: string; readonly type: "http"; readonly url: string }) => Promise<Session>): Promise<ToolsListChangedRun> {
   const log: string[] = [];
@@ -103,20 +113,20 @@ export async function runToolsListChanged(env: AimockEnv, open: (server: { reado
   try {
     const session = await open({ name: SERVER, type: "http", url: proxy.url });
     try {
-      // A client may list the tools after the session opens (opencode 2.x): the first turn waits for that.
-      for (let waited = 0; !log.includes("tools/list") && waited < 10_000; waited += 100) {
-        // oxlint-disable-next-line no-await-in-loop -- polls the log until the first listing.
-        await new Promise((resolve) => { setTimeout(resolve, 100); });
-      }
+      // A client may list the tools after the session opens (opencode 2.x) or
+      // only at the first prompt (antigravity): the first turn waits a while,
+      // then runs anyway.
+      await poll(() => log.includes("tools/list"), 10_000);
       await turn(session, "first turn: reply ok");
       const afterFirst = env.raw.length;
+      const connected = log.includes("tools/list");
       served.setTools([tool(BETA)]);
       log.push("setTools");
-      // Room for a client that heard the notification to list the tools again.
-      await new Promise((resolve) => { setTimeout(resolve, 3000); });
+      const relistedNow = (): boolean => log.slice(log.indexOf("setTools")).includes("tools/list");
+      // A client that heard the notification lists again before the second turn is built.
+      await poll(relistedNow, 10_000);
       await turn(session, "second turn: reply ok");
-      const relisted = log.slice(log.indexOf("setTools")).includes("tools/list");
-      return { turns: [env.raw.slice(0, afterFirst), env.raw.slice(afterFirst)], log: [...log], relisted };
+      return { turns: [env.raw.slice(0, afterFirst), env.raw.slice(afterFirst)], log: [...log], connected, relisted: relistedNow() };
     } finally {
       await session.dispose();
     }
@@ -127,20 +137,19 @@ export async function runToolsListChanged(env: AimockEnv, open: (server: { reado
 }
 
 /**
- * The declaration a run supports. A client that never listed again keeps its
- * opening tools (grok's `use_tool` then answers "Tool not found" for BETA).
- * One that did is judged by the tools the second turn's last request
- * defines; a runtime that lists MCP tools elsewhere (antigravity: in the
- * system instruction) needs its own reading, so this throws.
+ * What the model saw, where the requests define MCP tools in `tools`: the
+ * declaration the second turn supports, or null when they define none to
+ * judge by (grok reaches MCP tools through `use_tool`; opencode 2.x and
+ * antigravity list them in a system update or the system instruction).
  */
-export function classify(run: ToolsListChangedRun): McpToolsListChanged {
-  if (!run.relisted) {
-    return "none";
-  }
+export function modelView(run: ToolsListChangedRun): McpToolsListChanged | null {
   const first = defined(lastWithTools(run.turns[0]));
   const second = defined(lastWithTools(run.turns[1]));
-  if (!first.includes(ALPHA) || !second.includes(BETA)) {
-    throw new Error(`the requests define no probe tools to judge by: ${JSON.stringify({ first, second })}`);
+  if (!first.includes(ALPHA)) {
+    return null;
+  }
+  if (!second.includes(BETA)) {
+    return "none";
   }
   return second.includes(ALPHA) ? "additions" : "full";
 }
