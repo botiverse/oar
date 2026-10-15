@@ -1019,8 +1019,11 @@ OAR starts:
 
 The cost, per Anthropic's documentation: such a token makes model requests
 only, so Remote Control sessions and claude.ai connectors are unavailable
-(MCP servers configured locally still work). Whether `accountUsage` reads
-usage with it is not verified.
+(MCP servers configured locally still work). The token carries the
+inference scope only, while the subscription login also has `user:profile`;
+`accountUsage` asks claude's own `get_usage`, which then most likely reports
+no limits (`unsupported` / `quota_unavailable`). Not verified: making one
+takes a person signing in in a browser.
 
 ### Logout
 
