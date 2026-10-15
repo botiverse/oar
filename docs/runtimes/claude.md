@@ -988,6 +988,40 @@ at the paste prompt (`login cancelled`, exit 130, no process left over, the
 previous login unchanged).
 [Login](../../packages/oar/src/runtimes/claude/login.ts).
 
+**Many claude processes on one machine share one login, and can lose it
+([#402](https://github.com/botiverse/oar/issues/402)).** Every claude process
+started without an environment credential reads the subscription login from
+`~/.claude/.credentials.json` (the macOS Keychain), and the first one that
+finds the access token expired refreshes it. The refresh token is single-use:
+the server retires it as it answers. Two processes refreshing at once, or a
+process that exits after the server answered and before it wrote the new pair
+back, leave the file holding a retired token; the next refresh gets
+`invalid_grant`, claude blanks the stored login, and every claude on the
+machine is logged out until someone signs in again
+([claude-code#102265](https://github.com/anthropics/claude-code/issues/102265),
+[#88947](https://github.com/anthropics/claude-code/issues/88947),
+[#91009](https://github.com/anthropics/claude-code/issues/91009); open, no
+upstream fix as of 2.1.299). A host that runs many sessions, or polls
+`listModels` and `accountUsage` (each a short-lived `claude -p` OAR ends right
+after its answer), meets this more often than one person at a terminal.
+
+claude's own way around it is a long-lived token: `claude setup-token` (a
+browser sign-in, like `auth login`) prints an OAuth token valid for a year,
+and a claude with it in `CLAUDE_CODE_OAUTH_TOKEN` authenticates with it and
+never reads or refreshes the shared file. OAR has no login path for it (it
+would hand the host a credential, which no OAR login does); the host runs it
+once, keeps the token in its own secret store, and gives it to the processes
+OAR starts:
+
+- in the host's own environment, which the claude processes OAR runs outside
+  sessions inherit (`authStatus` then reads `authMethod: "oauth_token"`);
+- per session in `SessionOptions.env`, which records redact by its name.
+
+The cost, per Anthropic's documentation: such a token makes model requests
+only, so Remote Control sessions and claude.ai connectors are unavailable
+(MCP servers configured locally still work). Whether `accountUsage` reads
+usage with it is not verified.
+
 ### Logout
 
 **Mapped** ([runtime logout](../spec/login.md#logout)): `logout` runs
