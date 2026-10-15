@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
-import { expect, test } from "vitest";
+import { expect, onTestFinished, test } from "vitest";
 import { sweepAbandonedMcpConfigs } from "../../packages/oar/src/runtimes/claude/mcp-config.js";
 
 /*
@@ -20,6 +20,7 @@ const launchUrl = pathToFileURL(path.join(import.meta.dirname, "../../packages/o
 const SECRET = "host-death-credential-value";
 
 const FAKE_CLAUDE = `#!/bin/sh
+printf '%s' "$$" > "$OAR_FAKE_OUT.pid"
 while [ "$#" -gt 0 ]; do
   if [ "$1" = "--mcp-config" ]; then config="$2"; fi
   shift
@@ -67,18 +68,35 @@ function entries(directory: string): readonly { readonly name: string; readonly 
   return existsSync(directory) ? readdirSync(directory).map((name) => ({ name, fifo: lstatSync(path.join(directory, name)).isFIFO() })) : [];
 }
 
+/**
+ * A failed run leaves the stand-in blocked on the FIFO, orphaned by the
+ * killed host: end it, so no test run leaves a process behind.
+ */
+function endStandIn(scratch: string): void {
+  const pidFile = path.join(scratch, "read.pid");
+  if (!existsSync(pidFile)) {
+    return;
+  }
+  try {
+    process.kill(Number(readFileSync(pidFile, "utf8")), "SIGKILL");
+  } catch {
+    // Already gone: the sweep released it and it exited.
+  }
+}
+
 test.skipIf(process.platform === "win32")("a host SIGKILLed before claude reads leaves no plaintext, and the next claude session lets the waiting claude go", async () => {
   const scratch = mkdtempSync(path.join(tmpdir(), "oar-test-host-death-"));
-  try {
-    const { command, out } = fakeClaude(scratch);
-    const directory = await killedHost(command, out, scratch);
-    // What the dead host left: a FIFO, nothing that holds a byte.
-    expect(entries(directory).filter((entry) => !entry.fifo)).toEqual([]);
-    // claude waits on the FIFO, where no writer will come, until a sweep releases it.
-    await sweepAbandonedMcpConfigs();
-    expect(await until(() => existsSync(out), 5000)).toBe(true);
-    expect({ read: readFileSync(out, "utf8"), directory: existsSync(directory) }).toEqual({ read: "", directory: false });
-  } finally {
+  // After a failure or a timeout too (a timeout abandons the test body).
+  onTestFinished(() => {
+    endStandIn(scratch);
     rmSync(scratch, { recursive: true, force: true });
-  }
+  });
+  const { command, out } = fakeClaude(scratch);
+  const directory = await killedHost(command, out, scratch);
+  // What the dead host left: a FIFO, nothing that holds a byte.
+  expect(entries(directory).filter((entry) => !entry.fifo)).toEqual([]);
+  // claude waits on the FIFO, where no writer will come, until a sweep releases it.
+  await sweepAbandonedMcpConfigs();
+  expect(await until(() => existsSync(out), 5000)).toBe(true);
+  expect({ read: readFileSync(out, "utf8"), directory: existsSync(directory) }).toEqual({ read: "", directory: false });
 }, 30_000);
