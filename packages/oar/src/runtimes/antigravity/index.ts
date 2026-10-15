@@ -1,10 +1,10 @@
 import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
+import { onFirstCall } from "../../shared/lazy.js";
 import { antigravityInstallation } from "./installation.js";
 import { antigravityInstall, antigravityInstallPlan } from "./install.js";
-import { antigravityListModels } from "./list-models.js";
 import { antigravityCheckUpdate } from "./update.js";
-import { antigravityRefusedSessionOptions, antigravitySession } from "./session.js";
+import { antigravityRefusedSessionOptions } from "./options.js";
 
 export const antigravityRuntime = defineRuntime({
   id: "antigravity",
@@ -12,11 +12,15 @@ export const antigravityRuntime = defineRuntime({
   installation: antigravityInstallation,
   installPlan: antigravityInstallPlan,
   install: antigravityInstall,
-  session: antigravitySession,
-  listModels: antigravityListModels,
+  session: onFirstCall(async () => {
+    const { antigravitySession } = await import("./session.js");
+    return antigravitySession;
+  }),
+  listModels: onFirstCall(async () => {
+    const { antigravityListModels } = await import("./list-models.js");
+    return antigravityListModels;
+  }),
   checkUpdate: antigravityCheckUpdate,
   refusedSessionOptions: antigravityRefusedSessionOptions,
   mcpToolsListChanged: "full",
 });
-
-export { antigravitySession } from "./session.js";

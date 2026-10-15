@@ -1,11 +1,11 @@
 import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
+import { onFirstCall } from "../../shared/lazy.js";
 import { kimiAccountUsage } from "./account-usage.js";
 import { kimiInstallation } from "./installation.js";
 import { kimiInstall, kimiInstallPlan } from "./install.js";
-import { kimiListModels } from "./list-models.js";
 import { kimiCheckUpdate, kimiUpgrade } from "./update.js";
-import { kimiRefusedSessionOptions, kimiSession } from "./session.js";
+import { kimiRefusedSessionOptions } from "./options.js";
 
 export const kimiRuntime = defineRuntime({
   id: "kimi",
@@ -14,15 +14,19 @@ export const kimiRuntime = defineRuntime({
   installPlan: kimiInstallPlan,
   install: kimiInstall,
   accountUsage: kimiAccountUsage,
-  listModels: kimiListModels,
+  listModels: onFirstCall(async () => {
+    const { kimiListModels } = await import("./list-models.js");
+    return kimiListModels;
+  }),
   checkUpdate: kimiCheckUpdate,
   upgrade: kimiUpgrade,
-  session: kimiSession,
+  session: onFirstCall(async () => {
+    const { kimiSession } = await import("./session.js");
+    return kimiSession;
+  }),
   refusedSessionOptions: kimiRefusedSessionOptions,
   mcpToolsListChanged: "none",
 });
 
 export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";
 export { kimiAccountDisplayName, kimiAccountEmail } from "./profile.js";
-export { kimiListModels, projectKimiModels } from "./list-models.js";
-export { kimiSession } from "./session.js";

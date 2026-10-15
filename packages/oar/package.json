@@ -46,6 +46,10 @@
     "./pi-durable": {
       "types": "./dist/pi-durable.d.ts",
       "import": "./dist/pi-durable.js"
+    },
+    "./runtimes/*": {
+      "types": "./dist/runtimes/*/index.d.ts",
+      "import": "./dist/runtimes/*/index.js"
     }
   },
   "files": [

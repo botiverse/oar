@@ -1,5 +1,5 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
+import { kimiRefusedSessionOptions } from "./options.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
@@ -24,15 +24,6 @@ export function supportsKimiYolo(response: JsonRecord): boolean {
   const values = Array.isArray(mode?.options) ? mode.options : [];
   return values.map((value) => asRecord(value)).some((option) => option?.value === "yolo");
 }
-
-export const kimiRefusedSessionOptions: RefusedSessionOptions = {
-  outputSchema: "Kimi ACP and launch configuration expose no final-output schema channel",
-  name: "kimi exposes no verified session name setting",
-  serviceTier: "kimi exposes no verified per-session service-tier setting and readback",
-  disallowedTools: "kimi ACP exposes no session tool denylist; its agent-profile disallowedTools cannot be overlaid through the ACP launch or session options",
-  systemPrompt: "kimi acp has no per-session system prompt input; its launcher does not forward --agent-file or --agent",
-  appendSystemPrompt: "kimi acp has no per-session system prompt append input; its launcher does not forward --agent-file or --agent",
-};
 
 export const kimiAcpProfile: AcpSessionProfile = {
   args: ["acp"],

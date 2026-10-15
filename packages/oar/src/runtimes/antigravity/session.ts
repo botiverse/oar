@@ -1,5 +1,5 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
+import { antigravityRefusedSessionOptions } from "./options.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -30,21 +30,6 @@ export function supportsAntigravityYolo(response: JsonRecord): boolean {
   const values = Array.isArray(mode?.options) ? mode.options : [];
   return values.map((value) => asRecord(value)).some((option) => option?.value === "yolo");
 }
-
-export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
-  outputSchema: "Antigravity ACP and launch configuration expose no final-output schema channel",
-  name: "antigravity exposes no verified session name setting",
-  additionalDirectories: "antigravity accepts but ignores ACP additionalDirectories",
-  serviceTier: "antigravity exposes no verified per-session service-tier setting and readback",
-  systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
-  // agy_acp_server 1.4.0 writes a session's `mcpServers`, `env` and `headers`
-  // values included, in plain text into its conversation database
-  // (`$GEMINI_HOME/antigravity-acp/conversations/<id>.db`, 0600), which
-  // outlives the session and which a host cannot see or clear through ACP;
-  // credentials reach a runtime only through its native channel, never its
-  // disk. An entry without `env` or `headers` attaches as usual.
-  mcpServerCredentials: "antigravity stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers",
-};
 
 /** Canonical BuiltinTools values in agy_acp_server 1.3.0's distributed types.py.
  * Native tool_filter.py logs and ignores other names, so fail before launch.
