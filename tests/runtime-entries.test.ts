@@ -4,13 +4,15 @@ import { expect, test } from "vitest";
 /*
  * `@botiverse/oar/runtimes/<id>` loads one runtime without the others (a host
  * reading one provider's usage keeps a few MB, not the root entry's ~50 MB).
- * The heavy dependencies must stay behind a dynamic import: the ACP SDK
- * (~20 MB of heap) loads when an ACP runtime first opens a session, lists
- * models or (grok) reads usage, and the pi and cursor SDKs when theirs first
- * run. This walks each entry's static imports only.
+ * Every SDK must stay behind a dynamic import: the ACP SDK (~20 MB of heap)
+ * loads when an ACP runtime first opens a session, lists models or (grok)
+ * reads usage, and the pi and cursor SDKs when theirs first run. This walks
+ * each entry's static imports only and allows nothing beyond Node's modules
+ * and two small process helpers.
  */
 
-const HEAVY = ["@agentclientprotocol/sdk", "@earendil-works/pi-coding-agent", "@earendil-works/pi-ai", "@earendil-works/pi-durable", "@cursor/sdk"];
+/** All an entry may import statically besides its own files: Node's modules and two small process helpers. */
+const light = (name: string): boolean => name.startsWith("node:") || name === "which" || name === "cross-spawn";
 
 /** The static (not `import()`) edges out of one bundled file: files to follow and external packages. */
 function staticEdges(metafile: Metafile, file: string): { readonly files: readonly string[]; readonly packages: readonly string[] } {
@@ -32,9 +34,8 @@ function staticPackages(metafile: Metafile, file: string, reached = new Set<stri
   return found;
 }
 
-test.each(["claude", "codex", "pi", "cursor", "opencode", "kimi", "grok", "antigravity"])("the %s entry statically imports no heavy SDK", async (id) => {
+test.each(["claude", "codex", "pi", "cursor", "opencode", "kimi", "grok", "antigravity"])("the %s entry statically imports no runtime SDK", async (id) => {
   const entry = `packages/oar/src/runtimes/${id}/index.ts`;
   const result = await build({ entryPoints: [entry], bundle: true, platform: "node", format: "esm", write: false, metafile: true, packages: "external" });
-  const heavy = [...staticPackages(result.metafile, entry)].filter((name) => HEAVY.some((root) => name === root || name.startsWith(`${root}/`)));
-  expect(heavy).toEqual([]);
+  expect([...staticPackages(result.metafile, entry)].filter((name) => !light(name))).toEqual([]);
 });

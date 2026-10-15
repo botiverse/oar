@@ -50,7 +50,8 @@
     "./runtimes/*": {
       "types": "./dist/runtimes/*/index.d.ts",
       "import": "./dist/runtimes/*/index.js"
-    }
+    },
+    "./runtimes/pi-durable": null
   },
   "files": [
     "dist",

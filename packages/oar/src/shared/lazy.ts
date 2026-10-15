@@ -7,16 +7,19 @@
 export function onFirstCall<A extends readonly unknown[], R>(load: () => Promise<(...args: A) => Promise<R>>): (...args: A) => Promise<R> {
   let loading: Promise<(...args: A) => Promise<R>> | null = null;
   const loaded = async (): Promise<(...args: A) => Promise<R>> => {
+    const attempt = loading ?? load();
+    loading = attempt;
     try {
-      return await load();
+      return await attempt;
     } catch (error) {
-      loading = null;
+      if (loading === attempt) {
+        loading = null;
+      }
       throw error;
     }
   };
   return async (...args) => {
-    loading ??= loaded();
-    const implementation = await loading;
+    const implementation = await loaded();
     return implementation(...args);
   };
 }
