@@ -144,7 +144,7 @@ The initial snapshot is its own `snapshot` frame. Stream closure is a native
 | user `message_end` | `user_message`, native entry id, and inputId where a submission names that entry |
 | `tool_execution_start` | tool name, call id and arguments |
 | `tool_execution_update` | whole retained output window reconstructed from native trim/append or replacement; diagnostic/details fields stay raw |
-| `tool_execution_end` | model calls read content and ok/failed from the native tool-result entry; nested calls read ok/failed from native `result.isError` and a reported numeric/null `result.structuredOutput.exitCode`, without inventing content; no result means just ended |
+| `tool_execution_end` | model calls read content and ok/failed from the native tool-result entry; nested calls read ok/failed from native `result.isError` and a reported numeric `result.structuredOutput.exitCode`, without inventing content; no result means just ended |
 | `agent_changed` / snapshot agent | model and effort actually stored |
 | `usage_changed` / snapshot usage | conversation's own model and tool token ledgers minus the totals at attachment |
 | `auto_retry_start` | retry with native attempt and reason |

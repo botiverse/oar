@@ -118,9 +118,9 @@ function step(state: DurableProjection, event: AgentEvent): { readonly state: Du
       const content = result === undefined ? undefined : toolContent(result.content);
       // CodingTools' programmatic result is exposed on nested calls only.
       // A model-issued call's entry omits it; diagnostic text is not an exit
-      // status. Preserve the reported number or null without interpreting it.
+      // status. Preserve the reported number without interpreting it.
       const exit = asRecord(event.result?.structuredOutput)?.exitCode;
-      const exitCode = typeof exit === "number" ? exit : (exit === null ? null : undefined);
+      const exitCode = typeof exit === "number" ? exit : undefined;
       return { state: { ...state, tools }, events: [{ kind: "tool_call_ended", callId: event.toolCallId,
         ...(content === undefined ? {} : { content }), ...(outcome === undefined ? {} : { result: outcome.isError ? "failed" : "ok" }),
         ...(exitCode === undefined ? {} : { exitCode }) }] };

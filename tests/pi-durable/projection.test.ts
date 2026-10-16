@@ -9,17 +9,17 @@ const message: AssistantMessage = { role: "assistant", content: [{ type: "text",
 
 function isTaskId(value: number): value is TaskId { return Number.isSafeInteger(value) && value > 0; }
 
-test("nested tool exits preserve native numbers and null; absent or nonnumeric values stay absent", () => {
+test("nested tool exits preserve native numbers; absent or nonnumeric values stay absent", () => {
   const taskId = 1;
   if (!isTaskId(taskId)) { throw new Error("invalid fixture task id"); }
-  for (const exit of [0, 7, 143, null, undefined, "7"]) {
+  for (const exit of [0, 7, 143, undefined, "7"]) {
     const native: AgentEvent[] = [{ type: "tool_execution_end", toolCallId: "outer/bash", toolName: "bash", result: {
       taskId, isError: true, diagnostics: [], durationMs: 1,
       ...(exit === undefined ? {} : { structuredOutput: { exitCode: exit } }),
     } }];
     const { frame } = foldDurableBatch(initialDurableProjection(empty), native);
     expect(frame.events).toEqual([{ kind: "tool_call_ended", callId: "outer/bash", result: "failed",
-      ...(typeof exit === "number" || exit === null ? { exitCode: exit } : {}) }]);
+      ...(typeof exit === "number" ? { exitCode: exit } : {}) }]);
     const json = JSON.stringify(frame);
     expect(JSON.parse(json)).toEqual(frame);
   }
