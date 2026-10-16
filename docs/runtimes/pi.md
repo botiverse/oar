@@ -7,7 +7,7 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.2.0**. Native source references are
+`@earendil-works/pi-coding-agent` SDK **1.3.0**. Native source references are
 pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
 URLs redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
@@ -72,8 +72,8 @@ probe verifies these outcomes with a native 1.0.2 session file containing
 synthetic messages and a scripted fallback provider, not an Azure network
 request. Azure authentication and prompt-cache behavior were not tested.
 
-Both Pi dependency floors are `^1.2.0`. The upgrade is verified in the
-[October 13 report](../../experiments/runtime-version-checks/2026-10-13.md), including
+Both Pi dependency floors are `^1.3.0`. The upgrade is verified in the
+[October 16 report](../../experiments/runtime-version-checks/2026-10-16.md), including
 native controls, extension lifecycle, cross-version resume and tool handling.
 Pi extensions using `before_agent_start` must follow the SDK's new
 `messageType` distinction: a custom-message turn carries `message` rather
@@ -366,8 +366,11 @@ session-info, bash execution and the other retry events are in the stream
 with no event.
 
 `tool_call_ended.content` is the blocks of pi's `result` in order (an image
-block is an image part; a result without blocks is one `other` part); `details` such as an edit's `patch` stay in `native`; pi
-reports no exit status, so `exitCode` is absent. `result` comes from pi's
+block is an image part; a result without blocks is one `other` part); `details`
+such as an edit's `patch` stay in `native`. CodingTools' numeric
+`structuredContent.exit_code` becomes `exitCode`; otherwise it is absent.
+Pi 1.3.0's local runner reports SIGTERM as 143 (128 + 15), which OAR preserves.
+`result` comes from pi's
 explicit `isError` boolean ([src] `@earendil-works/pi-coding-agent` 0.84.2
 `core/extensions/types.d.ts:595-600`): false is `"ok"`, true is `"failed"`,
 absent only when the runtime omits it.
@@ -835,7 +838,16 @@ as `excludeTools` on both new and resumed sessions. The SDK filters its own
 registry, including OAR's environment-aware Bash replacement and tools
 registered later by extensions/MCP. Use Pi names such as `bash`, `read` and
 `mcp__server__tool`; native pattern matching is unchanged. OAR does not edit
-Pi's settings or build an allowlist. Supply the list again on resume.
+Pi's settings. Supply the list again on resume.
+
+Pi 1.3.0 otherwise restores the active tools recorded in the transcript,
+including restrictions from an earlier open. OAR restores the current
+native default tools and default-active extension tools before binding
+`session_start`, so a resumed session with the same options has the same
+tool availability as a new session. Native `excludeTools` and exposure rules
+still apply, and extension startup callbacks may change the selection.
+Default-inactive tools are not enabled. Omitting the denylist or passing an
+empty list therefore does not retain an earlier open's exclusions.
 
 An unmatched native name such as `NoSuchTool` is accepted silently and
 disables nothing. Neither Pi nor OAR reports that no tool matched; this

@@ -2,7 +2,7 @@
 
 Pi Durable runs an agent over a host-owned `Harness`, storage, model catalog,
 extension registry and execution environment. OAR uses
-`@earendil-works/pi-durable` **1.2.0**, including its experimental
+`@earendil-works/pi-durable` **1.3.0**, including its experimental
 `watchEvents` interface. This is a separate runtime from the Pi coding-agent
 SDK: it does not load a Pi CLI login, settings directory or session file.
 
@@ -24,10 +24,10 @@ replacement snapshot instead of the intervening batches.
 
 The host passes the **same `Models` instance** it supplied to `Harness.open`:
 Harness exposes no public catalog getter, so OAR cannot verify this identity.
-The host installs `@earendil-works/pi-durable@~1.2.0` and
-`@earendil-works/chord@~1.2.0`, both optional peers of OAR. OAR operates on
+The host installs `@earendil-works/pi-durable@~1.3.0` and
+`@earendil-works/chord@~1.3.0`, both optional peers of OAR. OAR operates on
 the host's native package instances, without bundling another copy. Tests
-pin 1.2.0; upgrading this experimental API requires rerunning the native
+pin 1.3.0; upgrading this experimental API requires rerunning the native
 probe and vendor tests below.
 
 ```ts

@@ -1,9 +1,9 @@
 import { existsSync, mkdtempSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, defineRuntime, piInstallation, piSession, type Session } from "../../packages/oar/src/index.js";
-import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
+import { claudeInstallation, claudeSession, defineRuntime, piInstallation, piSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startPiAimock, type AimockEnv, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
@@ -17,6 +17,39 @@ function toolsIn(raw: readonly RawProviderRequest[]): string[] {
     return Array.isArray(tools) ? tools.map((tool) => asRecord(tool)?.name).filter((name): name is string => typeof name === "string") : [];
   }))].toSorted();
 }
+
+test.skipIf(process.env.OAR_TEST !== "pi-aimock").each([false, true])("Pi resumed tools equal a fresh open with current defaults, extensions and MCP; session_start override=%s", async (override) => {
+  const env = await startPiAimock((mock) => { mock.onMessage(/TOOL_FILTER_OK/u, { content: "TOOL_FILTER_OK" }); },
+    { captureRaw: true, settings: { defaultTools: ["read", "grep"] } });
+  try {
+    const agentDir = process.env.OAR_PI_AGENT_DIR;
+    expect(agentDir).toBeDefined();
+    if (agentDir === undefined) { throw new Error("Pi test agent directory missing"); }
+    const extensions = path.join(agentDir, "extensions");
+    await mkdir(extensions, { recursive: true });
+    await writeFile(path.join(extensions, "loadout.ts"), `
+export default (pi) => {
+  for (const [name, extra] of [["active_probe", {}], ["inactive_probe", { defaultActive: false }], ["codemode_probe", { exposure: "codemode" }]]) {
+    pi.registerTool({ name, description: name, label: name, parameters: { type: "object", properties: {} }, ...extra,
+      execute: async () => ({ content: [{ type: "text", text: "ok" }] }) });
+  }
+  ${override ? 'pi.on("session_start", () => { pi.setActiveTools(pi.getActiveTools().filter((name) => name !== "grep")); });' : ""}
+};
+`);
+    const subject = runtimeUnderTest(defineRuntime({ id: "pi-aimock", installation: piInstallation, session: piSession }));
+    const mcpServers = [stdioEcho("loadout")];
+    const fresh = await offered(await subject.startSession({ mcpServers }), env);
+    expect(fresh).toEqual(["active_probe", ...(override ? [] : ["grep"]), "mcp__loadout__echo", "read"]);
+    const restricted = await subject.startSession({ mcpServers, disallowedTools: ["read", "active_probe"] });
+    expect(await offered(restricted, env)).toEqual([...(override ? [] : ["grep"]), "mcp__loadout__echo"]);
+    // Both omission and an explicit empty denylist use this open's defaults.
+    for (const disallowedTools of [undefined, [], ["active_probe"]]) {
+      const options = { mcpServers, ...(disallowedTools === undefined ? {} : { disallowedTools }) };
+      const expected = await offered(await subject.startSession(options), env);
+      expect(await offered(await subject.startSession({ ...options, resume: restricted.id }), env)).toEqual(expected);
+    }
+  } finally { await env.stop(); }
+}, 120_000);
 
 async function offered(session: Session, env: AimockEnv): Promise<string[]> {
   const offset = env.raw.length;

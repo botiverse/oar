@@ -192,6 +192,19 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     ...(thinkingLevel === undefined ? {} : { thinkingLevel }),
     ...(overlay === undefined ? {} : { customTools: [await piEnvBashTool(options.cwd, overlay)] }),
   });
+  if (options.resume !== undefined) {
+    // Pi 1.3 restores the transcript's active tools, including a prior open's
+    // exclusions. OAR's denylist belongs to this open. Restore the current
+    // native defaults before session_start, whose extensions may change them.
+    // Extra builtins (grep/find/ls) and default-inactive extension tools stay
+    // inactive; Pi still applies this open's excludeTools and exposure rules.
+    const defaults = settingsManager.getDefaultTools() ?? sdk.createCodingTools(options.cwd).map((tool) => tool.name);
+    const extensions = session.getAllTools().filter((tool) =>
+      tool.sourceInfo.path !== `builtin:${tool.name}`
+      && session.getToolDefinition(tool.name)?.defaultActive !== false
+      && (tool.exposure === "direct" || tool.exposure === "model-only"));
+    session.setActiveToolsByName([...defaults, ...extensions.map((tool) => tool.name)]);
+  }
   // Read back rather than trust the request: the model record is the
   // runtime's report, and a resume that kept the old model must not pass.
   const effective = piEffectiveModel(session);
