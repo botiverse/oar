@@ -83,7 +83,8 @@
         "sea-trial/**",
         "packages/oar/src/observe/**",
         "packages/oar/src/agents/**",
-        "packages/oar/src/mcp/**"
+        "packages/oar/src/mcp/**",
+        "packages/oar/src/forms/**"
       ],
       "rules": {
         "eslint/max-params": "off",

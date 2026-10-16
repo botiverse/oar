@@ -201,8 +201,14 @@ export type LaunchValues = Readonly<Record<string, ModelValue | ResolvedSecret |
 export function toSessionOptions(
   form: RuntimeConfigForm,
   values: LaunchValues,
-): { ok: true; options: Partial<SessionOptions> } | { ok: false; issues: readonly ConfigIssue[] };
+):
+  | { ok: true; options: Partial<SessionOptions>; unmapped: Readonly<Record<string, string | boolean>> }
+  | { ok: false; issues: readonly ConfigIssue[] };
 ```
+
+Active select, text and boolean values have no shared `SessionOptions`
+member; they come back in `unmapped`, by field id, for the runtime's own
+mapping. The caller applies or refuses each one; none is dropped.
 
 A required secret that resolves to `present: false` is the issue
 `secret_missing`; it is never mapped to an empty or omitted option. Resolved

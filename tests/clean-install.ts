@@ -59,7 +59,7 @@ function cursorPeerVersion(): string {
  */
 const PROBE = `
 import { createCursorRuntime, defaultRuntimes } from "@botiverse/oar";
-for (const entry of ["browser", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
+for (const entry of ["browser", "forms", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
   await import("@botiverse/oar/" + entry);
 }
 const kinds = {};
@@ -114,6 +114,7 @@ assert.ok(loaded.every((file) => !file.startsWith("dist/runtimes/")), "Pure entr
 const ENTRIES = `
 import * as oar from "@botiverse/oar";
 import * as browser from "@botiverse/oar/browser";
+import * as forms from "@botiverse/oar/forms";
 import * as agents from "@botiverse/oar/agents";
 import * as report from "@botiverse/oar/agents/report";
 import type { SubagentReport } from "@botiverse/oar/agents/report";
@@ -122,7 +123,7 @@ import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
-export const entries = [oar, browser, agents, report, brands, kernel, observe, testing];
+export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
 export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r), parsed: report.parseReport(report.formatReport(r)) });
 export const display = [observe.noticeText, observe.noticeTone, observe.phaseLabel, observe.failureText, observe.taskStatusLabel];
 `;
