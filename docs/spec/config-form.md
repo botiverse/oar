@@ -254,8 +254,7 @@ export type RuntimeFormSupport =
 export type FieldSupport =
   | { readonly id: string; readonly kind: "model"; readonly modes: readonly ModelValue["kind"][] }
   | { readonly id: string; readonly kind: "select"; readonly values: readonly string[] }
-  | { readonly id: string; readonly kind: "secret"; readonly ops: readonly SecretEdit["kind"][] }
-  | { readonly id: string; readonly kind: "effort" | "text" | "boolean" | "env" };
+  | { readonly id: string; readonly kind: "effort" | "secret" | "text" | "boolean" };
 
 /** Pure: what the daemon puts on the wire. */
 export function toMachineReport(forms: Readonly<Record<string, RuntimeConfigForm | null>>, meta: ReportMeta): MachineConfigFormReport;
@@ -263,7 +262,17 @@ export function toMachineReport(forms: Readonly<Record<string, RuntimeConfigForm
 
 Nothing in a report is derived from `refusedSessionOptions`. `effort` reports
 no domain because its options come from the machine's own `listModels`
-result, which is already per machine.
+result, which is already per machine. `secret` reports no domain either:
+`SecretEdit` is an edit the host applies to its own credential store, not
+stored configuration, so it is never what a machine is checked against; the
+machine only says whether it accepts the field. (`env` is not a field kind
+this round; it stays a host setting.)
+
+**A runtime missing from a complete batch** was not detected in that round.
+That is not `pending` (the batch has arrived) and not `absent` (that means
+detected, no form): the runtime is `not_detected` on that machine, and the
+host treats it exactly as it treats an undetected runtime today. It does not
+offer the runtime, and the report says nothing more about it.
 
 A daemon that sends reports advertises a `ready` capability (Raft:
 `runtime-config-form-report-v1`). The flag only says "this daemon reports";
@@ -296,7 +305,7 @@ both sides list. There is no other downgrade path this round.
 
 **Reduction** (state `reported`): a host field survives only if the report
 has the same `id` and `kind`, and its domain is the intersection: model
-`modes`, select `values`, secret `ops`. A runtime whose report entry is
+`modes`, select `values`. A runtime whose report entry is
 `absent` has no OAR form on that machine. If a **required** host field does
 not survive, or survives with an empty domain, the runtime is not creatable
 on that machine (`config_form_unsupported`, naming the field). The host never
@@ -333,18 +342,22 @@ outcome, shown on the agent and returned by the launch path:
 | outcome | when | launch |
 |---|---|---|
 | `launchable` | every stored active value is in the effective form | allowed |
-| `needs_fix` | a stored active value (field, mode, select value or secret op) is unsupported on this machine | refused with `stored_value_unsupported_on_machine`, naming the field; the user edits it or moves the agent |
+| `needs_fix` | a stored active value (field, model mode or select value) is unsupported on this machine | refused with `stored_value_unsupported_on_machine`, naming the field; the user edits it or moves the agent |
 | `unconfirmed` | the machine is `pending` or `incompatible` | the host does not decide; the daemon's own check below is final |
 
 The rules that keep data and the rules that refuse a launch are separate:
 
 - **Keeping data.** A stored value for a field, mode or value the machine
   does not support (the agent moved, the machine downgraded, the report is
-  pending) is kept byte-identical on every save. It is never cleared or
-  rewritten. An edit that sets a **new** value outside the effective form is
-  rejected (`field_unsupported_on_machine`).
+  pending) is kept byte-identical by every save that **does not edit that
+  field**. The system never clears or rewrites it on its own.
+- **Fixing it.** The user may always edit such a field: clear it (if the
+  field is optional) or replace it with a value inside the effective form.
+  That is how `needs_fix` is resolved, so it must never be rejected. Only a
+  **new** value outside the effective form is rejected
+  (`field_unsupported_on_machine`).
 - **Refusing a launch.** Keeping a value does not make it launchable. At
-  launch the daemon resolves credentials at its own boundary, then calls
+  launch credentials are resolved at the launch boundary, then the daemon calls
   `toSessionOptions` with **its own** `configForm`. A field id, mode or
   value it does not support fails the launch with a typed refusal naming the
   field. It is never dropped silently. This holds in every state, including
@@ -357,7 +370,7 @@ The rules that keep data and the rules that refuse a launch are separate:
 2. A report missing an optional field hides it; one missing a required
    field, or leaving it an empty domain, gives `config_form_unsupported`.
 3. Same `id`, different `kind` is unsupported.
-4. A select value, model mode or secret op only the host knows is not
+4. A select value or model mode only the host knows is not
    offered and is rejected on submit.
 5. A report with a stale `connectionEpochId` or a non-increasing `round` is
    discarded; after a reconnect the machine is `pending`, not `reported`.
@@ -371,6 +384,11 @@ The rules that keep data and the rules that refuse a launch are separate:
    offered, a new value using it is rejected, and a stored one is `needs_fix`.
 9. A branch-hidden stored value does not reach `toSessionOptions`; an
    unsupported stored value is never silently omitted.
+10. A `needs_fix` agent can be fixed: an edit that clears the unsupported
+    optional value, or replaces it with a supported one, is accepted and the
+    outcome becomes `launchable`.
+11. A runtime missing from a complete batch is `not_detected`: not offered,
+    and not treated as `pending` or `absent`.
 
 ## Raft host integration
 
