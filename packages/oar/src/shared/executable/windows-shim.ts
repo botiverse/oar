@@ -54,16 +54,25 @@ function expand(token: string, shimDir: string): string {
   return path.win32.normalize(token.replaceAll(/%dp0%/giu, `${shimDir}\\`));
 }
 
+/** A token that names the shim's own directory (`%dp0%`), as every npm/cmd-shim target does. */
+function isShimRelative(token: string): boolean {
+  return /%dp0%/iu.test(token);
+}
+
 /**
- * What a `.cmd`/`.bat` shim would run, or null when the text is not a shape
- * we recognize. Two shapes, from npm/cmd-shim by whether the package `bin`
- * is a script or a native binary: a Node CLI (`"%_prog%" "%dp0%\cli.js" %*`)
- * runs with the shim's bundled `node.exe` or `node` from PATH; a native exe
- * (`"%dp0%\tool.exe" %*`) runs directly. The target is the last forwarded
- * token that expands to one of those. Pure: `shimExists` decides whether the
- * bundled `node.exe` is present (the real check is the file system; a test
- * passes its own). The caller spawns `command` with
- * `[...prefixArgs, ...callerArgs]` and no shell.
+ * What an npm/cmd-shim `.cmd`/`.bat` would run, or null when the text is not
+ * one of the two shapes cmd-shim emits (whether the package `bin` is a script
+ * or a native binary):
+ * - a Node CLI, `... & "%_prog%"  "%dp0%\cli.js" %*`: run the shim's bundled
+ *   `node.exe` (else `node` from PATH) on the `%dp0%`-relative script;
+ * - a native exe, `"%dp0%\tool.exe" %*`: run it directly.
+ *
+ * Both name the target through `%dp0%` and forward exactly `%*`, so a shim
+ * with extra fixed arguments, an absolute target, or any other shape is not
+ * recognized (returns null) and the caller launches it unchanged. Pure:
+ * `shimExists` decides whether the bundled `node.exe` is present (the real
+ * check is the file system; a test passes its own). The caller spawns
+ * `command` with `[...prefixArgs, ...callerArgs]` and no shell.
  */
 export function parseWindowsShim(shimPath: string, text: string, shimExists: (candidate: string) => boolean): ResolvedShim | null {
   const tokens = forwardingTokens(text);
@@ -71,17 +80,19 @@ export function parseWindowsShim(shimPath: string, text: string, shimExists: (ca
     return null;
   }
   const shimDir = path.win32.dirname(shimPath);
-  const expanded = tokens.map((token) => expand(token, shimDir));
-  const target = expanded.findLast((candidate) => SCRIPT.test(candidate) || NATIVE.test(candidate));
-  if (target === undefined) {
-    return null;
+  const relative = tokens.filter((token) => isShimRelative(token)).map((token) => expand(token, shimDir));
+  const scripts = relative.filter((candidate) => SCRIPT.test(candidate));
+  const natives = relative.filter((candidate) => NATIVE.test(candidate));
+  // The node-CLI shape forwards through the literal `%_prog%` token; the native shape has no program token.
+  const nodeForm = tokens.some((token) => /^%_prog%$/iu.test(token));
+  if (nodeForm && scripts.length === 1 && natives.length === 0) {
+    const bundledNode = path.win32.join(shimDir, "node.exe");
+    return { command: shimExists(bundledNode) ? bundledNode : "node", prefixArgs: [scripts[0] ?? ""] };
   }
-  if (NATIVE.test(target)) {
-    return { command: target, prefixArgs: [] };
+  if (!nodeForm && natives.length === 1 && scripts.length === 0) {
+    return { command: natives[0] ?? "", prefixArgs: [] };
   }
-  // npm's node shims bundle `node.exe` beside the shim when present, else take `node` from PATH.
-  const bundledNode = path.win32.join(shimDir, "node.exe");
-  return { command: shimExists(bundledNode) ? bundledNode : "node", prefixArgs: [target] };
+  return null;
 }
 
 /** A shim's text, or null when it cannot be read. */

@@ -16,10 +16,19 @@ function nodeShimText(script: string): string {
     `endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\${script}" %*`,
   ].join("\r\n");
 }
-const NODE_SHIM = nodeShimText("cli.js");
-const EXE_SHIM = ["@ECHO off", "GOTO start", ":find_dp0", "SET dp0=%~dp0", "EXIT /b", ":start", "SETLOCAL", "CALL :find_dp0", String.raw`"%dp0%\node_modules\@anthropic-ai\claude-code\bin\claude.exe"   %*`].join("\r\n");
+// Exact shims captured from the windows-latest runner (#411): claude's npm
+// bin is a native .exe (direct form), codex's is a .js (node form).
+const CLAUDE_SHIM = [
+  "@ECHO off", "GOTO start", ":find_dp0", "SET dp0=%~dp0", "EXIT /b", ":start", "SETLOCAL", "CALL :find_dp0",
+  String.raw`"%dp0%\node_modules\@anthropic-ai\claude-code\bin\claude.exe"   %*`,
+].join("\r\n");
+const CODEX_SHIM = [
+  "@ECHO off", "GOTO start", ":find_dp0", "SET dp0=%~dp0", "EXIT /b", ":start", "SETLOCAL", "CALL :find_dp0", "",
+  String.raw`IF EXIST "%dp0%\node.exe" (`, String.raw`  SET "_prog=%dp0%\node.exe"`, ") ELSE (", `  SET "_prog=node"`, String.raw`  SET PATHEXT=%PATHEXT:;.JS;=;%`, ")", "",
+  String.raw`endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\node_modules\@openai\codex\bin\codex.js" %*`,
+].join("\r\n");
 const NODE_EXE = String.raw`C:\npm\prefix\node.exe`;
-const CLI_JS = String.raw`C:\npm\prefix\cli.js`;
+const CODEX_JS = String.raw`C:\npm\prefix\node_modules\@openai\codex\bin\codex.js`;
 const NODE_BIN = String.raw`C:\node\node.exe`;
 const resolveNode = (name: string): string | null => (name === "node" ? NODE_BIN : null);
 const resolveGhost = (name: string): string | null => (name === "ghost" ? String.raw`C:\ghost.cmd` : null);
@@ -34,15 +43,15 @@ test("isWindowsShim matches .cmd and .bat only, ignoring case", () => {
 });
 
 test("a Node-CLI shim resolves to the bundled node.exe and the wrapped script", () => {
-  expect(parseWindowsShim(String.raw`C:\npm\prefix\claude.cmd`, NODE_SHIM, (candidate) => candidate === NODE_EXE)).toEqual({ command: NODE_EXE, prefixArgs: [CLI_JS] });
+  expect(parseWindowsShim(String.raw`C:\npm\prefix\codex.CMD`, CODEX_SHIM, (candidate) => candidate === NODE_EXE)).toEqual({ command: NODE_EXE, prefixArgs: [CODEX_JS] });
 });
 
 test("without a bundled node.exe the shim falls back to node on PATH", () => {
-  expect(parseWindowsShim(String.raw`C:\npm\prefix\claude.cmd`, NODE_SHIM, () => false)).toEqual({ command: "node", prefixArgs: [CLI_JS] });
+  expect(parseWindowsShim(String.raw`C:\npm\prefix\codex.CMD`, CODEX_SHIM, () => false)).toEqual({ command: "node", prefixArgs: [CODEX_JS] });
 });
 
 test("a native-exe shim (npm bin is an .exe, e.g. claude) resolves to the exe, no node", () => {
-  const shim = parseWindowsShim(String.raw`C:\npm\prefix\claude.cmd`, EXE_SHIM, () => false);
+  const shim = parseWindowsShim(String.raw`C:\npm\prefix\claude.CMD`, CLAUDE_SHIM, () => false);
   expect(shim).toEqual({ command: String.raw`C:\npm\prefix\node_modules\@anthropic-ai\claude-code\bin\claude.exe`, prefixArgs: [] });
 });
 
@@ -50,6 +59,12 @@ test("a shim whose target is neither a node script nor a native exe is unreadabl
   const other = ["@echo off", String.raw`"%dp0%\run.py" %*`].join("\r\n");
   expect(parseWindowsShim(String.raw`C:\x\weird.cmd`, other, () => false)).toBeNull();
   expect(parseWindowsShim(String.raw`C:\x\empty.cmd`, "@echo off\r\nexit /b 0", () => false)).toBeNull();
+});
+
+test("a hand-rolled .cmd (absolute node + script + extra arg, not an npm shim) is left alone", () => {
+  // tests/fixtures/login-fixtures.ts writes exactly this shape for fake CLIs.
+  const fake = String.raw`@"C:\Program Files\nodejs\node.exe" "C:\t\fake-login.mjs" "C:\t\state.json" %*`;
+  expect(parseWindowsShim(String.raw`C:\t\claude-1.cmd`, fake, () => false)).toBeNull();
 });
 
 test("windowsSpawnTarget is a no-op off Windows, so posix launches are unchanged", () => {
