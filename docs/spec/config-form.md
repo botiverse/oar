@@ -212,103 +212,154 @@ secrets go only into the launch; they are never returned to a form client.
 ## Machine capability reporting
 
 The host and every machine pin their own OAR. A form built from the host's
-`configForm` can name a field, or a select value, that the machine's OAR does
+`configForm` can name a field, a mode or a value that the machine's OAR does
 not know; launching with it would fail, or worse, the value would be dropped
-silently. The machine therefore says what it supports, and the host offers
+silently. The machine therefore states what it supports, and the host offers
 only what both sides know.
 
 ### What a machine reports
 
-One report per runtime, sent by the daemon after `ready` and again after a
-runtime rescan, whole-report replacement (the same lifecycle as Raft's
-`machine:runtime_models:catalog`, task #700):
+One message per detection round, covering **every** runtime the round
+detected. It is the whole picture or nothing, so "no entry" never has to be
+interpreted:
 
 ```ts
 export interface MachineConfigFormReport {
-  readonly runtime: string;
-  /** `RuntimeConfigForm.protocol` values this machine's OAR understands. */
+  /** Bind to the connection and the round; see "Freshness" below. */
+  readonly connectionEpochId: string;
+  readonly round: number;                 // per daemon instance, strictly increasing
+  /** Form protocols this machine's OAR understands. */
   readonly protocols: readonly number[];
-  /** The machine's own `configForm`, reduced to what decides compatibility. */
-  readonly fields: readonly {
-    readonly id: string;
-    readonly kind: ConfigField["kind"];
-    /** `select` only: the values this machine accepts. */
-    readonly values?: readonly string[];
-    /** `model` only: the selection modes this machine accepts (`ModelField.modes`). */
-    readonly modes?: readonly ("inherit" | "preset" | "custom")[];
-  }[];
+  readonly runtimes: Readonly<Record<string, RuntimeFormSupport>>;
   /** Diagnostics only. Never compared, never used to decide anything. */
   readonly oarVersion: string;
 }
 
+export type RuntimeFormSupport =
+  | { readonly status: "absent" }        // detected; has no configForm on this machine
+  | { readonly status: "present"; readonly fields: readonly FieldSupport[] };
+
+/** Every field reports its accepted value domain, not just its id. */
+export type FieldSupport =
+  | { readonly id: string; readonly kind: "model"; readonly modes: readonly ModelValue["kind"][] }
+  | { readonly id: string; readonly kind: "select"; readonly values: readonly string[] }
+  | { readonly id: string; readonly kind: "secret"; readonly ops: readonly SecretEdit["kind"][] }
+  | { readonly id: string; readonly kind: "effort" | "text" | "boolean" | "env" };
+
 /** Pure: what the daemon puts on the wire. */
-export function toMachineReport(form: RuntimeConfigForm, oarVersion: string): MachineConfigFormReport;
+export function toMachineReport(forms: Readonly<Record<string, RuntimeConfigForm | null>>, meta: ReportMeta): MachineConfigFormReport;
 ```
 
-A runtime without a `configForm` on the machine sends no report for it. A
-report is the machine's positive statement; nothing in it is derived from
-`refusedSessionOptions`.
+Nothing in a report is derived from `refusedSessionOptions`. `effort` reports
+no domain because its options come from the machine's own `listModels`
+result, which is already per machine.
 
-Reports are opt-in on the wire: a daemon that sends them also advertises a
-`ready` capability (Raft: `runtime-config-form-report-v1`). That flag is what
-lets the host tell "old daemon, sends nothing" from "new daemon, this runtime
-has no form" and from "new daemon, report not arrived yet".
+A daemon that sends reports advertises a `ready` capability (Raft:
+`runtime-config-form-report-v1`). The flag only says "this daemon reports";
+it is never itself evidence of what a runtime supports.
 
-### What the host does with it
+### Freshness
 
-`effectiveForm(hostForm, report)` is a pure function in `@botiverse/oar/forms`
-so every host computes the same thing. Per (machine, runtime):
+The host keeps one report per machine and accepts a new one only if its
+`connectionEpochId` is the machine's current connection and its `round` is
+higher than the stored one. Anything else is discarded and counted. A report
+from an earlier connection is never current evidence: on reconnect the stored
+report is dropped, and the machine is `pending` until the new connection's
+first report arrives.
 
-| machine state | form the host serves |
-|---|---|
-| no capability flag (old daemon) | the runtime's **baseline**: the fields that runtime had when it migrated. Fields added to OAR later are hidden. Neither "everything" nor "nothing". |
-| flag, no report stored yet | the last stored report for this machine if any, else the baseline |
-| report, `protocols` does not include the host form's `protocol` | the baseline, and the mismatch is logged with both OAR versions |
-| report | host fields whose `id` **and** `kind` match a reported field; a `select` keeps only values in both lists, a `model` only modes in both |
+### Machine states
 
-A field the host would hide is hidden; it is never sent as disabled with a
-guessed value. If a **required** host field is hidden, the runtime is not
-creatable on that machine and the form says so with a stable reason
-(`config_form_unsupported`, naming the field), rather than serving a form that
-cannot be submitted or launched.
+Per machine, the host is in exactly one state. `effectiveForm(hostForm,
+state)` is a pure function in `@botiverse/oar/forms`, so every host computes
+the same result.
 
-The baseline is data in OAR beside each `configForm` (`baselineFieldIds`), set
-once in the migration pull request for that runtime and never changed. It
-equals what Raft serves today, so migration fixture equality (Migration, item 1)
-also pins it.
+| state | when | form served | submit (create / edit) | launch |
+|---|---|---|---|---|
+| **legacy** | no capability flag (old daemon) | the runtime's **baseline form**, unchanged | validated against the baseline form | daemon's own path, as today |
+| **pending** | flag, no current-connection report yet | none: the runtime shows "checking this computer" (`machine_capabilities_pending`) | rejected, retryable | daemon checks with its own form (below) |
+| **incompatible** | report, no protocol in common with the host form | none (`config_form_incompatible`, both OAR versions in the log) | rejected | daemon checks with its own form |
+| **reported** | current report, common protocol | the host form reduced by the report | validated against that reduced form | daemon checks with its own form |
 
-### Submit and launch check it again
+Protocol choice is the only negotiation: the host uses the highest protocol
+both sides list. There is no other downgrade path this round.
 
-Hiding a field is presentation; the report is enforced twice more:
+**Reduction** (state `reported`): a host field survives only if the report
+has the same `id` and `kind`, and its domain is the intersection: model
+`modes`, select `values`, secret `ops`. A runtime whose report entry is
+`absent` has no OAR form on that machine. If a **required** host field does
+not survive, or survives with an empty domain, the runtime is not creatable
+on that machine (`config_form_unsupported`, naming the field). The host never
+serves a form that cannot be submitted or launched.
 
-- **Submit** (create and edit): the host validates against the effective form.
-  A new value for a field outside it is rejected (`field_unsupported_on_machine`).
-  A stored value for such a field (the agent moved to an older machine, or the
-  machine downgraded) is **kept unchanged** on save, not cleared and not
-  rewritten; an unknown capability is not a reason to lose data.
-- **Launch**: the daemon calls `toSessionOptions` with **its own** `configForm`.
-  A value for a field id it does not know, a `select` value or a model mode
-  it does not accept, fails launch with a typed refusal naming the field. It is never
-  dropped silently. This is the last line, and it holds even if the host's
-  report is stale.
+### The baseline form
+
+For old daemons the compatibility surface is the **complete** definition,
+not a list of field names: each runtime's migration pull request freezes a
+full `RuntimeConfigForm` value (`baselineForm`) beside its `configForm`, with
+its options, model modes and every rule. Because `validateConfig` and
+`toSessionOptions` are pure functions of form data, freezing the form
+freezes their behavior for it. Two consequences:
+
+- A change to how those functions interpret an existing form is a protocol
+  change: it bumps `protocol`, and the baseline keeps the old one.
+- The baseline equals what Raft serves today, so fixture equality
+  (Migration, item 1) pins it at birth; a test pins it afterwards.
+
+### Stored values and launch
+
+Two different things can hide a field, and they launch differently:
+
+- **Branch-hidden**: its `visibleWhen` is not met (see "Hidden fields"). That
+  is the form's own declared rule, so its stored value does not launch.
+- **Unsupported**: the machine's report reduced it away. This is never a
+  reason to drop a stored value from a launch, because the stored value is
+  part of the agent's active configuration and silently launching without it
+  would contradict "an unknown field or value is refused".
+
+For a stored configuration on a given machine the host computes one explicit
+outcome, shown on the agent and returned by the launch path:
+
+| outcome | when | launch |
+|---|---|---|
+| `launchable` | every stored active value is in the effective form | allowed |
+| `needs_fix` | a stored active value (field, mode, select value or secret op) is unsupported on this machine | refused with `stored_value_unsupported_on_machine`, naming the field; the user edits it or moves the agent |
+| `unconfirmed` | the machine is `pending` or `incompatible` | the host does not decide; the daemon's own check below is final |
+
+The rules that keep data and the rules that refuse a launch are separate:
+
+- **Keeping data.** A stored value for a field, mode or value the machine
+  does not support (the agent moved, the machine downgraded, the report is
+  pending) is kept byte-identical on every save. It is never cleared or
+  rewritten. An edit that sets a **new** value outside the effective form is
+  rejected (`field_unsupported_on_machine`).
+- **Refusing a launch.** Keeping a value does not make it launchable. At
+  launch the daemon resolves credentials at its own boundary, then calls
+  `toSessionOptions` with **its own** `configForm`. A field id, mode or
+  value it does not support fails the launch with a typed refusal naming the
+  field. It is never dropped silently. This holds in every state, including
+  `pending` and a stale host view.
 
 ### Required checks for the pull request that builds it
 
-1. An old daemon (no flag) gets exactly the baseline; a field added to the
-   host form after migration does not appear.
-2. A report missing one optional field hides it; a report missing a required
-   field makes the runtime not creatable with `config_form_unsupported`.
-3. Same `id`, different `kind` is treated as unsupported.
-4. A `select` value only the host knows is not offered and is rejected on submit.
-5. An edit on a machine that no longer supports a field keeps the stored value
-   byte-identical.
-6. Launch with an unknown field id fails with the typed refusal; mutation that
-   drops the value instead must turn the test red.
-7. A report with an unknown protocol falls back to the baseline.
-8. A model mode only the host knows (say `custom` added later under the same
-   field id) is not offered, is rejected on submit, and refuses launch.
-
-Dynamic model lists are not capabilities: they are the listing.
+1. `legacy` serves the baseline form exactly; a field, option or mode added
+   to the host form after migration does not appear.
+2. A report missing an optional field hides it; one missing a required
+   field, or leaving it an empty domain, gives `config_form_unsupported`.
+3. Same `id`, different `kind` is unsupported.
+4. A select value, model mode or secret op only the host knows is not
+   offered and is rejected on submit.
+5. A report with a stale `connectionEpochId` or a non-increasing `round` is
+   discarded; after a reconnect the machine is `pending`, not `reported`.
+6. `pending` and `incompatible` reject submit with their stable codes.
+7. A save on a machine that does not support a stored value keeps it
+   byte-identical; the outcome is `needs_fix` and a launch with it fails with
+   the typed refusal. A mutation that drops the value instead must turn the
+   test red.
+8. A field whose id is unchanged but which later gains a mode (e.g. `custom`)
+   or a select value: an old machine's report does not list it, so it is not
+   offered, a new value using it is rejected, and a stored one is `needs_fix`.
+9. A branch-hidden stored value does not reach `toSessionOptions`; an
+   unsupported stored value is never silently omitted.
 
 ## Raft host integration
 
