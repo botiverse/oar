@@ -209,3 +209,18 @@ test("an inactive branch is neither required nor launched", () => {
   expect(toSessionOptions(withSecret, { model: { kind: "custom", name: "m" }, provider: "default", apiKey: { present: false } }))
     .toEqual({ ok: true, options: { model: "m" }, unmapped: { provider: "default" }, secrets: {} });
 });
+
+// docs/spec/config-form.md: a form must never offer a selection its launch refuses.
+test("every form and baseline offers only model modes its launch accepts (modes ⊆ launchModes)", () => {
+  const forms: [string, RuntimeConfigForm][] = [
+    ...Object.entries(configForms).map(([id, form]): [string, RuntimeConfigForm] => [`configForms.${id}`, form]),
+    ...Object.entries(baselineForms).map(([id, form]): [string, RuntimeConfigForm] => [`baselineForms.${id}`, form]),
+  ];
+  expect(forms.length).toBeGreaterThan(0);
+  for (const [name, form] of forms) {
+    for (const field of form.fields.filter((candidate) => candidate.kind === "model")) {
+      const launch = field.launchModes ?? field.modes;
+      expect(field.modes.filter((mode) => !launch.includes(mode)), `${name}.${field.id}`).toEqual([]);
+    }
+  }
+});
