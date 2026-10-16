@@ -28,6 +28,7 @@ export interface ResolvedShim {
 
 const SHIM = /\.(?:cmd|bat)$/iu;
 const SCRIPT = /\.(?:c|m)?js$/iu;
+const NATIVE = /\.(?:exe|com)$/iu;
 
 /** Whether a resolved command is a Windows shell shim (`.cmd`/`.bat`), the only commands that go through `cmd.exe`. */
 export function isWindowsShim(command: string): boolean {
@@ -54,10 +55,14 @@ function expand(token: string, shimDir: string): string {
 }
 
 /**
- * The interpreter and script a Node-CLI `.cmd`/`.bat` shim would run, or null
- * when the text is not a shape we recognize. Pure: `shimExists` decides
- * whether the shim's bundled `node.exe` is present (the real check is the
- * file system; a test passes its own). The caller spawns `command` with
+ * What a `.cmd`/`.bat` shim would run, or null when the text is not a shape
+ * we recognize. Two shapes, from npm/cmd-shim by whether the package `bin`
+ * is a script or a native binary: a Node CLI (`"%_prog%" "%dp0%\cli.js" %*`)
+ * runs with the shim's bundled `node.exe` or `node` from PATH; a native exe
+ * (`"%dp0%\tool.exe" %*`) runs directly. The target is the last forwarded
+ * token that expands to one of those. Pure: `shimExists` decides whether the
+ * bundled `node.exe` is present (the real check is the file system; a test
+ * passes its own). The caller spawns `command` with
  * `[...prefixArgs, ...callerArgs]` and no shell.
  */
 export function parseWindowsShim(shimPath: string, text: string, shimExists: (candidate: string) => boolean): ResolvedShim | null {
@@ -66,16 +71,17 @@ export function parseWindowsShim(shimPath: string, text: string, shimExists: (ca
     return null;
   }
   const shimDir = path.win32.dirname(shimPath);
-  // The script is the last forwarded token that expands to a .js/.cjs/.mjs path.
-  const scripts = tokens.map((token) => expand(token, shimDir)).filter((candidate) => SCRIPT.test(candidate));
-  const script = scripts.at(-1);
-  if (script === undefined) {
+  const expanded = tokens.map((token) => expand(token, shimDir));
+  const target = expanded.findLast((candidate) => SCRIPT.test(candidate) || NATIVE.test(candidate));
+  if (target === undefined) {
     return null;
+  }
+  if (NATIVE.test(target)) {
+    return { command: target, prefixArgs: [] };
   }
   // npm's node shims bundle `node.exe` beside the shim when present, else take `node` from PATH.
   const bundledNode = path.win32.join(shimDir, "node.exe");
-  const command = shimExists(bundledNode) ? bundledNode : "node";
-  return { command, prefixArgs: [script] };
+  return { command: shimExists(bundledNode) ? bundledNode : "node", prefixArgs: [target] };
 }
 
 /** A shim's text, or null when it cannot be read. */

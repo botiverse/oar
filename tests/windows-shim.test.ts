@@ -17,7 +17,7 @@ function nodeShimText(script: string): string {
   ].join("\r\n");
 }
 const NODE_SHIM = nodeShimText("cli.js");
-const DIRECT_SHIM = ["@ECHO off", ":start", "SETLOCAL", "CALL :find_dp0", String.raw`"%dp0%\target.js"   %*`].join("\r\n");
+const EXE_SHIM = ["@ECHO off", "GOTO start", ":find_dp0", "SET dp0=%~dp0", "EXIT /b", ":start", "SETLOCAL", "CALL :find_dp0", String.raw`"%dp0%\node_modules\@anthropic-ai\claude-code\bin\claude.exe"   %*`].join("\r\n");
 const NODE_EXE = String.raw`C:\npm\prefix\node.exe`;
 const CLI_JS = String.raw`C:\npm\prefix\cli.js`;
 const NODE_BIN = String.raw`C:\node\node.exe`;
@@ -41,13 +41,14 @@ test("without a bundled node.exe the shim falls back to node on PATH", () => {
   expect(parseWindowsShim(String.raw`C:\npm\prefix\claude.cmd`, NODE_SHIM, () => false)).toEqual({ command: "node", prefixArgs: [CLI_JS] });
 });
 
-test("a direct-executable shim resolves its script to node too", () => {
-  expect(parseWindowsShim(String.raw`C:\tools\claude.cmd`, DIRECT_SHIM, () => false)).toEqual({ command: "node", prefixArgs: [String.raw`C:\tools\target.js`] });
+test("a native-exe shim (npm bin is an .exe, e.g. claude) resolves to the exe, no node", () => {
+  const shim = parseWindowsShim(String.raw`C:\npm\prefix\claude.cmd`, EXE_SHIM, () => false);
+  expect(shim).toEqual({ command: String.raw`C:\npm\prefix\node_modules\@anthropic-ai\claude-code\bin\claude.exe`, prefixArgs: [] });
 });
 
-test("a shim with no forwarded script is unreadable", () => {
-  const noScript = ["@echo off", String.raw`"%dp0%\thing.exe" %*`].join("\r\n");
-  expect(parseWindowsShim(String.raw`C:\x\weird.cmd`, noScript, () => false)).toBeNull();
+test("a shim whose target is neither a node script nor a native exe is unreadable", () => {
+  const other = ["@echo off", String.raw`"%dp0%\run.py" %*`].join("\r\n");
+  expect(parseWindowsShim(String.raw`C:\x\weird.cmd`, other, () => false)).toBeNull();
   expect(parseWindowsShim(String.raw`C:\x\empty.cmd`, "@echo off\r\nexit /b 0", () => false)).toBeNull();
 });
 
