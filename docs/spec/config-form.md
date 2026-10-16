@@ -148,13 +148,98 @@ reject or clear it because the list could not be read.
 
 ## Machine capability reporting
 
-*HaoHao fills this section.* Agreed so far: the daemon reports a protocol
-version, the `configForm` field ids each runtime explicitly supports on that
-machine, and its OAR version (diagnostics only). The host sends only fields in
-both its own `configForm` and that report, and checks the report again on
-submit and on launch. A daemon that reports nothing keeps the host's current
-behavior: it is neither "everything supported" nor "nothing supported". An
-unknown capability hides the field; it does not clear a saved value.
+The host and every machine pin their own OAR. A form built from the host's
+`configForm` can name a field, or a select value, that the machine's OAR does
+not know; launching with it would fail, or worse, the value would be dropped
+silently. The machine therefore says what it supports, and the host offers
+only what both sides know.
+
+### What a machine reports
+
+One report per runtime, sent by the daemon after `ready` and again after a
+runtime rescan, whole-report replacement (the same lifecycle as Raft's
+`machine:runtime_models:catalog`, task #700):
+
+```ts
+export interface MachineConfigFormReport {
+  readonly runtime: string;
+  /** `RuntimeConfigForm.protocol` values this machine's OAR understands. */
+  readonly protocols: readonly number[];
+  /** The machine's own `configForm`, reduced to what decides compatibility. */
+  readonly fields: readonly {
+    readonly id: string;
+    readonly kind: ConfigField["kind"];
+    /** `select` only: the values this machine accepts. */
+    readonly values?: readonly string[];
+  }[];
+  /** Diagnostics only. Never compared, never used to decide anything. */
+  readonly oarVersion: string;
+}
+
+/** Pure: what the daemon puts on the wire. */
+export function toMachineReport(form: RuntimeConfigForm, oarVersion: string): MachineConfigFormReport;
+```
+
+A runtime without a `configForm` on the machine sends no report for it. A
+report is the machine's positive statement; nothing in it is derived from
+`refusedSessionOptions`.
+
+Reports are opt-in on the wire: a daemon that sends them also advertises a
+`ready` capability (Raft: `runtime-config-form-report-v1`). That flag is what
+lets the host tell "old daemon, sends nothing" from "new daemon, this runtime
+has no form" and from "new daemon, report not arrived yet".
+
+### What the host does with it
+
+`effectiveForm(hostForm, report)` is a pure function in `@botiverse/oar/forms`
+so every host computes the same thing. Per (machine, runtime):
+
+| machine state | form the host serves |
+|---|---|
+| no capability flag (old daemon) | the runtime's **baseline**: the fields that runtime had when it migrated. Fields added to OAR later are hidden. Neither "everything" nor "nothing". |
+| flag, no report stored yet | the last stored report for this machine if any, else the baseline |
+| report, `protocols` does not include the host form's `protocol` | the baseline, and the mismatch is logged with both OAR versions |
+| report | host fields whose `id` **and** `kind` match a reported field; a `select` keeps only values in both lists |
+
+A field the host would hide is hidden; it is never sent as disabled with a
+guessed value. If a **required** host field is hidden, the runtime is not
+creatable on that machine and the form says so with a stable reason
+(`config_form_unsupported`, naming the field), rather than serving a form that
+cannot be submitted or launched.
+
+The baseline is data in OAR beside each `configForm` (`baselineFieldIds`), set
+once in the migration pull request for that runtime and never changed. It
+equals what Raft serves today, so migration fixture equality (Migration, item 1)
+also pins it.
+
+### Submit and launch check it again
+
+Hiding a field is presentation; the report is enforced twice more:
+
+- **Submit** (create and edit): the host validates against the effective form.
+  A new value for a field outside it is rejected (`field_unsupported_on_machine`).
+  A stored value for such a field (the agent moved to an older machine, or the
+  machine downgraded) is **kept unchanged** on save, not cleared and not
+  rewritten; an unknown capability is not a reason to lose data.
+- **Launch**: the daemon calls `toSessionOptions` with **its own** `configForm`.
+  A value for a field id it does not know, or a `select` value it does not
+  accept, fails launch with a typed refusal naming the field. It is never
+  dropped silently. This is the last line, and it holds even if the host's
+  report is stale.
+
+### Required checks for the pull request that builds it
+
+1. An old daemon (no flag) gets exactly the baseline; a field added to the
+   host form after migration does not appear.
+2. A report missing one optional field hides it; a report missing a required
+   field makes the runtime not creatable with `config_form_unsupported`.
+3. Same `id`, different `kind` is treated as unsupported.
+4. A `select` value only the host knows is not offered and is rejected on submit.
+5. An edit on a machine that no longer supports a field keeps the stored value
+   byte-identical.
+6. Launch with an unknown field id fails with the typed refusal; mutation that
+   drops the value instead must turn the test red.
+7. A report with an unknown protocol falls back to the baseline.
 
 ## Raft host integration
 
@@ -213,7 +298,11 @@ Every migration pull request must show:
 
 ## Open questions
 
-1. Final type names and where `ModelListing` lives (HaoHao).
+1. ~~Where `ModelListing` lives~~ (HaoHao): in `@botiverse/oar/forms`, with a
+   pure `toModelListing(listModelsResult)`. It is plain data and
+   `validateConfig` takes it, so a host must be able to build one without
+   loading a runtime. Final type names stay open until the first migration
+   pull request (Grok) uses them.
 2. Whether `env` stays a field kind or remains a host-level setting.
 3. Whether the Raft-only `command` override (a custom executable) is a field
    or a constructor setting ([capabilities.md](../design/capabilities.md#a-runtimes-own-settings)).
