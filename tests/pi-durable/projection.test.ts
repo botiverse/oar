@@ -1,11 +1,29 @@
 import { expect, test } from "vitest";
 import type { AssistantMessage, Usage } from "@earendil-works/pi-ai";
-import type { AgentEvent, SnapshotEvent } from "@earendil-works/pi-durable";
+import type { AgentEvent, SnapshotEvent, TaskId } from "@earendil-works/pi-durable";
 import { foldDurableBatch, initialDurableProjection } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
 
 const usage: Usage = { input: 10, output: 5, cacheRead: 2, cacheWrite: 3, totalTokens: 20, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
 const empty: SnapshotEvent = { type: "snapshot", entries: [], agent: {}, inbox: [], tools: [], nestedTools: [], compactions: [], usage: { models: {}, tools: {} } };
 const message: AssistantMessage = { role: "assistant", content: [{ type: "text", text: "hello" }], api: "anthropic-messages", provider: "test", model: "model", usage, stopReason: "stop", timestamp: 1 };
+
+function isTaskId(value: number): value is TaskId { return Number.isSafeInteger(value) && value > 0; }
+
+test("nested tool exits preserve native numbers and null; absent or nonnumeric values stay absent", () => {
+  const taskId = 1;
+  if (!isTaskId(taskId)) { throw new Error("invalid fixture task id"); }
+  for (const exit of [0, 7, 143, null, undefined, "7"]) {
+    const native: AgentEvent[] = [{ type: "tool_execution_end", toolCallId: "outer/bash", toolName: "bash", result: {
+      taskId, isError: true, diagnostics: [], durationMs: 1,
+      ...(exit === undefined ? {} : { structuredOutput: { exitCode: exit } }),
+    } }];
+    const { frame } = foldDurableBatch(initialDurableProjection(empty), native);
+    expect(frame.events).toEqual([{ kind: "tool_call_ended", callId: "outer/bash", result: "failed",
+      ...(typeof exit === "number" || exit === null ? { exitCode: exit } : {}) }]);
+    const json = JSON.stringify(frame);
+    expect(JSON.parse(json)).toEqual(frame);
+  }
+});
 
 test("durable reasoning sums model and tool ledgers and subtracts the attachment baseline", () => {
   const baseline: SnapshotEvent = { ...empty, usage: { models: { first: { ...usage, reasoning: 3 } }, tools: {} } };

@@ -144,7 +144,7 @@ The initial snapshot is its own `snapshot` frame. Stream closure is a native
 | user `message_end` | `user_message`, native entry id, and inputId where a submission names that entry |
 | `tool_execution_start` | tool name, call id and arguments |
 | `tool_execution_update` | whole retained output window reconstructed from native trim/append or replacement; diagnostic/details fields stay raw |
-| `tool_execution_end` | model calls read content and ok/failed from the native tool-result entry; nested calls read ok/failed from native `result.isError`, without inventing content; no result means just ended |
+| `tool_execution_end` | model calls read content and ok/failed from the native tool-result entry; nested calls read ok/failed from native `result.isError` and a reported numeric/null `result.structuredOutput.exitCode`, without inventing content; no result means just ended |
 | `agent_changed` / snapshot agent | model and effort actually stored |
 | `usage_changed` / snapshot usage | conversation's own model and tool token ledgers minus the totals at attachment |
 | `auto_retry_start` | retry with native attempt and reason |
@@ -154,7 +154,13 @@ Native tool implementations return `ToolExecutionResult.output` for model
 content in 1.2.0. The model-facing transcript still uses a tool-result
 message with `content`, which OAR reads. Nested calls have their own call ids
 and result summaries, and running nested calls are adopted from
-`snapshot.nestedTools`; parent task ids and structured tool output stay raw.
+`snapshot.nestedTools`; parent task ids and the rest of structured tool output
+stay raw. CodingTools' structured exit is available only on nested calls in
+1.2.0 and 1.3.0. Model-issued calls omit it from `watchEvents`, even when the diagnostic
+text mentions an exit code, so OAR leaves `exitCode` absent for those calls.
+The local execution environment reports SIGTERM as 143, not null; OAR preserves
+the native value. The [native exit-code test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)
+covers both paths, a non-command tool and JSON storage.
 
 The optional `reasoning` counter in each model or tool usage entry is part
 of its output. OAR sums the reported parts and subtracts the attachment

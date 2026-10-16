@@ -2,6 +2,7 @@ import type { AgentEvent, AgentState, EntryRecord, SnapshotEvent, SubmissionId, 
 import type { FrameBody, RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { toolContent } from "../../shared/tool-output.js";
+import { asRecord } from "../../shared/json.js";
 import { addTokens, subtractTokens } from "../../shared/token-totals.js";
 import { foldPiEvent, initialPiProjection } from "../pi/projection.js";
 import { emptyMessage, messageChanges, wholeMessage, type MessageProjection } from "./messages.js";
@@ -115,8 +116,14 @@ function step(state: DurableProjection, event: AgentEvent): { readonly state: Du
       const tools = new Map(state.tools);
       tools.delete(event.toolCallId);
       const content = result === undefined ? undefined : toolContent(result.content);
+      // CodingTools' programmatic result is exposed on nested calls only.
+      // A model-issued call's entry omits it; diagnostic text is not an exit
+      // status. Preserve the reported number or null without interpreting it.
+      const exit = asRecord(event.result?.structuredOutput)?.exitCode;
+      const exitCode = typeof exit === "number" ? exit : (exit === null ? null : undefined);
       return { state: { ...state, tools }, events: [{ kind: "tool_call_ended", callId: event.toolCallId,
-        ...(content === undefined ? {} : { content }), ...(outcome === undefined ? {} : { result: outcome.isError ? "failed" : "ok" }) }] };
+        ...(content === undefined ? {} : { content }), ...(outcome === undefined ? {} : { result: outcome.isError ? "failed" : "ok" }),
+        ...(exitCode === undefined ? {} : { exitCode }) }] };
     }
     case "agent_changed": return { state, events: agentEvents(event.agent) };
     case "usage_changed": return { state, events: [usageEvent(state, event.usage)] };
