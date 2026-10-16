@@ -49,7 +49,7 @@ export interface RuntimeConfigForm {
 
 export type ConfigField =
   | ModelField | EffortField | SelectField | SecretField
-  | TextField | BooleanField | EnvField;
+  | TextField | BooleanField;
 
 interface FieldBase {
   readonly id: string;                 // stable; never changes with its copy
@@ -63,8 +63,13 @@ interface FieldBase {
 /** Options from `Runtime.listModels` on the machine that will run the agent. */
 interface ModelField extends FieldBase {
   readonly kind: "model";
-  /** A model id the list does not name may be typed in. */
-  readonly customValue: boolean;
+  /**
+   * The selections this runtime accepts, declared, not implied: `inherit`
+   * (the runtime's default), `preset` (a listed model), `custom` (a typed id).
+   * Validation and mapping reject a value whose mode is not listed; hiding it
+   * in the UI is not enough.
+   */
+  readonly modes: readonly ("inherit" | "preset" | "custom")[];
 }
 
 /** Options from the chosen model's `ModelEntry.effortLevels`. */
@@ -82,7 +87,6 @@ interface SelectField extends FieldBase {
 interface SecretField extends FieldBase { readonly kind: "secret" }
 interface TextField extends FieldBase { readonly kind: "text"; readonly format?: "url" }
 interface BooleanField extends FieldBase { readonly kind: "boolean" }
-interface EnvField extends FieldBase { readonly kind: "env" }
 ```
 
 ### Values
@@ -96,53 +100,112 @@ export type ModelValue =
   | { readonly kind: "preset"; readonly id: string } // a listed model
   | { readonly kind: "custom"; readonly name: string };
 
-export type SecretValue =
+/** What the form submits for a secret field: an edit, not a credential. */
+export type SecretEdit =
   | { readonly kind: "unset" }                      // never provided
   | { readonly kind: "keep" }                       // keep the stored secret
   | { readonly kind: "clear" }                      // remove it
   | { readonly kind: "set"; readonly value: string };
 
-export type ConfigValues = Readonly<Record<string, ModelValue | SecretValue | string | boolean | Readonly<Record<string, string>> | null>>;
+export type FormValues = Readonly<Record<string, ModelValue | SecretEdit | string | boolean | null>>;
 ```
 
-A runtime that does not support `inherit` today does not gain it in this
-migration: the type allows it, the form for that runtime does not offer it.
+A runtime gains no selection mode in this migration: its `ModelField.modes`
+lists exactly what its form accepts today.
 
-### Behavior
+### Hidden fields
+
+A field whose `visibleWhen` is not met is **hidden**. A hidden field's value
+is neither validated for presence nor passed to `toSessionOptions`; a stale
+value under it cannot reach a launch. A host may keep it in storage (so
+switching back restores it), but stored is not authorized: only visible
+fields launch.
+
+### Model listing
 
 ```ts
-export function validateConfig(
-  form: RuntimeConfigForm,
-  values: ConfigValues,
-  models: ModelListing,              // live, fallback, or unavailable (below)
-): readonly ConfigIssue[];           // [{ field, code }], codes are stable keys
+export type ModelListing =
+  | { readonly status: "live"; readonly models: readonly ModelEntry[] }
+  | { readonly status: "fallback"; readonly source: "bundled"; readonly reason: ListingReason; readonly models: readonly ModelEntry[] }
+  | { readonly status: "unavailable"; readonly reason: ListingReason };
 
-export function toSessionOptions(
-  form: RuntimeConfigForm,
-  values: ConfigValues,
-): { ok: true; options: Partial<SessionOptions> } | { ok: false; issues: readonly ConfigIssue[] };
+export type ListingReason =
+  | "unauthenticated" | "timeout" | "failed" | "empty" | "machine_offline";
 ```
-
-`ModelListing` carries the status of the list, with the same states the Raft
-v2 protocol already renders:
 
 | `listModels` outcome | status | options |
 |---|---|---|
 | models | `live` | the models |
-| unauthenticated, timeout, failure, empty | `unavailable` with a reason | none |
-| no live list, a bundled list exists | `fallback` with a reason | the bundled list |
+| unauthenticated, timeout, failure, empty, offline, and a bundled list exists | `fallback`, `source: "bundled"`, the reason | the bundled list |
+| the same, no bundled list | `unavailable`, the reason | none |
 
-A value saved earlier is valid against `unavailable`: validation does not
-reject or clear it because the list could not be read.
+A `fallback` always carries its reason and source, so an authentication
+failure is never shown as a live list. `ModelListing` is a shared, SDK-free
+type in the `forms` entry; acquiring it (calling `listModels` on a machine) is
+separate and runtime-side.
+
+### Validation
+
+```ts
+export interface ValidationContext {
+  readonly mode: "create" | "edit";
+  /** The values stored before this edit (edit only), as the host has them. */
+  readonly stored?: FormValues;
+  readonly models: ModelListing;
+}
+
+export function validateConfig(
+  form: RuntimeConfigForm,
+  values: FormValues,
+  context: ValidationContext,
+): readonly ConfigIssue[];           // [{ field, code }], codes are stable keys
+```
+
+Two questions are kept apart:
+
+- **Preservation.** On `edit`, a `preset` model equal to the stored one is not
+  rejected because it is missing from a `fallback` or `unavailable` listing:
+  "not enumerated" is never a reason to reject or clear what was stored. On
+  `create` there is nothing stored, so a `preset` must be in the listing.
+- **Launch validity.** Everything else still applies to every value, stored
+  or new: its shape, a declared model mode, a declared option of a select, the
+  runtime's explicit capability on that machine, and known constraints such
+  as an authentication mode. An unavailable listing only lifts the
+  list-membership check.
+
+### Launch mapping
+
+A secret edit is not a credential. The host applies the edit to the
+credential it stores (`set` replaces, `clear` removes, `keep` and `unset`
+leave it), and at the launch boundary resolves what the agent launches with.
+Only resolved values reach the pure mapping:
+
+```ts
+export type ResolvedSecret =
+  | { readonly present: true; readonly value: string }
+  | { readonly present: false };
+
+export type LaunchValues = Readonly<Record<string, ModelValue | ResolvedSecret | string | boolean | null>>;
+
+export function toSessionOptions(
+  form: RuntimeConfigForm,
+  values: LaunchValues,
+): { ok: true; options: Partial<SessionOptions> } | { ok: false; issues: readonly ConfigIssue[] };
+```
+
+A required secret that resolves to `present: false` is the issue
+`secret_missing`; it is never mapped to an empty or omitted option. Resolved
+secrets go only into the launch; they are never returned to a form client.
 
 ## The `forms` entry
 
-- `@botiverse/oar/forms` exports every runtime's `configForm`, `validateConfig`
-  and `toSessionOptions`. Runtimes import their form from there, not the
-  other way round.
+- `@botiverse/oar/forms` exports every runtime's `configForm`, the shared
+  types (`ModelListing` included), `validateConfig` and `toSessionOptions`.
+  Runtimes import their form from there, not the other way round.
 - CI checks that the entry's dependency graph contains no runtime SDK (HaoHao).
 - A test imports the entry from an empty consumer and asserts no SDK module
-  loads and nothing initializes (Huaihuai).
+  loads and nothing initializes. It ships with the implementation pull
+  request; Huaihuai verifies it independently.
 - If a host must not even install the SDKs, the entry becomes its own light
   package in this repository. Decide when a host needs it.
 
@@ -171,6 +234,8 @@ export interface MachineConfigFormReport {
     readonly kind: ConfigField["kind"];
     /** `select` only: the values this machine accepts. */
     readonly values?: readonly string[];
+    /** `model` only: the selection modes this machine accepts (`ModelField.modes`). */
+    readonly modes?: readonly ("inherit" | "preset" | "custom")[];
   }[];
   /** Diagnostics only. Never compared, never used to decide anything. */
   readonly oarVersion: string;
@@ -199,7 +264,7 @@ so every host computes the same thing. Per (machine, runtime):
 | no capability flag (old daemon) | the runtime's **baseline**: the fields that runtime had when it migrated. Fields added to OAR later are hidden. Neither "everything" nor "nothing". |
 | flag, no report stored yet | the last stored report for this machine if any, else the baseline |
 | report, `protocols` does not include the host form's `protocol` | the baseline, and the mismatch is logged with both OAR versions |
-| report | host fields whose `id` **and** `kind` match a reported field; a `select` keeps only values in both lists |
+| report | host fields whose `id` **and** `kind` match a reported field; a `select` keeps only values in both lists, a `model` only modes in both |
 
 A field the host would hide is hidden; it is never sent as disabled with a
 guessed value. If a **required** host field is hidden, the runtime is not
@@ -222,8 +287,8 @@ Hiding a field is presentation; the report is enforced twice more:
   machine downgraded) is **kept unchanged** on save, not cleared and not
   rewritten; an unknown capability is not a reason to lose data.
 - **Launch**: the daemon calls `toSessionOptions` with **its own** `configForm`.
-  A value for a field id it does not know, or a `select` value it does not
-  accept, fails launch with a typed refusal naming the field. It is never
+  A value for a field id it does not know, a `select` value or a model mode
+  it does not accept, fails launch with a typed refusal naming the field. It is never
   dropped silently. This is the last line, and it holds even if the host's
   report is stale.
 
@@ -240,6 +305,10 @@ Hiding a field is presentation; the report is enforced twice more:
 6. Launch with an unknown field id fails with the typed refusal; mutation that
    drops the value instead must turn the test red.
 7. A report with an unknown protocol falls back to the baseline.
+8. A model mode only the host knows (say `custom` added later under the same
+   field id) is not offered, is rejected on submit, and refuses launch.
+
+Dynamic model lists are not capabilities: they are the listing.
 
 ## Raft host integration
 
@@ -253,9 +322,16 @@ the mapping to `SessionOptions`.
 
 The Raft server translates a `configForm` into a v2 form definition, fills
 the model source from the machine's `listModels` result, applies the machine
-capability report, and translates copy by key. It maps `ConfigValues` to and
-from its own `RuntimeConfig`. The daemon maps a stored `RuntimeConfig` back to
-`ConfigValues` and calls `toSessionOptions` to launch.
+capability report, and translates copy by key. It maps `FormValues` to and
+from its own `RuntimeConfig`, applies secret edits to the credentials it
+stores, and validates with `mode` and `stored` from that storage. The daemon
+maps a stored `RuntimeConfig` and the resolved credentials to `LaunchValues`
+and calls `toSessionOptions` to launch.
+
+Environment variables and a custom executable (`command`) stay host and
+construction inputs in this migration, not form fields: no current runtime
+form owns them generically. A setting only one runtime has can become a typed
+field of that runtime's form when one explicitly owns it.
 
 ## Migration
 
@@ -298,11 +374,13 @@ Every migration pull request must show:
 
 ## Open questions
 
-1. ~~Where `ModelListing` lives~~ (HaoHao): in `@botiverse/oar/forms`, with a
-   pure `toModelListing(listModelsResult)`. It is plain data and
-   `validateConfig` takes it, so a host must be able to build one without
-   loading a runtime. Final type names stay open until the first migration
-   pull request (Grok) uses them.
-2. Whether `env` stays a field kind or remains a host-level setting.
-3. Whether the Raft-only `command` override (a custom executable) is a field
-   or a constructor setting ([capabilities.md](../design/capabilities.md#a-runtimes-own-settings)).
+1. Final type names stay open until the first migration pull request
+   (Grok) uses them (HaoHao).
+
+Resolved:
+- `ModelListing` lives in `@botiverse/oar/forms`, with a pure
+  `toModelListing(listModelsResult)`, so a host builds one without loading a
+  runtime; acquiring the result stays runtime-side (HaoHao, Huaihuai).
+- `env` and `command` stay host and construction inputs in this migration
+  (Huaihuai).
+- Secret edits are resolved by the host before the pure mapping (Huaihuai).
