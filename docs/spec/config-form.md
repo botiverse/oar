@@ -395,6 +395,33 @@ construction inputs in this migration, not form fields: no current runtime
 form owns them generically. A setting only one runtime has can become a typed
 field of that runtime's form when one explicitly owns it.
 
+### What clients see (and which pull request changes it)
+
+The machine states and launch outcomes above are new behavior, not a move of
+existing code. They are kept out of the migration pull requests:
+
+- **Migration pull requests run in `legacy` only.** Until the daemon sends
+  capability reports, every machine is `legacy`, so the host serves the
+  runtime's `baselineForm`, which is frozen to equal what Raft serves today.
+  That is why fixture equality (Migration, item 1) can hold: no new state,
+  outcome or error reaches a client in these pull requests.
+- **Turning the states on is its own pull request** (daemon reporting plus
+  the host's use of it), reviewed as a behavior change. It maps each new
+  state onto what the v2 protocol and today's clients already show, and adds
+  protocol only where nothing fits:
+
+| new state or outcome | today's surface it maps to | protocol change |
+|---|---|---|
+| machine `pending` | runtime detection pending (Raft task #1268): the runtime is listed as still detecting and not yet creatable | none |
+| machine `incompatible` | "this Computer must be updated" (the daemon requirement label in the runtime list; `recovery: "upgrade_required"` on the form request) | none |
+| `config_form_unsupported` (a required field unsupported) | the runtime is not creatable on this Computer, with the existing availability reason and copy | none if an existing reason fits; otherwise a new reason value, in that pull request |
+| stored value `needs_fix` | the agent's existing start-failure state, with a typed reason naming the field | a new start-failure reason value; clients that do not know it must fall back to the generic start-failure copy, verified before that pull request lands |
+| submit `field_unsupported_on_machine` | a v2 field issue at the field's pointer, like any validation issue | none (issue codes are already open-ended) |
+
+If a row turns out to need more than a new value in an existing open set, it
+is split into its own protocol pull request with the client change, not
+folded into the activation pull request.
+
 ## Migration
 
 One runtime per pull request, in this order: **Grok**, then **Codex**, then
