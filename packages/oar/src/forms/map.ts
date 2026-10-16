@@ -38,7 +38,7 @@ function modelContribution(field: ConfigField & { kind: "model" }, value: Launch
   if (model === null) {
     return { issue: "invalid_shape" };
   }
-  if (!field.modes.includes(model.kind)) {
+  if (!(field.launchModes ?? field.modes).includes(model.kind)) {
     return { issue: "mode_not_allowed" };
   }
   if (model.kind === "preset") {

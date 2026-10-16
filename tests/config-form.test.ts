@@ -96,7 +96,7 @@ const GROK_BASELINE_AT_MIGRATION: RuntimeConfigForm = {
   runtime: "grok",
   fields: [
     {
-      id: "model", kind: "model", modes: ["preset"], required: true,
+      id: "model", kind: "model", modes: ["preset"], launchModes: ["inherit", "preset", "custom"], required: true,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
       hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
     },
@@ -142,13 +142,25 @@ test("edit: an unlisted stored value is preserved; a new one is not; launch rule
   expect(codes(grok, stored, { mode: "edit", stored, models: unavailable })).toEqual([]);
   expect(codes(grok, { model: { kind: "preset", id: "grok-5" } }, { mode: "edit", stored, models: unavailable })).toEqual(["model:model_not_listed"]);
   expect(codes(grok, { ...stored, reasoningEffort: "low" }, { mode: "edit", stored, models: unavailable })).toEqual(["reasoningEffort:effort_not_offered"]);
-  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "edit", stored: { model: { kind: "inherit" } }, models: unavailable })).toEqual(["model:mode_not_allowed"]);
+  // A stored default the form no longer offers is kept unchanged (its launch mode is accepted)…
+  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "edit", stored: { model: { kind: "inherit" } }, models: unavailable })).toEqual([]);
+  // …but an edit cannot switch to it.
+  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "edit", stored, models: unavailable })).toEqual(["model:mode_not_allowed"]);
+});
+
+test("edit: an unchanged stored typed model the form no longer offers is kept; a new one or a change is not", () => {
+  const stored: FormValues = { model: { kind: "custom", name: "grok-4" } };
+  expect(codes(grok, stored, { mode: "edit", stored, models: live })).toEqual([]);
+  expect(codes(grok, { model: { kind: "custom", name: "grok-9" } }, { mode: "edit", stored, models: live })).toEqual(["model:mode_not_allowed"]);
+  expect(codes(grok, stored, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
 });
 
 test("toSessionOptions maps Grok's model and effort, and refuses rather than drops", () => {
   expect(toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" })).toEqual({ ok: true, options: { model: "grok-4", effort: "high" }, unmapped: {}, secrets: {} });
   expect(toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" } })).toEqual({ ok: true, options: { model: "grok-4" }, unmapped: {}, secrets: {} });
-  expect(toSessionOptions(grok, { model: { kind: "inherit" } })).toEqual({ ok: false, issues: [{ field: "model", code: "mode_not_allowed" }] });
+  // launchModes: what Raft's driver launches today, wider than what the form offers.
+  expect(toSessionOptions(grok, { model: { kind: "custom", name: "grok-4" } })).toEqual({ ok: true, options: { model: "grok-4" }, unmapped: {}, secrets: {} });
+  expect(toSessionOptions(grok, { model: { kind: "inherit" } })).toEqual({ ok: true, options: {}, unmapped: {}, secrets: {} });
   expect(toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" }, fast: true })).toEqual({ ok: false, issues: [{ field: "fast", code: "unknown_field" }] });
 });
 
@@ -176,6 +188,19 @@ test("an edit must say what was stored: the context type does not let a missing 
   // @ts-expect-error -- edit without stored
   const forgot: Parameters<typeof validateConfig>[2] = { mode: "edit", models: live };
   expect(forgot.mode).toBe("edit");
+});
+
+test("a launch mode outside both modes and launchModes is still refused", () => {
+  const presetOnly: RuntimeConfigForm = {
+    protocol: 1, runtime: "test", fields: [
+      { id: "model", kind: "model", modes: ["preset"], launchModes: ["preset", "custom"], required: true, label: { key: "k", en: "Model" } },
+    ],
+  };
+  expect(toSessionOptions(presetOnly, { model: { kind: "custom", name: "m" } })).toEqual({ ok: true, options: { model: "m" }, unmapped: {}, secrets: {} });
+  expect(toSessionOptions(presetOnly, { model: { kind: "inherit" } })).toEqual({ ok: false, issues: [{ field: "model", code: "mode_not_allowed" }] });
+  // Without launchModes, a launch accepts exactly what the form offers.
+  const plain: RuntimeConfigForm = { ...presetOnly, fields: [{ id: "model", kind: "model", modes: ["preset"], required: true, label: { key: "k", en: "Model" } }] };
+  expect(toSessionOptions(plain, { model: { kind: "custom", name: "m" } })).toEqual({ ok: false, issues: [{ field: "model", code: "mode_not_allowed" }] });
 });
 
 test("an inactive branch is neither required nor launched", () => {

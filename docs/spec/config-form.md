@@ -70,6 +70,13 @@ interface ModelField extends FieldBase {
    * in the UI is not enough.
    */
   readonly modes: readonly ("inherit" | "preset" | "custom")[];
+  /**
+   * What a launch accepts, when wider than what the form offers (a stored
+   * value from an older create path or an API). Declared from the runtime's
+   * verified launch behavior; defaults to `modes`. It maps a value to launch
+   * options; it does not promise the provider accepts the model id.
+   */
+  readonly launchModes?: readonly ("inherit" | "preset" | "custom")[];
 }
 
 /** Options from the chosen model's `ModelEntry.effortLevels`. */
@@ -111,7 +118,9 @@ export type FormValues = Readonly<Record<string, ModelValue | SecretEdit | strin
 ```
 
 A runtime gains no selection mode in this migration: its `ModelField.modes`
-lists exactly what its form accepts today.
+lists exactly what its form offers today, and `launchModes` exactly what its
+launch path accepts today. On edit, an unchanged stored value whose mode is in
+`launchModes` is kept even when the form no longer offers that mode.
 
 ### Hidden fields
 

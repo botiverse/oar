@@ -27,8 +27,17 @@ export type ModelMode = "inherit" | "preset" | "custom";
 /** Options from `Runtime.listModels` on the machine that will run the agent. */
 export interface ModelField extends FieldBase {
   readonly kind: "model";
-  /** The selections this runtime accepts; validation and mapping enforce it. */
+  /** The selections the form offers; `validateConfig` enforces it on submit. */
   readonly modes: readonly ModelMode[];
+  /**
+   * The selections a launch accepts, when wider than what the form offers: a
+   * stored value the form no longer offers (an older create path, an API) can
+   * still launch. Declared from what the runtime's launch path is verified to
+   * accept; it maps a value to launch options and does not promise the
+   * provider accepts that model id. Defaults to `modes`; a mode in neither is
+   * refused by `toSessionOptions`.
+   */
+  readonly launchModes?: readonly ModelMode[];
 }
 
 /** Options from the chosen model's `ModelEntry.effortLevels`. */

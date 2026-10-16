@@ -32,7 +32,11 @@ function checkModel(field: ModelField, check: FieldCheck): IssueCode {
     return "invalid_shape";
   }
   if (!field.modes.includes(model.kind)) {
-    return "mode_not_allowed";
+    // Preservation: an edit may keep an unchanged stored value the form no
+    // longer offers, as long as a launch still accepts its mode.
+    const launchable = (field.launchModes ?? field.modes).includes(model.kind);
+    const kept = launchable && check.stored !== undefined && sameModel(check.stored[field.id], model);
+    return kept ? null : "mode_not_allowed";
   }
   if (model.kind !== "preset" || check.models.some((entry) => entry.id === model.id)) {
     return null;
