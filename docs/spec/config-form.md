@@ -115,11 +115,22 @@ lists exactly what its form accepts today.
 
 ### Hidden fields
 
-A field whose `visibleWhen` is not met is **hidden**. A hidden field's value
-is neither validated for presence nor passed to `toSessionOptions`; a stale
-value under it cannot reach a launch. A host may keep it in storage (so
-switching back restores it), but stored is not authorized: only visible
-fields launch.
+A field can be hidden for two different reasons, and they launch differently.
+
+- **Inactive branch.** Its `visibleWhen` is not met (an API key field while
+  the default provider is chosen). Its value is neither validated for presence
+  nor passed to `toSessionOptions`: by the form's own rule it is not part of
+  this configuration. A host may keep it in storage so switching back restores
+  it, but it never launches.
+- **Unsupported on the machine.** The field is active by the form's rules but
+  the machine's capability report does not support it (or the value or mode it
+  holds). A stored value here is part of the configuration the user chose, so
+  it is **never silently removed from the launch**: dropping it would launch a
+  different agent and contradict the rule that an unknown field or value is
+  refused, not ignored.
+
+The resulting launch outcome (`launchable`, `needs_fix`, `unconfirmed`) is
+defined once, in [Stored values and launch](#stored-values-and-launch).
 
 ### Model listing
 
