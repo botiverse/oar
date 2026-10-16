@@ -12,12 +12,15 @@ import { resolveExecutable } from "./resolve.js";
  * tail is dropped, or, under `&`, run as a command. OAR puts host text in
  * `--append-system-prompt`, so this is an argument-injection hole on Windows.
  *
- * The fix is to not go through `cmd.exe` at all: read the shim, recover the
- * interpreter and script it would run (every shim OAR launches wraps a Node
- * CLI), and spawn those directly. A `.exe` target needs no shim and no shell.
- * A shim OAR cannot read as one of the known shapes is refused by the caller
- * rather than run through the shell, so a new shim shape fails loud, never
- * silently unsafe.
+ * The fix is to not go through `cmd.exe` at all for the shims OAR's runtimes
+ * actually use: read the shim, recover the native binary or Node script it
+ * wraps (npm and pnpm global shims), and spawn that directly, with no shell.
+ * A shape neither package manager emits is not recognized; the caller then
+ * launches it as before (through cross-spawn, which may use `cmd.exe`), so a
+ * runtime installed some other way still starts. This fallback is fail-open:
+ * a shim OAR cannot read, if it were a global shell shim, would carry the
+ * same single-escape risk. Closing it for every shape (a generic `cmd.exe`
+ * double-escape) is tracked separately; the shims OAR installs are covered.
  */
 
 /** What to spawn in place of a shim: the interpreter and the arguments that go before the caller's own. */
