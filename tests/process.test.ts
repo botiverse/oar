@@ -1,19 +1,10 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, test, vi } from "vitest";
-import { KILL_GRACE_MS, killGraceMs, requiresShell, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
+import { KILL_GRACE_MS, killGraceMs, spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 import { readProcessTable } from "../packages/oar/src/shared/executable/process-tree.js";
 import { fakeAgent, gone, timed, withTreeProbe } from "./fixtures/process-tree.js";
 
-test("requiresShell matches windows cmd and bat shims only", () => {
-  assert.equal(requiresShell("claude.cmd", "win32"), true);
-  assert.equal(requiresShell("CLAUDE.CMD", "win32"), true);
-  assert.equal(requiresShell("tool.bat", "win32"), true);
-  assert.equal(requiresShell("claude.exe", "win32"), false);
-  assert.equal(requiresShell("claude", "win32"), false);
-  assert.equal(requiresShell("claude.cmd", "linux"), false);
-  assert.equal(requiresShell("claude.cmd", "darwin"), false);
-});
 
 test("line buffering joins partial chunks and splits complete lines", async () => {
   const child = spawnLineProcess(process.execPath, [

@@ -6,6 +6,7 @@ import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagno
 import { trackOwnedProcess } from "./ownership.js";
 import { treeResourcesReader } from "./process-resources.js";
 import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
+import { windowsSpawnTarget } from "./windows-shim.js";
 
 export { trackOwnedProcess } from "./ownership.js";
 
@@ -135,21 +136,20 @@ export function killProcessTree(child: ChildProcess): void {
   trackOwnedProcess(killer);
 }
 
-/** Windows npm shims need a shell for one-shot execFile calls. */
-export function requiresShell(command: string, platform: NodeJS.Platform): boolean {
-  return platform === "win32" && /\.(?:cmd|bat)$/iu.test(command);
-}
 
 /**
- * Spawn through cross-spawn so Windows .cmd shims preserve multi-word args.
- * Line parsing is attached lazily; protocol SDKs can consume the raw streams.
+ * Spawn through cross-spawn. On Windows a `.cmd`/`.bat` shim is first
+ * resolved to the Node interpreter and script it wraps, so a shim's arguments
+ * never reach `cmd.exe` (windows-shim.ts). Line parsing is attached lazily;
+ * protocol SDKs can consume the raw streams.
  */
 export function spawnLineProcess(
   command: string,
   args: readonly string[],
   options: LineProcessOptions = {},
 ): LineProcess {
-  const child = spawnChecked(() => spawn(command, [...args], {
+  const target = windowsSpawnTarget(command, args);
+  const child = spawnChecked(() => spawn(target.command, [...target.args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
     stdio: ["pipe", "pipe", "pipe"],

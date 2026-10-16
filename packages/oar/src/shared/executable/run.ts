@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
-import { killGraceMs, OWN_PROCESS_GROUP, requiresShell, signalProcessGroup, trackOwnedProcess } from "./process.js";
+import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
 import { nativeError, stderrTail, type ProcessDiagnostics } from "./diagnostics.js";
+import { windowsSpawnTarget } from "./windows-shim.js";
 
 export interface ExecutableResult {
   readonly ok: boolean;
@@ -62,12 +63,14 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
         throw Object.assign(new RangeError("timeoutMs must be a nonnegative integer"), { code: "ERR_OUT_OF_RANGE" });
       }
-      const child = spawn(executable, [...args], {
+      // On Windows a `.cmd`/`.bat` shim resolves to the Node interpreter and
+      // script it wraps, so no argument reaches `cmd.exe` and no shell is
+      // used (windows-shim.ts); off Windows, the inputs unchanged.
+      const target = windowsSpawnTarget(executable, args);
+      const child = spawn(target.command, [...target.args], {
         cwd: options.cwd, env: options.env,
         stdio: ["pipe", "pipe", "pipe"],
         detached: OWN_PROCESS_GROUP,
-        // Keep the existing .cmd/.bat resolution on Windows.
-        shell: requiresShell(executable, process.platform),
       });
       trackOwnedProcess(child);
       // An exited group leader can leave descendants holding the pipes.
