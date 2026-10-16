@@ -173,7 +173,7 @@ export type RuntimeEventBody = UserMessage
       readonly content?: readonly ToolOutputPart[];
       /** The runtime's explicit tool outcome; absent when it reported none. */
       readonly result?: "ok" | "failed";
-      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`, pi's CodingTools `structuredContent.exit_code`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, and any tool that is not a command run), never derived from `result` or output. */
+      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`, pi's CodingTools `structuredContent.exit_code`, pi-durable's nested-call `result.structuredOutput.exitCode`). pi and pi-durable encode a signal as a number, 128 plus the signal number, so SIGTERM is 143, never null; a pi-durable ordinary (non-nested) tool call does not carry it and stays absent. `null` only when a runtime itself reports a numeric-less exit. Absent when the runtime reports none (claude, and any tool that is not a command run), never derived from `result` or output. */
       readonly exitCode?: number | null;
     }
   | ToolCallProgress

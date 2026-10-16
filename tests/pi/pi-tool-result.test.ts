@@ -41,11 +41,11 @@ test("pi tool end: structuredContent.exit_code is surfaced as exitCode; a non-ze
   const zero = ended("bash", { content: [{ type: "text", text: "ok\n" }], structuredContent: { exit_code: 0 } });
   assert.deepEqual(events(zero), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "ok\n" }], result: "ok", exitCode: 0 }]);
   // A failing command: pi marks isError, and the exit code rides alongside.
-  const failed = ended("bash", { content: [{ type: "text", text: "1 failing\n" }], structuredContent: { exit_code: 1 } }, true);
-  assert.deepEqual(events(failed), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "1 failing\n" }], result: "failed", exitCode: 1 }]);
-  // A signal is reported as a null exit; a tool with no structured exit carries none.
-  const signalled = ended("bash", { content: [{ type: "text", text: "killed\n" }], structuredContent: { exit_code: null } }, true);
-  assert.deepEqual(events(signalled), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "killed\n" }], result: "failed", exitCode: null }]);
+  const failed = ended("bash", { content: [{ type: "text", text: "exit 7\n" }], structuredContent: { exit_code: 7 } }, true);
+  assert.deepEqual(events(failed), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "exit 7\n" }], result: "failed", exitCode: 7 }]);
+  // A signal: pi gives a number, 128 plus the signal (SIGTERM is 143), not null.
+  const signalled = ended("bash", { content: [{ type: "text", text: "killed\n" }], structuredContent: { exit_code: 143 } }, true);
+  assert.deepEqual(events(signalled), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "killed\n" }], result: "failed", exitCode: 143 }]);
   const read = ended("read", { content: [{ type: "text", text: "file body" }] });
   assert.deepEqual(events(read), [{ kind: "tool_call_ended", callId: "call_read", content: [{ type: "text", text: "file body" }], result: "ok" }]);
 });
