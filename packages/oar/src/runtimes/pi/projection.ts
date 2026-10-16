@@ -195,11 +195,18 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       const blocks = asRecord(event.result)?.content;
       const content = Array.isArray(blocks) && blocks.length > 0 ? toolContent(blocks) : toolContent(event.result);
       const result = typeof event.isError === "boolean" ? (event.isError ? "failed" as const : "ok" as const) : undefined;
+      // pi's CodingTools report a command's process exit in the structured
+      // result (`structuredContent.exit_code`), the one runtime field that is
+      // a real exit status, so OAR surfaces it as `exitCode` (number, or null
+      // for a signal); other tools carry none and it stays absent.
+      const exit = asRecord(asRecord(event.result)?.structuredContent)?.exit_code;
+      const exitCode = typeof exit === "number" ? exit : (exit === null ? null : undefined);
       return { state, events: [{
         kind: "tool_call_ended",
         callId: event.toolCallId,
         ...(content === undefined ? {} : { content }),
         ...(result === undefined ? {} : { result }),
+        ...(exitCode === undefined ? {} : { exitCode }),
       }] };
     }
     case "turn_end":

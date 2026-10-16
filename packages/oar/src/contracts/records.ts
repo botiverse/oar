@@ -173,7 +173,7 @@ export type RuntimeEventBody = UserMessage
       readonly content?: readonly ToolOutputPart[];
       /** The runtime's explicit tool outcome; absent when it reported none. */
       readonly result?: "ok" | "failed";
-      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, pi), never derived from `result` or output. */
+      /** The process exit status the runtime reported for a command it ran (codex `commandExecution.exitCode`, grok and antigravity `rawOutput.exit_code`, a cursor shell result's `exitCode`, pi's CodingTools `structuredContent.exit_code`); `null` when the runtime says it ended without one (a signal). Absent when the runtime reports none (claude, and any tool that is not a command run), never derived from `result` or output. */
       readonly exitCode?: number | null;
     }
   | ToolCallProgress

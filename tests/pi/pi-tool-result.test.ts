@@ -35,3 +35,17 @@ test("pi tool end: an image is an image part, an unknown block is kept whole, a 
   const failed = ended("bash", { content: [{ type: "text", text: "command not found" }] }, true);
   assert.deepEqual(events(failed), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "command not found" }], result: "failed" }]);
 });
+
+test("pi tool end: structuredContent.exit_code is surfaced as exitCode; a non-zero exit is still the runtime's result; other tools carry none (#oar-raft)", () => {
+  // CodingTools' bash reports the real process exit in structuredContent.
+  const zero = ended("bash", { content: [{ type: "text", text: "ok\n" }], structuredContent: { exit_code: 0 } });
+  assert.deepEqual(events(zero), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "ok\n" }], result: "ok", exitCode: 0 }]);
+  // A failing command: pi marks isError, and the exit code rides alongside.
+  const failed = ended("bash", { content: [{ type: "text", text: "1 failing\n" }], structuredContent: { exit_code: 1 } }, true);
+  assert.deepEqual(events(failed), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "1 failing\n" }], result: "failed", exitCode: 1 }]);
+  // A signal is reported as a null exit; a tool with no structured exit carries none.
+  const signalled = ended("bash", { content: [{ type: "text", text: "killed\n" }], structuredContent: { exit_code: null } }, true);
+  assert.deepEqual(events(signalled), [{ kind: "tool_call_ended", callId: "call_bash", content: [{ type: "text", text: "killed\n" }], result: "failed", exitCode: null }]);
+  const read = ended("read", { content: [{ type: "text", text: "file body" }] });
+  assert.deepEqual(events(read), [{ kind: "tool_call_ended", callId: "call_read", content: [{ type: "text", text: "file body" }], result: "ok" }]);
+});
