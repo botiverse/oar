@@ -158,12 +158,9 @@ separate and runtime-side.
 ### Validation
 
 ```ts
-export interface ValidationContext {
-  readonly mode: "create" | "edit";
-  /** The values stored before this edit (edit only), as the host has them. */
-  readonly stored?: FormValues;
-  readonly models: ModelListing;
-}
+export type ValidationContext =
+  | { readonly mode: "create"; readonly models: ModelListing }
+  | { readonly mode: "edit"; readonly stored: FormValues; readonly models: ModelListing };
 
 export function validateConfig(
   form: RuntimeConfigForm,
@@ -202,13 +199,15 @@ export function toSessionOptions(
   form: RuntimeConfigForm,
   values: LaunchValues,
 ):
-  | { ok: true; options: Partial<SessionOptions>; unmapped: Readonly<Record<string, string | boolean>> }
+  | { ok: true; options: Partial<SessionOptions>; unmapped: Readonly<Record<string, string | boolean>>; secrets: Readonly<Record<string, string>> }
   | { ok: false; issues: readonly ConfigIssue[] };
 ```
 
 Active select, text and boolean values have no shared `SessionOptions`
 member; they come back in `unmapped`, by field id, for the runtime's own
-mapping. The caller applies or refuses each one; none is dropped.
+mapping. Resolved secrets come back in `secrets`, kept apart so a caller never
+handles them as ordinary values. The caller applies or refuses each one; none
+is dropped.
 
 A required secret that resolves to `present: false` is the issue
 `secret_missing`; it is never mapped to an empty or omitted option. Resolved
