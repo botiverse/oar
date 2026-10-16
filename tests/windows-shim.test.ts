@@ -27,6 +27,12 @@ const CODEX_SHIM = [
   String.raw`IF EXIST "%dp0%\node.exe" (`, String.raw`  SET "_prog=%dp0%\node.exe"`, ") ELSE (", `  SET "_prog=node"`, String.raw`  SET PATHEXT=%PATHEXT:;.JS;=;%`, ")", "",
   String.raw`endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\node_modules\@openai\codex\bin\codex.js" %*`,
 ].join("\r\n");
+const PNPM_SHIM = [
+  "@SETLOCAL", String.raw`@IF EXIST "%~dp0\node.exe" (`,
+  String.raw`  "%~dp0\node.exe"  "%~dp0\global\5\node_modules\@openai\codex\bin\codex.js" %*`,
+  ") ELSE (", String.raw`  @SET PATHEXT=%PATHEXT:;.JS;=;%`,
+  String.raw`  node  "%~dp0\global\5\node_modules\@openai\codex\bin\codex.js" %*`, ")",
+].join("\r\n");
 const NODE_EXE = String.raw`C:\npm\prefix\node.exe`;
 const CODEX_JS = String.raw`C:\npm\prefix\node_modules\@openai\codex\bin\codex.js`;
 const NODE_BIN = String.raw`C:\node\node.exe`;
@@ -48,6 +54,11 @@ test("a Node-CLI shim resolves to the bundled node.exe and the wrapped script", 
 
 test("without a bundled node.exe the shim falls back to node on PATH", () => {
   expect(parseWindowsShim(String.raw`C:\npm\prefix\codex.CMD`, CODEX_SHIM, () => false)).toEqual({ command: "node", prefixArgs: [CODEX_JS] });
+});
+
+test("a pnpm shim (%~dp0, no _prog) resolves to node and the wrapped script", () => {
+  const codexJs = String.raw`C:\pnpm\global\5\node_modules\@openai\codex\bin\codex.js`;
+  expect(parseWindowsShim(String.raw`C:\pnpm\codex.cmd`, PNPM_SHIM, () => false)).toEqual({ command: "node", prefixArgs: [codexJs] });
 });
 
 test("a native-exe shim (npm bin is an .exe, e.g. claude) resolves to the exe, no node", () => {
