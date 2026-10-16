@@ -108,10 +108,16 @@ const GROK_BASELINE_AT_MIGRATION: RuntimeConfigForm = {
   ],
 };
 
+// Never edit GROK_BASELINE_AT_MIGRATION: it is what old daemons receive, forever.
 test("Grok's baseline is its own frozen copy, pinned to the form at migration", () => {
   expect(baselineForms.grok).toEqual(GROK_BASELINE_AT_MIGRATION);
   // A separate object: editing configForm must not reach old daemons.
   expect(baselineForms.grok).not.toBe(grok);
+});
+
+// Migration-only: delete this test when Grok's form legitimately changes; never
+// "fix" it by editing the baseline constant above.
+test("migration: Grok's configForm still equals the form Raft serves today", () => {
   expect(grok).toEqual(GROK_BASELINE_AT_MIGRATION);
 });
 
