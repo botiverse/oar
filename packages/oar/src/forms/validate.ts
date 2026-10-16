@@ -12,6 +12,7 @@ interface FieldCheck {
   readonly models: readonly ModelEntry[];
   /** The values stored before this edit; undefined on create. */
   readonly stored: FormValues | undefined;
+  readonly mode: ValidationContext["mode"];
 }
 
 function presence(field: ConfigField, value: FormValue | undefined): IssueCode | undefined {
@@ -74,7 +75,7 @@ function secretKind(value: FormValue | undefined): string | undefined {
 }
 
 function checkSecret(field: SecretField, check: FieldCheck): IssueCode {
-  const creating = check.stored === undefined;
+  const creating = check.mode === "create";
   if (check.value === undefined || check.value === null) {
     return field.required && creating ? "required" : null;
   }
@@ -131,9 +132,10 @@ export function validateConfig(form: RuntimeConfigForm, values: FormValues, cont
   const unknown = unknownFieldIds(form, values).map((id): ConfigIssue => ({ field: id, code: "unknown_field" }));
   const models = listedModels(context.models);
   const stored = context.mode === "edit" ? context.stored : undefined;
+  const { mode } = context;
   const fieldIssues = form.fields
     .filter((field) => isActive(field, values))
-    .map((field) => ({ field: field.id, code: checkField(field, { value: values[field.id], values, models, stored }) }))
+    .map((field) => ({ field: field.id, code: checkField(field, { value: values[field.id], values, models, stored, mode }) }))
     .filter((issue): issue is ConfigIssue => issue.code !== null);
   return [...unknown, ...fieldIssues];
 }

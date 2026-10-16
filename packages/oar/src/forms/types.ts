@@ -100,9 +100,12 @@ export interface ConfigIssue {
     | "unknown_field";
 }
 
-export interface ValidationContext {
-  readonly mode: "create" | "edit";
-  /** The values stored before this edit (edit only), as the host has them. */
-  readonly stored?: FormValues;
-  readonly models: ModelListing;
-}
+/** Create has nothing stored; an edit must say what was stored, so a missing `stored` cannot pass as a create. */
+export type ValidationContext =
+  | { readonly mode: "create"; readonly models: ModelListing }
+  | {
+      readonly mode: "edit";
+      /** The values stored before this edit, as the host has them. */
+      readonly stored: FormValues;
+      readonly models: ModelListing;
+    };

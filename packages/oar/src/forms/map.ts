@@ -11,6 +11,7 @@ type Contribution =
   | { readonly model: string }
   | { readonly effort: string }
   | { readonly unmapped: string | boolean }
+  | { readonly secret: string }
   | Record<string, never>;
 
 export type SessionMapping =
@@ -23,6 +24,12 @@ export type SessionMapping =
        * mapping instead of being dropped; the caller must apply or refuse them.
        */
       readonly unmapped: Readonly<Record<string, string | boolean>>;
+      /**
+       * Resolved secrets of active secret fields, by field id, kept apart from
+       * `unmapped` so a caller never handles them as ordinary values (or logs
+       * them). The runtime's own mapping applies them; none is dropped.
+       */
+      readonly secrets: Readonly<Record<string, string>>;
     }
   | { readonly ok: false; readonly issues: readonly ConfigIssue[] };
 
@@ -40,13 +47,21 @@ function modelContribution(field: ConfigField & { kind: "model" }, value: Launch
   return model.kind === "custom" ? { model: model.name } : {};
 }
 
-function isPresentSecret(value: LaunchValue | undefined): boolean {
-  return typeof value === "object" && value !== null && Reflect.get(value, "present") === true;
+function presentSecret(value: LaunchValue | undefined): string | undefined {
+  if (typeof value !== "object" || value === null || Reflect.get(value, "present") !== true) {
+    return undefined;
+  }
+  const secret: unknown = Reflect.get(value, "value");
+  return typeof secret === "string" ? secret : undefined;
 }
 
 function contribution(field: ConfigField, value: LaunchValue | undefined): Contribution {
   if (field.kind === "secret") {
-    return field.required && !isPresentSecret(value) ? { issue: "secret_missing" } : {};
+    const secret = presentSecret(value);
+    if (secret !== undefined) {
+      return { secret };
+    }
+    return field.required ? { issue: "secret_missing" } : {};
   }
   if (isEmpty(value)) {
     return field.required ? { issue: "required" } : {};
@@ -74,6 +89,7 @@ export function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues):
   const issues: ConfigIssue[] = unknownFieldIds(form, values).map((id) => ({ field: id, code: "unknown_field" }));
   const options: { model?: string; effort?: string } = {};
   const unmapped: Record<string, string | boolean> = {};
+  const secrets: Record<string, string> = {};
   for (const field of form.fields.filter((candidate) => isActive(candidate, values))) {
     const part = contribution(field, values[field.id]);
     if ("issue" in part) {
@@ -84,7 +100,9 @@ export function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues):
       options.effort = part.effort;
     } else if ("unmapped" in part) {
       unmapped[field.id] = part.unmapped;
+    } else if ("secret" in part) {
+      secrets[field.id] = part.secret;
     }
   }
-  return issues.length > 0 ? { ok: false, issues } : { ok: true, options, unmapped };
+  return issues.length > 0 ? { ok: false, issues } : { ok: true, options, unmapped, secrets };
 }
