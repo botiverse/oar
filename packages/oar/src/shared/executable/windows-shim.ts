@@ -87,21 +87,14 @@ function readShim(shimPath: string): string | null {
   }
 }
 
-/** A shim OAR launches but cannot read as a known Node-CLI shape; refused rather than run through `cmd.exe`. */
-export class UnreadableShimError extends Error {
-  override readonly name = "UnreadableShimError";
-  constructor(readonly shim: string) {
-    super(`cannot launch the Windows shim ${JSON.stringify(shim)} without a shell: it is not a Node-CLI .cmd/.bat shape OAR can read`);
-  }
-}
-
 /**
- * The command and arguments to spawn, with no shell. Off Windows, and for a
- * command that does not resolve to a `.cmd`/`.bat` shim, the inputs unchanged.
- * For a shim, the Node interpreter and script it wraps, with the shim's own
- * arguments ahead of the caller's, so nothing reaches `cmd.exe`. Throws
- * `UnreadableShimError` for a shim it cannot read, rather than fall back to
- * the shell. `resolve` finds a bare command on PATH (its own default).
+ * The command and arguments to spawn, with no shell, when a `.cmd`/`.bat`
+ * shim can be read as the Node CLI it wraps: the interpreter and script it
+ * would run, with the shim's own arguments ahead of the caller's, so nothing
+ * reaches `cmd.exe`. Off Windows, for a non-shim command, or for a shim this
+ * cannot read as a Node CLI, the inputs unchanged, so the caller spawns as
+ * before (cross-spawn's shim handling). `resolve` finds a bare command on
+ * PATH (its own default).
  */
 export function windowsSpawnTarget(
   command: string,
@@ -118,8 +111,5 @@ export function windowsSpawnTarget(
   }
   const text = readShim(resolved);
   const shim = text === null ? null : parseWindowsShim(resolved, text, existsSync);
-  if (shim === null) {
-    throw new UnreadableShimError(resolved);
-  }
-  return { command: shim.command, args: [...shim.prefixArgs, ...args] };
+  return shim === null ? { command, args } : { command: shim.command, args: [...shim.prefixArgs, ...args] };
 }

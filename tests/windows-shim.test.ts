@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { isWindowsShim, parseWindowsShim, spawnLineProcess, UnreadableShimError, windowsSpawnTarget } from "../packages/oar/src/shared/executable/index.js";
+import { isWindowsShim, parseWindowsShim, spawnLineProcess, windowsSpawnTarget } from "../packages/oar/src/shared/executable/index.js";
 
 // Real cmd-shim output (npm/pnpm, cmd-shim 7): a Node CLI whose target has a
 // shebang gets the `_prog` form; a directly-executable target gets the bare
@@ -62,8 +62,9 @@ test("windowsSpawnTarget leaves a non-shim command alone on Windows", () => {
   expect(windowsSpawnTarget("where-is-it", [], "win32", () => null)).toEqual({ command: "where-is-it", args: [] });
 });
 
-test("an unreadable shim is refused on Windows, not run through cmd.exe", () => {
-  expect(() => windowsSpawnTarget("ghost", [], "win32", resolveGhost)).toThrow(UnreadableShimError);
+test("a shim it cannot read falls back to the original command, not a throw", () => {
+  // ghost.cmd does not exist to read, so the resolved shim is launched as-is (cross-spawn handles it).
+  expect(windowsSpawnTarget("ghost", ["x"], "win32", resolveGhost)).toEqual({ command: "ghost", args: ["x"] });
 });
 
 // On Windows, end to end: a real `.cmd` shim wrapping a Node script that
