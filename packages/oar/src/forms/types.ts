@@ -103,6 +103,7 @@ export interface ConfigIssue {
     | "invalid_shape"
     | "mode_not_allowed"
     | "model_not_listed"
+    | "model_disabled"
     | "effort_not_offered"
     | "option_not_offered"
     | "secret_missing"

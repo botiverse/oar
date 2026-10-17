@@ -190,6 +190,13 @@ Two questions are kept apart:
   as an authentication mode. An unavailable listing only lifts the
   list-membership check.
 
+Which listing entry a model value runs as decides the effort it offers: a
+`preset` runs as its own entry; `inherit` runs as the entry marked
+`default: true`. With no entry marked default, the runtime's default model
+offers no effort (an unchanged stored one is preserved, as above). A listed
+entry carrying `disabled` cannot be newly chosen (`model_disabled`); an
+unchanged stored one is preserved like an unlisted one.
+
 ### Launch mapping
 
 A secret edit is not a credential. The host applies the edit to the

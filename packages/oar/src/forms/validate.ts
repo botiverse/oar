@@ -38,12 +38,28 @@ function checkModel(field: ModelField, check: FieldCheck): IssueCode {
     const kept = launchable && check.stored !== undefined && sameModel(check.stored[field.id], model);
     return kept ? null : "mode_not_allowed";
   }
-  if (model.kind !== "preset" || check.models.some((entry) => entry.id === model.id)) {
+  if (model.kind !== "preset") {
     return null;
   }
-  // Preservation: the stored preset stays valid when the listing cannot name it.
+  const entry = check.models.find((candidate) => candidate.id === model.id);
+  if (entry !== undefined && entry.disabled === undefined) {
+    return null;
+  }
+  // Preservation: the stored preset stays valid when the listing cannot name it or disables it.
   const preserved = check.stored !== undefined && sameModel(check.stored[field.id], model);
-  return preserved ? null : "model_not_listed";
+  if (preserved) {
+    return null;
+  }
+  return entry === undefined ? "model_not_listed" : "model_disabled";
+}
+
+/** The listing entry a model value runs as: the named preset, or the entry marked default for `inherit`. */
+function runningEntry(value: FormValue | undefined, models: readonly ModelEntry[]): ModelEntry | undefined {
+  const model = asModelValue(value);
+  if (model?.kind === "preset") {
+    return models.find((candidate) => candidate.id === model.id);
+  }
+  return model?.kind === "inherit" ? models.find((candidate) => candidate.default === true) : undefined;
 }
 
 function checkEffort(field: EffortField, check: FieldCheck): IssueCode {
@@ -54,8 +70,7 @@ function checkEffort(field: EffortField, check: FieldCheck): IssueCode {
   if (typeof check.value !== "string") {
     return "invalid_shape";
   }
-  const model = asModelValue(check.values[field.modelField]);
-  const entry = model?.kind === "preset" ? check.models.find((candidate) => candidate.id === model.id) : undefined;
+  const entry = runningEntry(check.values[field.modelField], check.models);
   if (entry?.effortLevels?.includes(check.value) === true) {
     return null;
   }
