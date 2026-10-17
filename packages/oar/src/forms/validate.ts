@@ -82,8 +82,11 @@ function checkEffort(field: EffortField, check: FieldCheck): IssueCode {
   // An unchanged stored effort on an unchanged model is kept, whatever the listing
   // now says: the entry a model runs as (the runtime's default above all) can move.
   const { stored } = check;
-  const preserved = stored !== undefined && stored[field.id] === check.value
-    && sameModel(stored[field.modelField], check.values[field.modelField]);
+  const storedModel = stored?.[field.modelField];
+  const model = check.values[field.modelField];
+  // Both left empty is an unchanged model too (an empty model runs as the default).
+  const modelUnchanged = sameModel(storedModel, model) || (isEmpty(storedModel) && isEmpty(model));
+  const preserved = stored !== undefined && stored[field.id] === check.value && modelUnchanged;
   return preserved ? null : "effort_not_offered";
 }
 
