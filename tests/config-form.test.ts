@@ -252,3 +252,15 @@ test("a disabled model cannot be newly chosen; an unchanged stored one is kept",
   expect(codes(withEffort, { model: { kind: "preset", id: "retired" } }, { mode: "edit", stored: { model: { kind: "preset", id: "main" } }, models: withDefault }))
     .toEqual(["model:model_disabled"]);
 });
+
+test("an unchanged stored effort is kept even when the entry its model runs as no longer lists it", () => {
+  // The runtime's default model is not the user's choice and moves between sessions.
+  const moved: ModelListing = toModelListing({ kind: "ok", models: [{ id: "next", effortLevels: ["low"], default: true }] });
+  const stored: FormValues = { model: { kind: "inherit" }, effort: "high" };
+  expect(codes(withEffort, stored, { mode: "edit", stored, models: moved })).toEqual([]);
+  const preset: FormValues = { model: { kind: "preset", id: "next" }, effort: "high" };
+  expect(codes(withEffort, preset, { mode: "edit", stored: preset, models: moved })).toEqual([]);
+  // A changed effort, or the same effort under a changed model, is checked as new.
+  expect(codes(withEffort, { ...stored, effort: "medium" }, { mode: "edit", stored, models: moved })).toEqual(["effort:effort_not_offered"]);
+  expect(codes(withEffort, { model: { kind: "preset", id: "next" }, effort: "high" }, { mode: "edit", stored, models: moved })).toEqual(["effort:effort_not_offered"]);
+});

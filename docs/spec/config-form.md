@@ -193,7 +193,9 @@ Two questions are kept apart:
 Which listing entry a model value runs as decides the effort it offers: a
 `preset` runs as its own entry; `inherit` runs as the entry marked
 `default: true`. With no entry marked default, the runtime's default model
-offers no effort (an unchanged stored one is preserved, as above). A listed
+offers no effort. An unchanged stored effort on an unchanged model is
+preserved whatever the listing now says, because the entry a model runs as
+can move (the runtime's default above all). A listed
 entry carrying `disabled` cannot be newly chosen (`model_disabled`); an
 unchanged stored one is preserved like an unlisted one.
 

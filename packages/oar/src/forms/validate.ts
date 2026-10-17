@@ -74,9 +74,10 @@ function checkEffort(field: EffortField, check: FieldCheck): IssueCode {
   if (entry?.effortLevels?.includes(check.value) === true) {
     return null;
   }
-  // Unknown levels offer nothing; only an unchanged stored effort on an unchanged model is kept.
+  // An unchanged stored effort on an unchanged model is kept, whatever the listing
+  // now says: the entry a model runs as (the runtime's default above all) can move.
   const { stored } = check;
-  const preserved = entry === undefined && stored !== undefined && stored[field.id] === check.value
+  const preserved = stored !== undefined && stored[field.id] === check.value
     && sameModel(stored[field.modelField], check.values[field.modelField]);
   return preserved ? null : "effort_not_offered";
 }
