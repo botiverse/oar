@@ -3,13 +3,14 @@ import type { ConfigField, ConfigIssue, LaunchValue, LaunchValues, RuntimeConfig
 import type { SessionOptions } from "../contracts/session-options.js";
 
 /** The `SessionOptions` members a form maps; everything else stays the host's. */
-export type FormSessionOptions = Partial<Pick<SessionOptions, "model" | "effort">>;
+export type FormSessionOptions = Partial<Pick<SessionOptions, "model" | "effort" | "serviceTier">>;
 
 /** What one field contributes to a launch. */
 type Contribution =
   | { readonly issue: ConfigIssue["code"] }
   | { readonly model: string }
   | { readonly effort: string }
+  | { readonly serviceTier: string }
   | { readonly unmapped: string | boolean }
   | { readonly secret: string }
   | Record<string, never>;
@@ -75,6 +76,10 @@ function contribution(field: ConfigField, value: LaunchValue | undefined): Contr
   if (field.kind === "effort") {
     return typeof value === "string" ? { effort: value } : { issue: "invalid_shape" };
   }
+  if (field.kind === "serviceTier") {
+    // Verbatim: a native tier id, or `default`, the explicit opt-out. Unset never gets here.
+    return typeof value === "string" ? { serviceTier: value } : { issue: "invalid_shape" };
+  }
   return { unmapped: value };
 }
 
@@ -87,7 +92,7 @@ function contribution(field: ConfigField, value: LaunchValue | undefined): Contr
  */
 export function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues): SessionMapping {
   const issues: ConfigIssue[] = unknownFieldIds(form, values).map((id) => ({ field: id, code: "unknown_field" }));
-  const options: { model?: string; effort?: string } = {};
+  const options: { model?: string; effort?: string; serviceTier?: string } = {};
   const unmapped: Record<string, string | boolean> = {};
   const secrets: Record<string, string> = {};
   for (const field of form.fields.filter((candidate) => isActive(candidate, values))) {
@@ -98,6 +103,8 @@ export function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues):
       options.model = part.model;
     } else if ("effort" in part) {
       options.effort = part.effort;
+    } else if ("serviceTier" in part) {
+      options.serviceTier = part.serviceTier;
     } else if ("unmapped" in part) {
       unmapped[field.id] = part.unmapped;
     } else if ("secret" in part) {

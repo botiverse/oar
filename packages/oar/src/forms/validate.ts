@@ -1,7 +1,8 @@
 import { asModelValue, isActive, isEmpty, sameModel, unknownFieldIds } from "./fields.js";
-import type { ConfigField, ConfigIssue, EffortField, FormValue, FormValues, ModelField, RuntimeConfigForm, SecretField, ValidationContext } from "./types.js";
+import type { ConfigField, ConfigIssue, EffortField, FormValue, FormValues, ModelField, RuntimeConfigForm, SecretField, ServiceTierField, ValidationContext } from "./types.js";
 import type { ModelEntry } from "../contracts/list-models.js";
 import { listedModels } from "./listing.js";
+import { serviceTierChoices } from "./service-tier.js";
 
 type IssueCode = ConfigIssue["code"] | null;
 
@@ -67,6 +68,21 @@ function runningEntry(value: FormValue | undefined, models: readonly ModelEntry[
   return runsAsDefault ? models.find((candidate) => candidate.default === true) : undefined;
 }
 
+/**
+ * Preservation for a value bound to a model field (effort, service tier): an
+ * unchanged stored value on an unchanged model is kept, whatever the listing
+ * now says, because the entry a model runs as (the runtime's default above all)
+ * can move. Both left empty is an unchanged model too (an empty model runs as
+ * the default).
+ */
+function keptOnSameModel(field: EffortField | ServiceTierField, check: FieldCheck): boolean {
+  const { stored } = check;
+  const storedModel = stored?.[field.modelField];
+  const model = check.values[field.modelField];
+  const modelUnchanged = sameModel(storedModel, model) || (isEmpty(storedModel) && isEmpty(model));
+  return stored !== undefined && stored[field.id] === check.value && modelUnchanged;
+}
+
 function checkEffort(field: EffortField, check: FieldCheck): IssueCode {
   const missing = presence(field, check.value);
   if (missing !== undefined) {
@@ -79,15 +95,23 @@ function checkEffort(field: EffortField, check: FieldCheck): IssueCode {
   if (entry?.effortLevels?.includes(check.value) === true) {
     return null;
   }
-  // An unchanged stored effort on an unchanged model is kept, whatever the listing
-  // now says: the entry a model runs as (the runtime's default above all) can move.
-  const { stored } = check;
-  const storedModel = stored?.[field.modelField];
-  const model = check.values[field.modelField];
-  // Both left empty is an unchanged model too (an empty model runs as the default).
-  const modelUnchanged = sameModel(storedModel, model) || (isEmpty(storedModel) && isEmpty(model));
-  const preserved = stored !== undefined && stored[field.id] === check.value && modelUnchanged;
-  return preserved ? null : "effort_not_offered";
+  return keptOnSameModel(field, check) ? null : "effort_not_offered";
+}
+
+/** Effort's rules for a tier: a new one must be offered by the entry the model value runs as (`serviceTierChoices`). */
+function checkServiceTier(field: ServiceTierField, check: FieldCheck): IssueCode {
+  const missing = presence(field, check.value);
+  if (missing !== undefined) {
+    return missing;
+  }
+  if (typeof check.value !== "string") {
+    return "invalid_shape";
+  }
+  const entry = runningEntry(check.values[field.modelField], check.models);
+  if (serviceTierChoices(entry).values.includes(check.value)) {
+    return null;
+  }
+  return keptOnSameModel(field, check) ? null : "service_tier_not_offered";
 }
 
 function secretKind(value: FormValue | undefined): string | undefined {
@@ -143,6 +167,9 @@ function checkField(field: ConfigField, check: FieldCheck): IssueCode {
   if (field.kind === "effort") {
     return checkEffort(field, check);
   }
+  if (field.kind === "serviceTier") {
+    return checkServiceTier(field, check);
+  }
   if (field.kind === "secret") {
     return checkSecret(field, check);
   }
@@ -151,10 +178,10 @@ function checkField(field: ConfigField, check: FieldCheck): IssueCode {
 
 /**
  * Validate submitted values (docs/spec/config-form.md, "Validation").
- * Preservation: on edit, a stored preset or effort is not rejected only because
- * the listing could not enumerate it. Launch validity (shape, declared modes and
- * options, required fields) applies to every value, stored or new. Inactive
- * branches are not checked for presence.
+ * Preservation: on edit, a stored preset, effort or service tier is not
+ * rejected only because the listing could not enumerate it. Launch validity
+ * (shape, declared modes and options, required fields) applies to every value,
+ * stored or new. Inactive branches are not checked for presence.
  */
 export function validateConfig(form: RuntimeConfigForm, values: FormValues, context: ValidationContext): readonly ConfigIssue[] {
   const unknown = unknownFieldIds(form, values).map((id): ConfigIssue => ({ field: id, code: "unknown_field" }));
