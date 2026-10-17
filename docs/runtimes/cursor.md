@@ -14,22 +14,23 @@ beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-Current required SDK: **1.0.37**, the exact optional peer version. Hosts
+Current required SDK: **1.0.38**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
-The pin matches CI and does not promise support for older SDKs. On
-2026-10-08 the native login/logout probe passed all 11 scenarios against a
-local substitute backend with other network access blocked; the public
-session, model and auth declarations remain compatible. The **1.0.37** live
-follow-up on the same day passed all 12 applicable session scenarios and
-all three root tool-selection scenarios
+The pin matches CI and does not promise support for older SDKs. The SDK
+also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
+On 2026-10-17 the native login/logout probe passed all 11 scenarios against
+a local substitute backend with other network access blocked. The
+**1.0.38** live check passed all 12 applicable session scenarios, with one
+focused abort recheck after the model shortened the original shell command,
+and all three root tool-selection scenarios
 (Linux x64, Node 24.19.0, `gpt-5.4-nano`), reusing an existing login.
 `kill-runtime` remains inapplicable. Abort and disposal during a turn ended
 as aborted, resume preserved the id/model/history, and both new and resumed
 restricted sessions denied shell/MCP while keeping read usable. See the
+[October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)
+for the original failure, recheck and usage limits, and the
 [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
-for the evidence and usage limits, and the
-[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md)
-for the previous 1.0.36 baseline.
+for the previous 1.0.37 baseline.
 
 ## Native concepts and calling interfaces
 
@@ -59,7 +60,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.37`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.38`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -224,8 +225,9 @@ SDK 1.0.38 clears the timer: the backgrounded shell is handed over with an
 tool-timeout case, the steer case, and `agent.close()` while a backgrounded
 `sleep 121` was still running: each process exited about one second after
 `agent.close()`, and no `sleep` was left. `agent.close()` aborted the
-backgrounded command. The peer dependency is still 1.0.37, so a host on it
-that is meant to end keeps exiting explicitly, as `oar run` does.
+backgrounded command. Hosts still on SDK 1.0.35 through 1.0.37 need to
+exit explicitly when meant to end. OAR now requires 1.0.38; `oar run`
+continues to exit explicitly after disposal.
 
 ### Observation, children, and history
 
@@ -493,7 +495,7 @@ warning when a backend has no `POST /auth/poll` (it falls back to `GET`) goes
 to the host's stderr, out of OAR's reach; it names the backend, not the
 verifier.
 
-The floor is `@cursor/sdk` 1.0.37, the exact peer dependency. An SDK handed
+The floor is `@cursor/sdk` 1.0.38, the exact peer dependency. An SDK handed
 over without `Cursor.auth` and `FileCredentialStore` makes the login
 `unsupported` / `version_unsupported` and the status `unknown`; an
 installation other than `bundled` is `unsupported_installation`, and an SDK
