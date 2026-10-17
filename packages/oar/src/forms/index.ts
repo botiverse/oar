@@ -10,6 +10,7 @@ export type * from "./types.js";
 export { toModelListing, listedModels, type ListingFailure } from "./listing.js";
 export { isActive } from "./fields.js";
 export { validateConfig } from "./validate.js";
+export { serviceTierChoices, type ServiceTierChoices } from "./service-tier.js";
 export { toSessionOptions, type FormSessionOptions, type SessionMapping } from "./map.js";
 
 /** Every runtime with a migrated form, by `Runtime.id`. A runtime without one has no entry. */

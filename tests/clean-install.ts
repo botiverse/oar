@@ -137,6 +137,8 @@ const listing = forms.toModelListing({ kind: "ok", models: [{ id: "grok-4", effo
 assert.deepEqual(forms.validateConfig(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" }, { mode: "create", models: listing }), []);
 assert.deepEqual(forms.toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" }),
   { ok: true, options: { model: "grok-4", effort: "high" }, unmapped: {}, secrets: {} });
+assert.deepEqual(forms.serviceTierChoices({ id: "gpt", serviceTiers: ["priority"], defaultServiceTier: "priority" }),
+  { values: ["default", "priority"], whenUnset: "priority" });
 assert.deepEqual(Object.getOwnPropertyNames(globalThis).filter((name) => !before.has(name)), [], "forms wrote a global");
 assert.equal(process.getActiveResourcesInfo().length, resources, "forms left something running");
 `;
