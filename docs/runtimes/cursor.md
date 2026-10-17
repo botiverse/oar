@@ -204,23 +204,28 @@ closes the agent, and answers the dispose request `accepted`: an in-process
 runtime has no exit to observe (`dispose-mid-turn`). The agent's stored
 conversation is kept.
 
-**Backgrounded shells hold the host process (native):** when a shell call
-moves to the background (a steer, or the call's own `timeout`), the SDK arms
-a 24 hour hard timeout for it that no later path clears, neither the
-command's end nor `agent.close()` (the shell executor's `hardTimeout` in the
-bundled `689.js`). The timer is not unref'd, so after such a turn the host
-process does not exit on its own, even with every session disposed; a host
-meant to end exits explicitly, as `oar run` does. Probed on SDK 1.0.35
-(2026-10-04): a `sleep 20` that a 3 second tool timeout moved to the
+**Backgrounded shells held the host process before SDK 1.0.38 (native):** when
+a shell call moves to the background (a steer, or the call's own `timeout`),
+SDK 1.0.35 to 1.0.37 arm a 24 hour hard timeout for it that no later path
+clears, neither the command's end nor `agent.close()` (the shell executor's
+`hardTimeout`, in the bundled `689.js`, `867.js` and `464.js` of those
+versions). The timer is not unref'd, so after such a turn the host process
+does not exit on its own, even with every session disposed. Probed on SDK
+1.0.35 (2026-10-04): a `sleep 20` that a 3 second tool timeout moved to the
 background left one 86400000 ms timer, and `oar run` was still running 150
-seconds after `[turn completed]` until it exited explicitly. SDK 1.0.36
-(checked 2026-10-06) has the same code, in a bundle file renamed `867.js`,
-and so does 1.0.37 (checked 2026-10-08, `464.js`: the backgrounded branch
-still skips `clearTimeout` and hands the timer to no one).
-Reported upstream on 2026-10-07
+seconds after `[turn completed]` until it exited explicitly. Reported upstream
+on 2026-10-07
 ([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928));
-Cursor reproduced it the same day, called it unintended, and named exiting
-explicitly after `agent.close()` as the workaround until a fix.
+Cursor reproduced it the same day and called it unintended.
+
+SDK 1.0.38 clears the timer: the backgrounded shell is handed over with an
+`onCleanup` that clears it, called when the command completes or is aborted
+(`748.js`). Live on 1.0.38 (2026-10-17, model `gpt-5.4-nano`), with the
+tool-timeout case, the steer case, and `agent.close()` while a backgrounded
+`sleep 121` was still running: each process exited about one second after
+`agent.close()`, and no `sleep` was left. `agent.close()` aborted the
+backgrounded command. The peer dependency is still 1.0.37, so a host on it
+that is meant to end keeps exiting explicitly, as `oar run` does.
 
 ### Observation, children, and history
 
