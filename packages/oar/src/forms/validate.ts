@@ -53,13 +53,18 @@ function checkModel(field: ModelField, check: FieldCheck): IssueCode {
   return entry === undefined ? "model_not_listed" : "model_disabled";
 }
 
-/** The listing entry a model value runs as: the named preset, or the entry marked default for `inherit`. */
+/**
+ * The listing entry a model value runs as: the named preset, or the entry
+ * marked default for `inherit` and for an empty (optional) model, which
+ * launches exactly like `inherit`.
+ */
 function runningEntry(value: FormValue | undefined, models: readonly ModelEntry[]): ModelEntry | undefined {
   const model = asModelValue(value);
   if (model?.kind === "preset") {
     return models.find((candidate) => candidate.id === model.id);
   }
-  return model?.kind === "inherit" ? models.find((candidate) => candidate.default === true) : undefined;
+  const runsAsDefault = model?.kind === "inherit" || isEmpty(value);
+  return runsAsDefault ? models.find((candidate) => candidate.default === true) : undefined;
 }
 
 function checkEffort(field: EffortField, check: FieldCheck): IssueCode {

@@ -192,7 +192,8 @@ Two questions are kept apart:
 
 Which listing entry a model value runs as decides the effort it offers: a
 `preset` runs as its own entry; `inherit` runs as the entry marked
-`default: true`. With no entry marked default, the runtime's default model
+`default: true`, and so does an optional model left empty, which launches
+exactly like `inherit` (the runtime's default). With no entry marked default, the runtime's default model
 offers no effort. An unchanged stored effort on an unchanged model is
 preserved whatever the listing now says, because the entry a model runs as
 can move (the runtime's default above all). A listed
@@ -356,7 +357,8 @@ it can drop model modes or select options and make an optional field
 required, never add a mode, option or field. Its narrowed form must still
 satisfy `modes ⊆ launchModes`. It keeps the OAR form's modes as the
 narrowed field's `launchModes`, so a stored value the host no longer offers
-is still preserved on edit and still launches.
+is still preserved on edit and still launches. Labels and hints are display
+copy, not value semantics: a host may replace them.
 
 ### Stored values and launch
 

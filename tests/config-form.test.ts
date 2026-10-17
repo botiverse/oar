@@ -272,3 +272,18 @@ test("an unchanged stored effort is kept even when the entry its model runs as n
   expect(codes(withEffort, { ...stored, effort: "medium" }, { mode: "edit", stored, models: moved })).toEqual(["effort:effort_not_offered"]);
   expect(codes(withEffort, { model: { kind: "preset", id: "next" }, effort: "high" }, { mode: "edit", stored, models: moved })).toEqual(["effort:effort_not_offered"]);
 });
+
+test("an optional model left empty runs as the runtime's default, so its effort reads the default entry like inherit", () => {
+  const optional: RuntimeConfigForm = {
+    protocol: 1, runtime: "test", fields: [
+      { id: "model", kind: "model", modes: ["inherit", "preset", "custom"], required: false, label: { key: "k", en: "Model" } },
+      { id: "effort", kind: "effort", modelField: "model", required: false, label: { key: "k", en: "Effort" } },
+    ],
+  };
+  expect(codes(optional, { effort: "high" }, { mode: "create", models: withDefault })).toEqual([]);
+  expect(codes(optional, { model: null, effort: "high" }, { mode: "create", models: withDefault })).toEqual([]);
+  expect(codes(optional, { effort: "ultra" }, { mode: "create", models: withDefault })).toEqual(["effort:effort_not_offered"]);
+  // Same answer as inherit, and the same launch: no model.
+  expect(codes(optional, { model: { kind: "inherit" }, effort: "high" }, { mode: "create", models: withDefault })).toEqual([]);
+  expect(toSessionOptions(optional, { effort: "high" })).toEqual({ ok: true, options: { effort: "high" }, unmapped: {}, secrets: {} });
+});
