@@ -1,9 +1,9 @@
 import type { RuntimeConfigForm } from "../types.js";
 
 /**
- * Grok's form: a listed model (no default, no typed id, as Raft offers today)
- * and the reasoning effort the chosen model lists. A launch also accepts what
- * Raft's driver accepts today (`launchModes`).
+ * Grok's form, as the runtime accepts it: its own default model, a listed
+ * model or a typed id, and the reasoning effort the chosen model lists. A host
+ * that offers less narrows this form itself.
  */
 export const grokConfigForm: RuntimeConfigForm = {
   protocol: 1,
@@ -12,11 +12,8 @@ export const grokConfigForm: RuntimeConfigForm = {
     {
       id: "model",
       kind: "model",
-      modes: ["preset"],
-      // Raft's Grok driver launches a stored typed model (older column-only rows
-      // hydrate as custom) and "default" as the runtime's own default.
-      launchModes: ["inherit", "preset", "custom"],
-      required: true,
+      modes: ["inherit", "preset", "custom"],
+      required: false,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
       hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
     },
@@ -32,8 +29,8 @@ export const grokConfigForm: RuntimeConfigForm = {
 };
 
 /**
- * The form a machine that sends no capability report gets: frozen in the
- * migration that moved Grok's form into OAR and never changed afterwards.
+ * The form a machine that sends no capability report gets: frozen at the
+ * first release that carries Grok's form and never changed afterwards.
  * A separate literal on purpose: editing `grokConfigForm` must not change what
  * old daemons receive (tests pin this copy).
  */
@@ -44,11 +41,8 @@ export const grokBaselineForm: RuntimeConfigForm = {
     {
       id: "model",
       kind: "model",
-      modes: ["preset"],
-      // Raft's Grok driver launches a stored typed model (older column-only rows
-      // hydrate as custom) and "default" as the runtime's own default.
-      launchModes: ["inherit", "preset", "custom"],
-      required: true,
+      modes: ["inherit", "preset", "custom"],
+      required: false,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
       hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
     },

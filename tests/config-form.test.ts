@@ -90,13 +90,13 @@ test("toModelListing: not enumerated is a status with a reason, never an empty l
     .toEqual({ status: "fallback", source: "bundled", reason: "unsupported", models: [{ id: "bundled" }] });
 });
 
-// The baseline old daemons receive is frozen at migration: pinned here, not derived from configForm.
+// The baseline old daemons receive is frozen at the first release: pinned here, not derived from configForm.
 const GROK_BASELINE_AT_MIGRATION: RuntimeConfigForm = {
   protocol: 1,
   runtime: "grok",
   fields: [
     {
-      id: "model", kind: "model", modes: ["preset"], launchModes: ["inherit", "preset", "custom"], required: true,
+      id: "model", kind: "model", modes: ["inherit", "preset", "custom"], required: false,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
       hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
     },
@@ -109,26 +109,35 @@ const GROK_BASELINE_AT_MIGRATION: RuntimeConfigForm = {
 };
 
 // Never edit GROK_BASELINE_AT_MIGRATION: it is what old daemons receive, forever.
-test("Grok's baseline is its own frozen copy, pinned to the form at migration", () => {
+test("Grok's baseline is its own frozen copy, pinned to the form at its first release", () => {
   expect(baselineForms.grok).toEqual(GROK_BASELINE_AT_MIGRATION);
   // A separate object: editing configForm must not reach old daemons.
   expect(baselineForms.grok).not.toBe(grok);
 });
 
-// Migration-only: delete this test when Grok's form legitimately changes; never
-// "fix" it by editing the baseline constant above.
-test("migration: Grok's configForm still equals the form Raft serves today", () => {
-  expect(grok).toEqual(GROK_BASELINE_AT_MIGRATION);
-});
-
-test("create: a preset must be listed; Grok offers no default and no typed id", () => {
+test("Grok's form states what the runtime accepts: its default, a listed model, a typed id; none required", () => {
+  expect(codes(grok, {}, { mode: "create", models: live })).toEqual([]);
+  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "create", models: live })).toEqual([]);
+  expect(codes(grok, { model: { kind: "custom", name: "grok-x" } }, { mode: "create", models: live })).toEqual([]);
   expect(codes(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" }, { mode: "create", models: live })).toEqual([]);
   expect(codes(grok, { model: { kind: "preset", id: "gone" } }, { mode: "create", models: live })).toEqual(["model:model_not_listed"]);
-  expect(codes(grok, { model: { kind: "preset", id: "grok-4" } }, { mode: "create", models: unavailable })).toEqual(["model:model_not_listed"]);
-  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
-  expect(codes(grok, { model: { kind: "custom", name: "x" } }, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
-  expect(codes(grok, {}, { mode: "create", models: live })).toEqual(["model:required"]);
-  expect(codes(grok, { model: { kind: "preset", id: "grok-4" }, extra: "x" }, { mode: "create", models: live })).toEqual(["extra:unknown_field"]);
+});
+
+// A host's narrowing of Grok's form (preset only, required), as Raft serves it:
+// the preservation and launch rules below are about a form narrower than its launch.
+const narrowed: RuntimeConfigForm = {
+  ...grok,
+  fields: grok.fields.map((field) => field.kind === "model" ? { ...field, modes: ["preset"], launchModes: field.modes, required: true } : field),
+};
+
+test("create on a narrowed form: a preset must be listed; no default and no typed id", () => {
+  expect(codes(narrowed, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" }, { mode: "create", models: live })).toEqual([]);
+  expect(codes(narrowed, { model: { kind: "preset", id: "gone" } }, { mode: "create", models: live })).toEqual(["model:model_not_listed"]);
+  expect(codes(narrowed, { model: { kind: "preset", id: "grok-4" } }, { mode: "create", models: unavailable })).toEqual(["model:model_not_listed"]);
+  expect(codes(narrowed, { model: { kind: "inherit" } }, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
+  expect(codes(narrowed, { model: { kind: "custom", name: "x" } }, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
+  expect(codes(narrowed, {}, { mode: "create", models: live })).toEqual(["model:required"]);
+  expect(codes(narrowed, { model: { kind: "preset", id: "grok-4" }, extra: "x" }, { mode: "create", models: live })).toEqual(["extra:unknown_field"]);
 });
 
 test("effort: only what the chosen model lists; unknown levels offer nothing", () => {
@@ -139,26 +148,25 @@ test("effort: only what the chosen model lists; unknown levels offer nothing", (
 
 test("edit: an unlisted stored value is preserved; a new one is not; launch rules still apply", () => {
   const stored: FormValues = { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" };
-  expect(codes(grok, stored, { mode: "edit", stored, models: unavailable })).toEqual([]);
-  expect(codes(grok, { model: { kind: "preset", id: "grok-5" } }, { mode: "edit", stored, models: unavailable })).toEqual(["model:model_not_listed"]);
-  expect(codes(grok, { ...stored, reasoningEffort: "low" }, { mode: "edit", stored, models: unavailable })).toEqual(["reasoningEffort:effort_not_offered"]);
+  expect(codes(narrowed, stored, { mode: "edit", stored, models: unavailable })).toEqual([]);
+  expect(codes(narrowed, { model: { kind: "preset", id: "grok-5" } }, { mode: "edit", stored, models: unavailable })).toEqual(["model:model_not_listed"]);
+  expect(codes(narrowed, { ...stored, reasoningEffort: "low" }, { mode: "edit", stored, models: unavailable })).toEqual(["reasoningEffort:effort_not_offered"]);
   // A stored default the form no longer offers is kept unchanged (its launch mode is accepted)…
-  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "edit", stored: { model: { kind: "inherit" } }, models: unavailable })).toEqual([]);
+  expect(codes(narrowed, { model: { kind: "inherit" } }, { mode: "edit", stored: { model: { kind: "inherit" } }, models: unavailable })).toEqual([]);
   // …but an edit cannot switch to it.
-  expect(codes(grok, { model: { kind: "inherit" } }, { mode: "edit", stored, models: unavailable })).toEqual(["model:mode_not_allowed"]);
+  expect(codes(narrowed, { model: { kind: "inherit" } }, { mode: "edit", stored, models: unavailable })).toEqual(["model:mode_not_allowed"]);
 });
 
 test("edit: an unchanged stored typed model the form no longer offers is kept; a new one or a change is not", () => {
   const stored: FormValues = { model: { kind: "custom", name: "grok-4" } };
-  expect(codes(grok, stored, { mode: "edit", stored, models: live })).toEqual([]);
-  expect(codes(grok, { model: { kind: "custom", name: "grok-9" } }, { mode: "edit", stored, models: live })).toEqual(["model:mode_not_allowed"]);
-  expect(codes(grok, stored, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
+  expect(codes(narrowed, stored, { mode: "edit", stored, models: live })).toEqual([]);
+  expect(codes(narrowed, { model: { kind: "custom", name: "grok-9" } }, { mode: "edit", stored, models: live })).toEqual(["model:mode_not_allowed"]);
+  expect(codes(narrowed, stored, { mode: "create", models: live })).toEqual(["model:mode_not_allowed"]);
 });
 
 test("toSessionOptions maps Grok's model and effort, and refuses rather than drops", () => {
   expect(toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" })).toEqual({ ok: true, options: { model: "grok-4", effort: "high" }, unmapped: {}, secrets: {} });
   expect(toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" } })).toEqual({ ok: true, options: { model: "grok-4" }, unmapped: {}, secrets: {} });
-  // launchModes: what Raft's driver launches today, wider than what the form offers.
   expect(toSessionOptions(grok, { model: { kind: "custom", name: "grok-4" } })).toEqual({ ok: true, options: { model: "grok-4" }, unmapped: {}, secrets: {} });
   expect(toSessionOptions(grok, { model: { kind: "inherit" } })).toEqual({ ok: true, options: {}, unmapped: {}, secrets: {} });
   expect(toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" }, fast: true })).toEqual({ ok: false, issues: [{ field: "fast", code: "unknown_field" }] });

@@ -336,8 +336,18 @@ freezes their behavior for it. Two consequences:
 
 - A change to how those functions interpret an existing form is a protocol
   change: it bumps `protocol`, and the baseline keeps the old one.
-- The baseline equals what Raft serves today, so fixture equality
-  (Migration, item 1) pins it at birth; a test pins it afterwards.
+- The baseline states what the runtime accepts, like every OAR form; it is
+  frozen at the first release that carries it, and a test pins it afterwards.
+
+### Host narrowing
+
+A form states what the runtime accepts, not what one host chooses to offer.
+A host that offers less narrows the form on its side, and may only narrow:
+it can drop model modes or select options and make an optional field
+required, never add a mode, option or field. Its narrowed form must still
+satisfy `modes ⊆ launchModes`. It keeps the OAR form's modes as the
+narrowed field's `launchModes`, so a stored value the host no longer offers
+is still preserved on edit and still launches.
 
 ### Stored values and launch
 
@@ -434,9 +444,10 @@ existing code. They are kept out of the migration pull requests:
 
 - **Migration pull requests run in `legacy` only.** Until the daemon sends
   capability reports, every machine is `legacy`, so the host serves the
-  runtime's `baselineForm`, which is frozen to equal what Raft serves today.
-  That is why fixture equality (Migration, item 1) can hold: no new state,
-  outcome or error reaches a client in these pull requests.
+  runtime's `baselineForm`, narrowed by the host (Host narrowing) to what
+  Raft serves today. That is why fixture equality (Migration, item 1) can
+  hold: no new state, outcome or error reaches a client in these pull
+  requests.
 - **Turning the states on is its own pull request** (daemon reporting plus
   the host's use of it), reviewed as a behavior change. It maps each new
   state onto what the v2 protocol and today's clients already show, and adds
