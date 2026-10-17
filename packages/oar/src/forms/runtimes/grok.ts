@@ -15,7 +15,7 @@ export const grokConfigForm: RuntimeConfigForm = {
       modes: ["inherit", "preset", "custom"],
       required: false,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
-      hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
+      hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI. A typed model id the CLI does not know fails when the agent starts." },
     },
     {
       id: "reasoningEffort",
@@ -44,7 +44,7 @@ export const grokBaselineForm: RuntimeConfigForm = {
       modes: ["inherit", "preset", "custom"],
       required: false,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
-      hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
+      hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI. A typed model id the CLI does not know fails when the agent starts." },
     },
     {
       id: "reasoningEffort",

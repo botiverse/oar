@@ -98,7 +98,7 @@ const GROK_BASELINE_AT_MIGRATION: RuntimeConfigForm = {
     {
       id: "model", kind: "model", modes: ["inherit", "preset", "custom"], required: false,
       label: { key: "runtime_form.grok.model.label", en: "Model" },
-      hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI." },
+      hint: { key: "runtime_form.grok.model.hint", en: "Models available from this computer's Grok CLI. A typed model id the CLI does not know fails when the agent starts." },
     },
     {
       id: "reasoningEffort", kind: "effort", modelField: "model", required: false,
