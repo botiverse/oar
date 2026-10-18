@@ -65,7 +65,7 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
     }
     const { auth } = sdk.Cursor;
     if (auth === undefined) {
-      return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.0.37" };
+      return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.0.38" };
     }
     const status = await readCursorAuthStatus(auth, options.timeoutMs);
     return status;

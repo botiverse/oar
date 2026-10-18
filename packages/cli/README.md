@@ -16,7 +16,7 @@ oar run claude "What does this repo do?"
 ## Commands
 
 The registered runtimes are OAR's `defaultRuntimes` plus cursor, which the
-CLI adds itself on the `@cursor/sdk` 1.0.37 it depends on
+CLI adds itself on the `@cursor/sdk` 1.0.38 it depends on
 (`src/runtimes.ts`). Commands that take an optional `[runtime]` cover every
 registered runtime when it is omitted (or `all`). A runtime whose probe or
 read fails (a timeout, a network error) reports its `error` in place of a
@@ -94,8 +94,8 @@ The repo is a pnpm workspace...
 The exit code is 0 only when the turn completed. The first Ctrl-C interrupts
 the turn and exits 130; a second one disposes the session at once. The
 process ends at most a second after the session is disposed, even when a
-runtime left a handle behind (`@cursor/sdk` 1.0.35 keeps a 24 hour timer
-for each shell call it moves to the background; `src/exit.ts`).
+runtime left a handle behind (`@cursor/sdk` 1.0.35 to 1.0.37 kept a 24 hour
+timer for each shell call they moved to the background; `src/exit.ts`).
 
 Flags:
 
