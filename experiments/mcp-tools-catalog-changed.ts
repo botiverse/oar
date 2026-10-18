@@ -14,7 +14,9 @@
  *
  * Observed 2026-10-16: OpenCode 2.0.30 relists, announces beta and
  * withdraws alpha in a system update. Only the initial alpha and the later
- * beta reach the handlers. Antigravity 1.4.0 was observed on 2026-10-14.
+ * beta reach the handlers. Antigravity 1.4.1, rechecked 2026-10-18, replaces
+ * alpha with beta in systemInstruction; removed alpha reaches tools/call
+ * but no host handler. Antigravity 1.4.0 was observed on 2026-10-14.
  *
  * Catalog evidence and handler calls are separate: executing an unlisted tool does not prove
  * that the model was offered it. The loopback proxy supplies only the

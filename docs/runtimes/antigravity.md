@@ -24,6 +24,14 @@ The current adapter uses the 1.4.0 metadata namespace; upgrade the server
 and companion harness together. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
+**1.4.1 recheck (2026-10-18):** the paired server and harness passed nine
+native tests and 15 shared session cases against a local scripted provider.
+Append/effort on resume and MCP catalog replacement still work. MCP entry
+values still persist in the conversation database; its file permissions
+depend on the inherited umask, not a fixed `0600` guarantee. No adapter
+change was needed. See the [dated report](../../experiments/runtime-version-checks/2026-10-18.md)
+for the controlled permissions comparison and untested authentication paths.
+
 ## Native concepts and calling interfaces
 
 A native session is a persistent conversation with an id, a working
@@ -383,7 +391,8 @@ names that `.par`):
 **Entries carrying credentials are refused.** Antigravity stores a session's
 `mcpServers`, `env` and header values included, in plain text in its
 conversation database `$GEMINI_HOME/antigravity-acp/conversations/<sessionId>.db`
-(mode 0600; measured: a stdio entry's `env` token in the `-wal` file). The
+(measured: a stdio entry's `env` token in the `-wal` file; file modes depend
+on the inherited umask, as rechecked below). The
 file outlives the session, a resume does not reuse what it stored, and a
 host can neither see nor clear it through ACP, while credentials may reach a
 runtime only through its native channel, never its disk. So an entry with a
@@ -406,6 +415,14 @@ WAL, mode `0600`, after process disposal. The
 [native settings probe](../../experiments/antigravity-native-settings.ts)
 reproduces this in a temporary home and removes it afterward. The
 `mcpServerCredentials` refusal therefore remains unchanged.
+
+**Rechecked on 1.4.1 (2026-10-18):** both sentinels still persist in the
+database and WAL. With inherited umask `0022`, both files were `0644`;
+with `0077`, both were `0600`. A 1.4.0 control under the same `0022`
+environment also produced `0644`, so this is not a new 1.4.1 regression.
+The earlier `0600` observation is not a runtime-enforced permission
+guarantee. The probe now reports the umask and home mode with the file
+modes; OAR's credential refusal is unchanged.
 
 ### Process ownership, installation, and account usage
 
@@ -474,11 +491,11 @@ command; OAR kills after ten seconds); child attribution (the transport
 carries none); any usage or context report; the permission path through OAR;
 `session/list` and `session/load`; unknown resume ids; a resume naming another
 directory ([not measured](resume-cwd.md)); concurrent same-id controllers;
-macOS and Windows installation; real-account runs on 1.4.0;
+macOS and Windows installation; real-account runs on 1.4.1;
 [session MCP servers](#session-mcp-servers) on a real login and model and on
-1.2.1 (measured on 1.3.0 and 1.4.0 against a scripted provider; their vendor
+1.2.1 (measured on 1.3.0, 1.4.0 and 1.4.1 against a scripted provider; their vendor
 test runs locally, `OAR_TEST=antigravity-aimock`, not in CI). Credential
-persistence remains confirmed on 1.4.0, so entries with `env` or `headers`
+persistence remains confirmed on 1.4.1, so entries with `env` or `headers`
 are refused. Keep native
 API capabilities, transport limitations, OAR omissions and unexecuted checks
 separate when designing or claiming support.

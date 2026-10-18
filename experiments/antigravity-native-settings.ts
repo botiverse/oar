@@ -5,10 +5,12 @@
  * dummy Gemini credentials, a local scripted provider and local MCP servers.
  * Deliberately bypasses OAR's MCP credential refusal with harmless sentinels.
  *
- * Observed 1.4.0, 2026-10-14: append reaches systemInstruction on new/resume;
+ * Observed 1.4.1, 2026-10-18: append reaches systemInstruction on new/resume;
  * omitting it on resume clears it. thinking_level low/high reaches the
  * provider; plain resume chose high after low. Model ids are grouped families.
- * MCP env/header sentinels remain in the conversation database and WAL (0600).
+ * MCP env/header sentinels remain in the conversation database and WAL.
+ * Report the inherited umask (Linux) and temporary home mode alongside file modes;
+ * the previously observed 0600 is not a runtime-enforced guarantee.
  * The temporary home and all its data are removed on exit.
  */
 /* oxlint-disable eslint/no-await-in-loop, typescript/promise-function-async -- Ordered native RPCs and directory traversal; deadline callbacks return SDK promises. */
@@ -28,6 +30,13 @@ const envSentinel = "OAR_FAKE_ENV_140_8238";
 const headerSentinel = "OAR_FAKE_HEADER_140_9741";
 const firstAppend = "OAR_APPEND_NEW_140";
 const nextAppend = "OAR_APPEND_RESUME_140";
+
+/** Read Linux's reported value without process.umask()'s process-wide mutation. */
+async function inheritedUmask(): Promise<string | undefined> {
+  if (process.platform !== "linux") { return undefined; }
+  const status = await readFile("/proc/self/status", "utf8");
+  return /^Umask:\s+(?<mask>[0-7]+)$/mu.exec(status)?.groups?.mask;
+}
 
 async function storedCredentials(directory: string): Promise<readonly object[]> {
   const found: object[] = [];
@@ -113,7 +122,9 @@ try {
   await request("session/resume", { sessionId, cwd: nativeHome, mcpServers: [] });
   const omitted = await prompt(sessionId);
   await stop();
+  const homeInfo = await stat(nativeHome);
   console.log(JSON.stringify({
+    umask: await inheritedUmask(), homeMode: (homeInfo.mode & 0o777).toString(8),
     capabilities: initialized.agentCapabilities,
     configOptions, menus,
     low: low.configOptions, resumed: resumed.configOptions, high: high.configOptions,
