@@ -1,8 +1,8 @@
-import type { RefusedSessionOptions } from "../../contracts/runtime.js";
+import type { RefusedSessionOptions, SessionOptions } from "../../contracts/index.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
-import type { SessionOptions } from "../../contracts/session.js";
 import { piCredentialExtension, rememberPiKey } from "./credentials.js";
 import { preparePi } from "./static-modules.js";
 import { disposePiAgentSession } from "./lifecycle.js";
@@ -199,10 +199,21 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     // Extra builtins (grep/find/ls) and default-inactive extension tools stay
     // inactive; Pi still applies this open's excludeTools and exposure rules.
     const defaults = settingsManager.getDefaultTools() ?? sdk.createCodingTools(options.cwd).map((tool) => tool.name);
-    const extensions = session.getAllTools().filter((tool) =>
+    const registered = session.getAllTools();
+    const extensions = registered.filter((tool) =>
       tool.sourceInfo.path !== `builtin:${tool.name}`
       && session.getToolDefinition(tool.name)?.defaultActive !== false
       && (tool.exposure === "direct" || tool.exposure === "model-only"));
+    // Pi keeps unregistered transcript names pending until registration.
+    // Its public setter clears those only when it deactivates an active tool.
+    // Activate the registry first so even an empty default set clears them,
+    // before session_start can register a default-inactive pending tool.
+    session.setActiveToolsByName(registered.map((tool) => tool.name));
+    if (session.getActiveToolNames().length === 0) {
+      session.dispose();
+      throw new UnsupportedOptionError("resume", "pi cannot reset restored pending tools on resume: no registered tool can be activated to clear them; open a new session instead");
+    }
+    session.setActiveToolsByName([]);
     session.setActiveToolsByName([...defaults, ...extensions.map((tool) => tool.name)]);
   }
   // Read back rather than trust the request: the model record is the

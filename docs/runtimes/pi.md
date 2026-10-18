@@ -849,11 +849,26 @@ still apply, and extension startup callbacks may change the selection.
 Default-inactive tools are not enabled. Omitting the denylist or passing an
 empty list therefore does not retain an earlier open's exclusions.
 
+Before binding extensions, OAR also clears restored names that Pi keeps
+pending until a tool registers, so a late registration cannot reactivate
+a tool merely because it was active in the transcript. This uses Pi's
+public setter to activate registered tools, deactivate them (which clears
+pending names), and then apply the current defaults. If no registered tool
+can be activated, Pi exposes no public way to clear pending names: OAR
+disposes the session and rejects resume with `UnsupportedOptionError`
+(`option: "resume"`). Opening a new session remains available. An empty
+`defaultTools` list alone does not trigger this refusal if the registry
+still contains an activatable tool.
+
 An unmatched native name such as `NoSuchTool` is accepted silently and
 disables nothing. Neither Pi nor OAR reports that no tool matched; this
 option does not validate names against the current registry.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
+The [resume regression](../../sea-trial/vendor/pi-resume-tools.vendor.test.ts)
+compares native active tool names after `session_start`, before any prompt
+can clear pending names; it also checks that deliberate extension selections
+survive and that an impossible reset fails before extension binding.
 
 ## Launch arguments
 
