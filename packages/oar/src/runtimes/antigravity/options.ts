@@ -8,10 +8,11 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   additionalDirectories: "antigravity accepts but ignores ACP additionalDirectories",
   serviceTier: "antigravity exposes no verified per-session service-tier setting and readback",
   systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
-  // agy_acp_server 1.4.0 writes a session's `mcpServers`, `env` and `headers`
+  // agy_acp_server 1.4.0 and 1.4.1 write a session's `mcpServers`, `env` and `headers`
   // values included, in plain text into its conversation database
-  // (`$GEMINI_HOME/antigravity-acp/conversations/<id>.db`, 0600), which
-  // outlives the session and which a host cannot see or clear through ACP;
+  // (`$GEMINI_HOME/antigravity-acp/conversations/<id>.db`), whose permissions
+  // follow the inherited umask. The database outlives the session and a host
+  // cannot see or clear it through ACP;
   // credentials reach a runtime only through its native channel, never its
   // disk. An entry without `env` or `headers` attaches as usual.
   mcpServerCredentials: "antigravity stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers",
