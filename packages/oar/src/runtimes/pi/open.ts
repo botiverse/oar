@@ -210,8 +210,15 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
     // before session_start can register a default-inactive pending tool.
     session.setActiveToolsByName(registered.map((tool) => tool.name));
     if (session.getActiveToolNames().length === 0) {
-      session.dispose();
-      throw new UnsupportedOptionError("resume", "pi cannot reset restored pending tools on resume: no registered tool can be activated to clear them; open a new session instead");
+      // A tool-free transcript needs no reset. Fold it with Pi's own public
+      // helper, then omit registered and explicitly excluded names. Pattern
+      // exclusions are left conservative rather than duplicating Pi's matcher.
+      const { getCurrentTools } = await import("@earendil-works/pi-ai");
+      const known = new Set([...registered.map((tool) => tool.name), ...(options.disallowedTools ?? [])]);
+      if (getCurrentTools(sessionManager.buildSessionContext().messages).some((tool) => !known.has(tool.name))) {
+        session.dispose();
+        throw new UnsupportedOptionError("resume", "pi cannot reset restored pending tools on resume: transcript has unregistered tool names but no registered tool can be activated to clear them; open a new session instead");
+      }
     }
     session.setActiveToolsByName([]);
     session.setActiveToolsByName([...defaults, ...extensions.map((tool) => tool.name)]);

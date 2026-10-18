@@ -38,7 +38,7 @@ async function fixture(extension: string, emptyDefaults: boolean) {
       sessions.push(session);
       return session;
     },
-    async savedTools(names: readonly string[]) {
+    async savedTools(names: readonly string[], removed: readonly string[] = []) {
       const { SessionManager } = await import("@earendil-works/pi-coding-agent");
       const saved = SessionManager.create(cwd, piSessionDir(cwd, agentDir));
       saved.appendMessage({ role: "user", content: [{ type: "text", text: "previous turn" }], timestamp: Date.now() });
@@ -46,6 +46,9 @@ async function fixture(extension: string, emptyDefaults: boolean) {
         role: "system", content: "", timestamp: Date.now(),
         toolsAdded: names.map((name) => ({ name, description: name, parameters: { type: "object", properties: {} } })),
       });
+      if (removed.length > 0) {
+        saved.appendMessage({ role: "system", content: "", timestamp: Date.now(), toolsRemoved: removed.map((name) => ({ name })) });
+      }
       return saved.getSessionId();
     },
     cwd,
@@ -69,8 +72,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi resumed tool selection
       const fresh = await setup.open();
       const resume = await setup.savedTools(emptyDefaults ? ["inactive_probe"] : ["read", "inactive_probe"]);
       const resumed = await setup.open({ resume });
-      // openPiAgentSession has awaited session_start. Prompting here would
-      // clear native pending names and miss the pre-turn regression (#432).
+      // openPiAgentSession has awaited session_start. Check open state here;
+      // the provider-request regression below also covers the first turn.
       expect(fresh.getAllTools().map((tool) => tool.name)).toContain("inactive_probe");
       expect(resumed.getAllTools().map((tool) => tool.name)).toContain("inactive_probe");
       const expected = emptyDefaults ? [] : ["bash", "edit", "read", "write"];
@@ -119,7 +122,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi resumed tool selection
         await expect(opening).rejects.toBeInstanceOf(UnsupportedOptionError);
         await expect(opening).rejects.toMatchObject({
           option: "resume",
-          message: "pi cannot reset restored pending tools on resume: no registered tool can be activated to clear them; open a new session instead",
+          message: "pi cannot reset restored pending tools on resume: transcript has unregistered tool names but no registered tool can be activated to clear them; open a new session instead",
         });
         expect(bind).not.toHaveBeenCalled();
         expect(dispose).toHaveBeenCalledOnce();
@@ -129,6 +132,45 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi resumed tool selection
         const [result] = await Promise.allSettled([opening]);
         if (result.status === "fulfilled") { await result.value.dispose(); }
       }
+    } finally { await setup.stop(); }
+  });
+
+  test("a tool-free conversation can resume after its first turn", async () => {
+    const setup = await fixture("", false);
+    try {
+      const options = { disallowedTools: builtins };
+      const fresh = await setup.open(options);
+      expect(fresh.getAllTools()).toEqual([]);
+      expect(fresh.getActiveToolNames()).toEqual([]);
+      await fresh.prompt("Reply with TOOL_LOADOUT_OK.");
+      expect(setup.raw).toHaveLength(1);
+      fresh.dispose();
+      const resumed = await setup.open({ ...options, resume: fresh.sessionId });
+      expect(resumed.getAllTools()).toEqual([]);
+      expect(resumed.getActiveToolNames()).toEqual([]);
+      expect(resumed.getCallableToolNames()).toEqual([]);
+    } finally { await setup.stop(); }
+  });
+
+  test("only explicitly excluded transcript tools do not block a tool-free resume", async () => {
+    const setup = await fixture("", false);
+    try {
+      const resume = await setup.savedTools(["bash"]);
+      const resumed = await setup.open({ resume, disallowedTools: builtins });
+      expect(resumed.getAllTools()).toEqual([]);
+      expect(resumed.getActiveToolNames()).toEqual([]);
+      expect(resumed.getCallableToolNames()).toEqual([]);
+    } finally { await setup.stop(); }
+  });
+
+  test("a removed transcript tool does not become pending during a tool-free resume", async () => {
+    const setup = await fixture(`pi.on("session_start", () => { ${register("late_probe", { defaultActive: false })} });`, true);
+    try {
+      const resume = await setup.savedTools(["late_probe"], ["late_probe"]);
+      const resumed = await setup.open({ resume, disallowedTools: builtins });
+      expect(resumed.getAllTools().map((tool) => tool.name)).toEqual(["late_probe"]);
+      expect(resumed.getActiveToolNames()).toEqual([]);
+      expect(resumed.getCallableToolNames()).toEqual([]);
     } finally { await setup.stop(); }
   });
 

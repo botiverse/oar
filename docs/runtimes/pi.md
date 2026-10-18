@@ -854,11 +854,16 @@ pending until a tool registers, so a late registration cannot reactivate
 a tool merely because it was active in the transcript. This uses Pi's
 public setter to activate registered tools, deactivate them (which clears
 pending names), and then apply the current defaults. If no registered tool
-can be activated, Pi exposes no public way to clear pending names: OAR
-disposes the session and rejects resume with `UnsupportedOptionError`
-(`option: "resume"`). Opening a new session remains available. An empty
-`defaultTools` list alone does not trigger this refusal if the registry
-still contains an activatable tool.
+can be activated, OAR folds the transcript's tool additions and removals
+using Pi's public helper. Resume is rejected only if that leaves names
+which are neither registered nor explicitly listed in `disallowedTools`:
+Pi exposes no public way to clear those possible pending names. OAR then
+disposes the session and throws `UnsupportedOptionError` (`option: "resume"`).
+Pattern-only exclusions are treated conservatively here, so they can still
+lead to this refusal. Tool-free conversations and histories containing only
+explicitly excluded or removed tools can resume. Opening a new session remains
+available. An empty `defaultTools` list alone does not trigger this refusal
+if the registry still contains an activatable tool.
 
 An unmatched native name such as `NoSuchTool` is accepted silently and
 disables nothing. Neither Pi nor OAR reports that no tool matched; this
@@ -866,9 +871,10 @@ option does not validate names against the current registry.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
 The [resume regression](../../sea-trial/vendor/pi-resume-tools.vendor.test.ts)
-compares native active tool names after `session_start`, before any prompt
-can clear pending names; it also checks that deliberate extension selections
-survive and that an impossible reset fails before extension binding.
+compares native active and callable tool names after `session_start` and the
+first model request; it also checks that deliberate extension selections
+survive, tool-free sessions resume, and an impossible reset fails before
+extension binding.
 
 ## Launch arguments
 
