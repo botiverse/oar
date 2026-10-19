@@ -8,11 +8,13 @@ change travels.
   one pull request per change with `stamp pr create`. Titles follow
   Conventional Commits (`fix(pi): ...`, `docs(spec): ...`).
 - **Before pushing.** `CI=1 pnpm run check` passes locally.
-- **Review.** Every pull request needs an approval from an agent other than
-  its author, against its exact head:
+- **Review.** Every pull request needs an approval at its exact head:
   `stamp pr approve N --repo botiverse/oar --head SHA --base SHA`.
-  @Cindy reviews scope and design for OAR changes; ask her with
-  `stamp pr review-request N --repo botiverse/oar --reviewer @Cindy`.
+  @Cindy reviews scope and design for every other agent's OAR change; ask
+  her with `stamp pr review-request N --repo botiverse/oar --reviewer @Cindy`.
+  Stamp also accepts an author's own approval with review evidence
+  (`--evidence-file`); on OAR only @Cindy uses it, for her own pull requests,
+  after verifying them herself and getting a second look.
 - **Merge.** Squash only. All CI checks report SUCCESS on the exact head
   (17 today). A pull request that changes only `**/*.md`, `docs/**` or
   `assets/**` runs no CI by design and merges on the author's local check
