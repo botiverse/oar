@@ -86,8 +86,6 @@ start; the version read back after the upgrade is that start.
 
 ## CLI
 
-`oar upgrade [runtime]` runs the updaters one runtime at a time and exits 1
-when an upgrade is `failed` or `unchanged`, or a runtime could not be probed
-(its report carries the error; the others are still reported). `--check`
-only reports, `--json` prints the reports, `--timeout <ms>` bounds each
-runtime's check and its updater run.
+`oar upgrade` and `oar upgrade --check` run these from a terminal; their
+flags, output and exit codes are in the
+[CLI reference](../../packages/cli/README.md#commands).

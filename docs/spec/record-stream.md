@@ -265,8 +265,10 @@ Further rules:
   background tasks retain their own lifecycles.
   `exitCode` follows the same rule for the process status of a command the
   runtime ran: present only when the runtime reported one (codex, grok,
-  antigravity, cursor), `null` when it reported a signal exit, absent
-  otherwise (claude and pi report none).
+  antigravity, cursor, pi, and pi-durable for a nested call), `null` when it
+  reported an exit without a number (a signal), absent otherwise (claude,
+  and a tool that runs no command). pi and pi-durable report a signal as
+  128 plus its number, never `null`.
 - **A tool result is its parts.** `tool_call_ended.content` is the result
   as the runtime reported it, in its order: `{type: "text", text}`,
   `{type: "image", mediaType, data}` (base64, normalized from Anthropic
@@ -322,7 +324,7 @@ interface FrameBody {
 //   tool_call_input_delta {callId, delta} |
 //   tool_call_progress {callId, output?, outputDelta?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
-//   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
+//   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
 //   compaction_started {trigger?} |
 //   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
@@ -416,9 +418,10 @@ or sent with `deliver` (send now): a new attempt, read by the ordinary
 rules ([conversation](conversation.md#withdrawing-held-input)).
 
 `withdraw` exists where OAR holds the queue: claude, pi, cursor, kimi, grok,
-antigravity and opencode. codex holds its queue natively, and its
-`thread/queue/delete` is experimental and not live-verified, so a codex
-session has no `withdraw`.
+antigravity and opencode. pi-durable's queue is native, and its `withdraw`
+aborts the input's native submission before it runs (`submission.abort()`).
+codex holds its queue natively, and its `thread/queue/delete` is
+experimental and not live-verified, so a codex session has no `withdraw`.
 
 ```
 seq=30  ◆ request   root  id=rq-14  queue "and then this" inputId=in-7
@@ -553,7 +556,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   exit as described below.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
-  `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi): the
+  `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi; opencode
+  and antigravity 1.4.0 where the model has the option): the
   current value of the config option in ACP's `thought_level` category, in
   a handshake answer or a `config_option_update`; pi: `thinkingLevel` on
   `pi/session_opened` and pi's `thinking_level_changed`; cursor: the

@@ -83,8 +83,8 @@ replay and live observers see the same nodes and edges at the same cursor.
 
 Adapter authors put the event returned by `kernel.link(edge)` in the source
 frame's `events` before `kernel.frame(...)`. The helper does not mutate
-separate graph state. The former out-of-band `kernel.node(id)` is removed;
-record envelopes and `session_linked` supply all observed nodes.
+separate graph state, and the kernel has no `node(id)`: record envelopes
+and `session_linked` supply all observed nodes.
 
 `usageOf(records, sessionId)` derives this graph automatically. Its optional
 explicit graph argument still overrides the derivation. The session view

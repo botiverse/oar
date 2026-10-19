@@ -44,7 +44,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | [update.md](update.md) | Runtime update checks and upgrades through each runtime's own updater, and how outcomes are judged |
 | [install.md](install.md) | Installing a runtime that is not found with its vendor's own installer, the read-only plan shown first, and how the outcome is judged |
 | [login.md](login.md) | Signing a runtime in through its own login without a terminal, signing it out through its own logout, the sign-in status query, and the secret-handling rules |
-| [config-form.md](config-form.md) | **Draft.** The agent-creation form each runtime describes, the value shape, the mapping to `SessionOptions`, and the migration rules for hosts |
+| [config-form.md](config-form.md) | The agent-creation form each runtime describes (`@botiverse/oar/forms`, Grok so far), the value shape, validation, the mapping to `SessionOptions`, and the migration rules for hosts; machine capability reporting is a draft |
 
 For each runtime's native calls, resume behavior, and current mapping into
 this contract, read [`../runtimes/`](../runtimes/README.md).
@@ -127,6 +127,9 @@ they appear:
    front in `Runtime.refusedSessionOptions` where it is known before the
    session opens
    ([refused session options](runtime-matrix.md#refused-session-options));
+   `Runtime.mcpToolsListChanged` declares how a running session takes an MCP
+   server's changed tool list
+   ([host-served tools](runtime-matrix.md#host-served-tools));
    `SessionCapabilities` declares queue durability, the attribution tier and
    image input. Which further facts deserve a declaration (a remote
    environment, for one) stays open.

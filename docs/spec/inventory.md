@@ -105,9 +105,8 @@ session-only MCP tool view is not used. Claude's historical session-init tool
 list is not used for these independent queries.
 [Native evidence and limits](../runtimes/inventory.md).
 
-The CLI exposes the same operations as JSON:
-`oar skills|commands|mcps|tools [runtime] [--cwd directory] [--timeout milliseconds]`.
-Omitting runtime queries all registered runtimes.
+The CLI's `oar skills|commands|mcps|tools` print the same results as JSON
+([CLI reference](../../packages/cli/README.md#native-inventories)).
 
 ## Extension and verification
 

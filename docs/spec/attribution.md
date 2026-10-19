@@ -179,7 +179,6 @@ the protocol surface.
   usage, and while the root's total is null. Older logs without lineage also
   leave it absent, unless a caller supplies an explicit graph to `usageOf`.
 
-
 The protocol carries no usage `origin` or accounting-basis label
 ([decision](../design/decisions.md#a-usage-basis-label-2026-09-03)).
 
@@ -190,6 +189,8 @@ that resumed a native session never includes what earlier Sessions on it
 spent, so a host adds a conversation's Sessions up by summing their totals.
 Native scopes differ and stay in the adapter. For pi, cursor and grok the
 adapter adds up what this process reports, so their totals start at zero.
+pi-durable's conversation ledgers span the conversation's life; the adapter
+subtracts their totals at attachment from every later report.
 claude's `modelUsage` is a running total that a resumed process continues
 from the previous one's ([env] 2.1.292); before this Session's first turn
 the adapter asks claude `get_usage`, whose `session.model_usage` is that
@@ -199,9 +200,9 @@ the resumed Session's `usage` events carry `context` only and
 `usage().total` stays null ([claude](../runtimes/claude.md#token-totals)).
 codex's thread total spans the thread's life; after a resume codex
 re-reports it once, before this Session's first turn starts, and the adapter
-subtracts that report from every later root total, `cacheRead`,
-`cacheWrite` and `reasoning` included. It subtracts codex's own number and never estimates
-one. Don't know, don't report: a resumed codex Session whose first turn
+subtracts that report from every later root total, `cacheRead`, `cacheWrite`
+and `reasoning` included. It subtracts codex's own number and never
+estimates one. Don't know, don't report: a resumed codex Session whose first turn
 starts without that report (codex before 0.151.0) cannot tell its share, so
 its `usage` events carry `context` only and `usage().total` stays null,
 never the thread's lifetime figure
@@ -288,6 +289,7 @@ without `input` changing under existing consumers
 | claude | `cacheReadInputTokens` of each `result.modelUsage` model (total); `result.usage.cache_read_input_tokens` (root) | `cacheCreationInputTokens` of each model (total); `result.usage.cache_creation_input_tokens` (root) | both added into `input` (`inputTokens` and `input_tokens` exclude them); recorded `result` frames in the background-tasks and claude-usage replay fixtures [env] |
 | cursor | `turn-ended.usage.cacheReadTokens` | `turn-ended.usage.cacheWriteTokens` | both added into `input`; `@cursor/sdk` 1.0.36 `TurnEndedUpdateSchema` [src], probe 2026-10-03 [env] |
 | pi | assistant `usage.cacheRead` | assistant `usage.cacheWrite` | both added into `input`; pi-ai 1.0.4 `Usage` [src], pi-aimock replay fixture [env] |
+| pi-durable | model and tool ledger entries' `cacheRead` | their `cacheWrite` | both added into `input`, less the totals at attachment; Pi Durable `UsageState` uses pi-ai `Usage` [src] |
 | codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own thread total, less the total re-reported on resume like `input` [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |
 | grok | `_meta.usage.cachedReadTokens` | `_meta.usage.cacheCreationTokens` | per-prompt ledger, summed per session like its input; live 1.0.25 answer: 1280 / 0 [env] |
 | kimi, opencode, antigravity | absent | absent | no token totals reported, `usage().total` stays null |

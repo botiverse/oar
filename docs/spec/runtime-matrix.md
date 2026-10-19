@@ -101,13 +101,14 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 |---|---|---|---|
 | claude | `tool_result.content` (a string or blocks) | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
 | codex | `commandExecution.aggregatedOutput`; an MCP call's result blocks (an error as its message); `webSearch` results as one `other` part; else the item's status word | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
-| pi-durable | native result entry's toolResult content | toolResult `isError`, only with an actual result | none |
-| pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | none |
+| pi-durable | native result entry's toolResult content | toolResult `isError`, else a nested call's `result.isError`, only with an actual result | a nested CodingTools call's `result.structuredOutput.exitCode`; a model-issued call carries none in `watchEvents` ([env] Durable 1.2.0 and 1.3.0, [test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)) |
+| pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | CodingTools' `result.structuredContent.exit_code` ([env] Pi 1.3.0, [test](../../sea-trial/vendor/pi-exit-code.vendor.test.ts)) |
 | grok, kimi, antigravity, opencode (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
 | cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
-native frame stays verbatim beside the event.
+native frame stays verbatim beside the event. pi and pi-durable report a
+signal as 128 plus its number (SIGTERM is 143), never `null`.
 
 ## Service tiers
 
@@ -232,7 +233,7 @@ again on resume.
 
 | runtime | where they go |
 |---|---|
-| claude | after OAR's own flags, before `--mcp-config` and `--disallowed-tools` (both take several values, so a bare host value after them would be read as theirs) |
+| claude | after OAR's own flags, before `--add-dir`, `--mcp-config` and `--disallowed-tools` (each takes several values, so a bare host value after them would be read as theirs) |
 | codex | `app-server`, OAR's `-c` overrides, the host's arguments, `--listen stdio://` |
 | grok | `agent --always-approve --no-leader`, the host's arguments, `stdio`: `agent` takes its options before `stdio` |
 | kimi, opencode | after `acp` |
@@ -357,15 +358,22 @@ entry, non-empty `headers` on an http one). Its error names `mcpServers`
 and ends with the entries' names
 ([#392](https://github.com/botiverse/oar/issues/392)).
 
+Four refusals have one reason wherever the table lists them: `serviceTier`,
+no verified per-session tier setting and readback; `outputSchema`, no
+verified final-output schema channel; `name`, no verified session name
+setting (pi-durable has no session name at all); `additionalDirectories`,
+no verified effective additional workspace directory channel. The why
+column gives the rest.
+
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
-| antigravity | `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials` | the selected server has no system prompt replacement input (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel; no verified session name setting; it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
-| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified session name setting |
-| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name` | agent permissions can override global denies; permission names do not consistently match tool names; no verified per-session tier setting and readback; no verified final-output schema channel; no verified session name setting |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping; no verified effective additional workspace directory channel; no verified final-output schema channel; no session name |
-| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema` | it runs in the host process through its SDK, with no command line; no verified per-session tier setting and readback; no verified effective additional workspace directory channel; no verified final-output schema channel |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| antigravity | `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials` | the selected server has no system prompt replacement input (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
+| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name` | agent permissions can override global denies; permission names do not consistently match tool names |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema` | it runs in the host process through its SDK, with no command line |
 | claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
@@ -379,7 +387,7 @@ call an attached server's tool, with the evidence on its runtime page
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
 | kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
 | opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
-| antigravity | ACP `mcpServers` on `session/new` and `session/resume`, started at the first prompt; the model calls them through `call_mcp_tool`. An entry with `env` or `headers` is refused: the server would store their values in plain text in its conversation database | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| antigravity | ACP `mcpServers` on `session/new` and `session/resume`, started at the first prompt; the model calls them through `call_mcp_tool`. An entry with `env` or `headers` is refused (`mcpServerCredentials`, above) | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
 | pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
 Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
@@ -393,56 +401,53 @@ and [`mcp-servers-acp.vendor.test.ts`](../../sea-trial/vendor/mcp-servers-acp.ve
 home, [harness](../../sea-trial/harness/aimock-acp.ts); run locally, as CI
 has no ACP aimock backend). The same tests cover the name clash and check that
 no record holds a credential. The recordings are
-`tests/replay/fixtures/{claude,codex,pi}-mcp-echo.raw.jsonl`. A list naming a
-server twice, or with an empty name, is a plain error before anything starts,
-as is a name codex (`^[\w:@/.-]+$`) or pi (`^[\w-]+$`, and two names pi folds
-into one tool namespace) would not take. The names `__proto__`,
-`__defineGetter__`, `__defineSetter__`, `__lookupGetter__` and
+`tests/replay/fixtures/{claude,codex,pi}-mcp-echo.raw.jsonl`.
+
+A list naming a server twice, or with an empty name, is a plain error before
+anything starts, as is a name codex (`^[\w:@/.-]+$`) or pi (`^[\w-]+$`, and
+two names pi folds into one tool namespace) would not take. The names
+`__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__` and
 `__lookupSetter__` are an `UnsupportedOptionError` on `mcpServers` on every
-runtime: claude 2.1.299 drops all five without a word, kimi, opencode and
-claude 2.1.296 drop `__proto__`, and grok announces none of them, while the
-session opens as usual ([#395](https://github.com/botiverse/oar/issues/395)).
-codex and pi take them, but one rule holds everywhere. A transport a runtime cannot attach
-is an `UnsupportedOptionError` on `mcpServers`: an http entry on an ACP agent
-whose `initialize` declares no `mcpCapabilities.http`; every runtime above
-attaches both. So is an entry with a non-empty `env` or `headers` on
-antigravity, which would write them to its disk: a conditional refusal, not
-an always-refused option declaration.
+runtime, codex and pi (which take them) included, so one rule holds: claude
+2.1.299 drops all five without a word, kimi, opencode and claude 2.1.296 drop
+`__proto__`, and grok announces none of them, while the session opens as
+usual ([#395](https://github.com/botiverse/oar/issues/395)). A transport a
+runtime cannot attach is an `UnsupportedOptionError` on `mcpServers` too: an
+http entry on an ACP agent whose `initialize` declares no
+`mcpCapabilities.http`; every runtime above attaches both.
+
+The refusals below depend on a value, the installed version or the session
+itself, so `refusedSessionOptions` does not declare them; each is the same
+`UnsupportedOptionError`.
 
 OpenCode v1 carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
 an empty replacement is refused because native OpenCode selects its built-in
 prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instructions-and-context)).
-These are conditional refusals, not always-refused option declarations.
-OpenCode v2 refuses both prompt options after checking the installed line:
-there is no verified session-local injection path, and its instruction loader
-ignores the v1 `instructions` configuration. This version-specific refusal
-is not in the runtime's always-refused map because v1 supports both options.
+OpenCode v2 refuses both prompt options after checking the installed line
+(v1 supports both): there is no verified session-local injection path, and
+its instruction loader ignores the v1 `instructions` configuration.
 
-Grok 1.0.52 refuses an append-only prompt change on resume: native `rules`
-is not reapplied without an override. `systemPrompt` and `appendSystemPrompt`
-use separate native override/rules fields; together they are supported on
-creation and resume ([request evidence](../runtimes/grok.md#models-and-instructions)).
-Blank `systemPrompt` is likewise refused on creation and resume because the
-runtime treats it as omitted, even alongside an append. These conditional
-refusals are not always-refused option declarations.
+Grok 1.0.52 refuses an append-only prompt change on resume, since native
+`rules` is not reapplied without an override, and a blank `systemPrompt` on
+creation and resume, even alongside an append, since it treats that as
+omitted. `systemPrompt` and `appendSystemPrompt` use separate native
+override/rules fields; together they are supported on creation and resume
+([request evidence](../runtimes/grok.md#models-and-instructions)).
 
-Kimi and opencode also refuse a `resume` that names another directory than
+Kimi and opencode refuse a `resume` that names another directory than
 the one their `session/list` says the session lives in (option `cwd`): they
-would run the session in its own directory instead. Only the runtime knows the
-session's directory, so this refusal is not declared up front; it is the
-same error ([resume in another directory](../runtimes/resume-cwd.md)).
+would run the session in its own directory instead, and only the runtime
+knows that directory ([resume in another directory](../runtimes/resume-cwd.md)).
 
 An ACP runtime whose session advertises no `thought_level` config option
-has no effort channel, so it refuses `effort` with the same error once its
-handshake shows that (`shared/acp/effort.ts`,
-`tests/acp/acp-session-effort.test.ts`). Antigravity 1.4.0 advertises this
-selector for its grouped model families. The
-menu belongs to the model in effect: opencode offers one only for a model
-with variants, so after a requested model switch the switch's answer is
-read, not the open's ([env] opencode 1.18.30). A
-level a runtime does not offer is a plain error naming the level, not this
-one.
+has no effort channel, so it refuses `effort` once its handshake shows that
+(`shared/acp/effort.ts`, `tests/acp/acp-session-effort.test.ts`).
+Antigravity 1.4.0 advertises this selector for its grouped model families.
+The menu belongs to the model in effect: opencode offers one only for a
+model with variants, so after a requested model switch the switch's answer
+is read, not the open's ([env] opencode 1.18.30). A level a runtime does not
+offer is a plain error naming the level, not this one.
 
 ## Host-served tools
 
@@ -461,11 +466,15 @@ which holds for every runtime OAR starts on this machine or runs in this
 process.
 
 The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
-JSON, single or batched, and `notifications/cancelled` aborts
-the call's `signal`. Each `initialize` opens its own MCP session
-(`mcp-session-id`), so sessions sharing one served set never cancel each
-other's calls. It refuses an `Origin` other than a loopback one, as MCP asks
-of local servers.
+JSON, single or batched, and `notifications/cancelled` aborts the call's
+`signal`. Each `initialize` opens its own MCP session (`mcp-session-id`), so
+sessions sharing one served set never cancel each other's calls. It refuses
+an `Origin` other than a loopback one, as MCP asks of local servers. A
+handler's thrown error becomes an `isError` result carrying its message,
+which the model sees as a failed tool call; an unknown tool is a JSON-RPC
+error. Server and tool names are checked up front against the strictest
+runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$` and unique), and a
+server name is none of the five reserved ones above.
 
 `instructions`, guidance across the tools (what the group is for, how the
 tools work together), is returned as the `initialize` result's
@@ -474,14 +483,11 @@ the model sees it is the runtime's own choice: claude, codex, opencode and
 grok hand it to the model; pi and kimi do not, so on those, guidance the
 model must have belongs in the tool descriptions. Pinned per runtime by the
 vendor test below ([env] 2026-10-13: claude 2.1.292, codex 0.162.0, pi
-1.1.0, opencode 1.18.30, kimi 2.1.1, grok 1.0.50). A handler's thrown error becomes an `isError` result carrying its
-message, which the model sees as a failed tool call; an unknown tool is a
-JSON-RPC error. Server and tool names are checked up front against the
-strictest runtime's rules (`^[\w-]+$`, tools `^[\w-]{1,64}$`), and a
-server name is none of the five reserved ones above. Native
-host-tool channels (codex `dynamicTools`, claude's in-process SDK MCP, pi's
-custom tools) are not used: one MCP server reaches every runtime above, and
-none of those channels adds a capability MCP lacks
+1.1.0, opencode 1.18.30, kimi 2.1.1, grok 1.0.50).
+
+Native host-tool channels (codex `dynamicTools`, claude's in-process SDK
+MCP, pi's custom tools) are not used: one MCP server reaches every runtime
+above, and none of those channels adds a capability MCP lacks
 ([#341](https://github.com/botiverse/oar/issues/341)).
 
 **Changing the tools mid-session** ([#399](https://github.com/botiverse/oar/issues/399)).
@@ -503,11 +509,10 @@ notification:
 | `none` | codex, kimi, grok | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
 
 cursor and pi-durable take no `mcpServers` and declare nothing. The
-declaration covers any attached MCP server that announces a change; a
-`serveMcpTools` entry never attaches to antigravity (it refuses entries with
-`headers`), so its row matters there only for credential-free servers. A
-change a session does not take applies when the host opens its next session.
-Measured [env] 2026-10-14: pi ^1.2.0, opencode 1.18.30, 1.19.0 and 2.0.29,
+declaration covers any attached MCP server that announces a change, so
+antigravity's matters only for credential-free servers: a `serveMcpTools`
+entry never attaches there. A change a session does not take applies when
+the host opens its next session. Measured [env] 2026-10-14: pi ^1.2.0, opencode 1.18.30, 1.19.0 and 2.0.29,
 antigravity 1.4.0, claude 2.1.299, codex 0.162.0 and 0.162.1, kimi 2.1.1,
 grok 1.0.52 ([probe](../../experiments/mcp-tools-list-changed.ts),
 [vendor test](../../sea-trial/vendor/mcp-tools-list-changed.vendor.test.ts)).
@@ -542,7 +547,7 @@ existing types and causes; OAR never starts a replacement conversation.
 | codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
 
 Hosts should persist the cwd with the session id and reuse it on resume.
-Kimi and OpenCode still reject a listed session from another cwd with
+Kimi and OpenCode reject a listed session from another cwd with
 `UnsupportedOptionError` on `cwd`, which does not mean missing. Codex's
 `-32600` also covers an archived thread and an active writer
 ([below](#unavailable-resume-targets)) and the unloaded sub-agent refusal,

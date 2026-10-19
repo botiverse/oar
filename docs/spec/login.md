@@ -185,14 +185,6 @@ runtime oar does not sign in.
 
 ## CLI
 
-`oar login <runtime>` runs the login in the terminal: it prints the URL or the
-device code, and reads a pasted code from stdin when the runtime asks for one,
-without echoing it. Ctrl-C cancels. The exit code is 0 when logged in, 130
-when cancelled, 1 otherwise. `oar login [runtime] --status` only reports the
-status of one or every runtime. `--json` prints events, prompts and the result
-(or the status reports) as JSON; `--timeout <ms>` bounds the login or each
-status query.
-
-`oar logout <runtime>` runs the runtime's logout and prints the result; the
-exit code is 0 when logged out and 1 otherwise, as for `oar login`. `--json`
-prints the result as JSON; `--timeout <ms>` bounds the logout.
+`oar login`, `oar login --status` and `oar logout` run these from a
+terminal; their flags, output and exit codes are in the
+[CLI reference](../../packages/cli/README.md#commands).

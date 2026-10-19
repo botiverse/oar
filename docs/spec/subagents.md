@@ -143,8 +143,9 @@ waits.
 ## `oar mcp`
 
 A stdio MCP server (newline-delimited JSON-RPC: `initialize`, `ping`,
-`tools/list`, `tools/call`) over one crew. Flags: `--runtimes`,
-`--max-running`, `--max-depth`, `--cwd`, `--log-dir`.
+`tools/list`, `tools/call`) over one crew, whose `runtimes`, `maxRunning`,
+`maxDepth`, `cwd` and `logDir` its flags set
+([CLI reference](../../packages/cli/README.md#commands)).
 
 | Tool | Does |
 | --- | --- |
