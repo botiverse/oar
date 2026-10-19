@@ -290,12 +290,16 @@ release notes. Squash merge it, then start
 stamp workflow run release.yml --repo botiverse/oar -f version=X.Y.Z
 ```
 
-The workflow releases the head of main only after `ci.yml` succeeded on that
-exact commit, refuses a version that already has a tag or differs from
-either package version, runs `pnpm run check` and `pnpm run build`, and
-publishes both packages with `pnpm -r publish`, which rewrites the CLI's
-`workspace:*` dependency to the real version. It then creates the annotated
-`vX.Y.Z` tag and the GitHub release, whose notes are the release pull
-request's body. npm trusted publishing (OIDC) authenticates the job; the repo
-holds no npm token. Pushing a `vX.Y.Z` tag by hand still publishes that
-commit, without the CI gate or the GitHub release.
+Dispatch right after the release pull request merges: the workflow releases
+the head of main only after `ci.yml` succeeded on that exact commit (a
+docs-only head has no run and fails the gate). It refuses a version that
+already has a tag or differs from either package version, runs
+`pnpm run check` and `pnpm run build`, and publishes both packages with
+`pnpm -r publish`, which rewrites the CLI's `workspace:*` dependency to the
+real version. A separate `release` job, which runs no project code and is
+the only one with write access, then creates the annotated `vX.Y.Z` tag and
+the GitHub release, whose notes are the release pull request's body. If that
+job fails after the publish, "Re-run failed jobs" finishes it. npm trusted
+publishing (OIDC) authenticates the publish job; the repo holds no npm
+token. Pushing a `vX.Y.Z` tag by hand still publishes that commit, without
+the CI gate or the GitHub release.
