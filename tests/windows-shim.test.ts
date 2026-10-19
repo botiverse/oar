@@ -1,22 +1,15 @@
 import { once } from "node:events";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { escapeWindowsShimArgument, isWindowsShim, parseWindowsShim, runExecutable, runIsolated, spawnLineProcess, windowsSpawnTarget } from "../packages/oar/src/shared/executable/index.js";
-import { spawnLoginProcess } from "../packages/oar/src/shared/login.js";
+import { escapeWindowsShimArgument, isWindowsShim, parseWindowsShim, runExecutable, spawnLineProcess, windowsSpawnTarget } from "../packages/oar/src/shared/executable/index.js";
+import { handwrittenShim, launchers, nodeShimText } from "./fixtures/windows-shim-fixtures.js";
 
 // Real cmd-shim output (npm/pnpm, cmd-shim 7): a Node CLI whose target has a
 // shebang gets the `_prog` form; a directly-executable target gets the bare
 // form. #395 follow-up: the shim's `%*` is what cmd.exe re-parses, so OAR
 // must launch the Node target itself, never the shim through a shell.
-function nodeShimText(script: string): string {
-  return [
-    "@ECHO off", "GOTO start", ":find_dp0", "SET dp0=%~dp0", "EXIT /b", ":start", "SETLOCAL", "CALL :find_dp0", "",
-    String.raw`IF EXIST "%dp0%\node.exe" (`, String.raw`  SET "_prog=%dp0%\node.exe"`, ") ELSE (", `  SET "_prog=node"`, ")", "",
-    `endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\${script}" %*`,
-  ].join("\r\n");
-}
 // Exact shims captured from the windows-latest runner (#411): claude's npm
 // bin is a native .exe (direct form), codex's is a .js (node form).
 const CLAUDE_SHIM = [
@@ -97,18 +90,6 @@ test("an unreadable shim falls back to explicit cmd.exe with already escaped arg
   expect(target.windowsVerbatimArguments).toBe(true);
 });
 
-const unrepresentable = ["first\nsecond", "first\rsecond", "first\r\nsecond", "first\0second"];
-const refusal = "cmd.exe cannot preserve arguments containing CR, LF, or NUL";
-async function expectExecutableRefusal(command: string, args: readonly string[]): Promise<void> {
-  const result = await runExecutable(command, args);
-  expect(result.ok).toBe(false);
-  expect(result.diagnostics?.error?.message).toContain(refusal);
-}
-
-test.each(unrepresentable)("unreadable shims refuse an argument containing a line break or NUL: %j", (argument) => {
-  expect(() => windowsSpawnTarget("ghost", [argument], { platform: "win32", resolve: resolveGhost })).toThrow(refusal);
-});
-
 // On Windows, end to end: a real `.cmd` shim wrapping a Node script that
 // reports its argv. spawnLineProcess must deliver tricky arguments verbatim,
 // where launching the shim through cmd.exe would split them at a
@@ -152,62 +133,6 @@ const escaping = [
   ["!NAME!", String.raw`^^^"^^^!NAME^^^!^^^"`],
   ["(a)", String.raw`^^^"^^^(a^^^)^^^"`],
 ] as const;
-
-const launchers = [
-  {
-    name: "spawnLineProcess",
-    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
-      const child = spawnLineProcess(command, args, { env });
-      let output = "";
-      child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString("utf8"); });
-      const drained = once(child.stdout, "end");
-      await child.spawned;
-      await drained;
-      expect(await child.exited).toBe(0);
-      return output;
-    },
-  },
-  {
-    name: "runExecutable",
-    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
-      const result = await runExecutable(command, args, { env });
-      expect(result.ok, result.stderr).toBe(true);
-      return result.stdout;
-    },
-  },
-  {
-    name: "runIsolated",
-    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
-      const result = await runIsolated(command, args, { env, timeoutMs: 15_000 });
-      expect(result.exitCode, result.stderr).toBe(0);
-      expect(result.timedOut).toBe(false);
-      return result.stdout;
-    },
-  },
-  {
-    name: "spawnLoginProcess",
-    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
-      const lines: string[] = [];
-      const child = spawnLoginProcess(command, args, env, { onLine(line, stream) { if (stream === "stdout") { lines.push(line); } } });
-      child.closeInput();
-      expect(await child.exited).toEqual({ exitCode: 0, signal: null });
-      return lines.join("\n");
-    },
-  },
-];
-
-/** Absolute targets make this a genuine fallback, not an npm/pnpm shim. */
-function handwrittenShim(directory: string, extension: string, marker?: string): string {
-  mkdirSync(directory, { recursive: true });
-  const script = path.join(directory, "argv.cjs");
-  writeFileSync(script, 'process.stdout.write(JSON.stringify(process.argv.slice(2)) + "\\n");\n');
-  const command = path.join(directory, `argv.${extension}`);
-  const started = marker === undefined ? "" : `echo STARTED > "${marker}"\r\n`;
-  const text = `@echo off\r\n${started}"${process.execPath}" "${script}" %*\r\n`;
-  writeFileSync(command, text);
-  expect(parseWindowsShim(command, text, existsSync)).toBeNull();
-  return command;
-}
 
 function childPathEnv(directory: string): NodeJS.ProcessEnv {
   const env = { ...process.env };
@@ -255,31 +180,6 @@ describe.skipIf(process.platform !== "win32")("unrecognized Windows shims", () =
       const result = await runExecutable(String.raw`.\argv.bat`, args, { cwd: directory });
       expect(result.ok, result.stderr).toBe(true);
       expect(JSON.parse(result.stdout)).toEqual(args);
-    } finally { rmSync(directory, { recursive: true, force: true }); }
-  }, 30_000);
-});
-
-describe.skipIf(process.platform !== "win32")("Windows shim argument boundaries", () => {
-  const cases = launchers.flatMap((launcher) => unrepresentable.map((argument) => ({ launcher, argument })));
-  test.each(cases)("$launcher.name refuses unsupported argument %# before starting a handwritten shim", async ({ launcher, argument }) => {
-    const directory = mkdtempSync(path.join(tmpdir(), "oar refused shim "));
-    const marker = path.join(directory, "started.txt");
-    try {
-      const command = handwrittenShim(directory, "cmd", marker);
-      await (launcher.name === "runExecutable"
-        ? expectExecutableRefusal(command, [argument])
-        : expect(launcher.run(command, [argument], process.env)).rejects.toThrow(refusal));
-      expect(existsSync(marker)).toBe(false);
-    } finally { rmSync(directory, { recursive: true, force: true }); }
-  });
-
-  test.each(launchers)("$name still passes multiline arguments through a recognized npm shim", async (launcher) => {
-    const directory = mkdtempSync(path.join(tmpdir(), "oar multiline shim "));
-    try {
-      const command = handwrittenShim(directory, "cmd");
-      writeFileSync(command, nodeShimText("argv.cjs"));
-      const args = ["--append-system-prompt", ...unrepresentable.slice(0, 3)];
-      expect(JSON.parse(await launcher.run(command, args, process.env))).toEqual(args);
     } finally { rmSync(directory, { recursive: true, force: true }); }
   }, 30_000);
 });

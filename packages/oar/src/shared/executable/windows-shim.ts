@@ -181,9 +181,16 @@ export function windowsSpawnTarget(
   // The shim path is parsed once; its forwarded arguments are parsed twice.
   // /s removes the outer quote pair, leaving the escaped command line intact.
   const line = [escapeCmd(`"${path.win32.normalize(resolved)}"`), ...args.map((argument) => escapeWindowsShimArgument(argument))].join(" ");
+  const shell = windowsEnv(process.env, "COMSPEC") ?? "cmd.exe";
+  const shellArgs = ["/d", "/s", "/c", `"${line}"`];
+  // Count the escaped UTF-16 command line, including cmd's path, switches and
+  // outer quotes. Native launches above are not subject to cmd's 8191 limit.
+  if (`"${shell}" ${shellArgs.join(" ")}`.length > 8191) {
+    throw new TypeError("OAR could not read or recognize this runtime's .cmd/.bat wrapper; the cmd.exe command line exceeds its 8191-character limit after escaping. Shorten the arguments or install the runtime with npm or pnpm so OAR can launch its executable directly.");
+  }
   return {
-    command: windowsEnv(process.env, "COMSPEC") ?? "cmd.exe",
-    args: ["/d", "/s", "/c", `"${line}"`],
+    command: shell,
+    args: shellArgs,
     windowsVerbatimArguments: true,
   };
 }
