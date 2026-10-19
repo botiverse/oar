@@ -59,22 +59,32 @@ async function runRecorder(command: string, args: readonly string[], outFile: st
 
 describe.skipIf(process.env.OAR_TEST !== "claude-aimock" || process.platform !== "win32")("PROBE windows .cmd fallback (oar#434)", () => {
   test("A. yarn global shim real shape", () => {
-    const yarn = spawnSync("yarn", ["--version"], { shell: true, encoding: "utf8" });
-    log(`PROBE A yarn --version: status=${String(yarn.status)} v=${JSON.stringify(yarn.stdout.trim())}`);
-    if (yarn.status !== 0) { log("PROBE A yarn unavailable; skipping"); return; }
+    // Run from a temp cwd with its own package.json so corepack does not read
+    // the repo's packageManager pin, and fetch classic yarn through npx so the
+    // call never goes through corepack's `yarn` shim.
     const home = mkdtempSync(path.join(tmpdir(), "lk-yarn-"));
-    const env = { ...process.env, YARN_GLOBAL_FOLDER: path.join(home, "global"), npm_config_prefix: home };
-    const add = spawnSync("yarn", ["global", "add", "--prefix", home, "cowsay@1.5.0"], { shell: true, encoding: "utf8", env, timeout: 180_000 });
-    log(`PROBE A yarn global add: status=${String(add.status)} stderr=${JSON.stringify(add.stderr.trim()).slice(0, 200)}`);
-    for (const binDir of [path.join(home, "bin"), path.join(home, "global", "node_modules", ".bin")]) {
-      if (!existsSync(binDir)) { log(`PROBE A no dir ${binDir}`); continue; }
-      for (const name of readdirSync(binDir).filter((f) => f.toLowerCase().endsWith(".cmd"))) {
-        const body = readFileSync(path.join(binDir, name), "utf8");
-        log(`PROBE A shim ${path.join(binDir, name)}:\n${body}`);
+    writeFileSync(path.join(home, "package.json"), '{"name":"lk-probe","version":"1.0.0","private":true}\n');
+    const globalFolder = path.join(home, "yarn-global");
+    const env = { ...process.env, YARN_GLOBAL_FOLDER: globalFolder, npm_config_prefix: home, COREPACK_ENABLE_STRICT: "0", COREPACK_ENABLE_DOWNLOAD_PROMPT: "0" };
+    const common = { shell: true, encoding: "utf8" as const, env, cwd: home };
+    const ver = spawnSync("npx", ["--yes", "yarn@1.22.22", "--version"], { ...common, timeout: 180_000 });
+    log(`PROBE A yarn --version: status=${String(ver.status)} v=${JSON.stringify(ver.stdout.trim())} stderr=${JSON.stringify(ver.stderr.trim()).slice(0, 160)}`);
+    const add = spawnSync("npx", ["--yes", "yarn@1.22.22", "global", "add", "--prefix", home, "cowsay@1.5.0"], { ...common, timeout: 300_000 });
+    log(`PROBE A yarn global add: status=${String(add.status)} stderr=${JSON.stringify(add.stderr.trim()).slice(0, 300)}`);
+    const found: string[] = [];
+    const walk = (dir: string, depth: number): void => {
+      if (depth > 6 || !existsSync(dir)) { return; }
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) { walk(full, depth + 1); }
+        else if (entry.name.toLowerCase().endsWith(".cmd")) { found.push(full); }
       }
-    }
+    };
+    walk(home, 0);
+    log(`PROBE A found ${String(found.length)} .cmd under ${home}`);
+    for (const file of found.slice(0, 8)) { log(`PROBE A shim ${file}:\n${readFileSync(file, "utf8")}`); }
     rmSync(home, { recursive: true, force: true });
-  }, 240_000);
+  }, 360_000);
 
   test("B. cmd.exe 8191 command-line limit: error or silent truncation", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "lk-len-"));
