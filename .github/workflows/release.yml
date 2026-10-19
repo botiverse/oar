@@ -60,12 +60,16 @@ jobs:
           if [ "$GITHUB_REF" != "refs/heads/main" ]; then
             echo "dispatch from main only (got $GITHUB_REF)"; exit 1
           fi
-          if [ -n "$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$TAG" --jq ".[] | select(.ref == \"refs/tags/$TAG\") | .ref")" ]; then
+          # Fail closed: an API error aborts here instead of reading as "no tag".
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$TAG" --jq ".[] | select(.ref == \"refs/tags/$TAG\") | .ref")
+          if [ -n "$existing" ]; then
             echo "$TAG already exists"; exit 1
           fi
           for attempt in $(seq 1 60); do
-            run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=push" \
-              --jq '[.workflow_runs[] | {status, conclusion}] | first // empty')
+            # The newest push or hand-started run on this exact commit: a run
+            # started with `stamp workflow run ci.yml` replaces a flaked one.
+            run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA" \
+              --jq '[.workflow_runs[] | select(.event == "push" or .event == "workflow_dispatch") | {status, conclusion}] | first // empty')
             if [ -z "$run" ]; then
               # ci.yml skips docs-only pushes: a head without a run after ten
               # minutes is not a release commit.

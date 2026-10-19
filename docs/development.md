@@ -299,7 +299,10 @@ already has a tag or differs from either package version, runs
 real version. A separate `release` job, which runs no project code and is
 the only one with write access, then creates the annotated `vX.Y.Z` tag and
 the GitHub release, whose notes are the release pull request's body. If that
-job fails after the publish, "Re-run failed jobs" finishes it. npm trusted
+job fails after the publish, "Re-run failed jobs" finishes it. If `ci.yml`
+flaked on the release commit, start a fresh run with
+`stamp workflow run ci.yml --repo botiverse/oar` and dispatch again once it
+passes. npm trusted
 publishing (OIDC) authenticates the publish job; the repo holds no npm
 token. Pushing a `vX.Y.Z` tag by hand still publishes that commit, without
 the CI gate or the GitHub release.

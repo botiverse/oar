@@ -6,6 +6,9 @@ on:
     paths-ignore: ["**/*.md", "docs/**", "assets/**"]
   pull_request:
     paths-ignore: ["**/*.md", "docs/**", "assets/**"]
+  # A release commit whose push run flaked gets a fresh run with
+  # `stamp workflow run ci.yml --repo botiverse/oar` (agents cannot rerun push runs).
+  workflow_dispatch:
 
 jobs:
   check:
