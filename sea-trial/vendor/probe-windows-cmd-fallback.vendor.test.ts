@@ -33,6 +33,42 @@ const payloads = [
   "100%PATH% and %%", "caret^here ^^ end^", "C:\\dir with space\\", "unicode é中文",
 ] as const;
 
+/** Capture one claude turn's tools from the provider request, as the serialized request bodies. */
+async function captureToolBodies(installation: Parameters<typeof claudeSession>[0], extraEnv: Record<string, string>): Promise<readonly string[]> {
+  const env = await startClaudeAimock((mock) => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); }, { captureRaw: true });
+  try {
+    const session = await claudeSession(installation, { cwd: process.cwd(), env: { ...extraEnv, ...env.env } });
+    try { await runTurn(session, "probe"); } finally { await session.dispose(); }
+  } finally { await env.stop(); }
+  return env.raw.map((request) => JSON.stringify(request.body));
+}
+
+/** The top-level property keys and `required` list of one named tool's input_schema, scanned from the serialized body (brace-aware, no JSON parse of `unknown`). */
+function schemaOf(bodies: readonly string[], toolName: string): { present: boolean; props: string[]; required: string } {
+  const body = bodies.find((t) => t.includes(`"name":"${toolName}"`));
+  if (body === undefined) { return { present: false, props: [], required: "" }; }
+  const from = body.indexOf(`"name":"${toolName}"`);
+  const schemaAt = body.indexOf('"properties":{', from);
+  const props: string[] = [];
+  if (schemaAt !== -1) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let keyStart = -1;
+    for (let i = body.indexOf("{", schemaAt); i < body.length; i += 1) {
+      const character = body[i];
+      if (escaped) { escaped = false; continue; }
+      if (character === "\\") { escaped = true; continue; }
+      if (character === '"') { if (!inString && depth === 1) { keyStart = i + 1; } else if (inString && depth === 1 && keyStart !== -1) { props.push(body.slice(keyStart, i)); keyStart = -1; } inString = !inString; continue; }
+      if (inString) { continue; }
+      if (character === "{") { depth += 1; }
+      else if (character === "}") { depth -= 1; if (depth === 0) { break; } }
+    }
+  }
+  const requiredMatch = /"required":(\[[^\]]*\])/u.exec(body.slice(from));
+  return { present: true, props, required: requiredMatch?.[1] ?? "(none)" };
+}
+
 /** A tiny Node script that writes its argv as JSON to the file in LK_OUT, then an npm-style node shim that calls it. */
 function argvRecorder(dir: string): { script: string } {
   mkdirSync(dir, { recursive: true });
@@ -136,7 +172,19 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock" || process.platform !==
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }, 60_000);
 
-  test("D. PowerShell tool appears without Git Bash and without the env var", async () => {
+  test("D. PowerShell tool appears without Git Bash, with Bash's input shape", async () => {
+    const installation = await claudeInstallation();
+    if (installation.kind !== "available" || installation.via !== "executable") { log(`PROBE D claude ${installation.kind}; skip`); return; }
+    const noPwshEnv: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) { if (value !== undefined && key.toUpperCase() !== "CLAUDE_CODE_USE_POWERSHELL_TOOL") { noPwshEnv[key] = value; } }
+
+    // Baseline: Git Bash present -> claude should offer Bash. Record its schema for comparison.
+    const bashBodies = await captureToolBodies(installation, noPwshEnv);
+    const bashSchema = schemaOf(bashBodies, "Bash");
+    log(`PROBE D baseline (Git Bash present): Bash=${String(bashSchema.present)} PowerShell=${String(schemaOf(bashBodies, "PowerShell").present)}`);
+    log(`PROBE D Bash props=${clip(bashSchema.props)} required=${bashSchema.required}`);
+
+    // Now hide Git Bash and, with no env var, see what claude offers.
     const bash = [String.raw`C:\Program Files\Git\bin\bash.exe`, String.raw`C:\Program Files (x86)\Git\bin\bash.exe`, String.raw`C:\Program Files\Git\usr\bin\bash.exe`];
     const hidden: string[] = [];
     for (const file of bash) {
@@ -144,28 +192,16 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock" || process.platform !==
       try { renameSync(file, `${file}.lkhidden`); hidden.push(file); } catch (error) { log(`PROBE D could not hide ${file}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     log(`PROBE D hid ${String(hidden.length)} bash.exe: ${JSON.stringify(hidden)}`);
-    const env0: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) { if (value !== undefined && key.toUpperCase() !== "CLAUDE_CODE_USE_POWERSHELL_TOOL") { env0[key] = value; } }
     try {
-      const installation = await claudeInstallation();
-      if (installation.kind !== "available" || installation.via !== "executable") { log(`PROBE D claude ${installation.kind}; skip`); return; }
-      const env = await startClaudeAimock((mock) => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); }, { captureRaw: true });
-      try {
-        const session = await claudeSession(installation, { cwd: process.cwd(), env: { ...env0, ...env.env } });
-        try { await runTurn(session, "probe"); } finally { await session.dispose(); }
-      } finally { await env.stop(); }
-      const bodies = env.raw.map((request) => JSON.stringify(request.body));
-      log(`PROBE D PowerShell=${String(bodies.some((t) => t.includes('"name":"PowerShell"')))} Bash=${String(bodies.some((t) => t.includes('"name":"Bash"')))}`);
-      for (const marker of ['"name":"PowerShell"', '"name":"Bash"']) {
-        const body = bodies.find((t) => t.includes(marker));
-        if (body === undefined) { continue; }
-        // The window after the name shows the tool's own input_schema inline.
-        log(`PROBE D window ${marker}: ${body.slice(body.indexOf(marker), body.indexOf(marker) + 1800)}`);
-      }
+      const bodies = await captureToolBodies(installation, noPwshEnv);
+      const pwsh = schemaOf(bodies, "PowerShell");
+      log(`PROBE D no-git-bash: PowerShell=${String(pwsh.present)} Bash=${String(schemaOf(bodies, "Bash").present)}`);
+      log(`PROBE D PowerShell props=${clip(pwsh.props)} required=${pwsh.required}`);
+      log(`PROBE D props match Bash: ${String(JSON.stringify(pwsh.props) === JSON.stringify(bashSchema.props))}; required match: ${String(pwsh.required === bashSchema.required)}`);
     } finally {
       for (const file of hidden) { try { renameSync(`${file}.lkhidden`, file); } catch { /* restore best effort */ } }
     }
-  }, 120_000);
+  }, 180_000);
 
   test("print", () => { for (const line of lines) { console.log(line); } expect(lines.length).toBeGreaterThan(0); });
 });
