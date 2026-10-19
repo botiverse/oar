@@ -114,7 +114,9 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock" || process.platform !==
         const session = await claudeSession(installation, { cwd: process.cwd(), ...(env.env === undefined ? {} : { env: env.env }), appendSystemPrompt: marker });
         try { const turn = await runTurn(session, "probe"); outcome = turn.kind; } finally { await session.dispose(); }
       } catch (error) { outcome = `threw ${error instanceof Error ? error.message.slice(0, 120) : String(error)}`; } finally { await env.stop(); }
-      const whole = env.raw.map((r) => JSON.stringify(r.body)).some((t) => t.includes(marker));
+      // The body is JSON, so the marker appears with quotes and backslashes escaped.
+      const needle = JSON.stringify(marker).slice(1, -1);
+      const whole = env.raw.map((r) => JSON.stringify(r.body)).some((t) => t.includes(needle));
       const head = env.raw.map((r) => { const t = JSON.stringify(r.body); const at = t.indexOf("[[LK:"); return at === -1 ? "" : t.slice(at, at + 120); }).find((s) => s !== "") ?? "(none)";
       log(`PROBE C1 ${whole ? "WHOLE" : "LOST "} value=${JSON.stringify(value)} outcome=${outcome} reqs=${String(env.raw.length)}${whole ? "" : ` head=${head}`}`);
     }
@@ -158,7 +160,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock" || process.platform !==
         const body = bodies.find((t) => t.includes(marker));
         if (body === undefined) { continue; }
         // The window after the name shows the tool's own input_schema inline.
-        log(`PROBE D window ${marker}: ${body.slice(body.indexOf(marker), body.indexOf(marker) + 600)}`);
+        log(`PROBE D window ${marker}: ${body.slice(body.indexOf(marker), body.indexOf(marker) + 1800)}`);
       }
     } finally {
       for (const file of hidden) { try { renameSync(`${file}.lkhidden`, file); } catch { /* restore best effort */ } }
