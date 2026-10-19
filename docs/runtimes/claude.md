@@ -5,22 +5,20 @@ live contract ([`experiments/live-contract.ts claude`](../../experiments/live-co
 ran on **claude 2.1.268** (darwin arm64, haiku, 2026-09-11); the probes on
 **2.1.237** and **2.1.261** (linux x64) are listed in the
 [experiments index](../../experiments/README.md); later observations carry
-their version inline. The October 7 daily check re-ran `basic`, `tool-detail` and
-`resume` on **2.1.292** (2026-10-07,
-[report](../../experiments/runtime-version-checks/2026-10-07.md)), along with
-14 native vendor tests, including MCP attachment and resume. An evening
-follow-up on **2.1.293** compared the Haiku alias, effort and steer requests
-against 2.1.292 using a scripted provider
-([probe](../../experiments/claude-293-compatibility.ts)); findings appear
-below. Versions are evidence baselines, not a support range.
+their version inline. The `basic`, `tool-detail` and `resume` live scenarios
+last passed on **2.1.296** (Linux x64, `claude-haiku-5-5`,
+[2026-10-10 report](../../experiments/runtime-version-checks/2026-10-10.md))
+with no adapter change.
+The 47 native vendor tests (MCP attachment and resume, tool-list changes,
+tool denial, streamed input, child attribution, structured output, service
+tiers, effort, additional directories, error redaction) and the shared
+behavior cases (17 passed, 2 skipped) last passed on **2.1.302** against a
+local scripted provider
+([2026-10-17 report](../../experiments/runtime-version-checks/2026-10-17.md)).
+Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
 for status labels.
-
-The [October 10 daily check](../../experiments/runtime-version-checks/2026-10-10.md)
-passed the same three live scenarios on **2.1.296** (Linux x64,
-`claude-haiku-5-5`). All 40 native vendor tests and 17 applicable shared
-behavior cases passed using a local provider. No adapter change was needed.
 
 ## Native concepts and calling interfaces
 
@@ -59,12 +57,12 @@ provider's echoed authentication header across live delivery and replay.
 | CLI process | One owned subprocess per OAR Session; stdio carries inputs, controls, and frames. Its exit is an `exited` response record (answering `dispose` when OAR caused it). |
 | Persistent session ID | `Session.id`, passed as `--session-id` or `--resume`. Every record carries it as `sessionId`. |
 | stream-json frame | One `Frame` record per stdout line (control traffic below and the effort read-back at open are the exceptions): `type` = `type[/subtype]`, `native` = the frame verbatim, `events` = OAR's readings (text_delta, reasoning, tool_call_started/ended, user_message, turn_ended, usage, model, task_*, compaction_ended). Frames OAR does not interpret (`system/thinking_tokens`, …) carry no events; nor does `rate_limit_event`, read only for a failed turn's `resetsAt` ([below](#usage-limits)). No `spanId`: claude frames carry no turn id. |
-| User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)). |
+| User turn and `result` | The `prompt` request records intent. After native `command_lifecycle queued`, its turn starts at the matching `started`; otherwise the request remains the fallback start. The root `result` frame ends it with a `turn_ended` event (`aborted` while OAR's own interrupt is outstanding, `failed` on `is_error`, else `completed`; a subscription limit's refusal is `quota` with that limit's `resetsAt`, [below](#usage-limits)) plus a `usage` event: the root's tokens from the main loop's `usage`, the session total from `modelUsage` ([tokens](#token-totals)), and the context the root's latest model call sent ([context](#models-instructions-and-context)). |
 | Subagent messages (`parent_tool_use_id`) | `agentPath = [...parentPath, taskCallId]` ([details](#observation-children-and-history)); `capabilities.attribution` is `attributed`. |
 | `tool_use` / `tool_result` blocks | A streamed `content_block_start` gives `tool_call_started` (`callId`, `tool`, no input); `input_json_delta.partial_json` gives append-only `tool_call_input_delta`; the completed `tool_use` gives `tool_call_input` with the whole input. Without a partial opening, the completed block gives one `tool_call_started` carrying its input. `tool_call_ended` (`callId`, `content`, `result`): `is_error: true` is `failed`; `false` or an absent field is `ok` ([evidence](#tool-call-outcome-reporting)). |
 | `control_request` / `control_response` | OAR's interrupt is an `abort` request record whose id is the `control_request` id; claude's `control_response` becomes its `accepted`/`rejected` response. A `control_request` from claude is recorded as a Frame plus an unanswered `toApp` request: under `--dangerously-skip-permissions` no `can_use_tool` arrives, but an MCP server's `elicitation` does (2.1.292); `events()` reads it as `app_request` with the request subtype as `type`. A `control_cancel_request` (claude withdrawing a request it sent) reads as `app_request_cancelled`: on 2.1.292 an interrupt while an MCP server's `elicitation` waited was answered, then claude cancelled the elicitation under its `request_id`, then the turn's `result` followed. |
 | `system/task_*` | `task_started`, `task_updated`, `task_ended` events for commands, subagents, workflow runs and backgrounded MCP calls (claude moves a main-conversation MCP call past two minutes to the background). A changed `task_progress.description` emits `task_updated`; repeated descriptions do not. `background_tasks_changed` and nested `workflow_progress` stay native. |
-| `command_lifecycle` | For inputs OAR wrote as prompts (including an idle or drained `queue`), `queued` gives `input_queued { inputId }` and `started` gives `turn_active { inputId }`, using `command_uuid`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. A replayed user message or `completed` before this write has received either `queued` or `started` proves an ignored duplicate input id and gives `input_dropped` with `reason: "runtime_refused"`, `failure: "invalid_request"` and a diagnostic `message`. Other `completed` frames, steer lifecycle frames, and `cancelled` after `started` remain native-only. |
+| `command_lifecycle` | Read by `command_uuid` only for inputs OAR wrote as prompts (a `prompt`, a `queue()` written while idle, a held queue message a turn end drains), never for a steer. `queued` gives `input_queued { inputId }`, which only arms the pending input and changes no status; `started` gives `turn_active { inputId }`. `cancelled` before that input has `started` gives `input_dropped { inputId, reason: "turn_interrupted" }`. A replayed user message or `completed` before this write has received either `queued` or `started` proves an ignored duplicate input id and gives `input_dropped` with `reason: "runtime_refused"`, `failure: "invalid_request"` and a diagnostic `message`. Other `completed` frames, steer lifecycle frames, and `cancelled` after `started` remain native-only ([attribution](#prompt-steering-queueing-and-abort)). |
 | `system/init` | The reported model and service tier; additionally `turn_active` without input identity when a root turn starts on its own, including while a host prompt is still natively queued. A repeated init in an active turn gives no second start. |
 | `system/compact_boundary` | The after-the-fact compaction report: a `compaction_ended` event, outcome `completed`, `trigger` from `compact_metadata.trigger` (`manual` \| `auto`). The frame carries `compact_metadata { trigger, pre_tokens, post_tokens?, cumulative_dropped_tokens? }` [sym 2.1.272]. claude has no start frame, so no `compaction_started`, no `retry` (401s are retried silently) and no `tool_call_progress` (tool output arrives whole in the `user` tool_result frame). |
 | SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
@@ -117,7 +115,7 @@ shared credential-redaction rules. This narrowly pinned prose is a last resort;
 other execution failures keep their original errors
 ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)). An exit without a result names the exit
 code; an unanswered handshake reaches the readback deadline. Both fail the
-open and release the process. Observed on 2.1.292 and repeated on 2.1.295
+open and release the process. Observed on 2.1.292 and 2.1.295
 (2026-10-09): the missing-ID result arrived at about 0.8 seconds, followed by
 exit code 1 at about 1.2 seconds, with no initialization answer or model
 request. [Recorded frame](../../tests/fixtures/claude-missing-resume.json),
@@ -142,7 +140,9 @@ reports as a `session_title_changed` frame and keeps in the transcript. A
 resume does not pass it: `--name` there replaces the name the session has,
 which may be the user's, and claude reports that name only once it has
 started ([env] 2.1.292; `rename_session` exists on the control channel but
-is not used). [Vendor test](../../sea-trial/vendor/claude-session-name.vendor.test.ts).
+is not used). A blank name, or one with a NUL character, is refused before
+launch ([session name](../spec/runtime-matrix.md#session-name)).
+[Vendor test](../../sea-trial/vendor/claude-session-name.vendor.test.ts).
 
 Fork, session listing, history retrieval, rewind, and reset identity management
 are **not exposed**. Duplicate transcripts and concurrent controllers resuming
@@ -174,7 +174,7 @@ continues until it too ends.
 Without the declared capability, the ordinary interrupt targets the running
 turn; a pending prompt reported in `still_queued` may run afterward. No
 cancellation is inferred from an absent echo or an empty `still_queued`.
-[Earlier plain-interrupt probe](../../experiments/input-interruption-2026-10-08.md).
+[Plain-interrupt probe](../../experiments/input-interruption-2026-10-08.md).
 Four Claude 2.1.292 recordings with a scripted provider pin the distinction:
 [collision](../../tests/replay/fixtures/claude-cancel-queued-collision.raw.jsonl),
 [before start](../../tests/replay/fixtures/claude-cancel-queued-before-start.raw.jsonl),
@@ -199,23 +199,29 @@ holds two such turns, recorded without the echo.
 [Projection](../../packages/oar/src/runtimes/claude/projection.ts).
 
 **Native input/turn attribution:** OAR generates an `inputId` UUID when
-omitted, and writes it as the user frame's `uuid`. Claude's `command_lifecycle queued`
-establishes that this input has not started; the matching `started` begins
-its turn, and the next root `result` ends it. A turn that ends between queued and started is a separate spontaneous turn.
-Claude can also fold a queued input into an ongoing notification turn at a
-tool boundary: its replayed user message precedes `started`, without a new
-init. That input is delivered normally and shares the following result. `completed` is
-not a turn boundary: it follows the prompt's result, but for a steer can
-precede that result. Steer queued/started frames are not projected as turn
-facts; its replayed user message already reports its landing. Both queue
-write paths are registered as prompt-like inputs when actually written.
-Without a matching queued report, the existing request/init/result behavior
-remains. Queue evidence alone changes no visible phase or input placement:
-the prompt remains `running/waiting_model`. A conflicting native turn moves
-its input to pending and removes only its empty provisional segment. That
-turn's result restores `waiting_model` for the pending prompt; its matching
-start places the input before its own turn. `awaitIdle` waits through the
-intervening result until the pending input completes or is cancelled.
+omitted, and writes it as the user frame's `uuid`. An input is registered
+for these facts when OAR actually writes it as a prompt: a `prompt`, a
+`queue()` written while idle, or a held queue message a turn end drains. A
+steer never is: its queued/started frames are not projected as turn facts,
+and its replayed user message already reports its landing. For a registered
+input, claude's `command_lifecycle queued` (`input_queued`) establishes that
+it has not started; the matching `started` (`turn_active { inputId }`)
+begins its turn, and the next root `result` ends it. A turn that ends
+between queued and started is a separate spontaneous turn. Claude can also
+fold a queued input into an ongoing notification turn at a tool boundary:
+its replayed user message precedes `started`, without a new init. That input
+is delivered normally and shares the following result. `completed` is not a
+turn boundary: it follows the prompt's result, but for a steer can precede
+that result. Without a matching queued report, the existing
+request/init/result behavior remains.
+
+`input_queued` only arms the pending input: it changes neither status nor
+the input's place in the view (a prompt stays `running/waiting_model` from
+its request). A conflicting native turn moves its input to pending and
+removes only its empty provisional segment. That turn's result restores
+`waiting_model` for the pending prompt; its matching start places the input
+before its own turn. `awaitIdle` waits through the intervening result until
+the pending input completes or is cancelled.
 
 The notification's root `system/init` can arrive after OAR writes the prompt
 but before its `queued` receipt. OAR retains that init until `queued` proves
@@ -273,7 +279,9 @@ On 2.1.293, `haiku` selects Haiku 5.5. In the scripted two-step probe,
 the mid-turn input reached the next Messages API request as a `role:
 "system"` entry in `messages`, before the same turn ended. Haiku 4.5 on
 2.1.292 and 2.1.293 carried it in a user entry. The replay echo and its UUID
-were unchanged. aimock's normalized chat messages omit that system entry;
+were unchanged ([probe](../../experiments/claude-293-compatibility.ts),
+[2026-10-07 report](../../experiments/runtime-version-checks/2026-10-07.md#claude-code-21293-evening-follow-up)).
+aimock's normalized chat messages omit that system entry;
 provider-inclusion tests inspect the original request body, separately from
 the native acknowledgement.
 
@@ -298,7 +306,8 @@ provider request; neither is an empty user-text block. Verified with the
 
 **Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
 false`), drained one message per turn end; the queued input runs as a
-spontaneous turn with no prompt request of its own. A queue while idle is
+turn with no prompt request of its own, its native start still naming it
+(input/turn attribution above). A queue while idle is
 written at once. `withdraw(inputId)` takes a held message back before a turn
 end writes it (`accepted`) and answers `not_queued` once it is on stdin;
 this is independent of the native bulk cancellation used for a pending prompt
@@ -495,9 +504,9 @@ Another `--settings` in `launchArgs` can override that choice; if the applied
 mode no longer matches the requested tier, readback rejects the open instead
 of silently accepting the override.
 
-The initialization response is not recorded because it carries account
-details. Success confirms the requested tier at open, but produces no
-`service_tier` event; `Session.serviceTier()` remains null until a turn
+Success confirms the requested tier at open, but produces no
+`service_tier` event (the initialization response is not recorded,
+[above](#session-creation-and-resume)); `Session.serviceTier()` remains null until a turn
 reports it through `system/init` or `result`. Those reports map `on` to
 fast, `off` and temporary `cooldown` to default. Native reasons remain in
 the frame. A provider can downgrade fast after opening, so this is
@@ -513,13 +522,16 @@ another resume. No real model account was used. See the
 
 **Mapped:** `--model` selects the initial model; `model()` folds the `model`
 event OAR reads from each `system/init` frame, so it is `null` until the
-first turn's init frame (`haiku` reads back as `claude-haiku-4-5-20251001`).
+first turn's init frame (`haiku` reads back as `claude-haiku-5-5` since
+2.1.293, `claude-haiku-4-5-20251001` before).
 Opening with a model that does not exist succeeds; the first turn fails with
 claude's "issue with the selected model" message (`error: model_not_found`,
 `api_error_status: 404`), classified `model_unavailable`
-([failure evidence](../spec/runtime-matrix.md#claude)). The token-free `list_models` control request preserves
+([failure evidence](../spec/runtime-matrix.md#claude)). `listModels` sends
+the token-free `list_models` control request from a process started in
+`ListModelsOptions.cwd` (the host's cwd by default); the answer preserves
 selector versus resolved ID, disabled entries, and effort choices
-(`supportedEffortLevels` per model; haiku lists none).
+(`supportedEffortLevels` per model; Haiku 4.5 lists none).
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
 [readback probe](../../experiments/session-model-readback.ts),
 [unit test](../../tests/claude/claude-session-model.test.ts).
@@ -538,35 +550,48 @@ level (`system/init` carries only `per_turn_effort_active`; `assistant` and
 assistant message (live 2026-09-29: `low`, then `medium` after the resume),
 but OAR never reads transcripts.
 
-Three cases drop a level without a word on stdout: an unknown value only
-warns on stderr (`Unknown --effort value 'bogus'`, ignoring it for the
-default effort); a model without effort (Haiku 4.5) sends none; and a
-`maxEffortLevel` setting or `CLAUDE_CODE_EFFORT_LEVEL` can clamp or override
-the flag ([sym] 2.1.284 setting docs; not exercised). So the adapter asks
-claude before the session opens with the token-free `get_settings` control
-request, answered once the SessionStart hooks ran (bounded at 30 s). Its
-`applied.effort` is "what will actually be sent to the API", `null` when the
-model takes none. Anything but the requested level refuses the open with
-claude's word: `claude applies effort medium for claude-opus-5-5[1m] although
-bogus was requested`, `claude sends no effort for claude-haiku-4-5-20251001
-(the model takes none), so effort low would be dropped`. That answer is
-consumed, not recorded, because it also dumps the merged settings of every
-source (hooks, permissions, any `env` block) verbatim
+Four cases change the level without a word on stdout:
+
+- an unknown value only warns on stderr (`Unknown --effort value 'bogus'`,
+  ignoring it for the default effort, `medium`);
+- a known level the model lacks is lowered silently, with nothing on stderr
+  either: `xhigh` on Opus 4.6 or Sonnet 4.6 applies `high`, while `max` on
+  Opus 4.6 applies `max`;
+- a model without effort (Haiku 4.5) sends none, whatever the level, also
+  silently;
+- a `maxEffortLevel` setting or `CLAUDE_CODE_EFFORT_LEVEL` can clamp or
+  override the flag ([sym] 2.1.284 setting docs; not exercised).
+
+So the adapter asks claude before the session opens with the token-free
+`get_settings` control request, answered once the SessionStart hooks ran
+(bounded at 30 s). Its `applied.effort` is "what will actually be sent to
+the API", `null` when the model takes none; the first three cases read so
+in its answer on 2.1.292 ([env] 2026-10-14; the 4.6 and Haiku 4.5 refusals
+are pinned by the [vendor test](../../sea-trial/vendor/effort.vendor.test.ts),
+claude-aimock). OAR keeps no per-model table of
+levels: anything but the requested level refuses the open with claude's
+word and stops the process: `claude applies effort medium for
+claude-opus-5-5[1m] although bogus was requested`, `claude applies effort
+high for claude-opus-4-6 although xhigh was requested`, `claude sends
+no effort for claude-haiku-4-5-20251001 (the model takes none), so effort low
+would be dropped`. That answer is consumed, not recorded, because it also
+dumps the merged settings of every source (hooks, permissions, any `env`
+block) verbatim
 ([decision](../design/decisions.md#recording-claudes-effort-read-back-2026-09-29)).
 `Session.effort()` therefore stays null on claude; a successful open is the
 confirmation. Live model/effort changes on a running process are **not
 exposed** ([native surfaces](live-configure.md)).
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [read-back](../../packages/oar/src/runtimes/claude/effort.ts),
+[open read-backs](../../packages/oar/src/runtimes/claude/open-settings.ts),
 [unit test](../../tests/claude/claude-session-effort.test.ts).
 
-The `haiku` alias changed in 2.1.293 from
-`claude-haiku-4-5-20251001` to `claude-haiku-5-5`. The new model reports the
-requested `low` in `get_settings` and sends `output_config.effort: "low"`
-with adaptive thinking. Explicit Haiku 4.5 still reports null and sends no
-effort on both binaries. The refusal test therefore selects that concrete
-model rather than assuming a moving alias lacks effort. OAR's effort
-validation follows the native read-back and requires no change.
+The `haiku` alias's model, Haiku 5.5 since 2.1.293, takes effort: it reports
+the requested `low` in `get_settings` and sends `output_config.effort: "low"`
+with adaptive thinking, while explicit Haiku 4.5 reports null and sends no
+effort on both 2.1.292 and 2.1.293
+([probe](../../experiments/claude-293-compatibility.ts)). The refusal test
+therefore selects Haiku 4.5 by its full ID, not the moving alias.
 
 Replace/append instructions map to `--system-prompt` and
 `--append-system-prompt`; native harness metadata may remain alongside
@@ -621,8 +646,8 @@ and from the start of a dispose, and after the exit, the answer is null.
 ### Token totals
 
 claude reports two figures on each `result` ([#282](https://github.com/botiverse/oar/issues/282)).
-Its schema (2.1.289) calls `usage` "MAIN AGENT LOOP ONLY — excludes Task
-subagent, sidechain, and auxiliary model calls, and is per-turn in
+Its schema (2.1.289) calls `usage` "MAIN AGENT LOOP ONLY", which "excludes
+Task subagent, sidechain, and auxiliary model calls, and is per-turn in
 streaming-input sessions. Prefer modelUsage for token/cost accounting", and
 `modelUsage` the per-model totals of "every model call made through the
 query pipeline … main loop, Task subagents, sidechains, and internal calls
@@ -638,7 +663,7 @@ result carries the running total. [sym]
   ([spec](../spec/attribution.md#cache-reads-and-writes)). It is read, never
   summed across results.
 - The root agent's `byAgent` entry is the main loop: each result's `usage`
-  added up, as before, its `input` `input_tokens + cache_read_input_tokens +
+  added up, its `input` `input_tokens + cache_read_input_tokens +
   cache_creation_input_tokens` (recorded: 39009 = 4 + 29198 read + 9807
   written, [replay](../../tests/replay/fixtures/claude-background-tasks.projected.txt)).
 - `unattributed` is the rest: the subagents', sidechains' and compaction's
@@ -768,6 +793,19 @@ claude's frames name servers and their status only, never an `env` or
 `headers` value; the vendor test asserts no record holds one. A clash with a
 project-scope (`.mcp.json`) or local-scope server was not measured.
 
+A server named `__proto__`, `__defineGetter__`, `__defineSetter__`,
+`__lookupGetter__` or `__lookupSetter__` is an `UnsupportedOptionError` on
+`mcpServers` before launch, as on every runtime: claude's `--mcp-config`
+drops all five without a word, and the session opens with no such server
+(2.1.302, [probe](../../experiments/claude-reserved-mcp-names.ts);
+[refused session options](../spec/runtime-matrix.md#refused-session-options)).
+Tools the host serves with `serveMcpTools` attach as an http entry. When a
+server announces a changed tool list, claude's next model request adds the
+new tools and keeps offering removed ones, whose calls then fail as unknown
+tools: `mcpToolsListChanged: "additions"` (2.1.302,
+[2026-10-17 report](../../experiments/runtime-version-checks/2026-10-17.md);
+[host-served tools](../spec/runtime-matrix.md#host-served-tools)).
+
 ### Workflows
 
 Claude's local `Workflow` tool is available in headless stream-json sessions
@@ -803,7 +841,8 @@ as tokens. Closing before a later result may leave that spend unreported.
 On completion Claude starts a turn itself (`system/init`) to handle the
 notification. OAR reports `turn_active` and becomes busy immediately, even
 before any text arrives (except when a host prompt was written just before
-that init: then the start is reported with the prompt's `queued`, as above). `TaskStop` instead yields a `killed` patch and a
+that init: then the start is reported in the prompt's `queued` frame, after
+its `input_queued`, [above](#prompt-steering-queueing-and-abort)). `TaskStop` instead yields a `killed` patch and a
 `stopped` notification, both mapped to stopped; the recorded stopped run had
 no notification usage and no spontaneous turn. Host `stop_task` control is
 not exposed by OAR.
@@ -915,7 +954,13 @@ back to terminating the direct child. Killing only the launcher left a live
 provider request and further Claude output after the recorded exit in the
 [native abort regression](../../sea-trial/vendor/abort-fallback.vendor.test.ts)
 (Claude 2.1.292). The host-exit hook runs the same tree cleanup synchronously;
-see the [lifetime limits](../spec/record-stream.md#the-rules).
+see the [lifetime limits](../spec/record-stream.md#the-rules). A recognized
+npm or pnpm `claude.cmd` shim never goes through `cmd.exe`: OAR reads it and
+starts the `claude.exe` it wraps directly, so host text in a flag such as
+`--append-system-prompt` is not parsed by a shell (claude 2.1.301 on the
+Windows runner, [#410](https://github.com/botiverse/oar/pull/410),
+[shim reader](../../packages/oar/src/shared/executable/windows-shim.ts)). Any
+other `.cmd` launcher starts as before.
 
 Installation checks `OAR_CLAUDE_BIN`, PATH, then the native installer's
 launcher `~/.local/bin/claude` (`%USERPROFILE%\.local\bin\claude.exe` on
@@ -980,10 +1025,10 @@ and `authMethod` as the account. `auth login` arrived in
 2.1.41 and reading a pasted code in 2.1.126 [doc changelog], so an older
 claude is `unsupported` / `version_unsupported`. Verified against a fake CLI
 that prints the 2.1.288 strings
-([tests](../../tests/login/claude-login.test.ts)), and on real logins: on
-2026-10-05, on a fresh Linux test machine with claude 2.1.289 and codex
-0.160.0, all five manual checklist steps of [#94](https://github.com/botiverse/oar/pull/94) (commit `f7e6428`) passed.
-For claude: the status read, a login with the code pasted back, and a cancel
+([tests](../../tests/login/claude-login.test.ts)), and on a real login with
+claude 2.1.289 on a fresh Linux test machine (2026-10-05, all five steps of
+the manual checklist of [#94](https://github.com/botiverse/oar/pull/94)
+passed at commit `f7e6428`); for claude: the status read, a login with the code pasted back, and a cancel
 at the paste prompt (`login cancelled`, exit 130, no process left over, the
 previous login unchanged).
 [Login](../../packages/oar/src/runtimes/claude/login.ts).
@@ -1084,11 +1129,14 @@ former only.
 ### Eight dimensions
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
-   --verbose --replay-user-messages --dangerously-skip-permissions` plus
-   `--session-id <uuid>` or `--resume <id>`, and optional `--model`,
-   `--effort` (then a `get_settings` control request before the first turn),
-   `--system-prompt`, `--append-system-prompt`, `--mcp-config <file>` (for
-   `SessionOptions.mcpServers`). `CLAUDECODE` is cleared from
+   --verbose --replay-user-messages --include-partial-messages
+   --dangerously-skip-permissions` plus `--session-id <uuid>` (and `--name`)
+   or `--resume <id>`, and optional `--model`, `--effort` (then a
+   `get_settings` control request before the first turn), `--settings`
+   (service tier), `--json-schema`, `--system-prompt`,
+   `--append-system-prompt`, then the host's `launchArgs`, `--add-dir`,
+   `--mcp-config <file>` (for `SessionOptions.mcpServers`) and
+   `--disallowed-tools`. `CLAUDECODE` is cleared from
    the child environment, as is an inherited `CLAUDE_CODE_ENTRYPOINT` (an explicit
    host entrypoint wins). Prompts are `user` message lines on stdin. Present
    in 2.1.261 help but not on the session path:
@@ -1106,9 +1154,11 @@ former only.
    round: `system/init`, `system/thinking_tokens`, `rate_limit_event`,
    `assistant` with `thinking`, `tool_use`, `text` blocks, `user` with
    `tool_result` blocks, `result/success`; plus `control_response` answering
-   OAR's interrupt and `control_request` from claude. No deltas. A turn is the
-   span from OAR's `prompt` request to the `result` frame; no frame names the
-   turn. Source: [projection](../../packages/oar/src/runtimes/claude/projection.ts);
+   OAR's interrupt and `control_request` from claude. That recording has no
+   deltas; with `--include-partial-messages`, which OAR passes, `stream_event`
+   frames carry them ([observation](#observation-children-and-history)). A
+   turn is the span from OAR's `prompt` request to the `result` frame; no frame
+   names the turn. Source: [projection](../../packages/oar/src/runtimes/claude/projection.ts);
    observed: [tool round fixture](../../tests/replay/fixtures/claude-tool-round.raw.jsonl).
 4. **Ownership and identity.** The spawning OAR process owns the child.
    Records carry `sessionId` and `agentPath`; `parent_tool_use_id` nests a
@@ -1134,7 +1184,8 @@ former only.
    has been observed; an MCP server's `elicitation` has (2.1.292), and claude
    cancels it on an interrupt. Source: projection.
 8. **Extension points.** MCP, agents, skills, plugins, hooks, and permission
-   callbacks exist natively; OAR passes none of them. OAR reads skills, MCP
+   callbacks exist natively; OAR passes only session MCP servers
+   (`--mcp-config`) and tool denials (`--disallowed-tools`). OAR reads skills, MCP
    servers, and MCP tools through workspace-scoped inventory queries, and
    discovers models with the `list_models` control request. Source:
    [tools section](#tools-permissions-and-extensions),
@@ -1147,7 +1198,8 @@ former only.
    reopened?** Yes: a new process with `--resume <id>` keeps the id and the
    model recalls earlier turns, in the same `cwd` (observed, live contract)
    and in another ([resume in another directory](resume-cwd.md), 2.1.288).
-   What happens for a missing id, and how fast, is unverified.
+   A missing id fails the open in about a second, before `initialize` is
+   answered (2.1.295, [resume section](#session-creation-and-resume)).
 2. **Does the runtime log keep every frame or only turn snapshots?** Neither.
    The transcript inspected here (2.1.237, an interactive session, 15869
    lines) is a tree of entries linked by `parentUuid`, one entry per `user`,
@@ -1280,7 +1332,7 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--mcp-config` and `--disallowed-tools`. Both take several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-mode` (OAR's `--dangerously-skip-permissions` overrides it), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--add-dir`, `--mcp-config` and `--disallowed-tools`. Each takes several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-mode` (OAR's `--dangerously-skip-permissions` overrides it), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 
@@ -1375,14 +1427,14 @@ Where an SDK option has a counterpart:
 | `q.interrupt()` | `session.abort()` |
 | `options.resume` | `SessionOptions.resume` |
 | `options.continue`, `forkSession` | not offered; `--continue` and `--fork-session` in `launchArgs` are refused |
-| `options.model`, `options.effort` | `SessionOptions.model`, `SessionOptions.effort` (refused for a model that takes no effort) |
+| `options.model`, `options.effort` | `SessionOptions.model`, `SessionOptions.effort` (the open fails when claude would apply another level, or none: [effort](#models-instructions-and-context)) |
 | `q.setModel`, `applyFlagSettings` mid-session | not yet ([live configuration](live-configure.md)); reopen with `resume` |
 | `options.cwd`, `options.env` | `SessionOptions.cwd`, `SessionOptions.env` (parent-session markers dropped) |
 | `options.additionalDirectories` | `SessionOptions.additionalDirectories` |
 | `options.disallowedTools` | `SessionOptions.disallowedTools` |
 | `options.tools` | `launchArgs: ["--tools", "Read,Grep"]` |
 | `options.mcpServers` (stdio, http) | `SessionOptions.mcpServers` |
-| `createSdkMcpServer` (in-process tools) | not yet ([#341](https://github.com/botiverse/oar/issues/341)); run a stdio or http server |
+| `createSdkMcpServer` (in-process tools) | `serveMcpTools({ name, tools })`: an http MCP server in the host process, attached as an `mcpServers` entry ([host-served tools](../spec/runtime-matrix.md#host-served-tools)); claude's in-process SDK channel is not used ([#341](https://github.com/botiverse/oar/issues/341)) |
 | `systemPrompt` string, or preset with `append` | `SessionOptions.systemPrompt`, `SessionOptions.appendSystemPrompt` |
 | `outputFormat` with a JSON schema | `SessionOptions.outputSchema`; the value in `TurnOutcome.structuredOutput` |
 | `options.agents` | `launchArgs: ["--agents", json]` |

@@ -21,11 +21,13 @@ range; source-supported claims are not a live check of a newer binary. The
 [spec](../spec/README.md) is not current OAR behavior. See the
 [runtime index](README.md) for evidence and status conventions.
 
-The [October 9 daily check](../../experiments/runtime-version-checks/2026-10-09.md)
-passed conversation, tool detail and resume on **1.0.50** (Linux x64,
-`grok-4.7`). Its local-provider prompt probe also confirmed that the
-replacement/append precedence and append-only resume refusal below remain
-necessary. This is focused validation, not a repeat of the full live battery.
+The [October 9 check](../../experiments/runtime-version-checks/2026-10-09.md)
+passed live conversation, tool detail and resume on **1.0.50** (Linux x64,
+`grok-4.7`): focused validation, not a repeat of the full live battery. The
+newest check, on **1.0.62**
+([2026-10-17](../../experiments/runtime-version-checks/2026-10-17.md#claude-and-grok)),
+passed the native vendor tests, the shared session behavior suite and the
+prompt-options probe against local scripted providers, without a real login.
 
 ## Native concepts and calling interfaces
 
@@ -107,8 +109,8 @@ The shared ACP transport retains protocol failures in the thrown error's
 `cause` as `{ method, native }`, including native `code`, `message`
 and `data`. The SDK error class and existing auth/model classification are
 preserved. MCP credential values are removed from both `data` and the
-cause before the error reaches the host; previously only message/stack
-were redacted. This also applies to Kimi, OpenCode and Antigravity opens.
+cause before the error reaches the host, as for Kimi, OpenCode and
+Antigravity opens.
 Spawn errors keep their safe diagnostic fields, never Node's original
 error containing the command's arguments.
 
@@ -146,8 +148,8 @@ seq 0, and recalls the earlier transcript (`live-contract/resume`). Grok
 itself refuses a resume naming another directory than the session's own:
 `session()` rejects with its `Path not found.` (1.0.46, 2026-10-03,
 [resume in another directory](resume-cwd.md)). Native
-persistence errors carry [stable error data](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/session/persistence.rs#L2496-L2516);
-A resume/load failure with `data.code === "FS_NOT_FOUND"` becomes
+persistence errors carry [stable error data](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/session/persistence.rs#L2496-L2516):
+a resume/load failure with `data.code === "FS_NOT_FOUND"` becomes
 `SessionNotFoundError`, retaining the requested `sessionId` and method/native
 error in `cause`. This is absence for the supplied cwd, not a claim about
 other directories; reuse the cwd stored with the id. Other opening failures
@@ -177,8 +179,7 @@ until the replacement reached the provider, its text remained in later
 requests. Both runs reported `cancelled` / `MidTurnAbort`; the early
 replacement's usage could even repeat the previous prompt's totals.
 
-OAR does not yet have a reliable per-input consumption or discard signal
-for this race. It records those native replies without `input_dropped`;
+OAR has no reliable per-input consumption or discard signal for this race. It records those native replies without `input_dropped`;
 blindly treating every cancelled steer as unread would return already-read
 input for duplicate delivery. The source's running-prompt queue removal
 explains the early loss but does not establish whether a cancelled prompt
@@ -195,12 +196,12 @@ are vendor-specific semantics beyond standard ACP.
 
 **Images (mapped, against the advertisement):** grok's `initialize` answers
 `promptCapabilities.image: false`, yet an ACP `image` block reaches its model
-(grok 1.0.44, 2026-09-29: with `initialize` rewritten to advertise images, a
-plain green PNG named `probe.png` with "don't run any tools, just look: what
-color fills it?" was answered "Green. The image is a solid bright green
-fill.", and the same prompt without the image "NO IMAGE"; allowed tools, grok
-instead saved the image under `~/.grok/sessions/` and decoded its pixels in
-Python). Hence `capabilities.images: true`; if a later grok refuses image
+(grok 1.0.44, 2026-09-29: with `initialize` rewritten to advertise images,
+a plain green PNG named `probe.png`, asked what color fills it with no tools,
+was answered "Green. The image is a solid bright green fill.", and the same
+prompt without the image "NO IMAGE"; allowed tools, grok instead saved the image under
+`~/.grok/sessions/` and decoded its pixels in Python). Hence
+`capabilities.images: true`; if a later grok refuses image
 blocks, the prompt fails with grok's own error and this override goes
 ([test](../../tests/acp/acp-session-images.test.ts)).
 
@@ -297,7 +298,8 @@ boundaries, context snapshots, and model reports; detail strings truncate at
 for a known call that carries `rawOutput` is a `tool_call_progress` event
 (its `content` is never read as progress). A tool the runtime never ended
 gets no synthetic end; the turn's `turn_ended` event is the only closure.
-Grok reports no retry through ACP, so `retry` never appears.
+Grok's vendor `retry_state` updates stay native-only (read only to classify a
+failed prompt, above), so `retry` never appears.
 [Projection](../../packages/oar/src/shared/acp/projection.ts).
 
 **Two notification methods.** On the wire `session/update` carries only
@@ -423,16 +425,16 @@ changes are **unexposed** ([native surfaces](live-configure.md)).
 [ACP effort channel](../../packages/oar/src/shared/acp/effort.ts),
 [test](../../tests/acp/acp-session-effort.test.ts).
 
-Grok's initialization extensions accept system-instruction configuration.
-`systemPrompt` uses `_meta.systemPromptOverride`; `appendSystemPrompt` uses
-`_meta.rules`. Grok 1.0.52 retains both on creation and resume, placing the
-rules after the replacement in its native `<human_rules>` section. OAR sends
-the two native fields separately. These are Grok extensions, not standard ACP
-fields. Without a replacement, new-session rules retain native instructions.
+System instructions use Grok initialize extensions, not standard ACP
+fields: `systemPrompt` is `_meta.systemPromptOverride` and
+`appendSystemPrompt` is `_meta.rules`, sent as separate fields. Grok 1.0.52
+keeps both on creation and resume, placing the rules after the replacement in its
+native `<human_rules>` section. Without a replacement, new-session rules
+retain native instructions.
 
 **Conditional refusal:** resuming with only `appendSystemPrompt` throws
-`UnsupportedOptionError` naming that option before launch: Grok 1.0.52 still
-does not reapply `rules` without an override. A resumed `systemPrompt` is
+`UnsupportedOptionError` naming that option before launch: Grok 1.0.52 does
+not reapply `rules` on resume without an override. A resumed `systemPrompt` is
 supported and replaces the saved system instructions; both options together
 replace both values. Omitting both preserves the saved instructions.
 
@@ -441,21 +443,20 @@ naming `systemPrompt`, with or without an append and on both creation and
 resume. Native Grok treats it as omitted: a new session keeps its built-in
 instructions, while a resumed session keeps its saved instructions.
 
-[Native request probe](../../experiments/grok-prompt-options.ts), 2026-10-13,
-**1.0.52 (`0920c8169e27`)**: an isolated native home and custom model pointed
-at a local provider capture the actual system message. Both strings reach
-the provider through their native channels, including changed values on
-resume. Append-only resume still leaves the old system message; empty and whitespace
-replacements also leave the native/saved base in place. The provider
-deliberately stops after capture, so these are request assertions, not
-model-obedience claims. The
+Evidence: the [native request probe](../../experiments/grok-prompt-options.ts)
+(**1.0.52 `0920c8169e27`**, 2026-10-13; passed again on 1.0.62,
+[2026-10-17](../../experiments/runtime-version-checks/2026-10-17.md#claude-and-grok))
+captures the actual system message at a local provider, from an isolated
+native home and custom model, for each case above, including changed values
+on resume. The provider deliberately stops after capture, so these are
+request assertions, not model-obedience claims. The
 [vendor regression](../../sea-trial/vendor/grok-prompts.vendor.test.ts)
 also checks successful new and resumed turns with a scripted provider.
 
-Earlier 1.0.46 and 1.0.50 selected override instead of rules, requiring OAR to
-combine both strings. That workaround has been removed for 1.0.52. The
-[October 13 report](../../experiments/runtime-version-checks/2026-10-13.md) records the
-resulting instruction-format change for hosts.
+Grok 1.0.46 and 1.0.50 ignored rules alongside an override, so OAR sent the
+two strings as one combined override; from 1.0.52 the appended text arrives
+in Grok's own `<human_rules>` section instead, an instruction-format change
+for hosts ([October 13 report](../../experiments/runtime-version-checks/2026-10-13.md#grok-1052)).
 
 | Session option | Native channel and result |
 | --- | --- |
@@ -463,10 +464,14 @@ resulting instruction-format change for hosts.
 | `resume` | ACP resume when advertised, otherwise load; native session identity. |
 | `model` | ACP `session/set_model`, with native read-back. |
 | `effort` | ACP `thought_level` config option; the similarly named CLI flag does not configure ACP sessions. |
-| `systemPrompt` | Initialize override, on both new and resumed sessions. |
+| `systemPrompt` | Initialize override, on both new and resumed sessions; a blank value is refused. |
 | `appendSystemPrompt` | Native initialize rules, alongside the separate override when `systemPrompt` is supplied; append-only resume is refused. |
 | `env` | Child-process environment, including tools. |
 | `mcpServers` | ACP `mcpServers` on new and resumed sessions ([session MCP servers](#session-mcp-servers)). |
+| `name` | Declared refused: no verified native session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
+
+Grok's host settings form (model and reasoning effort) ships in
+`@botiverse/oar/forms` ([config form](../spec/config-form.md)).
 
 Launcher/config audit: `grok agent --help` also exposes agent profiles,
 plugin directories, model and reasoning flags. None is needed to replace the
@@ -496,10 +501,10 @@ ledger covers one native prompt's model calls, not the session's lifetime:
 repeated one-word turns bill about 16.8k input each. A send-now steer's two
 answers carry disjoint ledgers (16776/222 and 34420/279 in the 1.0.25
 recording), which OAR accumulates into a running total. Each ledger's
-optional `reasoningTokens` also accumulates as `TokenTotals.reasoning`,
-including the independent root follow-up below. It is already part of
-`outputTokens`, so output is unchanged. Missing reasoning counters stay
-absent, and the same ledger deduplication applies to every token part.
+optional `reasoningTokens`, already part of `outputTokens`, also accumulates
+as `TokenTotals.reasoning`, including the independent root follow-up below;
+output is unchanged. Missing reasoning counters stay absent, and the same
+ledger deduplication applies to every token part.
 
 The root's automatic follow-up (`prompt_id: "subagent-completed-<child>"`)
 reports its own `turn_completed.usage`, without a `session/prompt` response.
@@ -510,10 +515,11 @@ ordinary prompt's RPC answer already supplies its ledger. A report needs
 both token sides, a native event id and an explicit root session id.
 Reports arriving before the `session/new`, `session/resume` or `session/load`
 answer stay native-only; their identities are remembered so a later duplicate
-cannot bill them. Native `isReplay: true` reports are also excluded. Grok
-currently advertises `session/resume`, which OAR prefers; without that
-capability OAR selects `session/load`. A refused resume is not retried as a
-load. The opening boundary avoids charging historical follow-ups again.
+cannot bill them. Native `isReplay: true` reports are also excluded. The
+boundary holds for `session/resume`, which Grok advertises and OAR prefers,
+and for `session/load`
+([attach selection](#resuming-loading-and-forking)), so historical
+follow-ups are not charged again.
 
 **Child accounting gap:** a foreground child's spend is included
 in the parent's prompt ledger in the verified runs. A background child,
@@ -537,9 +543,11 @@ The [Grok 1.0.50 probe and evidence](../../experiments/grok-background-usage-202
 compare foreground, background child-first and background parent-first
 completion without account use. Both background runs reported
 `will_wake: true`, while the parent ledgers were respectively 2800/30
-(including the child's 700/7) and 2100/23 (excluding it). The automatic
-follow-up's 10/1 is now counted in both. The late child's 700/7 is still
-missing; no child-accounting correction is inferred from notification order.
+(including the child's 700/7) and 2100/23 (excluding it). OAR counts the
+automatic follow-up's 10/1 in both. The late child's 700/7 stays missing;
+no child-accounting correction is inferred from notification order. Grok
+1.0.52 reproduces all three totals
+([October 13 report](../../experiments/runtime-version-checks/2026-10-13.md#grok-1052)).
 The earlier foreground-style 1.0.25 recording (root 53321/355, child
 19280/96) establishes overlap, not coverage of every execution mode
 (`live-contract/subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts)).
@@ -592,7 +600,16 @@ env}`, http `{type: "http", name, url, headers}`, `env` and `headers` as
 [test](../../tests/acp/acp-session-mcp-servers.test.ts)). grok declares
 `mcpCapabilities` http and sse, so http entries are sent (to an agent that
 declares no http, OAR refuses one with `UnsupportedOptionError`). An empty
-or repeated name fails the open before grok starts. Measured on grok 1.0.46
+or repeated name fails the open before grok starts, and the five reserved
+names (`__proto__` and the like), which grok never announces, are an
+`UnsupportedOptionError` on `mcpServers`
+([refused session options](../spec/runtime-matrix.md#refused-session-options)).
+`Runtime.mcpToolsListChanged` is `none`: a running session keeps the tools a
+server offered at open, and `use_tool` answers "Tool not found" for one
+added later (grok 1.0.52,
+[host-served tools](../spec/runtime-matrix.md#host-served-tools)).
+Measured on grok 1.0.46 (attachment and resume pass again on 1.0.62,
+[2026-10-17](../../experiments/runtime-version-checks/2026-10-17.md#claude-and-grok))
 against a scripted provider: fresh `HOME` and `GROK_HOME`, a `config.toml`
 custom model `[model.aimock-model]` (`api_backend = "chat_completions"`,
 dummy `api_key`) and a dummy `XAI_API_KEY`; `initialize` then offers
@@ -617,8 +634,8 @@ login is involved
   not the one running (probe).
 - grok's per-process `--plugin-dir <DIR>` flag (before `stdio`;
   `<DIR>/.grok-plugin/plugin.json` and `<DIR>/.mcp.json`) also attached
-  servers in a probe. OAR does not use it: the ACP param works, and ACP
-  launch flags belong to #171.
+  servers in a probe. OAR does not use it, since the ACP param works; a
+  host can pass it as a [launch argument](#launch-arguments) (#171).
 
 The credentials reach grok only in the open request's params, which OAR does
 not record; a failed open's error is redacted (`[redacted]`). A probe found
@@ -688,8 +705,8 @@ Installation checks `OAR_GROK_BIN`, PATH, and the official script/npm layouts
 `grok agent stdio --help`. When none is found, `install` runs xAI's script,
 `curl -fsSL https://x.ai/cli/install.sh | bash`
 ([Grok Build docs](https://docs.x.ai/build/overview); macOS and Linux;
-[runtime install](../spec/install.md), [sandbox run](install.md)). That
-method because its copy is the one `grok update` updates: `grok update
+[runtime install](../spec/install.md), [sandbox run](install.md)). OAR uses
+that method because its copy is the one `grok update` updates: `grok update
 --check --json` reports installer `internal`, where an npm install would be
 a second copy. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)
 separately opens a connection and queries `_x.ai/billing` (plus
@@ -715,9 +732,9 @@ both. **Not mapped:** OAR passes neither, so the user's setting decides.
 ## Verification and open gaps
 
 [`experiments/live-contract.ts grok`](../../experiments/live-contract.ts)
-covers every promise above on a real SuperGrok login through the public
-Session API, from a scratch cwd under `/tmp` (yolo mode edits files), across
-the thirteen scenarios cited by name; [`grok-wire-tap.ts`](../../experiments/grok-wire-tap.ts)
+runs thirteen scenarios on a real SuperGrok login through the public
+Session API, from a scratch cwd under `/tmp` (yolo mode edits files); the
+claims cited as `live-contract/<id>` come from it. [`grok-wire-tap.ts`](../../experiments/grok-wire-tap.ts)
 compares the raw wire with the stream (which frames reach records; two
 notification methods; lineage shape; per-prompt ledgers). The battery's
 voyage recorder can write a late record (the post-`exited` terminal answer
@@ -748,9 +765,7 @@ attachment and load-fallback code effects; the `skills-reload` response's
 payload; the [sym]-only vendor methods; [session MCP
 servers](#session-mcp-servers) on a real login and model (measured against
 a scripted provider only; their vendor test runs locally,
-`OAR_TEST=grok-aimock`, not in CI); the user's `config.toml` MCP `env`
-values that `_x.ai/mcp/servers_updated` carries into the records. Design
-should distinguish restoring
+`OAR_TEST=grok-aimock`, not in CI). Design should distinguish restoring
 context, replaying observations, and adopting live execution; the Session
 OAR returns does not imply all three.
 
@@ -759,7 +774,10 @@ OAR returns does not imply all three.
 `SessionOptions.disallowedTools` is refused before launch and declared in
 `refusedSessionOptions`. Grok 1.0.46's top-level CLI offers
 `--disallowed-tools`, but `Command::Agent` / `run_agent_command` does not
-forward those overrides into `agent stdio`. Its `--agent-profile` and ACP
+forward those overrides into `agent stdio`; `grok agent --help` on 1.0.52
+lists no tool-denylist argument
+([October 13 report](../../experiments/runtime-version-checks/2026-10-13.md#grok-1052)).
+Its `--agent-profile` and ACP
 `_meta.agentProfile` can replace the selected native agent definition;
 OAR does not replace the user's harness merely to change tool selection.
 
@@ -791,11 +809,13 @@ Grok 1.0.50 validates the output natively. A successful prompt answer carries
 `_meta.structuredOutput`, which OAR passes unchanged to the completed
 `TurnOutcome.structuredOutput`. Invalid values or schemas instead carry
 `_meta.structuredOutputError`, even with `stopReason: "end_turn"`; OAR records
-a failed turn (`failure: "unknown"`) with that native reason and no structured
-value. A cancelled answer remains aborted. OAR neither validates the result
+a failed turn (`failure: "output_schema"`) with that native reason and no
+structured value ([failure classes](../spec/runtime-matrix.md#the-mapping)). A cancelled answer remains aborted. OAR neither validates the result
 nor parses message text into a value. Raw prompt answers are retained, and
 `promptAndWait`, status and SessionView preserve the same outcome on replay.
 
-Verified with the native binary and a local scripted provider: new and cold
-resumed sessions, steer, queued input, wrong-typed output and malformed schema.
+Verified with the native binary (1.0.50; the regression passes again on
+1.0.52, [October 13 report](../../experiments/runtime-version-checks/2026-10-13.md#grok-1052))
+and a local scripted provider: new and cold resumed sessions, steer, queued
+input, wrong-typed output and malformed schema.
 [Evidence and regressions](../../experiments/structured-output-2026-10-11.md).

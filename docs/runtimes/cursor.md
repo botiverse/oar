@@ -18,15 +18,14 @@ Current required SDK: **1.0.38**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
-On 2026-10-17 the native login/logout probe passed all 11 scenarios against
-a local substitute backend with other network access blocked. The
-**1.0.38** live check passed all 12 applicable session scenarios, with one
-focused abort recheck after the model shortened the original shell command,
-and all three root tool-selection scenarios
-(Linux x64, Node 24.19.0, `gpt-5.4-nano`), reusing an existing login.
-`kill-runtime` remains inapplicable. Abort and disposal during a turn ended
-as aborted, resume preserved the id/model/history, and both new and resumed
-restricted sessions denied shell/MCP while keeping read usable. See the
+On **1.0.38** (2026-10-17; Linux x64, Node 24.19.0, `gpt-5.4-nano`, reusing
+an existing login) all 12 applicable live session scenarios passed (abort on
+a focused recheck after the model shortened the original shell command), and
+so did all three root tool-selection scenarios; `kill-runtime` remains
+skipped. Abort and disposal during a
+turn ended as aborted, resume preserved the id/model/history, and both new
+and resumed restricted sessions denied shell/MCP while keeping read usable.
+The native login/logout probe passed too ([login](#login)). See the
 [October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)
 for the original failure, recheck and usage limits, and the
 [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
@@ -121,7 +120,9 @@ const resumed = await cursor.session(installation, {
 ```
 
 Sessions of the earlier cursor-agent adapter (bare UUIDs) are not SDK agents
-and cannot be resumed.
+and cannot be resumed. `SessionOptions.name` is declared refused: there is
+no verified session name setting
+([session name](../spec/runtime-matrix.md#session-name)).
 
 ### Interrupted input
 
@@ -205,29 +206,27 @@ closes the agent, and answers the dispose request `accepted`: an in-process
 runtime has no exit to observe (`dispose-mid-turn`). The agent's stored
 conversation is kept.
 
-**Backgrounded shells held the host process before SDK 1.0.38 (native):** when
-a shell call moves to the background (a steer, or the call's own `timeout`),
-SDK 1.0.35 to 1.0.37 arm a 24 hour hard timeout for it that no later path
-clears, neither the command's end nor `agent.close()` (the shell executor's
-`hardTimeout`, in the bundled `689.js`, `867.js` and `464.js` of those
-versions). The timer is not unref'd, so after such a turn the host process
-does not exit on its own, even with every session disposed. Probed on SDK
-1.0.35 (2026-10-04): a `sleep 20` that a 3 second tool timeout moved to the
-background left one 86400000 ms timer, and `oar run` was still running 150
-seconds after `[turn completed]` until it exited explicitly. Reported upstream
-on 2026-10-07
+**Backgrounded shells (native):** a shell call moves to the background on
+a steer or on the call's own `timeout`, and the SDK arms a 24 hour hard
+timeout for it. SDK 1.0.38 hands the backgrounded shell an `onCleanup` that
+clears the timer when the command completes or is aborted (`748.js`). Live
+on 1.0.38 (2026-10-17, model `gpt-5.4-nano`), in the tool-timeout case, the
+steer case, and with `agent.close()` while a backgrounded `sleep 121` was
+still running, each process exited about one second after `agent.close()`,
+which aborted the backgrounded command, and no `sleep` was left. `oar run`
+still exits explicitly after disposal.
+
+SDK 1.0.35 to 1.0.37 never clear that timer, neither at the command's end
+nor on `agent.close()` (the shell executor's `hardTimeout`, in the bundled
+`689.js`, `867.js` and `464.js` of those versions), and it is not unref'd,
+so after such a turn the host process does not exit on its own, even with
+every session disposed: hosts still on those SDKs need to exit explicitly
+when meant to end. Probed on SDK 1.0.35 (2026-10-04): a `sleep 20` that a 3
+second tool timeout moved to the background left one 86400000 ms timer, and
+`oar run` was still running 150 seconds after `[turn completed]` until it
+exited explicitly. Reported upstream on 2026-10-07
 ([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928));
 Cursor reproduced it the same day and called it unintended.
-
-SDK 1.0.38 clears the timer: the backgrounded shell is handed over with an
-`onCleanup` that clears it, called when the command completes or is aborted
-(`748.js`). Live on 1.0.38 (2026-10-17, model `gpt-5.4-nano`), with the
-tool-timeout case, the steer case, and `agent.close()` while a backgrounded
-`sleep 121` was still running: each process exited about one second after
-`agent.close()`, and no `sleep` was left. `agent.close()` aborted the
-backgrounded command. Hosts still on SDK 1.0.35 through 1.0.37 need to
-exit explicitly when meant to end. OAR now requires 1.0.38; `oar run`
-continues to exit explicitly after disposal.
 
 ### Observation, children, and history
 
@@ -512,9 +511,10 @@ real SDK against a local mock of the backend
 polls and while it mints, each in an empty home and over a previous login;
 the SDK stopped polling on its signal, minted and asked `GetMe` after a
 cancel, then saved only through OAR's store, which refused it, so
-`auth.json` stayed absent or byte for byte as it was). **Run that experiment
-on every `@cursor/sdk` upgrade**: it needs no account and fails if the SDK
-writes `auth.json` outside the store it is given. On a real login, on
+`auth.json` stayed absent or byte for byte as it was; all 11 scenarios
+passed again on 1.0.38, 2026-10-17, with other network access blocked).
+**Run that experiment on every `@cursor/sdk` upgrade**: it needs no account
+and fails if the SDK writes `auth.json` outside the store it is given. On a real login, on
 2026-10-06 and 2026-10-07, on a fresh Linux test machine with `@cursor/sdk`
 1.0.36, the four manual checklist steps of
 [#146](https://github.com/botiverse/oar/pull/146) (commit `d6ece22`) passed:

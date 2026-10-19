@@ -7,57 +7,45 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.3.0**. Native source references are
-pinned to pi **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono`
-URLs redirect to `earendil-works/pi`). Live observations below are from SDK
+`@earendil-works/pi-coding-agent` SDK **1.3.0**, with `@earendil-works/pi-ai`;
+OAR depends on both at `^1.3.0`. Native source references are pinned to pi
+**v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
+redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
 on 2026-09-29, 0.99.1 on 2026-09-30, 0.99.2 on 2026-10-01, 1.0.0 on
-2026-10-02, 1.0.2 on 2026-10-04, 1.0.3 on 2026-10-05, 1.0.4 on
-2026-10-06 and 1.1.0 on 2026-10-08): in-process runs of
-[`experiments/live-contract.ts pi`](../../experiments/live-contract.ts) and the
-[experiments index](../../experiments/README.md) probes against
+2026-10-02, 1.0.2 on 2026-10-04, 1.0.3 on 2026-10-05, 1.0.4 on 2026-10-06,
+1.1.0 on 2026-10-08, 1.2.0 on 2026-10-13 and 1.3.0 on 2026-10-16): in-process
+runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
+and the [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
 frame carries `provider: "openai-codex"`, `api: "openai-codex-responses"`) on
 Node 26.7 / macOS. Versions are evidence baselines, not a support range; see
 the [runtime index](README.md) for conventions.
 
-On **1.0.2** (2026-10-04; Linux x64, Node 24.19.0,
-`exe-dev-openai/gpt-6-luna@llm`) all 11 applicable live cases passed
-(subagents and process killing inapplicable), the simulated-provider behavior
-suite was 19/19 clean, withdrawal included, and all eight applicable vendor
-tests passed without adapter changes; the live battery and both suites had
-passed on 1.0.0 too (2026-10-02). A separate-process probe
+**Upgrade checks.** The newest live runs are on SDK 1.0.0, 1.0.2, 1.0.3 and
+1.0.4 (2026-10-02 to 10-06; Linux x64, Node 24.19.0,
+`exe-dev-openai/gpt-6-luna@llm`): each time all 11 applicable live cases
+passed (subagents and process killing inapplicable; on 1.0.4 `tool-detail`
+passed on a targeted retry after an upstream overload response), and so did
+the eight applicable vendor tests and the 19-case simulated-provider behavior
+suite (withdrawal included; only inapplicable cases skipped). 1.1.0, 1.2.0
+and 1.3.0 were checked against local scripted providers only; on 1.3.0, 42
+native tests and the shared behavior suite (17 passed, 2 skipped) cover
+native controls, extension lifecycle and tool handling. At every upgrade
+from 0.99.2 to 1.0.0 through 1.2.0 to 1.3.0, a separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
-session created by the previous SDK, 0.99.2 under 1.0.0 and 1.0.0 under
-1.0.2: native id, saved model and prior transcript survived, and the new OAR
-stream started at sequence zero. This checks conversation continuity, not
-unfinished execution recovery. Neither upgrade adopts the separate
-experimental Pi Durable harness. Scope, commands and evidence: version check
-reports of [October 2](../../experiments/runtime-version-checks/2026-10-02.md)
-and [October 4](../../experiments/runtime-version-checks/2026-10-04.md).
-
-On **1.0.3** (2026-10-05; same Linux/Node/provider as the 1.0.2 run),
-the 11 applicable live cases and eight vendor tests passed again, the
-19-case simulated behavior suite was clean (17 passed, two skipped), and
-ordinary 1.0.2 to 1.0.3 cross-process resume passed.
-The OAR dependency range remained `^1.0.2`; that check selected 1.0.3.
-See the [October 5 report](../../experiments/runtime-version-checks/2026-10-05.md).
-
-On **1.0.4** (2026-10-06; same Linux/Node/provider), all 11 applicable
-live cases passed, with `tool-detail` passing on a targeted retry after an
-upstream overload response. The other ten passed on the first run. All eight
-vendor tests and the 19-case simulated behavior suite passed or skipped only
-inapplicable cases. Separate-process 1.0.3 to 1.0.4 resume preserved the id,
-model and prior transcript; the new stream began at sequence zero. No adapter
-change was needed then; that check used 1.0.4 with dependency ranges `^1.0.2`. See the
-[October 6 report](../../experiments/runtime-version-checks/2026-10-06.md).
-
-**1.1.0** adds an authoritative `aborted` flag to `agent_settled`. OAR now
-uses that native fact for cancellation, including aborts initiated by Pi
-extensions, and invokes the complete `AgentSession.abort()` path. The
-[October 8 report](../../experiments/runtime-version-checks/2026-10-08.md)
-records the local-provider regressions and upgrade checks; older live
-observations above retain their original versions.
+session created by the previous SDK: native id, saved model and prior
+transcript survived, and the new OAR stream started at sequence zero. This
+checks conversation continuity, not unfinished execution recovery. None of
+these upgrades adopts the separate experimental [Pi Durable](pi-durable.md)
+harness. Scope, commands and evidence: version check reports of
+[October 2](../../experiments/runtime-version-checks/2026-10-02.md),
+[4](../../experiments/runtime-version-checks/2026-10-04.md),
+[5](../../experiments/runtime-version-checks/2026-10-05.md),
+[6](../../experiments/runtime-version-checks/2026-10-06.md),
+[8](../../experiments/runtime-version-checks/2026-10-08.md),
+[13](../../experiments/runtime-version-checks/2026-10-13.md) and
+[16](../../experiments/runtime-version-checks/2026-10-16.md).
 
 **Azure migration in 1.0.3:** the native provider was renamed from
 `azure-openai-responses` to `azure`. Update the native auth, model and
@@ -72,12 +60,11 @@ probe verifies these outcomes with a native 1.0.2 session file containing
 synthetic messages and a scripted fallback provider, not an Azure network
 request. Azure authentication and prompt-cache behavior were not tested.
 
-Both Pi dependency floors are `^1.3.0`. The upgrade is verified in the
-[October 16 report](../../experiments/runtime-version-checks/2026-10-16.md), including
-native controls, extension lifecycle, cross-version resume and tool handling.
-Pi extensions using `before_agent_start` must follow the SDK's new
-`messageType` distinction: a custom-message turn carries `message` rather
-than `prompt`/`images`. OAR leaves that extension API native.
+**Extension `before_agent_start` since 1.2.0:** it also runs for custom
+messages that trigger turns, discriminated by `messageType`: a
+custom-message turn carries `message` rather than `prompt`/`images`.
+Extensions using it must follow that distinction; OAR leaves that extension
+API native.
 
 ## Native concepts and calling interfaces
 
@@ -313,9 +300,10 @@ not evidence that the turn has ended. Before Pi creates its run, OAR holds
 the abort and delivers it at `agent_start`. Callers still `awaitTurnEnd`
 before the next prompt. A late abort rejects with `no_active_turn`.
 
-The outcome comes from **`agent_settled.aborted`**, not from OAR's request
-state. A native `true` produces `turn_ended: aborted` even if an extension
-called `ctx.abort()` and the host never requested it. A native `false`
+The outcome comes from **`agent_settled.aborted`** (authoritative since SDK
+1.1.0), not from OAR's request state. A native `true` produces
+`turn_ended: aborted` even if an extension called `ctx.abort()` and the host
+never requested it. A native `false`
 keeps a provider failure or normal completion. This also prevents a
 provider's abort-related error message from changing a native cancellation
 into failure. A later rejection from the SDK's abort promise is retained
@@ -369,7 +357,9 @@ with no event.
 block is an image part; a result without blocks is one `other` part); `details`
 such as an edit's `patch` stay in `native`. CodingTools' numeric
 `structuredContent.exit_code` becomes `exitCode`; otherwise it is absent.
-Pi 1.3.0's local runner reports SIGTERM as 143 (128 + 15), which OAR preserves.
+Pi 1.3.0's local runner reports SIGTERM as 143 (128 + 15), which OAR preserves
+([vendor test](../../sea-trial/vendor/pi-exit-code.vendor.test.ts),
+[native exits](../../experiments/runtime-version-checks/2026-10-16.md#native-command-exits-numbers-and-a-durable-observation-limit)).
 `result` comes from pi's
 explicit `isError` boolean ([src] `@earendil-works/pi-coding-agent` 0.84.2
 `core/extensions/types.d.ts:595-600`): false is `"ok"`, true is `"failed"`,
@@ -541,7 +531,9 @@ modes, OAR initializes pi's theme from the settings before extensions load
 only in interactive mode, so an extension tool that colors its output through
 `ctx.ui.theme` runs as it does under pi's CLI. That theme is one global in
 the host process, set by the latest load
-([theme](../../packages/oar/src/runtimes/pi/theme.ts)). `SessionOptions.env` affects
+([theme](../../packages/oar/src/runtimes/pi/theme.ts),
+[vendor test](../../sea-trial/vendor/pi-theme.vendor.test.ts)).
+`SessionOptions.env` affects
 subprocesses spawned by the replacement bash tool and the session's stdio
 MCP servers ([below](#session-mcp-servers)), not provider keys/base
 URLs. A `null` entry removes an inherited variable from Bash children,
@@ -582,6 +574,9 @@ lifecycle, and adds no dependency. Measured on the bundled pi-coding-agent
   The first prompt waits up to 10 s for the servers.
 - A resume remembers none: OAR registers them again on every open; resumed
   without the option, no `mcp__` tool is offered.
+- A tool-list change reaches the next model request with the new set
+  (`mcpToolsListChanged: "full"`, pi ^1.2.0;
+  [contract](../spec/runtime-matrix.md#host-served-tools)).
 - OAR loads the MCP extension with no `mcp.json` of its own (`loadConfig`
   returns nothing); OAR's pi never loaded the user's `mcp.json` (the SDK path
   loads no built-in extensions), with or without this option. In pi an
@@ -677,8 +672,8 @@ the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
 the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
 same version when the optional peers of its `openai` dependency resolve
 differently in the two places, `undici` above all: pi-coding-agent pins
-`undici` (8.10.2 in pi 1.2.0, and OAR pins the same), so a host that depends
-on another `undici` gets a second pi-ai copy for its own imports. The bundle
+`undici` (8.10.2 in pi 1.2.0 and 1.3.0, and OAR pins the same), so a host
+that depends on another `undici` gets a second pi-ai copy for its own imports. The bundle
 then carries two copies, the hand-over lands on the one no session uses, and
 every OAuth turn fails with "Cannot find module" again
 ([#386](https://github.com/botiverse/oar/issues/386): a daemon on `undici` 7
@@ -722,13 +717,13 @@ pi's `AuthInteraction`), `setApiKey` and logout through `ModelRuntime`,
 outside the session interface. It and `createPiModelCatalog` read
 `auth.json` and `models.json` from the agent dir sessions use
 (`OAR_PI_AGENT_DIR`, else pi's own), unless `authPath` or `modelsPath`
-name others, so a login reaches the next session; before 0.50.0 they used
-pi's own dir even with `OAR_PI_AGENT_DIR` set.
+name others, so a login reaches the next session; before OAR 0.50.0 they
+used pi's own dir even with `OAR_PI_AGENT_DIR` set.
 [Facade paths](../../packages/oar/src/runtimes/pi/facade-runtime.ts).
 The catalog's `providers()` counts a provider with a key or login in
 `auth.json` as `configured` from the start, read from the file alone
 without resolving the credential; `refresh()` reads the file again. Before
-0.54.0 it did so only after a `refresh()`. An environment key counts only
+OAR 0.54.0 it did so only after a `refresh()`. An environment key counts only
 after a `refresh()`, which is when pi resolves ambient credentials
 ([catalog](../../packages/oar/src/runtimes/pi/catalog.ts)). As in pi itself,
 `configured` says the provider has an entry, not that its key works: an
@@ -774,8 +769,8 @@ which stops the flow before pi stores anything, and rejects with an error
 that names the question and says to use `login(id, "api_key",
 interaction)`: on 1.1.0, amazon-bedrock and google-vertex first ask which
 credential to use, and cloudflare-workers-ai and cloudflare-ai-gateway ask
-for the account (and gateway) id after the key. Before, it answered every
-prompt with the key.
+for the account (and gateway) id after the key. Before OAR 0.49.0 it
+answered every prompt with the key.
 [Test](../../tests/providers/provider-auth.test.ts) against pi's real
 registry and login flows, with fake stored credentials.
 
@@ -840,30 +835,30 @@ registered later by extensions/MCP. Use Pi names such as `bash`, `read` and
 `mcp__server__tool`; native pattern matching is unchanged. OAR does not edit
 Pi's settings. Supply the list again on resume.
 
-Pi 1.3.0 otherwise restores the active tools recorded in the transcript,
-including restrictions from an earlier open. OAR restores the current
-native default tools and default-active extension tools before binding
-`session_start`, so a resumed session with the same options has the same
-tool availability as a new session. Native `excludeTools` and exposure rules
-still apply, and extension startup callbacks may change the selection.
-Default-inactive tools are not enabled. Omitting the denylist or passing an
-empty list therefore does not retain an earlier open's exclusions.
+On resume, Pi 1.3.0 by itself restores the active tools recorded in the
+transcript, including an earlier open's restrictions. OAR instead restores
+the current native default tools and default-active extension tools before
+binding `session_start`, so a resumed session with the same options has the
+same tools as a new one: omitting the denylist or passing an empty list does
+not retain an earlier open's exclusions. Native `excludeTools` and exposure
+rules still apply, extension startup callbacks may change the selection, and
+default-inactive tools are not enabled.
 
-Before binding extensions, OAR also clears restored names that Pi keeps
-pending until a tool registers, so a late registration cannot reactivate
-a tool merely because it was active in the transcript. This uses Pi's
-public setter to activate registered tools, deactivate them (which clears
-pending names), and then apply the current defaults. If no registered tool
-can be activated, OAR folds the transcript's tool additions and removals
-using Pi's public helper. Resume is rejected only if that leaves names
-which are neither registered nor explicitly listed in `disallowedTools`:
-Pi exposes no public way to clear those possible pending names. OAR then
-disposes the session and throws `UnsupportedOptionError` (`option: "resume"`).
-Pattern-only exclusions are treated conservatively here, so they can still
-lead to this refusal. Tool-free conversations and histories containing only
-explicitly excluded or removed tools can resume. Opening a new session remains
-available. An empty `defaultTools` list alone does not trigger this refusal
-if the registry still contains an activatable tool.
+Pi also keeps restored names pending until a tool of that name registers.
+OAR clears them before binding extensions, so a late registration cannot
+reactivate a tool merely because it was active in the transcript: with Pi's
+public setter it activates the registered tools, deactivates them (which
+clears pending names), then applies the current defaults. If no registered
+tool can be activated, OAR folds the transcript's tool additions and
+removals with Pi's public helper. Resume is rejected only if that leaves
+names neither registered nor explicitly listed in `disallowedTools`, since
+Pi exposes no public way to clear those possible pending names: OAR
+disposes the session and throws `UnsupportedOptionError`
+(`option: "resume"`). Pattern-only exclusions are treated conservatively, so
+they can still lead to this refusal; an empty `defaultTools` list alone does
+not, while the registry still contains an activatable tool. Tool-free
+conversations and histories containing only explicitly excluded or removed
+tools resume; opening a new session remains available.
 
 An unmatched native name such as `NoSuchTool` is accepted silently and
 disables nothing. Neither Pi nor OAR reports that no tool matched; this

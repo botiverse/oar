@@ -9,28 +9,26 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 [`experiments/live-contract.ts antigravity`](../../experiments/live-contract.ts)
 (12/13, scenario names in parentheses below; `abort` fails, see
 [abort](#prompt-steering-queueing-and-abort)), plus direct ACP probes of the
-same binary for cancel timing and the model and mode methods. The server
-ships as a packaged Python archive without a public source repository;
-the 1.4.0 archive includes its ACP Python source. On 2026-10-14,
-**1.4.0** and its companion `localharness_external` passed native tests
-against a local scripted Gemini provider, in a temporary home with a dummy
-API key. New/resumed instruction and effort settings, MCP, tool denials,
-images and failure reporting were exercised without an account. See the
-[October 14 report](../../experiments/runtime-version-checks/2026-10-14.md)
-and [native probe](../../experiments/antigravity-native-settings.ts).
-The personal-login scenarios below remain the earlier 1.2.1 evidence;
-scripted-provider results do not extend that account-specific coverage.
-The current adapter uses the 1.4.0 metadata namespace; upgrade the server
-and companion harness together. Versions are evidence baselines, not a support range; see the
-[runtime index](README.md) for status conventions.
+same binary for cancel timing and the model and mode methods. The
+personal-login scenarios below remain this 1.2.1 evidence.
 
-**1.4.1 recheck (2026-10-18):** the paired server and harness passed nine
-native tests and 15 shared session cases against a local scripted provider.
-Append/effort on resume and MCP catalog replacement still work. MCP entry
-values still persist in the conversation database; its file permissions
-depend on the inherited umask, not a fixed `0600` guarantee. No adapter
-change was needed. See the [dated report](../../experiments/runtime-version-checks/2026-10-18.md)
-for the controlled permissions comparison and untested authentication paths.
+Current check: **1.4.1** (2026-10-18), and 1.4.0 before it (2026-10-14),
+each installed with its companion `localharness_external`, passed nine
+native tests against a local scripted Gemini provider, in a temporary home
+with a dummy API key and no account: instruction and effort settings on new
+and resumed sessions, MCP, tool denials, image-only input and failure
+reporting. 1.4.1 also passed 15 shared session cases. Scripted-provider
+results do not extend the account-specific coverage. See the
+[October 14](../../experiments/runtime-version-checks/2026-10-14.md) and
+[October 18](../../experiments/runtime-version-checks/2026-10-18.md) reports
+(the latter lists the untested authentication paths) and the
+[native probe](../../experiments/antigravity-native-settings.ts).
+
+The server ships as a packaged Python archive without a public source
+repository; the 1.4.0 archive includes its ACP Python source. The adapter
+uses the 1.4.0 metadata namespace: upgrade the server and companion harness
+together. Versions are evidence baselines, not a support range; see the
+[runtime index](README.md) for status conventions.
 
 ## Native concepts and calling interfaces
 
@@ -98,7 +96,8 @@ methods: `oauth-personal`, `oauth-business` (Gemini Enterprise),
 model ids were offered on a personal login: `gemini-3.8-flash`,
 `gemini-3.7-flash` and `gemini-3.6-flash`, each at `high`, `medium` and
 `low`, plus `gemini-pro-agent` ("Gemini 3.1 Pro (High)") and
-`gemini-3.1-pro-low`.
+`gemini-3.1-pro-low` (1.4.0 groups such variants into families; see
+[models](#models-instructions-and-context)).
 
 **Mapped:** OAR launches `agy_acp_server.par --uid=` on Linux, the ACP
 registry's launch line. Without the empty `--uid=` the server drops
@@ -149,7 +148,8 @@ under the active `GEMINI_HOME`, and the native data names the expected file
 `session/load` (with replay) is advertised and unused when resume is available.
 Concurrent same-id controllers, and continuing in-flight work across OAR
 subprocesses are **unverified**. Native `session/list` is advertised; OAR
-does not expose it.
+does not expose it. `SessionOptions.name` is declared refused: there is no
+verified session name setting ([session name](../spec/runtime-matrix.md#session-name)).
 
 ### Prompt, steering, queueing, and abort
 
@@ -163,8 +163,9 @@ answer is recorded as frame `session/prompt` with the `turn_ended` event.
 For image-only input OAR sends ACP image blocks without a text block.
 Antigravity 1.3.0 sends Gemini `inlineData` plus its own nonempty text part
 containing a `USER_REQUEST` wrapper and metadata. The
-[image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts) confirms image delivery without an empty text block, using a local
-scripted provider and a dummy key.
+[image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts)
+confirms image delivery without an empty text block, using a local scripted
+provider and a dummy key (passing on 1.4.1).
 
 **Steer (not available on this transport):** ACP has no steer method, so
 the session has no `steer`; the live `steer` scenario skips on that.
@@ -215,16 +216,19 @@ later `prompt()` is rejected and a later `dispose()` is answered `accepted`
 (`agent_message_chunk` → `text_delta`), tool boundaries and model reports. No
 `agent_thought_chunk` arrived in any scenario, so no reasoning events appear.
 Detail strings truncate at 10,000 characters (`native` does not).
-`Session.usage()` totals and `contextUsage()` stay empty: Antigravity sends no
-`usage_update` and no token totals on any answer, so no `cacheRead` or
-`cacheWrite` either.
+No `usage_update` and no token totals arrived on any answer (1.2.1 live,
+1.4.0 scripted), so `Session.usage()` totals and `contextUsage()` stay empty,
+with no `cacheRead` or `cacheWrite` either. The 1.4.0 source can emit
+`usage_update` when token usage and a context size are available; no
+observed turn reached that.
 
 **Known gap: a failed turn looks completed.** Against a scripted Gemini
 provider (ACP server 1.3.0, [failure evidence](../spec/runtime-matrix.md#failure-evidence)),
 a rejected key, a billing error or an oversized context ends the prompt
 `stopReason: end_turn` with no message; a 500 or a model the provider refuses
 ends it `end_turn` after the provider's text as agent text; a 429 or 503
-sends nothing for at least 150 s. OAR records the first two as `completed`.
+sends nothing for at least 150 s. OAR records the first two as `completed`
+(the rejected key again on 1.4.1).
 Only a missing login (-32000 "Authentication required") and a model it does
 not offer (-32602) fail, when the session opens.
 
@@ -266,7 +270,7 @@ does not silently ignore a requested tier or alter a global default.
 
 ### Models, instructions, and context
 
-**Models (1.4.0):** `SessionOptions.model` goes to
+**Models (1.4.0 and 1.4.1):** `SessionOptions.model` goes to
 `session/set_config_option {configId: "model"}`. OAR reads the answer's
 `configOptions`, never the request parameter. The server has no model-list
 method, so `listModels` opens a throwaway session, reads its `model` option,
@@ -318,14 +322,17 @@ contains the ACP sources `config_options.py`, `system_prompt.py`,
 and new/resume mapping agree with the native probe. Settings and model
 requests use only ACP; OAR does not edit user settings or invoke the private
 harness SDK. Gateway and OAuth-specific grouping were source-audited, not
-executed with real accounts. Native compaction with an append was not tested.
+executed with real accounts; the 1.4.1 source also changes Agent Platform's
+default to Gemini 4 Argon, filters disabled OAuth models and extends effort
+variants beyond Gemini families
+([October 18](../../experiments/runtime-version-checks/2026-10-18.md#antigravity-141)).
+Native compaction with an append was not tested.
 
-**Context:** the 1.4.0 source can emit `usage_update` when token usage and a
-context size are available. None arrived in the scripted turns here, so
-this check establishes no new context or token accounting. The new `/usage`
-command produces native message text; OAR does not parse it into account
-usage. Account-plan metadata named `tier` is not a session service-tier
-setting. Antigravity advertises no compaction through ACP.
+**Context:** no observed frame carries context occupancy (see
+[observation](#observation-children-and-history)). The `/usage` command
+(new in 1.4.0) produces native message text; OAR does not parse it into account usage.
+Account-plan metadata named `tier` is not a session service-tier setting.
+Antigravity advertises no compaction through ACP.
 
 ### Tools, permissions, and extensions
 
@@ -356,8 +363,9 @@ http entries are sent, and passes the list from `session/new` (`:3258`),
 `session/resume` (`:3674`) and `session/load` (`:3765`) into
 `_create_agent_config` (`:3804`): servers are per session.
 `mcp_servers.py:16-55` converts `env` and `headers` to maps and an sse entry
-to streamable HTTP. Measured on agy_acp_server 1.3.0 (1.2.1 not run) against
-a scripted provider: fresh `HOME` and `GEMINI_HOME`, `{auth: {type:
+to streamable HTTP. Measured on agy_acp_server 1.3.0 (1.2.1 not run; the
+vendor test passes on 1.4.0 and 1.4.1) against a scripted provider: fresh
+`HOME` and `GEMINI_HOME`, `{auth: {type:
 "gemini-api-key"}}` in `$GEMINI_HOME/antigravity-acp/settings.json` plus a
 dummy `GEMINI_API_KEY` (on 1.3.0 the variable alone selects no auth method),
 and the model harness `localharness_external` beside the `.par` sending
@@ -387,42 +395,41 @@ names that `.par`):
   replaced at `:132-149`; measured: the session's server answered). The
   user's non-clashing server still attaches; a probe found the user config
   unchanged.
+- A tool-list change reaches the next model request: after the server's
+  `notifications/tools/list_changed` the client lists again, the system
+  instruction's MCP catalog holds only the new set, and a call to a removed
+  tool runs no handler (`mcpToolsListChanged: "full"`, 1.4.0 and 1.4.1;
+  [contract](../spec/runtime-matrix.md#host-served-tools),
+  [October 18](../../experiments/runtime-version-checks/2026-10-18.md#mcp-tool-list-updates)).
 
 **Entries carrying credentials are refused.** Antigravity stores a session's
 `mcpServers`, `env` and header values included, in plain text in its
 conversation database `$GEMINI_HOME/antigravity-acp/conversations/<sessionId>.db`
-(measured: a stdio entry's `env` token in the `-wal` file; file modes depend
-on the inherited umask, as rechecked below). The
-file outlives the session, a resume does not reuse what it stored, and a
+and its `-wal` file, where they remain after process disposal (measured on
+1.3.0: a stdio entry's `env` token in the `-wal` file; on 1.4.0 and 1.4.1:
+harmless env and header sentinels in both, through direct native ACP in the
+[native settings probe](../../experiments/antigravity-native-settings.ts),
+which works in a temporary home and removes it afterward). The files' modes
+follow the inherited umask, not a runtime guarantee: on 1.4.1, umask `0022`
+gave `0644` and `0077` gave `0600`, and a 1.4.0 control under `0022` also
+gave `0644`, so the `0600` seen on 1.4.0 (2026-10-14) does not show a
+permission the runtime enforces. The probe reports the umask and home mode with each file mode
+([permissions comparison](../../experiments/runtime-version-checks/2026-10-18.md#mcp-persistence-and-file-permissions)).
+The file outlives the session, a resume does not reuse what it stored, and a
 host can neither see nor clear it through ACP, while credentials may reach a
 runtime only through its native channel, never its disk. So an entry with a
 non-empty `env` or `headers` fails the open with an `UnsupportedOptionError`
 on `mcpServers` before the server starts. The refusal is declared as
 `refusedSessionOptions.mcpServerCredentials`
-([`antigravityRefusedSessionOptions`](../../packages/oar/src/runtimes/antigravity/session.ts),
+([`antigravityRefusedSessionOptions`](../../packages/oar/src/runtimes/antigravity/options.ts),
 [#392](https://github.com/botiverse/oar/issues/392)), so a host knows before
 opening that tools it serves with `serveMcpTools`, whose entry always
-carries a bearer token, will not attach. An entry without them attaches as above (the vendor test's servers carry
-none, and it checks the refusal). A server that needs a secret has to get it
-some other way than the entry, for example from a file it reads itself. No
-ACP answer, notification or stderr line carried an entry's values
-(measured and probed), and a failed open's error is redacted
-(`[redacted]`).
-
-**Rechecked on 1.4.0 (2026-10-14):** direct native ACP with harmless env
-and header sentinels still wrote both into `conversations/<id>.db` and its
-WAL, mode `0600`, after process disposal. The
-[native settings probe](../../experiments/antigravity-native-settings.ts)
-reproduces this in a temporary home and removes it afterward. The
-`mcpServerCredentials` refusal therefore remains unchanged.
-
-**Rechecked on 1.4.1 (2026-10-18):** both sentinels still persist in the
-database and WAL. With inherited umask `0022`, both files were `0644`;
-with `0077`, both were `0600`. A 1.4.0 control under the same `0022`
-environment also produced `0644`, so this is not a new 1.4.1 regression.
-The earlier `0600` observation is not a runtime-enforced permission
-guarantee. The probe now reports the umask and home mode with the file
-modes; OAR's credential refusal is unchanged.
+carries a bearer token, will not attach. An entry without them attaches as
+above (the vendor test's servers carry none, and it checks the refusal). A
+server that needs a secret has to get it some other way than the entry, for
+example from a file it reads itself. No ACP answer, notification or stderr
+line carried an entry's values (measured and probed), and a failed open's
+error is redacted (`[redacted]`).
 
 ### Process ownership, installation, and account usage
 
@@ -457,16 +464,15 @@ updater, so there is no `upgrade` ([runtime updates](update.md)).
 
 **Account terms (caveat):** the vendor FAQ warns that using a personal Google
 account from third-party tools may violate the terms of service and can lead
-to account suspension, and recommends an API key or Vertex instead. The
+to account suspension, and recommends an API key or Vertex instead. The live
 evidence above was gathered on a personal login. For anything beyond
-evaluation, sign the server in with `gemini-api-key` or `agent-platform`.
-For the same reason the runtime has no `login`
+evaluation, configure the server with an API key (`gemini-api-key`) or
+Vertex (`agent-platform`). For the same reason the runtime has no `login`
 ([runtime login](../spec/login.md)): OAR does not sign a person's account
-in on their behalf, since the terms do not allow it; configure the server
-with an API key (`gemini-api-key`) or Vertex (`agent-platform`) instead. The
-ACP server's own sign-in also redirects only to a loopback listener with no
-code to paste back, so a person on another device could not finish it.
-There is no `authStatus`.
+in on their behalf, since the terms do not allow it. The ACP server's own
+sign-in also redirects only to a loopback listener with no code to paste
+back, so a person on another device could not finish it. There is no
+`authStatus`.
 
 Account usage is **unexposed**: OAR has no Antigravity account usage query.
 
@@ -481,8 +487,7 @@ no `steer`), `queue`, `abort` (fails, see above), `dispose-mid-turn`,
 fake executable for the missing `authenticate`, `yolo` on new and resumed
 sessions, dispose without `session/close`, the model switch readback and
 applied effort on creation and resume, a turn that ends with no usage
-report, the Linux-only
-`--uid=`, and the system prompt refusal. The
+report, the Linux-only `--uid=`, and the system prompt refusal. The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes
 Antigravity.
 
@@ -491,14 +496,14 @@ command; OAR kills after ten seconds); child attribution (the transport
 carries none); any usage or context report; the permission path through OAR;
 `session/list` and `session/load`; unknown resume ids; a resume naming another
 directory ([not measured](resume-cwd.md)); concurrent same-id controllers;
-macOS and Windows installation; real-account runs on 1.4.1;
-[session MCP servers](#session-mcp-servers) on a real login and model and on
-1.2.1 (measured on 1.3.0, 1.4.0 and 1.4.1 against a scripted provider; their vendor
-test runs locally, `OAR_TEST=antigravity-aimock`, not in CI). Credential
-persistence remains confirmed on 1.4.1, so entries with `env` or `headers`
-are refused. Keep native
-API capabilities, transport limitations, OAR omissions and unexecuted checks
-separate when designing or claiming support.
+macOS and Windows installation; real-account runs on any version after
+1.2.1; [session MCP servers](#session-mcp-servers) on a real login and model
+and on 1.2.1 (measured on 1.3.0, 1.4.0 and 1.4.1 against a scripted
+provider; their vendor test runs locally, `OAR_TEST=antigravity-aimock`, not
+in CI); whether a later server stops storing the entries' values (1.4.1
+still does), until which entries with `env` or `headers` are refused. Keep
+native API capabilities, transport limitations, OAR omissions and unexecuted
+checks separate when designing or claiming support.
 
 ## Disallowed tools
 
@@ -515,8 +520,8 @@ mapping; OAR sends no allowlist.
 For a non-empty list, `initialize` must advertise
 `agentCapabilities._meta.antigravity`; otherwise OAR rejects the open with
 `UnsupportedOptionError("disallowedTools", ...)` before creating or resuming
-the session. Upgrade the server and companion harness together to 1.4.0.
-The 1.3.0 parser only reads `_meta.agy`: a direct native probe confirmed that
+the session. That capability needs server and harness 1.4.0 or newer; the
+1.3.0 parser only reads `_meta.agy`: a direct native probe confirmed that
 the new namespace opens successfully but leaves the denied tools available.
 OAR does not fall back to the old namespace. The
 [namespace probe](../../experiments/antigravity-tool-filter-meta.ts)
@@ -527,7 +532,8 @@ launch with `UnsupportedOptionError`, listing all offending entries. The
 native parser would merely log and ignore unknown names. OAR advertises
 no client filesystem capability, so those callbacks are absent. A mixed
 list fails as a whole. Antigravity persists its filter: omission on resume
-restores it, while an explicit empty list clears it.
+restores it, while an explicit empty list clears it (denial and persisted
+filter pass the native tests on 1.4.1).
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
 

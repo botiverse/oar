@@ -64,6 +64,18 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude effort on the 
       await env.stop();
     }
   }, 60_000);
+
+  test("a level the model lacks is lowered silently by claude, so the open refuses it", async () => {
+    const env = await startClaudeAimock(undefined, { captureRaw: true });
+    try {
+      // claude 2.1.292 applies high for xhigh on a 4.6 model with no stderr warning.
+      const opened = runtimeUnderTest(runtime, env.env).startSession({ model: "claude-opus-4-6", effort: "xhigh" });
+      await expect(opened).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: claude applies effort high for claude-opus-4-6 although xhigh was requested]`);
+      expect(env.raw.filter((request) => request.path.includes("/v1/messages"))).toEqual([]);
+    } finally {
+      await env.stop();
+    }
+  }, 60_000);
 });
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex effort on the wire", () => {

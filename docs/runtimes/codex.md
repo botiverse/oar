@@ -4,7 +4,7 @@ Evidence baseline: native source pinned to [`4f39251a`][native-source]
 (2026-08-22) unless a claim cites the newer upstream tree
 [`2151d3a5`][upstream-tree] (2026-09-12); the [app-server guide][guide] is
 rolling documentation. The OAR mapping was checked against source on
-2026-10-05. Live observations come from **codex-cli 0.154.0**
+2026-10-19. Live observations come from **codex-cli 0.154.0**
 (`gpt-5.3-codex-spark`, ChatGPT login, darwin) through
 [`experiments/live-contract.ts codex`](../../experiments/live-contract.ts)
 (13 scenarios, 2026-09-11), from
@@ -15,10 +15,15 @@ later observations name their own version. Versions are evidence baselines,
 not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
-The [October 10 daily check](../../experiments/runtime-version-checks/2026-10-10.md)
-passed conversation, tool detail and resume on **0.162.1** (Linux x64,
-`gpt-6-luna`), plus 35 native vendor tests and all 16 applicable shared
-behavior cases using a local provider. No adapter change was needed.
+Newest release checked: **0.163.0** (Linux x64, 2026-10-16), which passed 46
+native vendor tests and the shared behavior cases (16 passed, 3 skipped)
+against a local scripted provider
+([report](../../experiments/runtime-version-checks/2026-10-16.md)); it was
+still the stable release on
+[2026-10-18](../../experiments/runtime-version-checks/2026-10-18.md). The
+newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):
+conversation, tool detail and resume passed with no adapter change
+([report](../../experiments/runtime-version-checks/2026-10-10.md)).
 
 ## Native concepts and calling interfaces
 
@@ -61,7 +66,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 |---|---|
 | Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames codex sends before that reply (notifications and server requests alike) are recorded ahead of it in wire order, and frames written after it (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. A prompt request produces `turn_started`; native `turn/started` produces `turn_active`, also for a queued turn with no new OAR prompt. An already open turn is not opened twice. The turn ends at codex's `turn/completed` (`turn_ended`: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer and interrupt. |
-| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, which `classifyTool` reads as one `edit_file` with every changed path as `paths`, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `outputDelta` = the chunk, appended to the current preview) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `outputDelta` = the chunk, appended to the current preview) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. `serverRequest/resolved {threadId, requestId}` (0.160.1 schema) reads as `app_request_cancelled`: OAR answered nothing, so codex cleared the request itself. Through OAR (`approvalPolicy: never`) neither question reaches the host: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` (numeric id 0, recorded as "0"), right after the interrupted `turn/completed`. codex also sends it after a client's answer, so once OAR answers codex requests this reading must tell the two apart. |
@@ -80,9 +85,10 @@ OAR launches `codex app-server -c sandbox_mode="…" --listen stdio://` (see
 [tools and permissions](#tools-permissions-and-client-callbacks)), sends
 `initialize` (`clientInfo: { name: "oar" }`, `capabilities: { experimentalApi:
 true }`), then the `initialized` notification; request ids correlate replies.
-New sessions call `thread/start { cwd, model?, approvalPolicy: "never",
-experimentalRawEvents: true, baseInstructions?, developerInstructions?,
-config?: { model_reasoning_effort?, mcp_servers? } }`. OAR requires a thread id in the reply,
+New sessions call `thread/start { cwd, runtimeWorkspaceRoots?, model?,
+serviceTier?, approvalPolicy: "never", experimentalRawEvents: true,
+baseInstructions?, developerInstructions?, config?: { model_reasoning_effort?,
+mcp_servers? } }`. OAR requires a thread id in the reply,
 and a model and effort readback matching any explicit request, before
 constructing its Session; otherwise it kills the process and throws (an RPC
 failure reads `codex thread/start failed: <message>`).
@@ -113,8 +119,9 @@ not replayed as live notifications. The pinned schema's experimental
 history/path inputs are not exposed. [Resume schema][resume-schema].
 
 **Mapped:** `codexRuntime.session(installation, { cwd, resume: savedSessionId,
-model? })` sends `thread/resume { threadId, excludeTurns: true, cwd, model?,
-approvalPolicy: "never", …instructions, config?: { mcp_servers } }`, requires a thread id, checks an
+model? })` sends `thread/resume { threadId, excludeTurns: true, cwd,
+runtimeWorkspaceRoots?, model?, serviceTier?, approvalPolicy: "never",
+…instructions, config?: { mcp_servers } }`, requires a thread id, checks an
 explicit `model` against the readback, and sets a differing effort afterwards
 ([effort](#models-instructions-and-context)). The token is a native thread id
 resolved against the selected executable's runtime storage and configuration
@@ -141,15 +148,17 @@ app-server, such as the user's app, holds it) rejects with
 unarchives a thread: that is the user's own action, and the host decides
 ([unavailable targets](../spec/runtime-matrix.md#unavailable-resume-targets)).
 An unloaded sub-agent's refusal keeps its own error. These prose fallbacks
-are pinned by the 0.162.0 recordings ([missing targets](../spec/runtime-matrix.md#missing-resume-targets),
-[`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)).
+are pinned against codex 0.162.0 ([missing targets](../spec/runtime-matrix.md#missing-resume-targets),
+[`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts),
+[vendor test](../../sea-trial/vendor/codex-session-name.vendor.test.ts)).
 
 **Session name (mapped, [#368](https://github.com/botiverse/oar/issues/368)).**
 `SessionOptions.name` is set with `thread/name/set` once the thread is open
 and the open's checks pass. On a resume it is set only when the
 `thread/resume` reply's `thread.name` is empty, so a name the user gave in
-their app stays. A blank name is refused (`UnsupportedOptionError`) before
-codex starts; another name codex refuses fails the open with codex's words. The name shows in the
+their app stays. A blank name, or one with a NUL character, is refused
+(`UnsupportedOptionError`) before codex starts; another name codex refuses
+fails the open with codex's words. The name shows in the
 user's Codex app when the host shares `CODEX_HOME` with it; keeping a
 host's threads out of that app entirely takes a separate `CODEX_HOME`, at
 the cost of the shared login and configuration.
@@ -196,14 +205,14 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
-Missing or unloadable threads reject as `codex thread/resume failed:
+A refused resume, typed or not, reads `codex thread/resume failed:
 <message>`; its `cause` keeps `{ method, native }`, where `native` is
 the JSON-RPC error, including `code`, `message` and any `data`. The same
 context is kept for `initialize` and other pre-session RPC failures, when
 no Session exists for the host to inspect records. MCP credential values
 are redacted throughout the native object before it is attached. Spawn
-failures keep only the existing safe process diagnostics, never Node's
-original error with its arguments.
+failures keep only the safe process diagnostics, never Node's original
+error with its arguments.
 A `thread/resume` on a
 connection already subscribed to the loaded thread drops the `model` override
 and reports the old model, so the adapter refuses a readback mismatch
@@ -288,16 +297,22 @@ turn`). A steer accepted while the turn's first tool ran appeared as a
 BRAVO MANGO`), with one `turn_ended` (live-contract `steer`;
 [adapter probe](../../experiments/codex-session-adapter.ts)).
 
-**Instant interrupt (opt-in, observed on 0.159.0):** native `[features]
-instant_interrupt = true` (off by default, under development upstream) makes
-`turn/steer` preempt an unfinished model response or yield a running
-code-mode cell early. OAR inherits the configuration and keeps its mapping
-and default. The same native turn continues, the cell is not stopped, direct
-tool calls still finish before new input is sampled, queue stays a next-turn
-operation and abort still ends the turn. Partial deltas of the interrupted
-assistant item can remain without an `item/completed`; Codex excludes them
-from the replacement model context, and OAR keeps them as observations, not
-committed transcript evidence
+**Instant interrupt (observed as an opt-in on 0.159.0):** native `[features]
+instant_interrupt = true` makes `turn/steer` preempt an unfinished model
+response or yield a running code-mode cell early. It was off by default on
+0.159.0 and is still marked under development upstream; 0.163.0 turns it and
+code-mode interruption on by default per its release notes
+([rust-v0.163.0](https://github.com/openai/codex/releases/tag/rust-v0.163.0),
+openai/codex#51812 and #51835; vendor: the probe below was not rerun, while
+the steer and abort vendor tests passed on
+[0.163.0](../../experiments/runtime-version-checks/2026-10-16.md)). OAR
+inherits the configuration and keeps its mapping. On 0.159.0 the same native
+turn continued, the cell was not stopped, direct tool calls still finished
+before new input was sampled, queue stayed a next-turn operation and abort
+still ended the turn. Partial deltas of the interrupted assistant item could
+remain without an `item/completed`; Codex excluded them from the replacement
+model context, and OAR keeps such deltas as observations, not committed
+transcript evidence
 ([seven-case probe, opt-in instructions and limits](../../experiments/codex-instant-interrupt.md)).
 
 **Queue (mapped, `durable: true`):** native queue operations have submission
@@ -575,8 +590,11 @@ paginates `model/list`. `model` is the selectable identity, `displayName` is
 presentation, hidden entries are omitted, and reasoning levels plus
 `serviceTiers[].id` / `defaultServiceTier` come from that same native picker.
 It does not read deprecated `additionalSpeedTiers`. No tier is invented for
-`default`: that is the separate explicit opt-out. This path uses the same
-home-initialization coordination as other app-server clients.
+`default`: that is the separate explicit opt-out. The entry marked `default`
+is the model a session with no `model` runs on: the one codex's
+configuration sets for `ListModelsOptions.cwd` (`config/read`, user and
+project config) when it is listed, or the catalog's `isDefault` when none is
+configured; a configured model that is not listed marks nothing.
 [Model listing][oar-models], [regressions](../../tests/codex/codex-service-tier.test.ts).
 
 An empty `CODEX_HOME` without credentials still returns the built-in fallback
@@ -585,12 +603,12 @@ catalog: with Codex 0.161.0, `account/read` reported no account and OAR returned
 success is not evidence that the account can run those models. Startup, RPC,
 malformed-response and timeout failures remain errors rather than empty lists.
 
-The former `debug models` surface and the new picker returned the same seven
-visible model IDs under the same existing login and provider configuration.
-In the empty-home comparison, both returned the same eight IDs, with a different
-order. This observation does not promise identical catalogs across future
-versions or other providers. The native picker now also supplies service-tier
-metadata. [Comparison and reproduction](../../experiments/service-tier-2026-10-08.md#model-catalog-comparison-2026-10-09).
+Compared with `codex debug models` on 0.161.0 (2026-10-09, both commands
+under the same configuration), `model/list` returned the same seven visible IDs
+under an existing login, and from an empty home the same eight IDs in a
+different order. This promises no identical
+catalogs across future versions or other providers
+([comparison and reproduction](../../experiments/service-tier-2026-10-08.md#model-catalog-comparison-2026-10-09)).
 
 **Context (mapped):** native usage separates `total`, `last`, and nullable
 `modelContextWindow`. Each `thread/tokenUsage/updated` frame carries a
@@ -666,9 +684,12 @@ dangling request is the honest record
 in any live run.
 
 On Windows without Codex's Windows sandbox enabled, `workspace-write`
-becomes `read-only` under the native
-[`effective_sandbox_mode` rule](https://github.com/openai/codex/blob/rust-v0.162.1/codex-rs/config/src/config_toml.rs#L821).
-Additional workspace directories do not change that selection.
+becomes `read-only` (the open reports `readOnly`) under the native
+[`effective_sandbox_mode` rule](https://github.com/openai/codex/blob/rust-v0.162.1/codex-rs/config/src/config_toml.rs#L821),
+on new and resumed sessions alike and whatever the
+[additional directories](#additional-directories)
+([evidence](../../experiments/additional-directories-2026-10-11.md)); OAR
+does not override this fallback.
 
 A `fileChange` item carries `changes: [{path, kind, diff}]`, the same on
 `item/started` and `item/completed`: `path` absolute, `kind` `{type: "add"}`,
@@ -686,7 +707,8 @@ path once, and `detail` is the first of them
 
 OAR projects command execution, file changes, MCP calls, web search and
 sleeps ([outcomes](#tool-call-outcome-reporting)), but exposes no tool registration,
-dynamic-tool execution callback, MCP management, or elicitation API.
+dynamic-tool execution callback, MCP management, or elicitation API; tools
+the host implements reach codex as a [session MCP server](#session-mcp-servers).
 
 Codex 0.162.0 has no native notification for streamed tool arguments, so OAR
 emits no `tool_call_input_delta` for it. Verified 2026-10-10 with
@@ -745,7 +767,9 @@ codex 0.160.1 against a scripted provider
   failed the open: "invalid transport"). A name outside codex's
   `^[a-zA-Z0-9_:@/.-]+$` opens the thread and then fails that server's
   startup ("Invalid MCP server name"), so OAR refuses it before starting
-  codex.
+  codex. The five reserved names are refused on every runtime, codex
+  included, although codex takes them
+  ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
 - A stdio server gets codex's allowlisted environment (`HOME`, `PATH` and a
   few more; [subagents](../spec/subagents.md)) plus the entry's `env`, not
   `SessionOptions.env`.
@@ -756,6 +780,13 @@ record; codex's frames name servers and their status, and a failing server's
 unreachable url). Every error the app-server client reports (codex's
 message, the exit's stderr tail) passes a redactor that replaces each value
 with `[redacted]` ([test](../../tests/codex/codex-session-mcp-servers.test.ts)).
+
+A `serveMcpTools` entry attaches here as any http entry does
+([host-served tools](../spec/runtime-matrix.md#host-served-tools)). A
+running session keeps the tool set its servers listed at open and never
+lists again after `notifications/tools/list_changed`, so
+`Runtime.mcpToolsListChanged` is `none` ([env] 0.162.0 and 0.162.1, still
+`none` on [0.163.0](../../experiments/runtime-version-checks/2026-10-16.md)).
 
 ### Process ownership, installation, and account usage
 
@@ -800,8 +831,8 @@ establish the cause of similar Windows CI failures
 ([reproduction and limits](../../experiments/codex-concurrent-startup.md),
 [upstream issue](https://github.com/openai/codex/issues/50290)). OAR
 therefore coordinates the first app-server initialization of each home
-within one loaded adapter module. Sessions, account usage and inventories
-share this entry point: one process starts, and the others wait until its
+within one loaded adapter module. Sessions, account usage, inventories,
+model listing and login share this entry point: one process starts, and the others wait until its
 `initialize` succeeds and `initialized` is sent; later starts on that home
 can run concurrently. A failed initializer releases the next waiting client
 after its exit, and its own caller still receives the original failure. Cancelling
@@ -817,13 +848,13 @@ one thread
 ([implementation](../../packages/oar/src/runtimes/codex/home-initialization.ts),
 [cancellation and concurrency tests](../../tests/codex/codex-home-initialization.test.ts)).
 
-The older `codex debug models` probe stays outside because it did not
-initialize the SQLite state database on 0.160.0/Linux (the probe's custom provider, no login): 24
-standalone readers and 21 readers alongside three app-servers succeeded,
-models-only homes held just their input config, and file-system tracing saw
-no SQLite paths; the native implementation uses a separate model
-catalog/cache. This is evidence for that version and environment, not a
-guarantee
+OAR itself never runs `codex debug models` (its listing is `model/list`).
+An external one did not initialize the SQLite state database on 0.160.0/Linux (the probe's custom
+provider, no login): 24 standalone readers and 21 readers alongside three
+app-servers succeeded, models-only homes held just their input config, and
+file-system tracing saw no SQLite paths; the native implementation uses a
+separate model catalog/cache. This is evidence for that version and
+environment, not a guarantee
 ([models control and source](../../experiments/codex-concurrent-startup.md#model-listing-alongside-startup)).
 A [vendor regression](../../sea-trial/vendor/codex.vendor.test.ts) bypasses
 test-home warmup and opens eight real sessions concurrently in a fresh home:
@@ -848,15 +879,16 @@ per-user installs), then the standalone installer's launcher
 (`$CODEX_INSTALL_DIR/codex`, `~/.local/bin/codex`), and requires
 `codex app-server --help` to succeed; a codex without the app-server surface
 is unsupported. When none is found, `install` runs OpenAI's standalone
-installer, `curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh`
+installer (macOS and Linux),
+`curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh`
 ([README](https://github.com/openai/codex#installing-and-running-codex-cli);
-`CODEX_NON_INTERACTIVE=1` is the switch install.sh's own usage text
-(`install.sh --help`) declares for skipping its prompts, not in the README;
-macOS and Linux; [runtime install](../spec/install.md),
-[sandbox run](install.md)). That method because `codex update` reruns the
-standalone installer for its copy: `codex doctor` reports the update action
-`standalone installer`, so `checkUpdate` and `upgrade` work on it, where a
-copied binary would be `manual or unknown`. Account usage is a
+`CODEX_NON_INTERACTIVE=1` is not in the README but is the switch
+`install.sh --help` declares for skipping its prompts;
+[runtime install](../spec/install.md), [sandbox run](install.md)). OAR uses
+that installer because `codex update` reruns it for its copy: `codex doctor`
+reports the update action `standalone installer`, so `checkUpdate` and
+`upgrade` work on it, where a copied binary would be `manual or unknown`.
+Account usage is a
 separate reader on its own app-server process (`initialize`, `account/read`,
 `account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
 rate-limit buckets merged as the codex TUI does); neither it nor installation
@@ -864,8 +896,8 @@ discovery is inferred from turn token totals. Update checks read the
 `updates.status` row of `codex doctor --json`, and upgrades run `codex update`
 with a version read-back ([runtime updaters](update.md)). Login is mapped
 [below](#login). An installation probe that cannot run keeps its native error
-code, signal, timeout, exit code and bounded stderr tail in the thrown error;
-the probe deadline is unchanged, and an ordinary nonzero readiness exit still
+code, signal, timeout, exit code and bounded stderr tail in the thrown error,
+within the probe's usual deadline; an ordinary nonzero readiness exit
 classifies the installation as unsupported.
 [Installation](../../packages/oar/src/runtimes/codex/installation.ts),
 [account usage](../../packages/oar/src/runtimes/codex/account-usage.ts),
@@ -888,7 +920,8 @@ success, is `logged_in` without an account, since codex has already stored
 the login. The device code expires after 15 minutes; OAR's deadline is 16, so
 codex reports the expiry itself. Cancelling or the deadline stops the
 app-server with its process group on POSIX and its process tree on Windows
-(an npm install runs it under a `cmd.exe` shim), which ends its polling. The
+(an npm install runs it as `codex.js` under Node, which starts the native
+binary), which ends its polling. The
 login's app-server never forwards its stderr, `OAR_CHILD_STDERR=inherit`
 notwithstanding, and a failure `detail` is codex's one-line error or the exit
 code, never the stderr tail. `chatgptDeviceCode` arrived in 0.118.0, so an
@@ -917,13 +950,12 @@ configuration) `unknown`. It names the method, not the account, so the status
 only a login's own result carries the account, from `account/read`. OAR does
 not parse codex's credential file to fill it in. Verified against a fake
 app-server that answers with the 0.160.0 shapes
-([tests](../../tests/login/codex-login.test.ts)), and on real logins: on
-2026-10-05, on a fresh Linux test machine with claude 2.1.289 and codex
-0.160.0, all five manual checklist steps of [#94](https://github.com/botiverse/oar/pull/94) (commit `f7e6428`) passed.
-For codex: the status read, a login with the device code, and a cancel while
-the code was shown (`login cancelled`, exit 130, no process left over, the
-previous login unchanged).
-[Login](../../packages/oar/src/runtimes/codex/login.ts).
+([tests](../../tests/login/codex-login.test.ts)), and on a real login with
+codex 0.160.0 on a fresh Linux machine (2026-10-05, all five steps of the
+manual checklist of [#94](https://github.com/botiverse/oar/pull/94) passed at
+commit `f7e6428`); for codex: the status read, a login with the device code,
+and a cancel while the code was shown (`login cancelled`, exit 130, no process left over, the previous login
+unchanged). [Login](../../packages/oar/src/runtimes/codex/login.ts).
 
 ### Logout
 
@@ -1030,10 +1062,11 @@ material" row describes the former only.
    and left dangling ([tools](#tools-permissions-and-client-callbacks),
    [outcomes](#tool-call-outcome-reporting)).
 8. **Extension points.** MCP servers, skills, apps, collab agents, and
-   dynamic tools exist natively; OAR passes none of them. A Session's
+   dynamic tools exist natively; OAR passes only the session's own MCP
+   servers ([session MCP servers](#session-mcp-servers)). A Session's
    control calls are `turn/start`, `turn/steer`, `thread/queue/add` and
-   `turn/interrupt`; inventories and account usage run their own app-server
-   processes; model listing uses its own app-server `model/list` connection.
+   `turn/interrupt`; inventories, account usage, model listing (`model/list`)
+   and login each run their own app-server process.
 
 ### Six questions
 
@@ -1176,6 +1209,11 @@ causes must not be collapsed into one:
 | rows exist but `preview` is empty, so they are filtered by design | legitimate, listability is its own state face |
 | `modelProviders` omitted, injecting an unsatisfiable condition | defect |
 | a database error was swallowed | defect |
+
+Codex 0.163.0 answers `-32603` when a request with `useStateDbOnly: true`
+cannot query the state database; the default request keeps its file-system
+fallback ([openai/codex#51602](https://github.com/openai/codex/pull/51602);
+vendor, not re-probed).
 
 ### Probe method and its limits
 
@@ -1329,12 +1367,15 @@ Open gaps:
 - Queue durability across process death: one whole-tree SIGKILL run on
   0.158.0 ([crash and resume](crash-resume.md)), not repeated.
 - Server requests are recorded, never answered; no configuration requiring
-  approval, user input or elicitation has been exercised.
+  approval, user input or elicitation has been exercised through OAR (only
+  against the app-server directly, [mapping](#high-level-mapping-to-oar)).
 - Child threads: delivery and identity are [env] on 0.149.0 / 0.154.0 with
   differing item vocabularies; control of child threads is not exposed; a
   child `turn/completed` that never arrives is observed but unexplained.
-- Missing/unloadable thread ids on resume are pinned only by the fake-process
-  path; concurrent controllers of one thread are not arbitrated.
+- Resume refusals: the missing, archived and in-use answers are pinned
+  against codex 0.162.0 ([resume](#connection-session-creation-and-resume));
+  other unloadable thread ids only by the fake-process path. Concurrent
+  controllers of one thread are not arbitrated.
 - Session MCP servers are verified against a scripted provider only: on a
   real login, whether a `thread/resume` carrying `mcp_servers` keeps the
   thread's model (it did on 0.160.1 with aimock), and an MCP call the model
@@ -1349,7 +1390,7 @@ Open gaps:
   `{"type":"danger-full-access"}`, recorded, not reconciled.
 - Not probed on 0.153.4: `ephemeral: true` on `thread/start`, whether
   unloading a thread notifies clients, `thread/fork`,
-  `serverRequest/resolved`, `thread/closed`, `thread/timeline/list`,
+  `thread/closed`, `thread/timeline/list`,
   `thread/read`, the write path for `thread_artifacts` /
   `thread_spawn_edges` / `thread_goals`, `codex agents`,
   `codex remote-control pair`, and `write_stdin` against a live unified-exec
@@ -1398,7 +1439,10 @@ MCP servers, unions the requested names with that server's existing
 server fields, native allowlists and existing denies stay in place. No
 configuration file is edited and no credential from `config/read` is
 copied into the override or record stream. Unknown, ambiguous or normalized
-server namespaces are refused before the thread opens, naming the entries.
+server namespaces are refused before the thread opens, naming the entries,
+and so is a configured server with a
+[reserved name](../spec/runtime-matrix.md#refused-session-options), whose
+denial the merged `mcp_servers` would drop.
 Supply the list again on resume; an empty list adds no override.
 
 Evidence and verification limits: [tool-denial audit](../../experiments/disallowed-tools-2026-10-08.md).
@@ -1419,13 +1463,13 @@ sends no override and follows Codex's configuration/restore rules.
 OAR reads `runtimeWorkspaceRoots` from the open reply and rejects if any
 requested root is absent or unreported. Native 0.162.1 can ignore overrides
 for a thread already loaded in the same app-server; OAR resumes in a new
-process, where the override was verified. A new thread needs a completed
-turn before it has a rollout to resume. The `workspace-write`, `read-only`
+process, where the override was verified. A new thread has no rollout to
+resume before its first turn ([floors](#resumability-floors)). The `workspace-write`, `read-only`
 and `danger-full-access` sandbox modes all stayed unchanged across new and
-cold-resumed sessions on Linux. On Windows with its native sandbox disabled,
-Codex selects `readOnly` for `workspace-write`, independently of extra roots
-and on both new and resumed sessions; OAR does not override this fallback. Extra roots extend the native workspace; they do not
-turn a read-only sandbox into a writable one.
+cold-resumed sessions on Linux; on Windows the native read-only fallback
+applies ([tools](#tools-permissions-and-client-callbacks)). Extra roots
+extend the native workspace; they do not turn a read-only sandbox into a
+writable one.
 
 [Evidence and verification limits](../../experiments/additional-directories-2026-10-11.md).
 
@@ -1481,4 +1525,4 @@ Where an SDK option has a counterpart:
 | `codexPathOverride` | `OAR_CODEX_BIN` |
 | `baseUrl`, `apiKey` | a custom provider in `config.toml` or `-c`; a session-scoped key is [#344](https://github.com/botiverse/oar/issues/344) |
 | `env` (replaces the environment) | `SessionOptions.env` (merged; `null` removes a variable) |
-| `Usage` | `session.usage()` (the SDK's `reasoning_output_tokens`: [#345](https://github.com/botiverse/oar/issues/345)) |
+| `Usage` | `session.usage()`; the SDK's `reasoning_output_tokens` is `reasoning` ([context](#models-instructions-and-context), [#345](https://github.com/botiverse/oar/issues/345)) |

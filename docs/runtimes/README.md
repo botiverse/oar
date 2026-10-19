@@ -14,8 +14,8 @@ it is not an OAR backend or prospective consumer.
 
 Daily maintenance: [version inventory and dated probe results](../../experiments/runtime-version-checks/).
 Run `pnpm tsx experiments/runtime-versions.ts` to compare stable releases
-with the installed CLIs, bundled Pi SDK and host-supplied Cursor SDK before
-selecting live probes.
+with the installed CLIs, the bundled Pi SDK and the host-supplied Cursor and
+Pi Durable SDKs before selecting live probes.
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|
