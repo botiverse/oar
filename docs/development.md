@@ -282,19 +282,20 @@ error, signal, timeout, exit code and stderr tail in their exception too.
 
 Both packages carry one version. A release is a pull request
 (`chore: release vX.Y.Z`) that only sets `version` in
-`packages/oar/package.json` and `packages/cli/package.json`. Squash merge
-it, then put an annotated tag on the merged commit and push the tag:
+`packages/oar/package.json` and `packages/cli/package.json`; its body is the
+release notes. Squash merge it, then start
+[`.github/workflows/release.yml`](../.github/workflows/release.yml) on main:
 
 ```bash
-git fetch origin
-git tag -a vX.Y.Z -m vX.Y.Z origin/main
-git push origin vX.Y.Z
+stamp workflow run release.yml --repo botiverse/oar -f version=X.Y.Z
 ```
 
-The tag push starts
-[`.github/workflows/release.yml`](../.github/workflows/release.yml): it
-refuses a tag that differs from either package version, runs
-`pnpm run check` and `pnpm run build`, and publishes both packages with
-`pnpm -r publish`, which rewrites the CLI's `workspace:*` dependency to the
-real version. npm trusted publishing (OIDC) authenticates the job; the repo
-holds no npm token.
+The workflow releases the head of main only after `ci.yml` succeeded on that
+exact commit, refuses a version that already has a tag or differs from
+either package version, runs `pnpm run check` and `pnpm run build`, and
+publishes both packages with `pnpm -r publish`, which rewrites the CLI's
+`workspace:*` dependency to the real version. It then creates the annotated
+`vX.Y.Z` tag and the GitHub release, whose notes are the release pull
+request's body. npm trusted publishing (OIDC) authenticates the job; the repo
+holds no npm token. Pushing a `vX.Y.Z` tag by hand still publishes that
+commit, without the CI gate or the GitHub release.

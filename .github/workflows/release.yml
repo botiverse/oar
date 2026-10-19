@@ -1,22 +1,80 @@
 name: release
 
-# Publish both packages to npm when a version tag lands. Auth is npm trusted
-# publishing (OIDC): the job only requests an id-token; no npm token secret
-# exists in this repo. The npm-side trusted-publisher configuration for
-# @botiverse/oar and @botiverse/oar-cli is owner-managed.
+# Publish both packages to npm. Two triggers:
+# - workflow_dispatch with a version (`stamp workflow run release.yml
+#   --repo botiverse/oar -f version=X.Y.Z`): releases the head of main once
+#   its CI run succeeded, then creates the `vX.Y.Z` tag and the GitHub
+#   release, whose notes are the body of the pull request that produced the
+#   commit. A tag pushed with GITHUB_TOKEN starts no workflow, so this path
+#   publishes once.
+# - a pushed `v*` tag, as before: publishes that commit, nothing else.
+# Auth is npm trusted publishing (OIDC): the job only requests an id-token;
+# no npm token secret exists in this repo. The npm-side trusted-publisher
+# configuration names this file and is owner-managed; it does not restrict
+# the trigger, so the publish step must stay in this file.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v (both package.json files on main must already say it)"
+        required: true
+        type: string
 
 permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # the dispatch path creates the tag and the GitHub release
+      actions: read # reads ci.yml's run for the released commit
+      pull-requests: read # reads the release notes from the commit's pull request
+      id-token: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+      # A dispatched release is only ever the current head of main, once
+      # every CI job on that exact commit succeeded, and never an existing tag.
+      - name: gate a dispatched release on main's CI
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'; then
+            echo "not a version: $TAG"; exit 1
+          fi
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "dispatch from main only (got $GITHUB_REF)"; exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists"; exit 1
+          fi
+          for attempt in $(seq 1 60); do
+            run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&event=push" \
+              --jq '[.workflow_runs[] | {status, conclusion}] | first // empty')
+            if [ -z "$run" ]; then
+              echo "no CI run for $GITHUB_SHA yet"
+            else
+              status=$(echo "$run" | jq -r .status)
+              conclusion=$(echo "$run" | jq -r .conclusion)
+              echo "CI for $GITHUB_SHA: $status $conclusion"
+              if [ "$status" = "completed" ]; then
+                [ "$conclusion" = "success" ] && exit 0
+                echo "CI did not succeed on $GITHUB_SHA"; exit 1
+              fi
+            fi
+            sleep 60
+          done
+          echo "CI on $GITHUB_SHA did not finish within an hour"; exit 1
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -30,7 +88,7 @@ jobs:
         run: |
           node -e '
             const { readFileSync } = require("node:fs");
-            const tag = process.env.GITHUB_REF_NAME;
+            const tag = process.env.TAG;
             const bad = ["packages/oar/package.json", "packages/cli/package.json"]
               .map((p) => JSON.parse(readFileSync(p, "utf8")))
               .filter((pkg) => `v${pkg.version}` !== tag);
@@ -44,3 +102,15 @@ jobs:
       # pnpm publish (not npm) so workspace:* deps are rewritten to the real
       # version in the published manifests.
       - run: pnpm -r publish --access public --no-git-checks
+      - name: tag and create the GitHub release
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+          # The release pull request's body, without its generated-by footer.
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].body // ""' \
+            | sed '/Generated with \[Claude Code\]/d' > notes.md
+          gh release create "$TAG" --title "$TAG" --notes-file notes.md --verify-tag
