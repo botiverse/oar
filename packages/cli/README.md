@@ -15,10 +15,11 @@ oar run claude "What does this repo do?"
 
 ## Commands
 
-The registered runtimes are OAR's `defaultRuntimes` plus cursor, which the
-CLI adds itself on the `@cursor/sdk` 1.0.38 it depends on
-(`src/runtimes.ts`). Commands that take an optional `[runtime]` cover every
-registered runtime when it is omitted (or `all`). A runtime whose probe or
+The registered runtimes are OAR's `defaultRuntimes`, cursor, which the CLI
+adds itself on the `@cursor/sdk` 1.0.38 it depends on, and the community
+runtimes (Mister Morph) from `@botiverse/oar/community` (`src/runtimes.ts`).
+Commands that take an optional `[runtime]` cover every registered runtime
+when it is omitted (or `all`). A runtime whose probe or
 read fails (a timeout, a network error) reports its `error` in place of a
 result, the others still report, and the exit code is 1.
 
@@ -29,8 +30,10 @@ result, the others still report, and the exit code is 1.
 - `oar usage [runtime]`: account usage for each available installation.
 - `oar models [runtime]`: models each available installation can run right
   now (login state, plan, and configured providers included). The first
-  column after the runtime is the `id` to pass to `oar run --model`, and
-  `(default)` marks the model a session runs when none is set. `--cwd <dir>`
+  column after the runtime is the `id` to pass to `oar run --model`,
+  `(default)` marks the model a session runs when none is set, `*` the
+  default effort level and service tier, and `(disabled: reason)` a model the
+  runtime lists but will not run as is. `--cwd <dir>`
   lists for the directory a session would run in (project configuration
   there can change the list; it starts the runtime there, so only use a
   directory you trust); `--json` prints the `ListModelsResult` per runtime,
@@ -40,14 +43,16 @@ result, the others still report, and the exit code is 1.
 - `oar upgrade [runtime]`: upgrade each available installation with the
   runtime's own updater, one at a time; `--check` only reports the version
   the updater would install, `--json` prints the reports, `--timeout <ms>`
-  bounds each runtime. The exit code is 1 when an upgrade failed or left the
-  version unchanged, or when a runtime could not be probed. See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
+  bounds each runtime's check and its updater run. The exit code is 1 when
+  an upgrade failed or left the version unchanged, or when a runtime could
+  not be probed. See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 - `oar login <runtime>`: log a runtime in through its own login. It prints
   the sign-in URL or device code and reads a pasted code from stdin, without
   echoing it, when the runtime asks for one; Ctrl-C cancels. `--status` only
   reports whether each runtime (or the named one) is logged in, `--json`
-  prints events, prompts and the result as JSON, `--timeout <ms>` bounds the
-  login. The exit code is 0 when logged in, 130 when cancelled, 1 otherwise. See [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
+  prints events, prompts and the result (or the status reports) as JSON,
+  `--timeout <ms>` bounds the login (or each status query). The exit code is
+  0 when logged in, 130 when cancelled, 1 otherwise. See [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
 - `oar logout <runtime>`: log a runtime out through its own logout. It
   prints `logged out` when the runtime's status then reads logged out (or,
   when the status cannot tell, the runtime reported success); an API key in the environment that the status still reads is
@@ -56,11 +61,13 @@ result, the others still report, and the exit code is 1.
 - `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,
   any MCP client) can delegate tasks to other runtimes: `run` waits for a
   subagent's turn, `spawn` / `send` / `wait` work in parallel, and
-  `runtimes`, `list`, `interrupt` and `close` complete the tool set. Flags
-  `--runtimes`, `--max-running`, `--max-depth`, `--cwd`, `--log-dir`.
-  `run`, `wait` and `list` return structured objects with output schemas,
-  plus the same JSON as text. `wait` returns `{ reports }` when any selected
-  report is available; `list` returns `{ agents, unread }`.
+  `runtimes`, `list`, `interrupt` and `close` complete the tool set. Flags:
+  `--runtimes <ids>` (comma-separated; all by default), `--max-running <n>`
+  (default 4), `--max-depth <n>` (default 1: subagents do not spawn),
+  `--cwd <dir>` (for subagents that name none), `--log-dir <dir>` (each
+  subagent's records as an oar-voyage log). `run`, `wait` and `list` return
+  structured objects with output schemas, plus the same JSON as text
+  ([shapes](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md#oar-mcp)).
   Subagents run with full permissions. A codex agent starts MCP servers with
   a reduced environment, so give its `oar` entry
   `env_vars = ["OAR_SUBAGENT_DEPTH"]` for the nesting limit to hold. See
@@ -71,16 +78,17 @@ result, the others still report, and the exit code is 1.
 ## `oar run`: the run-and-verify entrypoint
 
 By default `run` prints one opening line naming the session (the id
-`--resume` takes; `[resumed <id> …]` on a resumed run) and the model and
-effort the runtime reported while opening, when it did (the `model()` /
-`effort()` folds, never the flags echoed). Then it prints readable progress
-from the session's `events()`: assistant text verbatim (coalesced into blocks
+`--resume` takes; `[resumed <id> …]` on a resumed run) and the model, service
+tier and effort the runtime reported while opening, when it did (the
+`model()` / `serviceTier()` / `effort()` folds, never the flags echoed).
+Then it prints readable progress from the session's `events()`: assistant text verbatim (coalesced into blocks
 via `coalesceText`), and other facts as bracketed meta lines
 (`[compacting: threshold]`, `[compacted]` or `[compaction failed] reason`,
 `[retry 2/3] reason`, `[waiting for app: type]`, `[task shell started]`).
-Turn starts, usage, model and effort reports, native user message echoes,
-task updates, withdrawn inputs, tool progress deltas and oar's own answers
-to app requests print nothing:
+Turn starts, usage, model, service tier and effort reports, native user
+message echoes, queued, withdrawn and dropped inputs, task updates, tool
+input and progress deltas and oar's own answers to app requests print
+nothing (the full mapping is `src/progress.ts`):
 
 ```
 [session 01a0e982-… · model gpt-6-luna · effort low]

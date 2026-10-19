@@ -97,7 +97,10 @@ runtimes may legitimately differ.
 ### Vendor: is the runtime-specific integration right?
 
 `sea-trial/vendor/*.vendor.test.ts`, run by
-`OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. Vendor tests see
+`OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. The ACP
+runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
+`antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`) need the installed
+CLI and run only locally; CI runs the four behavior backends. Vendor tests see
 the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
 handles vendor-specific behavior; write one for anything that needs the
@@ -147,11 +150,15 @@ or pull request whose changes are all Markdown files or under `docs/` or
 - `clean-install`: `pnpm run clean-install`
   ([`tests/clean-install.ts`](../tests/clean-install.ts)) on Linux. Both
   packages are packed and `npm install`ed into an empty project: without the
-  optional peer `@cursor/sdk`, OAR must load, type-check and probe every
-  built-in runtime, and the line that adds cursor must fail the host's
-  compile; with the SDK added, cursor loads. The CLI, installed after the
-  host's SDK is removed again, lists cursor's models through the SDK it
-  depends on itself. It needs the npm registry.
+  optional peers, the root entry and the `browser`, `forms`, `observe`,
+  `kernel`, `brands`, `testing`, `agents` and `agents/report` entries must
+  load and type-check, OAR must probe every built-in runtime, and the line
+  that adds cursor must fail the host's compile; with the SDK added, cursor
+  loads. With the Pi Durable
+  peers added, a pi-durable session opens and its entry bundles for a
+  browser. The CLI, installed after the host's SDK is removed again, lists
+  cursor's models through the SDK it depends on itself. It needs the npm
+  registry.
 
 Windows Codex behavior jobs forward child stderr to the job log with
 `OAR_CHILD_STDERR=inherit`, including failures before a session trace exists
@@ -174,7 +181,10 @@ error, signal, timeout, exit code and stderr tail in their exception too.
 2. **Implement it in `packages/oar/src/runtimes/<id>/`.** `index.ts` declares
    the runtime with `defineRuntime({ id, ... })`, listing only the
    capabilities the runtime honestly supports: an absent capability is
-   correct, a faked one is not. The session adapter feeds a
+   correct, a faked one is not. That `index.ts` is also the public
+   `@botiverse/oar/runtimes/<id>` entry, so it imports no SDK statically:
+   load SDK-bound code on first call (`onFirstCall`, `shared/lazy.ts`) and
+   add the id to `tests/runtime-entries.test.ts`. The session adapter feeds a
    `createSessionKernel()`:
    - every native frame becomes exactly one `Frame` record via
      `kernel.frame()` (`type`, `native` verbatim, `events` holding the
