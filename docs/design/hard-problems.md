@@ -71,7 +71,7 @@ subject of [foundations.md](foundations.md).
 13. **Cancellation and steering.** Abort, steer and queue differ per
     runtime: claude, codex, pi and cursor absorb a steer at the next step
     boundary, grok's `send_now` cancels the running turn and starts a new
-    one, and kimi and antigravity cannot steer at all. Each interacts with the
+    one, and kimi, antigravity and opencode v2 cannot steer at all. Each interacts with the
     event stream differently.
 
 ## Beyond a single local process

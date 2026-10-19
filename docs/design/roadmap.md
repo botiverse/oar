@@ -15,13 +15,21 @@ increments, not a promise to add every feature listed.
   context, tasks.
 - `@botiverse/oar/agents` and `oar mcp`: subagents on any runtime, reported
   back through a host-owned hook.
+- `serveMcpTools`: tools the host implements, served to any runtime that
+  takes MCP servers, with server instructions and a tool list the host can
+  replace mid-session (`Runtime.mcpToolsListChanged` says whether a running
+  session sees the change).
+- Runtime config forms (`@botiverse/oar/forms`): each runtime describes its
+  settings as data a host renders and may only narrow
+  ([capabilities](capabilities.md#a-form-for-choosing-settings)).
 - Capabilities as types ([capabilities](capabilities.md)): absent members for
   missing operations, `UnsupportedOptionError` for refused options, and
   declarations only for pre-action decisions; native payload reachability and
   read-backs.
-- Runtimes whose SDK the host installs and hands over
-  (`createCursorRuntime`), with a clean-install check of the published
-  packages.
+- Runtimes whose SDK or engine the host installs and hands over
+  (`createCursorRuntime`, `createPiDurableRuntime`), one package entry per
+  runtime (`@botiverse/oar/runtimes/<id>`) so a host loads only what it uses,
+  and a clean-install check of the published packages.
 - Mock, aimock, vendor, experiment and live validation layers, with voyage
   logs as durable evidence.
 
@@ -83,7 +91,8 @@ read back against the runtime's own report; each adapter refuses an open the
 runtime does not confirm. The caller was Ferry, which switches model and
 effort between turns by resuming and must show the level the runtime really
 runs; the runtimes otherwise lose a level silently (claude ignores an unknown
-one with a stderr warning and sends none for haiku, pi clamps, and a `config`
+one with a stderr warning, lowers `xhigh` to `high` on a 4.6 model and sends
+none for haiku, pi clamps, and a `config`
 override on codex's `thread/resume` rebuilt the thread onto `config.toml`'s
 model). Effort is reported by the `effort` event, `Session.effort()`
 and `SessionView.effort`. Regression: per-adapter unit tests, sea-trial

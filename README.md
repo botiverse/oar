@@ -150,7 +150,8 @@ What else a session gives you:
 
 - **Every fact, attributed.** `events()` is one `Event` per fact (native user
   message echoes, text, reasoning, tool calls with their later input,
-  progress and end, background tasks, turns, usage, model, effort,
+  progress, end and any exit code the runtime reports, background tasks,
+  turns, usage, model, effort,
   compaction, retries, app requests, control rejections, the process exit),
   each with `seq` and `agentPath`. `{ coalesceText: true }` gives text in
   blocks. `rawEvents()` and `records()` keep every native payload verbatim.
@@ -158,6 +159,10 @@ What else a session gives you:
   and `abort` each answer accepted or rejected with a typed code (`busy`,
   `no_active_turn`, `runtime_exited`, …); where input landed is read from
   the events, never guessed.
+- **Your own tools on any runtime.** `serveMcpTools` serves tools your host
+  implements as an MCP server a session attaches like any other; replace
+  the list mid-session where `Runtime.mcpToolsListChanged` says the running
+  session sees it ([reference](docs/spec/runtime-matrix.md#host-served-tools)).
 - **Projections for UIs.** `@botiverse/oar/observe` folds records into a
   conversation (`reduceConversation`, `viewOf`), status, tasks and stalls,
   with no Node imports, so it runs in a browser.
@@ -167,7 +172,8 @@ What else a session gives you:
   semantics and no binary or login.
 
 The [package README](packages/oar/README.md) lists the public entry points.
-`defaultRuntimes` holds the built-in Node runtimes. Cursor needs the SDK you install and hand
+`defaultRuntimes` holds the built-in Node runtimes; `@botiverse/oar/runtimes/<id>`
+loads one of them without the others. Cursor needs the SDK you install and hand
 over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
 ([why](docs/runtimes/cursor.md#installation-and-account-usage)). Pi Durable needs
 `createPiDurableRuntime({ harness, models })` with the host's already-open Harness
@@ -215,9 +221,13 @@ for (const runtime of defaultRuntimes.list()) {
 - **Account usage:** `accountUsage()` reads the plan and quota windows with
   their reset times (claude, codex, grok, kimi;
   [reference](docs/spec/account-usage.md)).
-- **Models:** `listModels()` lists the models the installation can run now,
-  with their effort levels and service tiers; not being logged in is its own answer, not an
-  empty list.
+- **Models:** `listModels()` lists the models the installation can run now
+  (in a given workspace, with `cwd`), with their effort levels and service
+  tiers; not being logged in is its own answer, not an empty list.
+- **Setup forms:** `@botiverse/oar/forms` describes a runtime's settings as
+  data a setup UI renders and may only narrow, with validation and the
+  mapping to session options; it loads no runtime SDK (Grok so far;
+  [reference](docs/spec/config-form.md)).
 - **Updates:** `checkUpdate()` reports the version the runtime's own updater
   would install, and `upgrade()` runs that updater and judges it by the
   version afterwards ([reference](docs/spec/update.md)).
@@ -228,7 +238,9 @@ for (const runtime of defaultRuntimes.list()) {
   `UnsupportedOptionError` rather than drop them
   ([reference](docs/spec/runtime-matrix.md#refused-session-options)).
   `mcpServers` attaches MCP servers to one session (except Cursor and
-  Pi Durable).
+  Pi Durable). `name` titles a session in the runtime's own list where it
+  has one. A resume the runtime declines for now (the conversation is
+  archived or open elsewhere) rejects with `SessionUnavailableError`.
 
 The CLI exposes the same queries: `oar installation`, `oar login`
 (`--status` only reports), `oar logout`, `oar usage`, `oar models`,

@@ -243,3 +243,27 @@ adapter against whatever the vendor does publish.
 **What would reopen it:** a runtime whose vendor names a third party
 adapter as its supported interface, or adopts one into its own
 organization.
+
+## Reading facts out of content text (2026-10-12, 2026-10-16)
+
+**Considered:** deriving a fact from the text a runtime sends as content.
+Two hosts asked: rowrow, for `<think>...</think>` in an OpenAI-compatible
+model's text to become reasoning (pi), and Raft, for the `Exit code N` that
+claude prints in a Bash result to become the call's `exitCode`.
+
+**Refused, because the text is content, not a report.** A model or a
+command can print the same words (a script that echoes `Exit code 1`, a
+model that writes the tags literally), and a runtime may change its
+wording in any release. OAR's record must also match what the runtime
+itself stored: pi keeps and replays those tags as text, so a reasoning
+part OAR invented would exist nowhere in pi's session. A tool call's
+`result` and `exitCode` are therefore only the runtime's explicit fields
+(claude `is_error`, pi `structuredContent.exit_code`), and absent when it
+gives none ([record stream](../spec/record-stream.md)). A host that wants
+a heuristic applies it on its own layer, over OAR's record. The fix for
+reasoning in text belongs to the provider, which can split it into its own
+field (pi declined the same request upstream, pi#9007).
+
+**What would reopen it:** a runtime that documents a text form as its
+stable interface for the fact. When a runtime ships the fact as a field,
+OAR maps the field, as it did for pi's exit code.

@@ -13,9 +13,11 @@ src/
   brands.ts                # @botiverse/oar/brands: browser-safe names and icons
   kernel.ts                # @botiverse/oar/kernel: the runtime-author SPI
   contracts/               # provider-independent agreements; index.ts is shared by the root and browser entries
-  runtimes/<id>/           # one runtime, split by capability
+  runtimes/<id>/           # one runtime, split by capability; index.ts is also the @botiverse/oar/runtimes/<id> entry
   community/<id>/          # a contributor-maintained runtime, exported from @botiverse/oar/community, not in the built-in registry
   shared/                  # mechanisms + shared contract implementations
+  mcp/                     # serveMcpTools: host-implemented tools served as a loopback MCP server
+  forms/                   # @botiverse/oar/forms: runtime config forms as data, with pure validation and launch mapping (no runtime SDK)
   observe/                 # consumer-side derivations over the record stream (events.ts: eventsOf + coalesceText behind Session.events(); status fold, turn helpers, usage folds, conversation and session view)
   agents/                  # @botiverse/oar/agents: subagents over a runtime registry (built-in by default)
   testing/                 # @botiverse/oar/testing: scriptedRuntime on the kernel SPI

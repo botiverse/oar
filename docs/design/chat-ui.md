@@ -97,7 +97,7 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 | UI action | Session call | Note |
 |---|---|---|
 | send | `deliver` | prompts when idle, steers or queues when running; where it landed is in the result and the stream, never assumed |
-| steer now | `steer` | the control exists only when `session.steer` does (a kimi or antigravity session has none); the UI reads the member, never a runtime name |
+| steer now | `steer` | the control exists only when `session.steer` does (a kimi, antigravity or opencode v2 session has none); the UI reads the member, never a runtime name |
 | withdraw a queued input | `withdraw(inputId)` | the control exists only when `session.withdraw` does (not on codex). `accepted`: the input is the caller's again; `not_queued`: none is waiting (it already went to the runtime, or was withdrawn before) |
 | edit a queued input | `withdraw`, then `queue` with the same `inputId` | only after an accepted withdraw; the input waits again from its new request |
 | send a queued input now | `withdraw`, then `deliver` with the same `inputId` | only after an accepted withdraw; prompts when idle, steers into the running turn where the session can steer, otherwise queues it again |

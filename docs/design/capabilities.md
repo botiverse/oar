@@ -4,10 +4,9 @@ A host picks the runtime at run time, from a user's choice or its own
 configuration, so its code cannot know which runtime it holds. Runtimes
 differ: cursor takes no environment for its tools, kimi and opencode resume
 a session only in the directory it was created in, cursor, kimi,
-antigravity and opencode v2 take no system prompt, kimi and antigravity cannot
-steer. The design question is
-how a host learns what it may ask for, and what happens when it asks for
-more.
+antigravity, opencode v2 and Pi Durable take no system prompt, and kimi,
+antigravity and opencode v2 cannot steer. The design question is how a host
+learns what it may ask for, and what happens when it asks for more.
 
 **The position: a host never gets something other than it asked for, never
 parses prose to learn why, and never names a runtime to decide.** Three
@@ -70,6 +69,38 @@ option. It is the same data the refusal reads: one shared check rejects a
 declared option before anything starts, so the declaration and the behavior
 cannot drift, and a test opens every declared refusal against the registry.
 
+## A form for choosing settings
+
+A host that lets a person set up an agent asks every runtime the same
+question: which settings it takes, which values each may have, and how the
+chosen values become `SessionOptions`. The runtime that owns a setting
+answers, as plain data: `configForms` in `@botiverse/oar/forms` (Grok so
+far), with `validateConfig` and `toSessionOptions` as pure functions beside
+it. The entry loads no runtime SDK, so a server or a browser can render the
+form for a runtime that is not installed there.
+
+The form keeps the rules above:
+
+- **Presence is the capability.** A runtime without a form has no entry, and
+  a field the form does not list is not configurable.
+  `refusedSessionOptions` says what a runtime refuses, not what a host
+  should offer: a missing refusal is not a grant.
+- **It states what the runtime accepts, and a host may only narrow it.** A
+  host may drop options or make an optional field required, never add one.
+  An added value would be the host's word, not the runtime's, and would
+  reach `session()` only to be refused there.
+- **Not enumerated is not none.** A model list that could not be read is a
+  status with a reason, never an empty list and never a reason to clear a
+  saved value. Where a runtime does not say what a model supports, the form
+  offers nothing for it rather than guess.
+- **A saved value survives a change it did not cause.** An edit keeps an
+  unchanged stored value after the runtime's list or default moves. A launch
+  never drops one: `toSessionOptions` names a field it cannot map, and
+  `session()` refuses a value the runtime no longer accepts.
+
+How a host stores a configuration stays the host's. Contract:
+[config form](../spec/config-form.md).
+
 ## A runtime's own settings
 
 A setting only one runtime has is never a field of the shared contracts.
@@ -78,8 +109,11 @@ Where it goes depends on how long it holds:
 - **For the host's lifetime** (where an SDK loads from, an executable path,
   a data directory): an argument of that runtime's own constructor,
   `createXxxRuntime(options)`, typed by that runtime alone. Constructors
-  share no shape. Only cursor has one today, because its SDK is a package
-  the host installs: `createCursorRuntime({ sdk: () => import("@cursor/sdk") })`.
+  share no shape. Two have one today, because each needs something only
+  the host has: cursor its SDK, a package the host installs
+  (`createCursorRuntime({ sdk: () => import("@cursor/sdk") })`), and Pi
+  Durable the host's open Harness and Models
+  (`createPiDurableRuntime({ harness, models })`).
   A runtime gets a constructor when it first needs one; for a built-in
   runtime, calling it without arguments gives the built-in one. The process environment
   knobs `OAR_CODEX_BIN`, `OAR_CODEX_SANDBOX` and `OAR_PI_AGENT_DIR` are
