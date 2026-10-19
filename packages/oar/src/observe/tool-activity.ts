@@ -43,13 +43,13 @@ export interface ToolAction {
   readonly paths?: readonly string[];
   /**
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
-   * shell input shape is recorded (claude `Bash`, codex `commandExecution`, pi `bash`, cursor `shell`,
+   * shell input shape is recorded (claude `Bash` and `PowerShell`, codex `commandExecution`, pi `bash`, cursor `shell`,
    * grok `run_terminal_command`, kimi `Bash`, opencode `bash`).
    */
   readonly command?: string;
   /**
-   * The agent's own one-line account of the call, where the runtime sends one (claude `Bash`,
-   * grok `run_terminal_command`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
+   * The agent's own one-line account of the call, where the runtime sends one (claude `Bash`
+   * and `PowerShell`, grok `run_terminal_command`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
    * the subagent's task, also its `detail`.
    */
   readonly description?: string;
@@ -70,6 +70,9 @@ export interface ToolAction {
 const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   claude: {
     Bash: "run_command",
+    // Claude's shell tool on Windows without Git Bash, or wherever
+    // CLAUDE_CODE_USE_POWERSHELL_TOOL is set; same input shape as Bash.
+    PowerShell: "run_command",
     Read: "read_file",
     Edit: "edit_file",
     Write: "edit_file",
@@ -175,7 +178,8 @@ function waitFields(inputJson: string): InputFields {
 
 /**
  * Where each runtime's tools keep the fields a host shows, from recorded inputs
- * (tests/replay/fixtures/*-tool-round.raw.jsonl, and the input keys of
+ * (tests/replay/fixtures/*-tool-round.raw.jsonl, claude's `PowerShell` in
+ * claude-powershell-tool-round.raw.jsonl, and the input keys of
  * *-acp-v1*.vendor.json): a shell tool's command (and description), a wait's
  * duration, a subagent call's task (claude `Agent` and opencode `subagent`
  * `{description, prompt, …}`, tests/replay/fixtures/claude-background-tasks.raw.jsonl
@@ -189,7 +193,7 @@ function waitFields(inputJson: string): InputFields {
  * there once the call's latest input is passed in.
  */
 const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
-  claude: { Bash: (input) => stringFields(input, true), Agent: taskFields, Task: taskFields },
+  claude: { Bash: (input) => stringFields(input, true), PowerShell: (input) => stringFields(input, true), Agent: taskFields, Task: taskFields },
   codex: {
     commandExecution: (input) =>
       input.length === 0 || asRecord(parseJson(input)) !== null ? {} : { command: input },

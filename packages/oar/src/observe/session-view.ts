@@ -103,6 +103,8 @@ export type ViewPart =
       readonly content?: readonly ToolOutputPart[];
       /** `ended` means the call or its root turn ended without a known result. */
       readonly result: "running" | "ok" | "failed" | "ended";
+      /** `tool_call_ended.exitCode` verbatim: absent when the runtime reported none, never derived; a non-zero code leaves `result` alone. */
+      readonly exitCode?: number | null;
       /**
        * When OAR observed the call start: its `tool_call_started` record's
        * `receivedAt` (epoch ms), not a time the runtime reported. Absent when

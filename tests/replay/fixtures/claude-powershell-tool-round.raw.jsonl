@@ -1,0 +1,5 @@
+{"type":"system","subtype":"init"}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_wr6wSk3hQ7rVZyk2","name":"PowerShell","input":{"command":"Write-Output oar-powershell-marker","description":"Print the replay marker"}}]}}
+{"type":"user","message":{"role":"user","content":[{"tool_use_id":"toolu_wr6wSk3hQ7rVZyk2","type":"tool_result","content":"PowerShell is not available on this system.","is_error":false}]}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"done"}]}}
+{"type":"result","subtype":"success","is_error":false}

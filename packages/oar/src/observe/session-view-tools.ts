@@ -39,6 +39,14 @@ type ToolInput = Extract<Event, { kind: "tool_call_input" | "tool_call_input_del
 type ToolPart = Extract<ViewPart, { kind: "tool" }>;
 type ToolResult = ToolPart["result"];
 
+/** What a call's end adds to its tool part: the result content and the exit status, each only when the runtime reported it. */
+export function ended(event: Extract<Event, { kind: "tool_call_ended" }>): Pick<ToolPart, "content" | "exitCode"> {
+  return {
+    ...(event.content === undefined ? {} : { content: event.content }),
+    ...(event.exitCode === undefined ? {} : { exitCode: event.exitCode }),
+  };
+}
+
 /** A snapshot replaces the current preview; a delta appends to it. */
 export function toolPreview(previous: string | undefined, event: Extract<Event, { kind: "tool_call_progress" }>): { readonly output?: string } {
   const snapshot = event.output ?? previous;
@@ -57,7 +65,7 @@ export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResu
     if (event.kind === "tool_call_ended") {
       // The streamed preview gives way to the result.
       const { output: _streamed, ...settled } = part;
-      return { ...settled, ...(event.content === undefined ? {} : { content: event.content }), result, endedAt: event.receivedAt };
+      return { ...settled, ...ended(event), result, endedAt: event.receivedAt };
     }
     // A late output delta adds evidence; it cannot reopen an ended call.
     return { ...part, ...toolPreview(part.output, event) };

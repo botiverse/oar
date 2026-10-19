@@ -135,7 +135,7 @@ function render(calls: ToolCall[]): string {
   }).join("\n")}\n`;
 }
 
-for (const scenario of ["tool-round", "mcp-echo"]) {
+for (const scenario of ["tool-round", "powershell-tool-round", "mcp-echo"]) {
   test(`claude ${scenario} tool calls render as friendly activity`, async () => {
     const lines = fixture(`claude-${scenario}.raw.jsonl`);
     await expect(render(toolCallsFromClaude(lines))).toMatchFileSnapshot(path.join(here, "fixtures", `claude-${scenario}.activity.txt`));
@@ -189,6 +189,10 @@ test("shell calls carry their command, and claude's its description, as recorded
   const [codex] = toolCallsFromCodex(fixture("codex-tool-round.raw.jsonl"));
   const [pi] = toolCallsFromPi(fixture("pi-tool-round.raw.jsonl"));
   expect(shellFields(claude)).toEqual({ command: "echo oar-replay-marker", description: "Echo the marker string" });
+  // claude 2.1.292 with CLAUDE_CODE_USE_POWERSHELL_TOOL=1 against a scripted provider: same input shape as Bash.
+  const powershell = toolCallsFromClaude(fixture("claude-powershell-tool-round.raw.jsonl")).find((c) => c.tool === "PowerShell");
+  expect(classifyTool("claude", "PowerShell").kind).toBe("run_command");
+  expect(shellFields(powershell)).toEqual({ command: "Write-Output oar-powershell-marker", description: "Print the replay marker" });
   expect(shellFields(codex)).toEqual({ command: "/bin/bash -lc 'echo oar-codex-marker'", description: undefined });
   expect(shellFields(pi)).toEqual({ command: "echo oar-round-one", description: undefined });
 });
