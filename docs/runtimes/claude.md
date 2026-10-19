@@ -9,12 +9,12 @@ their version inline. The `basic`, `tool-detail` and `resume` live scenarios
 last passed on **2.1.296** (Linux x64, `claude-haiku-5-5`,
 [2026-10-10 report](../../experiments/runtime-version-checks/2026-10-10.md))
 with no adapter change.
-The 47 native vendor tests (MCP attachment and resume, tool-list changes,
+The 48 native vendor tests (MCP attachment and resume, tool-list changes,
 tool denial, streamed input, child attribution, structured output, service
 tiers, effort, additional directories, error redaction) and the shared
-behavior cases (17 passed, 2 skipped) last passed on **2.1.302** against a
+behavior cases (17 passed, 2 skipped) last passed on **2.1.303** against a
 local scripted provider
-([2026-10-17 report](../../experiments/runtime-version-checks/2026-10-17.md)).
+([2026-10-19 report](../../experiments/runtime-version-checks/2026-10-19.md)).
 Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
@@ -797,13 +797,13 @@ A server named `__proto__`, `__defineGetter__`, `__defineSetter__`,
 `__lookupGetter__` or `__lookupSetter__` is an `UnsupportedOptionError` on
 `mcpServers` before launch, as on every runtime: claude's `--mcp-config`
 drops all five without a word, and the session opens with no such server
-(2.1.302, [probe](../../experiments/claude-reserved-mcp-names.ts);
+(2.1.303, [probe](../../experiments/claude-reserved-mcp-names.ts);
 [refused session options](../spec/runtime-matrix.md#refused-session-options)).
 Tools the host serves with `serveMcpTools` attach as an http entry. When a
 server announces a changed tool list, claude's next model request adds the
 new tools and keeps offering removed ones, whose calls then fail as unknown
-tools: `mcpToolsListChanged: "additions"` (2.1.302,
-[2026-10-17 report](../../experiments/runtime-version-checks/2026-10-17.md);
+tools: `mcpToolsListChanged: "additions"` (2.1.303,
+[2026-10-19 report](../../experiments/runtime-version-checks/2026-10-19.md);
 [host-served tools](../spec/runtime-matrix.md#host-served-tools)).
 
 ### Workflows
