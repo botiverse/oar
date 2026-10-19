@@ -172,6 +172,27 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock" || process.platform !==
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }, 60_000);
 
+  test("E. a real two-layer yarn-shaped shim: argv verbatim, no injection (exercises the shim follow)", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "lk yarn two layer "));
+    try {
+      // Inner: a cmd-shim node shim (the shape OAR recognizes) wrapping the argv recorder.
+      const inner = path.join(dir, "node_modules", ".bin");
+      const { script } = argvRecorder(inner);
+      writeFileSync(path.join(inner, "rec.cmd"), `@IF EXIST "%~dp0\\node.exe" (\r\n  "%~dp0\\node.exe"  "${script}" %*\r\n) ELSE (\r\n  @SETLOCAL\r\n  @SET PATHEXT=%PATHEXT:;.JS;=;%\r\n  node  "${script}" %*\r\n)\r\n`);
+      // Outer: the yarn global forwarder, a bare relative .cmd target plus %*.
+      const outerDir = path.join(dir, "bin");
+      mkdirSync(outerDir, { recursive: true });
+      const outer = path.join(outerDir, "rec.cmd");
+      writeFileSync(outer, `@"%~dp0\\..\\node_modules\\.bin\\rec.cmd"   %*\r\n`);
+      const out = path.join(dir, "out.json");
+      const marker = path.join(dir, "INJECTED.txt");
+      const args = ["--append-system-prompt", `a" & echo X > "${marker}" & rem "`, ...payloads, "%OAR_SENTINEL%"];
+      const { argv, exit } = await runRecorder(outer, args, out);
+      const same = JSON.stringify(argv) === JSON.stringify(args);
+      log(`PROBE E (two-layer yarn shim) exit=${String(exit)} verbatim=${String(same)} injected=${String(existsSync(marker))} argv=${clip(argv, 500)}`);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }, 60_000);
+
   test("D. PowerShell tool appears without Git Bash, with Bash's input shape", async () => {
     const installation = await claudeInstallation();
     if (installation.kind !== "available" || installation.via !== "executable") { log(`PROBE D claude ${installation.kind}; skip`); return; }
