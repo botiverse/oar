@@ -46,6 +46,19 @@ export interface EffortField extends FieldBase {
   readonly modelField: string;
 }
 
+/**
+ * Options from the chosen model's `ModelEntry.serviceTiers`, plus `default`,
+ * the explicit opt-out (no special tier), whenever the model lists one
+ * (`serviceTierChoices`). Its value is a string: a native tier id, or
+ * `default`; unset (null, absent) is the runtime's own choice, which may be a
+ * special tier (`ModelEntry.defaultServiceTier`). It maps to
+ * `SessionOptions.serviceTier` unchanged.
+ */
+export interface ServiceTierField extends FieldBase {
+  readonly kind: "serviceTier";
+  readonly modelField: string;
+}
+
 export interface SelectField extends FieldBase {
   readonly kind: "select";
   readonly options: readonly { readonly value: string; readonly label: CopyText }[];
@@ -56,7 +69,7 @@ export interface SecretField extends FieldBase { readonly kind: "secret" }
 export interface TextField extends FieldBase { readonly kind: "text"; readonly format?: "url" }
 export interface BooleanField extends FieldBase { readonly kind: "boolean" }
 
-export type ConfigField = ModelField | EffortField | SelectField | SecretField | TextField | BooleanField;
+export type ConfigField = ModelField | EffortField | ServiceTierField | SelectField | SecretField | TextField | BooleanField;
 
 export interface RuntimeConfigForm {
   readonly protocol: 1;
@@ -105,6 +118,7 @@ export interface ConfigIssue {
     | "model_not_listed"
     | "model_disabled"
     | "effort_not_offered"
+    | "service_tier_not_offered"
     | "option_not_offered"
     | "secret_missing"
     | "unknown_field";

@@ -48,7 +48,7 @@ export interface RuntimeConfigForm {
 }
 
 export type ConfigField =
-  | ModelField | EffortField | SelectField | SecretField
+  | ModelField | EffortField | ServiceTierField | SelectField | SecretField
   | TextField | BooleanField;
 
 interface FieldBase {
@@ -82,6 +82,15 @@ interface ModelField extends FieldBase {
 /** Options from the chosen model's `ModelEntry.effortLevels`. */
 interface EffortField extends FieldBase {
   readonly kind: "effort";
+  readonly modelField: string;
+}
+
+/**
+ * Options from the chosen model's `ModelEntry.serviceTiers`, plus the explicit
+ * opt-out `default`; see "Service tier" below.
+ */
+interface ServiceTierField extends FieldBase {
+  readonly kind: "serviceTier";
   readonly modelField: string;
 }
 
@@ -232,10 +241,73 @@ A required secret that resolves to `present: false` is the issue
 `secret_missing`; it is never mapped to an empty or omitted option. Resolved
 secrets go only into the launch; they are never returned to a form client.
 
+### Service tier
+
+A `serviceTier` field is written like `effort`: bound to a model field
+(`modelField`), its options come from the model that value runs as, and it
+maps to one `SessionOptions` member, `serviceTier`
+(Raft `#wg-runtime-form:69ff867b`, point 2). Grok lists no tiers, so its
+form has none; Codex's form is the first expected to carry one.
+
+**Value.** A string, passed to `SessionOptions.serviceTier` unchanged, so
+three choices stay distinct all the way to the launch:
+
+| stored value | means | `toSessionOptions` |
+|---|---|---|
+| unset (`null`, absent, `""`) | the runtime's own choice, which may itself be a special tier (codex names `priority` the catalog default of some models) | no `serviceTier` |
+| `"default"` | explicitly no special tier: the opt-out that turns a default `priority` off | `serviceTier: "default"` |
+| a tier id (`"priority"`, `"flex"`, claude's `"fast"`) | that native tier, verbatim (never the CLI's `fast` alias for codex's `priority`) | `serviceTier: <id>` |
+
+**Options.** `serviceTierChoices(entry)` (exported, pure) is what a host
+offers and what `validateConfig` accepts, so the two cannot drift:
+
+```ts
+export function serviceTierChoices(model: ModelEntry | undefined): {
+  readonly values: readonly string[];   // ["default", ...entry.serviceTiers], or []
+  readonly whenUnset?: string;          // entry.defaultServiceTier, when one of values
+};
+```
+
+A model that lists at least one tier offers `default` first, then its tiers
+(`default` once, even when the listing names it). A model that lists none,
+and a model that is not enumerated (a typed `custom` id, an `unavailable`
+listing, `inherit` with no entry marked `default: true`), offers nothing, not
+even `default`: no guessing. `whenUnset` is the listing's
+`defaultServiceTier`, so a host can word unset as "Default (Priority)"; it is
+omitted when the listing does not say, or names a tier it does not offer.
+
+**The model it runs as** is effort's, through the same resolution
+([Validation](#validation), #422, #424): a `preset` runs as its own listed
+entry; `inherit`, and an optional model left empty, as the entry marked
+`default: true`; with no such entry, the runtime's default offers no tier.
+
+**Validation** (`service_tier_not_offered`):
+
+- A value that is not a string is `invalid_shape`; an empty one is `required`
+  only when the field is required.
+- **New value.** It must be in `serviceTierChoices` of the model the
+  submitted model value runs as, on create and edit alike.
+- **Preservation.** On edit, a value equal to the stored one, with the model
+  value equal to the stored one (both left empty counts as equal), is kept
+  whatever the listing says now, by the same check as effort: the runtime's
+  default model, and what a listed model offers, can change between
+  sessions with nothing edited (HaoHao, Raft `6b5c5423`, `aca5a4f9`). A kept
+  value is never dropped; one that turns out unsupported fails at launch,
+  where the runtime reads back the tier it applied.
+- Changing the model value does not carry a stored tier: under the new model
+  it is a new value. Clearing an optional one back to unset is always
+  accepted.
+
+Adding the kind changes how no existing form is read, so `protocol` stays 1.
+A machine whose OAR predates the kind does not report the field: reduction
+hides an optional one (a required one is `config_form_unsupported`), and a
+stored tier there is `needs_fix`.
+
 ## The `forms` entry
 
 - `@botiverse/oar/forms` exports every runtime's `configForm`, the shared
-  types (`ModelListing` included), `validateConfig` and `toSessionOptions`.
+  types (`ModelListing` included), `validateConfig`, `toSessionOptions` and
+  `serviceTierChoices`.
   Runtimes import their form from there, not the other way round.
 - CI checks that the entry's dependency graph contains no runtime SDK (HaoHao).
 - A test imports the entry from an empty consumer and asserts no SDK module
@@ -278,15 +350,15 @@ export type RuntimeFormSupport =
 export type FieldSupport =
   | { readonly id: string; readonly kind: "model"; readonly modes: readonly ModelValue["kind"][] }
   | { readonly id: string; readonly kind: "select"; readonly values: readonly string[] }
-  | { readonly id: string; readonly kind: "effort" | "secret" | "text" | "boolean" };
+  | { readonly id: string; readonly kind: "effort" | "serviceTier" | "secret" | "text" | "boolean" };
 
 /** Pure: what the daemon puts on the wire. */
 export function toMachineReport(forms: Readonly<Record<string, RuntimeConfigForm | null>>, meta: ReportMeta): MachineConfigFormReport;
 ```
 
-Nothing in a report is derived from `refusedSessionOptions`. `effort` reports
-no domain because its options come from the machine's own `listModels`
-result, which is already per machine. `secret` reports no domain either:
+Nothing in a report is derived from `refusedSessionOptions`. `effort` and
+`serviceTier` report no domain because their options come from the
+machine's own `listModels` result, which is already per machine. `secret` reports no domain either:
 `SecretEdit` is an edit the host applies to its own credential store, not
 stored configuration, so it is never what a machine is checked against; the
 machine only says whether it accepts the field. (`env` is not a field kind
