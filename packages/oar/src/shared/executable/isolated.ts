@@ -45,14 +45,13 @@ function stopTree(child: ChildProcess): void {
  * or left running after it.
  */
 export async function runIsolated(command: string, args: readonly string[], options: IsolatedRunOptions): Promise<IsolatedResult> {
-  // On Windows a `.cmd`/`.bat` shim resolves to the Node interpreter and
-  // script it wraps, so no argument reaches `cmd.exe` (windows-shim.ts).
-  const target = windowsSpawnTarget(command, args);
+  const target = windowsSpawnTarget(command, args, options);
   const child = spawn(target.command, [...target.args], {
     env: options.env,
     stdio: ["ignore", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,
+    windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   });
   trackOwnedProcess(child);
   let stdout = "";

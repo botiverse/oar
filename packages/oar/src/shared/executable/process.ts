@@ -139,21 +139,21 @@ export function killProcessTree(child: ChildProcess): void {
 
 /**
  * Spawn through cross-spawn. On Windows a `.cmd`/`.bat` shim is first
- * resolved to the Node interpreter and script it wraps, so a shim's arguments
- * never reach `cmd.exe` (windows-shim.ts). Line parsing is attached lazily;
- * protocol SDKs can consume the raw streams.
+ * resolved to its native target or an explicitly escaped cmd.exe invocation.
+ * Line parsing is attached lazily; protocol SDKs can consume the raw streams.
  */
 export function spawnLineProcess(
   command: string,
   args: readonly string[],
   options: LineProcessOptions = {},
 ): LineProcess {
-  const target = windowsSpawnTarget(command, args);
+  const target = windowsSpawnTarget(command, args, options);
   const child = spawnChecked(() => spawn(target.command, [...target.args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
+    windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   }));
   trackOwnedProcess(child);
   const { stdin, stdout } = child;

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
 import { nativeError, stderrTail, type ProcessDiagnostics } from "./diagnostics.js";
-import { isWindowsShim, windowsSpawnTarget } from "./windows-shim.js";
+import { windowsSpawnTarget } from "./windows-shim.js";
 
 export interface ExecutableResult {
   readonly ok: boolean;
@@ -63,17 +63,14 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       if (!Number.isInteger(timeoutMs) || timeoutMs < 0) {
         throw Object.assign(new RangeError("timeoutMs must be a nonnegative integer"), { code: "ERR_OUT_OF_RANGE" });
       }
-      // On Windows a `.cmd`/`.bat` shim OAR can read resolves to the Node
-      // interpreter and script it wraps, so no argument reaches `cmd.exe`
-      // (windows-shim.ts); a shim it cannot read is still launched, which
-      // `node:child_process` only does for a `.cmd`/`.bat` through a shell.
-      // Off Windows, the inputs unchanged and no shell.
-      const target = windowsSpawnTarget(executable, args);
+      // Both the direct shim target and the escaped cmd.exe fallback are
+      // explicit executables: Node must not add a shell or quote again.
+      const target = windowsSpawnTarget(executable, args, options);
       const child = spawn(target.command, [...target.args], {
         cwd: options.cwd, env: options.env,
         stdio: ["pipe", "pipe", "pipe"],
         detached: OWN_PROCESS_GROUP,
-        shell: process.platform === "win32" && isWindowsShim(target.command),
+        windowsVerbatimArguments: target.windowsVerbatimArguments === true,
       });
       trackOwnedProcess(child);
       // An exited group leader can leave descendants holding the pipes.

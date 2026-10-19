@@ -1,5 +1,5 @@
 export { resolveExecutable, resolveExecutableAll } from "./resolve.js";
-export { isWindowsShim, parseWindowsShim, windowsSpawnTarget, type ResolvedShim } from "./windows-shim.js";
+export { escapeWindowsShimArgument, isWindowsShim, parseWindowsShim, windowsSpawnTarget, type ResolvedShim } from "./windows-shim.js";
 export { isolatedOutput, runIsolated, type IsolatedResult } from "./isolated.js";
 export type { ExecutableResult, ExecutableRunner, ExecutableRunOptions } from "./run.js";
 export { runExecutable } from "./run.js";

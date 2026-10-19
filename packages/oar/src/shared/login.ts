@@ -3,7 +3,7 @@ import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
-import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./executable/index.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
 
@@ -164,11 +164,13 @@ export function spawnLoginProcess(
   env: NodeJS.ProcessEnv,
   handlers: LoginOutputHandlers,
 ): LoginProcess {
-  const child = spawn(command, [...args], {
+  const target = windowsSpawnTarget(command, args, { env });
+  const child = spawn(target.command, [...target.args], {
     env,
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,
+    windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   });
   trackOwnedProcess(child);
   let running = true;

@@ -1,9 +1,10 @@
 import { once } from "node:events";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, test } from "vitest";
-import { isWindowsShim, parseWindowsShim, spawnLineProcess, windowsSpawnTarget } from "../packages/oar/src/shared/executable/index.js";
+import { describe, expect, test } from "vitest";
+import { escapeWindowsShimArgument, isWindowsShim, parseWindowsShim, runExecutable, runIsolated, spawnLineProcess, windowsSpawnTarget } from "../packages/oar/src/shared/executable/index.js";
+import { spawnLoginProcess } from "../packages/oar/src/shared/login.js";
 
 // Real cmd-shim output (npm/pnpm, cmd-shim 7): a Node CLI whose target has a
 // shebang gets the `_prog` form; a directly-executable target gets the bare
@@ -80,18 +81,20 @@ test("a hand-rolled .cmd (absolute node + script + extra arg, not an npm shim) i
 
 test("windowsSpawnTarget is a no-op off Windows, so posix launches are unchanged", () => {
   const injection = ["--append-system-prompt", String.raw`say "hi" | echo pwned`];
-  expect(windowsSpawnTarget("/usr/bin/claude", injection, "linux")).toEqual({ command: "/usr/bin/claude", args: injection });
-  expect(windowsSpawnTarget("claude.cmd", injection, "darwin")).toEqual({ command: "claude.cmd", args: injection });
+  expect(windowsSpawnTarget("/usr/bin/claude", injection, { platform: "linux" })).toEqual({ command: "/usr/bin/claude", args: injection });
+  expect(windowsSpawnTarget("claude.cmd", injection, { platform: "darwin" })).toEqual({ command: "claude.cmd", args: injection });
 });
 
 test("windowsSpawnTarget leaves a non-shim command alone on Windows", () => {
-  expect(windowsSpawnTarget(NODE_BIN, ["cli.js"], "win32", resolveNode)).toEqual({ command: NODE_BIN, args: ["cli.js"] });
-  expect(windowsSpawnTarget("where-is-it", [], "win32", () => null)).toEqual({ command: "where-is-it", args: [] });
+  expect(windowsSpawnTarget(NODE_BIN, ["cli.js"], { platform: "win32", resolve: resolveNode })).toEqual({ command: NODE_BIN, args: ["cli.js"] });
+  expect(windowsSpawnTarget("where-is-it", [], { platform: "win32", resolve: () => null })).toEqual({ command: "where-is-it", args: [] });
 });
 
-test("a shim it cannot read falls back to the original command, not a throw", () => {
-  // ghost.cmd does not exist to read, so the resolved shim is launched as-is (cross-spawn handles it).
-  expect(windowsSpawnTarget("ghost", ["x"], "win32", resolveGhost)).toEqual({ command: "ghost", args: ["x"] });
+test("an unreadable shim falls back to explicit cmd.exe with already escaped arguments", () => {
+  const target = windowsSpawnTarget("ghost", ["x"], { platform: "win32", resolve: resolveGhost });
+  expect(path.win32.basename(target.command).toLowerCase()).toBe("cmd.exe");
+  expect(target.args).toEqual(["/d", "/s", "/c", String.raw`"^"C:\ghost.cmd^" ^^^"x^^^""`]);
+  expect(target.windowsVerbatimArguments).toBe(true);
 });
 
 // On Windows, end to end: a real `.cmd` shim wrapping a Node script that
@@ -120,3 +123,125 @@ test.skipIf(process.platform !== "win32")("spawnLineProcess delivers tricky args
     rmSync(dir, { recursive: true, force: true });
   }
 }, 30_000);
+
+const escaping = [
+  ["", String.raw`^^^"^^^"`],
+  ["plain", String.raw`^^^"plain^^^"`],
+  ["two words", String.raw`^^^"two^^^ words^^^"`],
+  ['a"b', String.raw`^^^"a\^^^"b^^^"`],
+  [String.raw`a\"b`, String.raw`^^^"a\\\^^^"b^^^"`],
+  ["ends\\", String.raw`^^^"ends\\^^^"`],
+  ["a&b", String.raw`^^^"a^^^&b^^^"`],
+  ["a|b", String.raw`^^^"a^^^|b^^^"`],
+  ["a<b", String.raw`^^^"a^^^<b^^^"`],
+  ["a>b", String.raw`^^^"a^^^>b^^^"`],
+  ["a^b", String.raw`^^^"a^^^^b^^^"`],
+  ["%NAME%", String.raw`^^^"^^^%NAME^^^%^^^"`],
+  ["!NAME!", String.raw`^^^"^^^!NAME^^^!^^^"`],
+  ["(a)", String.raw`^^^"^^^(a^^^)^^^"`],
+] as const;
+
+const launchers = [
+  {
+    name: "spawnLineProcess",
+    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
+      const child = spawnLineProcess(command, args, { env });
+      let output = "";
+      child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString("utf8"); });
+      const drained = once(child.stdout, "end");
+      await child.spawned;
+      await drained;
+      expect(await child.exited).toBe(0);
+      return output;
+    },
+  },
+  {
+    name: "runExecutable",
+    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
+      const result = await runExecutable(command, args, { env });
+      expect(result.ok, result.stderr).toBe(true);
+      return result.stdout;
+    },
+  },
+  {
+    name: "runIsolated",
+    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
+      const result = await runIsolated(command, args, { env, timeoutMs: 15_000 });
+      expect(result.exitCode, result.stderr).toBe(0);
+      expect(result.timedOut).toBe(false);
+      return result.stdout;
+    },
+  },
+  {
+    name: "spawnLoginProcess",
+    async run(command: string, args: readonly string[], env: NodeJS.ProcessEnv): Promise<string> {
+      const lines: string[] = [];
+      const child = spawnLoginProcess(command, args, env, { onLine(line, stream) { if (stream === "stdout") { lines.push(line); } } });
+      child.closeInput();
+      expect(await child.exited).toEqual({ exitCode: 0, signal: null });
+      return lines.join("\n");
+    },
+  },
+];
+
+/** Absolute targets make this a genuine fallback, not an npm/pnpm shim. */
+function handwrittenShim(directory: string, extension: string): string {
+  mkdirSync(directory, { recursive: true });
+  const script = path.join(directory, "argv.cjs");
+  writeFileSync(script, 'process.stdout.write(JSON.stringify(process.argv.slice(2)) + "\\n");\n');
+  const command = path.join(directory, `argv.${extension}`);
+  const text = `@echo off\r\n"${process.execPath}" "${script}" %*\r\n`;
+  writeFileSync(command, text);
+  expect(parseWindowsShim(command, text, existsSync)).toBeNull();
+  return command;
+}
+
+function childPathEnv(directory: string): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) { if (key.toUpperCase() === "PATH") { delete env[key]; } }
+  env.Path = directory;
+  return env;
+}
+
+describe.skipIf(process.platform !== "win32")("unrecognized Windows shims", () => {
+  test.each(escaping)("escapes %j for both command passes", (argument, expected) => {
+    expect(escapeWindowsShimArgument(argument)).toBe(expected);
+  });
+
+  const cases = launchers.flatMap((launcher) => ["cmd", "bat"].flatMap((extension) =>
+    ["global tools", "node_modules/.bin"].map((location) => ({ launcher, extension, location }))));
+  test.each(cases)("$launcher.name preserves argv through $location/argv.$extension", async ({ launcher, extension, location }) => {
+    const directory = mkdtempSync(path.join(tmpdir(), "oar cmd escaping "));
+    try {
+      const command = handwrittenShim(path.join(directory, location), extension);
+      const marker = path.join(directory, "injection-marker.txt");
+      const payload = `a" & echo INJECTED > "${marker}" & rem "`;
+      const args = ["--append-system-prompt", payload, ...escaping.map(([argument]) => argument), "%OAR_ESCAPE_SENTINEL%"];
+      const output = await launcher.run(command, args, { ...process.env, OAR_ESCAPE_SENTINEL: "MUST_NOT_EXPAND" });
+      expect(JSON.parse(output)).toEqual(args);
+      expect(existsSync(marker)).toBe(false);
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  }, 30_000);
+
+  const pathCases = launchers.flatMap((launcher) => ["argv", "argv.cmd"].map((command) => ({ launcher, command })));
+  test.each(pathCases)("$launcher.name also escapes $command found only in the child's PATH", async ({ launcher, command }) => {
+    const directory = mkdtempSync(path.join(tmpdir(), "oar child path "));
+    try {
+      handwrittenShim(directory, "cmd");
+      const args = ['odd" & echo MUST_NOT_RUN', "", "two words"];
+      const output = await launcher.run(command, args, childPathEnv(directory));
+      expect(JSON.parse(output)).toEqual(args);
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  }, 30_000);
+
+  test("runExecutable resolves a relative shim against the child's cwd", async () => {
+    const directory = mkdtempSync(path.join(tmpdir(), "oar child cwd "));
+    try {
+      handwrittenShim(directory, "bat");
+      const args = ['odd" & echo MUST_NOT_RUN'];
+      const result = await runExecutable(String.raw`.\argv.bat`, args, { cwd: directory });
+      expect(result.ok, result.stderr).toBe(true);
+      expect(JSON.parse(result.stdout)).toEqual(args);
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  }, 30_000);
+});
