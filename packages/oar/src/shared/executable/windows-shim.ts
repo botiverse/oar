@@ -15,6 +15,7 @@ import which from "which";
  * The fix is to not go through `cmd.exe` at all for the shims OAR's runtimes
  * actually use: read the shim, recover the native binary or Node script it
  * wraps (npm and pnpm global shims), and spawn that directly, with no shell.
+ * Yarn's pure forwarding shims are followed to that same native target.
  * Unrecognized shims still need cmd.exe. That fallback quotes the command
  * and escapes arguments for BOTH passes, regardless of the shim's path.
  * Callers must use windowsVerbatimArguments so Node does not quote again.
@@ -99,6 +100,34 @@ function readShim(shimPath: string): string | null {
   }
 }
 
+/** Yarn v1's entire outer shim is one relative batch target followed by %*. */
+function forwardedShim(shimPath: string, text: string): string | null {
+  const relative = /^@"%~dp0[\\/]([^"\r\n\0%!*?^<>|:]+\.(?:cmd|bat))"[\t ]*%\*$/iu.exec(text.trim())?.[1];
+  if (relative === undefined || path.win32.isAbsolute(relative)) { return null; }
+  return path.win32.resolve(path.win32.dirname(shimPath), relative);
+}
+
+/** Follow at most three pure forwarding wrappers; fallback uses the last shim reached. */
+export function resolveWindowsShim(
+  shimPath: string,
+  read: (candidate: string) => string | null = readShim,
+  exists: (candidate: string) => boolean = existsSync,
+): ResolvedShim {
+  let current = path.win32.normalize(shimPath);
+  const visited = new Set([current.toLowerCase()]);
+  for (let depth = 0; depth <= 3; depth += 1) {
+    const text = read(current);
+    if (text === null) { break; }
+    const direct = parseWindowsShim(current, text, exists);
+    if (direct !== null) { return direct; }
+    const next = forwardedShim(current, text);
+    if (depth === 3 || next === null || visited.has(next.toLowerCase()) || !exists(next)) { break; }
+    visited.add(next.toLowerCase());
+    current = next;
+  }
+  return { command: current, prefixArgs: [] };
+}
+
 const CMD_META = /[()[\]%!^"`<>&|;, *?]/gu;
 
 /** One cmd.exe pass; spaces and quotes are escaped too. */
@@ -170,9 +199,8 @@ export function windowsSpawnTarget(
   if (resolved === null || !isWindowsShim(resolved)) {
     return { command, args };
   }
-  const text = readShim(resolved);
-  const shim = text === null ? null : parseWindowsShim(resolved, text, existsSync);
-  if (shim !== null) {
+  const shim = resolveWindowsShim(resolved);
+  if (!isWindowsShim(shim.command)) {
     return { command: shim.command, args: [...shim.prefixArgs, ...args] };
   }
   if (args.some((argument) => argument.includes("\r") || argument.includes("\n") || argument.includes("\0"))) {
@@ -180,7 +208,7 @@ export function windowsSpawnTarget(
   }
   // The shim path is parsed once; its forwarded arguments are parsed twice.
   // /s removes the outer quote pair, leaving the escaped command line intact.
-  const line = [escapeCmd(`"${path.win32.normalize(resolved)}"`), ...args.map((argument) => escapeWindowsShimArgument(argument))].join(" ");
+  const line = [escapeCmd(`"${shim.command}"`), ...args.map((argument) => escapeWindowsShimArgument(argument))].join(" ");
   const shell = windowsEnv(process.env, "COMSPEC") ?? "cmd.exe";
   const shellArgs = ["/d", "/s", "/c", `"${line}"`];
   // Count the escaped UTF-16 command line, including cmd's path, switches and
