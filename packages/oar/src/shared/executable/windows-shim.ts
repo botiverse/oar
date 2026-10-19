@@ -175,6 +175,9 @@ export function windowsSpawnTarget(
   if (shim !== null) {
     return { command: shim.command, args: [...shim.prefixArgs, ...args] };
   }
+  if (args.some((argument) => argument.includes("\r") || argument.includes("\n") || argument.includes("\0"))) {
+    throw new TypeError("OAR could not read or recognize this runtime's .cmd/.bat wrapper; cmd.exe cannot preserve arguments containing CR, LF, or NUL. Install the runtime with npm or pnpm so OAR can launch its executable directly.");
+  }
   // The shim path is parsed once; its forwarded arguments are parsed twice.
   // /s removes the outer quote pair, leaving the escaped command line intact.
   const line = [escapeCmd(`"${path.win32.normalize(resolved)}"`), ...args.map((argument) => escapeWindowsShimArgument(argument))].join(" ");
