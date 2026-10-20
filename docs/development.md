@@ -52,6 +52,22 @@ someone else can rerun turns "trust me, I checked" into "run this and see".
 
 Setup: Node.js 24+, `pnpm install`.
 
+`pnpm run typecheck` and both packages' builds use the exact `tsrs` version
+pinned in the root devDependencies, locally and in CI. tsrs targets TypeScript
+7.1 development semantics; it is not just a faster TypeScript 6 executable.
+The official `typescript` dependency stays only for `tests/clean-install.ts`,
+which checks that a host using TypeScript 6 can consume the packed, tsrs-built
+declarations. Type-aware lint still uses oxlint/oxlint-tsgolint; tsx, esbuild
+and vitest keep their existing roles. Incremental build caches live inside
+`dist` and are excluded from the npm packages; removing `dist` also forces
+a complete rebuild.
+
+The initial tsrs 0.18.0 package has Linux and Apple Silicon macOS binaries,
+but no Windows or Intel macOS binary. The Windows CI job remains required;
+the migration cannot merge until a published Windows package is pinned and
+that job passes. See the [migration evidence](../experiments/tsrs-migration-2026-10-20.md)
+for timings, emitted-file comparisons and incremental-cache checks.
+
 The tests let whoever makes a change, human or coding agent, verify it end to
 end without a person as the bottleneck: a change is done when the tests prove
 it, not when someone has eyeballed it. The suite is also the proof that the

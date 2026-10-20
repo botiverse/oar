@@ -8,11 +8,12 @@
   },
   "files": [
     "dist",
+    "!dist/.tsbuildinfo",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "pnpm --filter @botiverse/oar build && tsc --noEmit",
+    "build": "tsrs -p tsconfig.build.json",
+    "typecheck": "pnpm --filter @botiverse/oar build && tsrs --noEmit",
     "prepack": "pnpm --filter @botiverse/oar build && pnpm run build"
   },
   "dependencies": {
