@@ -34,6 +34,9 @@ export const kimiAcpProfile: AcpSessionProfile = {
   // session no `steer`.
   capabilities: { queue: { durable: false }, attribution: "opaque" },
   requestTimeoutMs: 30_000,
+  // Kimi 2.2.0 awaits SessionStart hooks before wiring ACP events. No hook
+  // progress is forwarded; allow its 600-second hook limit plus normal startup.
+  sessionStartTimeoutMs: 630_000,
   selectAuthMethod: selectKimiAuthMethod,
   validateOptions: (options) => {
     refuseSessionOptions(kimiRefusedSessionOptions, options);

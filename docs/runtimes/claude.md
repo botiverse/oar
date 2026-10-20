@@ -101,10 +101,12 @@ Resume restores context for new requests, not a prior process.
 
 **Mapped:** `await claudeSession(installation, { cwd, resume: sessionId })`
 sends the native `initialize` control request and waits for success within
-the existing 30-second readback bound. A requested `serviceTier` uses that
+a 30-second active readback budget, with the bounded
+[SessionStart hook pause](#opening-with-sessionstart-hooks) described below.
+A requested `serviceTier` uses that
 same answer, and requested `effort` is read back afterward. Then a resume
-asks `get_usage` for its [token baseline](#token-totals), within the same
-bound; that answer never fails the open. Fresh opens without either setting
+asks `get_usage` for its [token baseline](#token-totals), within a separate
+30-second wall-clock bound; that answer never fails the open. Fresh opens without either setting
 keep the immediate post-spawn path; no fresh open sends `get_usage`.
 
 A missing resume ID reports `result/error_during_execution` before answering
@@ -147,6 +149,34 @@ launch ([session name](../spec/runtime-matrix.md#session-name)).
 Fork, session listing, history retrieval, rewind, and reset identity management
 are **not exposed**. Duplicate transcripts and concurrent controllers resuming
 one ID are **unverified**.
+
+### Opening with SessionStart hooks
+
+Claude runs SessionStart hooks before answering opening `initialize` and
+`get_settings` requests. OAR pauses each request's 30-second clock only
+between native root `system/hook_started` and `system/hook_response` frames
+whose `hook_event` is `SessionStart`, paired by `hook_id`. After the last
+running hook responds, the request has only its unused active time left.
+Overlapping hooks count once, repeated starts do not reset the allowance,
+and all readbacks in one open share at most ten minutes of paused time.
+Other hook events and child-agent hooks do not pause it. An exit or native
+initialization failure still rejects immediately.
+
+If that pause allowance runs out, opening fails with the names of the hooks
+still running, and OAR kills the process tree. The error does not copy hook
+stdout, stderr or output. Hook frames remain in the record stream; private
+readback answers remain excluded. Fresh opens without resume, effort or
+serviceTier still return after spawn, with no extra handshake or hook wait.
+The later `get_usage` baseline query keeps its ordinary 30-second bound.
+
+Observed with real CLI hooks and aimock on 2.1.292 and 2.1.304 (2026-10-20): effort,
+serviceTier and a cold resume waited past a shortened active deadline;
+exceeding the shortened pause allowance rejected and stopped the hook
+process. No model request was sent by opening; the resume's original
+conversation was created against the local provider.
+[Native regressions](../../sea-trial/vendor/claude-open-hooks.vendor.test.ts)
+use short internal limits; [virtual-clock tests](../../tests/claude/claude-open-hooks.test.ts)
+pin overlapping hooks, the shared cap and the remaining active budget.
 
 ### Interrupted input
 
@@ -487,7 +517,8 @@ only when it is true. `default` is an opt-out, never a menu entry.
 Before returning the session, OAR requires `on` for fast or `off` for
 default. `off`, `cooldown`, an absent report or a native rejection cannot
 confirm requested fast, and opening fails with both the request and native
-status/reason. The wait is bounded to 30 seconds and failure stops the child.
+status/reason. The wait has the same 30-second active budget and bounded
+[SessionStart hook pause](#opening-with-sessionstart-hooks); failure stops the child.
 Native error answers to this `initialize` or the effort `get_settings`
 call are retained as `{ method, native }` in the thrown error's `cause`,
 with known session credentials redacted. Successful `initialize` and
@@ -564,7 +595,7 @@ Four cases change the level without a word on stdout:
 
 So the adapter asks claude before the session opens with the token-free
 `get_settings` control request, answered once the SessionStart hooks ran
-(bounded at 30 s). Its `applied.effort` is "what will actually be sent to
+(30 seconds outside the bounded hook pause). Its `applied.effort` is "what will actually be sent to
 the API", `null` when the model takes none; the first three cases read so
 in its answer on 2.1.292 ([env] 2026-10-14; the 4.6 and Haiku 4.5 refusals
 are pinned by the [vendor test](../../sea-trial/vendor/effort.vendor.test.ts),

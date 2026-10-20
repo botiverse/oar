@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Opening combines private readbacks, native failures, redaction and the hook deadline. */
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
 import { randomUUID } from "node:crypto";
@@ -9,6 +10,7 @@ import type { ClaudeProcess } from "./launch.js";
 import { CLAUDE_EFFORT_READBACK_MS, claudeControlResponseId, claudeEffortRefusal, claudeSettingsRequest } from "./effort.js";
 import { claudeServiceTierRefusal } from "./service-tier.js";
 import { claudeUsageBaseline, type ClaudeUsageBaseline } from "./token-usage.js";
+import { ClaudeOpenDeadline, claudeOpenLimits, type ClaudeOpenLimits } from "./open-deadline.js";
 
 type Method = "get_settings" | "initialize" | "get_usage";
 type Option = "effort" | "serviceTier" | "resume";
@@ -62,7 +64,8 @@ interface OpenSettings {
 }
 
 /** Bounded native readbacks at open, consumed before the ordinary projection stream. */
-export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
+export function claudeOpenSettings(child: ClaudeProcess, limits: ClaudeOpenLimits = claudeOpenLimits): OpenSettings {
+  const deadline = new ClaudeOpenDeadline(limits);
   let pending: Pending | null = null;
   const privateIds = new Set<string>();
   const lifetime: { exited: boolean; code: number | null; failure: JsonRecord | null } = { exited: false, code: null, failure: null };
@@ -76,7 +79,7 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
     const id = `oar-${option}-${randomUUID()}`;
     pending = { id, method, settle: resolve };
     privateIds.add(id);
-    const timer = setTimeout(() => { resolve(new Error(`claude did not answer ${method} within ${String(CLAUDE_EFFORT_READBACK_MS)} ms`)); }, CLAUDE_EFFORT_READBACK_MS);
+    deadline.start(method, resolve);
     try {
       if (lifetime.failure !== null) { resolve(lifetime.failure); }
       else if (lifetime.exited) { resolve(exitError(method)); }
@@ -100,12 +103,13 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
       await child.exited;
       throw error;
     } finally {
-      clearTimeout(timer);
+      deadline.stop();
       pending = null;
     }
   };
   return {
     consume(message) {
+      if (opening) { deadline.consume(message); }
       if (opening && failedInitialization(message)) {
         lifetime.failure = message;
         pending?.settle(message);
@@ -143,6 +147,7 @@ export function claudeOpenSettings(child: ClaudeProcess): OpenSettings {
         if (options.effort !== undefined) { await confirm("get_settings", "effort", options); }
         if (options.serviceTier !== undefined && options.resume === undefined) { await confirm("initialize", "serviceTier", options); }
       } finally {
+        deadline.stop();
         opening = false;
         lifetime.failure = null;
       }

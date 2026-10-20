@@ -20,6 +20,8 @@ export interface AcpSessionProfile {
   /** What this runtime's ACP surface lets the adapter carry (docs/spec attribution tier included). */
   readonly capabilities: Omit<SessionCapabilities, "images"> & { readonly images?: boolean }; // images: what `initialize` advertised, unless set on evidence that it is wrong
   readonly requestTimeoutMs?: number;
+  /** Only session/new and session/resume, when native startup work needs a larger bound. */
+  readonly sessionStartTimeoutMs?: number;
   readonly abortTimeoutMs?: number;
   /** Compatibility for agents that put a fully quoted shell line in `command`. */
   readonly terminalShellCommand?: boolean;
@@ -226,8 +228,7 @@ async function createOrResume(
     }
     const resumed = await withAcpDeadline(
       process,
-      method,
-      timeoutMs,
+      method, method === methods.agent.session.resume ? profile.sessionStartTimeoutMs ?? timeoutMs : timeoutMs,
       (requestOptions) => process.connection.agent.request(method, params, requestOptions),
     ).catch((error: unknown) => {
       throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native, listed) === true);
@@ -238,8 +239,7 @@ async function createOrResume(
   const method = methods.agent.session.new;
   const created = await withAcpDeadline(
     process,
-    method,
-    timeoutMs,
+    method, profile.sessionStartTimeoutMs ?? timeoutMs,
     (requestOptions) => process.connection.agent.request(method, baseParams, requestOptions),
   );
   const response = responseRecord(method, created);

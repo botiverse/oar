@@ -109,8 +109,11 @@ catalog and `thinking` values are under
 method, passes the session's `mcpServers` (`[]` without them; see
 [session MCP servers](#session-mcp-servers)), applies a requested model through
 `session/set_model`, then selects yolo through `session/set_mode` when the
-answer advertises it (in `modes` or the `mode` config option). Every opening
-request has a 30-second deadline; spawn, auth, and creation failures reject
+answer advertises it (in `modes` or the `mode` config option). `session/new`
+and `session/resume` each have a 630-second deadline to allow SessionStart
+hooks. All other bounded ACP requests retain 30 seconds, including
+initialize, authentication, session/list, session/load, model and mode
+configuration; spawn, auth, and creation failures reject
 session construction with the process killed. The opening stream is six
 records: `initialize`, `authenticate` (`{}`), `session/new` (model event),
 then three pushes: `available_commands_update` (the slash commands, `compact`
@@ -119,6 +122,28 @@ first) right after the `session/new` answer, and `current_mode_update`
 `session/set_mode` request and its `{}` answer. Opening takes about 1.9 s
 (`basic`). Credentials and persisted sessions must be accessible in the
 subprocess's configured data root.
+
+**SessionStart hooks (2.2.0, 2026-10-20):** new and cold-resumed sessions
+both await configured hooks, but ACP forwards no hook-start or hook-finish
+notification. The server awaits session creation or restoration before
+wiring the session event subscriptions. Direct ACP and OAR tests used a
+2.4-second real hook in a temporary home: both opens waited for it, sent no
+model request, and exposed no hook progress. The native
+[regression](../../sea-trial/vendor/kimi-open-hooks.vendor.test.ts) also
+checks process-tree cleanup when the bound expires.
+
+The 2.2.0 hook configuration accepts integer timeouts from 1 to 600 seconds;
+the default is 30. Hooks matching the same event run concurrently through
+`Promise.all`, not one after another. OAR's fixed 630 seconds leave the full
+600-second hook allowance plus the usual 30 seconds for startup. Without
+progress frames OAR cannot distinguish a hook from a genuine hang, so a
+stuck new/resume request also waits up to ten minutes and thirty seconds
+before failing. This is a bound on the entire request, not a fresh allowance
+per hook: any total opening work exceeding it is refused.
+[Configuration schema](https://github.com/MoonshotAI/kimi-code/blob/472192c34c1efad89a369870eff0da0b708ce9bb/packages/agent-core-v2/src/features/externalHooks/configSection.ts),
+[hook dispatcher](https://github.com/MoonshotAI/kimi-code/blob/472192c34c1efad89a369870eff0da0b708ce9bb/packages/agent-core-v2/src/features/externalHooks/internal/matchHooks.ts),
+[ACP server](https://github.com/MoonshotAI/kimi-code/blob/472192c34c1efad89a369870eff0da0b708ce9bb/packages/acp-server/src/server.ts),
+[deadline regressions](../../tests/acp/acp-open-timeouts.test.ts).
 
 **Resume (mapped):** native `session/resume { sessionId, cwd, mcpServers,
 additionalDirectories? }` restores the existing session and returns
