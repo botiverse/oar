@@ -1087,7 +1087,10 @@ driver. The parent's environment and the default/`true` paths are unchanged.
 Claude has honored `BROWSER` since at least 2.1.126, so this adds no new
 version floor. The URL still reaches `auth_url`, and a code pasted back
 still completes the login. The [native probe](../../experiments/claude-login-browser/README.md)
-uses a local OAuth stand-in and synthetic credentials.
+uses a local OAuth stand-in and synthetic credentials. It verified browser
+suppression on Linux, Windows and macOS with 2.1.126 and 2.1.304. Linux and
+Windows also completed the login and status query; macOS login completion
+remains unverified in the CI keychain environment, as recorded in the probe.
 
 **Many claude processes on one machine share one login, and can lose it
 ([#402](https://github.com/botiverse/oar/issues/402)).** Every claude process

@@ -49,10 +49,38 @@ account policy or consent page.
 
 ## Observed, 2026-10-20
 
-| Platform | Claude | Default browser calls | Calls with false | Pasted code and subsequent status |
+Every row received one URL, one pasted-code prompt and one successful
+PKCE/state-checked exchange. The failing-browser control made exactly one
+browser call, with no additional call to the platform default opener.
+
+| Platform | Claude | Default browser calls | Calls with false | Login completion and subsequent status |
 | --- | --- | --- | --- | --- |
 | Linux x64 | 2.1.126 | 1 | 0 | logged_in |
 | Linux x64 | 2.1.304 | 1 | 0 | logged_in |
+| Windows x64 | 2.1.126 | 1 | 0 | logged_in |
+| Windows x64 | 2.1.304 | 1 | 0 | logged_in |
+| macOS 26 Arm64 | 2.1.126 | 1 | 0 | Browser verified; completion unverified in CI keychain environment |
+| macOS 26 Arm64 | 2.1.304 | 1 | 0 | Browser verified; completion unverified in CI keychain environment |
+| macOS 15 Intel | 2.1.126 | 1 | 0 | Browser verified; completion unverified in CI keychain environment |
+| macOS 15 Intel | 2.1.304 | 1 | 0 | Browser verified; completion unverified in CI keychain environment |
 
-macOS and Windows native runs are pending. These two Linux versions both
-honor `BROWSER`; the existing 2.1.126 login floor remains sufficient.
+Windows `hostname.exe` exited 1 promptly with a URL argument while stdin
+remained open. Both Claude versions ignored that status, opened no browser
+with `false`, and completed the native login and status query. Evidence:
+[Linux and Windows run, 376b2ff](https://github.com/botiverse/oar/actions/runs/39494924607).
+
+macOS used a job-owned temporary keychain, deleted after each job. The
+macOS 26 runner could not unlock the newly created keychain. The macOS 15
+runner passed its keychain read/write preflight, but native login still did
+not complete: 2.1.304 rejected saving credentials with a locked-keychain
+message and its status was `logged_out`; 2.1.126 timed out after the code
+exchange while its separate status read was `logged_in`. The cause of that
+2.1.126 timeout was not established. The explicit environment skip preserves
+these outcomes and does not count them as successful logins. Browser calls
+and code exchange were verified in all three modes on both macOS images.
+Evidence: [macOS run, c7473ee](https://github.com/botiverse/oar/actions/runs/39495577083).
+
+Both tested versions honor `BROWSER` on all three platforms, so the existing
+2.1.126 login floor remains sufficient. The temporary Actions workflow used
+to gather this evidence is removed; normal CI and `pnpm check` do not run
+these native login experiments.
