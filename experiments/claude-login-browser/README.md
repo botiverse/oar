@@ -25,10 +25,14 @@ Platform default openers are guarded too. Each case requires one `auth_url`,
 one pasted-code prompt, a successful PKCE/state-checked token exchange,
 `logged_in` and a separate native status reading `logged_in`. Code input is
 delayed briefly so finishing too quickly cannot hide the browser attempt.
-Windows also runs its system `hostname.exe` with a URL and stdin left open:
+Windows also runs its system `ipconfig.exe` with a URL and stdin left open:
 it must exit successfully within five seconds, without waiting for input.
 
-This is a manual native experiment, outside `pnpm check`. The output contains
+Run this probe on Linux whenever the daily runtime check finds a new Claude
+version, and record the result in that day's `runtime-version-checks` report.
+It checks that Claude still honors `BROWSER` and does not try a default
+opener after the selected program exits. Recheck macOS and Windows when the
+opener mapping changes. This native experiment stays outside `pnpm check`. The output contains
 counts, status kinds and request paths, not tokens or authorization URLs.
 The source is a protocol stand-in, not evidence about a real provider's
 account policy or consent page.

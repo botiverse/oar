@@ -71,7 +71,7 @@ async function run(mode: "default" | "suppressed"): Promise<void> {
       DISABLE_AUTOUPDATER: "1", DISABLE_TELEMETRY: "1", DISABLE_ERROR_REPORTING: "1",
     });
     if (process.platform === "win32" && mode === "suppressed") {
-      const executable = path.join(env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe");
+      const executable = path.join(env.SystemRoot ?? String.raw`C:\Windows`, "System32", "ipconfig.exe");
       const noOp = spawn(executable, ["https://example.invalid/login?state=probe&next=ignored"], { env, stdio: "pipe", windowsHide: true });
       // Keep stdin open: a command that reads it would hang and fail this check.
       const timer = setTimeout(() => { noOp.kill(); }, 5000);

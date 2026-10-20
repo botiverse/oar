@@ -29,7 +29,7 @@ test.each([undefined, "inherited-browser"])("false overrides only the login chil
   const result = await claudeLogin(installation, interaction, { openBrowser: false });
   assert.equal(result.kind, "logged_in");
   assert.equal(fake.read().browser, process.platform === "win32"
-    ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe")
+    ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "ipconfig.exe")
     : "true");
   assert.equal(process.env.BROWSER, browser);
   assert.equal(interaction.events[0]?.kind, "auth_url");

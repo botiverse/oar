@@ -172,7 +172,7 @@ async function runClaudeLogin(
     // auth login honors BROWSER from 2.1.126, including for the automatic URL
     // it opens after printing the manual URL. Only this child gets the override.
     env.BROWSER = process.platform === "win32"
-      ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe")
+      ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "ipconfig.exe")
       : "true";
   }
   try {

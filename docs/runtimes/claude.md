@@ -1081,7 +1081,7 @@ previous login unchanged).
 
 `login(..., { openBrowser: false })` suppresses that local browser attempt.
 OAR sets `BROWSER` only in the login child's environment: `true` on POSIX,
-the system `hostname.exe` on Windows. The program receives the URL and exits
+the system `ipconfig.exe` on Windows. The program receives the URL and exits
 without opening it or reading stdin; its output stays inside the login
 driver. The parent's environment and the default/`true` paths are unchanged.
 Claude has honored `BROWSER` since at least 2.1.126, so this adds no new
