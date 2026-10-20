@@ -38,9 +38,33 @@ export function claudeMcpCatalog(body: unknown): { readonly schemas: readonly st
   return { schemas: [...new Set(schemas)].toSorted(), searchable: [...searchable].toSorted() };
 }
 
+function modelRequests(raw: readonly RawProviderRequest[]): readonly unknown[] {
+  return raw.filter(({ path }) => /^\/v1\/messages(?:\?|$)/u.test(path)).map(({ body }) => body);
+}
+
+/** The main request for this prompt, excluding startup probes, token counts and later tool rounds. */
+export function claudePromptRequest(raw: readonly RawProviderRequest[], prompt: string): unknown {
+  return modelRequests(raw).find((body) => {
+    const messages = asRecordList(asRecord(body)?.messages);
+    const lastAssistant = messages.findLastIndex((message) => message.role === "assistant");
+    return messages.slice(lastAssistant + 1).some((message) =>
+      message.role === "user" && textParts(message.content).includes(prompt));
+  });
+}
+
+function toolResults(body: unknown): readonly Record<string, unknown>[] {
+  return asRecordList(asRecord(body)?.messages)
+    .filter((message) => message.role === "user")
+    .flatMap((message) => asRecordList(message.content))
+    .filter((part) => part.type === "tool_result");
+}
+
+/** The first model request after this tool call returns; unrelated traffic cannot move this observation. */
+export function claudeToolResultRequest(raw: readonly RawProviderRequest[], id: string): unknown {
+  return modelRequests(raw).find((body) => toolResults(body).some((part) => part.tool_use_id === id));
+}
+
 /** The provider-side result of a native tool call, before aimock normalizes it. */
 export function claudeToolResult(raw: readonly RawProviderRequest[], id: string): unknown {
-  return raw.flatMap(({ body }) => asRecordList(asRecord(body)?.messages))
-    .flatMap((message) => asRecordList(message.content))
-    .find((part) => part.type === "tool_result" && part.tool_use_id === id)?.content;
+  return toolResults(claudeToolResultRequest(raw, id)).find((part) => part.tool_use_id === id)?.content;
 }

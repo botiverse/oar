@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import { claudeInstallation, claudeSession, serveMcpTools, type HostTool } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, type LLMock } from "../harness/aimock.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
-import { claudeMcpCatalog, claudeToolResult as resultOf } from "./support/claude-tools.js";
+import { claudeMcpCatalog, claudePromptRequest, claudeToolResultRequest, claudeToolResult as resultOf } from "./support/claude-tools.js";
 import { currentTurnSays } from "./support/echo-mcp.js";
 import { ALPHA, BETA, SERVER, loggingProxy } from "./support/tools-list-changed.js";
 
@@ -52,23 +52,22 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude deferred MCP t
       });
       try {
         expect(await runTurn(session, "ALPHA_ROUND")).toEqual({ kind: "completed" });
-        expect(claudeMcpCatalog(env.raw[0]?.body)).toEqual({ schemas: [], searchable: [nameOf(ALPHA), nameOf(UNUSED)] });
+        expect(claudeMcpCatalog(claudePromptRequest(env.raw, "ALPHA_ROUND"))).toEqual({ schemas: [], searchable: [nameOf(ALPHA), nameOf(UNUSED)] });
         expect(resultOf(env.raw, "search_ALPHA")).toEqual([{ type: "tool_reference", tool_name: nameOf(ALPHA) }]);
         expect(resultOf(env.raw, "call_ALPHA")).toEqual([{ type: "text", text: `HANDLER_RESULT:${ALPHA}` }]);
-        expect(claudeMcpCatalog(env.raw.at(-1)?.body).schemas).toEqual([nameOf(ALPHA)]);
+        expect(claudeMcpCatalog(claudeToolResultRequest(env.raw, "call_ALPHA")).schemas).toEqual([nameOf(ALPHA)]);
         expect(calls).toEqual([ALPHA]);
 
         const changedAt = log.length;
-        const beforeBeta = env.raw.length;
         served.setTools([tool(BETA)]);
         await vi.waitFor(() => { expect(log.slice(changedAt)).toContain("tools/list"); }, { timeout: 10_000 });
         expect(await runTurn(session, "BETA_ROUND")).toEqual({ kind: "completed" });
         // The native removal announcement overrides the old searchable list.
         // The already loaded alpha schema stays in tools; unused never did.
-        expect(claudeMcpCatalog(env.raw[beforeBeta]?.body)).toEqual({ schemas: [nameOf(ALPHA)], searchable: [nameOf(BETA)] });
+        expect(claudeMcpCatalog(claudePromptRequest(env.raw, "BETA_ROUND"))).toEqual({ schemas: [nameOf(ALPHA)], searchable: [nameOf(BETA)] });
         expect(resultOf(env.raw, "search_BETA")).toEqual([{ type: "tool_reference", tool_name: nameOf(BETA) }]);
         expect(resultOf(env.raw, "call_BETA")).toEqual([{ type: "text", text: `HANDLER_RESULT:${BETA}` }]);
-        expect(claudeMcpCatalog(env.raw.at(-1)?.body).schemas).toEqual([nameOf(ALPHA), nameOf(BETA)]);
+        expect(claudeMcpCatalog(claudeToolResultRequest(env.raw, "call_BETA")).schemas).toEqual([nameOf(ALPHA), nameOf(BETA)]);
 
         expect(await runTurn(session, "REMOVED_ROUND")).toEqual({ kind: "completed" });
         expect(resultOf(env.raw, "search_REMOVED")).toBe("No matching deferred tools found");

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { claudeMcpCatalog } from "../sea-trial/vendor/support/claude-tools.js";
+import { claudeMcpCatalog, claudePromptRequest, claudeToolResult, claudeToolResultRequest } from "../sea-trial/vendor/support/claude-tools.js";
 
 // Minimal native announcement shapes from Claude 2.1.304, stripped of its
 // environment, instructions, paths and request metadata.
@@ -36,4 +36,29 @@ test("a later native announcement can make a removed tool searchable again", () 
       { role: "user", content: added(["mcp__probe__alpha"]) },
     ],
   })).toEqual({ schemas: [], searchable: ["mcp__probe__alpha"] });
+});
+
+test("catalog observations follow the prompt and call id despite startup probes and unrelated model requests", () => {
+  const prompt = { role: "user", content: [{ type: "text", text: "ALPHA_ROUND" }] };
+  const initial = { messages: [prompt], tools: [{ name: "ToolSearch" }] };
+  const result = { type: "tool_result", tool_use_id: "search_ALPHA", content: [{ type: "tool_reference", tool_name: "mcp__probe__alpha" }] };
+  const loaded = {
+    messages: [prompt, { role: "assistant", content: [{ type: "tool_use", id: "search_ALPHA", name: "ToolSearch" }] }, { role: "user", content: [result] }],
+    tools: [{ name: "mcp__probe__alpha", defer_loading: true }],
+  };
+  const raw = [
+    { path: "/api/hello", body: null },
+    { path: "/v1/messages/count_tokens", body: loaded },
+    { path: "/v1/messages", body: { messages: [prompt, { role: "assistant", content: "old answer" }, { role: "user", content: "Name this session" }] } },
+    { path: "/v1/messages?beta=true", body: initial },
+    { path: "/api/hello", body: null },
+    { path: "/v1/messages?beta=true", body: loaded },
+    { path: "/v1/messages", body: { messages: [{ role: "user", content: "Unrelated side request" }] } },
+  ];
+
+  expect(claudePromptRequest(raw, "ALPHA_ROUND")).toBe(initial);
+  expect(claudeToolResultRequest(raw, "search_ALPHA")).toBe(loaded);
+  expect(claudeToolResult(raw, "search_ALPHA")).toEqual(result.content);
+  expect(claudePromptRequest(raw, "ABSENT_ROUND")).toBeUndefined();
+  expect(claudeToolResultRequest(raw, "absent_call")).toBeUndefined();
 });
