@@ -48,11 +48,15 @@ investigation):
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Verified on `@opencode/cli`
-**2.0.32** (still current on 2026-10-18,
-[October 18 report](../../experiments/runtime-version-checks/2026-10-18.md)):
+**2.1.0** (2026-10-20,
+[October 20 report](../../experiments/runtime-version-checks/2026-10-20.md#opencode-210)):
 the shared session behavior suite (15 passed, 4 skipped on a diagnostic
-rerun), the catalog, prompt-refusal and MCP list-change probes
-([October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)).
+rerun), the catalog, prompt-refusal and MCP list-change probes.
+Initial native startup failures remain unlocated and have recurred across
+versions; the passing rerun did not change cases or timeouts. The direct
+native cold-resume probe still reproduced the MCP catalog bug on 2.1.0:
+the first call worked, but all six cold resumes omitted it after a persisted
+removal notice, despite reconnecting to the server.
 The [boundary probe](../../experiments/opencode-release-lines.ts) last passed
 all ten of its checks on 2.0.29
 ([October 14 report](../../experiments/runtime-version-checks/2026-10-14.md)).

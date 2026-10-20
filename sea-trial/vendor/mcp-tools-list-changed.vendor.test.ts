@@ -4,7 +4,7 @@ import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } fr
 import { startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { modelView, runToolsListChanged } from "./support/tools-list-changed.js";
+import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/tools-list-changed.js";
 
 /**
  * `Runtime.mcpToolsListChanged` (#399) on the real harnesses, against a
@@ -21,7 +21,7 @@ const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: 
 
 // claude, codex and pi run in CI; opencode, kimi and grok locally (CI has no ACP aimock backend).
 const backends: readonly { readonly id: string; readonly runtime: string; readonly start: () => Promise<AimockEnv> }[] = [
-  { id: "claude-aimock", runtime: "claude", start: async () => startClaudeAimock(replyOk, { captureRaw: true }) },
+  { id: "claude-aimock", runtime: "claude", start: async () => startClaudeAimock(loadClaudeProbeTools, { captureRaw: true }) },
   { id: "codex-aimock", runtime: "codex", start: async () => startCodexAimock(replyOk, { captureRaw: true }) },
   { id: "pi-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
   { id: "opencode-aimock", runtime: "opencode", start: async () => startOpencodeAimock(replyOk) },

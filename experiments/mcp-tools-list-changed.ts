@@ -22,6 +22,10 @@
  * tool). All list again on the notification.
  * additions: claude 2.1.299 lists again; the second turn defines alpha and
  * beta.
+ * Rechecked 2026-10-20: claude 2.1.304 defaults to ToolSearch behind a
+ * custom base URL. Load each probe tool before finishing its turn: removed
+ * names leave search, but their previously loaded schemas stay in tools.
+ * The declaration remains additions. `offered` also reads deferred names.
  * none: codex 0.162.0 / 0.162.1, kimi 2.1.1 and grok 1.0.52 never list again;
  * the second turn defines alpha only (grok defines no MCP tools and its
  * `use_tool` answers "Tool not found" for beta).
@@ -32,11 +36,11 @@ import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencode
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 import { runtimeUnderTest } from "../sea-trial/harness/subject.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
-import { ALPHA, BETA, defined, lastWithTools, runToolsListChanged } from "../sea-trial/vendor/support/tools-list-changed.js";
+import { ALPHA, BETA, defined, offered, loadClaudeProbeTools, lastWithTools, runToolsListChanged } from "../sea-trial/vendor/support/tools-list-changed.js";
 
 const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
 const starts: Readonly<Record<string, () => Promise<AimockEnv>>> = {
-  claude: () => startClaudeAimock(replyOk, { captureRaw: true }),
+  claude: () => startClaudeAimock(loadClaudeProbeTools, { captureRaw: true }),
   codex: () => startCodexAimock(replyOk, { captureRaw: true }),
   pi: () => startPiAimock(replyOk, { captureRaw: true }),
   opencode: () => startOpencodeAimock(replyOk),
@@ -66,6 +70,7 @@ async function probe(id: string): Promise<Record<string, unknown>> {
       declared: runtime.mcpToolsListChanged ?? null,
       relisted: run.relisted,
       defined: last.map((body) => defined(body)),
+      offered: last.map((body) => offered(body)),
       mentioned: last.map((body) => mentioned(body)),
       log: run.log,
     };

@@ -1,0 +1,46 @@
+import { asRecord, asRecordList } from "../../../packages/oar/src/shared/json.js";
+import type { RawProviderRequest } from "../../harness/aimock.js";
+
+function textParts(content: unknown): readonly string[] {
+  return typeof content === "string" ? [content] : asRecordList(content)
+    .flatMap((part) => part.type === "text" && typeof part.text === "string" ? [part.text] : []);
+}
+
+/**
+ * Claude's provider-side MCP catalog: schemas in `tools` and names available
+ * through ToolSearch. Fold only the native deferred-tool announcements, in
+ * message order; old calls, search results and ordinary mentions are history.
+ * A withdrawn deferred name can still have a previously loaded schema in
+ * `tools`. Keep those observations separate.
+ */
+export function claudeMcpCatalog(body: unknown): { readonly schemas: readonly string[]; readonly searchable: readonly string[] } {
+  const request = asRecord(body);
+  const schemas = asRecordList(request?.tools).flatMap((tool) =>
+    typeof tool.name === "string" && tool.name.startsWith("mcp__") ? [tool.name] : []);
+  const searchable = new Set<string>();
+  const announcements = [
+    ...textParts(request?.system),
+    ...asRecordList(request?.messages).flatMap((message) =>
+      message.role === "system" || message.role === "user" ? textParts(message.content) : []),
+  ];
+  for (const text of announcements) {
+    for (const match of text.matchAll(/(?:^|\n)The following deferred tools are (?<state>now available via ToolSearch|no longer available)[^\n]*\n(?<names>[^\n]+(?:\n[^\n]+)*)/gu)) {
+      for (const name of (match.groups?.names ?? "").split("\n")) {
+        if (!/^mcp__[\w.-]+$/u.test(name)) { continue; }
+        if (match.groups?.state === "now available via ToolSearch") {
+          searchable.add(name);
+        } else {
+          searchable.delete(name);
+        }
+      }
+    }
+  }
+  return { schemas: [...new Set(schemas)].toSorted(), searchable: [...searchable].toSorted() };
+}
+
+/** The provider-side result of a native tool call, before aimock normalizes it. */
+export function claudeToolResult(raw: readonly RawProviderRequest[], id: string): unknown {
+  return raw.flatMap(({ body }) => asRecordList(asRecord(body)?.messages))
+    .flatMap((message) => asRecordList(message.content))
+    .find((part) => part.type === "tool_result" && part.tool_use_id === id)?.content;
+}

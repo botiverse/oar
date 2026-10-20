@@ -6,7 +6,9 @@ import type { Session } from "../../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../../packages/oar/src/observe/turns.js";
 import { serveMcpTools, type HostTool, type ServedMcpTools } from "../../../packages/oar/src/index.js";
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
-import type { AimockEnv } from "../../harness/aimock.js";
+import type { AimockEnv, LLMock } from "../../harness/aimock.js";
+import { claudeMcpCatalog } from "./claude-tools.js";
+import { currentTurnSays } from "./echo-mcp.js";
 
 /*
  * Does a running session take a change to an attached MCP server's tools
@@ -32,6 +34,31 @@ const tool = (name: string): HostTool => ({
 export function defined(body: unknown): readonly string[] {
   const tools = JSON.stringify(asRecord(body)?.tools ?? []);
   return [ALPHA, BETA].filter((name) => tools.includes(name));
+}
+
+/** Direct definitions or Claude's currently searchable deferred names, never mere mentions in history. */
+export function offered(body: unknown): readonly string[] {
+  const searchable = claudeMcpCatalog(body).searchable;
+  const schemas = defined(body);
+  return [ALPHA, BETA].filter((name) => schemas.includes(name) || searchable.includes(`mcp__${SERVER}__${name}`));
+}
+
+/**
+ * Load each Claude probe tool before finishing its turn. A removed tool's
+ * already loaded schema stays offered, even when ToolSearch withdraws it.
+ * This exercises the declaration's limit instead of only never-loaded tools.
+ * Leave the native tool-search setting alone; direct catalogs need no search.
+ */
+export function loadClaudeProbeTools(mock: LLMock): void {
+  for (const [label, name] of [["first", ALPHA], ["second", BETA]] as const) {
+    mock.on({
+      predicate: (request) => currentTurnSays(new RegExp(`${label} turn`, "u"))(request)
+        && (request.tools ?? []).some((entry) => entry.function.name === "ToolSearch"),
+      hasToolResult: false,
+    }, { toolCalls: [{ id: `search_${label}`, name: "ToolSearch", arguments: JSON.stringify({ query: `select:mcp__${SERVER}__${name}`, max_results: 5 }) }] });
+    mock.on({ hasToolResult: true, toolCallId: `search_${label}` }, { content: "ok" });
+  }
+  mock.on({ predicate: (request) => !(request.tools ?? []).some((entry) => entry.function.name === "ToolSearch") }, { content: "ok" });
 }
 
 /** The last request of a turn that defines any tools: side requests (opencode's title) carry none. */
@@ -137,14 +164,14 @@ export async function runToolsListChanged(env: AimockEnv, open: (server: { reado
 }
 
 /**
- * What the model saw, where the requests define MCP tools in `tools`: the
+ * What the model saw, where requests define MCP tools or offer ToolSearch: the
  * declaration the second turn supports, or null when they define none to
  * judge by (grok reaches MCP tools through `use_tool`; opencode 2.x and
  * antigravity list them in a system update or the system instruction).
  */
 export function modelView(run: ToolsListChangedRun): McpToolsListChanged | null {
-  const first = defined(lastWithTools(run.turns[0]));
-  const second = defined(lastWithTools(run.turns[1]));
+  const first = offered(lastWithTools(run.turns[0]));
+  const second = offered(lastWithTools(run.turns[1]));
   if (!first.includes(ALPHA)) {
     return null;
   }

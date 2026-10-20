@@ -9,12 +9,12 @@ their version inline. The `basic`, `tool-detail` and `resume` live scenarios
 last passed on **2.1.296** (Linux x64, `claude-haiku-5-5`,
 [2026-10-10 report](../../experiments/runtime-version-checks/2026-10-10.md))
 with no adapter change.
-The 48 native vendor tests (MCP attachment and resume, tool-list changes,
+The 49 native vendor tests (MCP attachment and resume, tool search and list changes,
 tool denial, streamed input, child attribution, structured output, service
 tiers, effort, additional directories, error redaction) and the shared
-behavior cases (17 passed, 2 skipped) last passed on **2.1.303** against a
+behavior cases (17 passed, 2 skipped) last passed on **2.1.304** against a
 local scripted provider
-([2026-10-19 report](../../experiments/runtime-version-checks/2026-10-19.md)).
+([2026-10-20 report](../../experiments/runtime-version-checks/2026-10-20.md)).
 Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
@@ -760,6 +760,18 @@ Measured on claude 2.1.292 against a scripted provider
 - A stdio server inherits claude's whole environment (`SessionOptions.env`
   included) with the entry's `env` on top.
 
+Since **2.1.304**, a custom `ANTHROPIC_BASE_URL` also enables tool search by
+default. MCP tools can appear as searchable deferred names instead of schemas
+in the request's `tools` array. `ToolSearch` loads their schemas, then the
+model can call them. A gateway's 400 or 422 response makes Claude retry
+without tool search
+([native changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md#21304)).
+The [vendor regression](../../sea-trial/vendor/claude-mcp-tool-search.vendor.test.ts)
+keeps that default and checks search, schema loading and actual host-handler
+execution. Claude also has a native per-server `alwaysLoad` setting
+(2.1.287 added explicit `false` to defer that server's tools); OAR does not
+map it as a session option.
+
 The path is never inline JSON on argv, where `ps` would show the
 credentials. It is `oar-claude-mcp-<host pid>-*/mcp.json` in the system
 temporary directory, a fresh 0700 directory
@@ -797,13 +809,16 @@ A server named `__proto__`, `__defineGetter__`, `__defineSetter__`,
 `__lookupGetter__` or `__lookupSetter__` is an `UnsupportedOptionError` on
 `mcpServers` before launch, as on every runtime: claude's `--mcp-config`
 drops all five without a word, and the session opens with no such server
-(2.1.303, [probe](../../experiments/claude-reserved-mcp-names.ts);
+(2.1.304, [probe](../../experiments/claude-reserved-mcp-names.ts);
 [refused session options](../spec/runtime-matrix.md#refused-session-options)).
 Tools the host serves with `serveMcpTools` attach as an http entry. When a
-server announces a changed tool list, claude's next model request adds the
-new tools and keeps offering removed ones, whose calls then fail as unknown
-tools: `mcpToolsListChanged: "additions"` (2.1.303,
-[2026-10-19 report](../../experiments/runtime-version-checks/2026-10-19.md);
+server announces a changed tool list, Claude offers the additions. With
+tool search enabled, it withdraws removed names from the searchable catalog,
+but a schema loaded before removal stays in later requests. Searching for
+that tool returns no match; calling it still fails as an unknown tool.
+Consequently `mcpToolsListChanged: "additions"` remains the declaration,
+including on **2.1.304**. A removed tool that was never loaded leaves no schema
+behind ([2026-10-20 report](../../experiments/runtime-version-checks/2026-10-20.md);
 [host-served tools](../spec/runtime-matrix.md#host-served-tools)).
 
 ### Workflows

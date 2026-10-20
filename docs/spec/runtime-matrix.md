@@ -505,7 +505,7 @@ notification:
 | declaration | runtimes | the next model request |
 |---|---|---|
 | `full` | pi, opencode (both lines), antigravity | offers the new set: added tools appear, removed ones disappear (antigravity: its system instruction's MCP catalog; opencode 2.x: a system update) |
-| `additions` | claude | adds the new tools and keeps offering the removed ones, whose calls then fail as unknown tools |
+| `additions` | claude | adds new tools; removed tools' already loaded schemas remain offered, though search withdraws their names and calls fail as unknown tools ([2.1.304 evidence](../../experiments/runtime-version-checks/2026-10-20.md#claude-21304)) |
 | `none` | codex, kimi, grok | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
 
 cursor and pi-durable take no `mcpServers` and declare nothing. The

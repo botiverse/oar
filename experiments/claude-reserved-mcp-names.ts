@@ -6,7 +6,7 @@
  * or model calls: a fresh home, served echo tool and local scripted provider.
  *
  * Run: OAR_CLAUDE_BIN=/path/to/claude pnpm tsx experiments/claude-reserved-mcp-names.ts
- * Prints only the supplied name, native MCP status, provider tool names and
+ * Prints only the supplied name, native MCP status, direct or searchable tool names and
  * result subtype, never the full initialization answer or provider request.
  */
 import assert from "node:assert/strict";
@@ -18,6 +18,7 @@ import { claudeMcpConfig } from "../packages/oar/src/runtimes/claude/mcp-config.
 import { spawnLineProcess } from "../packages/oar/src/shared/executable/index.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 import { startClaudeAimock } from "../sea-trial/harness/aimock.js";
+import { claudeMcpCatalog } from "../sea-trial/vendor/support/claude-tools.js";
 
 async function probe(command: string, name: string): Promise<unknown> {
   const directory = await mkdtemp(path.join(tmpdir(), "oar-claude-mcp-name-"));
@@ -60,10 +61,11 @@ async function probe(command: string, name: string): Promise<unknown> {
       const subtype = await result.promise;
       assert.equal(subtype, "success");
       const tools = provider.raw.flatMap(({ body }) => {
-        const entries = asRecord(body)?.tools;
-        return Array.isArray(entries) ? entries.map((tool) => String(asRecord(tool)?.name)).filter((tool) => tool.startsWith("mcp__")) : [];
+        const catalog = claudeMcpCatalog(body);
+        return [...catalog.schemas, ...catalog.searchable];
       });
       if (name === "plainname") { assert.ok(tools.includes("mcp__plainname__ping")); }
+      else { assert.deepEqual(tools, [], "A refused name must be absent from direct and deferred catalogs"); }
       return { name, servers, tools: [...new Set(tools)], result: subtype };
     } finally {
       clearTimeout(timeout);
