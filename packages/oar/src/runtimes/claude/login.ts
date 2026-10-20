@@ -171,8 +171,10 @@ async function runClaudeLogin(
   if (!openBrowser) {
     // auth login honors BROWSER from 2.1.126, including for the automatic URL
     // it opens after printing the manual URL. Only this child gets the override.
+    // Windows hostname has no state-changing operation. It exits 1 for a URL;
+    // Claude ignores that status and does not fall back to a default browser.
     env.BROWSER = process.platform === "win32"
-      ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "ipconfig.exe")
+      ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe")
       : "true";
   }
   try {

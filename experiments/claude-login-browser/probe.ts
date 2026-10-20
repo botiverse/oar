@@ -34,7 +34,7 @@ async function closed(child: ChildProcess): Promise<number | null> {
   return code;
 }
 
-async function run(mode: "default" | "suppressed"): Promise<void> {
+async function run(mode: "default" | "suppressed" | "failing-browser"): Promise<void> {
   assert.ok(command !== undefined && version !== undefined);
   const home = path.join(root, mode);
   const bin = path.join(home, "bin");
@@ -45,12 +45,12 @@ async function run(mode: "default" | "suppressed"): Promise<void> {
   // fallback too, so a regression cannot start a GUI browser on the runner.
   if (process.platform === "win32") {
     const source = path.join(home, "browser.cs");
-    writeFileSync(source, String.raw`using System; using System.IO; class Browser { static void Main() { File.AppendAllText(Environment.GetEnvironmentVariable("OAR_LOGIN_BROWSER_MARKER"), "opened\n"); } }`);
+    writeFileSync(source, String.raw`using System; using System.IO; class Browser { static int Main() { File.AppendAllText(Environment.GetEnvironmentVariable("OAR_LOGIN_BROWSER_MARKER"), "opened\n"); return Environment.GetEnvironmentVariable("OAR_LOGIN_BROWSER_FAIL") == "1" ? 1 : 0; } }`);
     const compiler = path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "Microsoft.NET", "Framework64", "v4.0.30319", "csc.exe");
     execFileSync(compiler, ["/nologo", "/target:exe", `/out:${browser}`, source], { stdio: "pipe" });
     copyFileSync(browser, path.join(bin, "rundll32.exe"));
   } else {
-    const script = `#!/bin/sh\nprintf 'opened\\n' >> '${marker.replaceAll("'", String.raw`'\''`)}'\n`;
+    const script = `#!/bin/sh\nprintf 'opened\\n' >> '${marker.replaceAll("'", String.raw`'\''`)}'\nexit "\${OAR_LOGIN_BROWSER_FAIL:-0}"\n`;
     for (const name of ["browser-probe", "xdg-open", "open"]) { writeFileSync(path.join(bin, name), script, { mode: 0o755 }); }
   }
   const mock = await mockOAuth(readFileSync(keyFile), readFileSync(certFile));
@@ -67,17 +67,23 @@ async function run(mode: "default" | "suppressed"): Promise<void> {
       APPDATA: path.join(home, "AppData", "Roaming"), LOCALAPPDATA: path.join(home, "AppData", "Local"),
       HTTPS_PROXY: mock.url, HTTP_PROXY: mock.url, ALL_PROXY: mock.url, NO_PROXY: "localhost,127.0.0.1",
       NODE_EXTRA_CA_CERTS: certFile, OAR_LOGIN_BROWSER_MARKER: marker,
-      BROWSER: browser, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+      BROWSER: browser, OAR_LOGIN_BROWSER_FAIL: mode === "failing-browser" ? "1" : "0", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
       DISABLE_AUTOUPDATER: "1", DISABLE_TELEMETRY: "1", DISABLE_ERROR_REPORTING: "1",
     });
+    let windowsNoOp: { exit: number | null; timedOut: boolean } | undefined = undefined;
     if (process.platform === "win32" && mode === "suppressed") {
-      const executable = path.join(env.SystemRoot ?? String.raw`C:\Windows`, "System32", "ipconfig.exe");
+      const executable = path.join(env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe");
       const noOp = spawn(executable, ["https://example.invalid/login?state=probe&next=ignored"], { env, stdio: "pipe", windowsHide: true });
       // Keep stdin open: a command that reads it would hang and fail this check.
-      const timer = setTimeout(() => { noOp.kill(); }, 5000);
+      let timedOut = false;
+      noOp.stdout.resume();
+      noOp.stderr.resume();
+      const timer = setTimeout(() => { timedOut = true; noOp.kill(); }, 5000);
       const exit = await closed(noOp);
       clearTimeout(timer);
-      assert.equal(exit, 0, "Windows no-op must exit successfully without reading stdin");
+      windowsNoOp = { exit, timedOut };
+      assert.equal(timedOut, false, "Windows no-op must exit without waiting for stdin");
+      assert.notEqual(exit, null, "Windows no-op must exit normally, even with a nonzero status");
     }
     const observed: { result?: Record<string, unknown> } = {};
     const child = fork(fileURLToPath(new URL("child.ts", import.meta.url)), [command, version, mode], {
@@ -98,14 +104,14 @@ async function run(mode: "default" | "suppressed"): Promise<void> {
     const exit = await closed(child);
     const opens = existsSync(marker) ? readFileSync(marker, "utf8").trim().split("\n").length : 0;
     const { result } = observed;
-    const row = { platform: process.platform, version, mode, exit, result, browserOpens: opens, ...mock.seen };
+    const row = { platform: process.platform, version, mode, exit, result, windowsNoOp, browserOpens: opens, ...mock.seen };
     console.log(JSON.stringify(row));
     assert.equal(exit, 0, diagnostic);
     assert.equal(result?.login, "logged_in");
     assert.equal(result.status, "logged_in");
     assert.equal(result.urls, 1);
     assert.equal(result.prompts, 1);
-    assert.equal(opens, mode === "default" ? 1 : 0);
+    assert.equal(opens, mode === "suppressed" ? 0 : 1);
     assert.equal(mock.seen.exchanges, 1);
     assert.equal(mock.seen.verified, true);
   } finally {
@@ -115,6 +121,7 @@ async function run(mode: "default" | "suppressed"): Promise<void> {
 try {
   await run("default");
   await run("suppressed");
+  await run("failing-browser");
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

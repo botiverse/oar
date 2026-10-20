@@ -25,8 +25,12 @@ Platform default openers are guarded too. Each case requires one `auth_url`,
 one pasted-code prompt, a successful PKCE/state-checked token exchange,
 `logged_in` and a separate native status reading `logged_in`. Code input is
 delayed briefly so finishing too quickly cannot hide the browser attempt.
-Windows also runs its system `ipconfig.exe` with a URL and stdin left open:
-it must exit successfully within five seconds, without waiting for input.
+A third case makes the browser marker exit 1 and requires that Claude does
+not invoke a default opener afterward. This explicitly watches the failure
+behavior during daily Linux checks. Windows also runs its system
+`hostname.exe` with a URL and stdin left open: it must exit within five
+seconds without waiting for input. Its exit code may be nonzero; the native
+login must still complete without a default-browser attempt.
 
 Run this probe on Linux whenever the daily runtime check finds a new Claude
 version, and record the result in that day's `runtime-version-checks` report.

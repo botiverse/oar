@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel]
         version: ["2.1.126", "2.1.304"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -24,32 +24,14 @@ jobs:
       - name: Isolated unlocked keychain on the disposable macOS runner
         if: runner.os == 'macOS'
         run: |
-          security create-keychain -p oar-synthetic-only "$RUNNER_TEMP/oar-login.keychain-db"
+          security create-keychain -p '' "$RUNNER_TEMP/oar-login.keychain-db"
           security set-keychain-settings -lut 21600 "$RUNNER_TEMP/oar-login.keychain-db"
-          security unlock-keychain -p oar-synthetic-only "$RUNNER_TEMP/oar-login.keychain-db"
+          security unlock-keychain -p '' "$RUNNER_TEMP/oar-login.keychain-db"
           security list-keychains -d user -s "$RUNNER_TEMP/oar-login.keychain-db"
           security default-keychain -d user -s "$RUNNER_TEMP/oar-login.keychain-db"
-      - name: Windows URL argument and open stdin observations
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          node --input-type=module <<'JS' | tee windows-noop.jsonl
-          import { spawn } from 'node:child_process';
-          import path from 'node:path';
-          for (const name of ['hostname.exe', 'ipconfig.exe', 'netstat.exe', 'route.exe', 'arp.exe']) {
-            for (const quoted of [false, true]) {
-              const url = 'https://example.invalid/login?state=probe&next=ignored';
-              const p = spawn(path.join(process.env.SystemRoot, 'System32', name), [quoted ? '"' + url + '"' : url], { stdio: 'pipe', windowsHide: true });
-              let stdout = '', stderr = '', timedOut = false;
-              p.stdout.on('data', b => { stdout += b; });
-              p.stderr.on('data', b => { stderr += b; });
-              const timer = setTimeout(() => { timedOut = true; p.kill(); }, 3000);
-              const exit = await new Promise((resolve, reject) => { p.once('close', resolve); p.once('error', reject); });
-              clearTimeout(timer);
-              console.log(JSON.stringify({ name, quoted, exit, timedOut, stdoutBytes: stdout.length, stderrBytes: stderr.length, usage: /usage|syntax|unrecognized|argument/i.test(stdout + stderr) }));
-            }
-          }
-          JS
+          security add-generic-password -a oar-probe -s oar-login-browser-probe -w synthetic-placeholder -T /usr/bin/security "$RUNNER_TEMP/oar-login.keychain-db"
+          security find-generic-password -a oar-probe -s oar-login-browser-probe -w "$RUNNER_TEMP/oar-login.keychain-db" >/dev/null
+          security delete-generic-password -a oar-probe -s oar-login-browser-probe "$RUNNER_TEMP/oar-login.keychain-db"
       - name: Native login with synthetic OAuth
         shell: bash
         run: |
@@ -59,9 +41,7 @@ jobs:
         if: always()
         with:
           name: native-login-${{ matrix.os }}-${{ matrix.version }}
-          path: |
-            native-login.jsonl
-            windows-noop.jsonl
+          path: native-login.jsonl
           if-no-files-found: warn
       - name: Remove synthetic macOS credentials
         if: always() && runner.os == 'macOS'
