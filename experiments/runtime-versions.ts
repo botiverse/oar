@@ -4,7 +4,11 @@
  *
  * Compare with the last probe report, then run live-contract.ts for changed
  * versions; for a changed Cursor SDK, also cursor-login/probe.ts (no
- * account needed). For a changed Grok binary, also grok-prompt-options.ts
+ * account needed). For a changed Claude binary, also run
+ * claude-login-browser/probe.ts on Linux (local OAuth stand-in, no account):
+ * recheck BROWSER suppression and no fallback after a failed opener, and
+ * record the result in that day's runtime-version-checks report.
+ * For a changed Grok binary, also grok-prompt-options.ts
  * (local provider, no login): recheck native prompt precedence and resume
  * rules so an upstream fix can retire the conditional refusal.
  * Tool selection: rerun sea-trial/vendor/disallowed-tools*.vendor.test.ts
