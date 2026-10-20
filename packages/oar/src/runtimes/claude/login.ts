@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
@@ -111,6 +112,7 @@ async function runClaudeLogin(
   command: string,
   interaction: ProviderLoginInteraction,
   timeoutMs: number,
+  openBrowser: boolean,
 ): Promise<LoginResult> {
   const secrets = new LoginSecrets();
   const interactionFailure = Promise.withResolvers<Ending>();
@@ -165,8 +167,16 @@ async function runClaudeLogin(
     }
   };
 
+  const env = claudeEnv();
+  if (!openBrowser) {
+    // auth login honors BROWSER from 2.1.126, including for the automatic URL
+    // it opens after printing the manual URL. Only this child gets the override.
+    env.BROWSER = process.platform === "win32"
+      ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe")
+      : "true";
+  }
   try {
-    child = spawnLoginProcess(command, ["auth", "login"], claudeEnv(), {
+    child = spawnLoginProcess(command, ["auth", "login"], env, {
       onLine(line, stream) {
         const url = URL_LINE.exec(line)?.[1];
         if (url !== undefined && !flow.urlSent) {
@@ -254,6 +264,6 @@ export async function claudeLogin(
   if (interaction.signal?.aborted === true) {
     return { kind: "cancelled" };
   }
-  const result = await runClaudeLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS);
+  const result = await runClaudeLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options.openBrowser !== false);
   return result;
 }

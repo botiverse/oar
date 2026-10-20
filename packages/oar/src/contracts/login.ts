@@ -44,6 +44,12 @@ export type LoginResult =
   | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail?: string };
 
 export interface LoginOptions {
+  /**
+   * Allow the runtime to open a browser on this machine (default true).
+   * false prevents local browser opening; auth_url/device_code events still
+   * reach the caller. A runtime that never opens a browser stays that way.
+   */
+  readonly openBrowser?: boolean;
   /** Bound for the whole flow, the person's time in the browser included; each runtime has its own default. */
   readonly timeoutMs?: number;
 }

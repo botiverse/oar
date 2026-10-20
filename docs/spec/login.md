@@ -65,6 +65,13 @@ that pi's provider login already uses.
 
 ## Interaction
 
+`options.openBrowser` permits the runtime to open a browser on the machine
+where it runs, and defaults to `true`. Pass `false` for a remote web login:
+the runtime opens no local browser, and the caller can present the URL on
+the person's device. URL and code events, pasted-code input and login
+results are unchanged. `true` permits opening; it does not make a runtime
+that normally opens no browser start one.
+
 The driver calls `interaction.onEvent` with:
 
 | Event | When |
@@ -121,6 +128,11 @@ answered.
 | grok, kimi, opencode, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
+Claude normally attempts to open a browser; `openBrowser: false` overrides
+`BROWSER` only for its login child process, using a harmless executable.
+This works from the existing login floor, 2.1.126. Codex's device-code login
+never opens one, and OAR always passes `openBrowser: false` to Cursor's SDK,
+regardless of this option. The other runtimes have no runtime login member.
 Pi's provider logins are on `createPiProviderAuth`, whose
 `loginProviders()` lists every provider pi's `/login` offers, with its methods
 ([pi page](../runtimes/pi.md#process-ownership-installation-login-and-account-usage)).

@@ -51,7 +51,7 @@ if (command === "--version") {
     process.exitCode = 1;
   }
 } else if (command === "auth login") {
-  save({ loginStarted: true, sawClaudeCode: process.env.CLAUDECODE !== undefined, received: [] });
+  save({ loginStarted: true, sawClaudeCode: process.env.CLAUDECODE !== undefined, browser: process.env.BROWSER ?? null, received: [] });
   if (state.mode === "hang") {
     // Reported before any output, so a test that stops the login on its first prompt finds the worker.
     const worker = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });

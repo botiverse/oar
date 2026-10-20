@@ -1061,7 +1061,7 @@ stderr line that starts with `Invalid code` (not after
 answer (whitespace removed) to stdin only; the pasted value and its
 authorization code are redacted from every reported `detail`. A failure is
 `rejected` with the `Login failed:` message, or else claude's last stderr
-line. On a desktop host claude also tries to open a browser, and a sign-in
+line. By default claude also tries to open a browser, and a sign-in
 finished there ends the login while the prompt is still open. claude has no
 deadline of its own, so OAR stops it after 15 minutes. A successful exit, or a
 deadline or abort after `Login successful.` (while claude flushes), is
@@ -1078,6 +1078,16 @@ passed at commit `f7e6428`); for claude: the status read, a login with the code 
 at the paste prompt (`login cancelled`, exit 130, no process left over, the
 previous login unchanged).
 [Login](../../packages/oar/src/runtimes/claude/login.ts).
+
+`login(..., { openBrowser: false })` suppresses that local browser attempt.
+OAR sets `BROWSER` only in the login child's environment: `true` on POSIX,
+the system `hostname.exe` on Windows. The program receives the URL and exits
+without opening it or reading stdin; its output stays inside the login
+driver. The parent's environment and the default/`true` paths are unchanged.
+Claude has honored `BROWSER` since at least 2.1.126, so this adds no new
+version floor. The URL still reaches `auth_url`, and a code pasted back
+still completes the login. The [native probe](../../experiments/claude-login-browser/README.md)
+uses a local OAuth stand-in and synthetic credentials.
 
 **Many claude processes on one machine share one login, and can lose it
 ([#402](https://github.com/botiverse/oar/issues/402)).** Every claude process
