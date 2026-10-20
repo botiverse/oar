@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -29,6 +29,9 @@ function run(command: string, args: readonly string[], cwd: string): string {
 }
 
 function pack(directory: string, tarball: RegExp): string {
+  // Exercise a complete prepack build, even after an earlier incremental build.
+  // The cache lives inside dist so deleting the output also invalidates it.
+  rmSync(path.join(root, directory, "dist"), { recursive: true, force: true });
   run("pnpm", ["pack", "--pack-destination", work], path.join(root, directory));
   const name = readdirSync(work).find((file) => tarball.test(file)) ?? assert.fail(`no ${String(tarball)} in ${work}`);
   return path.join(work, name);
@@ -36,6 +39,9 @@ function pack(directory: string, tarball: RegExp): string {
 
 function npmInstall(...specs: readonly string[]): void {
   run("npm", ["install", "--no-audit", "--no-fund", ...specs], host);
+  for (const name of ["oar", "oar-cli"]) {
+    assert.equal(existsSync(path.join(host, "node_modules/@botiverse", name, "dist/.tsbuildinfo")), false, `${name} publishes its build cache`);
+  }
 }
 
 function readJson(file: string): unknown {
@@ -172,7 +178,9 @@ function probe(...args: readonly string[]): { readonly kinds: Record<string, unk
   return { kinds: { ...kinds }, models };
 }
 
-/** tsc over `source` as the host's `check.ts`: the errors in OAR's declarations or in that file. */
+/** Official TypeScript checks a host consuming the tsrs-built package. Keep the
+ * typescript devDependency for this compatibility check, independently of OAR's
+ * build compiler. Return errors in OAR's declarations or the host's check.ts. */
 function typecheck(source: string): string[] {
   writeFileSync(path.join(host, "check.ts"), source);
   writeFileSync(path.join(host, "tsconfig.json"), JSON.stringify({

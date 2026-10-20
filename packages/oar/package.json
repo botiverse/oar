@@ -59,12 +59,13 @@
   },
   "files": [
     "dist",
+    "!dist/.tsbuildinfo",
     "README.md",
     "assets"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
+    "build": "tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit",
     "prepack": "pnpm run build"
   },
   "publishConfig": {

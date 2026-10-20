@@ -15,6 +15,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [`compare-compiler-output.ts`](compare-compiler-output.ts) `<before-dist> <after-dist>` | Compare emitted file lists and bytes, reject executable or map-metadata changes, and list declaration/mapping changes for review. | [tsrs migration](tsrs-migration-2026-10-20.md) | 2026-10-20, TypeScript 6.0.3 and tsrs 0.18.0 |
 | [`commands-native.ts`](commands-native.ts) `[claude-executable]` | Pi extension invocation names and prompt templates; Claude initialize command metadata, no model prompts. | [report](commands-2026-10-11.md) | 2026-10-11, Pi SDK 1.1.0 and Claude 2.1.296 |
 | `antigravity-native-settings.ts` | Native append and thinking settings on creation/resume, model menus, and MCP credential persistence in a disposable home against a scripted provider. | [antigravity](../docs/runtimes/antigravity.md) | 2026-10-18, ACP server 1.4.1; persisted MCP fields and umask-dependent file modes ([report](runtime-version-checks/2026-10-18.md#mcp-persistence-and-file-permissions)) |
 | `antigravity-tool-filter-meta.ts` | Native tool-filter namespace comparison in a disposable home; inspects provider declarations without calling tools. | [antigravity](../docs/runtimes/antigravity.md#disallowed-tools) | 2026-10-14, 1.3.0 ignores the new namespace; 1.4.0 accepts it |
