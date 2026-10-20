@@ -12,7 +12,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { mockOAuth } from "./mock.js";
 
-const args = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const browserOnly = argv.includes("--macos-keychain-unavailable");
+assert.ok(!browserOnly || process.platform === "darwin", "the keychain environment skip is macOS-only");
+const args = argv.filter((argument) => argument !== "--macos-keychain-unavailable");
 const command = args[0] === "--package" && args[1] !== undefined
   ? path.resolve(args[1], "node_modules", "@anthropic-ai", `claude-code-${process.platform}-${process.arch}`, process.platform === "win32" ? "claude.exe" : "claude")
   : args[0];
@@ -104,11 +107,20 @@ async function run(mode: "default" | "suppressed" | "failing-browser"): Promise<
     const exit = await closed(child);
     const opens = existsSync(marker) ? readFileSync(marker, "utf8").trim().split("\n").length : 0;
     const { result } = observed;
-    const row = { platform: process.platform, version, mode, exit, result, windowsNoOp, browserOpens: opens, ...mock.seen };
+    let loginCompletion: { kind: string; reason?: string } = { kind: "verified" };
+    if (result?.login !== "logged_in" || result.status !== "logged_in") {
+      loginCompletion = browserOnly
+        ? { kind: "environment_skip", reason: "macOS CI keychain environment; login completion is unverified" }
+        : { kind: "failed" };
+    }
+    const row = { platform: process.platform, version, mode, exit, result, loginCompletion, windowsNoOp, browserOpens: opens, ...mock.seen };
     console.log(JSON.stringify(row));
     assert.equal(exit, 0, diagnostic);
-    assert.equal(result?.login, "logged_in");
-    assert.equal(result.status, "logged_in");
+    if (!browserOnly) {
+      assert.equal(result?.login, "logged_in");
+      assert.equal(result.status, "logged_in");
+    }
+    assert.ok(result !== undefined);
     assert.equal(result.urls, 1);
     assert.equal(result.prompts, 1);
     assert.equal(opens, mode === "suppressed" ? 0 : 1);

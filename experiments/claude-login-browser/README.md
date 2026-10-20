@@ -11,6 +11,12 @@ pass `--package /path/to/install 2.1.304`. The probe selects its platform's
 native executable. It requires `openssl`; on Windows it also uses the
 runner's .NET Framework C# compiler to build a harmless browser marker.
 Use a disposable macOS runner because Claude stores its login in Keychain.
+If that runner cannot use its job-owned temporary keychain, the explicit
+`--macos-keychain-unavailable` flag runs only the browser and code-exchange
+checks. It retains the actual login/status outcomes and prints
+`environment_skip` when login completion is unverified. It never
+turns an unavailable keychain into a successful login assertion, and other
+platforms reject the flag.
 
 Each run uses an empty home and Claude configuration, a fresh temporary
 certificate trusted only by the child, and an HTTP proxy that serves local
