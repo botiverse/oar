@@ -18,8 +18,10 @@ on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The newest checked release
 is **kimi 2.3.0** (2026-10-21): the scripted-provider vendor tests cover
 11 cases after a focused hook recheck, and shared behavior passes 15 cases
-with four skips. The first hook run timed out in native initialization;
-the unchanged recheck passed, without establishing its cause
+with four skips. The first hook run timed out in native initialization at
+the test's shortened 2,000 ms `requestTimeoutMs`; OAR's Kimi request default
+is 30 seconds, so this failure does not establish that users would hit the
+same timeout. The unchanged recheck passed, without establishing its cause
 ([version check](../../experiments/runtime-version-checks/2026-10-21.md#kimi-230)).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
