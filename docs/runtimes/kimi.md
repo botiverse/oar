@@ -16,9 +16,11 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The newest checked release
-is **kimi 2.2.0** (2026-10-15): it changes no ACP server or `acp` command
-source since 2.1.1, and the scripted-provider vendor tests and shared
-behavior cases pass on it ([version check](../../experiments/runtime-version-checks/2026-10-15.md#kimi-code-220)).
+is **kimi 2.3.0** (2026-10-21): the scripted-provider vendor tests cover
+11 cases after a focused hook recheck, and shared behavior passes 15 cases
+with four skips. The first hook run timed out in native initialization;
+the unchanged recheck passed, without establishing its cause
+([version check](../../experiments/runtime-version-checks/2026-10-21.md#kimi-230)).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see

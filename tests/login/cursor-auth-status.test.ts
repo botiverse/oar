@@ -62,7 +62,7 @@ test("a status that fails, never answers or cannot be read is unknown, never a g
         "kind": "unknown",
       },
       {
-        "detail": "this @cursor/sdk has no Cursor.auth; OAR needs 1.0.38",
+        "detail": "this @cursor/sdk has no Cursor.auth; OAR needs 1.0.40",
         "kind": "unknown",
       },
       {

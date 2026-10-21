@@ -16,7 +16,7 @@ oar run claude "What does this repo do?"
 ## Commands
 
 The registered runtimes are OAR's `defaultRuntimes`, cursor, which the CLI
-adds itself on the `@cursor/sdk` 1.0.38 it depends on, and the community
+adds itself on the `@cursor/sdk` 1.0.40 it depends on, and the community
 runtimes (Mister Morph) from `@botiverse/oar/community` (`src/runtimes.ts`).
 Commands that take an optional `[runtime]` cover every registered runtime
 when it is omitted (or `all`). A runtime whose probe or
