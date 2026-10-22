@@ -90,6 +90,10 @@ own is an `exited` response pointing at no request in every session holding
 it; an attached Console that stops answering task queries (8 in a row) is
 recorded the same way with code `null`.
 
+Stopping an owned Console also ends its process tree, including a Windows
+launcher and its descendants. The [Console test](../../tests/community/morph/morph-console.test.ts)
+checks this on Windows with a fake Console and a live descendant process.
+
 ### Prompt, steer, queue
 
 `prompt` is `POST /tasks {task, topic_id, workspace_dir, llm_profile?}`. It is

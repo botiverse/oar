@@ -5,10 +5,25 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import { ProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from "undici";
-import { test } from "vitest";
+import { afterEach, test, vi } from "vitest";
 import { ConsoleClient, acquireConsole, discoverConsole, morphStateDir } from "../../../packages/oar/src/community/morph/console.js";
+import { fakeAgentBinary, gone, withTreeProbe } from "../../fixtures/process-tree.js";
 
 const fixture = fileURLToPath(new URL("./fake-morph-console.mjs", import.meta.url));
+
+afterEach(() => { vi.unstubAllEnvs(); });
+
+test.skipIf(process.platform !== "win32")("the last Console lease ends its Windows launcher and descendants", async () => {
+  await withTreeProbe({ ignoreSigterm: true }, async (probe) => {
+    for (const [name, value] of Object.entries(probe.env)) { vi.stubEnv(name, value); }
+    const command = fakeAgentBinary(probe.dir, ["--import", new URL("../../fixtures/agent-tree.mjs", import.meta.url).href, fixture]);
+    const lease = await acquireConsole(command, probe.dir);
+    const tree = await probe.tree();
+    await lease.release();
+    assert.equal(await gone(tree.agent), true, "the owned Console is gone");
+    assert.equal(await gone(tree.grandchild), true, "the Console's descendant is gone");
+  });
+});
 
 /** A `morph` executable that runs the fake Console, and an empty state directory. */
 function scratch(): { command: string; stateDir: string } {

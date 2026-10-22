@@ -1,4 +1,5 @@
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -119,12 +120,12 @@ export async function withTreeProbe<Result>(
     if (existsSync(lateFile)) {
       reported.push(Number(readFileSync(lateFile, "utf8")));
     }
-    reap(reported, dir);
+    await reap(reported, dir);
   }
 }
 
 /** SIGKILL whatever of `pids` is still alive and remove `dir`. */
-function reap(pids: readonly number[], dir: string): void {
+async function reap(pids: readonly number[], dir: string): Promise<void> {
   for (const pid of pids) {
     try {
       process.kill(pid, "SIGKILL");
@@ -136,9 +137,9 @@ function reap(pids: readonly number[], dir: string): void {
       }
     }
   }
-  // Windows releases a killed process's open files a moment after the kill,
-  // so the removal can meet EPERM; rmSync retries that (and EBUSY) itself.
-  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  // Let process exit/close handlers run while Windows releases open files,
+  // so a failed assertion is not masked by a still-locked fixture directory.
+  await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 }
 
 /**
