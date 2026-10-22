@@ -15,5 +15,9 @@ grandchild.once("message", () => {
   if (file === undefined) { throw new Error("missing pid file"); }
   writeFileSync(`${file}.tmp`, JSON.stringify({ agent: process.pid, grandchild: grandchild.pid }));
   renameSync(`${file}.tmp`, file);
+  const flood = process.env.OAR_FIXTURE_FLOOD;
+  if (flood === "stdout" || flood === "stderr") {
+    process[flood].write("x".repeat(2 * 1024 * 1024 + 1));
+  }
   if (process.env.OAR_FIXTURE_EARLY_EXIT === "1") { process.exit(0); }
 });

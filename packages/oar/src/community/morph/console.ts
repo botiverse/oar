@@ -178,7 +178,7 @@ const owned = new Map<string, Promise<OwnedConsole>>();
 async function startConsole(command: string, stateDir: string): Promise<OwnedConsole> {
   // An ephemeral port: the Runtime API is found through runtime.json, and a
   // fixed port would collide with a Console the user starts later.
-  const child = spawnLineProcess(command, ["console", "serve", "--console-listen", "127.0.0.1:0"], { cwd: stateDir });
+  const child = spawnLineProcess(command, ["console", "serve", "--console-listen", "127.0.0.1:0"], { cwd: stateDir, killTree: true });
   await child.spawned;
   const exit: { code?: number | null } = {};
   child.onExit((code) => {

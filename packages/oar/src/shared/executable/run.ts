@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
 import { nativeError, stderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
 
@@ -79,7 +79,11 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         if (stopped) { return; }
         stopped = true;
         clearTimeout(timer ?? undefined);
-        signalProcessGroup(child, "SIGTERM");
+        if (process.platform === "win32") {
+          killProcessTree(child);
+        } else {
+          signalProcessGroup(child, "SIGTERM");
+        }
         escalation = setTimeout(() => { signalProcessGroup(child, "SIGKILL"); }, killGraceMs());
         escalation.unref();
       };

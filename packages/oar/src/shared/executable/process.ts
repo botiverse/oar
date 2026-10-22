@@ -121,21 +121,21 @@ export interface LineProcess {
 /**
  * Windows has no process groups: end the child and everything it started by
  * walking its process tree (`taskkill /T /F`), falling back to the child
- * alone when the walk fails.
+ * alone when the walk fails. An exited child's pid may already be reused.
  */
 export function killProcessTree(child: ChildProcess): void {
+  if (child.exitCode !== null || child.signalCode !== null) { return; }
   if (child.pid === undefined) {
     child.kill();
     return;
   }
-  const killer = execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], (error) => {
+  const killer = execFile("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true }, (error) => {
     if (error !== null) {
       child.kill();
     }
   });
   trackOwnedProcess(killer);
 }
-
 
 /**
  * Spawn through cross-spawn. On Windows a `.cmd`/`.bat` shim is first
