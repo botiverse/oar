@@ -2,7 +2,7 @@
 
 Pi Durable runs an agent over a host-owned `Harness`, storage, model catalog,
 extension registry and execution environment. OAR uses
-`@earendil-works/pi-durable` **1.3.0**, including its experimental
+`@earendil-works/pi-durable` **1.4.0**, including its experimental
 `watchEvents` interface. This is a separate runtime from the Pi coding-agent
 SDK: it does not load a Pi CLI login, settings directory or session file.
 
@@ -24,11 +24,23 @@ replacement snapshot instead of the intervening batches.
 
 The host passes the **same `Models` instance** it supplied to `Harness.open`:
 Harness exposes no public catalog getter, so OAR cannot verify this identity.
-The host installs `@earendil-works/pi-durable@~1.3.0` and
-`@earendil-works/chord@~1.3.0`, both optional peers of OAR. OAR operates on
+The host installs `@earendil-works/pi-durable@~1.4.0` and
+`@earendil-works/chord@~1.4.0`, both optional peers of OAR. OAR operates on
 the host's native package instances, without bundling another copy. Tests
-pin 1.3.0; upgrading this experimental API requires rerunning the native
+pin 1.4.0; upgrading this experimental API requires rerunning the native
 probe and vendor tests below.
+
+**Upgrading from 1.3.0:** the host must upgrade both peers. The native
+[Durable 1.4.0 changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/CHANGELOG.md)
+specifies an automatic SQLite schema migration to version 2 on open; the
+migrated database cannot be opened by 1.3.0 or earlier. JSONL needs no schema
+migration, but older versions cannot resume the new sleeping tasks. Host
+extensions must also follow the native task/document API changes, including
+the replacement of `TaskRuntime.sleep()` and required `checkpointWhen`.
+Custom Chord contexts now require `telemetry`; see its
+[changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/chord/CHANGELOG.md).
+OAR's adapter needed no code change. The checks below cover native JSONL
+reopen and browser MemoryStorage, not SQLite migration or host extensions.
 
 ```ts
 import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
@@ -156,7 +168,7 @@ tool-result message with `content`, which OAR reads. Nested calls have their
 own call ids and result summaries, and running nested calls are adopted from
 `snapshot.nestedTools`; parent task ids and the rest of structured tool output
 stay raw. CodingTools' structured exit is available only on nested calls in
-1.2.0 and 1.3.0. Model-issued calls omit it from `watchEvents`, even when the diagnostic
+1.2.0 through 1.4.0. Model-issued calls omit it from `watchEvents`, even when the diagnostic
 text mentions an exit code, so OAR leaves `exitCode` absent for those calls.
 The local execution environment reports SIGTERM as 143, not null; OAR preserves
 the native value. The [native exit-code test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)
@@ -202,6 +214,9 @@ the shared behavior suite (18 passed, 1 skipped) pass
 ([report](../../experiments/runtime-version-checks/2026-10-16.md)). The
 [probe](../../experiments/pi-durable-probe.ts) prints actual batches and
 checks persisted instructions and request deduplication after JSONL reopen.
+On 1.4.0 (2026-10-22), all 23 native tests, 18 shared behavior cases (one
+skipped), that probe and the Chromium demo smoke test pass
+([report](../../experiments/runtime-version-checks/2026-10-22.md)).
 
 `OAR_TEST=pi-durable-aimock pnpm sea-trial` runs the public contract against
 the real SDK with a local scripted provider.

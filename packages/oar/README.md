@@ -137,7 +137,7 @@ Community runtimes are contributed and maintained outside the core team (each ma
 configuration and `SessionOptions.model`. When resuming an old Azure session,
 explicitly pass `model: "azure/<model>"`; without it, Pi can retain the
 conversation while selecting a different default model. The opening `model`
-event and `Session.model()` report the effective selection. OAR's `^1.3.0`
+event and `Session.model()` report the effective selection. OAR's `^1.4.0`
 dependency range includes this upstream update. See the
 [migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md).
 
@@ -343,7 +343,11 @@ TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module
 
 ## Host-owned durable sessions
 
-Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.3.0 @earendil-works/chord@~1.3.0`.
+Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.4.0 @earendil-works/chord@~1.4.0`.
+Upgrade both together. Native 1.4.0 migrates SQLite storage to schema 2,
+which cannot be reopened by 1.3.0 or earlier; see the
+[host upgrade notes](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface)
+for storage and extension API changes.
 The factory lives only in `@botiverse/oar/pi-durable`, usable in Node and browsers.
 The root and browser core entries load without these peers.
 
@@ -360,7 +364,7 @@ session.rawEvents(() => render(viewOf(session.records())));
 await session.prompt("Hello", { inputId: crypto.randomUUID() });
 ```
 
-The host owns its Pi Durable 1.3.0 Harness, providers, credentials, extensions
+The host owns its Pi Durable 1.4.0 Harness, providers, credentials, extensions
 and storage. `resume: session.id` attaches to that storage's conversation and
 resumes unfinished work. Queue and input-id deduplication are native and
 durable. `dispose()` detaches the observer; it does not stop work or close the

@@ -7,14 +7,15 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.3.0**, with `@earendil-works/pi-ai`;
-OAR depends on both at `^1.3.0`. Native source references are pinned to pi
+`@earendil-works/pi-coding-agent` SDK **1.4.0**, with `@earendil-works/pi-ai`;
+OAR depends on both at `^1.4.0`. Native source references are pinned to pi
 **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
 on 2026-09-29, 0.99.1 on 2026-09-30, 0.99.2 on 2026-10-01, 1.0.0 on
 2026-10-02, 1.0.2 on 2026-10-04, 1.0.3 on 2026-10-05, 1.0.4 on 2026-10-06,
-1.1.0 on 2026-10-08, 1.2.0 on 2026-10-13 and 1.3.0 on 2026-10-16): in-process
+1.1.0 on 2026-10-08, 1.2.0 on 2026-10-13, 1.3.0 on 2026-10-16 and 1.4.0 on
+2026-10-22): in-process
 runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 and the [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
@@ -28,11 +29,11 @@ the [runtime index](README.md) for conventions.
 passed (subagents and process killing inapplicable; on 1.0.4 `tool-detail`
 passed on a targeted retry after an upstream overload response), and so did
 the eight applicable vendor tests and the 19-case simulated-provider behavior
-suite (withdrawal included; only inapplicable cases skipped). 1.1.0, 1.2.0
-and 1.3.0 were checked against local scripted providers only; on 1.3.0, 42
+suite (withdrawal included; only inapplicable cases skipped). 1.1.0 through
+1.4.0 were checked against local scripted providers only; on 1.4.0, 63
 native tests and the shared behavior suite (17 passed, 2 skipped) cover
 native controls, extension lifecycle and tool handling. At every upgrade
-from 0.99.2 to 1.0.0 through 1.2.0 to 1.3.0, a separate-process probe
+from 0.99.2 to 1.0.0 through 1.3.0 to 1.4.0, a separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
 session created by the previous SDK: native id, saved model and prior
 transcript survived, and the new OAR stream started at sequence zero. This
@@ -44,8 +45,9 @@ harness. Scope, commands and evidence: version check reports of
 [5](../../experiments/runtime-version-checks/2026-10-05.md),
 [6](../../experiments/runtime-version-checks/2026-10-06.md),
 [8](../../experiments/runtime-version-checks/2026-10-08.md),
-[13](../../experiments/runtime-version-checks/2026-10-13.md) and
-[16](../../experiments/runtime-version-checks/2026-10-16.md).
+[13](../../experiments/runtime-version-checks/2026-10-13.md),
+[16](../../experiments/runtime-version-checks/2026-10-16.md) and
+[22](../../experiments/runtime-version-checks/2026-10-22.md).
 
 **Azure migration in 1.0.3:** the native provider was renamed from
 `azure-openai-responses` to `azure`. Update the native auth, model and

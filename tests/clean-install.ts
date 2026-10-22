@@ -225,7 +225,7 @@ assert.equal(forgotten.length, 1, forgotten.join("\n"));
 assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
 
 // The host supplies the native peers only when it opts into this subpath.
-npmInstall("@earendil-works/pi-durable@1.3.0", "@earendil-works/chord@1.3.0");
+npmInstall("@earendil-works/pi-durable@1.4.0", "@earendil-works/chord@1.4.0");
 run(process.execPath, ["--input-type=module", "-e", `
 import assert from "node:assert/strict";
 import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";

@@ -12,9 +12,9 @@ with no adapter change.
 The 51 native vendor tests (MCP attachment and resume, tool search and list changes,
 tool denial, streamed input, child attribution, structured output, service
 tiers, effort, additional directories, error redaction, opening hooks) and
-the shared behavior cases (17 passed, 2 skipped) last passed on **2.1.306** against a
+the shared behavior cases (17 passed, 2 skipped) last passed on **2.1.308** against a
 local scripted provider
-([2026-10-21 report](../../experiments/runtime-version-checks/2026-10-21.md)).
+([2026-10-22 report](../../experiments/runtime-version-checks/2026-10-22.md)).
 Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
