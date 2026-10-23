@@ -1,10 +1,11 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { expect, test } from "vitest";
-import { defineRuntime, piInstallation, piSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { defineRuntime, piInstallation, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi's real CodingTools exit status survives the OAR projection and JSON storage", async () => {
+test.skipIf(!isPiBackend)("Pi's real CodingTools exit status survives the OAR projection and JSON storage", async () => {
   const commands = [
     { id: "exit_zero", command: "exit 0", code: 0 },
     { id: "exit_seven", command: "exit 7", code: 7 },

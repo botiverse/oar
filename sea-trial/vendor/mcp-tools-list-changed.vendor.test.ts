@@ -1,3 +1,4 @@
+import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
@@ -24,6 +25,7 @@ const backends: readonly { readonly id: string; readonly runtime: string; readon
   { id: "claude-aimock", runtime: "claude", start: async () => startClaudeAimock(loadClaudeProbeTools, { captureRaw: true }) },
   { id: "codex-aimock", runtime: "codex", start: async () => startCodexAimock(replyOk, { captureRaw: true }) },
   { id: "pi-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
+  { id: "pi-rpc-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
   { id: "opencode-aimock", runtime: "opencode", start: async () => startOpencodeAimock(replyOk) },
   { id: "kimi-aimock", runtime: "kimi", start: async () => startKimiAimock(replyOk) },
   { id: "grok-aimock", runtime: "grok", start: async () => startGrokAimock(replyOk) },
@@ -32,7 +34,7 @@ const backends: readonly { readonly id: string; readonly runtime: string; readon
 for (const backend of backends) {
   describe.skipIf(process.env.OAR_TEST !== backend.id)(`${backend.id} tools/list_changed`, () => {
     test("a running session takes a change to the served tools as the runtime declares", async () => {
-      const runtime = allRuntimes.require(backend.runtime);
+      const runtime = backend.id === "pi-rpc-aimock" ? piTestRuntime : allRuntimes.require(backend.runtime);
       const env = await backend.start();
       try {
         const run = await runToolsListChanged(env, async (server) => runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [server] }));

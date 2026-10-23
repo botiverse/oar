@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- The same native tool-denial matrix selects both Pi execution locations. */
+import { piTestRuntime } from "./support/pi-runtime.js";
 import { existsSync, mkdtempSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -63,7 +65,7 @@ async function offered(session: Session, env: AimockEnv): Promise<string[]> {
   }
 }
 
-for (const name of ["claude", "pi"] as const) {
+for (const name of ["claude", "pi", "pi-rpc"] as const) {
   describe.skipIf(process.env.OAR_TEST !== `${name}-aimock`)(`${name} disallowedTools`, () => {
     test("unknown native names open without error and leave the provider tool list unchanged", async () => {
       const start = name === "claude" ? startClaudeAimock : startPiAimock;
@@ -71,7 +73,7 @@ for (const name of ["claude", "pi"] as const) {
       try {
         const runtime = name === "claude"
           ? defineRuntime({ id: "claude-aimock", installation: claudeInstallation, session: claudeSession })
-          : defineRuntime({ id: "pi-aimock", installation: piInstallation, session: piSession });
+          : piTestRuntime;
         const subject = runtimeUnderTest(runtime, { ...env.env, ENABLE_TOOL_SEARCH: "false" });
         const baseline = await offered(await subject.startSession(), env);
         expect(await offered(await subject.startSession({ disallowedTools: ["NoSuchTool"] }), env)).toEqual(baseline);
@@ -87,7 +89,7 @@ for (const name of ["claude", "pi"] as const) {
       try {
         const runtime = name === "claude"
           ? defineRuntime({ id: "claude-aimock", installation: claudeInstallation, session: claudeSession })
-          : defineRuntime({ id: "pi-aimock", installation: piInstallation, session: piSession });
+          : piTestRuntime;
         const subject = runtimeUnderTest(runtime, { ...env.env, ENABLE_TOOL_SEARCH: "false" });
         const builtin = name === "claude" ? "Bash" : "bash";
         const kept = name === "claude" ? "Read" : "read";
@@ -134,7 +136,7 @@ for (const name of ["claude", "pi"] as const) {
       try {
         const runtime = name === "claude"
           ? defineRuntime({ id: "claude-aimock", installation: claudeInstallation, session: claudeSession })
-          : defineRuntime({ id: "pi-aimock", installation: piInstallation, session: piSession });
+          : piTestRuntime;
         const subject = runtimeUnderTest(runtime, { ...env.env, ENABLE_TOOL_SEARCH: "false" });
         const mcpServers = [stdioEcho("blocked")];
         const restricted = await subject.startSession({ mcpServers, disallowedTools: [builtin, "mcp__blocked__echo"] });

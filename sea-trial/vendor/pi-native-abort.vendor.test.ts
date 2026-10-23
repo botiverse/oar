@@ -1,12 +1,13 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "vitest";
-import { defineRuntime, piInstallation, piSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { defineRuntime, piInstallation, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("a Pi extension's native abort is reported without an OAR abort request", async () => {
+test.skipIf(!isPiBackend)("a Pi extension's native abort is reported without an OAR abort request", async () => {
   const env = await startPiAimock((mock) => {
     mock.onMessage(/[\s\S]*/u, { toolCalls: [{ name: "bash", arguments: JSON.stringify({ command: "echo unreachable" }) }] });
   });

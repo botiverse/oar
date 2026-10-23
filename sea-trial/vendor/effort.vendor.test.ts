@@ -1,3 +1,4 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { describe, expect, test } from "vitest";
 import {
   claudeInstallation,
@@ -6,7 +7,6 @@ import {
   codexSession,
   defineRuntime,
   piInstallation,
-  piSession,
 } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type RawProviderRequest } from "../harness/aimock.js";
@@ -136,7 +136,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex effort on the wi
   }, 180_000);
 });
 
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi effort on the wire", () => {
+describe.skipIf(!isPiBackend)("pi effort on the wire", () => {
   const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
 
   test("the thinking level reaches the provider on open and on resume, and pi reports it", async () => {
