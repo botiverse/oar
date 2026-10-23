@@ -17,7 +17,7 @@ import { openTrace } from "./harness/trace.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
 const target = process.env.OAR_TEST ?? "mock";
-const { runtime, aimock: aimockEnv } = await selectBackend(target);
+const { runtime, aimock: aimockEnv, concurrency, beforeSuite } = await selectBackend(target);
 
 const installation = await runtime.installation?.();
 if (installation === undefined || installation.kind !== "available") {
@@ -29,7 +29,10 @@ if (installation === undefined || installation.kind !== "available") {
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
 // OAR_TEST-gated). The behavior CI job runs them right after this suite.
 const tracePath = openTrace(target);
-const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, aimockEnv?.env));
+try { await beforeSuite?.(installation); }
+catch (error) { await aimockEnv?.stop(); throw error; }
+const limit = process.env.OAR_TEST_CONCURRENCY;
+const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, aimockEnv?.env), concurrency ?? (limit === undefined || limit === "" ? undefined : Number(limit)));
 let failures = 0;
 for (const outcome of outcomes) {
   if (outcome.kind === "fail") {

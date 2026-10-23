@@ -100,10 +100,17 @@ export async function runCase(testCase: TrialCase, subject: RuntimeUnderTest): P
 export async function runSuite(
   cases: readonly TrialCase[],
   subject: RuntimeUnderTest,
+  concurrency = cases.length || 1,
 ): Promise<readonly Outcome[]> {
-  const outcomes = await Promise.all(cases.map(async (testCase) => {
-    const outcome = await runCase(testCase, subject);
-    return outcome;
+  if (!Number.isSafeInteger(concurrency) || concurrency < 1) { throw new RangeError("test concurrency must be a positive integer"); }
+  const outcomes: Outcome[] = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(concurrency, cases.length) }, async () => {
+    while (next < cases.length) {
+      const index = next++;
+      const testCase = cases[index];
+      if (testCase !== undefined) { outcomes[index] = await runCase(testCase, subject); }
+    }
   }));
   return outcomes;
 }

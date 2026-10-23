@@ -6,11 +6,13 @@ import {
   defineRuntime,
   piInstallation,
   piSession,
+  type AvailableInstallation,
   type Runtime,
 } from "../../packages/oar/src/index.js";
 import { readQwenModels } from "../../packages/oar/src/runtimes/qwen/list-models.js";
 import { qwenRuntime } from "../../packages/oar/src/runtimes/qwen/index.js";
 import { isolatedQwenEnvironment, startQwenAimock } from "./qwen-aimock.js";
+import { measureQwenStartup, recordQwenOpen } from "./qwen-startup.js";
 import { startDurableFixture } from "./pi-durable.js";
 import { allRuntimes } from "./runtimes.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
@@ -25,12 +27,18 @@ import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } fr
 export interface Backend {
   readonly runtime: Runtime;
   readonly aimock: AimockEnv | null;
+  readonly concurrency?: number;
+  readonly beforeSuite?: (installation: AvailableInstallation) => Promise<void>;
 }
 
 async function qwenBackend(): Promise<Backend> {
   const aimock = await startQwenAimock();
   const homes = new Map<string, Readonly<Record<string, string>>>();
   return {
+    ...(process.env.CI === undefined ? {} : {
+      concurrency: 2,
+      beforeSuite: async (installation: AvailableInstallation) => { await measureQwenStartup(installation, aimock); },
+    }),
     runtime: {
       ...qwenRuntime,
       id: "qwen-aimock",
@@ -40,7 +48,10 @@ async function qwenBackend(): Promise<Backend> {
       session: async (installation, options) => {
         const environment = options.resume === undefined ? await isolatedQwenEnvironment(aimock) : homes.get(options.resume);
         if (environment === undefined) { throw new Error("Qwen behavior resume must use its original fixture HOME"); }
-        const session = await qwenRuntime.session(installation, { ...options, cwd: aimock.cwd, env: { ...options.env, ...environment } });
+        const session = await recordQwenOpen("suite", options.resume !== undefined, async () => {
+          const opened = await qwenRuntime.session(installation, { ...options, cwd: aimock.cwd, env: { ...options.env, ...environment } });
+          return opened;
+        });
         homes.set(session.id, environment);
         return session;
       },

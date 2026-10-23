@@ -108,6 +108,26 @@ immediate hard termination during initialization can leave a stale lock.
 
 ### Process startup under concurrent load
 
+On macOS, concurrent cold starts also exceeded the 30-second initialization
+bound after each session received a separate HOME. The
+[retained macOS job](https://github.com/botiverse/oar/actions/runs/40027351971/job/120666756618)
+scheduled 19 behavior cases together; 16 cases reported an `initialize`
+timeout. No session opened, so these are timeout observations, not measured
+successful startup durations. Separate HOMEs prevent those sessions sharing
+the extension store, but do not guarantee timely initialization under load.
+The cause is not established: the trace cannot distinguish native startup
+work from CI CPU or I/O contention. Hosts should stagger cold starts.
+
+In CI, the Qwen behavior backend now runs at most two cases concurrently on
+Linux, macOS and Windows. Before those cases, it opens one session in a new
+HOME, records initialization and first-turn durations separately, and closes
+it. The later cases use different new HOMEs; this is a timing sample, not a
+shared-HOME warmup or a retry. Its result and every later session's open time
+are retained in the `qwen-aimock/trace.jsonl` artifact. A failed sample fails
+the job. Product deadlines, assertions and retries are unchanged. Reproduce
+the CI setup with `CI=1 OAR_TEST=qwen-aimock pnpm sea-trial`; outside CI the
+suite keeps its normal concurrency unless `OAR_TEST_CONCURRENCY` is supplied.
+
 On 2026-10-23, GitHub Actions `windows-latest` (Windows Server 2025,
 `windows-2025-vs2026` image 20261021.278.1, Node 24.22.1) ran 19 behavior
 cases concurrently against Qwen 0.26.0. The fixture had already finished one
