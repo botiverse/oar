@@ -9,7 +9,7 @@ import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex native service tier", () => {
-  test("open and resume set every provider request's tier, including explicit default", async () => {
+  test("resume preserves the saved tier and explicit choices reach every provider request", async () => {
     const env = await startCodexAimock(undefined, { captureRaw: true });
     const subject = runtimeUnderTest(defineRuntime({ id: "codex-aimock", installation: codexInstallation, session: codexSession }), env.env);
     try {
@@ -20,7 +20,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex native service t
       } finally { await fresh.dispose(); }
       const inherited = await subject.startSession({ resume: fresh.id });
       try {
-        expect(inherited.serviceTier().value).toBe("default");
+        expect(inherited.serviceTier().value).toBe("priority");
         await runTurn(inherited, "hello inherited");
       } finally { await inherited.dispose(); }
       const resumed = await subject.startSession({ resume: fresh.id, effort: "high", serviceTier: "flex" });
@@ -35,15 +35,20 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex native service t
       await writeFile(config, `service_tier = "priority"\n${await readFile(config, "utf8")}`);
       const configured = await subject.startSession({ resume: fresh.id });
       try {
-        expect(configured.serviceTier().value).toBe("priority");
+        expect(configured.serviceTier().value).toBe("flex");
         await runTurn(configured, "hello configured tier");
       } finally { await configured.dispose(); }
+      const newConfigured = await subject.startSession({ model: "gpt-5.5" });
+      try {
+        expect(newConfigured.serviceTier().value).toBe("priority");
+        await runTurn(newConfigured, "hello new configured tier");
+      } finally { await newConfigured.dispose(); }
       const standard = await subject.startSession({ resume: fresh.id, serviceTier: "default" });
       try {
         expect(standard.serviceTier().value).toBe("default");
         await runTurn(standard, "hello default");
       } finally { await standard.dispose(); }
-      expect(env.raw.map((request) => asRecord(request.body)).filter((body) => Array.isArray(body?.input)).map((body) => body?.service_tier)).toEqual(["priority", undefined, "flex", "priority", undefined]);
+      expect(env.raw.map((request) => asRecord(request.body)).filter((body) => Array.isArray(body?.input)).map((body) => body?.service_tier)).toEqual(["priority", "priority", "flex", "flex", "priority", undefined]);
       await expect(subject.startSession({ model: "gpt-5.5", serviceTier: "fast" })).rejects.toThrow(/priority.*fast/u);
       await expect(subject.startSession({ model: "gpt-5.5", serviceTier: "bogus" })).rejects.toThrow(/serviceTier .*bogus/u);
     } finally { await env.stop(); }

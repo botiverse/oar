@@ -15,13 +15,11 @@ later observations name their own version. Versions are evidence baselines,
 not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
-Newest release checked: **0.163.0** (Linux x64, 2026-10-16), which passed 46
-native vendor tests and the shared behavior cases (16 passed, 3 skipped)
-against a local scripted provider
-([report](../../experiments/runtime-version-checks/2026-10-16.md)); it was
-still the stable release on
-[2026-10-18](../../experiments/runtime-version-checks/2026-10-18.md). The
-newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):
+Newest release checked: **0.164.0** (Linux x64, 2026-10-23): 46 native
+vendor cases covered after updating the saved-tier resume expectation,
+and shared behavior cases (16 passed, 3 skipped), against a local scripted
+provider ([report](../../experiments/runtime-version-checks/2026-10-23.md#codex-01640-resume-preserves-the-saved-tier)).
+The newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):
 conversation, tool detail and resume passed with no adapter change
 ([report](../../experiments/runtime-version-checks/2026-10-10.md)).
 
@@ -512,15 +510,22 @@ projected as `default`; an absent field supplies no evidence. Open replies
 and `thread/settings/updated` produce `service_tier` events for
 `Session.serviceTier()` and `SessionView.serviceTier`.
 
-On 0.161.0, **omitting the tier on resume reads the current configuration,
-not the previous turn's tier**. With no `service_tier` in config, a priority
-session resumes with null and sends no provider `service_tier`. With config
-`service_tier = "priority"`, an omitted option resumes on priority. Passing
-`default` overrides that config and removes the field from provider requests.
-Priority and flex reach Responses requests as `service_tier: "priority"`
-and `"flex"`. These cases use a real executable and scripted provider in
-[service-tier.vendor.test.ts](../../sea-trial/vendor/service-tier.vendor.test.ts);
-[dated evidence](../../experiments/service-tier-2026-10-08.md).
+On **0.164.0, omitting the tier on resume preserves the saved tier**. A
+priority thread resumes on priority; after an explicit flex turn, even
+changing config to `service_tier = "priority"` leaves an omitted resume on
+flex. A new thread still takes the current configuration. Explicit
+`default` clears the tier and removes the provider request field. Priority
+and flex reach Responses requests as `service_tier: "priority"` and
+`"flex"`. OAR follows that native choice and reports the effective tier;
+omission is not a request to clear it.
+
+This changed from 0.163.0, where omitted resumes used current config,
+matching the earlier [0.161.0 observation](../../experiments/service-tier-2026-10-08.md).
+The [before/after comparison](../../experiments/runtime-version-checks/2026-10-23.md#codex-01640-resume-preserves-the-saved-tier)
+and [upstream change](https://github.com/openai/codex/pull/55923) establish
+the boundary. The current [vendor test](../../sea-trial/vendor/service-tier.vendor.test.ts)
+checks saved-tier resume, new-thread configuration, explicit overrides and
+all six provider requests with a real executable and scripted provider.
 
 ### Models, instructions, and context
 

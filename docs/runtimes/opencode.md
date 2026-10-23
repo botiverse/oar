@@ -43,22 +43,32 @@ investigation):
   billable model
   ([October 17 report](../../experiments/runtime-version-checks/2026-10-17.md),
   [October 18 report](../../experiments/runtime-version-checks/2026-10-18.md)).
+- **1.19.4** (2026-10-23): 10 native tests, the prompt-options probe and a
+  10-model catalog. Shared behavior passed 17 cases with two skips on an
+  unchanged recheck after one native startup failed a workspace-table
+  creation statement; the underlying cause was not identified
+  ([October 23 report](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility)).
 
 ## OpenCode v2
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Verified on `@opencode/cli`
-**2.1.2** (2026-10-21,
-[October 21 report](../../experiments/runtime-version-checks/2026-10-21.md#opencode-212)):
-the shared session behavior suite (15 passed, 4 skipped on the first run),
-the catalog, prompt-refusal and MCP list-change probes. The earlier
-intermittent startup failures remain unexplained; today's passing run does
-not establish a fix. Its initial stderr, native state and elapsed time were
-preserved before cleanup.
-The direct cold-resume probe completed all six echo calls on 2.1.2, but each
-resume still saved a removal notice 43 to 55 ms after its prompt, followed
-by re-addition 1.87 to 2.60 seconds after it. This does not establish a fix
-for the MCP catalog race. On 2.1.0, all six cold resumes had omitted the call
+**2.1.4** (2026-10-23,
+[October 23 report](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility)):
+shared session behavior (15 passed, 4 skipped on recheck), a nine-model
+catalog, prompt refusals and MCP list changes. The first shared run failed
+one case before server readiness; its saved native log reports
+`SQLiteError: database is locked`. The unchanged recheck passed. This
+identifies that run's startup error, not the cause of every earlier failure.
+Initial stderr, native state and elapsed times were preserved before cleanup.
+
+Only one of six direct cold resumes called echo on 2.1.4. A catalog removal
+47 ms after the first resume's prompt persisted until re-addition 2,337 ms
+after the sixth resume's prompt
+([evidence](../../experiments/runtime-version-checks/2026-10-23.md#cold-mcp-resume-remains-broken)).
+The [six successful calls on 2.1.2](../../experiments/runtime-version-checks/2026-10-21.md#opencode-212)
+had still included a removal/re-addition window and did not establish a fix.
+On 2.1.0, all six cold resumes had omitted the call
 ([October 20 report](../../experiments/runtime-version-checks/2026-10-20.md#cold-mcp-resume-remains-broken)).
 The [boundary probe](../../experiments/opencode-release-lines.ts) last passed
 all ten of its checks on 2.0.29
@@ -101,7 +111,7 @@ source findings. Bullets that name no version come from the boundary probe
   depending on when the model sees the later catalog update. It is tracked
   in [OAR #371](https://github.com/botiverse/oar/issues/371) and
   [upstream #54794](https://github.com/anomalyco/opencode/issues/54794),
-  both open with no posted fix as of 2.0.32 (2026-10-18). A passing run does
+  both open with no posted fix as of 2.1.4 (2026-10-23). A passing run does
   not resolve it; OAR adds no retry or sleep for it.
 - **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
   refused before ACP startup, including resume. The v2 instruction loader
