@@ -133,7 +133,6 @@ export const createPiRpcSession = (executable?: string, args?: readonly string[]
     fallback.clear();
     running = false;
     held.splice(0);
-    rpc.rememberKeys();
     void (async (): Promise<void> => {
       await pump;
       kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
