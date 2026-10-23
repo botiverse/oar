@@ -10,6 +10,7 @@ import { piSessionDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { stdioEcho } from "./support/echo-mcp.js";
+import { piChildCwd } from "./support/pi-runtime.js";
 import { eventually, gone } from "../../tests/fixtures/process-tree.js";
 
 const runtime = createPiRuntime({ execution: "subprocess" });
@@ -70,7 +71,8 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC proces
       assert.ok(file !== undefined);
       const text = readFileSync(path.join(directory, file), "utf8");
       const header = asRecord(JSON.parse(text.split("\n")[0] ?? "null"));
-      expect(header?.cwd).toBe(await realpath(cwd));
+      expect(header?.cwd).toBe(piChildCwd(cwd));
+      expect(await realpath(String(header?.cwd))).toBe(await realpath(cwd));
       const resumed = await f.open({ cwd, resume: fresh.id });
       await turn(resumed, "after_rpc_resume");
       expect(resumed.id).toBe(fresh.id);
