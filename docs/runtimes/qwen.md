@@ -55,6 +55,17 @@ remained byte-for-byte unchanged, and a second `install()` reported
 `already_installed`. No authentication or model request was performed. This
 is Linux installation evidence, not a macOS or Windows installation claim.
 
+Discovery uses one `--version` query, without a preceding `--help` process.
+A timed-out executable remains a probe failure, never `not_found`.
+The [installation probe](../../experiments/qwen-native/installation.ts) compared
+both commands in three fresh homes and again in each same home on Linux with
+0.26.0. The standalone version query took 49 to 78 ms cold and 50 to 52 ms warm;
+help took 104 to 123 ms cold and 104 to 114 ms warm. The npm version query took
+100 to 186 ms cold and 65 to 162 ms warm; help took 119 to 263 ms cold and
+102 to 142 ms warm. The npm ranges overlap, but one version query avoids a
+second process regardless. Neither command created `.qwen` in these homes.
+These measurements do not establish startup times under concurrent CI load.
+
 Qwen emits `stream_event`, assistant, tool-result user and result messages
 without Claude's `command_lifecycle` acknowledgements. The shared stream-json
 fold uses a separate no-lifecycle policy: native init starts the sole submitted
