@@ -1,10 +1,10 @@
-name: qoder-windows-diagnostic
+name: qoder-startup-diagnostic
 on:
   pull_request:
   workflow_dispatch:
 jobs:
   startup:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       OAR_TEST: qoder-native
@@ -25,12 +25,12 @@ jobs:
       - name: Sequential native scenarios with isolated homes
         if: always()
         run: pnpm exec vitest run sea-trial/vendor/qoder.vendor.test.ts
-      - name: Original concurrent behavior suite after the single-session probes
+      - name: Two concurrent behavior cases after the single-session probes
         if: always()
         run: pnpm run sea-trial
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: qoder-windows-startup-diagnostic
+          name: qoder-linux-startup-diagnostic
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: warn
