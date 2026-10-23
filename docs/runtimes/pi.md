@@ -152,8 +152,12 @@ session environment, including removals, so provider variables and MCP children
 are isolated from the host. This is broader than the SDK's bash/MCP-only env
 overlay. OAR passes `--no-mcp` and supplies session MCP servers through a small
 native extension, materialized from bundled source into a private directory.
-Its configuration and discovered provider keys use private files (0600 on POSIX)
-and never command-line arguments or RPC stdout. The child uses Pi's own
+Its configuration uses a private file (0600 on POSIX), never command-line
+arguments. Discovered provider keys travel only in a separate bidirectional
+stdio pipe at fd 3. The extension waits for the parent to register each key for
+redaction before continuing startup or a model change; keys never enter OAR's
+private files or RPC stdout. These pipe and model-switch checks run on Linux,
+macOS and Windows. The child uses Pi's own
 `registerMcpServer`; collisions with user registrations still fail natively.
 Neither location exposes arbitrary inline extension factories or custom tools.
 Unsupported session options remain typed refusals; RPC additionally refuses

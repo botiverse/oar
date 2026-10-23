@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import type { RpcSessionState, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { RefusedSessionOptions, SessionOptions } from "../../../contracts/index.js";
 import { sessionEnvironment } from "../../../shared/environment.js";
@@ -34,7 +35,6 @@ interface OpenPiRpc {
   readonly control: ReturnType<typeof piRpcControl>;
   readonly state: RpcSessionState;
   readonly directory: PrivateTempDir;
-  readonly rememberKeys: () => void;
 }
 
 /** Native RPC startup, with the same bundled version as the in-process runtime. */
@@ -59,17 +59,6 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
     await writeFile(path.join(directory.path, "config.json"), JSON.stringify({ agentDir, resume: options.resume !== undefined,
       servers: (options.mcpServers ?? []).map((server) => ({ name: server.name, config: piMcpServerConfig(server) })),
     }), { mode: 0o600 });
-    await writeFile(path.join(directory.path, "keys.jsonl"), "", { mode: 0o600 });
-    const emittedKeys = new Set<string>();
-    const rememberKeys = (): void => {
-      if (!existsSync(path.join(directory.path, "keys.jsonl"))) { return; }
-      for (const line of readFileSync(path.join(directory.path, "keys.jsonl"), "utf8").split("\n")) {
-        if (line.length === 0 || emittedKeys.has(line)) { continue; }
-        const key: unknown = JSON.parse(line);
-        if (typeof key === "string") { credentials.add(key); }
-        emittedKeys.add(line);
-      }
-    };
     // A bundled host need not ship its own source files or a node_modules tree.
     const extension = path.join(directory.path, "extension.mjs");
     await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
@@ -83,13 +72,26 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
       ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
       ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
       ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--exclude-tools", (options.disallowedTools ?? []).join(",")]),
-    ], { cwd: options.cwd, env: { ...env, PI_CODING_AGENT_DIR: agentDir, OAR_PI_RPC_DIRECTORY: directory.path }, killTree: true, shutdown: "stdin", inheritStderr: false });
-    const control = piRpcControl(child, (message) => { rememberKeys(); receive(message); });
+    ], { cwd: options.cwd, env: { ...env, PI_CODING_AGENT_DIR: agentDir, OAR_PI_RPC_DIRECTORY: directory.path }, killTree: true, shutdown: "stdin", inheritStderr: false, extraPipe: true });
+    const keyPipe = child.extraPipe;
+    if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
+    keyPipe.on("error", () => { child.kill(); });
+    const keys = createInterface({ input: keyPipe, crlfDelay: Infinity });
+    keys.on("line", (line) => {
+      try {
+        const key: unknown = JSON.parse(line);
+        if (typeof key !== "string") { throw new TypeError("Invalid Pi RPC credential message"); }
+        credentials.add(key);
+        // The child waits for this before returning from its native hook.
+        // Separate stdout and fd 3 reads have no cross-stream ordering.
+        keyPipe.write("ok\n");
+      } catch { child.kill(); }
+    });
+    const control = piRpcControl(child, receive);
     try {
       await child.spawned;
       const response = await control.request({ type: "get_state" });
       const state = piRpcState(response);
-      rememberKeys();
       if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${child.diagnostics().stderr}`); }
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Written only by the bundled extension into this private directory.
       const ready: { modelRegistered: boolean; version: string } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
@@ -106,11 +108,10 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
           getAvailableThinkingLevels: () => state.model === undefined ? [] : getSupportedThinkingLevels(state.model),
         }) ?? "Pi did not apply the requested effort");
       }
-      return { child, control, state, directory, rememberKeys };
+      return { child, control, state, directory };
     } catch (error) {
       child.kill();
       await child.exited;
-      rememberKeys();
       throw credentials.redactValue(error);
     }
   } catch (error) { directory.remove(); throw error; }

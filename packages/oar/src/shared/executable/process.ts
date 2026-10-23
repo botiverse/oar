@@ -1,6 +1,6 @@
 import { execFile, type ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
-import type { Readable, Writable } from "node:stream";
+import { Duplex, type Readable, type Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
@@ -9,7 +9,6 @@ import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from 
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export { trackOwnedProcess } from "./ownership.js";
-
 export interface LineProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
@@ -32,6 +31,8 @@ export interface LineProcessOptions {
   readonly killTree?: boolean;
   /** Let EOF run native shutdown hooks before the bounded force-kill. */
   readonly shutdown?: "stdin";
+  /** Open a private bidirectional pipe at child fd 3, separate from stdout. */
+  readonly extraPipe?: boolean;
 }
 /**
  * How long a process asked to stop (SIGTERM) gets before it is killed outright
@@ -95,6 +96,8 @@ export interface LineProcess {
   readonly exited: Promise<number | null>;
   readonly stdin: Writable;
   readonly stdout: Readable;
+  /** Present only when extraPipe was requested; the caller owns its protocol. */
+  readonly extraPipe?: Duplex;
   /** Native status and the last 8 KiB of stderr observed so far. */
   diagnostics(): ProcessDiagnostics;
   write(text: string): void;
@@ -131,7 +134,6 @@ export function killProcessTree(child: ChildProcess): void {
   });
   trackOwnedProcess(killer);
 }
-
 /**
  * Spawn through cross-spawn. On Windows a `.cmd`/`.bat` shim is first
  * resolved to its native target or an explicitly escaped cmd.exe invocation.
@@ -146,7 +148,7 @@ export function spawnLineProcess(
   const child = spawnChecked(() => spawn(target.command, [...target.args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
-    stdio: ["pipe", "pipe", "pipe"],
+    stdio: options.extraPipe === true ? ["pipe", "pipe", "pipe", "pipe"] : ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   }));
@@ -208,7 +210,6 @@ export function spawnLineProcess(
     spawnFailed(spawnFailure(error));
     end(null);
   });
-
   const readLines = (): void => {
     // Keep incomplete UTF-8 code points between chunks without changing the
     // raw stdout stream used by protocol SDKs and other observers.
@@ -233,6 +234,7 @@ export function spawnLineProcess(
     exited,
     stdin,
     stdout,
+    ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => ({
       exitCode, signal: exitSignal, stderr: stderr.text(),
       ...(spawnError === undefined ? {} : { error: spawnError }),
