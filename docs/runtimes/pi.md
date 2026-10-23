@@ -169,13 +169,17 @@ On dispose, OAR first settles an active turn with Pi's abort, then awaits
 `{ type: "session_shutdown", reason: "quit" }` before calling native
 `session.dispose()`, while extension APIs are still usable. Unlike
 `AgentSessionRuntime.dispose()` in Pi 1.1.0, which waits indefinitely, OAR
-allows **10 seconds total** for the shutdown hooks. After that it releases
+allows **10 seconds total** for aborting an active run and the shutdown
+hooks together. The SDK's `abort()` waits for idle without its own deadline,
+so it is inside the same bound. After that OAR releases
 the native session and completes dispose normally. Node emits warning code
 `OAR_PI_SHUTDOWN_TIMEOUT`, naming the session ID, `session_shutdown` and the
 10000 ms limit; hosts can capture Node's `warning` event, and Node prints it
 to stderr by default. Pi's public runner does not identify the currently
 executing extension, so the warning does not attribute the timeout to a
-particular extension. The deadline stops waiting and invalidates the native
+particular extension. If abort settles only after the deadline, OAR does
+not start shutdown hooks on the disposed context. Forced cleanup does not
+invent `agent_settled` or a successful turn outcome. The deadline stops waiting and invalidates the native
 session context; it cannot cancel arbitrary in-process extension code.
 
 Repeated disposal does not emit the event again. A failure while binding

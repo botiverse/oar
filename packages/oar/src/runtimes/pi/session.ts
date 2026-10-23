@@ -258,12 +258,9 @@ export const piSession: StartSession = withSessionCredentials(async (installatio
       held.splice(0);
       const request = kernel.request("toRuntime", { kind: "dispose" });
       disposeRequest = request;
-      if (gate.running) {
-        // pi's own agent_settled (aborted) ends the turn in the stream.
-        await piAgentSession.abort();
-      }
-      // Every extension shuts down before its native context is invalidated.
-      await disposePiAgentSession(piAgentSession);
+      // Abort and hooks share a deadline. Only Pi's own agent_settled ends a
+      // turn in the stream; forced local cleanup invents no native end.
+      await disposePiAgentSession(piAgentSession, gate.running);
       // pi runs in this process: there is no process exit to observe, so the
       // dispose is answered as taken over rather than with an exit code.
       kernel.respond(request.id, { kind: "accepted" });

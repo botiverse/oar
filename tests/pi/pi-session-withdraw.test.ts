@@ -154,3 +154,34 @@ test("a native Pi run is running before its first content, with no invented prom
   expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
   await session.dispose();
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Observe the bounded cleanup, then resolve the deliberately stuck native abort.
+test("dispose releases a session whose native abort never settles, without inventing an end", async () => {
+  const { session, pi } = await open();
+  await session.prompt("running");
+  const abort = Promise.withResolvers<void>();
+  vi.spyOn(pi, "abort").mockReturnValue(abort.promise);
+  const dispose = vi.spyOn(pi, "dispose");
+  const shutdown = vi.spyOn(pi.extensionRunner, "emit");
+  const warn = vi.spyOn(process, "emitWarning").mockImplementation(() => {});
+  vi.useFakeTimers();
+  const closing = session.dispose();
+  try {
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(dispose).toHaveBeenCalledOnce();
+    await closing;
+    expect(shutdown).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("abort"), { code: "OAR_PI_SHUTDOWN_TIMEOUT" });
+    expect(session.records().some((record) => record.kind === "frame" && record.body.type === "agent_settled")).toBe(false);
+    await session.dispose();
+    expect(dispose).toHaveBeenCalledOnce();
+  } finally {
+    abort.resolve();
+    await closing;
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  }
+  // A late native abort completion must not run shutdown hooks on a context
+  // that the timeout has already disposed.
+  expect(shutdown).not.toHaveBeenCalled();
+});
