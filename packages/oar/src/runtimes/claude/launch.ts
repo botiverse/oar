@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Launch validates native options and owns MCP and prompt-file handoffs. */
 import { claudeServiceTierArgs } from "./service-tier.js";
 import { UnsupportedOptionError, type SessionOptions } from "../../contracts/index.js";
 import { refuseManagedLaunchArgs } from "./launch-args.js";
@@ -8,6 +9,7 @@ import { spawnLineProcess, type LineProcess } from "../../shared/executable/inde
 import { givenMcpServers } from "../../shared/mcp-servers.js";
 import { checkSessionName } from "../../shared/session-options.js";
 import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
+import { claudePromptFiles } from "./prompt-files.js";
 
 /*
  * Starting the claude process for one session: SessionOptions as flags.
@@ -24,7 +26,7 @@ import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
 /** The process a claude session drives. */
 export type ClaudeProcess = LineProcess;
 
-function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierArgs: readonly string[]): LineProcess {
+function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, nativeArgs: readonly string[]): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
   return spawnLineProcess(command, [
     "-p",
@@ -43,10 +45,8 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.resume !== undefined || options.name === undefined ? [] : ["--name", options.name]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
-    ...tierArgs,
+    ...nativeArgs,
     ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),
-    ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
-    ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
     // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of
     // the variadic flags below so none swallows them as values.
     ...options.launchArgs ?? [],
@@ -90,20 +90,22 @@ export async function launchClaude(command: string, sessionId: string, options: 
     await sweepAbandonedMcpConfigs();
   }
   let child: LineProcess | null = null;
+  let prompts: Awaited<ReturnType<typeof claudePromptFiles>> = null;
   try {
-    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierArgs);
-  } finally {
-    if (child === null) {
-      mcpConfig?.end();
-    }
-  }
-  if (mcpConfig !== null) {
-    // Fires once, for an exit or a failed spawn alike, before `exited` resolves.
+    prompts = await claudePromptFiles(options);
+    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, [...tierArgs, ...prompts?.args ?? []]);
+    // Exit also covers a failed asynchronous spawn. Both cleanups are idempotent.
     child.onExit(() => {
-      mcpConfig.end();
+      mcpConfig?.end();
+      prompts?.remove();
     });
-    mcpConfig.start();
+    mcpConfig?.start();
+    await child.spawned;
+    return child;
+  } catch (error) {
+    child?.kill();
+    mcpConfig?.end();
+    prompts?.remove();
+    throw error;
   }
-  await child.spawned;
-  return child;
 }

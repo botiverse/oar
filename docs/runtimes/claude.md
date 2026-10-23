@@ -634,8 +634,8 @@ effort on both 2.1.292 and 2.1.293
 ([probe](../../experiments/claude-293-compatibility.ts)). The refusal test
 therefore selects Haiku 4.5 by its full ID, not the moving alias.
 
-Replace/append instructions map to `--system-prompt` and
-`--append-system-prompt`; native harness metadata may remain alongside
+Replace/append instructions map to `--system-prompt-file` and
+`--append-system-prompt-file`; native harness metadata may remain alongside
 replacement text. The vendor test checks that the configured instructions
 survive manual `/compact`.
 On resume, Claude 2.1.309 ignores both new flags and sends the saved prompts
@@ -649,6 +649,18 @@ to guess whether the text is equal.
 [resume regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts).
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
+
+OAR writes each explicit prompt to a mode-0600 file in a private mode-0700
+temporary directory. Only paths appear in the child command line; the
+files are removed on process exit or opening failure. Empty strings remain
+explicit prompts. Unix permissions are checked in the unit test; on Windows
+Node uses the directory's inherited ACL. The native regression sends both
+replacement and appended multiline prompts longer than the Windows command
+line limit and checks the actual provider request, using Claude 2.1.309
+and a local scripted provider
+([files](../../packages/oar/src/runtimes/claude/prompt-files.ts),
+[cleanup test](../../tests/claude/claude-prompt-files.test.ts),
+[native test](../../sea-trial/vendor/claude-prompt-files.vendor.test.ts)).
 
 Context fullness is what the root agent's latest model call sent: its
 assistant frame's input, cache-read and cache-creation tokens (claude's own
@@ -1221,8 +1233,8 @@ former only.
    --dangerously-skip-permissions` plus `--session-id <uuid>` (and `--name`)
    or `--resume <id>`, and optional `--model`, `--effort` (then a
    `get_settings` control request before the first turn), `--settings`
-   (service tier), `--json-schema`, `--system-prompt`,
-   `--append-system-prompt`, then the host's `launchArgs`, `--add-dir`,
+   (service tier), `--json-schema`, `--system-prompt-file`,
+   `--append-system-prompt-file`, then the host's `launchArgs`, `--add-dir`,
    `--mcp-config <file>` (for `SessionOptions.mcpServers`) and
    `--disallowed-tools`. `CLAUDECODE` is cleared from
    the child environment, as is an inherited `CLAUDE_CODE_ENTRYPOINT` (an explicit
