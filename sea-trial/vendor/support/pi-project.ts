@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-export type PackageState = "none" | "installed" | "missing";
+export type PackageState = "none" | "installed" | "missing" | "mismatched";
 
 interface PiProjectFixture {
   readonly home: string;
@@ -41,9 +41,9 @@ fs.writeFileSync(path.join(${JSON.stringify(packageDir)}, "extension.js"), ${JSO
   await writeFile(path.join(cwd, ".pi", "settings.json"), JSON.stringify({
     packages: state === "none" ? [] : ["npm:oar-fixture-package@1.0.0"], npmCommand: [process.execPath, npm, "npm"],
   }));
-  if (state === "installed") {
+  if (state === "installed" || state === "mismatched") {
     await mkdir(packageDir, { recursive: true });
-    await writeFile(path.join(packageDir, "package.json"), manifest);
+    await writeFile(path.join(packageDir, "package.json"), state === "mismatched" ? manifest.replace("1.0.0", "0.9.0") : manifest);
     await writeFile(path.join(packageDir, "extension.js"), extension(loaded));
   }
   return { home, cwd, agentDir, installed, loaded, projectLoaded,

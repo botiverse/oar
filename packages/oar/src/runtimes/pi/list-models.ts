@@ -1,6 +1,7 @@
 import type { ModelLister } from "../../contracts/list-models.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
-import { checkPiProjectPackages, reportMissingPiPackages, type PiProjectOptions } from "./project.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 import { preparePi } from "./static-modules.js";
 import { piAgentDir } from "./resolve.js";
 
@@ -63,7 +64,7 @@ export const piModelLister = (project: PiProjectOptions = {}): ModelLister => cr
   // plane first, from the same settings manager the services get (see
   // http.ts).
   const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: project.projectTrusted ?? true });
-  checkPiProjectPackages(settingsManager, project);
+  await checkPiProjectPackages(cwd, agentDir, settingsManager, project);
   await reportMissingPiPackages(cwd, agentDir, settingsManager);
   await preparePi(settingsManager);
   const services = await createAgentSessionServices({

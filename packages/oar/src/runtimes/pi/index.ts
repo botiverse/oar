@@ -6,9 +6,9 @@ import { type piListModels, piModelLister } from "./list-models.js";
 import { piRefusedSessionOptions } from "./open.js";
 import { createPiSession } from "./session.js";
 
-import type { PiProjectOptions } from "./project.js";
+import type { PiRuntimeOptions } from "./options.js";
 
-export type PiRuntimeOptions = PiProjectOptions;
+export type { PiRuntimeOptions } from "./options.js";
 
 /**
  * The bundled Pi runtime, embedded through the Pi SDK dependency. Account

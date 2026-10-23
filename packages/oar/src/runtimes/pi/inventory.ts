@@ -4,7 +4,8 @@ import type { CommandEntry, RuntimeInventories, InventoryReader, InventoryScope,
 import { asRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { piAgentDir } from "./resolve.js";
-import { checkPiProjectPackages, reportMissingPiPackages, type PiProjectOptions } from "./project.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 import { initPiTheme } from "./theme.js";
 
 interface PiReaders {
@@ -62,7 +63,7 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, pro
       const sdk = await import("@earendil-works/pi-coding-agent");
       const agentDir = piAgentDir(() => sdk.getAgentDir());
       const settingsManager = sdk.SettingsManager.create(scope.cwd, agentDir, { projectTrusted: project.projectTrusted ?? true });
-      checkPiProjectPackages(settingsManager, project);
+      await checkPiProjectPackages(scope.cwd, agentDir, settingsManager, project);
       await reportMissingPiPackages(scope.cwd, agentDir, settingsManager);
       initPiTheme(sdk.initTheme, settingsManager);
       const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir, settingsManager });
