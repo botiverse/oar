@@ -30,7 +30,8 @@ if (installation === undefined || installation.kind !== "available") {
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
 // OAR_TEST-gated). The behavior CI job runs them right after this suite.
 const tracePath = openTrace(target);
-const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, aimockEnv?.env));
+const limit = process.env.OAR_TEST_CONCURRENCY;
+const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, aimockEnv?.env), limit === undefined || limit === "" ? undefined : Number(limit));
 let failures = 0;
 for (const outcome of outcomes) {
   if (outcome.kind === "fail") {

@@ -8,6 +8,7 @@ jobs:
     timeout-minutes: 15
     env:
       OAR_TEST: qoder-native
+      OAR_TEST_CONCURRENCY: "2"
       OAR_CHILD_STDERR: inherit
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
     steps:
