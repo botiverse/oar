@@ -27,18 +27,23 @@ function contains(directory: string, cwd: string): boolean {
   return relative === "" || (!path.isAbsolute(relative) && relative !== ".." && !relative.startsWith(`..${path.sep}`));
 }
 
-function refuseAliasedAncestors(home: string, config: string, cwd: string): void {
-  // The native process observes its canonical cwd, even when spawn received
-  // an alias. User-source comparisons can still use HOME/config literally.
-  const nativeCwd = canonicalPath(cwd);
+function hasAliasedAncestor(home: string, config: string, cwd: string): boolean {
   const configReal = canonicalPath(config);
-  let ambiguous = [home, config].some((directory) => contains(canonicalPath(directory), nativeCwd) && !contains(directory, nativeCwd));
-  for (let ancestor = nativeCwd; ; ancestor = path.dirname(ancestor)) {
+  if ([home, config].some((directory) => contains(canonicalPath(directory), canonicalPath(cwd)) && !contains(directory, cwd))) { return true; }
+  for (let ancestor = cwd; ; ancestor = path.dirname(ancestor)) {
     const candidate = path.join(ancestor, ".claude");
-    if (comparable(canonicalPath(candidate)) === comparable(configReal) && comparable(candidate) !== comparable(config)) { ambiguous = true; }
+    if (comparable(canonicalPath(candidate)) === comparable(configReal) && comparable(candidate) !== comparable(config)) { return true; }
     if (ancestor === path.dirname(ancestor)) { break; }
   }
-  if (ambiguous) {
+  return false;
+}
+
+function refuseAliasedAncestors(home: string, config: string, cwd: string): void {
+  // POSIX getcwd resolves aliases. Windows can preserve the launch spelling,
+  // and Claude's own canonicalization is unverified, so inspect both chains.
+  const canonical = canonicalPath(cwd);
+  const candidates = process.platform === "win32" ? [cwd, canonical] : [canonical];
+  if (candidates.some((candidate) => hasAliasedAncestor(home, config, candidate))) {
     throw new UnsupportedOptionError("userConfiguration", "Claude's ancestor scan can load this aliased user directory as project configuration. Use consistent canonical path spellings for cwd and HOME/CLAUDE_CONFIG_DIR, or omit userConfiguration: exclude. OAR leaves credential and session locations unchanged.");
   }
 }

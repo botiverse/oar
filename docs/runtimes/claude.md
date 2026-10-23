@@ -1575,7 +1575,10 @@ Exclusion also rejects a user directory that lies on the native cwd's ancestor
 chain by real path but not by its configured spelling, before starting a
 process. This includes a `.claude` directory on that chain that aliases the
 configured user directory. Symlinks or Windows junctions outside the ancestor
-chain are allowed. Claude 2.1.309 can classify the
+chain are allowed. On Windows, both the launch spelling and the canonical
+cwd's ancestor chains are checked: Windows can retain junctions in its cwd,
+and Claude's own canonicalization has not been established. POSIX uses the
+canonical cwd chain. Claude 2.1.309 can classify the
 same user skills, agents and memory as project content when its canonical
 cwd and the configured home use different path spellings. This was reproduced
 on Linux with the [path-alias probe](../../experiments/claude-user-configuration/path-alias.ts);

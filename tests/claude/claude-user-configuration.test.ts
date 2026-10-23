@@ -69,6 +69,23 @@ test("an alias outside the cwd ancestor chain does not prevent exclusion", async
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+// oxlint-disable-next-line eslint/max-statements -- one fixture contrasts the two native cwd rules and verifies process launch.
+test("canonical HOME with an aliased cwd is refused only where native cwd may preserve the alias", async () => {
+  const { root, original, alias } = await aliasedDirectories();
+  spawn.mockReturnValue(fakeLineProcess());
+  try {
+    const opening = launchClaude("claude", "id", { cwd: path.join(alias, "project"), userConfiguration: "exclude", env: { HOME: original, USERPROFILE: original, CLAUDE_CONFIG_DIR: path.join(original, ".claude") } });
+    if (process.platform === "win32") {
+      await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "userConfiguration" });
+      expect(spawn).not.toHaveBeenCalled();
+    } else {
+      const child = await opening;
+      child.kill();
+      expect(spawn).toHaveBeenCalledOnce();
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test.each([undefined, "include"] as const)("%s leaves native settings and credential location untouched", async (userConfiguration) => {
   const launches: { args: readonly string[]; options: LineProcessOptions }[] = [];
   spawn.mockImplementation((_command: string, args: readonly string[], options: LineProcessOptions) => { launches.push({ args, options }); return fakeLineProcess(); });
