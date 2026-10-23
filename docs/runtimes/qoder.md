@@ -32,11 +32,23 @@ identity, organization data or authentication material.
 | Model and effort | `--model` and `--reasoning-effort`, confirmed from native init and applied settings. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
-| Steer | Absent. A native active-turn injection mechanism has not been verified. |
+| Steer | Absent for now. Native user-message `priority: now` / `next` is a candidate for interruption or insertion at a tool boundary, but its behavior has not been verified. A separate follow-up will probe delivery and attribution. |
 | MCP | Native stdio and HTTP servers through a private per-process configuration file. Credentials are omitted from argv and redacted from public records. |
-| System and tools | Native system/append prompt, additional-directory and disallowed-tool startup flags. Native global configuration still applies. |
+| System and tools | Native system/append prompt files, additional-directory and disallowed-tool startup flags. Native global configuration still applies. |
 | Unsupported options | `serviceTier`, `outputSchema` and persisted session `name` are explicitly refused. Image input is refused. |
 | Cleanup | EOF permits normal idle shutdown; active disposal and bounded shutdown use process-tree cleanup. Native exit is recorded. |
+
+System prompts use `--system-prompt-file` and `--append-system-prompt-file`.
+OAR writes each as a 0600 file in the same 0700 temporary directory as any MCP
+configuration, and removes the directory on process exit or failed launch.
+Prompt contents never enter argv, including empty and multiline prompts.
+
+Qoder 1.1.78 applies new replacement and appended prompts on resume. The native
+regression seeds a saved conversation, then reopens it separately with each
+new prompt, longer than the Windows command-line limit. An intentionally
+exhausted native replay retains its actual model input in the conversation's
+error details: that input contains the new prompt and neither old prompt.
+This checks request construction, not a successful remote-provider answer.
 
 ### Usage and failures
 
@@ -134,7 +146,7 @@ will fit these deadlines. Limiting test concurrency stabilizes evidence
 collection; it does not show that product behavior under concurrency is free
 of problems. OAR adds no startup retry and does not extend native deadlines.
 
-The preceding two-case Windows run completed the shared behavior suite, but
+An earlier two-case Windows run completed the shared behavior suite, but
 one native effort test reached its 45-second test deadline
 ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724464)).
 Its retained records include a successful native result and process exit
@@ -145,3 +157,11 @@ The single-version installation query removes the extra help invocation;
 it is not evidence that every observed CI timeout is solved. Native control
 and test deadlines remain unchanged, and the revised Windows/macOS checks
 must establish their own results.
+
+The [single-version revision's Windows run](https://github.com/botiverse/oar/actions/runs/40021337004/job/120646366145)
+still failed three behavior cases at the 30-second initialize deadline, with
+two active cases. The trace does not retain startup stderr or native logs,
+so it does not establish the cause. The replay fixture now retains native
+startup logs in CI artifacts, and Qoder CI forwards child stderr. These
+diagnostics use only isolated, unauthenticated replay homes. No retry,
+deadline increase or further concurrency reduction was added.

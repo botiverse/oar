@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { SessionOptions } from "../../packages/oar/src/contracts/session.js";
@@ -29,5 +29,15 @@ export async function startQoderNative(replies: readonly QoderReply[], delayMs =
       QODER_PERSONAL_ACCESS_TOKEN: "", QODER_API_KEY: "", NO_PROXY: "*" },
     launchArgs: ["--settings", JSON.stringify({ security: { auth: { useExternal: true } } }), "--fake-responses", responses],
   };
-  return { options, home, stop: async (): Promise<void> => { await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); } };
+  return { options, home, stop: async (): Promise<void> => {
+    try {
+      // Only this isolated, unauthenticated replay fixture retains native startup logs.
+      const artifacts = process.env.OAR_TRIAL_RUN_DIR;
+      if (artifacts !== undefined && artifacts !== "") {
+        const destination = path.join(artifacts, "qoder-native", path.basename(home));
+        try { await cp(path.join(home, ".qoder", "logs"), destination, { recursive: true }); }
+        catch (error) { if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) { throw error; } }
+      }
+    } finally { await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+  } };
 }

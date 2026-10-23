@@ -4,6 +4,7 @@ The reusable probe is the native vendor suite and its fixture builder:
 
 ```sh
 OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder.vendor.test.ts
+OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder-prompts.vendor.test.ts
 OAR_TEST=qoder-native pnpm sea-trial
 pnpm vitest run tests/qoder tests/login/qoder-login.test.ts
 ```
@@ -36,6 +37,12 @@ Observed on Linux on October 23, 2026:
   creating its marker file.
 - Native `status --output json` explicitly reports login state. A separate
   read-only catalog query returned 15 model entries; no prompt was sent.
+- New replacement and appended system prompts both reach the native model
+  input on resume, replacing the previous prompt configuration. The prompt
+  regression deliberately exhausts the native replay and reads the request
+  retained in its saved error, rather than inferring application from argv.
+  Each multiline prompt exceeds the Windows command-line limit and travels
+  through a private file. No provider request leaves the native replay.
 
 The two real-account requests failed with code 118, exhausted personal
 Credits, and default wire usage zero. `tests/fixtures/qoder-quota.json` retains
@@ -54,6 +61,11 @@ seconds) deadlines; the same suite passed with `OAR_TEST_CONCURRENCY=2`.
 This bounds test-case concurrency, leaving the adapter and all per-operation
 deadlines and assertions unchanged. It does not establish which resource
 caused the unbounded startup failures. The local native reader used no account.
+Another two-case Windows run later timed out in three initialize calls even
+after the version-only probe change. This remains unexplained; the current
+fixture retains native startup logs under `OAR_TRIAL_RUN_DIR` and CI forwards
+stderr to improve the next failure's evidence. See the runtime page for the
+original failing run.
 
 ```sh
 OAR_TEST=qoder-native OAR_TEST_CONCURRENCY=2 pnpm run sea-trial
