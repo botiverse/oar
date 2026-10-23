@@ -9,7 +9,7 @@
     "sourceMap": true,
     "stripInternal": true,
     "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo"
+    "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": [
     "src/**/*.ts"
