@@ -6,6 +6,7 @@ import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { opencodeRuntime } from "./runtimes/opencode/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
+import { qwenRuntime } from "./runtimes/qwen/index.js";
 
 export * from "./contracts/index.js";
 export { utcInstantFromDate } from "./shared/instant.js";
@@ -54,6 +55,10 @@ export { opencodeRuntime } from "./runtimes/opencode/index.js";
 export { opencodeListModels, projectOpencodeModels } from "./runtimes/opencode/list-models.js";
 export { opencodeSession } from "./runtimes/opencode/session.js";
 export { opencodeInstallation } from "./runtimes/opencode/installation.js";
+export { qwenRuntime } from "./runtimes/qwen/index.js";
+export { qwenListModels, projectQwenModels } from "./runtimes/qwen/list-models.js";
+export { qwenSession } from "./runtimes/qwen/session.js";
+export { qwenInstallation } from "./runtimes/qwen/installation.js";
 export { piRuntime } from "./runtimes/pi/index.js";
 export { piListModels, projectPiModels } from "./runtimes/pi/list-models.js";
 export { piSession } from "./runtimes/pi/session.js";
@@ -73,6 +78,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   kimiRuntime,
   opencodeRuntime,
   piRuntime,
+  qwenRuntime,
 ]);
 
 export { runtimeBrands, runtimeBrandIcon } from "./brands.js";

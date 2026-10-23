@@ -82,13 +82,13 @@ runtimes may legitimately differ.
   binaries or network; the default validation for any change to contracts or
   session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
-  `pi-aimock`, `pi-durable-aimock`): the real vendor binary and adapter with only the model
+  `pi-aimock`, `pi-durable-aimock`, `qwen-aimock`): the real vendor binary and adapter with only the model
   provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends concurrently,
-  by default mock plus the four aimock backends. Use it before pushing a
+  by default mock plus the five aimock backends. Use it before pushing a
   change to shared runtime machinery.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`): your local installation and login. The final word when
@@ -100,7 +100,7 @@ runtimes may legitimately differ.
 `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. The ACP
 runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
 `antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`) need the installed
-CLI and run only locally; CI runs the four behavior backends. Vendor tests see
+CLI and run only locally; CI runs the five behavior backends. Vendor tests see
 the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
 handles vendor-specific behavior; write one for anything that needs the

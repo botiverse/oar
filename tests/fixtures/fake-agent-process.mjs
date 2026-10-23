@@ -6,7 +6,7 @@ import "./agent-tree.mjs";
 /*
  * A stand-in agent binary for process-lifecycle tests. It grows the
  * env-switched process tree (agent-tree.mjs) and speaks just enough codex
- * app-server JSON-RPC to open a thread; every other stdin line is ignored,
+ * app-server JSON-RPC and Qwen SDK control to open a session; other stdin lines are ignored,
  * which is all the claude adapter needs to open a session.
  */
 const results = new Map([
@@ -19,6 +19,12 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     message = JSON.parse(line);
   } catch {
     return;
+  }
+  if (process.argv.includes("--channel=SDK") === true && message?.request?.subtype === "initialize") {
+    const sessionId = process.argv[process.argv.indexOf("--session-id") + 1];
+    process.stdout.write(`${JSON.stringify({ type: "control_response", response: {
+      subtype: "success", request_id: message.request_id, response: { session_id: sessionId },
+    } })}\n`);
   }
   const result = results.get(message?.method);
   if (result !== undefined && message.id !== undefined) {

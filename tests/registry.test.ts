@@ -20,6 +20,7 @@ test("built-in registry exposes concrete ACP runtimes, not a generic ACP identit
     "kimi",
     "opencode",
     "pi",
+    "qwen",
   ]);
   assert.equal(defaultRuntimes.get("acp"), undefined);
 });

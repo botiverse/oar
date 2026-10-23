@@ -29,6 +29,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   profile: StreamJsonSessionProfile<S>,
 ): Promise<Session> {
   const kernel = credentials.kernel(sessionId);
+  const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = {
     child,
     active: null,
@@ -38,6 +39,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   };
   // Keep queue entries in OAR until a turn ends. Native active-turn writes
   // can steer or become an irreversible native queue, depending on the dialect.
+  const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
   const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const busy = (): boolean => state.active !== null || state.spontaneous;
@@ -122,9 +124,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (!state.disposed && !busy()) {
         const next = heldQueue.shift();
         if (next !== undefined) {
-          if (next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
-          state.projection = streamJsonPrompted(state.projection, next.inputId, false);
-          child.write(streamJsonUserMessage(next.input, next.inputId, next.images));
+          if (commandLifecycle && next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
+          state.projection = streamJsonPrompted(state.projection, next.inputId, false, commandLifecycle);
+          if (!commandLifecycle) { state.spontaneous = true; }
+          child.write(userMessage(next.input, next.inputId, next.images));
         }
       }
     }
@@ -142,7 +145,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     profile.exited(code);
   });
 
-  await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; } });
+  await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
 
   let interruptCounter = 0;
   const capabilities = profile.capabilities;
@@ -155,8 +158,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
           state.active = request;
-          state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId);
-          child.write(streamJsonUserMessage(input, inputOptions?.inputId, images));
+          state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, true, commandLifecycle);
+          child.write(userMessage(input, inputOptions?.inputId, images));
           return { kind: "accepted" };
         });
       });
@@ -167,7 +170,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
           return withInputImages(capabilities, inputOptions?.images, (images) => {
-            child.write(streamJsonUserMessage(input, inputOptions?.inputId, images));
+            child.write(userMessage(input, inputOptions?.inputId, images));
             return { kind: "accepted" };
           });
         });
@@ -180,9 +183,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           if (busy()) {
             heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
-            if (inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
-            state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, false);
-            child.write(streamJsonUserMessage(input, inputOptions?.inputId, images));
+            if (commandLifecycle && inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
+            state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, false, commandLifecycle);
+            if (!commandLifecycle) { state.spontaneous = true; }
+            child.write(userMessage(input, inputOptions?.inputId, images));
           }
           return { kind: "accepted" };
         }));
@@ -245,7 +249,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         kernel.respond(disposeRequest.id, { kind: "accepted" });
         return;
       }
-      child.kill();
+      if (profile.close === undefined) { child.kill(); }
+      else { await profile.close(busy()); }
       await child.exited; // release point for anything the process held; the exit response is recorded by onExit
     },
   });

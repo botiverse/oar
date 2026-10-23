@@ -49,3 +49,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 `pi-durable.svg` uses the same Pi artwork and attribution as `pi.svg`.
+
+## Qwen Code
+
+Qwen Code's sidebar icon is from QwenLM/qwen-code, commit
+ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9,
+`packages/vscode-ide-companion/assets/sidebar-icon.svg`.
+Source: https://github.com/QwenLM/qwen-code/blob/ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9/packages/vscode-ide-companion/assets/sidebar-icon.svg
+Copyright 2025 Qwen Team, Apache License 2.0 (see QWEN-LICENSE.txt).
+The default asset is unchanged; theme variants replace currentColor with
+black or white for standalone image rendering. Brand marks belong to their owners.

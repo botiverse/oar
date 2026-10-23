@@ -20,7 +20,7 @@ test.each(runtimes)("$id: deletion and overrides reach the runtime and its tools
     vi.stubEnv(key, "inherited");
   }
   const env: SessionOptions["env"] = { OAR_ENV_CAPTURE_PATH: file, OAR_ENV_REMOVE: null, OAR_ENV_OVERRIDE: "replacement", OAR_ENV_EMPTY: "" };
-  const command = fakeAgentBinary(dir, ["--import", capture, id === "claude" || id === "codex" ? fakeAgent : acpFixture, "session"]);
+  const command = fakeAgentBinary(dir, ["--import", capture, ["claude", "codex", "qwen"].includes(id) ? fakeAgent : acpFixture, "session"]);
   try {
     // The ACP fixture emulates the v1 loop and does not implement a CLI version command.
     const session = await open({ kind: "available", via: "executable", command, ...(id === "opencode" ? { version: "1.18.35" } : {}) }, { cwd: dir, env });

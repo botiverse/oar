@@ -81,6 +81,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
         Pi
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/qwen.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/qwen-on-dark.svg">
+          <img src="packages/oar/assets/brands/qwen-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Qwen Code
+      </a>
+    </td>
   </tr>
 </table>
 

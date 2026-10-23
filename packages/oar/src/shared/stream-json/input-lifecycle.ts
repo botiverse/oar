@@ -4,18 +4,22 @@ import type { JsonRecord } from "../json.js";
 import type { StreamJsonProjectionState } from "./state.js";
 
 /** Control plane → state: a prompt clears stale abort intent and starts a new native input attempt. */
-export function streamJsonPrompted<S extends StreamJsonProjectionState>(state: S, inputId?: string, prompted = true): S {
+export function streamJsonPrompted<S extends StreamJsonProjectionState>(state: S, inputId?: string, prompted = true, commandLifecycle = true): S {
   return { ...state, abortRequested: false, turnActive: prompted, unclaimedInit: false, promptInputId: inputId ?? null, pendingInputId: null,
-    promptInputs: inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]),
-    unstartedInputs: inputId === undefined ? state.unstartedInputs : new Set([...state.unstartedInputs, inputId]),
-    unacknowledgedInputs: inputId === undefined ? state.unacknowledgedInputs : new Set([...state.unacknowledgedInputs, inputId]) };
+    promptInputs: !commandLifecycle || inputId === undefined ? state.promptInputs : new Set([...state.promptInputs, inputId]),
+    unstartedInputs: !commandLifecycle || inputId === undefined ? state.unstartedInputs : new Set([...state.unstartedInputs, inputId]),
+    unacknowledgedInputs: !commandLifecycle || inputId === undefined ? state.unacknowledgedInputs : new Set([...state.unacknowledgedInputs, inputId]) };
 }
 
 /** Keep an unclaimed root init until queued can prove it belongs to a spontaneous turn. */
-export function streamJsonInitialized<S extends StreamJsonProjectionState>(state: S, root: boolean): {
+export function streamJsonInitialized<S extends StreamJsonProjectionState>(state: S, root: boolean, commandLifecycle = true): {
   readonly state: S; readonly events: readonly RuntimeEventBody[];
 } {
   if (!root) { return { state, events: [] }; }
+  if (!commandLifecycle) {
+    return { state: { ...state, turnActive: true, nativeTurnActive: true },
+      events: [{ kind: "turn_active", ...(state.promptInputId === null ? {} : { inputId: state.promptInputId }) }] };
+  }
   const spontaneous = !state.turnActive;
   const unclaimedInit = state.unclaimedInit || (!spontaneous && !state.nativeTurnActive && state.promptInputId !== null && state.unstartedInputs.has(state.promptInputId));
   return { state: { ...state, turnActive: true, nativeTurnActive: true, unclaimedInit },

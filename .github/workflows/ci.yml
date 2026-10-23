@@ -66,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        backend: [claude-aimock, codex-aimock, pi-aimock, pi-durable-aimock]
+        backend: [claude-aimock, codex-aimock, pi-aimock, pi-durable-aimock, qwen-aimock]
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
@@ -86,7 +86,7 @@ jobs:
       # resolves, only unchanged tarballs are reused). pi needs no install:
       # it is the bundled SDK already in node_modules.
       - uses: actions/cache@v4
-        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock'
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock'
         with:
           path: |
             ~/.npm
@@ -97,6 +97,8 @@ jobs:
         if: matrix.backend == 'claude-aimock'
       - run: npm install -g @openai/codex
         if: matrix.backend == 'codex-aimock'
+      - run: npm install -g @qwen-code/qwen-code
+        if: matrix.backend == 'qwen-aimock'
       - run: pnpm run sea-trial
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
       - run: pnpm vitest run sea-trial/vendor

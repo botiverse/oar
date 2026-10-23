@@ -56,11 +56,11 @@ follow the TypeScript contracts.
 ## What the contract covers
 
 Implemented by every adapter (claude, codex, pi, grok, kimi, opencode, cursor,
-antigravity), pinned by the shared behavior suite
+antigravity, qwen), pinned by the shared behavior suite
 (`sea-trial/cases/session.ts`, which CI runs on the mock and the claude,
-codex and pi aimock backends, and which runs on any installed runtime with
-`OAR_TEST=<id>`) and by `experiments/live-contract.ts` on a real login for
-every adapter:
+codex, pi, pi-durable and qwen aimock backends, and which runs on any installed
+runtime with `OAR_TEST=<id>`). `experiments/live-contract.ts` checks the same
+contract on a real login; each runtime page states which live checks are verified:
 
 - one stream of `frame` / `request` / `response` records with a dense
   monotonic `seq`, `sessionId`, `agentPath`, optional runtime-native

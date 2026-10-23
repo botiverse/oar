@@ -27,6 +27,7 @@ export type LoginFailureReason =
 
 /** Why oar cannot drive this runtime's login. */
 export type LoginUnsupportedReason =
+  | "transport_unavailable" // the runtime exposes no headless login protocol
   | "unsupported_installation" // not the installation the runtime's login runs on (claude, codex: a machine-installed executable; cursor: the bundled SDK)
   | "version_unsupported"; // the installed version predates the login path oar drives (`detail` names the floor)
 

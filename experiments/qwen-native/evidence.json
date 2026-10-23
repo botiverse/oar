@@ -1,0 +1,25 @@
+{
+  "version": "0.26.0",
+  "source": "ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9",
+  "observedAt": "2026-10-23T14:28:36.845Z",
+  "scenario": "First behavior run, concurrent cold HOME startup, no warmup",
+  "redactions": "Only temporary HOME path replaced in this native frame. No credentials or accounts were used.",
+  "native": {
+    "type": "result",
+    "subtype": "error_during_execution",
+    "uuid": "85c7e7ed-b6bf-42fa-8ee3-08e310cd632a",
+    "session_id": "da9c5d5d-5b7b-4bc4-9aa3-fce563d31a81",
+    "is_error": true,
+    "duration_ms": 0,
+    "duration_api_ms": 0,
+    "num_turns": 0,
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    "permission_denials": [],
+    "error": {
+      "message": "Extension store is busy at <temporary HOME>/.qwen/extension-store."
+    }
+  }
+}

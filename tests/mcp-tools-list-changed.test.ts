@@ -13,6 +13,7 @@ test("the declarations say how a running session takes a change to an MCP server
     kimi: "none",
     opencode: "full",
     pi: "full",
+    qwen: null,
   });
   // A runtime that takes no mcpServers declares nothing.
   for (const runtime of allRuntimes.list().filter((candidate) => candidate.refusedSessionOptions?.mcpServers !== undefined)) {
