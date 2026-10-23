@@ -559,6 +559,7 @@ existing types and causes; OAR never starts a replacement conversation.
 | grok | Resume/load error `data.code === "FS_NOT_FOUND"` | This cwd, including a real id saved under another cwd. |
 | cursor | SDK error `code === "agent_not_found"` from `Agent.listRuns` or `Agent.resume` | Not found by the SDK with this configuration; the 1.0.37 probe had no `CURSOR_API_KEY`, and did not test a real id. |
 | pi | OAR's `SessionManager.list(cwd, sessionDir)` lookup has no matching id | This cwd and agent directory, including a real id saved under another cwd. The cause reports the lookup scope and count, not an invented native error. |
+| pi-durable | `Harness.conversation(id)` returns `undefined` for a valid native numeric id | The host's Harness and storage. Malformed ids and failed storage queries retain their ordinary errors; no replacement is created. |
 | kimi, opencode v1/v2 | A complete `session/list` walk has no matching id, then resume/load returns a native error | The runtime's session list. A listed id's generic error, an unavailable/incomplete list, or a successful resume never means missing. Authentication refusals retain `RuntimeFailureError`. |
 | claude | During resume, before the `initialize` answer, `result/error_during_execution` with `errors[0]` starting `No conversation found with session ID` | The active Claude configuration; exact prose is the last resort. |
 | codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
@@ -580,6 +581,9 @@ Native answers, with ids/temporary paths normalized, are pinned in
 and [`claude-missing-resume.json`](../../tests/fixtures/claude-missing-resume.json).
 Tests exercise the opening paths, full pagination, redaction and the
 must-not-match refusals.
+
+Pi Durable 1.4.0 is additionally covered by the real in-memory Harness tests
+in `tests/pi-durable/options.test.ts`, including a storage-failure control.
 
 ## Unavailable resume targets
 

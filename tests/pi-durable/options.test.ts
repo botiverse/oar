@@ -1,10 +1,11 @@
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxProvider } from "@earendil-works/pi-ai/providers/faux";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";
 import { openConversation } from "../../packages/oar/src/runtimes/pi-durable/options.js";
+import { SessionNotFoundError } from "../../packages/oar/src/contracts/session-not-found-error.js";
 
 const harnesses: Harness[] = [];
 afterEach(async () => { await Promise.all(harnesses.splice(0).map(async (harness) => harness.close(BACKGROUND_CONTEXT))); });
@@ -15,6 +16,32 @@ async function setup() {
   harnesses.push(harness);
   return { harness, models, runtime: createPiDurableRuntime({ harness, models }) };
 }
+
+test("a missing native conversation has a typed refusal and never creates a replacement", async () => {
+  const { harness, runtime } = await setup();
+  const installation = { kind: "available", via: "bundled" } as const;
+  const opening = runtime.session(installation, { cwd: "/virtual", resume: "123" });
+  await expect(opening).rejects.toBeInstanceOf(SessionNotFoundError);
+  await expect(opening).rejects.toMatchObject({ sessionId: "123", cause: { method: "Harness.conversation", native: { id: 123, result: undefined } } });
+  const records = await harness.commit(async (tx) => tx.scanConversations({}, 10), BACKGROUND_CONTEXT);
+  expect(records.items).toHaveLength(0);
+});
+
+test("storage failure is preserved rather than classified as a missing conversation", async () => {
+  const { harness, runtime } = await setup();
+  const failure = new Error("storage is unavailable");
+  vi.spyOn(harness, "conversation").mockRejectedValueOnce(failure);
+  await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", resume: "123" })).rejects.toBe(failure);
+});
+
+test.each(["not-a-number", "01", "0"])("invalid resume id %s is refused before a native lookup", async (resume) => {
+  const { harness, runtime } = await setup();
+  const lookup = vi.spyOn(harness, "conversation");
+  const opening = runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", resume });
+  await expect(opening).rejects.toThrow();
+  await expect(opening).rejects.not.toBeInstanceOf(SessionNotFoundError);
+  expect(lookup).not.toHaveBeenCalled();
+});
 
 test("model catalog, effort and native readback agree", async () => {
   const { runtime } = await setup();

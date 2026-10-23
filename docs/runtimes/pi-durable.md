@@ -66,6 +66,13 @@ updates and inventories are not implemented by this adapter.
 
 ## Controls and ownership
 
+Resuming a valid native conversation id that `Harness.conversation()` reports
+as absent throws `SessionNotFoundError`. The lookup belongs to the supplied
+Harness and its storage; OAR never creates a replacement conversation. The
+cause records the lookup method, numeric id and native `undefined` result.
+Malformed ids are rejected before lookup, and storage failures retain their
+original error rather than being classified as missing.
+
 | OAR operation | Native operation | Meaning |
 |---|---|---|
 | `session({ resume })` | conversation lookup, configure, `watchEvents`, `Harness.resume()` | Attaches to saved work and enables scheduling of unfinished tasks; no new input is submitted |

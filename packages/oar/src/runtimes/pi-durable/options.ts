@@ -3,6 +3,7 @@ import type { ModelThinkingLevel, Models } from "@earendil-works/pi-ai";
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai/models";
 import { AgentDoc, LiveDoc, configure, type AgentChange, type AgentState, type Conversation, type ConversationId, type Harness } from "@earendil-works/pi-durable";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
@@ -46,8 +47,12 @@ function agentChange(options: SessionOptions, models: Models): AgentChange {
 
 async function resumeConversation(harness: Harness, id: string): Promise<Conversation> {
   const number = Number(id);
-  const found = conversationId(number) && String(number) === id ? await harness.conversation(number, BACKGROUND_CONTEXT) : undefined;
-  if (found === undefined) { throw new Error(`pi-durable conversation ${id} does not exist`); }
+  if (!conversationId(number) || String(number) !== id) { throw new Error(`pi-durable conversation id ${id} is not a positive canonical integer`); }
+  const found = await harness.conversation(number, BACKGROUND_CONTEXT);
+  if (found === undefined) {
+    throw new SessionNotFoundError(id, `pi-durable conversation ${id} does not exist in this Harness`,
+      { method: "Harness.conversation", native: { id: number, result: found } });
+  }
   return found;
 }
 
