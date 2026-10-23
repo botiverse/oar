@@ -1,6 +1,6 @@
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
-import type { PiProjectOptions } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";

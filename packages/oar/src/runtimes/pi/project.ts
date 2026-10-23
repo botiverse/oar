@@ -1,19 +1,21 @@
 import type { SettingsManager } from "@earendil-works/pi-coding-agent";
-import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 
-export interface PiProjectOptions {
-  /** Trust this cwd for this open only. False disables native project configuration and extensions. */
-  readonly projectTrusted?: boolean;
-  /** Allow Pi to install packages named by project configuration. Defaults to false. */
-  readonly allowProjectPackageInstall?: boolean;
-}
+import type { PiProjectOptions } from "./options.js";
 
-/** Pi's SDK has only a process-wide offline switch; OAR never changes it. */
-export function checkPiProjectPackages(settings: Pick<SettingsManager, "getProjectSettings">, options: PiProjectOptions): void {
-  const packages = settings.getProjectSettings().packages ?? [];
-  const offline = piOffline();
-  if (packages.length > 0 && options.allowProjectPackageInstall !== true && !offline) {
-    throw new UnsupportedOptionError("cwd", "Pi project configuration lists packages, but its in-process SDK cannot disable automatic installation per session. Start the host with PI_OFFLINE=1, or explicitly use createPiRuntime({ allowProjectPackageInstall: true }). OAR has not loaded project packages or changed persistent trust.");
+/** Use Pi's resolver, including version checks, without installing or executing extensions. */
+export async function checkPiProjectPackages(cwd: string, agentDir: string, settings: SettingsManager, options: PiProjectOptions): Promise<void> {
+  if (options.allowProjectPackageInstall === true || piOffline()) { return; }
+  if ((settings.getProjectSettings().packages ?? []).length === 0 && (settings.getGlobalSettings().packages ?? []).length === 0) { return; }
+  const { DefaultPackageManager } = await import("@earendil-works/pi-coding-agent");
+  const packages = new DefaultPackageManager({ cwd, agentDir, settingsManager: settings });
+  const missing = new Set<string>();
+  // The public callback has no scope: conservatively include user packages
+  // rather than reconstructing Pi's inheritance, deduplication or version rules.
+  // oxlint-disable-next-line eslint/require-await, typescript/require-await -- Pi requires a Promise for this synchronous policy decision.
+  await packages.resolve(async (source) => { missing.add(source); return "skip"; });
+  if (missing.size > 0) {
+    throw new RuntimeFailureError("invalid_request", `Pi configuration requires installing or replacing packages: ${[...missing].map((source) => JSON.stringify(source)).join(", ")}. OAR conservatively checks the complete native package list, including user packages, because Pi's in-process SDK cannot disable installation per session. Start the host with PI_OFFLINE=1, or explicitly use createPiRuntime({ allowProjectPackageInstall: true }). OAR has not loaded extensions, installed packages or changed persistent trust.`, { code: "project_packages_blocked" });
   }
 }
 

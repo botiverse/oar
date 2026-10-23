@@ -127,40 +127,51 @@ the in-process runtime's session, model-list and inventory entry points.
 - `projectTrusted: false` uses Pi's native untrusted-project mode. Project
   settings, package declarations and extensions are not loaded. User/global
   configuration and extensions still apply; this is not a sandbox.
-- `allowProjectPackageInstall` defaults to `false`. With trusted project
-  packages configured, opening rejects with `UnsupportedOptionError("cwd")`
-  unless the host started with native `PI_OFFLINE=1` or explicitly allowed
-  installation. Model listing and inventories report the same refusal
-  through their existing result shapes. Projects without packages open
-  normally, as do untrusted projects whose declarations Pi ignores.
+- `allowProjectPackageInstall` defaults to `false`. OAR asks Pi's native
+  package resolver whether its full configured package list needs installation,
+  including replacement of an installed but incompatible version. If so,
+  opening rejects with `RuntimeFailureError`, `failure: "invalid_request"`
+  and `code: "project_packages_blocked"`, before loading extensions. This
+  is not a missing session or a refusal of `cwd`. Start the host with native
+  `PI_OFFLINE=1` or explicitly allow installation. Model listing and
+  inventories report the refusal through their existing result shapes.
+  Already-installed compatible packages open normally. Untrusted project
+  declarations are absent from the native list, but user packages still apply.
+
+The preflight uses `DefaultPackageManager.resolve(onMissing)` with Pi's
+original settings. Its callback does not report package scope, so OAR
+conservatively refuses any installation in the full native list, including
+unrelated user packages. This can be stricter than a project-only policy;
+the error lists all packages needing installation and gives both remedies.
+OAR does not copy Pi's inheritance, deduplication or version-matching logic.
+The preflight neither installs packages nor executes extensions and does
+not write the host's settings or trust store.
 
 Pi 1.4.0's resource loader has no per-operation no-install setting. Its
 offline switch reads the host process environment, which OAR never mutates.
-The guard therefore also refuses an already-installed configured package
-without offline mode or explicit permission: checking the current path does
-not disable the loader's automatic installation behavior. With permission,
-Pi may execute the project's configured package-manager command and package
-installation scripts.
+The preflight checks the package store before loading; it does not lock the
+store against concurrent changes or prevent extension code from doing its
+own work. Use native offline mode when the loader must never install, even
+if another process changes the store after the preflight. Pi accepts only
+`1`, `true` and `yes`, case-insensitively, without trimming whitespace.
+A missing path in offline mode emits `OAR_PI_PACKAGE_MISSING`; this warning
+does not assert that an existing package satisfies its configured version.
 
-Offline mode loads installed packages and skips missing ones. OAR emits
-`OAR_PI_PACKAGE_MISSING` when Pi's public package lookup cannot find a
-configured project's package path. Pi still owns version compatibility and
-resource filtering; path existence alone does not prove a compatible version
-or that the package contributes enabled extensions.
-
-Native SDK 1.4.0 regression results, using a local package-manager substitute
-that creates only a fixture extension and sends no network requests:
+Verified with Pi 1.4.0 using a local npm substitute, without a registry or
+credentials and with no user packages configured:
 
 | Project packages | Default | `PI_OFFLINE=1` | Explicitly allow installation |
 | --- | --- | --- | --- |
-| None configured | Opens | Opens | Opens |
-| Configured and installed | Refused before loading | Loads existing extension | Loads existing extension |
-| Configured and missing | Refused before loading | Opens with a missing-package warning; no install | Installs and loads fixture extension |
+| None | Opens | Opens | Opens |
+| Installed compatible version | Loads | Loads | Loads |
+| Missing | Typed refusal, no install | Opens without package | Installs and loads |
+| Installed incompatible version | Typed refusal, no install | Opens without package | Replaces and loads |
 
-Every case leaves persistent trust untouched. Separate cases verify that
-`projectTrusted: false` neither installs packages nor executes project
-extensions, including inventory queries. Run
-`OAR_TEST=pi-aimock pnpm vitest run sea-trial/vendor/pi-project.vendor.test.ts`.
+Additional native tests cover inherited user packages, conservative refusal
+of unrelated missing user packages, and `projectTrusted: false`: the latter
+neither installs packages nor executes project extensions, and leaves an existing trust
+file unchanged. [Policy tests](../../sea-trial/vendor/pi-project.vendor.test.ts),
+[resolution tests](../../sea-trial/vendor/pi-project-resolution.vendor.test.ts).
 
 ### Session creation and resume
 

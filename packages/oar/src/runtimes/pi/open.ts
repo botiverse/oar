@@ -9,7 +9,8 @@ import { preparePi } from "./static-modules.js";
 import { disposePiAgentSession } from "./lifecycle.js";
 import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
 import { piAgentDir, piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
-import { checkPiProjectPackages, reportMissingPiPackages, type PiProjectOptions } from "./project.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 
 /*
  * Opening the bundled pi SDK session: services, session file (create or
@@ -128,7 +129,7 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // settings manager the services get, so no second one is built (see
   // http.ts).
   const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir, { projectTrusted: project.projectTrusted ?? true });
-  checkPiProjectPackages(settingsManager, project);
+  await checkPiProjectPackages(options.cwd, agentDir, settingsManager, project);
   await reportMissingPiPackages(options.cwd, agentDir, settingsManager);
   await preparePi(settingsManager);
   // SessionOptions.mcpServers: pi's MCP extension plus one registering the

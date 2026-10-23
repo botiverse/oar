@@ -3,12 +3,12 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createPiRuntime } from "../../packages/oar/src/runtimes/pi/index.js";
-import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
+import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-failure-error.js";
 import { piProjectFixture, type PackageState } from "./support/pi-project.js";
 
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
-const cases = (["none", "installed", "missing"] as const).flatMap((state) =>
+const cases = (["none", "installed", "missing", "mismatched"] as const).flatMap((state) =>
   (["default", "offline", "allow"] as const).map((mode) => ({ state, mode })));
 
 describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project policy", () => {
@@ -19,10 +19,15 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project policy"
     const warning = vi.spyOn(process, "emitWarning").mockImplementation(() => {});
     try {
       const opening = createPiRuntime({ allowProjectPackageInstall: mode === "allow" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
-      const refused = mode === "default" && state !== "none";
-      if (refused) { await expect(opening.then(async (session) => { await session.dispose(); return null; })).rejects.toBeInstanceOf(UnsupportedOptionError); }
+      const refused = mode === "default" && (state === "missing" || state === "mismatched");
+      if (refused) {
+        const refusal = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
+        expect(refusal).toBeInstanceOf(RuntimeFailureError);
+        expect(refusal).toMatchObject({ failure: "invalid_request", code: "project_packages_blocked" });
+        expect(refusal).not.toHaveProperty("option");
+      }
       else { const session = await opening; await session.dispose(); }
-      expect(existsSync(fixture.installed)).toBe(mode === "allow" && state === "missing");
+      expect(existsSync(fixture.installed)).toBe(mode === "allow" && (state === "missing" || state === "mismatched"));
       expect(existsSync(fixture.loaded)).toBe(!refused && state !== "none" && (state === "installed" || mode === "allow"));
       expect(existsSync(fixture.projectLoaded)).toBe(!refused);
       expect(existsSync(path.join(fixture.agentDir, "trust.json"))).toBe(false);
@@ -38,7 +43,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project policy"
     vi.stubEnv("PI_OFFLINE", " 1 ");
     try {
       const opening = createPiRuntime().session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
-      await expect(opening.then(async (session) => { await session.dispose(); return null; })).rejects.toBeInstanceOf(UnsupportedOptionError);
+      await expect(opening.then(async (session) => { await session.dispose(); return null; })).rejects.toBeInstanceOf(RuntimeFailureError);
       expect(existsSync(fixture.installed)).toBe(false);
     } finally { await fixture.stop(); }
   }, 30_000);
