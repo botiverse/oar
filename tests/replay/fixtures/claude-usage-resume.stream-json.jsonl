@@ -1,0 +1,5 @@
+[{"kind":"frame","body":{"type":"system/init","native":"<original frame>","events":[{"kind":"model","model":"claude-haiku-4-5-20251001"},{"kind":"service_tier","serviceTier":"default"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"reasoning","content":{"kind":"empty"},"messageId":"msg_011Cfs1CfDGRVqoYtLqajJHG"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"text_delta","text":"OK","messageId":"msg_011Cfs1CfDGRVqoYtLqajJHG"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"rate_limit_event","native":"<original frame>","events":[]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"service_tier","serviceTier":"default"},{"kind":"turn_ended","outcome":{"kind":"completed"}},{"kind":"usage","usage":{"context":{"tokens":22087,"contextWindow":200000,"percent":11},"tokens":{"input":22087,"output":36,"cacheRead":17966,"cacheWrite":4111},"total":{"input":137784,"output":2249,"cacheRead":110477,"cacheWrite":25780}}}]},"agentPath":[]}]

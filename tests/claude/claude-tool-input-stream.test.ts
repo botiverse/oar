@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import { foldClaudeStdout, initialClaudeProjection, type ClaudeProjectionState } from "../../packages/oar/src/runtimes/claude/projection.js";
-import { contentBlocks } from "../../packages/oar/src/runtimes/claude/content.js";
+import { contentBlocks } from "../../packages/oar/src/shared/stream-json/content.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 import { initialSessionView, reduceSessionView, viewOf } from "../../packages/oar/src/observe/session-view.js";

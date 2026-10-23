@@ -68,11 +68,21 @@ provider's echoed authentication header across live delivery and replay.
 | SDK configuration and interaction APIs | `--model`, `--effort` (confirmed by `get_settings` at open), service tier ([below](#service-tiers)), the system prompt flags and `--mcp-config` ([session MCP servers](#session-mcp-servers)). |
 
 Sources: [adapter](../../packages/oar/src/runtimes/claude/session.ts),
-[projection](../../packages/oar/src/runtimes/claude/projection.ts),
+[Claude projection profile](../../packages/oar/src/runtimes/claude/projection.ts),
+[shared stream-json driver](../../packages/oar/src/shared/stream-json/session.ts) and
+[fold](../../packages/oar/src/shared/stream-json/projection.ts),
 [task frames](../../packages/oar/src/runtimes/claude/tasks.ts),
 [Session contract](../../packages/oar/src/contracts/session.ts).
 
 ## Capability details
+
+Claude supplies launch flags, usage baselines, limit/failure classification,
+private settings and context readbacks, and task notifications. The shared
+stream-json driver owns message I/O, control pairing, input scheduling and
+interrupts; its fold preserves the original frames and ordered events.
+The [26 full-frame baselines](../../tests/replay/claude-stream-json-equivalence.test.ts)
+were captured before extraction, alongside the existing session interleaving
+regressions. Claude's permission requests remain recorded without an answer.
 
 ### Session creation and resume
 
@@ -475,7 +485,7 @@ hosts retaining records should budget for them. `events(observer,
 { coalesceText: true })` combines consecutive text and readable reasoning
 without duplicating the completed block. It changes the consumer view only;
 every raw frame stays available. [Native streaming][native-output],
-[projection](../../packages/oar/src/runtimes/claude/content.ts),
+[projection](../../packages/oar/src/shared/stream-json/content.ts),
 [native regression](../../sea-trial/vendor/claude-partials.vendor.test.ts).
 
 **Attributed:** frames carrying `parent_tool_use_id` get

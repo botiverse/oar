@@ -1,0 +1,2 @@
+[{"kind":"frame","body":{"type":"user","native":"<original frame>","events":[{"kind":"user_message","input":"RUN-WORKFLOW-FIXTURE: run the two-phase workflow.","inputId":"6f1c2d3e-0001-4a5b-8c7d-000000000001","nativeMessageId":"6f1c2d3e-0001-4a5b-8c7d-000000000001","evidence":"acknowledged"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"command_lifecycle","native":"<original frame>","events":[]},"agentPath":[]}]

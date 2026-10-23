@@ -1,6 +1,6 @@
-import { toolContent } from "../../shared/tool-output.js";
+import { toolContent } from "../tool-output.js";
 import type { RuntimeEventBody } from "../../contracts/session.js";
-import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "../json.js";
 
 interface PartialText {
   readonly type: "text" | "thinking";
@@ -17,7 +17,7 @@ interface PartialMessage {
   readonly blocks: ReadonlyMap<number, PartialBlock>;
 }
 /** Only unfinished API messages, per agent lane. Children can stream while root is idle. */
-export type ClaudePartials = ReadonlyMap<string, PartialMessage>;
+export type StreamJsonPartials = ReadonlyMap<string, PartialMessage>;
 
 export function contentBlocks(message: JsonRecord): readonly JsonRecord[] {
   const content = asRecord(message.message)?.content;
@@ -128,7 +128,7 @@ function finalContent(message: JsonRecord, partial: PartialMessage | undefined):
 }
 
 /** Pure content projection; the caller records the original frame even if events is empty. */
-export function claudeContent(partials: ClaudePartials, message: JsonRecord, agentPath: readonly string[]): { partials: ClaudePartials; events: RuntimeEventBody[] } {
+export function streamJsonContent(partials: StreamJsonPartials, message: JsonRecord, agentPath: readonly string[]): { partials: StreamJsonPartials; events: RuntimeEventBody[] } {
   const lane = JSON.stringify(agentPath);
   if (message.type === "stream_event" && asRecord(message.event)?.type === "message_stop") {
     // Every completed assistant block precedes this native boundary. Only
@@ -144,7 +144,7 @@ export function claudeContent(partials: ClaudePartials, message: JsonRecord, age
   return { partials: next.message === undefined ? partials : new Map([...partials, [lane, next.message]]), events: next.events };
 }
 
-export function claudeToolResults(message: JsonRecord): RuntimeEventBody[] {
+export function streamJsonToolResults(message: JsonRecord): RuntimeEventBody[] {
   const out: RuntimeEventBody[] = [];
   for (const block of contentBlocks(message)) {
     if (block.type === "tool_result" && typeof block.tool_use_id === "string") {

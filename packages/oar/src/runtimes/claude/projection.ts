@@ -1,98 +1,33 @@
-import { claudeDuplicateInput, claudeInitialized, claudeInputLifecycle } from "./input-lifecycle.js";
+/* oxlint-disable import/max-dependencies -- Claude composes its native usage, context, failure and task meanings with the shared protocol. */
 import { claudeServiceTierEvents } from "./service-tier.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
-import type { FrameBody, RuntimeEventBody, ResponseBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
+import type { RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { claudeFailure, claudeLimitReset, claudeResultReason } from "./failure.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { claudeContextCompacted, claudeContextSent, claudeContextUsage, initialClaudeContext, type ClaudeContextReading } from "./context-usage.js";
 import { foldModelUsage, freshModelUsage, resumedModelUsage, withBaseline, withMainLoop, type ClaudeModelUsage, type ClaudeUsageBaseline } from "./token-usage.js";
 import { claudeTaskViews } from "./tasks.js";
-import { claudeContent, claudeToolResults, contentBlocks, type ClaudePartials } from "./content.js";
+import { foldStreamJsonStdout, type ProjectionCommand } from "../../shared/stream-json/projection.js";
+import { initialStreamJsonProjection, streamJsonAbortRequested, type StreamJsonProjectionState } from "../../shared/stream-json/state.js";
+import type { StreamJsonProjectionProfile } from "../../shared/stream-json/profile.js";
 
-/**
- * The claude stdout → record projection as a PURE FOLD. A reducer over the
- * raw stream-json frames that emits kernel COMMANDS (append an event with its
- * attribution, answer one of our control requests, surface a runtime→app
- * request) instead of touching the kernel itself. The live adapter applies
- * the commands to a real kernel; tests apply them to nothing and snapshot the
- * list. No transport, no side effects, so it is trivially unit-testable and
- * shared verbatim between live and replay.
- *
- * Rules the fold enforces: EVERY frame becomes exactly one frame
- * (verbatim `native`, events in block order), even outside a turn. Repeated
- * init frames do not reopen an active turn; its end is claude's own `result`. Attribution
- * comes from `parent_tool_use_id` (a child's path is its parent's path plus
- * the Task tool_use id that spawned it).
- */
+export type { ProjectionCommand } from "../../shared/stream-json/projection.js";
 
-export type ProjectionCommand =
-  | { readonly kind: "frame"; readonly body: FrameBody; readonly agentPath: readonly string[] }
-  /** claude answered one of our `control_request`s (interrupt): the response to that request record. */
-  | { readonly kind: "respond"; readonly requestId: string; readonly body: ResponseBody }
-  /** claude asked US something (`control_request`): a toApp request record, verbatim. */
-  | { readonly kind: "toApp"; readonly id: string; readonly type: string; readonly native: unknown };
-
-/**
- * Fold state. `abortRequested` is control-plane intent, not provider data:
- * claude reports its result as
- * an ordinary result frame, so the flag is how the fold tells aborted from
- * completed. `agents` maps every tool_use id seen to the agentPath of the
- * message that carried it, so a frame with `parent_tool_use_id` attributes to
- * that tool call's agent plus the call; nested Task calls nest the path.
- * `tokens` accumulates the main loop's per-turn result usage (the root
- * agent's), so usage events are cumulative; `modelUsage` is the session's
- * own running total and where this Session's share of it starts
- * (token-usage.ts). `failureCategory` is the `error` of the turn's last root
- * assistant frame, which classifies a failed result (failure.ts).
- * `limitResetsAt` is the reset of the limit the latest `rate_limit_event`
- * says refuses requests, kept across turns until another event replaces it
- * (claude reports a change, not every refusal): a turn that then fails on
- * `rate_limit` is `quota` with that `resetsAt`.
- */
-export interface ClaudeProjectionState {
-  readonly abortRequested: boolean;
-  /** Prompt requests and root init/results delimit a turn, including native spontaneous turns. */
-  readonly turnActive: boolean;
-  /** Unlike the provisional prompt start, this is an observed init/started without a result. */
-  readonly nativeTurnActive: boolean;
-  /** Root init since this prompt write, not claimed by started or reported as spontaneous yet. */
-  readonly unclaimedInit: boolean;
-  /** Prompt identity and native queue evidence, retained across unrelated turns. */
-  readonly promptInputId: string | null;
-  /** Prompt-like writes, including queue drains; steers are never registered. */
-  readonly promptInputs: ReadonlySet<string>;
-  /** Written prompt inputs with no native started yet, including the pre-queued window. */
-  readonly unstartedInputs: ReadonlySet<string>;
-  /** Prompt-like writes with neither queued nor started since THIS write; reset when an id is reused. */
-  readonly unacknowledgedInputs: ReadonlySet<string>;
-  readonly pendingInputId: string | null;
-  readonly agents: ReadonlyMap<string, readonly string[]>;
+/** Claude's usage baselines, native context and failure/task reports extend the protocol state. */
+export interface ClaudeProjectionState extends StreamJsonProjectionState {
   readonly tokens: ReadonlyMap<string, TokenTotals>;
   readonly modelUsage: ClaudeModelUsage;
   readonly context: ClaudeContextReading;
-  readonly partials: ClaudePartials;
-  /** Last native task description per agent/task, for progress de-duplication. */
   readonly taskDescriptions: ReadonlyMap<string, string>;
   readonly failureCategory: string | null;
   readonly limitResetsAt: UtcInstant | null;
 }
 
-/** A new session's fold. */
 export const initialClaudeProjection: ClaudeProjectionState = {
-  abortRequested: false,
-  turnActive: false,
-  nativeTurnActive: false,
-  unclaimedInit: false,
-  promptInputId: null,
-  promptInputs: new Set(),
-  unstartedInputs: new Set(),
-  unacknowledgedInputs: new Set(),
-  pendingInputId: null,
-  agents: new Map(),
+  ...initialStreamJsonProjection,
   tokens: new Map(),
   modelUsage: freshModelUsage,
   context: initialClaudeContext,
-  partials: new Map(),
   taskDescriptions: new Map(),
   failureCategory: null,
   limitResetsAt: null,
@@ -106,11 +41,9 @@ export function claudeUsageBaselined(state: ClaudeProjectionState, baseline: Cla
   return { ...state, modelUsage: withBaseline(state.modelUsage, baseline) };
 }
 
-export { claudePrompted } from "./input-lifecycle.js";
+export { streamJsonPrompted as claudePrompted } from "../../shared/stream-json/input-lifecycle.js";
 
-export function claudeAbortRequested(state: ClaudeProjectionState): ClaudeProjectionState {
-  return { ...state, abortRequested: true };
-}
+export const claudeAbortRequested = streamJsonAbortRequested<ClaudeProjectionState>;
 
 function resultOutcome(state: ClaudeProjectionState, message: JsonRecord): TurnOutcome {
   if (state.abortRequested) {
@@ -140,36 +73,6 @@ function pathKey(agentPath: readonly string[]): string {
   return JSON.stringify(agentPath);
 }
 
-/** The agent a frame belongs to: root, or the Task call that spawned it (nested through the call's own agent). */
-function attributionOf(state: ClaudeProjectionState, message: JsonRecord): readonly string[] {
-  const parent = message.parent_tool_use_id;
-  if (typeof parent !== "string" || parent.length === 0) {
-    return [];
-  }
-  return [...(state.agents.get(parent) ?? []), parent];
-}
-
-function rememberToolUses(state: ClaudeProjectionState, message: JsonRecord, agentPath: readonly string[]): ClaudeProjectionState {
-  const event = asRecord(message.event);
-  const partial = event?.type === "content_block_start" ? asRecord(event.content_block) : null;
-  const ids = (partial === null ? contentBlocks(message) : [partial])
-    .filter((block) => block.type === "tool_use" && typeof block.id === "string")
-    .map((block) => String(block.id));
-  if (ids.length === 0) {
-    return state;
-  }
-  const agents = new Map(state.agents);
-  for (const id of ids) {
-    agents.set(id, agentPath);
-  }
-  return { ...state, agents };
-}
-
-function frameType(message: JsonRecord): string {
-  const type = typeof message.type === "string" ? message.type : "unknown";
-  return typeof message.subtype === "string" ? `${type}/${message.subtype}` : type;
-}
-
 /**
  * Cumulative per-agent tokens after folding this result frame's own turn
  * usage: the main loop's (claude's word), so the root agent's. None while a
@@ -187,114 +90,36 @@ function accumulate(state: ClaudeProjectionState, agentPath: readonly string[], 
   return { state: { ...state, tokens: next }, tokens };
 }
 
-/** Fold one parsed claude stdout frame into the next state plus commands. */
-export function foldClaudeStdout(
-  state: ClaudeProjectionState,
-  message: JsonRecord,
-): { readonly state: ClaudeProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  const type = frameType(message);
-  const agentPath = attributionOf(state, message);
-  const event = (body: Omit<FrameBody, "type" | "native">, next: ClaudeProjectionState = state): { state: ClaudeProjectionState; commands: ProjectionCommand[] } =>
-    ({ state: next, commands: [{ kind: "frame", body: { type, native: message, ...body }, agentPath }] });
+export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjectionState> = {
+  name: "claude",
+  duplicateReason: "claude ignored the input: its inputId was already used in this session",
+  assistant: (state, message, root) => root ? { ...state, failureCategory: typeof message.error === "string" ? message.error : state.failureCategory, context: claudeContextSent(state.context, message) } : state,
+  result: (state, message, agentPath) => {
+    const accumulated = accumulate(state, agentPath, message);
+    const running = foldModelUsage(state.modelUsage, message);
+    const { context, reading } = claudeContextUsage(state.context, message);
+    const after: RuntimeEventBody[] = [];
+    if (accumulated !== null || context !== null || running.total !== null) {
+      after.push({ kind: "usage", usage: {
+        ...(context === null ? {} : { context }),
+        ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
+        ...(running.total === null ? {} : { total: running.total }),
+      } });
+    }
+    return { state: { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading, failureCategory: null },
+      outcome: resultOutcome(state, message), before: claudeServiceTierEvents(message), after };
+  },
+  init: claudeServiceTierEvents,
+  compacted: (state, root) => root ? { ...state, context: claudeContextCompacted(state.context) } : state,
+  system: (state, message, agentPath) => {
+    const task = claudeTaskViews(message, state.taskDescriptions, agentPath);
+    return { events: [...task.events, ...claudeServiceTierEvents(message)],
+      state: task.descriptions === state.taskDescriptions ? state : { ...state, taskDescriptions: task.descriptions } };
+  },
+  other: (state, message) => ({ events: [], state: message.type === "rate_limit_event" ? { ...state, limitResetsAt: claudeLimitReset(asRecord(message.rate_limit_info)) } : state }),
+};
 
-  switch (String(message.type)) {
-    case "command_lifecycle": {
-      const folded = claudeInputLifecycle(state, message, agentPath.length === 0);
-      return event({ events: folded.events }, folded.state);
-    }
-    case "assistant":
-    case "stream_event": {
-      const content = claudeContent(state.partials, message, agentPath);
-      const next = rememberToolUses({ ...state, partials: content.partials }, message, agentPath);
-      if (message.type !== "assistant" || agentPath.length > 0) {
-        return event({ events: content.events }, next);
-      }
-      // A root model call: the category of an error claude reports as an assistant message, and the context the call sent.
-      return event({ events: content.events }, { ...next, failureCategory: typeof message.error === "string" ? message.error : next.failureCategory, context: claudeContextSent(next.context, message) });
-    }
-    case "user": {
-      const views = [...claudeToolResults(message)];
-      const body = asRecord(message.message);
-      if (message.isReplay === true && typeof message.uuid === "string" && Array.isArray(body?.content)) {
-        const input = body.content.map((part: unknown) => asRecord(part)).filter((part) => part?.type === "text").map((part) => typeof part?.text === "string" ? part.text : "").join("");
-        views.push({ kind: "user_message", input, inputId: message.uuid, nativeMessageId: message.uuid, evidence: "acknowledged" });
-      }
-      const duplicate = message.isReplay === true && typeof message.uuid === "string"
-        ? claudeDuplicateInput(state, message.uuid, agentPath.length === 0) : { state, events: [] };
-      return event({ events: [...views, ...duplicate.events] }, duplicate.state);
-    }
-    case "result": {
-      const events: RuntimeEventBody[] = [...claudeServiceTierEvents(message), { kind: "turn_ended", outcome: resultOutcome(state, message) }];
-      const accumulated = accumulate(state, agentPath, message);
-      const running = foldModelUsage(state.modelUsage, message);
-      const { context, reading } = claudeContextUsage(state.context, message);
-      if (accumulated !== null || context !== null || running.total !== null) {
-        events.push({ kind: "usage", usage: {
-          ...(context === null ? {} : { context }),
-          ...(accumulated === null ? {} : { tokens: accumulated.tokens }),
-          ...(running.total === null ? {} : { total: running.total }),
-        } });
-      }
-      return event({ events }, { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading,
-        ...(agentPath.length === 0 ? { turnActive: false, nativeTurnActive: false, unclaimedInit: false, ...(state.pendingInputId === null ? { promptInputId: null } : {}) } : {}), abortRequested: false, failureCategory: null });
-    }
-    case "system": {
-      if (message.subtype === "compact_boundary") {
-        // claude reports compaction only after the fact: the boundary frame
-        // carries compact_metadata {trigger: manual | auto, pre_tokens, …}
-        // ([sym] 2.1.272); there is no start frame, so no compaction_started.
-        const trigger = asRecord(message.compact_metadata)?.trigger;
-        return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] }, agentPath.length === 0 ? { ...state, context: claudeContextCompacted(state.context) } : state);
-      }
-      if (message.subtype === "init") {
-        const initialized = claudeInitialized(state, agentPath.length === 0);
-        return event({ events: [...initialized.events,
-          ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
-          ...claudeServiceTierEvents(message)] }, initialized.state);
-      }
-      const task = claudeTaskViews(message, state.taskDescriptions, agentPath);
-      return event({ events: [...task.events, ...claudeServiceTierEvents(message)] },
-        task.descriptions === state.taskDescriptions ? state : { ...state, taskDescriptions: task.descriptions });
-    }
-    case "control_response": {
-      // claude answering one of OUR control_requests (interrupt): the frame IS
-      // the response record (native verbatim); one frame, one record, so it
-      // is not also recorded as an event. A control_response we cannot pair
-      // is recorded as a plain event.
-      const response = asRecord(message.response);
-      const requestId = typeof response?.request_id === "string" ? response.request_id : null;
-      if (requestId === null) {
-        return event({ events: [] });
-      }
-      const error = typeof response?.error === "string" ? response.error : null;
-      return { state, commands: [{
-        kind: "respond",
-        requestId,
-        body: response?.subtype === "error" || error !== null
-          ? { kind: "rejected", code: "runtime_refused", reason: error ?? "control request failed", native: message }
-          : { kind: "accepted", native: message },
-      }] };
-    }
-    case "control_request": {
-      // claude asks the app something (permission, question). Recorded verbatim; the adapter answers nothing.
-      const id = typeof message.request_id === "string" ? message.request_id : `claude-${String(Date.now())}`;
-      const request = asRecord(message.request);
-      const subtype = typeof request?.subtype === "string" ? request.subtype : "control_request";
-      return {
-        state,
-        commands: [
-          { kind: "frame", body: { type, native: message, events: [] }, agentPath },
-          { kind: "toApp", id, type: subtype, native: message },
-        ],
-      };
-    }
-    case "rate_limit_event":
-      // claude's view of the subscription limits changed: read for a failed turn's resetsAt, no event of its own.
-      return event({ events: [] }, { ...state, limitResetsAt: claudeLimitReset(asRecord(message.rate_limit_info)) });
-    case "control_cancel_request":
-      // claude withdrew a request it had sent us (an interrupt cancels a pending question).
-      return event({ events: typeof message.request_id === "string" ? [{ kind: "app_request_cancelled", requestId: message.request_id }] : [] });
-    default:
-      return event({ events: [] });
-  }
+/** The same runtime profile is used for live frames and offline replay. */
+export function foldClaudeStdout(state: ClaudeProjectionState, message: JsonRecord): { readonly state: ClaudeProjectionState; readonly commands: readonly ProjectionCommand[] } {
+  return foldStreamJsonStdout(claudeProjectionProfile, state, message);
 }

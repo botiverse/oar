@@ -1,0 +1,5 @@
+[{"kind":"frame","body":{"type":"system/init","native":"<original frame>","events":[]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"tool_call_started","callId":"toolu_wr6wSk3hQ7rVZyk2","tool":"PowerShell","input":"{\"command\":\"Write-Output oar-powershell-marker\",\"description\":\"Print the replay marker\"}"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"user","native":"<original frame>","events":[{"kind":"tool_call_ended","callId":"toolu_wr6wSk3hQ7rVZyk2","content":[{"type":"text","text":"PowerShell is not available on this system."}],"result":"ok"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"text_delta","text":"done"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"turn_ended","outcome":{"kind":"completed"}}]},"agentPath":[]}]

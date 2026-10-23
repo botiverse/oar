@@ -1,0 +1,1 @@
+[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"service_tier","serviceTier":"default"},{"kind":"turn_ended","outcome":{"kind":"completed","structuredOutput":{"answer":4}}},{"kind":"usage","usage":{"tokens":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0}}}]},"agentPath":[]}]

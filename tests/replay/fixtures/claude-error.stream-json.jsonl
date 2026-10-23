@@ -1,0 +1,3 @@
+[{"kind":"frame","body":{"type":"system/init","native":"<original frame>","events":[]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"assistant","native":"<original frame>","events":[{"kind":"text_delta","text":"API Error: 400 max_tokens exceeds model limit"}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"turn_ended","outcome":{"kind":"failed","reason":"error","failure":"unknown"}}]},"agentPath":[]}]

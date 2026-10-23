@@ -54,6 +54,7 @@ flowchart TB
 
 - Simple capabilities use one behavior contract; add separate API/SPI contracts only when abstraction level or call direction differs. Say "runtime X passed the behavior tests", not "conformance": one word, no ceremony.
 - `runtimes/<id>/index.ts` declares that runtime's supported capabilities. Keep its parsing, compatibility policy, and protocol details nearby.
+- `shared/stream-json/` owns line-message projection, control pairing and session input/interrupt mechanics. Runtime profiles supply native result/usage meanings, launch policy, private readbacks and capabilities; the shared layer never selects policy by runtime ID. Its per-frame Claude baselines are in `tests/replay/claude-stream-json-equivalence.test.ts`.
 - Keep host dependencies as constructor inputs until multiple runtimes prove a stable shared boundary. Do not create empty architecture directories.
 - Test layers (`tests/`, `sea-trial/`, `experiments/`) are described in [`docs/development.md`](../../../docs/development.md#how-to-validate-the-changes).
 - Installation probing is local-only. Account usage is a separate authenticated observation capability.
