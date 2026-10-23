@@ -60,7 +60,7 @@ export { qwenRuntime } from "./runtimes/qwen/index.js";
 export { qwenListModels, projectQwenModels } from "./runtimes/qwen/list-models.js";
 export { qwenSession } from "./runtimes/qwen/session.js";
 export { qwenInstallation } from "./runtimes/qwen/installation.js";
-export { piRuntime } from "./runtimes/pi/index.js";
+export { piRuntime, createPiRuntime, type PiRuntimeOptions } from "./runtimes/pi/index.js";
 export { piListModels, projectPiModels } from "./runtimes/pi/list-models.js";
 export { piSession } from "./runtimes/pi/session.js";
 export { piInstallation } from "./runtimes/pi/installation.js";

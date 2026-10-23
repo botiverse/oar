@@ -1,9 +1,11 @@
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import type { CommandEntry, InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
+import type { CommandEntry, RuntimeInventories, InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { asRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { piAgentDir } from "./resolve.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 import { initPiTheme } from "./theme.js";
 
 interface PiReaders {
@@ -49,7 +51,7 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
     },
   };
 }
-function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>): InventoryReader<T> {
+function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, project: PiProjectOptions): InventoryReader<T> {
   return async (installation, options = {}) => {
     if (installation.via !== "bundled") {
       return unsupportedInventory("installation_unsupported", "Pi inventory requires the bundled SDK");
@@ -60,7 +62,9 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>): In
     const result = await inventoryRead(async () => {
       const sdk = await import("@earendil-works/pi-coding-agent");
       const agentDir = piAgentDir(() => sdk.getAgentDir());
-      const settingsManager = sdk.SettingsManager.create(scope.cwd, agentDir);
+      const settingsManager = sdk.SettingsManager.create(scope.cwd, agentDir, { projectTrusted: project.projectTrusted ?? true });
+      await checkPiProjectPackages(scope.cwd, agentDir, settingsManager, project);
+      await reportMissingPiPackages(scope.cwd, agentDir, settingsManager);
       initPiTheme(sdk.initTheme, settingsManager);
       const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir, settingsManager });
       const { session } = await sdk.createAgentSessionFromServices({
@@ -75,6 +79,12 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>): In
     return result;
   };
 }
-export const piSkills = reader((readers) => readers.skills);
-export const piCommands = reader((readers) => readers.commands);
-export const piTools = reader((readers) => readers.tools);
+export function createPiInventories(project: PiProjectOptions = {}): Pick<RuntimeInventories, "skills" | "commands" | "tools"> {
+  return { skills: reader((readers) => readers.skills, project),
+    commands: reader((readers) => readers.commands, project),
+    tools: reader((readers) => readers.tools, project) };
+}
+const defaults = createPiInventories();
+export const piSkills = defaults.skills;
+export const piCommands = defaults.commands;
+export const piTools = defaults.tools;

@@ -1,5 +1,7 @@
 import type { ModelLister } from "../../contracts/list-models.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 import { preparePi } from "./static-modules.js";
 import { piAgentDir } from "./resolve.js";
 
@@ -55,13 +57,15 @@ export function createPiListModels<Model extends PiListedModel>(
   };
 }
 
-export const piListModels: ModelLister = createPiListModels(async (signal, cwd) => {
+export const piModelLister = (project: PiProjectOptions = {}): ModelLister => createPiListModels(async (signal, cwd) => {
   const { createAgentSessionServices, getAgentDir, SettingsManager } = await import("@earendil-works/pi-coding-agent");
   const agentDir = piAgentDir(getAgentDir);
   // getAvailable() can refresh OAuth tokens over the network: the proxy
   // plane first, from the same settings manager the services get (see
   // http.ts).
-  const settingsManager = SettingsManager.create(cwd, agentDir);
+  const settingsManager = SettingsManager.create(cwd, agentDir, { projectTrusted: project.projectTrusted ?? true });
+  await checkPiProjectPackages(cwd, agentDir, settingsManager, project);
+  await reportMissingPiPackages(cwd, agentDir, settingsManager);
   await preparePi(settingsManager);
   const services = await createAgentSessionServices({
     cwd,
@@ -89,3 +93,5 @@ export const piListModels: ModelLister = createPiListModels(async (signal, cwd) 
   const { getSupportedThinkingLevels } = await import("@earendil-works/pi-ai");
   return getSupportedThinkingLevels;
 });
+
+export const piListModels = piModelLister();

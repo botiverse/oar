@@ -7,7 +7,7 @@ const sdk = vi.hoisted(() => ({
   createAgentSessionServices: vi.fn(async (_options: unknown) => ({})),
   createAgentSessionFromServices: vi.fn(),
   SessionManager: { inMemory: vi.fn((cwd: string) => ({ cwd })) },
-  SettingsManager: { create: vi.fn((cwd: string) => ({ cwd, getTheme: () => "dark" })) },
+  SettingsManager: { create: vi.fn((cwd: string) => ({ cwd, getTheme: () => "dark", getProjectSettings: () => ({}), getGlobalSettings: () => ({}) })) },
   initTheme: vi.fn(),
 }));
 vi.mock("@earendil-works/pi-coding-agent", () => sdk);

@@ -1,5 +1,6 @@
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+import type { PiProjectOptions } from "./options.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
@@ -30,11 +31,11 @@ export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
  * this process.
  */
 
-export const piSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
+export const createPiSession = (project: PiProjectOptions = {}): StartSession => withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }
-  const piAgentSession = await openPiAgentSession(options, credentials.add);
+  const piAgentSession = await openPiAgentSession(options, credentials.add, project);
   // pi-ai's own test for an oversized context, on a failed assistant message (failure.ts).
   const { isContextOverflow } = await import("@earendil-works/pi-ai");
   const overflowOf = (event: Parameters<Parameters<typeof piAgentSession.subscribe>[0]>[0]): boolean => {
@@ -268,3 +269,5 @@ export const piSession: StartSession = withSessionCredentials(async (installatio
   });
   return session;
 });
+
+export const piSession = createPiSession();

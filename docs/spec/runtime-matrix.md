@@ -701,7 +701,11 @@ An open fails with a `RuntimeFailureError` (`failure`, `credential`,
 `session/new` or `session/resume` (`auth`); an invalid-params answer (-32602)
 to the call that selects the model (`model_unavailable`); cursor's
 `AuthenticationError` (`auth`, `rejected`); a pi model oar does not find in
-pi's registry (`model_unavailable`). Other open failures keep their errors
+pi's registry (`model_unavailable`). Pi's project-installation policy refusal
+uses `failure: "invalid_request"` and the stable OAR code
+`project_packages_blocked`; it never means the resumed session or cwd is
+missing. Its reason explains how to enable native offline mode or explicitly
+allow installation. Other open failures keep their errors
 (kimi's unknown model is a -32603 that only its words explain).
 `failureAdvice(failure)` (observe) turns any class into one retry policy.
 

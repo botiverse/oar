@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- SDK startup owns option validation, native settings, credentials, model resolution and lifecycle. */
 import type { RefusedSessionOptions, SessionOptions } from "../../contracts/index.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
@@ -8,6 +9,8 @@ import { preparePi } from "./static-modules.js";
 import { disposePiAgentSession } from "./lifecycle.js";
 import { piMcpExtensions, validatePiMcpEnvironment } from "./mcp.js";
 import { piAgentDir, piFindSessionFile, piResolveModel, piSessionDir } from "./resolve.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
+import type { PiProjectOptions } from "./options.js";
 
 /*
  * Opening the bundled pi SDK session: services, session file (create or
@@ -111,7 +114,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
  * then the session against an explicit SessionManager so resume and creation
  * share one session directory.
  */
-export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void): Promise<PiAgentSession> {
+export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   checkSessionName(options);
   validatePiMcpEnvironment(options);
@@ -122,15 +125,12 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // This is how a host (or the pi-aimock behavior backend) points the
   // in-process model plane somewhere else.
   const agentDir = piAgentDir(() => sdk.getAgentDir());
-  // YOLO by default (repo policy): pi gates tool execution on project trust,
-  // which is an approval prompt no embedded host can answer; pre-trust the
-  // session cwd the same way pi's own Trust button would (auditable in
-  // <agentDir>/trust.json).
-  new sdk.ProjectTrustStore(agentDir).set(options.cwd, true);
   // The proxy plane before anything can reach a provider, from the same
   // settings manager the services get, so no second one is built (see
   // http.ts).
-  const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir);
+  const settingsManager = sdk.SettingsManager.create(options.cwd, agentDir, { projectTrusted: project.projectTrusted ?? true });
+  await checkPiProjectPackages(options.cwd, agentDir, settingsManager, project);
+  await reportMissingPiPackages(options.cwd, agentDir, settingsManager);
   await preparePi(settingsManager);
   // SessionOptions.mcpServers: pi's MCP extension plus one registering the
   // session's servers (mcp.ts); it refuses a name pi cannot take before
