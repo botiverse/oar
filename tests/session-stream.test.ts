@@ -134,3 +134,40 @@ test("the kernel rejects control once a dispose request is in the stream", async
   const steer = await kernel.control({ kind: "steer", input: "x" }, () => acceptAll.decide());
   assert.deepEqual(steer.response.body, { kind: "rejected", code: "disposed", reason: "session disposed" });
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Both observers are checked before and after the reentrant control settles.
+test("a control issued by an observer acts synchronously but every observer receives the same record order", async () => {
+  const { createSessionKernel } = await import("../packages/oar/src/shared/session-kernel.js");
+  const kernel = createSessionKernel("reentrant");
+  const before: number[] = []; const after: number[] = [];
+  let removed = false;
+  const controlled: Promise<unknown>[] = [];
+  kernel.rawEvents((record) => {
+    before.push(record.seq);
+    if (record.kind === "frame") {
+      controlled.push(kernel.control({ kind: "withdraw", inputId: "held" }, () => { removed = true; return { kind: "accepted" }; }));
+    }
+  });
+  kernel.rawEvents((record) => { after.push(record.seq); });
+  kernel.frame({ type: "done", native: {}, events: [{ kind: "turn_ended", outcome: { kind: "completed" } }] });
+  assert.equal(removed, true);
+  assert.deepEqual(before, [0, 1]);
+  assert.deepEqual(after, before);
+  await Promise.all(controlled);
+  assert.deepEqual(before, [0, 1, 2]);
+  assert.deepEqual(after, before);
+});
+
+test("a replay subscription opened during publication receives each retained and reentrant record once", async () => {
+  const { createSessionKernel } = await import("../packages/oar/src/shared/session-kernel.js");
+  const kernel = createSessionKernel("reentrant-subscription");
+  const seen: number[] = [];
+  kernel.rawEvents((record) => {
+    if (record.kind !== "frame") { return; }
+    kernel.request("toRuntime", { kind: "abort" });
+    kernel.rawEvents((next) => { seen.push(next.seq); }, { sessionId: kernel.sessionId, afterSeq: -1 });
+  });
+  kernel.frame({ type: "done", native: {}, events: [] });
+  kernel.respond("abort", { kind: "accepted" });
+  assert.deepEqual(seen, [0, 1, 2]);
+});

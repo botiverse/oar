@@ -67,3 +67,20 @@ test("deliver when_idle waits for the running turn to end, then starts one", asy
   gate.release();
   await session.dispose();
 });
+
+test("interrupt uses the ordinary idle prompt and native steer without touching the queue", async () => {
+  const gate = new Gate();
+  const session = await sessionOf(gate);
+  expect(await session.deliver("first", { when: "interrupt", maxWaitMs: 0 })).toMatchObject({ landed: "prompted" });
+  expect(await session.deliver("second", { when: "interrupt", maxWaitMs: 0 })).toMatchObject({ landed: "steered" });
+  expect(session.records().some((record) => record.kind === "request" && (record.body.kind === "queue" || record.body.kind === "abort"))).toBe(false);
+  gate.release();
+  await session.dispose();
+});
+
+test.each([-1, NaN, Infinity])("interrupt rejects invalid maxWaitMs %s before taking ownership", async (maxWaitMs) => {
+  const session = await sessionOf(new Gate());
+  await expect(session.deliver("input", { when: "interrupt", maxWaitMs })).rejects.toThrow(RangeError);
+  expect(session.records().some((record) => record.kind === "request")).toBe(false);
+  await session.dispose();
+});

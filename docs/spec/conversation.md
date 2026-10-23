@@ -20,6 +20,7 @@ one `inputId` across attempts:
 | `now` (default) | `prompt`: a new turn, so an idle agent wakes | `steer`, or `queue` when the session has no `steer` |
 | `after_turn` | `prompt` | `queue` |
 | `when_idle` | `prompt` | waits until idle, then `prompt` |
+| `interrupt` | `prompt` | `steer` when available; otherwise bounded tool wait, withdraw, abort, merge and `prompt` |
 
 A `prompt` refused `busy` (a turn opened between the status read and the
 prompt) and a `steer` refused because the turn just ended (`no_active_turn`,
@@ -28,9 +29,9 @@ codex answers a steer that reaches it after the turn) are retried as the new
 state requires. A steer refused `unsupported` (images on a cursor steer) is
 queued instead. `steerOrQueue` stays as the running half
 of `now`; unlike it, `deliver` never queues into an idle session, where some
-runtimes would hold the input without starting a turn. Queueing, batching,
-priority and persistence stay with the host's own delivery layer, which
-calls `deliver` for the last step.
+runtimes would hold the input without starting a turn. The host decides
+priority, persistence and when an interruption is worth its cost. OAR supplies
+the explicit interrupt mechanism below.
 
 `InputOptions.origin` (`{ kind: "user" | "notification" | "automation", source? }`)
 says who an input comes from. It is recorded on the request body, never sent
@@ -43,6 +44,54 @@ reusing it for a different input merges those submissions by design. Do not
 resubmit an accepted input unless the stream later reports it dropped
 ([Dropped input](#dropped-input)), which hands it back to the caller. OAR
 generates identity, not delivery evidence.
+
+## Interrupting and merging held inputs
+
+`deliver(input, { when: "interrupt", maxWaitMs, merge? })` prompts when idle
+and uses native steer when available, with the same refusal rules as `now`.
+Without steer it requires `withdraw`; absence is rejected before queueing.
+It queues the new input, then waits until no tools are active on the root
+agent of this session, or the finite nonnegative `maxWaitMs` expires. Tool
+starts and ends come from records; child activity does not delay this bound.
+
+At that boundary it withdraws every still-held input in queue order before
+aborting, waits for the runtime's own turn end, and issues one merged prompt.
+If the old turn ends naturally while waiting, withdrawal happens synchronously
+before the adapter drains, and no abort is sent. A process exit, including an
+abort's kill fallback, is not a native turn end and never triggers redelivery.
+`maxWaitMs` bounds the tool wait; the adapter's own abort mechanism bounds its
+wait for a native end.
+
+`merge(inputs)` synchronously receives each input's `inputId`, `input`,
+`images?` and `origin?`, in queue order, and returns `{ input, images? }`.
+The default joins text with a blank line and concatenates images in order.
+Concurrent interrupt calls arriving during the wait share one batch, the
+first caller's merger and the earliest deadline. Once withdrawal starts,
+further `deliver` calls wait for that batch before choosing their control.
+Direct concurrent controls still require host arbitration.
+
+The result retains the caller's `inputId`. A merged `landed: "prompted"`
+result also lists `mergedInputIds`; its `result.request` has a fresh aggregate
+input id and `carries` lists the originals. A failed abort, unavailable process,
+throwing merger or refused replacement returns `landed: "rejected"` and
+`undeliveredInputIds`, including earlier inputs taken out of the queue.
+The caller owns those listed inputs and must retain or resend them itself.
+An entry already dispatched at a natural-boundary race cannot be withdrawn:
+that caller gets `queued`, with any other merged or undelivered ids still
+reported. An accepted input is never returned for automatic resubmission.
+
+`PromptOptions.carries` is also available to hosts doing their own explicit
+withdraw/merge/prompt sequence. It names earlier input ids in the same session
+and agent lineage. `reduceConversation` appends that prompt and its response
+to each known original's attempts, preserving its text, images and origin.
+Acceptance makes it accepted again; rejection leaves it caller-owned. Native
+queue/start/drop evidence for the aggregate also applies to its constituents,
+but no separate native user-message echo or model-consumption claim is invented.
+The aggregate remains in `conversation.inputs` for native identity matching;
+the chat view displays the original inputs together at this prompt and omits
+the duplicate aggregate bubble when all originals are known. A truncated log
+with unknown originals displays the aggregate instead. Old records without
+`carries` retain their existing behavior.
 
 ## Images
 

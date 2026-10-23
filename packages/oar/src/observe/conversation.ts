@@ -15,6 +15,8 @@ export interface ConversationInput {
   readonly id: string;
   readonly inputId?: string;
   readonly input: string;
+  /** Earlier logical inputs included by this aggregate prompt; ids are scoped to its session and agent. */
+  readonly carries?: readonly string[];
   /** The images the input carried (`InputOptions.images`), from its latest request; absent when none. A UI shows them with the text. */
   readonly images?: readonly InputImage[];
   /** Who the input came from (`InputOptions.origin`), from its latest request; absent when the host said nothing. */
@@ -96,7 +98,15 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       const existing = inputs.get(id);
       const attempts: readonly InputAttempt[] = [...(existing?.attempts ?? []), { request: record, streamId, state: "pending" }];
       requests.set(operationKey(record.id), id);
-      publish({ id, input, ...(inputId === undefined ? {} : { inputId }), ...(images === undefined || images.length === 0 ? {} : { images }), ...(origin === undefined ? {} : { origin }), attempts,
+      const carries = record.body.kind === "prompt" ? record.body.carries : undefined;
+      for (const carriedId of new Set(carries)) {
+        const carried = inputs.get(identity(record, carriedId));
+        if (carried === undefined || carried.id === id) { continue; }
+        const { turn: _turn, reason: _reason, ...content } = carried;
+        const carriedAttempts: readonly InputAttempt[] = [...carried.attempts, { request: record, streamId, state: "pending" }];
+        publish({ ...content, attempts: carriedAttempts, ...deliveryState(carriedAttempts, drops.get(carried.id)) });
+      }
+      publish({ id, input, ...(carries === undefined ? {} : { carries }), ...(inputId === undefined ? {} : { inputId }), ...(images === undefined || images.length === 0 ? {} : { images }), ...(origin === undefined ? {} : { origin }), attempts,
         ...deliveryState(attempts, drops.get(id)), observations: existing?.observations ?? [] });
       handled = true;
     }
@@ -105,10 +115,18 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
     const input = id === undefined ? undefined : inputs.get(id);
     if (input !== undefined && (record.body.kind === "accepted" || record.body.kind === "rejected")) {
       const body = record.body;
-      const attempts = input.attempts.map((attempt): InputAttempt => attempt.request.id !== record.requestId || attempt.streamId !== streamId ? attempt : {
-        request: attempt.request, streamId, response: record, state: body.kind, ...(body.kind === "rejected" ? { reason: body.reason } : {}),
-      });
-      publish(withDeliveryState(input, attempts, drops.get(input.id)));
+      const request = input.attempts.find((attempt) => attempt.request.id === record.requestId && attempt.streamId === streamId)?.request;
+      const carries = request?.body.kind === "prompt" ? request.body.carries : undefined;
+      const related = [input, ...(carries ?? []).flatMap((inputId) => {
+        const carried = inputs.get(identity(record, inputId));
+        return carried === undefined || carried.id === input.id ? [] : [carried];
+      })];
+      for (const target of related) {
+        const attempts = target.attempts.map((attempt): InputAttempt => attempt.request.id !== record.requestId || attempt.streamId !== streamId ? attempt : {
+          request: attempt.request, streamId, response: record, state: body.kind, ...(body.kind === "rejected" ? { reason: body.reason } : {}),
+        });
+        publish(withDeliveryState(target, attempts, drops.get(target.id)));
+      }
       handled = true;
     }
   }
@@ -156,6 +174,29 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
         publish({ ...current, observations: [...input.observations, event] });
       } else {
         updates.push({ kind: "event", event });
+      }
+    }
+  }
+  // Freeze this pass: publishing carried updates appends to the same array.
+  const aggregateUpdates = updates.filter((update) => update.kind === "input" && update.input.carries !== undefined);
+  for (const update of aggregateUpdates) {
+    if (update.kind !== "input" || update.input.carries === undefined) { continue; }
+    const aggregate = update.input;
+    const latest = aggregate.attempts.at(-1);
+    for (const inputId of new Set(aggregate.carries)) {
+      const carried = inputs.get(identity(record, inputId));
+      const attempt = carried?.attempts.at(-1);
+      if (carried === undefined || carried.id === aggregate.id || latest === undefined
+        || attempt?.request.id !== latest.request.id || attempt.streamId !== latest.streamId) { continue; }
+      if (aggregate.state === "dropped" && aggregate.reason !== undefined) {
+        const drop: InputDrop = { attempts: carried.attempts.length, reason: aggregate.reason };
+        drops.set(carried.id, drop);
+        publish(withDeliveryState(carried, carried.attempts, drop));
+      } else if (aggregate.state === "accepted" && aggregate.observations.length > 0 && carried.reason === "runtime_exited") {
+        drops.delete(carried.id);
+        publish(withDeliveryState(carried, carried.attempts));
+      } else if (aggregate.turn !== undefined) {
+        publish({ ...carried, turn: aggregate.turn });
       }
     }
   }

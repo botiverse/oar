@@ -2,6 +2,7 @@ import type {
   ControlOutcome,
   ControlResult,
   InputOptions,
+  PromptOptions,
   AdapterSession,
   Session,
   SteerOrQueueResult,
@@ -48,7 +49,7 @@ export function controlOutcomeOf(result: ControlResult): ControlOutcome {
  */
 
 export function sealSession(adapterSession: AdapterSession): Session {
-  const prompt = async (input: string, options?: InputOptions): Promise<ControlOutcome> =>
+  const prompt = async (input: string, options?: PromptOptions): Promise<ControlOutcome> =>
     controlOutcomeOf(await adapterSession.prompt(input, { ...options, ...identify(options) }));
   // A session that cannot steer (or withdraw) has no `steer` (`withdraw`): its
   // absence is the capability. Where the adapter has one, the sealed member

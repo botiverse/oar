@@ -349,7 +349,7 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // prompt | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | dispose | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | dispose | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -373,7 +373,9 @@ control plane and at most one active turn
 ([decision](../design/decisions.md#concurrent-control-planes-and-prompts-2026-09-03)).
 `steer` and `withdraw` are optional: their presence is the capability
 ([which sessions have them](runtime-matrix.md#session-controls)), and
-`steerOrQueue` and `deliver` queue where `steer` is absent. `queue` is on
+`steerOrQueue` and ordinary `deliver` queue where `steer` is absent.
+Explicit `deliver(..., { when: "interrupt", maxWaitMs })` can instead
+withdraw, abort and merge those inputs ([contract](conversation.md#interrupting-and-merging-held-inputs)). `queue` is on
 every session; `capabilities.queue.durable` says whether held input
 survives a restart. See [withdrawing held input](#withdrawing-held-input).
 An adapter's `prompt / steer / queue / withdraw / abort` return
@@ -391,6 +393,20 @@ Call `abort()` first when stopping that durable work is intended. The turn helpe
 for the runtime's own turn end (aborting when a limit fires, and reporting
 that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
 waits for the running turn, if any, to end.
+
+A prompt's optional `carries: string[]` names earlier logical input ids sent
+in that same prompt, scoped to its session and agent lineage. It is a host
+control fact, not a native echo. Original queue and withdrawal records remain
+unchanged. The prompt's response settles every carried attempt, while the
+original content and origin remain available to views. Adapters copy this
+field to the prompt request only; it is never added to model text or vendor
+protocol fields. Older readers may ignore the additive field.
+
+Controls issued synchronously by a record observer can act before an adapter
+resumes draining its held queue. Reentrant records are retained immediately;
+the kernel finishes publishing the current record to every observer before
+publishing those new records, so all observers still receive monotonically
+ordered sequences.
 
 ## Withdrawing held input
 

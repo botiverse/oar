@@ -49,7 +49,7 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 
 | Stream fact | View effect |
 |---|---|
-| `prompt` request | its `ConversationInput` enters `messages`, and its turn opens below it |
+| `prompt` request | its `ConversationInput` enters `messages`, and its turn opens below it. With `carries`, known original inputs enter together with their original content and origin; the aggregate body is not repeated when all originals are known |
 | `steer` / `queue` request | on a stream that has echoed an input id before (codex, claude): the input waits in `pendingInputs` until its echo. On one that never has (pi, cursor and the ACP runtimes): it enters `messages` at the request and seals the open segment |
 | `prompt` / `steer` / `queue` response | updates the input in place, with attempts and delivery state (folded by `reduceConversation`). A rejected input enters `messages` there if it was waiting; a retry of it that must wait for its echo takes it back out |
 | `withdraw` request / response | an attempt on the input it names. Accepted: the input is `withdrawn` and leaves `pendingInputs`, and `messages` too where the stream placed it at its request; the segment that request sealed stays sealed. Refused `not_queued`: nothing moves. Queued again, the input enters by the rows above |
@@ -100,7 +100,7 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 | steer now | `steer` | the control exists only when `session.steer` does (a kimi, antigravity or opencode v2 session has none); the UI reads the member, never a runtime name |
 | withdraw a queued input | `withdraw(inputId)` | the control exists only when `session.withdraw` does (not on codex). `accepted`: the input is the caller's again; `not_queued`: none is waiting (it already went to the runtime, or was withdrawn before) |
 | edit a queued input | `withdraw`, then `queue` with the same `inputId` | only after an accepted withdraw; the input waits again from its new request |
-| send a queued input now | `withdraw`, then `deliver` with the same `inputId` | only after an accepted withdraw; prompts when idle, steers into the running turn where the session can steer, otherwise queues it again |
+| send a queued input now | `withdraw`, then `deliver` with the same `inputId` and `{ when: "interrupt", maxWaitMs }` | only after an accepted withdraw; prompts when idle or steers when available. Without steer, takes all held inputs back, interrupts at a bounded root-tool boundary and sends one merged prompt. Retain every id in `undeliveredInputIds` returned on failure; choosing to interrupt is host policy |
 | cancel | `abort` | acceptance says the stop was taken over; the outcome arrives at `turn_ended` or process exit |
 | answer a runtime request | open, see below | |
 | dispose | `dispose` | lifecycle, not a chat command |

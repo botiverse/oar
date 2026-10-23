@@ -51,7 +51,7 @@ export type { ToolOutputPart } from "./tool-output.js";
 export type { TaskEventBody, TaskStatus, TaskType } from "./tasks.js";
 export type { AgentStatus, RunningPhase } from "./status.js";
 export type { InputImage, InputOrigin } from "./input.js";
-export type { DeliverOptions, DeliverResult, DeliverWhen } from "./deliver.js";
+export type { DeliverOptions, DeliverResult, DeliverWhen, DeliverMergeInput, DeliverMergeResult } from "./deliver.js";
 
 export interface QueryResult<T> {
   /** The fold's current value. */
@@ -75,6 +75,11 @@ export interface InputOptions {
   readonly origin?: InputOrigin;
 }
 
+
+/** A single prompt may also deliver earlier inputs, without changing their historical queue/withdraw records. */
+export interface PromptOptions extends InputOptions {
+  readonly carries?: readonly string[];
+}
 
 /**
  * Session contract: one ordered, resumable record stream.
@@ -199,7 +204,7 @@ export interface SessionResources {
 export interface AdapterSession {
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
-  prompt(input: string, options?: InputOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
+  prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
   steer?(input: string, options?: InputOptions): Promise<ControlResult>; // mid-turn input; ABSENT when the runtime cannot inject into an active turn (kimi, antigravity, opencode v2): its presence is the capability. Rejected `no_active_turn` when nothing is active, `unsupported` when the runtime cannot take these inputs mid-turn (images on a cursor steer), `runtime_refused` when the runtime itself refuses (reasons start `not_steerable:`). Input written during runtime-autonomous compaction is HELD, not lost.
   queue(input: string, options?: InputOptions): Promise<ControlResult>; // input for a later turn, held by the runtime or the adapter (`capabilities.queue.durable` says which). That later turn has events but no request of its own: a spontaneous turn.
   withdraw?(inputId: string): Promise<ControlResult>; // take a held input (a queue request's `inputId`) back before it is sent; ABSENT where OAR cannot remove held input (codex, whose queue is the runtime's own): its presence is the capability. Accepted means the entry was removed before dispatch and the caller owns the input again; rejected `not_queued` when no held input with this id is waiting (already sent, never queued here, or already withdrawn). Atomic against the drain: never accepted when the input may already have been sent. The queue request and its response stay in the stream unchanged.
@@ -214,8 +219,8 @@ export interface AdapterSession {
 
 /** The API face: the SPI plus surfaces sealSession derives from the stream. Control members answer with `ControlOutcome`: the same records, read. */
 export interface Session extends AdapterSession {
-  prompt(input: string, options?: InputOptions): Promise<ControlOutcome>;
-  /** Present only when the runtime can steer; a host shows a steer control only where it exists, and `steerOrQueue` / `deliver` queue without it. */
+  prompt(input: string, options?: PromptOptions): Promise<ControlOutcome>;
+  /** Present only when the runtime can steer; `steerOrQueue` / ordinary `deliver` queue without it. Explicit interrupt delivery can withdraw, abort and merge instead. */
   steer?(input: string, options?: InputOptions): Promise<ControlOutcome>;
   queue(input: string, options?: InputOptions): Promise<ControlOutcome>;
   /** Present only where OAR holds the queue and can remove an entry before it is sent: a host offers withdraw, edit (withdraw, then `queue`) and send now (withdraw, then `deliver`) only where it exists. */
@@ -269,6 +274,8 @@ export interface Session extends AdapterSession {
    * status and retrying across the races between them; an idle session gets
    * a new turn, so an idle agent wakes. For hosts delivering notifications;
    * `origin` tells a UI the input did not come from a person.
+   * Explicit `interrupt` can take held inputs back and merge them into one
+   * new turn after a bounded root-tool wait and the runtime's own turn end.
    */
   deliver(input: string, options?: DeliverOptions): Promise<DeliverResult>;
 }

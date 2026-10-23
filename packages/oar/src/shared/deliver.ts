@@ -1,4 +1,5 @@
 import type { ControlOutcome, DeliverOptions, DeliverResult, InputOptions, Session } from "../contracts/session.js";
+import { interruptInto, pendingInterrupt } from "./deliver-interrupt.js";
 import { awaitIdle } from "../observe/turns.js";
 
 /** Attempts across prompt / steer / queue races before reporting the last refusal. */
@@ -47,7 +48,16 @@ async function intoRunning(session: Session, input: string, options: InputOption
 
 /** `Session.deliver`, derived from the session's own controls and status. */
 export async function deliverInto(session: Session, input: string, options: DeliverOptions & { readonly inputId: string }): Promise<DeliverResult> {
-  const { when = "now", ...inputOptions } = options;
+  if (options.when === "interrupt" && (!Number.isFinite(options.maxWaitMs) || options.maxWaitMs < 0)) {
+    throw new RangeError("interrupt maxWaitMs must be finite and nonnegative");
+  }
+  const pending = pendingInterrupt(session);
+  if (pending !== undefined) {
+    if (options.when === "interrupt" && pending.accepting()) { return pending.join(input, options); }
+    await pending.done;
+    return deliverInto(session, input, options);
+  }
+  const { when = "now", maxWaitMs: _wait, merge: _merge, ...inputOptions } = options;
   let last: ControlOutcome | null = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     if (when === "when_idle") {
@@ -64,7 +74,10 @@ export async function deliverInto(session: Session, input: string, options: Deli
       // A turn opened between the status read and the prompt: deliver into it.
     }
     if (when !== "when_idle") {
-      const result = await intoRunning(session, input, inputOptions, when);
+      if (options.when === "interrupt" && session.steer === undefined) {
+        return interruptInto(session, input, options);
+      }
+      const result = await intoRunning(session, input, inputOptions, when === "interrupt" ? "now" : when);
       if (result !== null) {
         return result;
       }
