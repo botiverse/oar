@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import { claudePrompted, foldClaudeStdout, initialClaudeProjection, type ProjectionCommand } from "../../packages/oar/src/runtimes/claude/projection.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -31,6 +32,7 @@ for (const fixture of fixtures) {
       state = next;
       rows.push(JSON.stringify(commands.map((command) => recordedCommand(command, native))));
     }
-    await expect(`${rows.join("\n")}\n`).toMatchFileSnapshot(new URL(fixture.replace(".raw.jsonl", ".stream-json.jsonl"), directory).pathname);
+    const baseline = new URL(fixture.replace(".raw.jsonl", ".stream-json.jsonl"), directory);
+    await expect(`${rows.join("\n")}\n`).toMatchFileSnapshot(fileURLToPath(baseline));
   });
 }
