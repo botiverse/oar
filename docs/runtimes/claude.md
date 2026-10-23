@@ -1563,6 +1563,8 @@ exclude automatic memory and account connectors. `claudeMdExcludes` covers
 the native and explicit config directories plus `~/CLAUDE.md` and
 `~/CLAUDE.local.md`: otherwise the project ancestor walk can load home
 memory as project memory. Project settings and memory remain enabled.
+OAR combines these settings with a requested `serviceTier` in one
+`--settings` object, because Claude replaces repeated settings arguments.
 
 Omission and `"include"` preserve normal loading. An exclusion open rejects
 `launchArgs` that supply `--settings`, `--setting-sources` or
@@ -1576,4 +1578,6 @@ MCP, rules and memory. Exclusion removes them while keeping project hooks,
 project memory and host MCP. An expired synthetic OAuth credential is
 refreshed into its original file; a later fresh process actually sends the
 rotated token and remains logged in. The same native session also resumes
-through exclusion and inclusion modes. No real account or provider is used.
+through exclusion and inclusion modes. Separate fast/default tier cases
+confirm Claude's native `fast_mode_state` and the absence of home memory
+in the same session. No real account or provider is used.

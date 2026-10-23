@@ -4,6 +4,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { claudeSessionEnv } from "./environment.js";
+import type { JsonRecord } from "../../shared/json.js";
 
 const MANAGED = new Set(["--setting-sources", "--settings", "--strict-mcp-config"]);
 
@@ -21,9 +22,9 @@ function configurationPaths(env: NodeJS.ProcessEnv, cwd: string): readonly strin
 }
 
 /** Native exclusion flags and child-only overrides; auth and refresh use the original store. */
-export function claudeUserConfiguration(options: SessionOptions): { readonly args: readonly string[]; readonly env: NodeJS.ProcessEnv } {
+export function claudeUserConfiguration(options: SessionOptions): { readonly args: readonly string[]; readonly settings: JsonRecord; readonly env: NodeJS.ProcessEnv } {
   const env = sessionEnvironment(claudeSessionEnv(options.env));
-  if (options.userConfiguration !== "exclude") { return { args: [], env }; }
+  if (options.userConfiguration !== "exclude") { return { args: [], settings: {}, env }; }
   for (const arg of options.launchArgs ?? []) {
     const flag = arg.split("=", 1)[0] ?? arg;
     if (MANAGED.has(flag)) {
@@ -31,7 +32,8 @@ export function claudeUserConfiguration(options: SessionOptions): { readonly arg
     }
   }
   return {
-    args: ["--setting-sources", "project,local", "--strict-mcp-config", "--settings", JSON.stringify({ claudeMdExcludes: configurationPaths(env, options.cwd) })],
+    args: ["--setting-sources", "project,local", "--strict-mcp-config"],
+    settings: { claudeMdExcludes: configurationPaths(env, options.cwd) },
     env: sessionEnvironment({ CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1", ENABLE_CLAUDEAI_MCP_SERVERS: "false" }, env),
   };
 }

@@ -3,8 +3,10 @@ import path from "node:path";
 import type { McpServer } from "../../../../packages/oar/src/contracts/session.js";
 
 export function configurationHook(marker: string): object {
-  const escaped = marker.replaceAll("\\", String.raw`\\`).replaceAll("'", String.raw`\'`);
-  return { hooks: { SessionStart: [{ hooks: [{ type: "command", command: `"${process.execPath}" -e "require('node:fs').writeFileSync('${escaped}', 'ran')"` }] }] } };
+  // The hook passes through a shell before JavaScript; keep Windows path
+  // backslashes out of both parsers rather than escaping them twice.
+  const encoded = Buffer.from(marker).toString("base64");
+  return { hooks: { SessionStart: [{ hooks: [{ type: "command", command: `"${process.execPath.replaceAll("\\", "/")}" -e "require('node:fs').writeFileSync(Buffer.from('${encoded}', 'base64').toString(), 'ran')"` }] }] } };
 }
 
 /** The project lives below HOME to exercise Claude's ancestor-memory walk. */
