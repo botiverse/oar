@@ -90,6 +90,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
         Qwen Code
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/qoder.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/qoder-on-dark.svg">
+          <img src="packages/oar/assets/brands/qoder-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Qoder
+      </a>
+    </td>
   </tr>
 </table>
 

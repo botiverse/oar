@@ -14,6 +14,12 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly duplicateReason: string;
   /** Whether the native protocol acknowledges inputs with command_lifecycle frames. */
   readonly commandLifecycle?: boolean;
+  /** Whether init starts a turn; false for dialects that emit it while idle and report command_lifecycle starts. */
+  readonly initStartsTurn?: boolean;
+  /** Keep the streamed prefix when a dialect emits its full assistant after message_stop. */
+  readonly assistantAfterMessageStop?: boolean;
+  /** False when native partial events omit message_start and the API message id. */
+  readonly partialMessageIds?: boolean;
   readonly assistant: (state: S, message: JsonRecord, root: boolean) => S;
   readonly result: (state: S, message: JsonRecord, agentPath: readonly string[]) => {
     readonly state: S;

@@ -20,6 +20,8 @@
  * vendor/behavior suites (local provider, isolated HOME, no account). Also run
  * qwen-native/lock-lifetime.ts: a successful warmup does not prove shared-HOME
  * concurrency is safe; retain initialization timing and the held-lock result.
+ * A changed Qoder binary also needs the qoder-native vendor/behavior suites
+ * and login tests (native model replay, isolated HOME, no account).
  * A version match is not a compatibility result. Pi, Pi Durable and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check
@@ -48,6 +50,7 @@ const sources: readonly { id: string; url: string; major?: number }[] = [
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },
   { id: "opencode", major: 1, url: "https://registry.npmjs.org/opencode-ai/latest" },
   { id: "opencode", major: 2, url: "https://registry.npmjs.org/@opencode/cli/latest" },
+  { id: "qoder", url: "https://registry.npmjs.org/@qoder-ai/qodercli/latest" },
   { id: "qwen", url: "https://registry.npmjs.org/@qwen-code/qwen-code/latest" },
   { id: "pi", url: `https://registry.npmjs.org/${PI_PACKAGE}/latest` },
   { id: "pi-durable", url: `https://registry.npmjs.org/${PI_DURABLE_PACKAGE}/latest` },

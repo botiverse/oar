@@ -6,6 +6,7 @@ import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { opencodeRuntime } from "./runtimes/opencode/index.js";
 import { piRuntime } from "./runtimes/pi/index.js";
+import { qoderRuntime } from "./runtimes/qoder/index.js";
 import { qwenRuntime } from "./runtimes/qwen/index.js";
 
 export * from "./contracts/index.js";
@@ -79,7 +80,13 @@ export const defaultRuntimes = new RuntimeRegistry([
   opencodeRuntime,
   piRuntime,
   qwenRuntime,
+  qoderRuntime,
 ]);
 
 export { runtimeBrands, runtimeBrandIcon } from "./brands.js";
 export type { RuntimeBrand } from "./brands.js";
+
+export { qoderRuntime } from "./runtimes/qoder/index.js";
+export { qoderSession } from "./runtimes/qoder/session.js";
+export { qoderInstallation } from "./runtimes/qoder/installation.js";
+export { qoderListModels, projectQoderModels } from "./runtimes/qoder/list-models.js";

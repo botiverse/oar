@@ -17,12 +17,13 @@ import { openTrace } from "./harness/trace.js";
 import { runtimeUnderTest } from "./harness/subject.js";
 
 const target = process.env.OAR_TEST ?? "mock";
-const { runtime, aimock: aimockEnv, concurrency, beforeSuite } = await selectBackend(target);
+const { runtime, aimock: aimockEnv, concurrency, beforeSuite, close } = await selectBackend(target);
 
 const installation = await runtime.installation?.();
 if (installation === undefined || installation.kind !== "available") {
   process.stdout.write(`${target}: not available (${installation?.kind ?? "no probe"}), skipping\n`);
   await aimockEnv?.stop();
+  await close?.();
   process.exit(0);
 }
 
@@ -45,4 +46,5 @@ for (const outcome of outcomes) {
 process.stdout.write(`${target}: ${outcomes.length - failures}/${outcomes.length} clean\n`);
 process.stdout.write(`trace: ${tracePath}\n`);
 await aimockEnv?.stop();
+await close?.();
 process.exit(failures === 0 ? 0 : 1);
