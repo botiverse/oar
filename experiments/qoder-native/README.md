@@ -45,7 +45,7 @@ stopped; they require restored account availability. See the
 [runtime mapping](../../docs/runtimes/qoder.md) for the exposed capabilities
 and remaining verification boundaries.
 
-### Windows startup comparison (2026-10-23)
+### Windows and Linux startup comparisons (2026-10-23)
 
 A cold native initialize completed in 13.7 seconds including launch and a
 preliminary version query. Five serial vendor tests passed. The unbounded
@@ -59,6 +59,22 @@ caused the unbounded startup failures. The local native reader used no account.
 OAR_TEST=qoder-native OAR_TEST_CONCURRENCY=2 pnpm run sea-trial
 ```
 
-Windows CI uses that concurrency setting. Other backends keep their existing
+Windows and Linux CI use that concurrency setting. Other backends keep their existing
 concurrency. Diagnostic runs: [unbounded](https://github.com/botiverse/oar/actions/runs/40008559577)
 and [two concurrent cases](https://github.com/botiverse/oar/actions/runs/40011070963).
+
+Linux also exceeded the help deadline without a concurrency cap. A subsequent
+[cold, serial and two-case comparison](https://github.com/botiverse/oar/actions/runs/40014865655)
+passed; initialize took 6.979 seconds from the request, 9.957 seconds including
+discovery and startup. The runtime page retains both failures and comparisons.
+
+### Installation query comparison (2026-10-23)
+
+`pnpm tsx experiments/qoder-native/installation.ts` compares `--version` and
+`--help` in three separate fresh homes each, then repeats each query in its
+same home. It sends no prompt or login request. Linux Qoder 1.1.78 returned
+its version in 0.490 to 0.909 seconds cold and 0.418 to 0.531 seconds warm;
+help took 1.375 to 1.773 seconds cold and 1.455 to 1.545 seconds warm. Both
+commands extracted native files, but version avoided the heavier help path.
+OAR now uses that single query. The timeout regression retains probe failure
+rather than misreporting an installed executable as missing.

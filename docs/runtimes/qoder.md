@@ -64,7 +64,15 @@ OAR finds `OAR_QODER_BIN`, `qodercli` on PATH, or the official user installation
 under `~/.local/bin`. On Unix, `installPlan` describes the vendor's installer
 with `--skip-path`; `install` verifies the resulting executable. Windows
 installation is left to the vendor instructions. The native executable can
-materialize its own files under `~/.qoder` during startup.
+materialize its own files under `~/.qoder` during startup, including `--version`.
+Installation discovery runs only `--version`, avoiding the heavier `--help`
+query. In three isolated Linux homes, cold version queries took 0.490 to
+0.909 seconds, while help took 1.375 to 1.773 seconds. These are observations,
+not latency guarantees; both commands materialized native files. A probe can
+still exceed its 15-second deadline under load. That rejects with a probe
+error retaining the timeout and stderr, rather than returning `not_found`.
+Only a missing executable produces `not_found`. The comparison is repeatable
+with `pnpm tsx experiments/qoder-native/installation.ts`.
 
 `login()` drives `qodercli login` and forwards only the standalone authorization
 URL. Cancellation and deadlines stop that attempt without logging out an
@@ -85,11 +93,43 @@ and the shared behavior suite used the real 1.1.78 binary with its native
 fake-response reader and a fresh home. They did not use account quota.
 
 Successful real-provider conversation and resume remain unverified because of
-the Credits rejection. Linux and macOS native CI passed. Windows passed a
-cold initialize probe, five serial native tests and all applicable shared
-behavior cases with two concurrent cases. Unbounded parallel startup exceeded
-the existing help and initialize deadlines, so Windows CI limits this backend
-to two concurrent cases. The adapter, assertions and deadlines are unchanged.
+the Credits rejection. Earlier Linux and macOS native CI passed. Windows and
+Linux each passed a cold initialize probe, five serial native tests and all
+applicable shared behavior cases with two concurrent cases. Unbounded parallel
+startup exceeded existing help or initialize deadlines, so Windows and Linux
+CI limit this backend to two concurrent cases. The adapter, assertions and
+deadlines are unchanged.
 The fake reader exercises the native agent loop but is not evidence of a
 particular remote provider's behavior. Reproduction commands and the first
 failures are recorded in [the native evidence guide](../../experiments/qoder-native/README.md).
+
+### Concurrent startup observations
+
+On `windows-latest` with Qoder 1.1.78, the behavior suite starts 19 cases
+without a concurrency cap; skipped and query-only cases do not all create
+sessions, and the exact simultaneous process count was not recorded.
+The [first run](https://github.com/botiverse/oar/actions/runs/40003398891/job/120585055716)
+exceeded the 15,000 ms native `--help` probe deadline. An
+[unchanged rerun](https://github.com/botiverse/oar/actions/runs/40003398891/job/120596276045)
+completed installation discovery but session opens exceeded the 30,000 ms
+`initialize` deadline. Both failures remain evidence; their cause is unknown.
+
+The [controlled Windows comparison](https://github.com/botiverse/oar/actions/runs/40011070963/job/120611286021)
+ran one cold initialization, then five serial native cases, then the same
+behavior suite with at most two active cases. Initialization answered after
+9.427 seconds from sending the request, or 13.713 seconds including discovery
+and startup. The serial cases took 126.89 seconds in total; all applicable
+behavior cases passed with their original assertions and deadlines.
+
+A later [Linux run](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724600)
+also exceeded the 15,000 ms help deadline during unbounded startup, despite an
+earlier Linux pass. This is therefore not established as Windows-specific.
+A [controlled Linux comparison](https://github.com/botiverse/oar/actions/runs/40014865655/job/120624217871)
+then passed the cold handshake, five serial native cases and all applicable
+behavior cases at concurrency two. Its initialize response took 6.979 seconds
+from the request, or 9.957 seconds including discovery and startup.
+Hosts can stagger cold session starts to avoid the observed burst; this is a
+workaround, not a demonstrated resource limit or a guarantee that all starts
+will fit these deadlines. Limiting test concurrency stabilizes evidence
+collection; it does not show that product behavior under concurrency is free
+of problems. OAR adds no startup retry and does not extend native deadlines.
