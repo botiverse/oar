@@ -1,7 +1,8 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { defineRuntime, piInstallation, piSession } from "../../packages/oar/src/index.js";
+import { defineRuntime, piInstallation, } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock, type LLMock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
@@ -43,7 +44,7 @@ function agentDir(): string {
   return dir;
 }
 
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi mcpServers", () => {
+describe.skipIf(!isPiBackend)("pi mcpServers", () => {
   test("a stdio and an http server attach, the agent calls both, and a resume attaches them again", async () => {
     const http = await startHttpEcho();
     const env = await startPiAimock(scriptPi, { captureRaw: true });
@@ -119,7 +120,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi mcpServers", () => {
       await mkdir(extensions, { recursive: true });
       await writeFile(path.join(extensions, "user-echo.ts"), `export default (pi) => { pi.registerMcpServer("echo", { command: ${JSON.stringify(process.execPath)}, args: [${JSON.stringify(ECHO_SERVER)}], exposure: "direct" }); };\n`);
       const opening = runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", STDIO_TOKEN)] });
-      await expect(opening).rejects.toThrow(/pi did not register the session's MCP servers: .*"echo" is already registered/u);
+      await expect(opening).rejects.toThrow(/"echo" is already registered/u);
       await expect(opening).rejects.not.toThrow(STDIO_TOKEN);
     } finally {
       await env.stop();

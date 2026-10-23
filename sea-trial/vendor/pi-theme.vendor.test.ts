@@ -1,8 +1,9 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, piInstallation, piSession } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, piInstallation, } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 
 // An extension tool that colors its result through `ctx.ui.theme`, as pi's own
@@ -22,7 +23,7 @@ export default function (pi) {
 }
 `;
 
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi theme for extension tools", () => {
+describe.skipIf(!isPiBackend)("pi theme for extension tools", () => {
   test("an extension tool that uses the theme runs as it does under pi's CLI", async () => {
     const env = await startPiAimock((mock) => {
       mock.on({ userMessage: /color it/u, hasToolResult: false }, { toolCalls: [{ name: "colored", arguments: "{}" }] });

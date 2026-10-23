@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
+import { asRecord } from "../json.js";
 
 /*
  * A runtime's descendants on POSIX, read from the system process table, so
@@ -70,13 +71,32 @@ function readPs(): ProcessTable {
   return table;
 }
 
+/** Windows has no process groups; creation time distinguishes reused PIDs. */
+function readWindows(): ProcessTable {
+  const output = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
+    "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={$_.CreationDate.ToUniversalTime().ToString('o')}} | ConvertTo-Json -Compress"], {
+    encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, maxBuffer: 16 * 1024 * 1024,
+  });
+  const values: unknown = JSON.parse(output);
+  const table = new Map<number, ProcessEntry>();
+  for (const value of Array.isArray(values) ? values : [values]) {
+    if (typeof value !== "object" || value === null) { continue; }
+    const entry = asRecord(value);
+    if (entry === null) { continue; }
+    if (typeof entry.ProcessId === "number" && typeof entry.ParentProcessId === "number" && typeof entry.Started === "string" && entry.Started.length > 0) {
+      table.set(entry.ProcessId, { pid: entry.ProcessId, ppid: entry.ParentProcessId, pgid: 0, start: entry.Started });
+    }
+  }
+  return table;
+}
+
 /**
  * The process table now (synchronous: the host's `exit` hook reads it too).
  * Empty when it cannot be read; the caller then reaches the process group only.
  */
-export function readProcessTable(source: "procfs" | "ps" = process.platform === "linux" ? "procfs" : "ps"): ProcessTable {
+export function readProcessTable(source: "procfs" | "ps" | "windows" = process.platform === "linux" ? "procfs" : (process.platform === "win32" ? "windows" : "ps")): ProcessTable {
   try {
-    return source === "procfs" ? readProcfs() : readPs();
+    return source === "procfs" ? readProcfs() : (source === "windows" ? readWindows() : readPs());
   } catch {
     return new Map();
   }

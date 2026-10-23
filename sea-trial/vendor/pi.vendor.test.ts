@@ -1,6 +1,7 @@
+import { isPiBackend, piRpc, piSession } from "./support/pi-runtime.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, piInstallation, piSession, defineRuntime, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, piInstallation, defineRuntime, type Session } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { assertContextUsage, promptTurn, runTurn } from "./support/asserts.js";
@@ -42,7 +43,7 @@ async function waitFor(predicate: () => boolean, what: string, ms = 30_000): Pro
 }
 
 /** Vendor-specific error edges for the in-process pi SDK (scripted provider). */
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", () => {
+describe.skipIf(!isPiBackend)("pi vendor error edges", () => {
   test("an invalid request ends the turn with the provider error in pi's own agent_end", async () => {
     const env = await startPiAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, {
@@ -186,7 +187,12 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", (
       const activity = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "agent_start" ? record.body.events : []);
       expect(activity).toEqual([{ kind: "turn_active" }]);
       expect(types).toContain("agent_end");
-      expect(types.at(-1)).toBe("agent_settled");
+      if (piRpc) {
+        // The RPC encoder adds the stats query's reply after the native SDK
+        // boundary. It is retained as a frame, in its received order.
+        expect(types.slice(-2)).toEqual(["agent_settled", "response"]);
+        expect(session.records().at(-1)).toMatchObject({ kind: "frame", body: { native: { command: "get_session_stats", success: true } } });
+      } else { expect(types.at(-1)).toBe("agent_settled"); }
       expect(session.model().value).toMatch(/\//u);
       await session.dispose();
     } finally {

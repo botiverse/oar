@@ -79,7 +79,7 @@ subject of [foundations.md](foundations.md).
 14. **Context management.** Context accounting and native compaction events
     (codex, claude and pi report compaction differently); external compaction continuity is defined by the
     [session graph spec](../spec/session-graph-and-cursor.md).
-15. **Placement.** Local co-process vs remote service vs managed cloud:
+15. **[Placement](system.md#placement).** Local co-process vs remote service vs managed cloud:
     session, process, and host lifecycle are three different layers, and
     multi-client attach needs a resumable cursor or you get grok-style
     notification loss.

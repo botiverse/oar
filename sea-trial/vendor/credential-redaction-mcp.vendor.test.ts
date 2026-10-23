@@ -1,15 +1,15 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { piSession } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { ECHO_SERVER, startHttpEcho } from "./support/echo-mcp.js";
 import { runTurn } from "./support/asserts.js";
 
 const firstKey = "oar-provider-echo-secret-one";
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi MCP metadata stays readable while Authorization and its bare token are redacted", async () => {
+test.skipIf(!isPiBackend)("Pi MCP metadata stays readable while Authorization and its bare token are redacted", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "oar-pi-mcp-credential-test-"));
   const http = await startHttpEcho();
   const password = "oar-database:password/sentinel";

@@ -1,6 +1,7 @@
+import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
-import { codexRuntime, piRuntime, SessionNotFoundError, type Runtime } from "../../packages/oar/src/index.js";
+import { codexRuntime, SessionNotFoundError, type Runtime } from "../../packages/oar/src/index.js";
 import { startCodexAimock, startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
@@ -22,11 +23,11 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex missing rollout reje
   } finally { await provider.stop(); }
 }, 120_000);
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi missing file rejects with the public error and the searched cwd", async () => {
+test.skipIf(!isPiBackend)("Pi missing file rejects with the public error and the searched cwd", async () => {
   const provider = await startPiAimock();
   try {
     const id = randomUUID();
-    const failure = await missing(piRuntime, id);
+    const failure = await missing(piTestRuntime, id);
     expect(failure).toBeInstanceOf(SessionNotFoundError);
     expect(failure).toMatchObject({ sessionId: id, cause: { method: "SessionManager.list", native: { cwd: process.cwd(), sessionCount: 0 } } });
     expect(provider.mock.getRequests()).toEqual([]);

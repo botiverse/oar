@@ -1,9 +1,10 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import type { CredentialProblem, FailureClass, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, piInstallation, piSession, RuntimeFailureError } from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, piInstallation, RuntimeFailureError } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv, type LLMock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
@@ -162,7 +163,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex: failure classes
   }, 120_000);
 });
 
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi: failure classes", () => {
+describe.skipIf(!isPiBackend)("pi: failure classes", () => {
   const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
   const cells: readonly Cell[] = [
     { name: "invalid key", reply: ANTHROPIC_CELLS.invalidKey, expected: { failure: "auth", status: 401 } },

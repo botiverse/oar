@@ -124,3 +124,21 @@ scheduling, policy, persistence, multi-controller arbitration, and human
 presentation. A consumer may cache projections, but must be able to rebuild
 them from the stream. A runtime may expose stronger native behavior than OAR
 maps; that is evidence-backed follow-up, never permission to infer support.
+
+## Placement
+
+A session and the process that runs it are separate layers. For an agent
+that executes code on the user's machine, the target is one runtime process
+per session: only a process boundary gives a stop that does not depend on the
+agent's cooperation, fault and memory isolation from the host and from other
+sessions, per-session environment and configuration, and a dependency tree
+apart from the host's. CLI runtimes have this natively. Where a runtime's
+primary interface is an in-process SDK, OAR drives the vendor's own
+out-of-process interface as an explicit placement (Pi's RPC mode); it does not
+build its own process wrapper around an SDK. In-process remains an explicit
+choice for what only it provides: host functions injected as tools, browser
+hosts, and engines whose storage the host owns (pi-durable). The Session
+contract does not change with placement; differences are declared like any
+other capability difference. A host shipped as a single executable supplies
+the command that starts the runtime process, and OAR checks that the started
+runtime is the version it pins.

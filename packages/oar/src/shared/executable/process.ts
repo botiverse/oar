@@ -1,6 +1,6 @@
 import { execFile, type ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
-import type { Readable, Writable } from "node:stream";
+import { Duplex, type Readable, type Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
@@ -9,7 +9,6 @@ import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from 
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export { trackOwnedProcess } from "./ownership.js";
-
 export interface LineProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
@@ -30,8 +29,11 @@ export interface LineProcessOptions {
    * again just before the SIGKILL) and the groups they belong to.
    */
   readonly killTree?: boolean;
+  /** Let EOF run native shutdown hooks before the bounded force-kill. */
+  readonly shutdown?: "stdin";
+  /** Open a private bidirectional pipe at child fd 3, separate from stdout. */
+  readonly extraPipe?: boolean;
 }
-
 /**
  * How long a process asked to stop (SIGTERM) gets before it is killed outright
  * (SIGKILL): the bound that keeps `kill()` followed by `await exited` from
@@ -42,7 +44,6 @@ export interface LineProcessOptions {
  * short kills the hooks with it. Observed exits take 0.6-2.3 s.
  */
 export const KILL_GRACE_MS = 10_000;
-
 /**
  * The grace period in force: `OAR_KILL_GRACE_MS` when it holds a nonnegative
  * number of milliseconds (a host whose runtimes need longer, e.g. claude with
@@ -53,7 +54,6 @@ export function killGraceMs(env: NodeJS.ProcessEnv = process.env): number {
   const value = Number(configured);
   return configured.length > 0 && Number.isFinite(value) && value >= 0 ? value : KILL_GRACE_MS;
 }
-
 /**
  * POSIX children are spawned detached, which makes each the leader of its own
  * process group, so one signal to the negative pid reaches every process it
@@ -66,7 +66,6 @@ export function killGraceMs(env: NodeJS.ProcessEnv = process.env): number {
  * detached child there gets its own console, so it stays attached.
  */
 export const OWN_PROCESS_GROUP = process.platform !== "win32";
-
 /**
  * Send `signal` to a child spawned with `detached: OWN_PROCESS_GROUP` and to
  * everything in its process group. Falls back to the child alone where there
@@ -86,7 +85,6 @@ export function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals):
   }
   child.kill(signal);
 }
-
 /** A long-lived child whose raw streams can also be observed line-by-line. */
 export interface LineProcess {
   /** Resolves once the OS process exists; rejects when it cannot be spawned. */
@@ -98,6 +96,8 @@ export interface LineProcess {
   readonly exited: Promise<number | null>;
   readonly stdin: Writable;
   readonly stdout: Readable;
+  /** Present only when extraPipe was requested; the caller owns its protocol. */
+  readonly extraPipe?: Duplex;
   /** Native status and the last 8 KiB of stderr observed so far. */
   diagnostics(): ProcessDiagnostics;
   write(text: string): void;
@@ -107,7 +107,7 @@ export interface LineProcess {
   onExit(handler: (code: number | null) => void): void;
   /**
    * Stop the process and everything it started: close stdin, SIGTERM its
-   * process group, and SIGKILL the group if the child is still running once
+   * process group (unless shutdown is stdin), and SIGKILL the group if the child is still running once
    * the grace period is over; with `killTree`, its descendants outside the
    * group too. On Windows it ends the child alone, or its whole tree with
    * `killTree`. Idempotent; a no-op after the exit, since a reaped pid may
@@ -117,7 +117,6 @@ export interface LineProcess {
   /** The child's memory with its group and descendants (process-resources.ts); null once it has exited. */
   readonly resources: ReturnType<typeof treeResourcesReader>;
 }
-
 /**
  * Windows has no process groups: end the child and everything it started by
  * walking its process tree (`taskkill /T /F`), falling back to the child
@@ -135,8 +134,6 @@ export function killProcessTree(child: ChildProcess): void {
   });
   trackOwnedProcess(killer);
 }
-
-
 /**
  * Spawn through cross-spawn. On Windows a `.cmd`/`.bat` shim is first
  * resolved to its native target or an explicitly escaped cmd.exe invocation.
@@ -151,7 +148,7 @@ export function spawnLineProcess(
   const child = spawnChecked(() => spawn(target.command, [...target.args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
-    stdio: ["pipe", "pipe", "pipe"],
+    stdio: options.extraPipe === true ? ["pipe", "pipe", "pipe", "overlapped"] : ["pipe", "pipe", "pipe"], // Child async I/O needs Windows FILE_FLAG_OVERLAPPED.
     detached: OWN_PROCESS_GROUP,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   }));
@@ -180,7 +177,7 @@ export function spawnLineProcess(
   let exitSignal: NodeJS.Signals | null = null;
   let spawnError: ProcessDiagnostics["error"] = undefined;
   let escalation: NodeJS.Timeout | null = null;
-  // POSIX `killTree`: the child's descendants when kill() began, until they
+  // `killTree`: the child's descendants when kill() began, until they
   // have had their SIGKILL.
   let descendants: readonly ProcessEntry[] = [];
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
@@ -213,7 +210,6 @@ export function spawnLineProcess(
     spawnFailed(spawnFailure(error));
     end(null);
   });
-
   const readLines = (): void => {
     // Keep incomplete UTF-8 code points between chunks without changing the
     // raw stdout stream used by protocol SDKs and other observers.
@@ -238,6 +234,7 @@ export function spawnLineProcess(
     exited,
     stdin,
     stdout,
+    ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => ({
       exitCode, signal: exitSignal, stderr: stderr.text(),
       ...(spawnError === undefined ? {} : { error: spawnError }),
@@ -262,11 +259,11 @@ export function spawnLineProcess(
     },
     resources: treeResourcesReader(child, () => ended),
     kill() {
-      stdin.end();
       if (ended || escalation !== null) {
         return;
       }
-      if (options.killTree === true && process.platform === "win32") {
+      if (options.shutdown !== "stdin" && options.killTree === true && process.platform === "win32") {
+        stdin.end();
         killProcessTree(child);
         escalation = setTimeout(() => {
           child.kill("SIGKILL");
@@ -280,9 +277,11 @@ export function spawnLineProcess(
         // re-parented and no longer found below it.
         descendants = descendantsOf(readProcessTable(), pid);
       }
-      signalProcessGroup(child, "SIGTERM");
-      // Cleared by the exit, so it only fires on a process that ignored the
-      // SIGTERM; the SIGKILL then takes its whole group down with it.
+      stdin.end();
+      // Pi RPC reenters shutdown on EOF plus SIGTERM and skips its hooks.
+      // Its caller selects EOF alone, with the same bounded escalation.
+      if (options.shutdown !== "stdin") { signalProcessGroup(child, "SIGTERM"); }
+      // Exit clears this deadline; otherwise force-end the remaining tree.
       escalation = setTimeout(() => {
         if (!tree) {
           signalProcessGroup(child, "SIGKILL");
@@ -291,7 +290,8 @@ export function spawnLineProcess(
         // Read again first: the child may have started more since.
         const table = readProcessTable();
         const now = descendantsOf(table, pid);
-        signalProcessGroup(child, "SIGKILL");
+        if (process.platform === "win32") { killProcessTree(child); }
+        else { signalProcessGroup(child, "SIGKILL"); }
         killEntries([...descendants, ...now], table);
         descendants = [];
       }, killGraceMs());

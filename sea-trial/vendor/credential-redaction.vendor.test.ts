@@ -1,3 +1,4 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -5,7 +6,7 @@ import path from "node:path";
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { LLMock } from "@copilotkit/aimock";
-import { claudeInstallation, claudeSession, piSession, type RawEvent, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeSession, type RawEvent, type Session } from "../../packages/oar/src/index.js";
 import { runTurn, withProcessEnv } from "./support/asserts.js";
 
 const firstKey = "oar-provider-echo-secret-one";
@@ -91,7 +92,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude provider-echoed en
   }
 }, 120_000);
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi provider-echoed SDK keys are removed at open and after a native model change", async () => {
+test.skipIf(!isPiBackend)("Pi provider-echoed SDK keys are removed at open and after a native model change", async () => {
   const provider = await echoProvider();
   const directory = await mkdtemp(path.join(tmpdir(), "oar-pi-credential-test-"));
   try {
@@ -107,7 +108,7 @@ test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi provider-echoed SDK keys a
 }, 120_000);
 
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi short local-provider keys preserve model IDs and response text", async () => {
+test.skipIf(!isPiBackend)("Pi short local-provider keys preserve model IDs and response text", async () => {
   const mock = new LLMock({ port: 0 });
   mock.onMessage("hello", { content: "ollama says hello" });
   await mock.start();
