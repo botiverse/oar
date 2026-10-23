@@ -394,6 +394,11 @@ for the runtime's own turn end (aborting when a limit fires, and reporting
 that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
 waits for the running turn, if any, to end.
 
+An invalid `carries` claim produces a rejected prompt without calling the
+runtime. Validation precedes the request record: each id must belong to the
+same session and agent and have an accepted withdraw as its latest attempt.
+The rejected claim is retained for audit but does not transfer input ownership.
+
 A prompt's optional `carries: string[]` names earlier logical input ids sent
 in that same prompt, scoped to its session and agent lineage. It is a host
 control fact, not a native echo. Original queue and withdrawal records remain

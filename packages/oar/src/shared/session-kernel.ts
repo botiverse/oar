@@ -1,4 +1,4 @@
-import { emptyInputRefusal } from "./control-input.js";
+import { carriesRefusal, emptyInputRefusal } from "./control-input.js";
 import { withSessionRecord } from "../observe/graph.js";
 import type {
   ControlResult,
@@ -180,7 +180,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
     request,
     respond,
     async control(body, decide, at) {
-      const blocked = unreachable();
+      const blocked = unreachable() ?? carriesRefusal(body, log, at?.sessionId ?? sessionId, at?.agentPath ?? []);
       const issued = request("toRuntime", body, at);
       const decided = blocked ?? emptyInputRefusal(body) ?? await settle(decide, { ...issued, body });
       return { request: issued, response: respond(issued.id, decided, at) };

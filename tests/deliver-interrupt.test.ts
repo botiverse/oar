@@ -40,6 +40,20 @@ async function working(session: Session) {
 }
 
 for (const { name, profile } of profiles) {
+  test(`${name}: prompt refuses carries of an input that is still queued`, async () => {
+    const { session } = await fixture(profile);
+    await working(session);
+    const queued = await session.queue("still queued");
+    if (queued.request.body.kind !== "queue") { throw new Error("expected queue"); }
+    const inputId = queued.request.body.inputId ?? "";
+    const result = await session.prompt("false merge", { carries: [inputId] });
+    expect(result).toMatchObject({ kind: "rejected", code: "unsupported", reason: `carries input ${inputId} is not a withdrawn input owned by this session and agent` });
+    const original = conversationOf(session.records()).inputs.get(JSON.stringify([session.id, [], inputId]));
+    expect(original).toMatchObject({ input: "still queued", state: "accepted" });
+    expect(original?.attempts).toHaveLength(1);
+    expect(await session.withdraw?.(inputId)).toMatchObject({ kind: "accepted" });
+  });
+
   test(`${name}: waits for every root tool, withdraws every input, then sends one merged prompt`, async () => {
     const { session, command } = await fixture(profile);
     await working(session);

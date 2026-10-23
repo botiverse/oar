@@ -88,7 +88,8 @@ function hiddenAggregate(input: ConversationInput, conversation: ConversationSta
   const request = input.attempts.at(-1)?.request;
   const carried = input.carries?.filter((id) => id !== input.inputId) ?? [];
   return carried.length > 0 && request !== undefined
-    && carried.every((inputId) => conversation.inputs.has(JSON.stringify([request.sessionId, request.agentPath, inputId])));
+    && carried.every((inputId) => conversation.inputs.get(JSON.stringify([request.sessionId, request.agentPath, inputId]))?.attempts
+      .some((attempt) => attempt.request === request) === true);
 }
 
 /** Queue evidence arms attribution; only an actual conflicting turn defers a placed input. */

@@ -1,3 +1,4 @@
+import { invalidCarriedInput } from "./input-carries.js";
 import { awaitsEcho, deliveryState, withDeliveryState, type InputDrop } from "./input-delivery.js";
 import type { Cursor, Event, InputImage, InputOrigin, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
 import { eventsOf, type KnownControl } from "./events.js";
@@ -99,7 +100,10 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       const attempts: readonly InputAttempt[] = [...(existing?.attempts ?? []), { request: record, streamId, state: "pending" }];
       requests.set(operationKey(record.id), id);
       const carries = record.body.kind === "prompt" ? record.body.carries : undefined;
-      for (const carriedId of new Set(carries)) {
+      // Preserve rejected caller claims as records without changing the inputs
+      // they do not own. Validate the whole set before linking any member.
+      const invalid = invalidCarriedInput(record.body, (carriedId) => inputs.get(identity(record, carriedId)));
+      for (const carriedId of new Set(invalid === undefined ? carries : [])) {
         const carried = inputs.get(identity(record, carriedId));
         if (carried === undefined || carried.id === id) { continue; }
         const { turn: _turn, reason: _reason, ...content } = carried;
@@ -119,7 +123,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       const carries = request?.body.kind === "prompt" ? request.body.carries : undefined;
       const related = [input, ...(carries ?? []).flatMap((inputId) => {
         const carried = inputs.get(identity(record, inputId));
-        return carried === undefined || carried.id === input.id ? [] : [carried];
+        return carried === undefined || carried.id === input.id || !carried.attempts.some((attempt) => attempt.request.id === record.requestId && attempt.streamId === streamId) ? [] : [carried];
       })];
       for (const target of related) {
         const attempts = target.attempts.map((attempt): InputAttempt => attempt.request.id !== record.requestId || attempt.streamId !== streamId ? attempt : {

@@ -80,6 +80,12 @@ An entry already dispatched at a natural-boundary race cannot be withdrawn:
 that caller gets `queued`, with any other merged or undelivered ids still
 reported. An accepted input is never returned for automatic resubmission.
 
+Every carried id must name an input in this session and agent whose latest
+attempt is an accepted withdraw, with no later delivery. OAR checks the whole
+set before publishing the prompt attempt and refuses it without invoking the
+runtime if any id fails. The rejected request retains the caller's claim for
+audit, but conversation and chat projections leave those original inputs alone.
+
 `PromptOptions.carries` is also available to hosts doing their own explicit
 withdraw/merge/prompt sequence. It names earlier input ids in the same session
 and agent lineage. `reduceConversation` appends that prompt and its response

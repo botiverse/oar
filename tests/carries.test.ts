@@ -80,3 +80,21 @@ test("a late aggregate response settles the carries on that request, independent
   kernel.respond(old.id, { kind: "accepted" });
   expect(conversationOf(kernel.records()).inputs.get(JSON.stringify(["root", [], firstId]))?.state).toBe("accepted");
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Each state is checked before and after the refused control.
+test.each(["queued", "pending-withdraw", "requeued", "foreign-agent", "foreign-session", "missing"])("carries rejects caller-unowned input: %s", async (state) => {
+  const kernel = createSessionKernel("root");
+  const at = { ...(state === "foreign-agent" ? { agentPath: ["child"] } : {}), ...(state === "foreign-session" ? { sessionId: "other" } : {}) };
+  if (state !== "missing") {
+    await kernel.control({ kind: "queue", inputId: firstId, input: "original" }, () => ({ kind: "accepted" }), at);
+    if (state === "pending-withdraw") { kernel.request("toRuntime", { kind: "withdraw", inputId: firstId }, at); }
+    else if (state !== "queued") { await kernel.control({ kind: "withdraw", inputId: firstId }, () => ({ kind: "accepted" }), at); }
+    if (state === "requeued") { await kernel.control({ kind: "queue", inputId: firstId, input: "original" }, () => ({ kind: "accepted" })); }
+  }
+  const original = conversationOf(kernel.records()).inputs.get(JSON.stringify([at.sessionId ?? "root", at.agentPath ?? [], firstId]));
+  let called = false;
+  const result = await kernel.control({ kind: "prompt", inputId: aggregateId, input: "merged", carries: [firstId] }, () => { called = true; return { kind: "accepted" }; });
+  expect(result.response.body).toEqual({ kind: "rejected", code: "unsupported", reason: `carries input ${firstId} is not a withdrawn input owned by this session and agent` });
+  expect(called).toBe(false);
+  expect(conversationOf(kernel.records()).inputs.get(JSON.stringify([at.sessionId ?? "root", at.agentPath ?? [], firstId]))).toEqual(original);
+});
