@@ -5,8 +5,17 @@ export interface PiProjectOptions {
   readonly allowProjectPackageInstall?: boolean;
 }
 
-/** Options shared by the Pi factory and its session, model-list and inventory operations. */
-export interface PiRuntimeOptions extends PiProjectOptions {
-  /** One bundled native RPC process per session, or the embedded SDK (default). */
-  readonly execution?: "in-process" | "subprocess";
-}
+/** Execution placement and project policy share one factory configuration. */
+export type PiRuntimeOptions = PiProjectOptions & ({
+  /** The embedded SDK remains the default. */
+  readonly execution?: "in-process";
+  readonly command?: never;
+  readonly args?: never;
+} | {
+  /** One native RPC process per session. */
+  readonly execution: "subprocess";
+  /** A Pi CLI executable, as a path or PATH command, never a shell expression. */
+  readonly command?: string;
+  /** Prefix arguments, for example a host binary's Pi subcommand. Requires command. */
+  readonly args?: readonly string[];
+});

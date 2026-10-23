@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, test, vi } from "vitest";
 import { createPiRuntime, promptAndWait, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
 import { piSessionDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
@@ -55,6 +56,30 @@ function toolNames(request: unknown): string[] {
 }
 
 describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC process boundaries", () => {
+  test.each([false, true])("a host-selected Pi executable reports context from each settled turn; prefix args=%s", async (prefix) => {
+    const f = await fixture("");
+    const selected = createPiRuntime({ execution: "subprocess", ...(prefix
+      ? { command: process.execPath, args: [fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent/rpc-entry"))] }
+      : { command: path.resolve(`node_modules/.bin/pi${process.platform === "win32" ? ".cmd" : ""}`) }) });
+    const installation = await selected.installation();
+    assert.ok(installation.kind === "available");
+    const session = await selected.session(installation, { cwd: f.cwd, model: "aimock/aimock-thinking", env: { ...f.env.env } });
+    try {
+      await turn(session, "first");
+      await turn(session, "second");
+      const records = session.records();
+      const usage = records.flatMap((row) => row.kind === "frame" ? row.body.events.flatMap((event) => event.kind === "usage" && event.usage.context !== undefined ? [event.usage.context] : []) : []);
+      const stats = records.flatMap((row) => {
+        if (row.kind !== "frame") { return []; }
+        const native = asRecord(row.body.native);
+        return native?.command === "get_session_stats" && native.success === true ? [asRecord(native.data)?.contextUsage] : [];
+      });
+      expect(stats).toHaveLength(2);
+      expect(usage).toEqual(stats);
+      expect(session.contextUsage().value).toEqual(stats.at(-1));
+    } finally { await session.dispose(); await f.stop(); }
+  }, 60_000);
+
   test("a new process restores id, model and transcript, including activated defaults; current exclusions still win", async () => {
     const f = await fixture(`${register}\npi.on("session_start", () => {
       if (process.env.OAR_PROBE_ACTIVATE === "1") pi.setActiveTools([...pi.getActiveTools(), "history_probe"]);
