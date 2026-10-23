@@ -1,9 +1,9 @@
 import { claudeServiceTierArgs } from "./service-tier.js";
+import { UnsupportedOptionError, type SessionOptions } from "../../contracts/index.js";
 import { refuseManagedLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { claudeSessionEnv } from "./environment.js";
-import type { SessionOptions } from "../../contracts/session.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
 import { checkSessionName } from "../../shared/session-options.js";
@@ -73,6 +73,13 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
  * and when claude cannot be spawned.
  */
 export async function launchClaude(command: string, sessionId: string, options: SessionOptions): Promise<ClaudeProcess> {
+  if (options.resume !== undefined) {
+    for (const option of ["systemPrompt", "appendSystemPrompt"] as const) {
+      if (options[option] !== undefined) {
+        throw new UnsupportedOptionError(option, `Claude ignores ${option} when resuming. Omit systemPrompt and appendSystemPrompt on resume to keep the saved prompts; create a new session to change them.`);
+      }
+    }
+  }
   refuseManagedLaunchArgs(options.launchArgs);
   checkSessionName(options);
   const tierArgs = claudeServiceTierArgs(options.serviceTier);

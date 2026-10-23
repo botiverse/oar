@@ -588,6 +588,14 @@ base prompt) and `appendSystemPrompt` to `developerInstructions` (appended as
 a developer message); `instructions` / `userInstructions` are silently
 ignored by `thread/start`. Cwd and the process environment overlay are
 forwarded. Requested and effective configuration remain distinct.
+On resume, Codex 0.164.0 applies a replacement `systemPrompt` but ignores
+`appendSystemPrompt`. OAR refuses any explicit append on resume with
+`UnsupportedOptionError` before starting a process, including an empty or
+repeated value. Hosts must omit the append to preserve saved developer
+instructions, or create a new session to change them. OAR does not inspect
+history files to compare text.
+[Native request evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts),
+[resume regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts).
 [Vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
 
 **Model listing:** `listModels` opens a bounded app-server connection and

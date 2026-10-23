@@ -424,6 +424,19 @@ The refusals below depend on a value, the installed version or the session
 itself, so `refusedSessionOptions` does not declare them; each is the same
 `UnsupportedOptionError`.
 
+| Runtime and condition | Refused option | Migration |
+| --- | --- | --- |
+| Claude, `resume` supplied | `systemPrompt`, `appendSystemPrompt` | Omit both to keep the saved prompts; create a new session to change them. |
+| Codex, `resume` supplied | `appendSystemPrompt` | Omit it to keep saved developer instructions; create a new session to change them. A replacement `systemPrompt` still applies on resume. |
+
+These prompt refusals happen before any process starts, including for empty
+strings or the same text a host supplies on every open. Neither native
+interface provides the original text for an authoritative comparison.
+Claude 2.1.309 ignores both overrides; Codex 0.164.0 ignores the append but
+applies replacement ([request evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)).
+Hosts may catch `UnsupportedOptionError` and reopen with the refused option
+omitted; OAR does not remove it silently or invent a replacement session.
+
 OpenCode v1 carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
 an empty replacement is refused because native OpenCode selects its built-in
