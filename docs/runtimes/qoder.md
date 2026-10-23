@@ -108,8 +108,8 @@ Successful real-provider conversation and resume remain unverified because of
 the Credits rejection. Earlier Linux and macOS native CI passed. Windows and
 Linux each passed a cold initialize probe, five serial native tests and all
 applicable shared behavior cases with two concurrent cases. Unbounded parallel
-startup exceeded existing help or initialize deadlines, so Windows and Linux
-CI limit this backend to two concurrent cases. The adapter, assertions and
+startup exceeded existing help, version or initialize deadlines, so CI on
+all three platforms limits this backend to two concurrent cases. The adapter, assertions and
 deadlines are unchanged.
 The fake reader exercises the native agent loop but is not evidence of a
 particular remote provider's behavior. Reproduction commands and the first
@@ -165,3 +165,13 @@ so it does not establish the cause. The replay fixture now retains native
 startup logs in CI artifacts, and Qoder CI forwards child stderr. These
 diagnostics use only isolated, unauthenticated replay homes. No retry,
 deadline increase or further concurrency reduction was added.
+
+The [latest macOS run](https://github.com/botiverse/oar/actions/runs/40023877345/job/120655031487)
+passed the suite's single installation query, then timed out in concurrent
+`--version` queries after 15 seconds, before any session initialized. The
+existing two-case CI limit now also applies on macOS; the probe deadline is
+unchanged. Hosts can therefore receive an installation-probe failure under
+startup load even when Qoder is installed. OAR preserves that failure and
+its diagnostics; it does not report the executable as missing. The single
+success and concurrent failures do not establish the underlying cause or
+show that every cold start will fit the deadline.
