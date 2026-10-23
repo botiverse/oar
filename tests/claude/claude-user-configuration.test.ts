@@ -1,4 +1,6 @@
 import path from "node:path";
+import { mkdtemp, realpath, mkdir, symlink, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { afterEach, expect, test, vi } from "vitest";
 import { launchClaude } from "../../packages/oar/src/runtimes/claude/launch.js";
 import type { LineProcessOptions } from "../../packages/oar/src/shared/executable/index.js";
@@ -33,6 +35,38 @@ test("exclude keeps the credential directory, overrides memory controls only in 
 test.each(["--settings", "--settings={}", "--setting-sources=user", "--strict-mcp-config"])("exclude refuses conflicting %s before process launch", async (flag) => {
   await expect(launchClaude("claude", "id", { cwd: process.cwd(), userConfiguration: "exclude", launchArgs: [flag] })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "launchArgs" });
   expect(spawn).not.toHaveBeenCalled();
+});
+
+async function aliasedDirectories(): Promise<{ root: string; original: string; alias: string; cwd: string }> {
+  const temporary = await mkdtemp(path.join(tmpdir(), "oar-config-alias-"));
+  const root = await realpath(temporary);
+  const original = path.join(root, "original");
+  const alias = path.join(root, "alias");
+  const cwd = path.join(original, "project");
+  await mkdir(cwd, { recursive: true });
+  await symlink(original, alias, "junction");
+  return { root, original, alias, cwd };
+}
+
+test.each(["home", "config"])("exclude refuses an aliased %s before process launch", async (target) => {
+  const { root, alias, cwd } = await aliasedDirectories();
+  try {
+    const home = target === "home" ? alias : root;
+    await expect(launchClaude("claude", "id", {
+      cwd, userConfiguration: "exclude", env: { HOME: home, USERPROFILE: home, CLAUDE_CONFIG_DIR: target === "config" ? alias : path.join(home, ".claude") },
+    })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "userConfiguration" });
+    expect(spawn).not.toHaveBeenCalled();
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("an alias outside the cwd ancestor chain does not prevent exclusion", async () => {
+  const { root, alias } = await aliasedDirectories();
+  spawn.mockReturnValue(fakeLineProcess());
+  try {
+    const child = await launchClaude("claude", "id", { cwd: root, userConfiguration: "exclude", env: { HOME: alias, USERPROFILE: alias, CLAUDE_CONFIG_DIR: path.join(alias, ".claude") } });
+    child.kill();
+    expect(spawn).toHaveBeenCalledOnce();
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test.each([undefined, "include"] as const)("%s leaves native settings and credential location untouched", async (userConfiguration) => {

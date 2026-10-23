@@ -15,6 +15,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [`claude-user-configuration/path-alias.ts`](claude-user-configuration/path-alias.ts) | Native user configuration misclassified as project content through an aliased home; OAR refuses before launch. Local provider only. | [Claude boundary](../docs/runtimes/claude.md#user-configuration) | 2026-10-23, Claude 2.1.309 on Linux; user memory, skills and agents survive native exclusion flags |
 | [`codex-user-configuration/probe.ts`](codex-user-configuration/probe.ts) | Temporary-home session/index sharing and resume after cleanup, local provider only. | [findings](codex-user-configuration/README.md) | 2026-10-23, Codex 0.164.0 retains temporary rollout paths; exclusion refused |
 | [`kimi-user-configuration/probe.ts`](kimi-user-configuration/probe.ts) | Shared history directory versus atomically replaced workspace index. | [findings](kimi-user-configuration/README.md) | 2026-10-23, Kimi 2.3.1 splits workspace catalogs; exclusion refused |
 | [`cursor-user-configuration/probe.ts`](cursor-user-configuration/probe.ts) | Actual SDK configuration reads and synthetic stored-key use through OAR, no external connections. | [findings](cursor-user-configuration/README.md) | 2026-10-23, SDK 1.0.40 default/exclusion skip user configuration; native user-source positive control loads it |

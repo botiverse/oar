@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runExecutable } from "../../../../packages/oar/src/shared/executable/index.js";
@@ -58,7 +58,10 @@ export interface ClaudeConfigurationFixture {
 
 /** Real local plugin installation, native OAuth rotation, and distinct user/host MCP servers. */
 export async function claudeConfigurationFixture(command: string): Promise<ClaudeConfigurationFixture> {
-  const home = await mkdtemp(path.join(tmpdir(), "oar-claude-config-[scope]-"));
+  // macOS tmpdir can spell /private/var as /var. Claude compares the native
+  // cwd with HOME when classifying ancestors, so use one canonical spelling.
+  const temporary = await mkdtemp(path.join(tmpdir(), "oar-claude-config-[scope]-"));
+  const home = await realpath(temporary);
   const model = await configurationModel();
   const user = await serveMcpTools({ name: "user_config_probe", tools: [tool("user_tool")] });
   const host = await serveMcpTools({ name: "host_config_probe", tools: [tool("host_tool")] });
