@@ -1,3 +1,9 @@
+/**
+ * Temporary cross-platform startup comparison, despite the original filename.
+ * Run on Windows and Linux with the same native deadlines. Pair this cold
+ * handshake with serial vendor tests, then OAR_TEST_CONCURRENCY=2 behavior.
+ * The diagnostic PR must never merge; preserve results in the runtime docs.
+ */
 /* oxlint-disable eslint/max-statements, import/max-dependencies -- Temporary diagnostic preserves the native startup sequence and cleanup in one script. */
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
