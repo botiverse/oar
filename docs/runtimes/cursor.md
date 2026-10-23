@@ -346,18 +346,33 @@ refuses to spawn a cursor child.
 
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
-the host's entry script. A layout that does not hoist it (pnpm's, a bundled
-host) leaves it unfound: commands still run, but the SDK warns
-`shell-parser: tree-sitter natives are unavailable in this artifact; shell
-command analysis degrades to parsingFailed` and searches without its own
-ripgrep. OAR resolves the package from the SDK and sets the SDK's own
-`CURSOR_TREE_SITTER_VENDOR_DIR` and `CURSOR_RIPGREP_PATH` before loading it,
-unless the host set them. The setting is process wide: it stays for the host
-and every process it starts afterwards. Where OAR cannot resolve the package
-either (a single executable with no `node_modules`), the host ships the
-platform's package and sets both variables itself, as absolute paths: the
-SDK ignores relative ones (Ferry CLI 0.1.35, a real turn with and without
-them, 2026-10-04).
+the host's entry script. OAR does not modify `process.env` while loading it.
+SDK 1.0.40 exposes no per-local-agent environment or native-package-path
+option; its bundle reads these variables directly from the host environment.
+
+A host using a non-hoisted pnpm layout, a bundled entry, or a single executable
+whose platform package is outside that search path must ship the platform
+package and set these absolute paths before loading the SDK:
+
+- `CURSOR_TREE_SITTER_VENDOR_DIR`: the package's `vendor` directory.
+- `CURSOR_RIPGREP_PATH`: the package's `bin/rg` (`bin/rg.exe` on Windows).
+
+The SDK ignores relative values. Without a discoverable tree-sitter package,
+its shell parser warns `shell-parser: tree-sitter natives are unavailable in
+this artifact; shell command analysis degrades to parsingFailed`. An invalid
+absolute vendor directory instead reaches the SDK's native module loader,
+which can report `Cannot find module '<path>/tree-sitter/index.js'`. Without
+a configured or discovered ripgrep executable, the bundle's accessor throws
+`Ripgrep path not configured. Call configureRipgrepPath() at startup.`; a
+configured but nonexistent executable can fail when native process startup
+attempts to use it. These are SDK failures, not an OAR validation result.
+
+Hosts that previously relied on OAR to set these paths must now configure
+them at process startup or use a layout the SDK discovers itself. This is a
+host-visible migration, especially for bundled SDKs. The variable selection
+and error text above were checked in the 1.0.40 bundle; the earlier real-turn
+comparison used Ferry CLI 0.1.35 on October 4. No new account-backed tool run
+was performed for this loader change.
 
 ### Session MCP servers
 

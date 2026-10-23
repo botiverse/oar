@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { createCursorRuntime, defaultRuntimes, type CursorSdk } from "../../packages/oar/src/index.js";
 
 const bundled = { kind: "available", via: "bundled" } as const;
+afterEach(() => { vi.unstubAllEnvs(); });
 
 const unused = (): never => assert.fail("only the model catalog is read");
 
@@ -12,6 +13,16 @@ function catalogOnly(): CursorSdk {
     Cursor: { models: { list: async () => [{ id: "composer-2.5", displayName: "Composer 2.5" }] } },
   };
 }
+
+test.each([undefined, "host-owned-path"])("loading the SDK preserves the host's native package environment (%s)", async (value) => {
+  vi.stubEnv("CURSOR_TREE_SITTER_VENDOR_DIR", value);
+  vi.stubEnv("CURSOR_RIPGREP_PATH", value);
+  const runtime = createCursorRuntime({ sdk: async () => catalogOnly() });
+  const catalog = await runtime.listModels(bundled);
+  expect(catalog.kind).toBe("ok");
+  expect(process.env.CURSOR_TREE_SITTER_VENDOR_DIR).toBe(value);
+  expect(process.env.CURSOR_RIPGREP_PATH).toBe(value);
+});
 
 test("cursor is not built in: the host hands over its SDK", () => {
   assert.equal(defaultRuntimes.get("cursor"), undefined);

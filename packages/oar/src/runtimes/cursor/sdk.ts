@@ -1,6 +1,3 @@
-import { createRequire } from "node:module";
-import path from "node:path";
-
 /*
  * The part of `@cursor/sdk` (1.0.35) the adapter uses, narrowed so tests can
  * stand in for it. The SDK runs Cursor's agent in this process: a local
@@ -153,37 +150,6 @@ export async function loadedSdk(load: () => Promise<CursorSdk>): Promise<CursorS
   }
 }
 
-const SDK_PACKAGE = "@cursor/sdk";
-
-/**
- * The SDK's native companion (`@cursor/sdk-<platform>-<arch>`: ripgrep and
- * the tree-sitter shell parser) is found by walking up from the host's entry
- * script for `node_modules/<package>`, which misses it in any layout that
- * does not hoist it (pnpm's, a bundled host): the agent then warns "tree-sitter
- * natives are unavailable" and searches without its own ripgrep. Resolved
- * from the SDK itself, the package is found wherever it was installed, and
- * the SDK's own variables point at it, unless the host set them. The
- * specifier is a variable so that a bundler does not try to resolve it; where
- * OAR cannot resolve the SDK, the SDK looks for itself.
- */
-function nativePackageRoot(): string | null {
-  try {
-    const fromSdk = createRequire(import.meta.resolve(SDK_PACKAGE));
-    return path.dirname(fromSdk.resolve(`${SDK_PACKAGE}-${process.platform}-${process.arch}/package.json`));
-  } catch {
-    return null;
-  }
-}
-
-function pointSdkAtNativePackage(): void {
-  const root = nativePackageRoot();
-  if (root === null) {
-    return;
-  }
-  process.env.CURSOR_TREE_SITTER_VENDOR_DIR ??= path.join(root, "vendor");
-  process.env.CURSOR_RIPGREP_PATH ??= path.join(root, "bin", process.platform === "win32" ? "rg.exe" : "rg");
-}
-
 /**
  * The host's `sdk` loader, called once, on the first call that needs the
  * SDK: it is a large bundle with a native companion package per platform,
@@ -197,7 +163,6 @@ export function cursorSdkLoader(load: () => Promise<CursorSdk>): () => Promise<C
       // Yield first: a loader that throws synchronously would otherwise
       // reset `loading` before `??=` stores this failed attempt in it.
       await Promise.resolve();
-      pointSdkAtNativePackage();
       const sdk = await load();
       return sdk;
     } catch (error) {
