@@ -37,7 +37,7 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
       const { promise, resolve, reject } = Promise.withResolvers<RpcResponse>();
       const timer = setTimeout(() => {
         pending.delete(id);
-        reject(new Error(`Pi RPC ${command.type} did not reply within 30 seconds`));
+        reject(new Error(`Pi RPC ${command.type} did not reply within 30 seconds: ${child.diagnostics().stderr}`));
         child.kill();
       }, 30_000);
       pending.set(id, { resolve, reject, timer });

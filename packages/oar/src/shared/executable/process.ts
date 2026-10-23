@@ -148,7 +148,7 @@ export function spawnLineProcess(
   const child = spawnChecked(() => spawn(target.command, [...target.args], {
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     env: options.env ?? process.env,
-    stdio: options.extraPipe === true ? ["pipe", "pipe", "pipe", "pipe"] : ["pipe", "pipe", "pipe"],
+    stdio: options.extraPipe === true ? ["pipe", "pipe", "pipe", "overlapped"] : ["pipe", "pipe", "pipe"], // Child async I/O needs Windows FILE_FLAG_OVERLAPPED.
     detached: OWN_PROCESS_GROUP,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   }));
