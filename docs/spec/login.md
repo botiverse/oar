@@ -108,7 +108,6 @@ caller closes it. A prompt or event handler that throws stops the login with
 | Unsupported reason | Meaning |
 | --- | --- |
 | unsupported_installation | Not the installation the login runs on: a machine-installed executable for claude and codex, the bundled SDK for cursor. |
-| transport_unavailable | The selected native interface has no login flow OAR can drive (Qwen removed its auth command; use external provider configuration). |
 | version_unsupported | The installed version predates the login path oar drives (for cursor, an SDK without `Cursor.auth`); `detail` names the floor. An unreadable version is tried, not refused. |
 
 ## Status results

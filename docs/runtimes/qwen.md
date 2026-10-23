@@ -35,7 +35,7 @@ The CLI requires Node 22 or newer; OAR itself requires Node 24 or newer.
 | Permissions | Explicit native `--approval-mode yolo`; Qwen's default auto mode uses a model classifier. If `can_use_tool` still arrives, OAR records the app request and sends Qwen's allow/updatedInput response. |
 | Images | Rejected before input submission; `images: false`. |
 | Structured output | Refused with `UnsupportedOptionError`: native 0.26.0 explicitly disallows `--json-schema` with stream-json input. No adapter emulation. |
-| Login | Typed `unsupported/transport_unavailable`. Native `qwen auth` was removed. Configure a provider externally, for example OPENAI_API_KEY, OPENAI_BASE_URL and OPENAI_MODEL. No OAR login prompt or browser flow. |
+| Login | No `login` member. Native `qwen auth` was removed. Configure a provider externally, for example OPENAI_API_KEY, OPENAI_BASE_URL and OPENAI_MODEL. No OAR login prompt or browser flow. |
 | Other surfaces | No service tier or session-name setting; no account quota, inventory, installer/updater, live configure or context breakdown mapping. |
 
 Qwen emits `stream_event`, assistant, tool-result user and result messages
