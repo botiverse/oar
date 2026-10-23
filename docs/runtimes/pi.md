@@ -115,6 +115,53 @@ Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 
 ## Capability details
 
+### Project trust and package installation
+
+`createPiRuntime({ projectTrusted, allowProjectPackageInstall })` configures
+the in-process runtime's session, model-list and inventory entry points.
+`piRuntime` uses the defaults below.
+
+- `projectTrusted` defaults to `true`: choosing a cwd permits its native
+  project settings and extensions to load. OAR passes this decision to
+  `SettingsManager.create` for this operation; it never writes `trust.json`.
+- `projectTrusted: false` uses Pi's native untrusted-project mode. Project
+  settings, package declarations and extensions are not loaded. User/global
+  configuration and extensions still apply; this is not a sandbox.
+- `allowProjectPackageInstall` defaults to `false`. With trusted project
+  packages configured, opening rejects with `UnsupportedOptionError("cwd")`
+  unless the host started with native `PI_OFFLINE=1` or explicitly allowed
+  installation. Model listing and inventories report the same refusal
+  through their existing result shapes. Projects without packages open
+  normally, as do untrusted projects whose declarations Pi ignores.
+
+Pi 1.4.0's resource loader has no per-operation no-install setting. Its
+offline switch reads the host process environment, which OAR never mutates.
+The guard therefore also refuses an already-installed configured package
+without offline mode or explicit permission: checking the current path does
+not disable the loader's automatic installation behavior. With permission,
+Pi may execute the project's configured package-manager command and package
+installation scripts.
+
+Offline mode loads installed packages and skips missing ones. OAR emits
+`OAR_PI_PACKAGE_MISSING` when Pi's public package lookup cannot find a
+configured project's package path. Pi still owns version compatibility and
+resource filtering; path existence alone does not prove a compatible version
+or that the package contributes enabled extensions.
+
+Native SDK 1.4.0 regression results, using a local package-manager substitute
+that creates only a fixture extension and sends no network requests:
+
+| Project packages | Default | `PI_OFFLINE=1` | Explicitly allow installation |
+| --- | --- | --- | --- |
+| None configured | Opens | Opens | Opens |
+| Configured and installed | Refused before loading | Loads existing extension | Loads existing extension |
+| Configured and missing | Refused before loading | Opens with a missing-package warning; no install | Installs and loads fixture extension |
+
+Every case leaves persistent trust untouched. Separate cases verify that
+`projectTrusted: false` neither installs packages nor executes project
+extensions, including inventory queries. Run
+`OAR_TEST=pi-aimock pnpm vitest run sea-trial/vendor/pi-project.vendor.test.ts`.
+
 ### Session creation and resume
 
 The public SDK opens persisted sessions by **file path**. Given host-selected
