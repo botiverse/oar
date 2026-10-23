@@ -51,3 +51,4 @@ export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntim
 }
 
 export { projectCursorModels } from "./list-models.js";
+export { cursorNativeEnvironment } from "./native-environment.js";

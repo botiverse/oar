@@ -39,7 +39,7 @@ export { antigravityRuntime } from "./runtimes/antigravity/index.js";
 export { antigravitySession } from "./runtimes/antigravity/session.js";
 export { antigravityInstallation } from "./runtimes/antigravity/installation.js";
 export { antigravityListModels, projectAntigravityModels } from "./runtimes/antigravity/list-models.js";
-export { createCursorRuntime, projectCursorModels } from "./runtimes/cursor/index.js";
+export { createCursorRuntime, projectCursorModels, cursorNativeEnvironment } from "./runtimes/cursor/index.js";
 export type { CursorRuntime, CursorRuntimeOptions } from "./runtimes/cursor/index.js";
 export type { CursorSdk, ModelListItem as CursorModelListItem } from "./runtimes/cursor/sdk.js";
 export { cursorInstallation } from "./runtimes/cursor/installation.js";

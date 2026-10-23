@@ -357,6 +357,21 @@ package and set these absolute paths before loading the SDK:
 - `CURSOR_TREE_SITTER_VENDOR_DIR`: the package's `vendor` directory.
 - `CURSOR_RIPGREP_PATH`: the package's `bin/rg` (`bin/rg.exe` on Windows).
 
+OAR exports `cursorNativeEnvironment()`, a pure helper that resolves these
+paths from the SDK's own package location, including pnpm layouts. It returns
+`null` when the packages cannot be resolved, and neither loads the SDK nor
+changes the environment. A host can explicitly apply its result at startup:
+
+```ts
+import { cursorNativeEnvironment } from "@botiverse/oar";
+
+Object.assign(process.env, cursorNativeEnvironment() ?? {});
+```
+
+The host decides whether to replace existing values with these discovered
+paths. A bundled deployment whose packages cannot be resolved must supply
+its own absolute paths.
+
 The SDK ignores relative values. Without a discoverable tree-sitter package,
 its shell parser warns `shell-parser: tree-sitter natives are unavailable in
 this artifact; shell command analysis degrades to parsingFailed`. An invalid
