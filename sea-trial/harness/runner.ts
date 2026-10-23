@@ -57,6 +57,24 @@ export type Outcome =
       readonly missing: readonly [Missing, ...Missing[]];
     };
 
+/** A failed assertion must release its processes before the fixture removes their cwd. */
+async function runWithCleanup(testCase: TrialCase, subject: RuntimeUnderTest): Promise<void> {
+  const sessions = new Set<Session>();
+  let failed = false;
+  let failure: unknown = undefined;
+  try {
+    await testCase.run({ ...subject, startSession: async (options) => {
+      const session = await subject.startSession(options);
+      sessions.add(session);
+      return session;
+    } });
+  } catch (error) { failed = true; failure = error; }
+  const cleanup = await Promise.allSettled([...sessions].map(async (session) => { await session.dispose(); }));
+  if (failed) { throw failure; }
+  const rejected = cleanup.find((result) => result.status === "rejected");
+  if (rejected?.status === "rejected") { throw rejected.reason; }
+}
+
 export async function runCase(testCase: TrialCase, subject: RuntimeUnderTest): Promise<Outcome> {
   const missing = testCase.requires.filter((capability) => subject.runtime[capability] === undefined);
   const first = missing[0];
@@ -65,7 +83,7 @@ export async function runCase(testCase: TrialCase, subject: RuntimeUnderTest): P
   }
   record({ kind: "case_started", caseId: testCase.id });
   try {
-    await testCase.run(subject);
+    await runWithCleanup(testCase, subject);
     record({ kind: "case_passed", caseId: testCase.id });
     return { kind: "pass", caseId: testCase.id };
   } catch (error) {
