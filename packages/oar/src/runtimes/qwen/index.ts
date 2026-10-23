@@ -2,12 +2,15 @@ import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { qwenInstallation } from "./installation.js";
+import { qwenInstall, qwenInstallPlan } from "./install.js";
 import { qwenRefusedSessionOptions } from "./options.js";
 
 export const qwenRuntime = defineRuntime({
   id: "qwen", brand: runtimeBrands.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
   installation: qwenInstallation,
+  installPlan: qwenInstallPlan,
+  install: qwenInstall,
   listModels: onFirstCall(async () => {
     const { qwenListModels } = await import("./list-models.js");
     return qwenListModels;

@@ -17,7 +17,8 @@ The source's `packages/cli/src/nonInteractive/session.ts` and
 `qwenRuntime` is in `defaultRuntimes` and available separately from
 `@botiverse/oar/runtimes/qwen`. Install the vendor executable with
 `npm install -g @qwen-code/qwen-code`; `OAR_QWEN_BIN` selects another copy.
-The CLI requires Node 22 or newer; OAR itself requires Node 24 or newer.
+The npm CLI requires Node 22 or newer; the official standalone archive bundles
+its runtime. OAR itself requires Node 24 or newer.
 
 | Surface | Mapping and limits |
 |---|---|
@@ -35,8 +36,24 @@ The CLI requires Node 22 or newer; OAR itself requires Node 24 or newer.
 | Permissions | Explicit native `--approval-mode yolo`; Qwen's default auto mode uses a model classifier. If `can_use_tool` still arrives, OAR records the app request and sends Qwen's allow/updatedInput response. |
 | Images | Rejected before input submission; `images: false`. |
 | Structured output | Refused with `UnsupportedOptionError`: native 0.26.0 explicitly disallows `--json-schema` with stream-json input. No adapter emulation. |
+| Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
 | Login | No `login` member. Native `qwen auth` was removed. Configure a provider externally, for example OPENAI_API_KEY, OPENAI_BASE_URL and OPENAI_MODEL. No OAR login prompt or browser flow. |
-| Other surfaces | No service tier or session-name setting; no account quota, inventory, installer/updater, live configure or context breakdown mapping. |
+| Other surfaces | No service tier or session-name setting; no account quota, inventory, updater, live configure or context breakdown mapping. |
+
+The install plan checks writes to both the executable directory and the library
+parent (the installer stages and replaces the library there). Discovery and
+permission checks honor the vendor's `QWEN_INSTALL_ROOT`,
+`QWEN_INSTALL_LIB_PARENT`, `QWEN_INSTALL_LIB_DIR` and `QWEN_INSTALL_BIN_DIR`.
+Without overrides, installation uses `~/.local/lib/qwen-code` and
+`~/.local/bin/qwen`. OAR discovers this executable immediately without editing
+PATH. The vendor may print a PATH recommendation; OAR does not apply it.
+
+On 2026-10-23, a Linux sandbox with an empty HOME and no Qwen on PATH ran
+OAR's actual `install()` against the official installer. It installed 0.26.0,
+`installation()` found the executable outside PATH, a sentinel `.bashrc`
+remained byte-for-byte unchanged, and a second `install()` reported
+`already_installed`. No authentication or model request was performed. This
+is Linux installation evidence, not a macOS or Windows installation claim.
 
 Qwen emits `stream_event`, assistant, tool-result user and result messages
 without Claude's `command_lifecycle` acknowledgements. The shared stream-json
