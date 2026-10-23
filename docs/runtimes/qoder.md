@@ -85,7 +85,11 @@ and the shared behavior suite used the real 1.1.78 binary with its native
 fake-response reader and a fresh home. They did not use account quota.
 
 Successful real-provider conversation and resume remain unverified because of
-the Credits rejection. Windows and macOS native behavior has not been tested.
+the Credits rejection. Linux and macOS native CI passed. Windows passed a
+cold initialize probe, five serial native tests and all applicable shared
+behavior cases with two concurrent cases. Unbounded parallel startup exceeded
+the existing help and initialize deadlines, so Windows CI limits this backend
+to two concurrent cases. The adapter, assertions and deadlines are unchanged.
 The fake reader exercises the native agent loop but is not evidence of a
 particular remote provider's behavior. Reproduction commands and the first
 failures are recorded in [the native evidence guide](../../experiments/qoder-native/README.md).

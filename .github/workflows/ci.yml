@@ -70,6 +70,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
+      # Bound native Qoder cold starts on Windows without changing per-call deadlines.
+      OAR_TEST_CONCURRENCY: ${{ matrix.os == 'windows-latest' && matrix.backend == 'qoder-native' && '2' || '' }}
       OAR_CHILD_STDERR: ${{ matrix.os == 'windows-latest' && matrix.backend == 'codex-aimock' && 'inherit' || '' }}
       # runner context is not allowed in job-level env; workspace-relative works everywhere
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run

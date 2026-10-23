@@ -44,3 +44,21 @@ successful real-provider turn or prove zero cost. Further real requests were
 stopped; they require restored account availability. See the
 [runtime mapping](../../docs/runtimes/qoder.md) for the exposed capabilities
 and remaining verification boundaries.
+
+### Windows startup comparison (2026-10-23)
+
+A cold native initialize completed in 13.7 seconds including launch and a
+preliminary version query. Five serial vendor tests passed. The unbounded
+shared suite exceeded the existing help (15 seconds) and initialize (30
+seconds) deadlines; the same suite passed with `OAR_TEST_CONCURRENCY=2`.
+This bounds test-case concurrency, leaving the adapter and all per-operation
+deadlines and assertions unchanged. It does not establish which resource
+caused the unbounded startup failures. The local native reader used no account.
+
+```sh
+OAR_TEST=qoder-native OAR_TEST_CONCURRENCY=2 pnpm run sea-trial
+```
+
+Windows CI uses that concurrency setting. Other backends keep their existing
+concurrency. Diagnostic runs: [unbounded](https://github.com/botiverse/oar/actions/runs/40008559577)
+and [two concurrent cases](https://github.com/botiverse/oar/actions/runs/40011070963).
