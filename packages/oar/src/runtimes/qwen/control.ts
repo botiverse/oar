@@ -2,6 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
+/** Native process startup is part of every query, including model listing. */
+export const QWEN_CONTROL_TIMEOUT_MS = 30_000;
+
 interface QwenControl {
   readonly consume: (message: JsonRecord) => boolean;
   readonly end: () => void;
@@ -9,7 +12,7 @@ interface QwenControl {
 }
 
 /** Private setup/readbacks; native account/configuration responses stay outside session records. */
-export function qwenControl(child: LineProcess, timeoutMs = 30_000): QwenControl {
+export function qwenControl(child: LineProcess, timeoutMs = QWEN_CONTROL_TIMEOUT_MS): QwenControl {
   const pending = new Map<string, (answer: JsonRecord | Error) => void>();
   const privateIds = new Set<string>();
   let exited = false;

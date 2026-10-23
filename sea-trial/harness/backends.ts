@@ -47,7 +47,7 @@ async function qwenBackend(): Promise<Backend> {
         ...qwenRuntime,
         id: "qwen-aimock",
         listModels: async (installation) => installation.via === "executable"
-          ? { kind: "ok", models: await readQwenModels(installation.command, aimock.cwd, 15_000, aimock.env) }
+          ? { kind: "ok", models: await readQwenModels(installation.command, aimock.cwd, undefined, aimock.env) }
           : { kind: "unsupported", reason: "executable required" },
         session: async (installation, options) => {
           const session = await qwenRuntime.session(installation, { ...options, cwd: aimock.cwd });

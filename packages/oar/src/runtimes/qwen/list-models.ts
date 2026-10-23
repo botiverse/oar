@@ -5,7 +5,7 @@ import { asRecord, asRecordList, parseJson } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { closeQwen } from "./close.js";
 import { launchQwen } from "./launch.js";
-import { qwenControl } from "./control.js";
+import { qwenControl, QWEN_CONTROL_TIMEOUT_MS } from "./control.js";
 
 export function projectQwenModels(payload: unknown): ModelEntry[] {
   return asRecordList(asRecord(payload)?.models).flatMap((model) => {
@@ -21,7 +21,7 @@ export function projectQwenModels(payload: unknown): ModelEntry[] {
 }
 
 /** Native catalog query; the environment parameter also lets the native harness isolate HOME. */
-export async function readQwenModels(command: string, cwd: string, timeoutMs: number, env?: Readonly<Record<string, string>>): Promise<ModelEntry[]> {
+export async function readQwenModels(command: string, cwd: string, timeoutMs = QWEN_CONTROL_TIMEOUT_MS, env?: Readonly<Record<string, string>>): Promise<ModelEntry[]> {
   const child = await launchQwen(command, randomUUID(), { cwd, ...(env === undefined ? {} : { env }) });
   const control = qwenControl(child, timeoutMs);
   child.onLine((line) => { const value = asRecord(parseJson(line)); if (value !== null) { control.consume(value); } });
@@ -35,5 +35,5 @@ export async function readQwenModels(command: string, cwd: string, timeoutMs: nu
 
 export const qwenListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Qwen model listing requires its executable" }; }
-  return { kind: "ok", models: await readQwenModels(installation.command, listingCwd(options), options.timeoutMs ?? 15_000) };
+  return { kind: "ok", models: await readQwenModels(installation.command, listingCwd(options), options.timeoutMs) };
 };

@@ -90,6 +90,27 @@ The adapter cannot honestly move it to open without a native readiness signal.
 Closing an idle process uses EOF so initialization can release its lock; an
 immediate hard termination during initialization can leave a stale lock.
 
+### Process startup under concurrent load
+
+On 2026-10-23, GitHub Actions `windows-latest` (Windows Server 2025,
+`windows-2025-vs2026` image 20261021.278.1, Node 24.22.1) ran 19 behavior
+cases concurrently against Qwen 0.26.0. The fixture had already finished one
+warmup turn in that HOME. Most newly launched sessions opened about 15 to
+17 seconds after their cases started; the separate model-list process failed
+to answer `initialize` within its former 15-second default. All other cases
+passed. These are measured case-to-open times under concurrent CI load, not
+isolated startup benchmarks. The trace does not identify a lock, CPU or I/O
+cause. [First failing job and retained artifact](https://github.com/botiverse/oar/actions/runs/39978507452/job/120499331029).
+
+Model listing now uses the same 30-second control-request default as session
+opening, since both launch the full native CLI. For comparison, OAR's CLI
+model readers use 15 seconds for Claude and Codex, 10 for Grok, and 30 for
+Kimi, Antigravity and OpenCode. The Qwen bound accommodates observed native
+startup instead of making the test fixture more permissive than the product.
+Hosts can still pass `listModels(installation, { timeoutMs })` for a different
+per-control-request bound. A timeout closes stdin and then force-cleans an
+unresponsive process after the normal cleanup grace; it never retries.
+
 ## Evidence and verification
 
 - [Direct native probe](../../experiments/qwen-native/README.md): initialization,
@@ -105,7 +126,8 @@ immediate hard termination during initialization can leave a stale lock.
   remain unchanged.
 - `OAR_TEST=qwen-aimock pnpm sea-trial` runs the shared contract suite against the
   real CLI. The fixture finishes one warmup turn before concurrent cases; no
-  adapter retry, weakened assertion or longer per-case timeout hides cold startup.
+  adapter retry or weakened assertion hides cold startup. The fixture uses the
+  product model-query default, including its startup bound.
 
 These tests do not establish real provider authentication, billing, live nested
 subagent interleavings, or runtime MCP list-change notification behavior. The
