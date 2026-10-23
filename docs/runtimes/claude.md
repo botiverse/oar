@@ -1571,6 +1571,18 @@ Omission and `"include"` preserve normal loading. An exclusion open rejects
 `--strict-mcp-config`, because they conflict with its source selection.
 The option is not a sandbox and does not erase earlier conversation text.
 
+Exclusion also rejects a user directory that lies on the native cwd's ancestor
+chain by real path but not by its configured spelling, before starting a
+process. This includes a `.claude` directory on that chain that aliases the
+configured user directory. Symlinks or Windows junctions outside the ancestor
+chain are allowed. Claude 2.1.309 can classify the
+same user skills, agents and memory as project content when its canonical
+cwd and the configured home use different path spellings. This was reproduced
+on Linux with the [path-alias probe](../../experiments/claude-user-configuration/path-alias.ts);
+the macOS fixture exposed the `/var` versus `/private/var` case.
+OAR does not rewrite either path, because that can change native credential
+or Keychain lookup. Inclusion keeps normal native path handling.
+
 The [native regression](../../sea-trial/vendor/claude-user-configuration.vendor.test.ts)
 runs Claude 2.1.309 against local model, MCP and OAuth stand-ins. Its positive
 control loads an installed local plugin, user skills/commands/agents, hooks,

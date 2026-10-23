@@ -248,3 +248,9 @@ session disposal, behavior assertions and their existing test deadlines stay
 inside the test body. Cleanup still runs on test failure; a cleanup rejection
 or timeout fails CI. This separates fixture deletion cost from runtime
 behavior without claiming that every earlier timeout has the same cause.
+
+## User configuration selection
+
+`userConfiguration: "exclude"` is refused before launch. No native path has
+been verified to exclude user configuration while preserving Qoder's stored
+login and session history. Omission and `"include"` retain normal loading.

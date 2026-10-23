@@ -1,5 +1,6 @@
 import path from "node:path";
 import { homedir } from "node:os";
+import { realpathSync } from "node:fs";
 import type { SessionOptions } from "../../contracts/session.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
@@ -7,6 +8,40 @@ import { claudeSessionEnv } from "./environment.js";
 import type { JsonRecord } from "../../shared/json.js";
 
 const MANAGED = new Set(["--setting-sources", "--settings", "--strict-mcp-config"]);
+
+function canonicalPath(directory: string): string {
+  try { return realpathSync(directory); }
+  catch (error) {
+    // A first use may not have a config directory yet.
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT") { return directory; }
+    throw error;
+  }
+}
+
+function comparable(value: string): string {
+  return process.platform === "win32" ? value.toLowerCase() : value;
+}
+
+function contains(directory: string, cwd: string): boolean {
+  const relative = path.relative(comparable(directory), comparable(cwd));
+  return relative === "" || (!path.isAbsolute(relative) && relative !== ".." && !relative.startsWith(`..${path.sep}`));
+}
+
+function refuseAliasedAncestors(home: string, config: string, cwd: string): void {
+  // The native process observes its canonical cwd, even when spawn received
+  // an alias. User-source comparisons can still use HOME/config literally.
+  const nativeCwd = canonicalPath(cwd);
+  const configReal = canonicalPath(config);
+  let ambiguous = [home, config].some((directory) => contains(canonicalPath(directory), nativeCwd) && !contains(directory, nativeCwd));
+  for (let ancestor = nativeCwd; ; ancestor = path.dirname(ancestor)) {
+    const candidate = path.join(ancestor, ".claude");
+    if (comparable(canonicalPath(candidate)) === comparable(configReal) && comparable(candidate) !== comparable(config)) { ambiguous = true; }
+    if (ancestor === path.dirname(ancestor)) { break; }
+  }
+  if (ambiguous) {
+    throw new UnsupportedOptionError("userConfiguration", "Claude's ancestor scan can load this aliased user directory as project configuration. Use consistent canonical path spellings for cwd and HOME/CLAUDE_CONFIG_DIR, or omit userConfiguration: exclude. OAR leaves credential and session locations unchanged.");
+  }
+}
 
 /** The child's native home and config paths, without moving its credential store. */
 function configurationPaths(env: NodeJS.ProcessEnv, cwd: string): readonly string[] {
@@ -16,6 +51,7 @@ function configurationPaths(env: NodeJS.ProcessEnv, cwd: string): readonly strin
   const home = path.resolve(cwd, homeValue === "" || homeValue === undefined ? homedir() : homeValue);
   const configValue = read("CLAUDE_CONFIG_DIR");
   const config = path.resolve(cwd, configValue === "" || configValue === undefined ? path.join(home, ".claude") : configValue);
+  refuseAliasedAncestors(home, config, path.resolve(cwd));
   // Claude's project ancestor walk can load user memory even with user
   // setting sources disabled. Include the default and an explicit config dir.
   return [...new Set([path.join(home, ".claude", "**"), path.join(config, "**"), path.join(home, "CLAUDE.md"), path.join(home, "CLAUDE.local.md")])].map((value) => process.platform === "win32" ? value.replaceAll("\\", "/") : value);
