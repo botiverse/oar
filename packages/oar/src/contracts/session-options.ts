@@ -128,6 +128,19 @@ export interface SessionOptions {
    * Exact name rules: docs/spec/record-stream.md, "Known session credentials".
    */
   readonly env?: Readonly<Record<string, string | null>>;
+  /**
+   * Whether to load user-level configuration. Defaults to `include`, the
+   * runtime's existing behavior. `exclude` skips user plugins, skills,
+   * commands, agents, MCP servers, hooks, memory and settings while retaining
+   * the native login, native session history and host-provided session options.
+   * A remote host can offer a clean configuration without asking the user to
+   * log in again or losing resume. It does not erase
+   * earlier conversation history, disable managed organization policy, or
+   * sandbox tools. Project configuration remains runtime-specific.
+   * Runtimes without a verified separation reject `exclude` with
+   * UnsupportedOptionError and declare `refusedSessionOptions.userConfiguration`.
+   */
+  readonly userConfiguration?: "include" | "exclude";
   /** REPLACE the runtime's built-in system prompt (claude --system-prompt, codex thread baseInstructions, pi resource-loader systemPrompt). Survives runtime compaction (pinned per vendor). Claude refuses an explicit value on resume; omit it to keep the saved prompt. Refused by cursor, kimi, antigravity, opencode v2 and pi-durable: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
   readonly systemPrompt?: string;
   /** APPEND to the runtime's built-in system prompt, keeping its harness behavior intact (claude --append-system-prompt, codex developerInstructions, pi appendSystemPrompt). Survives runtime compaction (pinned per vendor). Claude and Codex refuse an explicit value on resume; omit it to keep the saved prompt. Refused by cursor, kimi and opencode v2: `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options). */
@@ -135,7 +148,8 @@ export interface SessionOptions {
   /**
    * MCP servers attached to THIS session, on top of the servers the runtime
    * is configured with: oar never edits the runtime's configuration or
-   * drops the user's servers (claude reads the session's from a 0600 FIFO
+   * drops the user's servers unless `userConfiguration: "exclude"` is given
+   * (claude reads the session's from a 0600 FIFO
    * oar removes once read, on Windows a temporary file removed when claude
    * exits; codex from its `thread/start` / `thread/resume` config
    * overrides; grok, kimi, opencode and antigravity from ACP `session/new` /

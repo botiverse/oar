@@ -1539,3 +1539,28 @@ Where an SDK option has a counterpart:
 | `baseUrl`, `apiKey` | a custom provider in `config.toml` or `-c`; a session-scoped key is [#344](https://github.com/botiverse/oar/issues/344) |
 | `env` (replaces the environment) | `SessionOptions.env` (merged; `null` removes a variable) |
 | `Usage` | `session.usage()`; the SDK's `reasoning_output_tokens` is `reasoning` ([context](#models-instructions-and-context), [#345](https://github.com/botiverse/oar/issues/345)) |
+
+## User configuration
+
+`userConfiguration: "exclude"` is declared refused before app-server starts.
+Codex 0.164.0 has no verified app-server setting that excludes all user
+configuration while preserving login and native history. Omission and
+`"include"` keep existing behavior.
+
+The [temporary-home probe](../../experiments/codex-user-configuration/README.md)
+shows why sharing only `auth.json` is insufficient: old ids no longer
+resume. Linking `sessions/` and using native `CODEX_SQLITE_HOME` to share the
+index allows old resumes and new sessions, and the new session appears in
+the original home's `thread/list`. However, SQLite retains a rollout path
+under the temporary home even when `thread/list` reports the canonical
+original path. After cleanup, the history file remains but resume by id
+fails with `SessionNotFoundError`. OAR neither rewrites that index nor opens
+a session whose later continuation is broken.
+
+## Future: a host-owned persistent clean home
+
+A host-supplied, persistent clean home could keep those indexed paths valid.
+OAR would not create a hidden permanent directory in the user's home. This
+is not implemented: revisit it when a host needs Codex exclusion, then test
+cross-mode resume, original history visibility and credential refresh with
+that lifecycle before accepting the option.

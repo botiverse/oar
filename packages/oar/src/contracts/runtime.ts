@@ -10,16 +10,17 @@ import type { StartSession } from "./session.js";
 
 /**
  * The `SessionOptions` a runtime can refuse at open. `mcpServerCredentials`
- * is the one value of an option a host can know in advance: an
+ * identifies a value of an option a host can know in advance: an
  * `mcpServers` entry carrying a credential (a non-empty `env` on a stdio
  * entry, non-empty `headers` on an http one), which every `serveMcpTools`
- * entry does.
+ * entry does. `userConfiguration` declares refusal of `"exclude"` only;
+ * `"include"` and omission keep native behavior.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
- * non-empty one; `mcpServerCredentials`: an entry carrying one), each with the reason `session()` rejects with, in the message of an
+ * non-empty one; `mcpServerCredentials`: an entry carrying one; `userConfiguration`: `"exclude"`), each with the reason `session()` rejects with, in the message of an
  * `UnsupportedOptionError` naming the option (`mcpServers` for `mcpServerCredentials`). Unlisted options can still have value-specific refusals (for example,
  * a tool name the native filter cannot disable); see the runtime page.
  */
