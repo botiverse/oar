@@ -15,6 +15,7 @@ calls, resume semantics, and what each adapter still does not carry.
 
 | runtime | declared tier | how children appear in the stream |
 |---|---|---|
+| qoder | `attributed` | native parent tool ids use the shared stream-json fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qoder.md)) |
 | qwen | `attributed` | stream-json `parent_tool_use_id` maps to agentPath through the shared fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qwen.md)) |
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; a child's spend is in the session total, `unattributed`: no frame carries its final usage ([env] 2.1.292) |
 | codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge (`subAgentActivity.agentThreadId`). [env] codex 0.149.0: child-thread notifications arrive on the parent's connection (experiments/codex-child-threads.ts) |
@@ -29,6 +30,7 @@ calls, resume semantics, and what each adapter still does not carry.
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
+| qoder | native parent tool ids on forwarded child frames | `parent_tool_use_id` | root per-query reports summed since open; no inferred child usage | no inferred child-session edges | native UUID in the same HOME/project | [native/current mapping](../runtimes/qoder.md) |
 | qwen | native parent tool ids on forwarded child frames | `parent_tool_use_id` | fresh total only; resumed totals unknown without a baseline | no inferred child-session edges | native UUID in the same HOME/project | [native/current mapping](../runtimes/qwen.md) |
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | the root's main loop (`result.usage`); subagents and compaction in the session total (`modelUsage`), `unattributed` ([env] 2.1.292) | `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
 | codex (app-server) | native child threads and collaboration items on the parent's connection | `senderThreadId` / `receiverThreadIds`; `subAgentActivity.agentThreadId` ([env]: `started` on the root names the child, `interacted` on the child names the root) | both threads report their own running total in `thread/tokenUsage/updated`; the child's is in its own session's records, not in the root's `usage().total` ([env]) but in its `withChildren`; the root's counts from when the Session opened ([#169](attribution.md#usage-one-constraint)) | native thread topology; child threads are child sessions | `threadId`; `expectedTurnId` is a steer precondition | [pinned schema/current mapping](../runtimes/codex.md) |
@@ -53,6 +55,7 @@ false, the adapter holds queued input in this process.
 
 | runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
 |---|---|---|---|
+| qoder | absent: no verified active-turn injection | yes, while held | no |
 | qwen | no: native busy writes queue | yes, while held | no |
 | claude | yes: a user message written to stdin mid-turn | yes | no |
 | codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
@@ -81,6 +84,7 @@ an observation from the runtime and carries no request id. It may name an
 
 | Runtime | Native activity source |
 |---|---|
+| qoder | `command_lifecycle started` identifies the input; startup `system/init` alone is idle |
 | qwen | root `system/init` for the sole submitted input; no native command_lifecycle acknowledgement |
 | claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
 | codex | `turn/started`, including queued turns without another OAR prompt |
@@ -92,7 +96,7 @@ already running. The session view opens a turn only if none is open, so a
 prompt followed by native activity remains one turn. Claude's preceding
 `input_queued { inputId }` separates a waiting prompt from an intervening
 spontaneous turn; only its matching native start takes that pending input.
-This queue fact is currently Claude-only and excludes steer writes. Child
+This queue fact is reported by Claude and Qoder and excludes steer writes. Child
 activity keeps its own attribution and never starts the root turn. Other
 adapters do not yet emit `turn_active`.
 

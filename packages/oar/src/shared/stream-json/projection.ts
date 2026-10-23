@@ -60,7 +60,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
     }
     case "assistant":
     case "stream_event": {
-      const content = streamJsonContent(state.partials, message, agentPath);
+      const content = streamJsonContent(state.partials, message, agentPath, profile.assistantAfterMessageStop, profile.partialMessageIds);
       const next = rememberToolUses({ ...state, partials: content.partials }, message, agentPath);
       return event({ events: content.events }, message.type === "assistant" ? profile.assistant(next, message, agentPath.length === 0) : next);
     }
@@ -90,7 +90,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
         return event({ events: [{ kind: "compaction_ended", outcome: "completed", ...(typeof trigger === "string" ? { trigger } : {}) }] }, profile.compacted(state, agentPath.length === 0));
       }
       if (message.subtype === "init") {
-        const initialized = streamJsonInitialized(state, agentPath.length === 0, profile.commandLifecycle !== false);
+        const initialized = profile.initStartsTurn === false ? { state, events: [] } : streamJsonInitialized(state, agentPath.length === 0, profile.commandLifecycle !== false);
         return event({ events: [...initialized.events,
           ...(typeof message.model === "string" ? [{ kind: "model" as const, model: message.model }] : []),
           ...profile.init(message)] }, initialized.state);

@@ -13,6 +13,7 @@ test("the declarations say how a running session takes a change to an MCP server
     kimi: "none",
     opencode: "full",
     pi: "full",
+    qoder: null,
     qwen: null,
   });
   // A runtime that takes no mcpServers declares nothing.

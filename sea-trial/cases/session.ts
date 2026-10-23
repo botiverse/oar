@@ -115,20 +115,24 @@ export const sessionCases: readonly TrialCase[] = [
     // the interrupt lands, and the runtime's truth wins. What every runtime
     // MUST honor: the abort request is recorded and answered; the turn ends
     // aborted or completed (never failed); a late abort is rejected, never an
-    // error. The strong "abort actually aborts a long turn" claim lives in
+    // error. An input cancelled before its native start settles through its
+    // inputId without inventing a turn end. The strong "abort actually aborts a long turn" claim lives in
     // the live experiments.
     id: "session.abort-settles-and-is-idempotent",
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
       const started = await accepted(session, "slow");
+      assert.ok(started.request.body.kind === "prompt");
+      const { inputId } = started.request.body;
+      assert.ok(inputId !== undefined, "the accepted prompt has its generated input identity");
       const abort = await session.abort();
       assert.ok(abort.response.requestId === abort.request.id && abort.request.body.kind === "abort", "abort is a recorded request with its response");
-      const outcome = await awaitTurnEnd(session, started.request.seq);
+      const outcome = await awaitTurnEnd(session, started.request.seq, inputId);
       assert.ok(outcome.kind !== "failed", `abort produced a failure: ${JSON.stringify(outcome)}`);
       const late = await session.abort();
       assert.equal(late.response.body.kind, "rejected", "a late abort is rejected, not an error");
-      assert.equal(turnEndAfter(session.records(), started.request.seq)?.kind, outcome.kind, "a late abort changed nothing");
+      assert.equal(turnEndAfter(session.records(), started.request.seq, session.id, inputId)?.kind, outcome.kind, "a late abort changed nothing");
       await session.dispose();
     },
   },

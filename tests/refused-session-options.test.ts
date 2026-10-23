@@ -40,7 +40,7 @@ function refusalMessage(reason: string | undefined, key: RefusableSessionOption)
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi", "qwen"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
     const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
@@ -64,6 +64,7 @@ test("the declarations say which options each runtime refuses", () => {
     kimi: ["appendSystemPrompt", "disallowedTools", "name", "outputSchema", "serviceTier", "systemPrompt"],
     opencode: ["disallowedTools", "name", "outputSchema", "serviceTier"],
     pi: ["additionalDirectories", "launchArgs", "outputSchema", "serviceTier"],
+    qoder: ["name", "outputSchema", "serviceTier"],
     qwen: ["name", "outputSchema", "serviceTier"],
   });
 });
@@ -102,7 +103,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
 // that takes mcpServers refuses the names before anything starts.
 test.each(["__proto__", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"])("a reserved MCP server name is refused before anything starts: %s", async (name) => {
   const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers === undefined);
-  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codex", "grok", "kimi", "opencode", "pi", "qwen"]);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codex", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of taking) {
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", mcpServers: [{ name, command: "/nonexistent/oar-probe" }] }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers", message: `mcpServers name ${JSON.stringify(name)} is reserved: some runtimes drop a server so named without a word` });

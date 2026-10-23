@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
 import {
   claudeInstallation,
   claudeSession,
@@ -9,6 +10,9 @@ import {
   piSession,
   type Runtime,
 } from "../../packages/oar/src/index.js";
+import { qoderRefusedSessionOptions } from "../../packages/oar/src/runtimes/qoder/options.js";
+import { qoderRuntime } from "../../packages/oar/src/runtimes/qoder/index.js";
+import { startQoderNative } from "./qoder-native.js";
 import { readQwenModels } from "../../packages/oar/src/runtimes/qwen/list-models.js";
 import { qwenRuntime } from "../../packages/oar/src/runtimes/qwen/index.js";
 import { startQwenAimock } from "./qwen-aimock.js";
@@ -26,6 +30,8 @@ import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } fr
 export interface Backend {
   readonly runtime: Runtime;
   readonly aimock: AimockEnv | null;
+  /** Cleanup for native replay fixtures that need no model HTTP server. */
+  readonly close?: () => Promise<void>;
 }
 
 async function qwenBackend(): Promise<Backend> {
@@ -102,6 +108,17 @@ export async function selectBackend(target: string): Promise<Backend> {
       return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation }), aimock };
     }
     case "qwen-aimock": return qwenBackend();
+    case "qoder-native": {
+      const fixture = await startQoderNative(Array.from({ length: 100 }, () => ({ chunks: ["o", "k"] })), 900);
+      const runtime = defineRuntime({
+        id: target, installation: qoderRuntime.installation, refusedSessionOptions: qoderRefusedSessionOptions,
+        session: async (installation, options) => {
+          const session = await qoderRuntime.session(installation, { ...options, ...fixture.options, model: options.model ?? "efficient" });
+          return session;
+        },
+      });
+      return { aimock: null, close: fixture.stop, runtime };
+    }
     case "codex-aimock": {
       const aimock = await startCodexAimock();
       return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation }), aimock };

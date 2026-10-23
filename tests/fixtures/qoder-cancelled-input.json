@@ -1,0 +1,16 @@
+[
+  {
+    "type": "command_lifecycle",
+    "command_uuid": "44c9f221-36a6-439f-9fa9-b5b7a1e16af4",
+    "state": "queued",
+    "uuid": "72c898ab-85d7-40cb-96ee-092b4c08a6be",
+    "session_id": "7509df9f-f8bc-4741-9cab-98b2bba0801c"
+  },
+  {
+    "type": "command_lifecycle",
+    "command_uuid": "44c9f221-36a6-439f-9fa9-b5b7a1e16af4",
+    "state": "cancelled",
+    "uuid": "db411e17-d7f1-4b4b-9d78-761a29347396",
+    "session_id": "7509df9f-f8bc-4741-9cab-98b2bba0801c"
+  }
+]

@@ -1,8 +1,8 @@
 # Runtime icons
 
-Claude Code, Codex, Kimi, Grok, Cursor, OpenCode and Antigravity SVGs are from LobeHub lobe-icons, commit a94750e3f5f8fc33757b839d85030e742284e43a, packages/static-svg/icons.
+Claude Code, Codex, Kimi, Grok, Cursor, OpenCode, Qoder and Antigravity SVGs are from LobeHub lobe-icons, commit a94750e3f5f8fc33757b839d85030e742284e43a, packages/static-svg/icons.
 Source: https://github.com/lobehub/lobe-icons/tree/a94750e3f5f8fc33757b839d85030e742284e43a/packages/static-svg/icons
-Files: claudecode-color.svg, codex.svg, kimi-color.svg, grok.svg, cursor.svg, opencode.svg, antigravity-color.svg.
+Files: claudecode-color.svg, codex.svg, kimi-color.svg, grok.svg, cursor.svg, opencode.svg, antigravity-color.svg, qoder.svg.
 Brand names and marks belong to their respective owners.
 
 Mister Morph: `app_logo_dark.svg` from the Mister Morph website (quailyquaily/mistermorph-website, `public/`), the project's own mark. `morph-on-dark.svg` swaps its two colors (#1F1F1F and white) for dark backgrounds.
