@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { realpath } from "node:fs/promises";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 
@@ -66,8 +67,22 @@ export async function piFindSessionFile(
   cwd: string,
   sessionDir: string,
 ): Promise<string> {
-  const sessions = await lister.list(cwd, sessionDir);
-  const found = sessions.find((session) => session.id === id);
+  let sessions = await lister.list(cwd, sessionDir);
+  let found = sessions.find((session) => session.id === id);
+  if (found === undefined) {
+    // A native child stores process.cwd(), which resolves directory symlinks
+    // (including macOS /var -> /private/var). Keep the existing storage
+    // directory and check only that same physical cwd, never other projects.
+    const physical = await realpath(cwd).catch((error: unknown) => {
+      if (error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ENOTDIR")) { return cwd; }
+      throw error;
+    });
+    if (physical !== resolve(cwd)) {
+      const native = await lister.list(physical, sessionDir);
+      sessions = [...new Map([...sessions, ...native].map((entry) => [entry.path, entry])).values()];
+      found = sessions.find((session) => session.id === id);
+    }
+  }
   if (found === undefined) {
     throw new SessionNotFoundError(id,
       `pi session ${id} not found: no session file with that id under ${sessionDir} `

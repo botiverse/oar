@@ -136,6 +136,10 @@ OAR does not derive context usage from cumulative token totals. A failed stats
 query does not invent usage or erase the native turn boundary.
 
 Both locations use cwd-scoped session-id lookup and resume by full file path.
+The native child records the physical cwd after resolving directory symlinks.
+Lookup accepts that spelling as well as the supplied cwd within the same
+session directory, so macOS `/var` aliases and linked project directories can
+resume without moving their files or searching other projects.
 Model and thinking are read back after startup; name and system prompts use
 native startup flags. These options do not rewrite global defaults. `prompt` uses native `started`/`queued`/`handled`
 acknowledgments. A handled command can be accepted without creating a turn.

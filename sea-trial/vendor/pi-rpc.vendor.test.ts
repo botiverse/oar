@@ -1,7 +1,7 @@
 /* oxlint-disable import/max-dependencies -- Native process evidence and the shared provider fixture. */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, realpath, readdir, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test, vi } from "vitest";
@@ -56,6 +56,35 @@ function toolNames(request: unknown): string[] {
 }
 
 describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("bundled Pi RPC process boundaries", () => {
+  test("a symbolic cwd keeps native session identity and resumes through RPC and SDK", async () => {
+    const f = await fixture("");
+    const cwd = path.join(f.agentDir, "project-link");
+    await symlink(f.cwd, cwd, process.platform === "win32" ? "junction" : "dir");
+    try {
+      const fresh = await f.open({ cwd, name: "linked project" });
+      await turn(fresh, "linked_history_marker");
+      await fresh.dispose();
+      const directory = piSessionDir(cwd, f.agentDir);
+      const files = await readdir(directory);
+      const file = files.find((name) => name.endsWith(".jsonl"));
+      assert.ok(file !== undefined);
+      const text = readFileSync(path.join(directory, file), "utf8");
+      const header = asRecord(JSON.parse(text.split("\n")[0] ?? "null"));
+      expect(header?.cwd).toBe(await realpath(cwd));
+      const resumed = await f.open({ cwd, resume: fresh.id });
+      await turn(resumed, "after_rpc_resume");
+      expect(resumed.id).toBe(fresh.id);
+      expect(JSON.stringify(f.env.raw.at(-1)?.body)).toContain("linked_history_marker");
+      await resumed.dispose();
+      const sdk = createPiRuntime();
+      const installation = await sdk.installation();
+      assert.ok(installation.kind === "available");
+      const embedded = await sdk.session(installation, { cwd, resume: fresh.id });
+      try { expect(embedded.id).toBe(fresh.id); await turn(embedded, "after_sdk_resume"); }
+      finally { await embedded.dispose(); }
+    } finally { await f.stop(); }
+  }, 90_000);
+
   test.each([false, true])("a host-selected Pi executable reports context from each settled turn; prefix args=%s", async (prefix) => {
     const f = await fixture("");
     const selected = createPiRuntime({ execution: "subprocess", ...(prefix
