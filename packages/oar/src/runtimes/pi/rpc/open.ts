@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import type { RpcSessionState, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { RefusedSessionOptions, SessionOptions } from "../../../contracts/index.js";
 import { sessionEnvironment } from "../../../shared/environment.js";
@@ -15,6 +14,7 @@ import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
 import { piRpcControl } from "./control.js";
+import { readPiRpcCredentials } from "./credentials.js";
 import { piRpcLaunch } from "./launch.js";
 import { piRpcExtensionSource } from "./extension.js";
 import { RuntimeFailureError } from "../../../contracts/runtime-failure-error.js";
@@ -75,18 +75,7 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
     ], { cwd: options.cwd, env: { ...env, PI_CODING_AGENT_DIR: agentDir, OAR_PI_RPC_DIRECTORY: directory.path }, killTree: true, shutdown: "stdin", inheritStderr: false, extraPipe: true });
     const keyPipe = child.extraPipe;
     if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
-    keyPipe.on("error", () => { child.kill(); });
-    const keys = createInterface({ input: keyPipe, crlfDelay: Infinity });
-    keys.on("line", (line) => {
-      try {
-        const key: unknown = JSON.parse(line);
-        if (typeof key !== "string") { throw new TypeError("Invalid Pi RPC credential message"); }
-        credentials.add(key);
-        // The child waits for this before returning from its native hook.
-        // Separate stdout and fd 3 reads have no cross-stream ordering.
-        keyPipe.write("ok\n");
-      } catch { child.kill(); }
-    });
+    readPiRpcCredentials(keyPipe, credentials.add, () => { child.kill(); });
     const control = piRpcControl(child, receive);
     try {
       await child.spawned;

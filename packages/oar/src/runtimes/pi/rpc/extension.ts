@@ -22,6 +22,7 @@ export default async function oarPiRpcExtension(pi) {
     }
   };
   keys.on("error", fail);
+  acknowledgments.on("error", fail);
   acknowledgments.on("close", fail);
   acknowledgments.on("line", () => {
     const waiter = waiting.shift();
