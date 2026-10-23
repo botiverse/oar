@@ -57,6 +57,29 @@ async function resumeAcrossModes(fixture: Fixture, command: string, resume: stri
 }
 
 describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude excludes user configuration while retaining native credentials", () => {
+  test.each(["fast", "default"])("%s tier and user-memory exclusion apply together", async (serviceTier) => {
+    const installation = await claudeInstallation();
+    assert.ok(installation.kind === "available" && installation.via === "executable");
+    const fixture = await claudeConfigurationFixture(installation.command);
+    try {
+      const session = await claudeSession(installation, {
+        cwd: fixture.cwd, env: { ...fixture.env, ANTHROPIC_API_KEY: "fixture-only-not-a-secret" },
+        model: "opus", serviceTier, userConfiguration: "exclude",
+      });
+      try {
+        expect(await promptAndWait(session, "probe tier and memory", { timeoutMs: 30_000 })).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+        expect(session.serviceTier().value).toBe(serviceTier);
+        const init = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "system/init" ? [asRecord(record.body.native)] : []).at(-1);
+        expect(init?.fast_mode_state).toBe(serviceTier === "fast" ? "on" : "off");
+        const requests = JSON.stringify(fixture.model.requests);
+        for (const marker of ["USER_MEMORY", "HOME_MEMORY", "HOME_LOCAL_MEMORY", "USER_RULE", "AUTO_MEMORY"]) {
+          expect(requests, marker).not.toContain(`OAR_${marker}_MARKER`);
+        }
+        expect(requests).toContain("OAR_PROJECT_MEMORY_MARKER");
+      } finally { await session.dispose(); }
+    } finally { await fixture.close(); }
+  }, 60_000);
+
   test("local plugins, hooks, catalogs and memory are excluded; native refresh survives and is reused", async () => {
     const installation = await claudeInstallation();
     assert.ok(installation.kind === "available" && installation.via === "executable");

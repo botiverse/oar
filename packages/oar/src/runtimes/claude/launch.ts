@@ -1,5 +1,6 @@
 import { claudeUserConfiguration } from "./user-configuration.js";
-import { claudeServiceTierArgs } from "./service-tier.js";
+import { claudeServiceTierSettings } from "./service-tier.js";
+import type { JsonRecord } from "../../shared/json.js";
 import { UnsupportedOptionError, type SessionOptions } from "../../contracts/index.js";
 import { refuseManagedLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
@@ -23,9 +24,11 @@ import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
 /** The process a claude session drives. */
 export type ClaudeProcess = LineProcess;
 
-function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierArgs: readonly string[]): LineProcess {
+function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, tierSettings: JsonRecord): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
   const configuration = claudeUserConfiguration(options);
+  // Claude replaces, rather than merges, repeated --settings arguments.
+  const settings = { ...tierSettings, ...configuration.settings };
   return spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
@@ -43,7 +46,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.resume !== undefined || options.name === undefined ? [] : ["--name", options.name]),
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
-    ...tierArgs,
+    ...(Object.keys(settings).length === 0 ? [] : ["--settings", JSON.stringify(settings)]),
     ...configuration.args,
     ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),
     ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
@@ -83,7 +86,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   }
   refuseManagedLaunchArgs(options.launchArgs);
   checkSessionName(options);
-  const tierArgs = claudeServiceTierArgs(options.serviceTier);
+  const tierSettings = claudeServiceTierSettings(options.serviceTier);
   const servers = givenMcpServers(options.mcpServers);
   // Either way, what dead hosts left behind goes first (mcp-config.ts).
   const mcpConfig = servers === null ? null : await handOverMcpConfig(servers);
@@ -92,7 +95,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   }
   let child: LineProcess | null = null;
   try {
-    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierArgs);
+    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierSettings);
   } finally {
     if (child === null) {
       mcpConfig?.end();
