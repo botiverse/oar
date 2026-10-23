@@ -17,7 +17,9 @@
  * A changed Antigravity server also needs antigravity-native-settings.ts:
  * recheck instruction/effort channels and native MCP credential persistence.
  * A changed Qwen binary also needs qwen-native/probe.ts and the qwen-aimock
- * vendor/behavior suites (local provider, isolated HOME, no account).
+ * vendor/behavior suites (local provider, isolated HOME, no account). Also run
+ * qwen-native/lock-lifetime.ts: a successful warmup does not prove shared-HOME
+ * concurrency is safe; retain initialization timing and the held-lock result.
  * A version match is not a compatibility result. Pi, Pi Durable and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check

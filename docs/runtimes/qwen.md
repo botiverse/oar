@@ -71,22 +71,38 @@ following an OAR abort is `aborted`. No authentication or quota cause is inferre
 from arbitrary text. Native context and compaction readbacks are not projected
 into `contextUsage()` in this adapter.
 
-### Cold HOME initialization
+### Extension-store contention
 
-**Hosts opening many sessions in one new HOME should finish one normal turn
-before starting sessions concurrently.** Native initialization seeds the
-extension store. Cold concurrent starts can contend for its lock and fail with
-`Extension store is busy`. OAR does not retry this failure. The retained
-[observation](../../experiments/qwen-native/evidence.json) comes from the first
-unwarmed behavior run; the native vendor test also holds the on-disk lock to
-reproduce the same error deterministically.
+**Finishing one warmup turn does not make shared-HOME concurrency safe.**
+Qwen 0.26.0 can return `Extension store is busy` after a successful warmup:
+[Windows evidence](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724695)
+and [Linux evidence](https://github.com/botiverse/oar/actions/runs/40017461632/job/120633110675)
+include failed first turns from later sessions. Each job ran 19 behavior cases
+concurrently, including session and model-list processes, against a shared
+HOME. The Linux runner used Ubuntu 24.04.5 with Node 24.21.0; the Windows
+runner used Windows Server 2025 with Node 24.22.1. OAR does not retry this
+failure. The earlier [cold-start observation](../../experiments/qwen-native/evidence.json)
+remains valid but does not establish a warmup workaround. The native vendor
+test holds the on-disk lock to reproduce the error deterministically.
 
 Native `initialize` replies before extension initialization finishes. Its
-control queries do not establish readiness either. Therefore this failure can
+control queries do not establish readiness either. A [warm-HOME lock probe](../../experiments/qwen-native/lock-lifetime.ts)
+confirmed that `initialize` completed in 1.65 seconds while an external lock
+remained held; the first prompt reached no provider until that lock was
+released. An ordinary later prompt completed with a held lock, which does
+not establish that extension refresh operations never acquire it again.
+Serializing launches only through the initialize response is insufficient. Therefore this failure can
 arrive at the **first prompt**, as `result/error_during_execution`, after OAR
 has returned the Session. It ends that turn as `failed/unknown` with the native
 message; it is not an authentication/model classification or a silent wait.
 The adapter cannot honestly move it to open without a native readiness signal.
+The Windows failure also exposed a test-fixture cleanup bug: three assertions
+failed before their sessions' explicit `dispose` calls, and those sessions had
+no exit records before recursive removal hit `EBUSY`. The shared behavior
+runner now disposes every session opened by a case, including failed cases,
+before removing fixture directories. That cleanup does not hide or retry the
+original extension-lock failure.
+
 Closing an idle process uses EOF so initialization can release its lock; an
 immediate hard termination during initialization can leave a stale lock.
 
@@ -125,9 +141,11 @@ unresponsive process after the normal cleanup grace; it never retries.
   sets, usage and confirmed settings. Claude's 26 original recording baselines
   remain unchanged.
 - `OAR_TEST=qwen-aimock pnpm sea-trial` runs the shared contract suite against the
-  real CLI. The fixture finishes one warmup turn before concurrent cases; no
-  adapter retry or weakened assertion hides cold startup. The fixture uses the
-  product model-query default, including its startup bound.
+  real CLI. New sessions use separate temporary HOMEs so one native process cannot
+  poison another test's extension-store lock. Resume reuses that session's
+  original HOME and cwd. The shared-HOME limitation remains covered by the
+  separate native lock probe, rerun whenever the Qwen version changes. There
+  is no adapter retry, altered assertion or test-only product timeout.
 
 These tests do not establish real provider authentication, billing, live nested
 subagent interleavings, or runtime MCP list-change notification behavior. The

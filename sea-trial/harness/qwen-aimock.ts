@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
@@ -31,4 +31,13 @@ export async function startQwenAimock(configure?: (mock: LLMock) => void): Promi
       await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     },
   };
+}
+
+/** Each new behavior session gets a separate native store; a resume reuses the returned environment. */
+export async function isolatedQwenEnvironment(aimock: Awaited<ReturnType<typeof startQwenAimock>>): Promise<Readonly<Record<string, string>>> {
+  const parent = path.dirname(aimock.cwd);
+  const home = await mkdtemp(path.join(parent, "session-home-"));
+  await mkdir(path.join(home, ".qwen"));
+  await copyFile(path.join(parent, ".qwen", "settings.json"), path.join(home, ".qwen", "settings.json"));
+  return { ...aimock.env, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: path.join(home, "config") };
 }

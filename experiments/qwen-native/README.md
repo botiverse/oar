@@ -37,3 +37,22 @@ behavior run's extension-lock failure. The machine-local full trace also include
 the development failures that led to this fix. It is not a successful test run.
 The [runtime page](../../docs/runtimes/qwen.md) and native vendor suite preserve
 these limits and verification boundaries.
+
+## Shared HOME and extension-store locking
+
+Run `pnpm tsx experiments/qwen-native/lock-lifetime.ts /absolute/path/to/qwen`
+whenever the Qwen version changes, as listed in `runtime-versions.ts`. This
+uses an isolated HOME, a synthetic provider and a deliberately held native
+lock. It first completes a warmup, then observes whether initialize replies
+while the next first prompt waits for that lock. Releasing the lock allows
+the prompt through. A normal later prompt is also tested with a held lock;
+that is not a guarantee about extension refresh operations.
+
+Qwen 0.26.0 returned initialize in 1.65 seconds with the lock held, sent no
+provider request during the first 300 ms of the prompt, and completed after
+release. The later ordinary prompt completed despite the held lock. Linux
+and Windows CI also observed `Extension store is busy` with multiple sessions
+sharing an already warmed HOME; [runtime documentation](../../docs/runtimes/qwen.md#extension-store-contention)
+records the versions, concurrency and failing jobs. Shared behavior tests
+now isolate each new session's HOME, while resumes keep the original HOME.
+There is no native-lock retry or adapter startup serialization.

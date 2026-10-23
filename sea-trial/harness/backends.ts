@@ -4,14 +4,13 @@ import {
   codexInstallation,
   codexSession,
   defineRuntime,
-  promptAndWait,
   piInstallation,
   piSession,
   type Runtime,
 } from "../../packages/oar/src/index.js";
 import { readQwenModels } from "../../packages/oar/src/runtimes/qwen/list-models.js";
 import { qwenRuntime } from "../../packages/oar/src/runtimes/qwen/index.js";
-import { startQwenAimock } from "./qwen-aimock.js";
+import { isolatedQwenEnvironment, startQwenAimock } from "./qwen-aimock.js";
 import { startDurableFixture } from "./pi-durable.js";
 import { allRuntimes } from "./runtimes.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
@@ -30,33 +29,24 @@ export interface Backend {
 
 async function qwenBackend(): Promise<Backend> {
   const aimock = await startQwenAimock();
-  // Qwen seeds its extension store on first use; concurrent cold starts can contend for its lock.
-  try {
-    const available = await qwenRuntime.installation();
-    if (available.kind === "available") {
-      const warm = await qwenRuntime.session(available, { cwd: aimock.cwd, env: aimock.env });
-      try {
-        const result = await promptAndWait(warm, "hello", { timeoutMs: 30_000 });
-        if (result.kind !== "ended" || result.outcome.kind !== "completed") {
-          throw new Error(`Qwen home initialization failed: ${JSON.stringify(result)}`);
-        }
-      } finally { await warm.dispose(); }
-    }
-    return {
-      runtime: {
-        ...qwenRuntime,
-        id: "qwen-aimock",
-        listModels: async (installation) => installation.via === "executable"
-          ? { kind: "ok", models: await readQwenModels(installation.command, aimock.cwd, undefined, aimock.env) }
-          : { kind: "unsupported", reason: "executable required" },
-        session: async (installation, options) => {
-          const session = await qwenRuntime.session(installation, { ...options, cwd: aimock.cwd });
-          return session;
-        },
+  const homes = new Map<string, Readonly<Record<string, string>>>();
+  return {
+    runtime: {
+      ...qwenRuntime,
+      id: "qwen-aimock",
+      listModels: async (installation) => installation.via === "executable"
+        ? { kind: "ok", models: await readQwenModels(installation.command, aimock.cwd, undefined, aimock.env) }
+        : { kind: "unsupported", reason: "executable required" },
+      session: async (installation, options) => {
+        const environment = options.resume === undefined ? await isolatedQwenEnvironment(aimock) : homes.get(options.resume);
+        if (environment === undefined) { throw new Error("Qwen behavior resume must use its original fixture HOME"); }
+        const session = await qwenRuntime.session(installation, { ...options, cwd: aimock.cwd, env: { ...options.env, ...environment } });
+        homes.set(session.id, environment);
+        return session;
       },
-      aimock,
-    };
-  } catch (error) { await aimock.stop(); throw error; }
+    },
+    aimock,
+  };
 }
 
 export async function selectBackend(target: string): Promise<Backend> {
