@@ -1,5 +1,10 @@
+import { setTimeout as sleep } from "node:timers/promises";
+import { expect } from "vitest";
+import type { Session } from "../../../packages/oar/src/index.js";
+import { record } from "../../harness/trace.js";
+import { runTurn } from "./asserts.js";
 import { asRecord, asRecordList } from "../../../packages/oar/src/shared/json.js";
-import type { RawProviderRequest } from "../../harness/aimock.js";
+import type { RawProviderRequest, startClaudeAimock } from "../../harness/aimock.js";
 
 function textParts(content: unknown): readonly string[] {
   return typeof content === "string" ? [content] : asRecordList(content)
@@ -67,4 +72,22 @@ export function claudeToolResultRequest(raw: readonly RawProviderRequest[], id: 
 /** The provider-side result of a native tool call, before aimock normalizes it. */
 export function claudeToolResult(raw: readonly RawProviderRequest[], id: string): unknown {
   return toolResults(claudeToolResultRequest(raw, id)).find((part) => part.tool_use_id === id)?.content;
+}
+
+/** A server-side list request does not prove the client has applied its response. */
+export async function awaitClaudeMcpCatalog(session: Session,
+  env: Awaited<ReturnType<typeof startClaudeAimock>>, expected: readonly string[]): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  for (let attempt = 0; Date.now() < deadline; attempt += 1) {
+    const marker = `CATALOG_READY_${String(attempt)}`;
+    // A failed native turn is a test failure, not a condition to retry.
+    // oxlint-disable-next-line no-await-in-loop -- Observe the native asynchronous catalog before the business turn.
+    expect(await runTurn(session, marker)).toEqual({ kind: "completed" });
+    const catalog = claudeMcpCatalog(claudePromptRequest(env.raw, marker));
+    record({ kind: "claude_mcp_catalog_readiness", attempt, catalog });
+    if (JSON.stringify(catalog.searchable) === JSON.stringify(expected.toSorted())) { return; }
+    // oxlint-disable-next-line no-await-in-loop -- Bounded sampling of provider-visible state, not an adapter delay.
+    await sleep(50);
+  }
+  throw new Error("Claude did not expose the replacement MCP catalog within 10 seconds");
 }

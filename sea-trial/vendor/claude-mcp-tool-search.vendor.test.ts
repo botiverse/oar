@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import { claudeInstallation, claudeSession, serveMcpTools, type HostTool } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, type LLMock } from "../harness/aimock.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
-import { claudeMcpCatalog, claudePromptRequest, claudeToolResultRequest, claudeToolResult as resultOf } from "./support/claude-tools.js";
+import { awaitClaudeMcpCatalog, claudeMcpCatalog, claudePromptRequest, claudeToolResultRequest, claudeToolResult as resultOf } from "./support/claude-tools.js";
 import { currentTurnSays } from "./support/echo-mcp.js";
 import { ALPHA, BETA, SERVER, loggingProxy } from "./support/tools-list-changed.js";
 
@@ -13,6 +13,7 @@ const UNUSED = "oar_probe_unused";
 const nameOf = (name: string): string => `mcp__${SERVER}__${name}`;
 
 function script(mock: LLMock): void {
+  mock.on({ predicate: currentTurnSays(/CATALOG_READY_/u) }, { content: "catalog observed" });
   for (const [round, names, called] of [
     ["ALPHA", [ALPHA], ALPHA],
     ["BETA", [BETA], BETA],
@@ -61,6 +62,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude deferred MCP t
         const changedAt = log.length;
         served.setTools([tool(BETA)]);
         await vi.waitFor(() => { expect(log.slice(changedAt)).toContain("tools/list"); }, { timeout: 10_000 });
+        await awaitClaudeMcpCatalog(session, env, [nameOf(BETA)]);
         expect(await runTurn(session, "BETA_ROUND")).toEqual({ kind: "completed" });
         // The native removal announcement overrides the old searchable list.
         // The already loaded alpha schema stays in tools; unused never did.

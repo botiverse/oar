@@ -862,6 +862,13 @@ including on **2.1.304**. A removed tool that was never loaded leaves no schema
 behind ([2026-10-20 report](../../experiments/runtime-version-checks/2026-10-20.md);
 [host-served tools](../spec/runtime-matrix.md#host-served-tools)).
 
+Receiving `tools/list` at the server does not mean Claude has applied its
+response. The updated catalog reaches the next model request after the client
+processes that response; a request sent earlier can still carry the old catalog.
+The vendor test samples the model-visible catalog with bounded, recorded probe
+turns before checking replacement, search, schemas and tool calls. A failed
+probe turn fails the test immediately. This adds no wait or retry to the adapter.
+
 ### Workflows
 
 Claude's local `Workflow` tool is available in headless stream-json sessions
