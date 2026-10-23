@@ -133,3 +133,15 @@ workaround, not a demonstrated resource limit or a guarantee that all starts
 will fit these deadlines. Limiting test concurrency stabilizes evidence
 collection; it does not show that product behavior under concurrency is free
 of problems. OAR adds no startup retry and does not extend native deadlines.
+
+The preceding two-case Windows run completed the shared behavior suite, but
+one native effort test reached its 45-second test deadline
+([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724464)).
+Its retained records include a successful native result and process exit
+before that deadline; they do not establish which later phase consumed the
+remaining time. On the same revision, macOS also exceeded the old `--help`
+installation deadline ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724355)).
+The single-version installation query removes the extra help invocation;
+it is not evidence that every observed CI timeout is solved. Native control
+and test deadlines remain unchanged, and the revised Windows/macOS checks
+must establish their own results.
