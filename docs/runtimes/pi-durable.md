@@ -22,8 +22,10 @@ submission handle, not an answer. `submission.status`/`wait` read its receipt.
 ordered arrays of agent events, one per commit. A slow listener can receive a
 replacement snapshot instead of the intervening batches.
 
-The host passes the **same `Models` instance** it supplied to `Harness.open`:
-Harness exposes no public catalog getter, so OAR cannot verify this identity.
+The host passes the **same `Models` instance or `() => Models` supplier** it
+supplied to `Harness.open`. A supplier lets the host replace its catalog
+without recreating either the Harness or OAR runtime. Harness exposes no
+public catalog getter, so OAR cannot verify this identity.
 The host installs `@earendil-works/pi-durable@~1.4.0` and
 `@earendil-works/chord@~1.4.0`, both optional peers of OAR. OAR operates on
 the host's native package instances, without bundling another copy. Tests
@@ -39,7 +41,7 @@ extensions must also follow the native task/document API changes, including
 the replacement of `TaskRuntime.sleep()` and required `checkpointWhen`.
 Custom Chord contexts now require `telemetry`; see its
 [changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/chord/CHANGELOG.md).
-OAR's adapter needed no code change. The checks below cover native JSONL
+OAR's event mapping needed no code change. The checks below cover native JSONL
 reopen and browser MemoryStorage, not SQLite migration or host extensions.
 
 ```ts
@@ -116,6 +118,24 @@ produces `turn_started`, but no old message content is replayed. The content
 is in the original records or native history. A queued/placed receipt does
 not imply completion. A completed retry never ends a different active run.
 
+### Liveness and parked tasks
+
+A running OAR status is evidence of an unfinished native run, not a guarantee
+that its tasks can make progress. In 1.4.0, the default `restartLimit` parks
+a task after five consecutive interruptions without task-state progress
+(crash, eviction or reset; a normal Harness close does not count). The host
+receives `onReport` with `type: "task_parked"`; `Harness.inspect()` shows the
+task as `blocked` with reason `restart_limit`.
+
+Parking does not end the run or close its `watchEvents` stream. The snapshot
+still contains the run, so OAR continues to report running and emits no
+invented `turn_ended`. Hosts must use their native `onReport` or `inspect()`
+to distinguish this condition from work that can progress. Reopening an OAR
+Session enables scheduling but does not unpark the task. Recovery is a host
+decision: native `Harness.retryTask(taskId, context)` clears the restart
+count and schedules it again. The [parking probe](../../experiments/pi-durable-parked-task.ts)
+verifies this with five actual process deaths, then one explicit retry.
+
 ## Options, models and instructions
 
 `model` is `provider/model`, resolved against the supplied catalog. `effort`
@@ -124,6 +144,12 @@ menu. Both are applied and read back before returning. `listModels` reads
 `Models.getModels()`, including entries whose credentials may be unavailable;
 it does not authenticate or turn an empty catalog into `unauthenticated`.
 OAR installs no providers or keys. The host owns those decisions.
+
+When `models` is a supplier, OAR calls it for every `listModels` query and
+every session open, including resume. Model selection and effort validation
+use that open's current catalog, including the saved model when resume
+specifies only `effort`. A removed model is refused when explicitly selected;
+replacing a catalog does not itself rewrite saved conversation settings.
 
 `cwd` sets the conversation's native agent cwd, which the host's environment
 factory can use. It does not grant access to a local filesystem in a browser.
@@ -217,6 +243,13 @@ checks persisted instructions and request deduplication after JSONL reopen.
 On 1.4.0 (2026-10-22), all 23 native tests, 18 shared behavior cases (one
 skipped), that probe and the Chromium demo smoke test pass
 ([report](../../experiments/runtime-version-checks/2026-10-22.md)).
+
+The [1.4.0 parking probe and findings](../../experiments/pi-durable-parked-task.md)
+(2026-10-23) cover the default restart limit with JSONL storage: the host sees
+`task_parked` while OAR sees an unfinished run, and explicit host retry lets
+that same run finish. Option tests replace the native model catalog after
+runtime construction and check listing, new and resumed model validation,
+and effort validation for a saved model.
 
 `OAR_TEST=pi-durable-aimock pnpm sea-trial` runs the public contract against
 the real SDK with a local scripted provider.

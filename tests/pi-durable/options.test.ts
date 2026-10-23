@@ -61,6 +61,59 @@ test("failed effort validation rolls back saved options on resume", async () => 
   expect([agent.cwd, agent.instructions, agent.thinkingLevel]).toEqual(["/virtual", "saved", "off"]);
 });
 
+function catalog(id: string, reasoning = true) {
+  const models = createModels();
+  models.setProvider(fauxProvider({ models: [{ id, reasoning }] }).provider);
+  return models;
+}
+
+/* oxlint-disable max-statements -- Keep the catalog replacements and their before/after assertions in one scenario. */
+test("a replaced model catalog is used for listing and new and resumed model validation", async () => {
+  let current = catalog("before");
+  const models = () => current;
+  const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+  harnesses.push(harness);
+  const runtime = createPiDurableRuntime({ harness, models });
+  const installation = { kind: "available", via: "bundled" } as const;
+  const before = await runtime.listModels?.(installation);
+  expect(before?.kind === "ok" && before.models.map((model) => model.id)).toEqual(["faux/before"]);
+  const original = await runtime.session(installation, { cwd: "/virtual", model: "faux/before" });
+  await original.dispose();
+
+  current = catalog("after");
+  const after = await runtime.listModels?.(installation);
+  expect(after?.kind === "ok" && after.models.map((model) => model.id)).toEqual(["faux/after"]);
+  /* oxlint-disable no-await-in-loop -- Finish and dispose each controller before opening the next on this Harness. */
+  for (const resume of [undefined, original.id]) {
+    const options = { cwd: "/virtual", ...(resume === undefined ? {} : { resume }) };
+    await expect(runtime.session(installation, { ...options, model: "faux/before" })).rejects.toMatchObject({ failure: "model_unavailable" });
+    const session = await runtime.session(installation, { ...options, model: "faux/after", effort: "high" });
+    expect([session.model().value, session.effort().value]).toEqual(["faux/after", "high"]);
+    await session.dispose();
+  }
+  /* oxlint-enable no-await-in-loop */
+});
+
+test("resumed effort validation follows a replacement catalog for the saved model", async () => {
+  let current = catalog("same", false);
+  const models = () => current;
+  const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
+  harnesses.push(harness);
+  const runtime = createPiDurableRuntime({ harness, models });
+  const installation = { kind: "available", via: "bundled" } as const;
+  const original = await runtime.session(installation, { cwd: "/virtual", model: "faux/same" });
+  await original.dispose();
+  const options = { cwd: "/virtual", resume: original.id, effort: "high" };
+  await expect(runtime.session(installation, options)).rejects.toThrow("does not support effort high");
+  current = catalog("same", true);
+  const resumed = await runtime.session(installation, options);
+  expect(resumed.effort().value).toBe("high");
+  await resumed.dispose();
+  current = catalog("same", false);
+  await expect(runtime.session(installation, options)).rejects.toThrow("does not support effort high");
+});
+/* oxlint-enable max-statements */
+
 test.each([
   { outputSchema: {} }, { systemPrompt: "replacement" }, { env: { TEST: "value" } }, { launchArgs: ["--flag"] }, { serviceTier: "fast" },
   { additionalDirectories: ["/extra"] }, { mcpServers: [{ name: "test", command: "unused" }] }, { disallowedTools: ["read"] }, { name: "named" },

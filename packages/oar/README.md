@@ -355,7 +355,7 @@ The root and browser core entries load without these peers.
 import { viewOf } from "@botiverse/oar/browser";
 import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
 
-// Use the same Models instance that the host passed to Harness.open.
+// Use the same Models instance or () => Models supplier passed to Harness.open.
 const runtime = createPiDurableRuntime({ harness, models });
 const session = await runtime.session({ kind: "available", via: "bundled" }, {
   cwd: "/workspace", model: "provider/model",
