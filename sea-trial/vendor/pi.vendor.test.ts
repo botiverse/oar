@@ -1,6 +1,7 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, piInstallation, piSession, defineRuntime, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, piInstallation, defineRuntime, type Session } from "../../packages/oar/src/index.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { assertContextUsage, promptTurn, runTurn } from "./support/asserts.js";
@@ -42,7 +43,7 @@ async function waitFor(predicate: () => boolean, what: string, ms = 30_000): Pro
 }
 
 /** Vendor-specific error edges for the in-process pi SDK (scripted provider). */
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi vendor error edges", () => {
+describe.skipIf(!isPiBackend)("pi vendor error edges", () => {
   test("an invalid request ends the turn with the provider error in pi's own agent_end", async () => {
     const env = await startPiAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, {

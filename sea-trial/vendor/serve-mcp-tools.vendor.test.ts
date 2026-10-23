@@ -1,3 +1,4 @@
+import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession, piInstallation, piSession, serveMcpTools, type HostTool, type Runtime } from "../../packages/oar/src/index.js";
@@ -45,6 +46,7 @@ const backends: readonly Backend[] = [
   { id: "claude-aimock", runtime: runtime("claude-aimock", claudeSession, claudeInstallation), instructions: true, start: async () => startClaudeAimock(script(), { captureRaw: true }) },
   { id: "codex-aimock", runtime: runtime("codex-aimock", codexSession, codexInstallation), instructions: true, start: async () => startCodexAimock(script(), { captureRaw: true, rewriteResponse: namespaceMcpToolCalls }) },
   { id: "pi-aimock", runtime: runtime("pi-aimock", piSession, piInstallation), instructions: false, start: async () => startPiAimock(script(), { captureRaw: true }) },
+  { id: "pi-rpc-aimock", runtime: piTestRuntime, instructions: false, start: async () => startPiAimock(script(), { captureRaw: true }) },
   { id: "opencode-aimock", runtime: runtime("opencode-aimock", opencodeSession, opencodeInstallation), instructions: true, start: async () => startOpencodeAimock(script((server, text) => ({ name: `${server}_echo`, arguments: { text } }))) },
   { id: "kimi-aimock", runtime: runtime("kimi-aimock", kimiSession, kimiInstallation), instructions: false, start: async () => startKimiAimock(script()) },
   { id: "grok-aimock", runtime: runtime("grok-aimock", grokSession, grokInstallation), instructions: true, start: async () => startGrokAimock(script((server, text) => ({ name: "use_tool", arguments: { tool_name: `${server}__echo`, tool_input: { text } } }))) },

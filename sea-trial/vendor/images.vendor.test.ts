@@ -1,9 +1,10 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { awaitTurnEnd, defineRuntime, piInstallation, piSession, defaultRuntimes, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, defineRuntime, piInstallation, defaultRuntimes, type Session } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
@@ -97,7 +98,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex sends an input image
   }
 }, 60_000);
 
-test.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi sends an input image as ImageContent", async () => {
+test.skipIf(!isPiBackend)("pi sends an input image as ImageContent", async () => {
   const env = await startPiAimock(undefined, { captureRaw: true, imageInput: true });
   try {
     const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });

@@ -1,15 +1,16 @@
+import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { describe, expect, test } from "vitest";
-import { piInstallation, piSession, promptAndWait } from "../../packages/oar/src/index.js";
+import { piInstallation, promptAndWait } from "../../packages/oar/src/index.js";
 import { piSessionDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 
 /** SessionOptions.name (#368) as pi's own session list reports it. */
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("pi session name", () => {
+describe.skipIf(!isPiBackend)("pi session name", () => {
   test("a new session is named, a resume keeps the name it has, and names one that has none", async () => {
     const env = await startPiAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, { content: "pong" });

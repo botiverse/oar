@@ -114,3 +114,18 @@ test.skipIf(!posix)("killEntries takes each entry's process group too, never the
     assert.equal(await gone(sibling, 300), false, "the host's group is not signalled");
   });
 });
+
+test.skipIf(posix)("Windows process creation times identify owned descendants after their parent exits", async () => {
+  await withChildren([sleeper()], async ([pid = 0]) => {
+    const table = readProcessTable("windows");
+    const current = table.get(pid);
+    assert.ok(current !== undefined, "the native CIM table reports the child");
+    assert.equal(current.ppid, process.pid);
+    assert.ok(current.start.length > 0);
+    assert.equal(readProcessTable("windows").get(pid)?.start, current.start);
+    killEntries([{ ...current, start: `${current.start}-old` }], table);
+    assert.equal(await gone(pid, 300), false, "a reused PID is not signalled");
+    killEntries([current], readProcessTable("windows"));
+    assert.equal(await gone(pid), true);
+  });
+});

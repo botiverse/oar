@@ -247,3 +247,52 @@ test("a write after kill() ended stdin is dropped, not an unhandled error that t
     await child.exited;
   });
 });
+
+// oxlint-disable-next-line eslint/max-statements -- One native shutdown interleaving verifies no second signal enters cleanup.
+test("stdin shutdown awaits the native cleanup once without reentering it through SIGTERM", async () => {
+  const lines: string[] = [];
+  const { promise: ready, resolve } = Promise.withResolvers<void>();
+  const child = spawnLineProcess(process.execPath, ["-e", String.raw`
+    let closing = false;
+    async function stop() {
+      if (closing) process.exit(93);
+      closing = true;
+      await new Promise(resolve => setTimeout(resolve, 40));
+      process.stdout.write("cleanup-complete\n");
+      process.exit(0);
+    }
+    process.stdin.resume();
+    process.stdin.on("end", stop);
+    process.on("SIGTERM", stop);
+    console.log("ready");
+  `], { killTree: true, shutdown: "stdin" });
+  child.onLine((line) => { lines.push(line); if (line === "ready") { resolve(); } });
+  try {
+    await ready;
+    child.kill();
+    child.kill();
+    assert.equal(await child.exited, 0);
+    assert.deepEqual(lines, ["ready", "cleanup-complete"]);
+  } finally { child.kill(); await child.exited; }
+});
+
+test("stdin shutdown force-ends a process that keeps running after EOF", async () => {
+  // oxlint-disable-next-line eslint/max-statements -- Native startup, timeout and process cleanup belong to one lifecycle.
+  await withKillGrace(300, async () => {
+    const { promise: ready, resolve } = Promise.withResolvers<void>();
+    const child = spawnLineProcess(process.execPath, ["-e", String.raw`
+      process.stdin.resume();
+      process.stdin.on("end", () => {});
+      setInterval(() => {}, 1000);
+      console.log("ready");
+    `], { shutdown: "stdin" });
+    child.onLine(() => { resolve(); });
+    try {
+      await ready;
+      const started = performance.now();
+      child.kill();
+      assert.notEqual(await child.exited, 0);
+      assert.ok(performance.now() - started < 5000);
+    } finally { child.kill(); await child.exited; }
+  });
+});

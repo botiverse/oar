@@ -9,6 +9,7 @@ import {
   piInstallation,
   piSession,
   type AvailableInstallation,
+  createPiRuntime,
   type Runtime,
 } from "../../packages/oar/src/index.js";
 import { qoderRefusedSessionOptions } from "../../packages/oar/src/runtimes/qoder/options.js";
@@ -132,9 +133,10 @@ export async function selectBackend(target: string): Promise<Backend> {
         aimock: { mock: fixture.mock, raw: [], stop: async () => { await fixture.close(); } },
       };
     }
+    case "pi-rpc-aimock":
     case "pi-aimock": {
       const aimock = await startPiAimock(undefined, { imageInput: true });
-      return { runtime: defineRuntime({ id: target, session: piSession, installation: piInstallation }), aimock };
+      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? createPiRuntime({ execution: "subprocess" }).session : piSession, installation: piInstallation }), aimock };
     }
     default:
       return { runtime: allRuntimes.require(target), aimock: null };

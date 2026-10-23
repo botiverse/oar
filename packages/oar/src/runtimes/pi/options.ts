@@ -6,4 +6,7 @@ export interface PiProjectOptions {
 }
 
 /** Options shared by the Pi factory and its session, model-list and inventory operations. */
-export type PiRuntimeOptions = PiProjectOptions;
+export interface PiRuntimeOptions extends PiProjectOptions {
+  /** One bundled native RPC process per session, or the embedded SDK (default). */
+  readonly execution?: "in-process" | "subprocess";
+}
