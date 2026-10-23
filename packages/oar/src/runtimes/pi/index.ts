@@ -8,21 +8,33 @@ import { piSession } from "./session.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { piRpcRefusedSessionOptions } from "./rpc/open.js";
 
-export interface PiRuntimeOptions {
-  /** One bundled native RPC process per session, or the existing embedded SDK (default). */
-  readonly execution?: "in-process" | "subprocess";
-}
+export type PiRuntimeOptions = {
+  /** The embedded SDK remains the default. */
+  readonly execution?: "in-process";
+  readonly command?: never;
+  readonly args?: never;
+} | {
+  /** One native RPC process per session. */
+  readonly execution: "subprocess";
+  /** A Pi CLI executable, as a path or PATH command, never a shell expression. */
+  readonly command?: string;
+  /** Prefix arguments, for example a host binary's Pi subcommand. Requires command. */
+  readonly args?: readonly string[];
+};
 
 /** Choose the session's execution location without changing the bundled Pi version. */
 export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { readonly installation: typeof piInstallation; readonly listModels: typeof piListModels } {
   const subprocess = options.execution === "subprocess";
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JavaScript hosts can bypass the discriminated option type.
+  if (!subprocess && options.command !== undefined) { throw new Error("A Pi command requires execution: subprocess"); }
+  if (options.args !== undefined && options.command === undefined) { throw new Error("Pi command arguments require command"); }
   return defineRuntime({
     id: "pi", brand: runtimeBrands.pi,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
     mcpToolsListChanged: "full",
     skills: piSkills, commands: piCommands, tools: piTools,
     installation: piInstallation, listModels: piListModels,
-    session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.piRpcSession; }) : piSession,
+    session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options.command, options.args); }) : piSession,
   });
 }
 

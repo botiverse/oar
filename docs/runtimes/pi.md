@@ -88,9 +88,110 @@ that a generic Session abstraction can otherwise collapse:
   available capabilities. [SDK][native-sdk], [session format][native-format].
 
 Programs can embed the public SDK or launch Pi's CLI, JSON mode or RPC mode.
-OAR embeds the **in-process `@earendil-works/pi-coding-agent` SDK**: it
+OAR defaults to the **in-process `@earendil-works/pi-coding-agent` SDK**: it
 creates services and one `AgentSession`, not the replacement-oriented
-`AgentSessionRuntime`. [SDK][native-sdk], [package overview][native-overview].
+`AgentSessionRuntime`. Hosts can instead select one native RPC process per
+session with `createPiRuntime({ execution: "subprocess" })`, described below. [SDK][native-sdk], [package overview][native-overview].
+
+## Optional native RPC process
+
+```ts
+import { createPiRuntime } from "@botiverse/oar";
+
+const pi = createPiRuntime({ execution: "subprocess" });
+// A packaged host can instead delegate to its own Pi subcommand:
+const packagedPi = createPiRuntime({
+  execution: "subprocess",
+  command: "/path/to/host",
+  args: ["pi"],
+});
+```
+
+The default remains in-process. The subprocess selection launches the current
+Node executable with Pi's exported `@earendil-works/pi-coding-agent/rpc-entry`,
+not a second OAR SDK host. An explicit `command` is one executable path or PATH
+name; `args` are literal prefix arguments, not shell text. The selected command
+must implement Pi's `--version` and `--mode rpc` CLI behavior. It is checked at
+each open against OAR's installed Pi dependency version before extensions or a
+session start. The session's own extension reports its version again. A missing
+or different version fails explicitly; OAR does not adapt between RPC versions.
+A single-file host without a separate Node executable must provide a command.
+
+With a normal package tree OAR reads the dependency's package metadata directly.
+For a bundled host it uses Pi's source `PI_AI_VERSION` constant; the test suite
+checks that it equals the coding-agent package version in OAR's build. The
+coding-agent `VERSION` export alone cannot identify the host's dependency:
+`PI_PACKAGE_DIR` can make it read the embedding application's package metadata.
+This variable still belongs to native Pi configuration; an inherited override
+that makes the selected executable report a different version is rejected.
+
+RPC commands are newline-delimited JSON with correlated ids. OAR opens with
+`get_state`, reads the effective native model and thinking level, and shares the
+SDK event fold. Each native event and RPC response remains a frame in receive
+order. After every `agent_settled`, `get_session_stats.contextUsage` supplies the
+context usage event before the completed turn becomes visible. In Pi 1.4.0 the
+fields are `tokens`, `contextWindow`, and `percent`; tokens and percent may be
+null after compaction, and the entire value may be absent without a model.
+OAR does not derive context usage from cumulative token totals. A failed stats
+query does not invent usage or erase the native turn boundary.
+
+Both locations use cwd-scoped session-id lookup and resume by full file path.
+Model and thinking are read back after startup; name and system prompts use
+native startup flags. These options do not rewrite global defaults. `prompt` uses native `started`/`queued`/`handled`
+acknowledgments. A handled command can be accepted without creating a turn.
+Steering is native; queued inputs remain in OAR until sent, preserving individual
+withdrawal instead of using native `clear_queue` (which clears everything).
+
+The subprocess uses native `--approve` to match the SDK's project trust:
+opening an untrusted cwd can execute its Pi extensions. The child receives the
+session environment, including removals, so provider variables and MCP children
+are isolated from the host. This is broader than the SDK's bash/MCP-only env
+overlay. OAR passes `--no-mcp` and supplies session MCP servers through a small
+native extension, materialized from bundled source into a private directory.
+Its configuration and discovered provider keys use private files (0600 on POSIX)
+and never command-line arguments or RPC stdout. The child uses Pi's own
+`registerMcpServer`; collisions with user registrations still fail natively.
+Neither location exposes arbitrary inline extension factories or custom tools.
+Unsupported session options remain typed refusals; RPC additionally refuses
+`launchArgs` so startup flags cannot contradict checked options.
+
+Resume differences are explicit:
+
+- **Builtins reset in both locations.** Before user `session_start` handlers,
+  RPC restores the current native defaultTools (or Pi's built-in default set),
+  intersected with registered builtins. Current `disallowedTools` removes tools
+  before registration and always wins over historical activation. User extension
+  handlers can still change the active set, as on a fresh session.
+- **Extension defaults differ.** Native RPC can restore a previously activated
+  extension tool whose `defaultActive` is false. SDK mode resets to the current
+  defaults. Pi's public RPC/extension metadata does not expose `defaultActive`,
+  so OAR cannot safely reset extension defaults without activating tools that
+  should remain inactive.
+- **Pending history differs.** With no active tool available, Pi's public
+  `setActiveTools([])` does not clear restored unresolved names. RPC keeps the
+  native pending list; a later registration can activate such a name. SDK mode
+  refuses this unresolved case when it cannot clear it safely. Current explicit
+  exclusions still block the tool in RPC. These locations are not equivalent
+  for extension-tool restoration.
+
+Dispose closes stdin first, letting native EOF run extension shutdown hooks.
+The shared process owner then bounds the wait by `OAR_KILL_GRACE_MS` and kills
+remaining descendants, including detached ones captured when disposal began.
+Abort has the same bounded process fallback as other process runtimes. Native
+crashes produce the actual process exit; they do not fabricate a turn end.
+Interactive extension requests remain native app requests; OAR cancels dialogs
+that require a reply rather than hanging without a host UI bridge.
+
+The ordinary `installation`, model catalog and inventory members still inspect
+OAR's bundled Pi. The selected process command is validated at session open.
+Provider login and account APIs remain outside the session interface.
+
+Evidence: [native RPC probe](../../experiments/pi-rpc-native/README.md),
+[process-boundary tests](../../sea-trial/vendor/pi-rpc.vendor.test.ts),
+[single-file host test](../../sea-trial/vendor/pi-rpc-bundled.vendor.test.ts),
+and the same portable Pi vendor and shared behavior suites for `pi-aimock` and
+`pi-rpc-aimock`. SDK-object-specific tests stay on the SDK path. The following
+sections describe the default SDK path unless the RPC differences above apply.
 
 ## High-level mapping to OAR
 

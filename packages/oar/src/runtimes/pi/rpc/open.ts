@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { RpcSessionState, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { RefusedSessionOptions, SessionOptions } from "../../../contracts/index.js";
 import { sessionEnvironment } from "../../../shared/environment.js";
@@ -15,6 +14,8 @@ import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
 import { piRpcControl } from "./control.js";
+import { piRpcLaunch } from "./launch.js";
+import { piRpcExtensionSource } from "./extension.js";
 import { RuntimeFailureError } from "../../../contracts/runtime-failure-error.js";
 
 export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
@@ -37,7 +38,7 @@ interface OpenPiRpc {
 }
 
 /** Native RPC startup, with the same bundled version as the in-process runtime. */
-export async function openPiRpc(options: SessionOptions, credentials: SessionCredentials, receive: (message: Record<string, unknown>) => void): Promise<OpenPiRpc> {
+export async function openPiRpc(options: SessionOptions, credentials: SessionCredentials, receive: (message: Record<string, unknown>) => void, command?: string, args?: readonly string[]): Promise<OpenPiRpc> {
   refuseSessionOptions(piRpcRefusedSessionOptions, options);
   checkSessionName(options);
   // Removals are already applied to the RPC child's environment. Only the
@@ -46,7 +47,9 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
   if (options.effort !== undefined) { piThinkingLevel(options.effort); }
   if (options.model !== undefined) { splitPiModelId(options.model); }
   const env = sessionEnvironment(options.env);
-  const agentDir = path.resolve(env.OAR_PI_AGENT_DIR ?? env.PI_CODING_AGENT_DIR ?? path.join(env.HOME ?? env.USERPROFILE ?? homedir(), ".pi", "agent"));
+  const launch = await piRpcLaunch(command, options.cwd, env, args);
+  const agentDir = path.resolve([env.OAR_PI_AGENT_DIR, env.PI_CODING_AGENT_DIR].find((value) => value !== undefined && value.length > 0)
+    ?? path.join(env.HOME ?? env.USERPROFILE ?? homedir(), ".pi", "agent"));
   const sessionDir = piSessionDir(options.cwd, agentDir);
   const { SessionManager } = await import("@earendil-works/pi-coding-agent");
   const sessionFile = options.resume === undefined ? undefined : await piFindSessionFile(SessionManager, options.resume, options.cwd, sessionDir);
@@ -67,10 +70,11 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
         emittedKeys.add(line);
       }
     };
-    const extensionJs = fileURLToPath(new URL("extension.js", import.meta.url));
-    const extension = existsSync(extensionJs) ? extensionJs : extensionJs.replace(/\.js$/u, ".ts");
-    const child = spawnLineProcess(process.execPath, [
-      fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent/rpc-entry")),
+    // A bundled host need not ship its own source files or a node_modules tree.
+    const extension = path.join(directory.path, "extension.mjs");
+    await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
+    const child = spawnLineProcess(launch.command, [
+      ...launch.args,
       "--approve", "--no-mcp", "--session-dir", sessionDir, "-e", extension,
       ...(sessionFile === undefined ? [] : ["--session", sessionFile]),
       ...(options.model === undefined ? [] : ["--model", options.model]),
@@ -88,7 +92,8 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
       rememberKeys();
       if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${child.diagnostics().stderr}`); }
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Written only by the bundled extension into this private directory.
-      const ready: { modelRegistered: boolean } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
+      const ready: { modelRegistered: boolean; version: string } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
+      if (ready.version !== launch.version) { throw new Error(`Pi RPC session loaded ${ready.version}, expected ${launch.version}`); }
       if (options.model !== undefined && !ready.modelRegistered) {
         throw new RuntimeFailureError("model_unavailable", `pi model ${options.model} is not registered in the native model registry`);
       }
