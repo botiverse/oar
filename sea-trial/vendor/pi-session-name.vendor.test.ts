@@ -1,5 +1,5 @@
-import { isPiBackend, piSession } from "./support/pi-runtime.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { isPiBackend, piRpc, piSession } from "./support/pi-runtime.js";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
@@ -21,7 +21,8 @@ describe.skipIf(!isPiBackend)("pi session name", () => {
       expectAvailable(installation, "pi");
       const agentDir = process.env.OAR_PI_AGENT_DIR ?? "";
       const named = async (id: string): Promise<string | undefined> => {
-        const sessions = await SessionManager.list(cwd, piSessionDir(cwd, agentDir));
+        // The native CLI stores process.cwd(), which resolves macOS /var.
+        const sessions = await SessionManager.list(piRpc ? await realpath(cwd) : cwd, piSessionDir(cwd, agentDir));
         return sessions.find((info) => info.id === id)?.name;
       };
 
