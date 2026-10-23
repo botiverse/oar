@@ -3,6 +3,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
+  userConfiguration: "antigravity has no verified separation of user configuration from its native login",
   outputSchema: "Antigravity ACP and launch configuration expose no final-output schema channel",
   name: "antigravity exposes no verified session name setting",
   additionalDirectories: "antigravity accepts but ignores ACP additionalDirectories",

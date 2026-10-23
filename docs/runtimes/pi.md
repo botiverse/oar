@@ -982,3 +982,11 @@ The [native experiment](../../experiments/commands-native.ts) and
 user and project templates, argument hints, unchanged skills, partial extension
 load failures, workspace changes, and no persisted session or trust grant.
 [Report](../../experiments/commands-2026-10-11.md).
+
+## User configuration
+
+`userConfiguration: "exclude"` is declared refused with
+`UnsupportedOptionError` before opening a session. This adapter has no
+verified separation of user configuration from native login and session
+history. Omission and `"include"` retain existing behavior. See the
+[shared contract](../spec/runtime-matrix.md#user-configuration).

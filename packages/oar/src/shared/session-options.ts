@@ -8,8 +8,9 @@ function credentialEntries(options: SessionOptions): readonly string[] {
   return (options.mcpServers ?? []).filter((server) => hasMcpCredentials(server)).map((server) => server.name);
 }
 
-/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`. */
+/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
+  if (key === "userConfiguration") { return options.userConfiguration === "exclude"; }
   if (key === "env") {
     return options.env !== undefined && Object.keys(options.env).length > 0;
   }
@@ -30,7 +31,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  * `mcpServerCredentials`.
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;

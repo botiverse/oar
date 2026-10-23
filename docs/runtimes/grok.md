@@ -819,3 +819,11 @@ Verified with the native binary (1.0.50; the regression passes again on
 and a local scripted provider: new and cold resumed sessions, steer, queued
 input, wrong-typed output and malformed schema.
 [Evidence and regressions](../../experiments/structured-output-2026-10-11.md).
+
+## User configuration
+
+`userConfiguration: "exclude"` is declared refused with
+`UnsupportedOptionError` before opening a session. This adapter has no
+verified separation of user configuration from native login and session
+history. Omission and `"include"` retain existing behavior. See the
+[shared contract](../spec/runtime-matrix.md#user-configuration).

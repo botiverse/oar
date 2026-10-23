@@ -10,6 +10,7 @@ import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> = {
+  userConfiguration: { userConfiguration: "exclude" },
   additionalDirectories: { additionalDirectories: ["/extra"] },
   outputSchema: { outputSchema: {} },
   serviceTier: { serviceTier: "fast" },
@@ -40,9 +41,9 @@ function refusalMessage(reason: string | undefined, key: RefusableSessionOption)
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "cursor", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "codex", "cursor", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
@@ -56,16 +57,16 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    antigravity: ["additionalDirectories", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     claude: [],
-    codex: [],
+    codex: ["userConfiguration"],
     cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
-    grok: ["additionalDirectories", "disallowedTools", "name", "serviceTier"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "name", "outputSchema", "serviceTier", "systemPrompt"],
-    opencode: ["disallowedTools", "name", "outputSchema", "serviceTier"],
-    pi: ["additionalDirectories", "launchArgs", "outputSchema", "serviceTier"],
-    qoder: ["name", "outputSchema", "serviceTier"],
-    qwen: ["name", "outputSchema", "serviceTier"],
+    grok: ["additionalDirectories", "disallowedTools", "name", "serviceTier", "userConfiguration"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    opencode: ["disallowedTools", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    pi: ["additionalDirectories", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
+    qoder: ["name", "outputSchema", "serviceTier", "userConfiguration"],
+    qwen: ["name", "outputSchema", "serviceTier", "userConfiguration"],
   });
 });
 
@@ -139,5 +140,12 @@ test("unsupported tool denial refuses before resume lookup and prompt preparatio
 test("empty additionalDirectories is no override even on refused runtimes", () => {
   for (const runtime of allRuntimes.list()) {
     expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", additionalDirectories: [] }); }).not.toThrow();
+  }
+});
+
+test("explicit include and omission preserve existing runtime behavior", () => {
+  for (const runtime of allRuntimes.list()) {
+    expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", userConfiguration: "include" }); }).not.toThrow();
+    expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp" }); }).not.toThrow();
   }
 });

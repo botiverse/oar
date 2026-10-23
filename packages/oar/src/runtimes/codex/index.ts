@@ -9,10 +9,12 @@ import { codexInstallation } from "./installation.js";
 import { codexInstall, codexInstallPlan } from "./install.js";
 import { codexListModels } from "./list-models.js";
 import { codexCheckUpdate, codexUpgrade } from "./update.js";
+import { codexRefusedSessionOptions } from "./options.js";
 import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
+  refusedSessionOptions: codexRefusedSessionOptions,
   brand: runtimeBrands.codex,
   skills: codexSkills,
   mcpServers: codexMcpServers,

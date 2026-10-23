@@ -36,6 +36,7 @@ import { createTaskTracker } from "./tracker.js";
 const DISPOSE_SETTLE_MS = 3000;
 
 export const morphRefusedSessionOptions: RefusedSessionOptions = {
+  userConfiguration: "morph shares its Console process; no per-session exclusion of user configuration is verified",
   systemPrompt: "The morph Runtime API has no system prompt override",
   appendSystemPrompt: "The morph Runtime API has no system prompt override",
   env: "morph runs tools inside its Console process, which a session neither starts nor owns",

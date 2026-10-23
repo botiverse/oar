@@ -101,6 +101,7 @@ export function piEffectiveModel(session: PiModelSource): string | null {
 
 /** Options the in-process SDK cannot honor, refused before anything opens. */
 export const piRefusedSessionOptions: RefusedSessionOptions = {
+  userConfiguration: "pi has no verified per-session exclusion of user configuration while retaining its native login",
   outputSchema: "Pi SDK exposes no final-output schema option",
   additionalDirectories: "pi's SDK configures one cwd and exposes no additional workspace directory option",
   launchArgs: "pi runs in this process through its SDK; there is no runtime command line to add arguments to",

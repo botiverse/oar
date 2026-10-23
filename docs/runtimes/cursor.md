@@ -657,3 +657,23 @@ SDK's MCP tool `outputSchema` describes a tool result, not the agent's final
 answer; OAR does not substitute that unrelated field or a prompt instruction.
 
 [Native channel audit](../../experiments/structured-output-2026-10-11.md).
+
+## User configuration
+
+`userConfiguration: "exclude"` explicitly passes `local.settingSources: []`
+and keeps `local.sandboxOptions: { enabled: false }`. SDK 1.0.40 already
+loads no ambient settings when setting sources are omitted, so omission and
+`"include"` retain that native default. Project settings are absent too.
+The SDK still reads `~/.cursor/sandbox.json`, but the explicit sandbox option
+takes precedence. Managed organization controls remain native.
+
+The SDK's stored login and session store stay in their original locations.
+Its stored API key is static, so there is no refresh-token rotation to
+emulate. The [local probe](../../experiments/cursor-user-configuration/README.md)
+uses a synthetic stored key, observes actual file reads and authenticated
+requests, and blocks external connections. A native user-source positive
+control reads user skills, hooks and MCP and connects that MCP server;
+OAR's default and exclusion opens do not. A subsequent exclusion open
+reuses the original login and leaves its file unchanged. The stand-in
+rejects inference deliberately; this proves local configuration and
+credential use, not a successful model turn or remote account-rule behavior.

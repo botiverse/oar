@@ -703,3 +703,19 @@ interface or its launch configuration. OAR does not imitate native output
 constraints by adding prompt instructions.
 
 [Native channel audit](../../experiments/structured-output-2026-10-11.md).
+
+## User configuration
+
+`userConfiguration: "exclude"` is declared refused before launch; omission
+and `"include"` preserve native behavior. Moving `KIMI_CODE_HOME` while
+linking `credentials/` and `oauth/` and copying `device_id` hides native
+history. Sharing the session directory and index files does not fully fix
+that: Kimi 2.3.1 atomically replaces the `workspaces.json` symlink with an
+independent file. A new workspace then exists only in the temporary home's
+catalog, while `session_index.jsonl` contains temporary session paths.
+
+The [local probe](../../experiments/kimi-user-configuration/README.md)
+retains the nuance: explicit cwd/id resume after cleanup succeeded, but the
+original workspace catalog had already diverged. That is not safe sharing
+of user data, so OAR does not implement the workaround. The experiment uses
+a local provider and synthetic state; it makes no OAuth refresh claim.

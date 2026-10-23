@@ -136,7 +136,12 @@ export async function openCursorAgent(sdk: CursorSdk, options: SessionOptions): 
   const agentOptions = {
     model: await cursorModelSelection(sdk, options),
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: [...options.disallowedTools] }),
-    local: { cwd: options.cwd, ...(directories.length === 0 ? {} : { dirs: directories }), sandboxOptions: { enabled: false } },
+    local: {
+      cwd: options.cwd,
+      ...(directories.length === 0 ? {} : { dirs: directories }),
+      ...(options.userConfiguration === "exclude" ? { settingSources: [] } : {}),
+      sandboxOptions: { enabled: false },
+    },
   };
   const opening = options.resume === undefined ? sdk.Agent.create(agentOptions) : sdk.Agent.resume(options.resume, agentOptions);
   return opening.catch((error: unknown) => {

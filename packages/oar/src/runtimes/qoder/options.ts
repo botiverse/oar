@@ -4,6 +4,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 export const qoderRefusedSessionOptions: RefusedSessionOptions = {
   serviceTier: "Qoder has no verified service-tier option",
   outputSchema: "Qoder has no verified structured-output option for long-lived sessions",
+  userConfiguration: "Qoder has no verified way to exclude user configuration while preserving native credentials and history",
   name: "Qoder's session-name persistence has not been verified",
 };
 export function checkQoderLaunchArgs(args: readonly string[] | undefined): void {

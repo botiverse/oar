@@ -211,3 +211,11 @@ These tests do not establish real provider authentication, billing, live nested
 subagent interleavings, or runtime MCP list-change notification behavior. The
 latter retains the conservative default declaration. Real-account validation
 is left to the consuming host; none was used to develop this adapter.
+
+## User configuration
+
+`userConfiguration: "exclude"` is declared refused with
+`UnsupportedOptionError` before opening a session. This adapter has no
+verified separation of user configuration from native login and session
+history. Omission and `"include"` retain existing behavior. See the
+[shared contract](../spec/runtime-matrix.md#user-configuration).

@@ -1,10 +1,9 @@
 /* oxlint-disable import/max-dependencies -- Launch validates native options and owns MCP and prompt-file handoffs. */
+import { claudeUserConfiguration } from "./user-configuration.js";
 import { claudeServiceTierArgs } from "./service-tier.js";
 import { UnsupportedOptionError, type SessionOptions } from "../../contracts/index.js";
 import { refuseManagedLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
-import { sessionEnvironment } from "../../shared/environment.js";
-import { claudeSessionEnv } from "./environment.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
 import { checkSessionName } from "../../shared/session-options.js";
@@ -16,8 +15,8 @@ import { claudePromptFiles } from "./prompt-files.js";
  *
  * SessionOptions.mcpServers is `--mcp-config <path>` (claude 2.1.292, probed
  * against a scripted provider), handed over as mcp-config.ts describes. The
- * servers join the user's own, which stay loaded because oar never passes
- * `--strict-mcp-config`; claude reports them in system/init as `source:
+ * servers join the user's own by default. With userConfiguration: exclude,
+ * `--strict-mcp-config` loads only the host's servers. Claude reports them as `source:
  * "dynamic"`, and a dynamic server replaces a user-scope server of the same
  * name for that process (the user's other servers stay). The same flag goes
  * on a `--resume`, which remembers none.
@@ -28,6 +27,7 @@ export type ClaudeProcess = LineProcess;
 
 function spawnClaude(command: string, sessionId: string, options: SessionOptions, mcpConfig: string | null, nativeArgs: readonly string[]): LineProcess {
   const directories = resolvedAdditionalDirectories(options);
+  const configuration = claudeUserConfiguration(options);
   return spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
@@ -46,6 +46,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...(options.model === undefined ? [] : ["--model", options.model]),
     ...(options.effort === undefined ? [] : ["--effort", options.effort]),
     ...nativeArgs,
+    ...configuration.args,
     ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),
     // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of
     // the variadic flags below so none swallows them as values.
@@ -57,7 +58,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     cwd: options.cwd,
     // Without the parent session's markers, so print mode chooses sdk-cli and
     // claude is not a child of the host's own claude (environment.ts).
-    env: sessionEnvironment(claudeSessionEnv(options.env)),
+    env: configuration.env,
     // On Windows an npm .cmd wrapper can exit while native claude keeps
     // the provider request and stdio alive. Teardown must reach both.
     killTree: true,
