@@ -34,7 +34,7 @@ async function observe(fixture: Fixture, command: string, exclude: boolean, host
     expect(existsSync(path.join(fixture.home, "project-hook"))).toBe(true);
     const auth = fixture.model.auth.splice(0);
     expect(auth.length).toBeGreaterThan(0);
-    expect(auth.every((entry) => exclude ? entry.rotated : entry.original)).toBe(true);
+    expect(auth.every((entry) => exclude ? entry.rotated : entry.original), JSON.stringify({ exclude, auth, oauth: fixture.oauth.seen })).toBe(true);
     return session.id;
   } finally { await session.dispose(); await fixture.clearHooks(); }
 }
