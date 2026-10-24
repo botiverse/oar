@@ -5,6 +5,13 @@ import { piInstallation } from "./installation.js";
 import { piListModels } from "./list-models.js";
 import { piRefusedSessionOptions } from "./open.js";
 import { piSession } from "./session.js";
+import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
+
+const piProviders: ProviderAuthReader = async (_installation, options) => {
+  const { createPiProviderAuth } = await import("./auth.js");
+  const facade = await createPiProviderAuth();
+  return facade.listProviders({ resolve: options.resolve });
+};
 
 /**
  * The bundled Pi runtime, embedded through the Pi SDK dependency. Account
@@ -20,6 +27,7 @@ export const piRuntime = defineRuntime({
   commands: piCommands,
   tools: piTools,
   installation: piInstallation,
+  providers: piProviders,
   listModels: piListModels,
   session: piSession,
 });

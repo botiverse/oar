@@ -30,6 +30,9 @@ export function projectCursorAuthStatus(status: unknown): AuthStatus {
   const expiresMs = asNumber(record.apiKeyExpiresAtMs);
   const expiresAt = expiresMs === null ? null : utcInstantFromDate(new Date(expiresMs));
   const account: LoginAccount = {
+    // This status describes the SDK's stored Cursor user key, not a
+    // provider API key. The native account's Cursor plan funds its usage.
+    credential: "api_key", metering: "plan",
     ...(email === undefined ? {} : { email }),
     ...(expiresAt === null ? {} : { expiresAt }),
   };
@@ -55,7 +58,7 @@ export async function readCursorAuthStatus(auth: CursorAuth, timeoutMs = STATUS_
 
 /** Read only: asks the SDK's `Cursor.auth.status`, never a login flow, and returns no key. */
 export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatusReader {
-  return async (installation, options = {}) => {
+  const reader: AuthStatusReader = async (installation, options = {}) => {
     if (installation.via !== "bundled") {
       return { kind: "unknown", detail: "cursor's sign-in status needs the bundled @cursor/sdk" };
     }
@@ -70,4 +73,5 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
     const status = await readCursorAuthStatus(auth, options.timeoutMs);
     return status;
   };
+  return Object.assign(reader, { localOnly: true as const });
 }

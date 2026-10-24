@@ -1601,3 +1601,32 @@ an earlier fixture revision had mismatched lookup accounts and failed before
 refresh. These controls distinguish that fixture error from the unavailable
 default-Keychain observation above. Other platforms retain the credential-file
 fixture. Setup errors fail the test, and token-reuse assertions remain strict.
+
+## Orientation query costs
+
+`listModels()` starts a short-lived native print process and reads
+`initialize.supported_models`. It loads the current workspace's configuration,
+can start configured MCP servers, and can perform native account I/O. No model
+prompt is sent. `authStatus()` is not declared local: an expired OAuth record
+can trigger network refresh. Explicit orientation `account` depth also reads
+usage, which can execute the configured `apiKeyHelper`; native auth status alone
+did not execute that helper in the Linux 2.1.309 control. Local orientation
+therefore skips this reader rather than parsing credential files. The
+[probe](../../experiments/orientation/README.md) uses synthetic stores and a
+network recorder.
+
+The shared-store probe on 2.1.309 observed native refresh coordination on Linux
+with its credential file and macOS 26.6.2 with an isolated writable Keychain:
+an auth-status process and a session starting from the same expired credentials
+made one refresh exchange, and both used the rotated token. Native
+`.oauth_refresh.lock` and `.storage-write.lock` files appeared. In a second
+control, auth status refreshed while a session's model request was in flight.
+After the local server rejected that request's old token with 401, the session
+reread the rotated credentials and completed without a second refresh exchange.
+The native implementation also rereads credentials after acquiring its refresh
+lock. These are observations of one version with a local OAuth stand-in, not
+a guarantee against every provider, storage or process failure. Hosts still
+own scheduling of account queries; the aggregate adds no credential lock or
+retry. Both macOS controls passed in CI on 2026-10-24, with matching persisted
+tokens and a later fresh auth-status process still reporting logged in. This
+does not cover a locked or unavailable login Keychain.

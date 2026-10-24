@@ -4,6 +4,10 @@ import type { UtcInstant } from "./account-usage.js";
 
 /** What the runtime says about the account it is signed in to. Every field is the runtime's own word, absent when it gives none. */
 export interface LoginAccount {
+  /** Native credential form; unrelated to whether a key is billed against a plan. */
+  readonly credential?: "account" | "api_key";
+  /** Native billing basis, omitted when the runtime does not establish it. */
+  readonly metering?: "plan" | "usage";
   readonly email?: string;
   /** The runtime's plan or subscription label (`max`, `pro`, ...). */
   readonly plan?: string;
@@ -150,11 +154,13 @@ export interface AuthStatusOptions {
 }
 
 /**
- * Cheap and read only: runs the runtime's local status query, never a login
- * flow, and returns no secret. Hosts call it to decide whether to offer a
- * login.
+ * Runs the runtime's status query, never a login flow, and returns no secret.
+ * A native query may contact its service or refresh stored credentials.
+ * `localOnly` is an evidenced adapter declaration: no network, credential
+ * refresh or key-command execution. Absence permits those native effects.
+ * `orient` calls only declared readers at local depth.
  */
-export type AuthStatusReader = (
+export type AuthStatusReader = ((
   installation: AvailableInstallation,
   options?: AuthStatusOptions,
-) => Promise<AuthStatus>;
+) => Promise<AuthStatus>) & { readonly localOnly?: true };

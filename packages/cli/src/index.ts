@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* oxlint-disable import/max-dependencies -- the CLI composition root registers independently owned commands. */
 import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import type { Runtime } from "@botiverse/oar";
@@ -8,6 +9,7 @@ import { registerUpgradeCommand } from "./upgrade.js";
 import { registerLoginCommand, registerLogoutCommand } from "./login.js";
 import { registerMcpCommand } from "./mcp-command.js";
 import { registerRunCommand } from "./run.js";
+import { registerOrientCommand } from "./orient.js";
 import { runtimes } from "./runtimes.js";
 
 // Read the version from this package's own manifest so `--version` can never
@@ -158,5 +160,6 @@ registerLoginCommand(program, selected);
 registerLogoutCommand(program, selected);
 registerMcpCommand(program, packageVersion());
 registerRunCommand(program, packageVersion());
+registerOrientCommand(program, runtimes);
 
 await program.parseAsync();

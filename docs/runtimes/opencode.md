@@ -767,3 +767,11 @@ silently switch interfaces or replace the schema with prompt instructions.
 verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
+
+## Orientation query costs
+
+`listModels()` starts `opencode models --verbose` on v1 or
+`opencode models --standalone` on v2 in the selected workspace. Native project
+configuration, provider credentials and catalog cache affect the result; a cold
+catalog can involve network access. It does not submit a model turn. OAR exposes
+no auth-status reader for local orientation.

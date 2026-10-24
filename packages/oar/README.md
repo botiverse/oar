@@ -114,7 +114,7 @@ See [dropped input](https://github.com/botiverse/oar/blob/main/docs/spec/convers
 
 The package has these public entry points, plus `@botiverse/oar/pi-durable` ([below](#host-owned-durable-sessions)) and `@botiverse/oar/community` for community runtimes (below):
 
-- `@botiverse/oar`: the runtime registry and adapters, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, `serveMcpTools`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar`: the runtime registry and adapters, bounded `orient` snapshots, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, `serveMcpTools`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only when an ACP runtime first opens a session, lists models (kimi, grok, antigravity) or reads grok's usage, and the pi and cursor SDKs when theirs first run. Node-only.
@@ -413,6 +413,18 @@ This is discovery, not execution or a live session's command state.
 Custom runtimes should use `defineRuntime`, which fills missing inventory
 methods with explicit unsupported results. A manually constructed `Runtime`
 must implement the four methods, including `commands`.
+
+### Orientation
+
+`orient(registry, { depth: "local" | "account" | "models", runtimes?, timeoutMs?, signal? })`
+combines existing readers into timestamped probes, preserving missing and failed
+evidence. Local is the default and skips auth readers without a proven local
+query. Account reads can refresh credentials or execute configured key commands;
+models can start native processes and run trusted configuration.
+`include: ["customization"]` explicitly opts into native inventory counts.
+`usability(snapshot, { minVersions? })` is a pure, browser-safe readiness
+projection from `@botiverse/oar/observe`. Hosts own freshness and selection.
+See [orientation](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md).
 
 ### Runtime branding
 

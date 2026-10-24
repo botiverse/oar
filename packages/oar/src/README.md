@@ -62,3 +62,8 @@ flowchart TB
 - The agent-facing dependency direction is discovery/capabilities → control →
   records → observe → continue. Keep host policy and persistence outside the
   package; see [`docs/design/system.md`](../../../docs/design/system.md).
+
+- `shared/orientation/` composes runtime readers with explicit cost depths,
+  deadlines and two model/inventory slots. Adapters declare local auth evidence;
+  the aggregate never chooses behavior by runtime ID. `observe/usability.ts`
+  is the separate browser-safe readiness policy over those facts.

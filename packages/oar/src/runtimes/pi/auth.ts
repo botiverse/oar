@@ -164,8 +164,16 @@ class PiProviderAuth implements ProviderAuthFacade {
     };
   }
 
-  async listProviders(): Promise<readonly ProviderAuthStatus[]> {
+  async listProviders(options: { readonly resolve?: boolean } = {}): Promise<readonly ProviderAuthStatus[]> {
     const credentials = await this.#runtime.listCredentials();
+    if (options.resolve === false) {
+      return credentials.map((credential) => ({
+        providerId: credential.providerId,
+        configured: true,
+        method: credential.type === "oauth" ? "oauth" : "api_key",
+        subscription: credential.type === "oauth" && this.#runtime.getProvider(credential.providerId)?.auth.oauth?.isSubscription === true,
+      }));
+    }
     return Promise.all(credentials.map(async (credential) => {
       const status = await this.#statusOf(credential.providerId);
       return status;
