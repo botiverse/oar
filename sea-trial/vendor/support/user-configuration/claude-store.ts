@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { userInfo } from "node:os";
 import path from "node:path";
 import { runExecutable } from "../../../../packages/oar/src/shared/executable/index.js";
 
@@ -67,7 +66,10 @@ export async function claudeCredentialStore(home: string, env: NodeJS.ProcessEnv
   }
   const keychain = path.join(home, "fixture.keychain-db"), password = "oar-synthetic-keychain-not-a-secret";
   const service = `Claude Code-credentials-${createHash("sha256").update(path.join(home, ".claude").normalize("NFC")).digest("hex").slice(0, 8)}`;
-  const account = userInfo().username;
+  // Claude prefers USER for its Keychain account. Keep the isolated child and
+  // seeded entry identical instead of relying on separate OS-account fallbacks.
+  const account = "oar-fixture-user";
+  env.USER = account;
   await security(["create-keychain", "-p", password, keychain], home);
   try {
     await security(["set-keychain-settings", "-lut", "3600", keychain], home);
