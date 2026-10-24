@@ -573,6 +573,12 @@ the token-free `list_models` control request from a process started in
 `ListModelsOptions.cwd` (the host's cwd by default); the answer preserves
 selector versus resolved ID, disabled entries, and effort choices
 (`supportedEffortLevels` per model; Haiku 4.5 lists none).
+The listing process starts with hooks and MCP servers switched off
+(`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
+'{"mcpServers":{}}'`; claude 2.1.x measured: without them a listing fires the
+user's SessionStart hooks and starts every configured MCP server before being
+killed — with them the answer is the same models, faster. User settings stay
+loaded, so authentication is unaffected).
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
 [readback probe](../../experiments/session-model-readback.ts),
 [unit test](../../tests/claude/claude-session-model.test.ts).

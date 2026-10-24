@@ -59,6 +59,15 @@ function controlError(inner: JsonRecord): string {
  * turn runs, so this costs no tokens. `--verbose` is mandatory for stream-json
  * output in print mode. Matching is by `request_id`; other control traffic
  * (for example hooks or permission prompts) is ignored.
+ *
+ * The listing runs with hooks and MCP servers switched off
+ * (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
+ * '{"mcpServers":{}}'`): without those flags a plain `claude -p` starts the
+ * user's SessionStart hooks and every configured MCP server, then kills them
+ * (claude 2.1.x, measured: a SessionStart hook in the listing cwd's
+ * `.claude/settings.json` fires on each listing; with the flags it does not,
+ * and the answer is the same models, faster). User settings stay loaded —
+ * provider env and apiKeyHelper live there — so authentication is unaffected.
  */
 async function readListModels(command: string, cwd: string, timeoutMs: number): Promise<ReadOutcome> {
   const child = spawnLineProcess(command, [
@@ -66,6 +75,9 @@ async function readListModels(command: string, cwd: string, timeoutMs: number): 
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose",
+    "--settings", "{\"disableAllHooks\":true}",
+    "--strict-mcp-config",
+    "--mcp-config", "{\"mcpServers\":{}}",
   ], { cwd, env: claudeEnv(), killTree: true });
   const requestId = `oar-list-models-${randomUUID()}`;
   const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
