@@ -1591,8 +1591,19 @@ runs Claude 2.1.309 against local model, MCP and OAuth stand-ins. Its positive
 control loads an installed local plugin, user skills/commands/agents, hooks,
 MCP, rules and memory. Exclusion removes them while keeping project hooks,
 project memory and host MCP. An expired synthetic OAuth credential is
-refreshed into its original file; a later fresh process actually sends the
+refreshed into its native store; a later fresh process actually sends the
 rotated token and remains logged in. The same native session also resumes
 through exclusion and inclusion modes. Separate fast/default tier cases
 confirm Claude's native `fast_mode_state` and the absence of home memory
 in the same session. No real account or provider is used.
+
+On macOS 26.6.2 CI with Claude 2.1.309, the default Keychain was unavailable
+(`security show-keychain-info` exited 37). Both inclusion and exclusion exchanged
+a token from an expired plaintext credential, but subsequent model requests
+still used the old token. This is native behavior observed under that storage
+condition; it was not reproduced separately in SSH or launchd hosts.
+The macOS fixture now creates a
+disposable real Keychain and routes its child `security` commands to that file.
+It does not replace the default Keychain or search list. Seeding, refresh and
+readback use that same native store; other platforms retain the credential-file
+fixture. Setup errors fail the test, and token-reuse assertions remain strict.

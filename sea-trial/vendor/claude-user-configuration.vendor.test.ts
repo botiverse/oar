@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { claudeInstallation, claudeSession, promptAndWait } from "../../packages/oar/src/index.js";
@@ -90,7 +89,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude excludes user 
       await fixture.expire();
       await observe(fixture, installation.command, exclude, true, true);
       expect(fixture.oauth.seen).toMatchObject({ exchanges: 1, verified: true });
-      const credential: unknown = JSON.parse(await readFile(fixture.credentials, "utf8"));
+      const credential = await fixture.readCredentials();
       expect(credential).toMatchObject({ claudeAiOauth: { accessToken: TOKEN, refreshToken: ROTATED } });
       await observe(fixture, installation.command, exclude, false, true);
       expect(fixture.oauth.seen.exchanges).toBe(1);
