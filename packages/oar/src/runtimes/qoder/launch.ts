@@ -41,7 +41,7 @@ export async function launchQoder(command: string, sessionId: string, options: S
       }
     }
     child = spawnLineProcess(command, [
-      "--print", "--input-format", "stream-json", "--output-format", "stream-json", "--include-partial-messages",
+      "--print", "--input-format", "stream-json", "--output-format", "stream-json", "--include-partial-messages", "--replay-user-messages",
       "--permission-mode", "bypass_permissions", "--permission-prompt-tool", "stdio",
       ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
       ...(options.model === undefined ? [] : ["--model", options.model]),

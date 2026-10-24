@@ -17,8 +17,8 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
     return await streamJsonSession(child, sessionId, credentials, {
       projection: qoderProjectionProfile, initial: initialQoderProjection(),
       capabilities: { queue: { durable: false }, attribution: "attributed", images: false },
-      steer: false, cancelQueuedCapability: "interrupt_cancel_queued_v1",
-      userMessage: (text, inputId) => `${JSON.stringify({ type: "user", uuid: inputId ?? randomUUID(), session_id: sessionId,
+      steer: true, cancelQueuedCapability: "interrupt_cancel_queued_v1",
+      userMessage: (text, inputId) => `${JSON.stringify({ type: "user", priority: "next", uuid: inputId ?? randomUUID(), session_id: sessionId,
         message: { role: "user", content: [{ type: "text", text }] } })}\n`,
       consume: (message) => {
         if (message.type === "system" && message.subtype === "init" && typeof message.model === "string") { model = message.model; }
