@@ -16,7 +16,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
-import { OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "../executable/index.js";
+import { killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "../executable/index.js";
 
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024;
 const MAX_OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -111,7 +111,11 @@ async function stopTerminal(state: TerminalState): Promise<void> {
   // a process it started (a shell's children). Killing the group reaches
   // them all, so the pipes close and the wait below ends.
   if (state.exitStatus === null) {
-    signalProcessGroup(state.child, "SIGKILL");
+    if (process.platform === "win32") {
+      killProcessTree(state.child);
+    } else {
+      signalProcessGroup(state.child, "SIGKILL");
+    }
   }
   await state.exited;
 }
@@ -219,7 +223,11 @@ export function createAcpTerminalHost(
   const kill = (params: KillTerminalRequest): KillTerminalResponse => {
     const state = terminalFor(terminals, params);
     if (state.exitStatus === null) {
-      signalProcessGroup(state.child, "SIGTERM");
+      if (process.platform === "win32") {
+        killProcessTree(state.child);
+      } else {
+        signalProcessGroup(state.child, "SIGTERM");
+      }
     }
     return {};
   };
