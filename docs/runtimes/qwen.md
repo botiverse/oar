@@ -192,7 +192,9 @@ unresponsive process after the normal cleanup grace; it never retries.
   interrupt. Uses a temporary HOME, local provider and synthetic credentials.
 - [Native vendor tests](../../sea-trial/vendor/qwen.vendor.test.ts): fresh/resume
   counts, model menu and effort, MCP stdio/HTTP credential delivery, instructions,
-  tool denial, missing resume and native extension-lock failure.
+  tool denial, missing resume and native extension-lock failure. The persisted
+  credential audit scans all fixture files after both native processes exit;
+  a completed turn alone does not stop background model-registry writes.
 - [No-lifecycle regression](../../tests/qwen/session.test.ts): busy checks before
   the next init, queue drain, withdrawal, abort, later prompts and disposal.
   [Pure fold tests](../../tests/qwen/projection.test.ts) assert empty acknowledgement

@@ -116,8 +116,10 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
         expect(await turn(resumed, "call the echo tool again")).toEqual({ kind: "completed" });
         expect(leakedCredentials(resumed)).toEqual([]);
         expect(echoesReceived(env.raw)).toEqual(expectedEchoes());
-        expect(await persistedCredentials(env.env.HOME ?? "")).toEqual([]);
       } finally { await resumed.dispose(); }
+      // A completed turn leaves the native registry writer alive. Dispose waits
+      // for process exit before the full on-disk audit, without skipping files.
+      expect(await persistedCredentials(env.env.HOME ?? "")).toEqual([]);
     } finally { http.stop(); await env.stop(); }
   }, 90_000);
 
