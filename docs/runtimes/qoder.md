@@ -175,3 +175,23 @@ startup load even when Qoder is installed. OAR preserves that failure and
 its diagnostics; it does not report the executable as missing. The single
 success and concurrent failures do not establish the underlying cause or
 show that every cold start will fit the deadline.
+
+
+The concurrency cap is not sufficient evidence of stable startup. Subsequent
+Windows runs at concurrency two still exceeded the 30-second initialization
+bound, including an unchanged rerun of PR #473. Native startup logs from
+[PR #475](https://github.com/botiverse/oar/actions/runs/40040828083) repeatedly
+spent 10 to 15 seconds in `framework.init_builtin_plugins.initialize`; two
+failed processes had not finished that stage. The same suite HOME was already
+in use, so these observations do not establish a first-use extraction cost.
+This delay can affect a real session open as well as tests.
+
+`experiments/qoder-startup.ts` and the CI pre-suite probe compare a fresh
+isolated HOME, a HOME with only `.qoder/.bin` copied, a reused HOME, and two
+concurrent starts with shared or separate HOMEs. They submit no model prompt,
+copy no credentials or session state, and use a separate HOME from the later
+behavior cases. Each result is retained, including failures. The measurement
+allows 90 seconds to observe native completion past the product's 30-second
+bound and marks samples exceeding it; it does not change that bound or the
+behavior assertions. Failure to finish a measurement fails the job. The
+comparison does not retry failed behavior cases or promise faster startup.
