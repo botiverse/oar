@@ -12,17 +12,17 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 same binary for cancel timing and the model and mode methods. The
 personal-login scenarios below remain this 1.2.1 evidence.
 
-Current check: **1.4.1** (2026-10-18), and 1.4.0 before it (2026-10-14),
-each installed with its companion `localharness_external`, passed nine
-native tests against a local scripted Gemini provider, in a temporary home
-with a dummy API key and no account: instruction and effort settings on new
-and resumed sessions, MCP, tool denials, image-only input and failure
-reporting. 1.4.1 also passed 15 shared session cases. Scripted-provider
-results do not extend the account-specific coverage. See the
-[October 14](../../experiments/runtime-version-checks/2026-10-14.md) and
-[October 18](../../experiments/runtime-version-checks/2026-10-18.md) reports
-(the latter lists the untested authentication paths) and the
-[native probe](../../experiments/antigravity-native-settings.ts).
+Current check: **1.4.3** (2026-10-24), installed with its companion
+`localharness_external`, passed nine native tests against a local scripted
+Gemini provider after updating one changed MCP title expectation. All 15
+applicable shared session cases passed. Temporary homes and dummy keys covered
+instruction/effort settings, MCP, tool denials, image-only input and failure
+reporting. The 1.4.1 control confirmed the native title change; OAR's existing
+projection already follows it. The native settings and catalog probes still
+show persisted MCP credentials, umask-dependent permissions and complete tool
+list replacement. See the [October 24 report](../../experiments/runtime-version-checks/2026-10-24.md#antigravity-143)
+and [native probe](../../experiments/antigravity-native-settings.ts).
+Scripted-provider results do not extend the account-specific coverage.
 
 The server ships as a packaged Python archive without a public source
 repository; the 1.4.0 archive includes its ACP Python source. The adapter
@@ -364,8 +364,8 @@ http entries are sent, and passes the list from `session/new` (`:3258`),
 `_create_agent_config` (`:3804`): servers are per session.
 `mcp_servers.py:16-55` converts `env` and `headers` to maps and an sse entry
 to streamable HTTP. Measured on agy_acp_server 1.3.0 (1.2.1 not run; the
-vendor test passes on 1.4.0 and 1.4.1) against a scripted provider: fresh
-`HOME` and `GEMINI_HOME`, `{auth: {type:
+vendor test also passes on 1.4.3 after updating its native title expectation)
+against a scripted provider: fresh `HOME` and `GEMINI_HOME`, `{auth: {type:
 "gemini-api-key"}}` in `$GEMINI_HOME/antigravity-acp/settings.json` plus a
 dummy `GEMINI_API_KEY` (on 1.3.0 the variable alone selects no auth method),
 and the model harness `localharness_external` beside the `.par` sending
@@ -381,8 +381,13 @@ names that `.par`):
 - A lazily loaded server is listed in a `<mcp_servers>` block of the system
   prompt, and the model calls its tools through `call_mcp_tool {ServerName,
   ToolName, Arguments, toolSummary, toolAction}` (an eager server's tools
-  would be `mcp_<server>_<tool>`); the ACP `tool_call` title is `Running
-  echo`. The tool result reached the provider as the server wrote it (with
+  would be `mcp_<server>_<tool>`). On 1.4.3 the ACP `tool_call` title is
+  `<server>_<tool>` (`echo_echo` and `remote_echo` in the test); the 1.4.1
+  control still reports `Running echo`. 1.4.3 also includes `_meta.mcp`
+  with server/tool names and `is_mcp_tool_call: true`; `rawInput` contains
+  both an `arguments` object and its top-level fields. OAR retains this
+  native frame and projects the opening title as the tool name. The tool
+  result reached the provider as the server wrote it (with
   no credential: see below). The harness sends tool
   results under role `model`; the test proxy hands them to aimock as role
   `user` (`geminiToolResultsAsUser` in
@@ -398,23 +403,23 @@ names that `.par`):
 - A tool-list change reaches the next model request: after the server's
   `notifications/tools/list_changed` the client lists again, the system
   instruction's MCP catalog holds only the new set, and a call to a removed
-  tool runs no handler (`mcpToolsListChanged: "full"`, 1.4.0 and 1.4.1;
+  tool runs no handler (`mcpToolsListChanged: "full"`, rechecked on 1.4.3;
   [contract](../spec/runtime-matrix.md#host-served-tools),
-  [October 18](../../experiments/runtime-version-checks/2026-10-18.md#mcp-tool-list-updates)).
+  [October 24](../../experiments/runtime-version-checks/2026-10-24.md#settings-persistence-and-tool-list-changes)).
 
 **Entries carrying credentials are refused.** Antigravity stores a session's
 `mcpServers`, `env` and header values included, in plain text in its
 conversation database `$GEMINI_HOME/antigravity-acp/conversations/<sessionId>.db`
 and its `-wal` file, where they remain after process disposal (measured on
-1.3.0: a stdio entry's `env` token in the `-wal` file; on 1.4.0 and 1.4.1:
+1.3.0: a stdio entry's `env` token in the `-wal` file; on 1.4.0, 1.4.1 and 1.4.3:
 harmless env and header sentinels in both, through direct native ACP in the
 [native settings probe](../../experiments/antigravity-native-settings.ts),
 which works in a temporary home and removes it afterward). The files' modes
-follow the inherited umask, not a runtime guarantee: on 1.4.1, umask `0022`
-gave `0644` and `0077` gave `0600`, and a 1.4.0 control under `0022` also
+follow the inherited umask, not a runtime guarantee: on 1.4.1 and 1.4.3,
+umask `0022` gave `0644` and `0077` gave `0600`, and a 1.4.0 control under `0022` also
 gave `0644`, so the `0600` seen on 1.4.0 (2026-10-14) does not show a
 permission the runtime enforces. The probe reports the umask and home mode with each file mode
-([permissions comparison](../../experiments/runtime-version-checks/2026-10-18.md#mcp-persistence-and-file-permissions)).
+([latest permissions comparison](../../experiments/runtime-version-checks/2026-10-24.md#settings-persistence-and-tool-list-changes)).
 The file outlives the session, a resume does not reuse what it stored, and a
 host can neither see nor clear it through ACP, while credentials may reach a
 runtime only through its native channel, never its disk. So an entry with a
