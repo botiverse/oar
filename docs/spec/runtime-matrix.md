@@ -45,6 +45,39 @@ calls, resume semantics, and what each adapter still does not carry.
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
+## User configuration
+
+`SessionOptions.userConfiguration` is `"include" | "exclude"`. Omission and
+`"include"` preserve the adapter's native defaults. In particular, Cursor SDK
+already loads no ambient settings by default; `"include"` does not force it
+to load layers it normally omits.
+
+`"exclude"` skips user-level plugins, skills, commands, agents, MCP, hooks,
+memory and settings while retaining the native login, native session data
+and supported host-provided options. It never copies refresh tokens into a
+separate store, hides history in a disposable home, or rewrites native
+history indexes. Existing conversation content is not erased on resume.
+Supply the option on every open, including resume.
+
+This selects configuration sources, not a filesystem or network sandbox.
+Tools keep their normal access, managed organization policy remains native,
+and project configuration is runtime-specific. A project can explicitly
+refer to files elsewhere. Host options retain their existing refusals, so
+`exclude` does not make Cursor accept an otherwise refused MCP server.
+
+| Runtime | `exclude` |
+|---|---|
+| Claude | Native project/local settings, strict host MCP, disabled auto-memory and account MCP, and excluded home-directory memory; original credential and transcript locations remain. |
+| Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent, as in its default. |
+| Codex | Refused: the temporary-home workaround leaves shared history indexes pointing at paths deleted during cleanup. |
+| Kimi | Refused: native atomic writes replace the workspace-index symlink and split the workspace catalog. |
+| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Antigravity | Refused: no verified separation preserving login and history. |
+
+A refusal is `UnsupportedOptionError("userConfiguration", reason)` before
+starting a session and is declared in `Runtime.refusedSessionOptions`.
+This declaration applies only to `"exclude"`; omission and `"include"` are
+accepted. See each [runtime page](../runtimes/README.md) for native evidence.
+
 ## Session controls
 
 `prompt`, `queue` and `abort` are on every session. `steer` and `withdraw`
@@ -355,11 +388,11 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: `"exclude"`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
-when it is an empty object. One value of an option is declared on its own
+when it is an empty object. Another value of an option is declared on its own
 because a host can know it in advance: `mcpServerCredentials`, an
 `mcpServers` entry carrying a credential (a non-empty `env` on a stdio
 entry, non-empty `headers` on an http one). Its error names `mcpServers`
@@ -371,18 +404,22 @@ no verified per-session tier setting and readback; `outputSchema`, no
 verified final-output schema channel; `name`, no verified session name
 setting (pi-durable has no session name at all); `additionalDirectories`,
 no verified effective additional workspace directory channel. The why
-column gives the rest.
+column gives the rest. `userConfiguration: "exclude"` refusals are explained
+in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
 | cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
-| antigravity | `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials` | the selected server has no system prompt replacement input (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
-| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
-| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name` | agent permissions can override global denies; permission names do not consistently match tool names |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema` | it runs in the host process through its SDK, with no command line |
-| claude, codex | nothing always refused | value-specific refusals are described on their runtime pages |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| antigravity | `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"` | the selected server has no system prompt replacement input (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
+| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | agent permissions can override global denies; permission names do not consistently match tool names |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
+| qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| codex | `userConfiguration: "exclude"` | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)) |
+| claude | nothing always refused | value-specific refusals are described on its runtime page |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page
@@ -390,7 +427,7 @@ call an attached server's tool, with the evidence on its runtime page
 
 | runtime | channel | stdio | http | resume | a name the user's config also has |
 |---|---|---|---|---|---|
-| claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (a 0600 file removed when the process ends on Windows); no `--strict-mcp-config` | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
+| claude | `--mcp-config <path>`: a 0600 FIFO removed once claude has read it (a 0600 file removed when the process ends on Windows); strict host-only configuration when user configuration is excluded | yes | yes | the flag again | the session's server replaces the user's for that process ([claude](../runtimes/claude.md#session-mcp-servers)) |
 | codex | `config.mcp_servers` on `thread/start` and `thread/resume` | yes | yes | the override again | merged into the user's entry field by field; oar's `command` / `url`, `args` and `enabled = true` win ([codex](../runtimes/codex.md#session-mcp-servers)) |
 | grok | ACP `mcpServers` on `session/new` and `session/resume`; the model reaches the tools through grok's `use_tool` | yes | yes | the param again | the session's replaces the user's `config.toml` entry; the user's others stay ([grok](../runtimes/grok.md#session-mcp-servers)) |
 | kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |

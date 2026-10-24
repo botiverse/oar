@@ -175,3 +175,9 @@ startup load even when Qoder is installed. OAR preserves that failure and
 its diagnostics; it does not report the executable as missing. The single
 success and concurrent failures do not establish the underlying cause or
 show that every cold start will fit the deadline.
+
+## User configuration selection
+
+`userConfiguration: "exclude"` is refused before launch. No native path has
+been verified to exclude user configuration while preserving Qoder's stored
+login and session history. Omission and `"include"` retain normal loading.

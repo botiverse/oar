@@ -763,8 +763,9 @@ Native Claude supports tool selection, MCP, agents, skills, plugins,
 permission modes, and SDK approval/hook callbacks. Apart from session MCP
 servers (`--mcp-config`, [below](#session-mcp-servers)) these are **not
 exposed** as OAR configuration or interaction APIs. Native configuration may
-still affect execution, but OAR does not pass `--strict-mcp-config`,
-`--tools`, `--agents`, or explicit setting-source controls. Startup always passes
+still affect execution by default. `userConfiguration: "exclude"` sets strict
+MCP and setting-source controls as described in [user configuration](#user-configuration).
+OAR does not pass `--tools` or `--agents`. Startup always passes
 `--dangerously-skip-permissions`; there is no OAR approval request/reply
 channel, and `launchArgs` cannot carry `--permission-mode`, which that flag
 would override ([launch arguments](#launch-arguments)). A host that needs
@@ -800,7 +801,9 @@ Measured on claude 2.1.292 against a scripted provider
   covers MCP tools too. The tool result reached the provider as the
   server wrote it, so the server ran with the entry's `env` (stdio) or
   `headers` (http).
-- The user's own servers stay: no `--strict-mcp-config`. On a name clash
+- By default the user's own servers stay: no `--strict-mcp-config`.
+  `userConfiguration: "exclude"` instead loads only the host's session servers.
+  On a name clash in the default mode,
   the session's server replaces a user-scope one of the same name
   (`~/.claude.json`, here a `CLAUDE_CONFIG_DIR`) for that process: one
   `echo` is listed, `source: "dynamic"`, and the call reached the
@@ -1537,3 +1540,64 @@ Where an SDK option has a counterpart:
 | `supportedModels()` | `claudeRuntime.listModels()` |
 | `supportedCommands()` | `claudeRuntime.commands()` |
 | `pathToClaudeCodeExecutable` | `OAR_CLAUDE_BIN` |
+
+## User configuration
+
+`userConfiguration: "exclude"` keeps the native credential and transcript
+locations and selects `--setting-sources project,local` with
+`--strict-mcp-config`. Host MCP servers still attach. Child-only
+`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` and `ENABLE_CLAUDEAI_MCP_SERVERS=false`
+exclude automatic memory and account connectors. `claudeMdExcludes` covers
+the native and explicit config directories plus `~/CLAUDE.md` and
+`~/CLAUDE.local.md`: otherwise the project ancestor walk can load home
+memory as project memory. Project settings and memory remain enabled.
+OAR combines these settings with a requested `serviceTier` in one
+`--settings` object, because Claude replaces repeated settings arguments.
+
+Omission and `"include"` preserve normal loading. An exclusion open rejects
+`launchArgs` that supply `--settings`, `--setting-sources` or
+`--strict-mcp-config`, because they conflict with its source selection.
+The option is not a sandbox and does not erase earlier conversation text.
+
+Exclusion also rejects a user directory that lies on the native cwd's ancestor
+chain by real path but not by its configured spelling, before starting a
+process. This includes a `.claude` directory on that chain that aliases the
+configured user directory. Symlinks or Windows junctions outside the ancestor
+chain are allowed. On Windows, both the launch spelling and the canonical
+cwd's ancestor chains are checked: Windows can retain junctions in its cwd,
+and Claude's own canonicalization has not been established. POSIX uses the
+canonical cwd chain. Claude 2.1.309 can classify the
+same user skills, agents and memory as project content when its canonical
+cwd and the configured home use different path spellings. This was reproduced
+on Linux with the [path-alias probe](../../experiments/claude-user-configuration/path-alias.ts);
+the macOS fixture exposed the `/var` versus `/private/var` case.
+OAR does not rewrite either path, because that can change native credential
+or Keychain lookup. Inclusion keeps normal native path handling.
+
+The [native regression](../../sea-trial/vendor/claude-user-configuration.vendor.test.ts)
+runs Claude 2.1.309 against local model, MCP and OAuth stand-ins. Its positive
+control loads an installed local plugin, user skills/commands/agents, hooks,
+MCP, rules and memory. Exclusion removes them while keeping project hooks,
+project memory and host MCP. An expired synthetic OAuth credential is
+refreshed into its native store; a later fresh process actually sends the
+rotated token and remains logged in. The same native session also resumes
+through exclusion and inclusion modes. Separate fast/default tier cases
+confirm Claude's native `fast_mode_state` and the absence of home memory
+in the same session. No real account or provider is used.
+
+On macOS 26.6.2 CI with Claude 2.1.309, the default Keychain was unavailable
+(`security show-keychain-info` exited 37). Both inclusion and exclusion exchanged
+a token from an expired plaintext credential, but subsequent model requests
+still used the old token. This is native behavior observed under that storage
+condition; it was not reproduced separately in SSH or launchd hosts.
+The writable-Keychain control passed on the same macOS CI version on
+2026-10-24: both inclusion and exclusion refreshed once, persisted the rotated
+credential in the original Keychain, and sent the new access token from a later
+fresh process without another refresh. Auth status remained logged in, and the
+same native session resumed in both modes. The fixture creates a disposable real
+Keychain and routes its child `security` commands to that file without replacing
+the default Keychain or search list. Its seeded account and child `USER` match;
+an earlier fixture revision had mismatched lookup accounts and failed before
+refresh. These controls distinguish that fixture error from the unavailable
+default-Keychain observation above. Other platforms retain the credential-file
+fixture. Setup errors fail the test, and token-reuse assertions remain strict.

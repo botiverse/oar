@@ -1,13 +1,13 @@
 import type { RuntimeEventBody } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
-/** Flags apply to this process only; user settings files are never edited. */
-export function claudeServiceTierArgs(requested: string | undefined): readonly string[] {
-  if (requested === undefined) { return []; }
+/** Settings apply to this process only; user settings files are never edited. */
+export function claudeServiceTierSettings(requested: string | undefined): JsonRecord {
+  if (requested === undefined) { return {}; }
   if (requested !== "fast" && requested !== "default") {
     throw new Error(`claude cannot apply serviceTier ${requested}; its tiers are default and fast (on supported models)`);
   }
-  return ["--settings", JSON.stringify({ fastMode: requested === "fast" })];
+  return { fastMode: requested === "fast" };
 }
 
 /** Claude's native fast-mode status, including a temporary downgrade during cooldown. */

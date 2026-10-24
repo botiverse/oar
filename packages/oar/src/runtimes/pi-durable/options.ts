@@ -9,6 +9,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
+  userConfiguration: "pi-durable uses host-owned harness configuration, with no per-conversation user-configuration exclusion",
   outputSchema: "Pi Durable exposes no final-output schema option",
   name: "pi-durable exposes no session name",
   additionalDirectories: "pi-durable has no per-conversation additional workspace directory option; the host owns its filesystem environment",
