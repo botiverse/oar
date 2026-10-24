@@ -51,7 +51,15 @@ test("claude lister answers from the matching control_response only", async () =
   expect(request).toMatchObject({ type: "control_request", request: { subtype: "list_models" } });
   expect(fake.killed()).toBe(true);
   const [, args, options] = spawnLineProcess.mock.calls[0] ?? [];
-  expect(args).toEqual(["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"]);
+  expect(args).toEqual([
+    "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
+    // A listing must not start the user's SessionStart hooks or MCP servers
+    // (claude 2.1.x measured; see readListModels); user settings stay loaded,
+    // so auth via apiKeyHelper still works.
+    "--settings", "{\"disableAllHooks\":true}",
+    "--strict-mcp-config",
+    "--mcp-config", "{\"mcpServers\":{}}",
+  ]);
   expect(options?.env?.CLAUDECODE).toBeUndefined();
   expect(options).toMatchObject({ cwd: process.cwd(), killTree: true });
 });
