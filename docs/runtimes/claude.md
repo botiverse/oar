@@ -1633,7 +1633,8 @@ therefore skips this reader rather than parsing credential files. The
 [probe](../../experiments/orientation/README.md) uses synthetic stores and a
 network recorder.
 
-The shared-store Linux probe on 2.1.309 observed native refresh coordination:
+The shared-store probe on 2.1.309 observed native refresh coordination on Linux
+with its credential file and macOS 26.6.2 with an isolated writable Keychain:
 an auth-status process and a session starting from the same expired credentials
 made one refresh exchange, and both used the rotated token. Native
 `.oauth_refresh.lock` and `.storage-write.lock` files appeared. In a second
@@ -1644,4 +1645,6 @@ The native implementation also rereads credentials after acquiring its refresh
 lock. These are observations of one version with a local OAuth stand-in, not
 a guarantee against every provider, storage or process failure. Hosts still
 own scheduling of account queries; the aggregate adds no credential lock or
-retry. macOS Keychain coordination is not yet verified by this probe.
+retry. Both macOS controls passed in CI on 2026-10-24, with matching persisted
+tokens and a later fresh auth-status process still reporting logged in. This
+does not cover a locked or unavailable login Keychain.
