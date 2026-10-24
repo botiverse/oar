@@ -88,8 +88,8 @@ const cases: readonly AcpCase[] = [
     session: antigravitySession,
     installation: antigravityInstallation,
     call: (server, text) => ({ name: "call_mcp_tool", arguments: { ServerName: server, ToolName: "echo", Arguments: { text }, toolSummary: "Echo the text", toolAction: "Echoing" } }),
-    // Its tool_call title is "Running <tool>".
-    reported: ["Running echo", "Running echo"],
+    // 1.4.3 reports <server>_<tool>; 1.4.1 reported "Running <tool>".
+    reported: ["echo_echo", "remote_echo"],
     start: async (configure, withUserServers) => startAntigravityAimock(configure, withUserServers ? { mcpServers: { echo: userServer, userecho: userServer } } : undefined),
     credentials: false,
   },

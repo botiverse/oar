@@ -24,8 +24,8 @@ range; source-supported claims are not a live check of a newer binary. The
 The [October 9 check](../../experiments/runtime-version-checks/2026-10-09.md)
 passed live conversation, tool detail and resume on **1.0.50** (Linux x64,
 `grok-4.7`): focused validation, not a repeat of the full live battery. The
-newest check, on **1.0.67**
-([2026-10-22](../../experiments/runtime-version-checks/2026-10-22.md#grok-1067)),
+newest check, on **1.0.70**
+([2026-10-24](../../experiments/runtime-version-checks/2026-10-24.md#grok-1070)),
 passed the native vendor tests, the shared session behavior suite and the
 prompt-options probe against local scripted providers, without a real login.
 
