@@ -4,7 +4,7 @@ import { cp, readdir } from "node:fs/promises";
 import path from "node:path";
 import type { AvailableInstallation } from "../../packages/oar/src/contracts/installation.js";
 import { launchQoder, closeQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
-import { qoderControl } from "../../packages/oar/src/runtimes/qoder/control.js";
+import { qoderControl, qoderInitializeTimeoutMs } from "../../packages/oar/src/runtimes/qoder/control.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startQoderNative, type QoderNativeEnv } from "./qoder-native.js";
 import { record } from "./trace.js";
@@ -16,7 +16,7 @@ interface Sample {
   readonly reason?: string;
 }
 
-/** Observe slow native completion up to 90s; the product and behavior assertions still use 30s. */
+/** Observe slow native completion up to 90s, independently of the product's deadline. */
 async function sample(command: string, fixture: QoderNativeEnv, label: string): Promise<Sample> {
   const started = performance.now();
   const child = await launchQoder(command, randomUUID(), fixture.options);
@@ -58,7 +58,7 @@ export async function measureQoderStartup(installation: AvailableInstallation): 
   async function measure(fixture: QoderNativeEnv, label: string): Promise<void> {
     const result = await sample(command, fixture, label);
     samples.push(result);
-    const observation = { kind: "qoder_startup", platform: process.platform, arch: process.arch, node: process.version, version: version ?? null, label: result.label, outcome: result.kind, initializeMs: result.initializeMs, exceedsProductDeadline: result.initializeMs > 30_000, ...(result.reason === undefined ? {} : { reason: result.reason }) };
+    const observation = { kind: "qoder_startup", platform: process.platform, arch: process.arch, node: process.version, version: version ?? null, label: result.label, outcome: result.kind, initializeMs: result.initializeMs, productDeadlineMs: qoderInitializeTimeoutMs, exceedsProductDeadline: result.initializeMs > qoderInitializeTimeoutMs, exceedsPreviousDeadline: result.initializeMs > 30_000, ...(result.reason === undefined ? {} : { reason: result.reason }) };
     record(observation);
     process.stdout.write(`${JSON.stringify(observation)}\n`);
   }

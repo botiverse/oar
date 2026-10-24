@@ -3,7 +3,7 @@ import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { asRecord } from "../../shared/json.js";
-import { qoderControl, rememberQoderSecrets } from "./control.js";
+import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
 
@@ -25,7 +25,7 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
         return control.consume(message);
       },
       open: async (projection) => {
-        await control.request({ subtype: "initialize" });
+        await control.request({ subtype: "initialize" }, qoderInitializeTimeoutMs);
         if (options.model !== undefined && model !== options.model) {
           throw new Error(`Qoder did not confirm model ${JSON.stringify(options.model)}; reported ${JSON.stringify(model)}`);
         }

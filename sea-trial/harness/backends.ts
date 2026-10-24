@@ -119,7 +119,7 @@ export async function selectBackend(target: string): Promise<Backend> {
           return session;
         },
       });
-      return { aimock: null, close: fixture.stop, runtime, beforeSuite: measureQoderStartup };
+      return { aimock: null, close: fixture.stop, runtime, ...(process.env.OAR_QODER_STARTUP_PROBE === "1" ? { beforeSuite: measureQoderStartup } : {}) };
     }
     case "codex-aimock": {
       const aimock = await startCodexAimock();
