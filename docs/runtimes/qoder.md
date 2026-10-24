@@ -60,10 +60,14 @@ completed. Both paths ended successfully through the public OAR interface.
 The request-capture controls also confirmed the injected text in the next
 model request. This verifies the native loop with a local response reader,
 not a successful remote-provider call. The same two OAR steering cases passed
-on [Windows](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271).
-That job still failed an older effort test after native completion and exit;
-its whole-test deadline included fixture cleanup. macOS steering verification
-is pending.
+on [Windows](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644261)
+and [macOS](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644019)
+at `b239c35`, alongside all six existing native Qoder cases and the shared
+behavior suite. The [initial Windows run](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271)
+passed both steering cases but failed an older effort test after native
+completion and exit. That revision included fixture cleanup in the whole-test
+deadline and did not measure its exact remaining cost. The later run uses
+the separate bounded cleanup hook described below.
 
 The steer's accepted response means the input was written, not consumed.
 The user echo confirms the runtime observed that input. Since steer writes do

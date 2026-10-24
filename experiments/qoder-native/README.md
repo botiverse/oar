@@ -136,11 +136,16 @@ and the following input's separate turn, so OAR does not use it for steering.
 Two native vendor regressions exercise the OAR `steer` path at both injection
 points, asserting echoed input identity, successful completion and exactly one
 or two native turn ends respectively. OAR enables `--replay-user-messages` to
-retain identity when the input becomes a following turn. Cancellation
-of an arbitrary external tool, process crashes, and macOS priority behavior
-were not tested. The two OAR steering regressions also passed on
-[Windows](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271);
-that job failed an older effort test at its whole-test deadline after its
-recorded turn completed and its process exited normally. Fixture cleanup now
-has its separate bound described above. No paid provider or existing login
-was used.
+retain identity when the input becomes a following turn. The two OAR steering
+regressions passed on
+[Windows](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644261)
+and [macOS](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644019)
+at `b239c35`, with all eight native cases and the shared suite passing on both
+platforms. The raw eight-control `now`/`next` matrix was run only on Linux;
+arbitrary external-tool cancellation and process crashes remain untested.
+The [initial Windows run](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271)
+passed the two steering regressions but failed an older effort test at its
+whole-test deadline after its recorded turn completed and its process exited
+normally. That revision did not measure the remaining cleanup cost. Fixture
+cleanup now has its separate bound described above. No paid provider or
+existing login was used.
