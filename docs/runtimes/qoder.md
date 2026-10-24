@@ -233,3 +233,18 @@ resume test and is not evidence of a lost conversation. The failed test's
 remaining time is not explained by the initialize measurements. The fixture
 now records log-copy and HOME-removal boundaries to identify cleanup delays
 without changing that test's assertion or deadline.
+
+The later [instrumented Windows run](https://github.com/botiverse/oar/actions/runs/40047127596/job/120731316729)
+measured log copying at about 12 to 34 milliseconds, but deletion of initialized
+fixture HOMEs took 21 to 43 seconds after native exit. A
+[subsequent resume failure](https://github.com/botiverse/oar/actions/runs/40048891234/job/120736835381)
+again reached the whole-test limit after all three native turns completed and
+both processes exited successfully. That failed revision had no cleanup
+timers, so it cannot identify the exact operation consuming its remaining time.
+
+The native vendor tests now perform fixture log copying and HOME deletion in
+a separate test-finished hook with a 90-second deadline. Native controls,
+session disposal, behavior assertions and their existing test deadlines stay
+inside the test body. Cleanup still runs on test failure; a cleanup rejection
+or timeout fails CI. This separates fixture deletion cost from runtime
+behavior without claiming that every earlier timeout has the same cause.
