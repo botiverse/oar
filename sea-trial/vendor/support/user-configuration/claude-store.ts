@@ -10,6 +10,7 @@ interface CredentialStore {
   readonly path: string;
   write(value: unknown): Promise<void>;
   read(): Promise<unknown>;
+  diagnostics(): unknown;
   close(): Promise<void>;
 }
 
@@ -22,13 +23,16 @@ async function security(args: readonly string[], cwd: string): Promise<string> {
 function shellQuote(value: string): string { return `'${value.replaceAll("'", String.raw`'\''`)}'`; }
 
 /** Select only this disposable real Keychain, without changing the default or replacing the search list. */
-async function routeSecurity(home: string, keychain: string, env: NodeJS.ProcessEnv): Promise<void> {
+async function routeSecurity(home: string, keychain: string, env: NodeJS.ProcessEnv, expected: { service: string; account: string }): Promise<void> {
   const bin = path.join(home, "security-bin"), script = path.join(bin, "route.cjs");
   await mkdir(bin);
   await writeFile(script, `const {spawnSync}=require('node:child_process');
-const {readFileSync}=require('node:fs');
+const {readFileSync,appendFileSync}=require('node:fs');
 const keychain=${JSON.stringify(keychain)};
+const expected=${JSON.stringify(expected)};
+const log=${JSON.stringify(path.join(home, "security-operations.jsonl"))};
 const args=process.argv.slice(2);
+const started=Date.now();
 let input;
 if(args.length===1 && args[0]==='-i') {
   const line=readFileSync(0,'utf8').trimEnd();
@@ -38,6 +42,10 @@ if(args.length===1 && args[0]==='-i') {
   args.push(keychain);
 } else process.exit(2);
 const result=spawnSync('/usr/bin/security',args,{input,encoding:'utf8',stdio:['pipe','pipe','pipe']});
+const value=(flag)=>args.indexOf(flag)<0?undefined:args[args.indexOf(flag)+1];
+appendFileSync(log,JSON.stringify({command:args[0],elapsedMs:Date.now()-started,exitCode:result.status,
+serviceMatches:value('-s')===expected.service,accountMatches:value('-a')===expected.account,
+outputPresent:Boolean(result.stdout),errorCode:result.error?.code ?? null})+'\\n');
 if(result.stdout) process.stdout.write(result.stdout);
 if(result.stderr) process.stderr.write(result.stderr);
 process.exit(result.status ?? 1);
@@ -53,6 +61,7 @@ export async function claudeCredentialStore(home: string, env: NodeJS.ProcessEnv
     return { kind: "file", path: file,
       async write(value): Promise<void> { await writeFile(file, JSON.stringify(value), { mode: 0o600 }); },
       async read(): Promise<unknown> { return JSON.parse(await readFile(file, "utf8")); },
+      diagnostics(): unknown { return { kind: "file" }; },
       async close(): Promise<void> {},
     };
   }
@@ -64,12 +73,19 @@ export async function claudeCredentialStore(home: string, env: NodeJS.ProcessEnv
     await security(["set-keychain-settings", "-lut", "3600", keychain], home);
     await security(["unlock-keychain", "-p", password, keychain], home);
     await security(["show-keychain-info", keychain], home);
-    await routeSecurity(home, keychain, env);
+    await routeSecurity(home, keychain, env, { service, account });
     return { kind: "keychain", path: keychain,
       async write(value): Promise<void> {
         await security(["add-generic-password", "-U", "-a", account, "-s", service, "-X", Buffer.from(JSON.stringify(value)).toString("hex"), keychain], home);
+        const routed = await runExecutable("security", ["find-generic-password", "-a", account, "-s", service, "-w"], { cwd: home, env, timeoutMs: 10_000 });
+        assert.ok(routed.ok, `Isolated Keychain child-route read failed (${String(routed.exitCode)})`);
+        assert.deepEqual(JSON.parse(routed.stdout), value, "The child-route Keychain read must match the stored fixture");
       },
       async read(): Promise<unknown> { return JSON.parse(await security(["find-generic-password", "-a", account, "-s", service, "-w", keychain], home)); },
+      async diagnostics(): Promise<unknown> {
+        const operations = await readFile(path.join(home, "security-operations.jsonl"), "utf8").catch(() => "");
+        return { kind: "keychain", operations: operations.trim().split("\n").filter(Boolean).map((line): unknown => JSON.parse(line)) };
+      },
       async close(): Promise<void> { await security(["delete-keychain", keychain], home); },
     };
   } catch (error) { await security(["delete-keychain", keychain], home); throw error; }

@@ -93,6 +93,7 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
     Object.assign(env, { HTTP_PROXY: oauth.url, HTTPS_PROXY: oauth.url, ALL_PROXY: oauth.url, NODE_EXTRA_CA_CERTS: path.join(home, "cert.pem") });
     const credential = { claudeAiOauth: { accessToken: ORIGINAL, refreshToken: REFRESH, expiresAt: Date.now() + 3_600_000, scopes: ["user:profile", "user:inference", "user:sessions:claude_code"], subscriptionType: "pro", rateLimitTier: "default_claude_pro" } };
     await store.write(credential);
+    assert.deepEqual(await store.read(), credential, "The native fixture store must round-trip before a status query");
     return {
       home, cwd, credentials, credentialStorage: store.kind, debugFile: path.join(home, "native-debug.log"), model, oauth, host: host.server, close,
       env: { ...Object.fromEntries(Object.keys(process.env).map((key) => [key, null])), ...env },
@@ -107,7 +108,11 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
       },
       async expire(): Promise<void> { credential.claudeAiOauth.expiresAt = 0; await credentialStore.write(credential); },
       async readCredentials(): Promise<unknown> { const value = await credentialStore.read(); return value; },
-      async status(): Promise<unknown> { return JSON.parse(await checkedRun(command, ["auth", "status", "--json"], cwd, env)); },
+      async status(): Promise<unknown> {
+        const result = await runExecutable(command, ["auth", "status", "--json"], { cwd, env, timeoutMs: 20_000 });
+        assert.ok(result.ok, JSON.stringify({ phase: "auth_status", exitCode: result.exitCode, store: await credentialStore.diagnostics() }));
+        return JSON.parse(result.stdout);
+      },
       async clearHooks(): Promise<void> { await Promise.all(["user-hook", "project-hook", "plugin-hook"].map(async (name) => { await rm(path.join(home, name), { force: true }); })); },
     };
   } catch (error) { await close(); throw error; }
