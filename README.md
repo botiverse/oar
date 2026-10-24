@@ -222,6 +222,11 @@ for (const runtime of defaultRuntimes.list()) {
 }
 ```
 
+- **Orientation:** `orient(defaultRuntimes)` combines installation and evidenced
+  local account metadata. Choose `depth: "account"` for native credential/usage
+  I/O, or `"models"` for catalogs; `usability(snapshot)` projects readiness.
+  Partial failures retain their own status and time
+  ([reference](docs/spec/orientation.md)).
 - **Installation:** `installation()` finds the runtime on this machine and
   reports its version, with no account or network calls. When PATH found
   it, `shadowed` lists the other copies on PATH after it, which never run.

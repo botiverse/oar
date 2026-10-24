@@ -719,3 +719,11 @@ retains the nuance: explicit cwd/id resume after cleanup succeeded, but the
 original workspace catalog had already diverged. That is not safe sharing
 of user data, so OAR does not implement the workaround. The experiment uses
 a local provider and synthetic state; it makes no OAuth refresh claim.
+
+## Orientation query costs
+
+`listModels()` starts an ACP process, initializes and authenticates the
+native channel, then opens a temporary native session to read its model config
+option. It closes the native session/process without a model prompt. This can
+load workspace configuration and contact the account service. OAR exposes no
+local auth-status reader; a model catalog is not used to invent one.

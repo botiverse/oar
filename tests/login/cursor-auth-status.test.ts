@@ -14,13 +14,19 @@ test("authStatus is Cursor.auth.status: the account with the key's expiry, or lo
     [
       {
         "account": {
+          "credential": "api_key",
           "email": "user@example.com",
           "expiresAt": "2027-01-04T12:00:00.000Z",
+          "metering": "plan",
         },
         "kind": "logged_in",
         "source": "Cursor.auth.status",
       },
       {
+        "account": {
+          "credential": "api_key",
+          "metering": "plan",
+        },
         "kind": "logged_in",
         "source": "Cursor.auth.status",
       },

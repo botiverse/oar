@@ -67,7 +67,9 @@ test("the URL is relayed without its escapes, the pasted code goes to stdin only
       ],
       "result": {
         "account": {
+          "credential": "account",
           "email": "user@example.com",
+          "metering": "plan",
           "method": "claude.ai",
           "plan": "pro",
         },
@@ -159,7 +161,9 @@ test("a deadline after `Login successful.` is not a timeout: the stored login is
   expect(result).toMatchInlineSnapshot(`
     {
       "account": {
+        "credential": "account",
         "email": "user@example.com",
+        "metering": "plan",
         "method": "claude.ai",
         "plan": "pro",
       },
@@ -265,7 +269,9 @@ test("auth status reads claude auth status --json", async () => {
     [
       {
         "account": {
+          "credential": "account",
           "email": "user@example.com",
+          "metering": "plan",
           "method": "claude.ai",
           "plan": "pro",
         },

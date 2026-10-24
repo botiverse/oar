@@ -5,6 +5,7 @@ import type { UpdateChecker, Upgrader } from "./update.js";
 import type { AccountUsageReader } from "./account-usage.js";
 import type { InstallationProbe } from "./installation.js";
 import type { ModelLister } from "./list-models.js";
+import type { ProviderAuthReader } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
 import type { StartSession } from "./session.js";
 
@@ -85,8 +86,10 @@ export interface Runtime extends RuntimeInventories {
   readonly login?: RuntimeLogin;
   /** Signs the runtime out through its own logout, confirmed by its status query; changes the machine's credentials, so only on the host's explicit call. */
   readonly logout?: RuntimeLogout;
-  /** Read only: whether the runtime is signed in, from its local status query. */
+  /** Whether the runtime is signed in, from its native status query; may refresh credentials. */
   readonly authStatus?: AuthStatusReader;
+  /** Provider-level credential observations for runtimes with multiple accounts. */
+  readonly providers?: ProviderAuthReader;
 }
 
 async function unsupported(): Promise<InventoryResult<never>> {

@@ -25,6 +25,10 @@ export function projectClaudeAuthStatus(stdout: string): AuthStatus {
   const plan = text(status.subscriptionType);
   const method = text(status.authMethod);
   const account: LoginAccount = {
+    ...(method === "claude.ai" ? { credential: "account", metering: "plan" } as const : {}),
+    // A key can target a custom Anthropic-compatible provider; its billing
+    // is not established by the native api_key status alone.
+    ...(method === "api_key" ? { credential: "api_key" } as const : {}),
     ...(email === undefined ? {} : { email }),
     ...(plan === undefined ? {} : { plan }),
     ...(method === undefined ? {} : { method }),

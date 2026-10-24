@@ -6,13 +6,15 @@
  * wraps Pi's `ModelRuntime`) without leaking its types.
  */
 
+import type { AvailableInstallation } from "./installation.js";
+
 /** The two login methods a provider may accept. */
 export type ProviderLoginMethod = "oauth" | "api_key";
 
 /** A non-secret snapshot of one provider's stored auth. */
 export interface ProviderAuthStatus {
   readonly providerId: string;
-  /** Whether any usable credential is configured for this provider. */
+  /** Whether a credential is configured. A metadata-only read establishes storage, not resolvability or remote acceptance. */
   readonly configured: boolean;
   /** How the configured credential authenticates; omitted when not configured. */
   readonly method?: ProviderLoginMethod;
@@ -102,12 +104,13 @@ export interface ProviderLoginInteraction {
 }
 
 /**
- * List, inspect, and mutate provider credentials. Reading never resolves or
- * returns secret values; `login`/`setApiKey`/`logout` are the only writes.
+ * List, inspect, and mutate provider credentials. Public results never
+ * contain secrets. Resolved reads can run key commands or refresh OAuth;
+ * listProviders({ resolve: false }) reads stored metadata only.
  */
 export interface ProviderAuthFacade {
-  /** Every provider that has a configured credential, with its non-secret status. */
-  listProviders(): Promise<readonly ProviderAuthStatus[]>;
+  /** Stored providers only. By default resolves each credential; false neither executes key commands nor refreshes OAuth. Environment-only keys are not listed. */
+  listProviders(options?: { readonly resolve?: boolean }): Promise<readonly ProviderAuthStatus[]>;
   /**
    * Every provider a person can log in to, configured or not, straight from
    * the backend's own registry (oar keeps no list of its own), in the order
@@ -136,3 +139,10 @@ export interface ProviderAuthFacade {
   /** Clear a provider's stored credential. */
   logout(providerId: string): Promise<void>;
 }
+
+/** Resolution can refresh OAuth or execute configured key commands. False reads stored metadata only. */
+export interface ProviderAuthReadOptions {
+  readonly resolve: boolean;
+  readonly timeoutMs?: number;
+}
+export type ProviderAuthReader = (installation: AvailableInstallation, options: ProviderAuthReadOptions) => Promise<readonly ProviderAuthStatus[]>;

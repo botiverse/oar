@@ -219,3 +219,11 @@ is left to the consuming host; none was used to develop this adapter.
 verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
+
+## Orientation query costs
+
+`listModels()` starts Qwen in the selected workspace, initializes its
+stream-JSON control channel, reads `get_available_models`, and closes it. Native
+configuration and provider setup can run during that process, so catalog reads
+are explicit `models`-depth work, not a cheap local metadata promise. No model
+prompt is submitted. There is no auth-status reader to infer a login from.

@@ -2,6 +2,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
   AuthStatus,
   AuthStatusOptions,
+  AuthStatusReader,
   LoginAccount,
   LoginOptions,
   LoginResult,
@@ -47,6 +48,12 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
 }
 
+function credential(method: string | undefined): Pick<LoginAccount, "credential" | "metering"> {
+  if (method === "chatgpt") { return { credential: "account", metering: "plan" }; }
+  // login status does not establish which provider bills an API key.
+  return method === "apiKey" ? { credential: "api_key" } : {};
+}
+
 /**
  * `codex login status` prints to stderr and exits 0 when logged in
  * (`Logged in using ChatGPT`, or `Logged in using an API key - <masked>`),
@@ -55,8 +62,8 @@ function text(value: unknown): string | undefined {
  */
 export function projectCodexLoginStatus(exitCode: number | null, output: string): AuthStatus {
   if (exitCode === 0) {
-    const method = /Logged in using ChatGPT/u.test(output) ? "chatgpt" : (/Logged in using an API key/u.test(output) ? "apiKey" : undefined);
-    return { kind: "logged_in", ...(method === undefined ? {} : { account: { method } }), source: STATUS_SOURCE };
+    const method = /Logged in using ChatGPT/u.test(output) ? "chatgpt" : (/Logged in using an API key|^API key configured -/mu.test(output) ? "apiKey" : undefined);
+    return { kind: "logged_in", ...(method === undefined ? {} : { account: { method, ...credential(method) } }), source: STATUS_SOURCE };
   }
   if (exitCode === 1 && /^Not logged in\b/mu.test(output)) {
     return { kind: "logged_out", source: STATUS_SOURCE };
@@ -69,13 +76,16 @@ export function projectCodexLoginStatus(exitCode: number | null, output: string)
   };
 }
 
-export async function codexAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+async function readCodexAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") {
     return { kind: "unknown", detail: "not a machine-installed executable" };
   }
   const result = await runExecutable(installation.command, ["login", "status"], { timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS });
   return projectCodexLoginStatus(result.ok ? 0 : result.exitCode, `${result.stdout}\n${result.stderr}`);
 }
+
+/** Native `login status` reads stored credentials without resolving them over the network. */
+export const codexAuthStatus: AuthStatusReader = Object.assign(readCodexAuthStatus, { localOnly: true as const });
 
 /** `account/read` after the sign-in; null when codex reports no account. */
 export function projectCodexAccount(result: unknown): LoginAccount | null {
@@ -90,6 +100,7 @@ export function projectCodexAccount(result: unknown): LoginAccount | null {
     ...(email === undefined ? {} : { email }),
     ...(plan === undefined ? {} : { plan }),
     ...(method === undefined ? {} : { method }),
+    ...credential(method),
   };
 }
 

@@ -20,8 +20,10 @@ test("the URL reaches the host through onLoginUrl only, and the stored login's s
       ],
       "result": {
         "account": {
+          "credential": "api_key",
           "email": "user@example.com",
           "expiresAt": "2027-01-04T12:00:00.000Z",
+          "metering": "plan",
         },
         "kind": "logged_in",
       },
@@ -56,8 +58,10 @@ test("a cancel after the browser sign-in, while the SDK mints its key (it ignore
   expect(await fake.runtime().authStatus(bundled)).toMatchInlineSnapshot(`
     {
       "account": {
+        "credential": "api_key",
         "email": "previous@example.com",
         "expiresAt": "2026-12-01T00:00:00.000Z",
+        "metering": "plan",
       },
       "kind": "logged_in",
       "source": "Cursor.auth.status",
@@ -116,8 +120,10 @@ test("once the SDK is saving its key, a cancel or a deadline does not undo the l
       },
       {
         "account": {
+          "credential": "api_key",
           "email": "user@example.com",
           "expiresAt": "2027-01-04T12:00:00.000Z",
+          "metering": "plan",
         },
         "kind": "logged_in",
       },

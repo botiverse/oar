@@ -571,3 +571,11 @@ protocol, launch arguments or configuration. Tool input schemas are unrelated.
 verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
+
+## Orientation query costs
+
+`listModels()` starts the native ACP server, initializes it, and opens a
+temporary native session to obtain the model config option. It closes the
+process without submitting a prompt. Native startup, workspace configuration
+and account/catalog network I/O remain possible. OAR has no local auth-status
+reader and never substitutes a login flow for this query.

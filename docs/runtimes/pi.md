@@ -1126,3 +1126,14 @@ load failures, workspace changes, and no persisted session or trust grant.
 verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
+
+## Orientation query costs
+
+`listModels()` creates native agent-session services for the current
+workspace, loads its configuration and extensions, and asks the SDK's model
+runtime for available entries. This can execute user/project code, resolve key
+commands and refresh OAuth; it sends no model prompt. The orientation local
+provider reader instead uses credential-list metadata and the SDK's static
+subscription metadata. It does not resolve keys or refresh expired entries.
+A present stored entry is reported as configured, not validated; environment-
+only credentials do not appear in that stored list.

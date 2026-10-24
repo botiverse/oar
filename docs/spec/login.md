@@ -117,6 +117,13 @@ caller closes it. A prompt or event handler that throws stops the login with
 never a guess either way. `source` names the command (or SDK call) that
 answered.
 
+`LoginAccount.credential` optionally reports account versus API-key form;
+`metering` independently reports plan versus usage billing. Unknown facts stay
+absent. A configured key or stored login is not proof of remote validity.
+Native status may refresh credentials; only `AuthStatusReader.localOnly: true`
+declares no network, refresh or key-command execution. The
+[orientation](orientation.md) local depth calls only declared readers.
+
 ## Per runtime
 
 | Runtime | login drives | authStatus reads | Floor | Deadline |

@@ -1,4 +1,5 @@
 import { runtimeBrands } from "../../brands.js";
+import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
 import { createPiInventories } from "./inventory.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
 import { piInstallation } from "./installation.js";
@@ -11,6 +12,12 @@ import { piRpcRefusedSessionOptions } from "./rpc/open.js";
 import type { PiRuntimeOptions } from "./options.js";
 
 export type { PiRuntimeOptions } from "./options.js";
+
+const piProviders: ProviderAuthReader = async (_installation, options) => {
+  const { createPiProviderAuth } = await import("./auth.js");
+  const facade = await createPiProviderAuth();
+  return facade.listProviders({ resolve: options.resolve });
+};
 
 /**
  * The bundled Pi runtime, embedded through the Pi SDK dependency. Account
@@ -29,6 +36,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     mcpToolsListChanged: "full",
     ...createPiInventories(options),
     installation: piInstallation,
+    providers: piProviders,
     listModels: piModelLister(options),
     session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options); }) : createPiSession(options),
   });

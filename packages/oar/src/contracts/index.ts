@@ -1,4 +1,5 @@
 export type { InventoryScope, InventoryOptions, SkillEntry, CommandEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./inventory.js";
+export type { Probe, OrientOptions, OrientationDepth, Orientation, RuntimeOrientation, Customization, RuntimeUsability, UsabilityOptions, UnusableReason } from "./orientation.js";
 
 export type {
   AccountUsageUnsupportedReason,
@@ -21,6 +22,8 @@ export type {
   LoginProviderMethod,
   ProviderAuthFacade,
   ProviderAuthStatus,
+  ProviderAuthReader,
+  ProviderAuthReadOptions,
   ProviderLoginEvent,
   ProviderLoginInteraction,
   ProviderLoginMethod,

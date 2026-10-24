@@ -827,3 +827,10 @@ input, wrong-typed output and malformed schema.
 verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
+
+## Orientation query costs
+
+`listModels()` starts an ACP process, initializes and authenticates it,
+and calls the native `_x.ai/models/list` extension. Authentication and catalog
+reads can use the network; workspace configuration is loaded, but no model
+prompt is submitted. Local orientation has no auth-status reader for Grok.

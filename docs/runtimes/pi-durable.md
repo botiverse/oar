@@ -300,3 +300,10 @@ instructions to imitate native validation.
 verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
+
+## Orientation query costs
+
+`listModels()` reads the host-supplied Models catalog. OAR starts no
+native process or model turn for this reader. Any dynamic catalog source and
+its cost are owned by the host. Installation is host-bundled; no auth-status or
+provider-auth reader is inferred from the Harness's ability to list models.
