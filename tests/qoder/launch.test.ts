@@ -9,6 +9,13 @@ const spawned = vi.hoisted(() => ({ spawnLineProcess: vi.fn() }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => spawned);
 beforeEach(() => { spawned.spawnLineProcess.mockReset(); });
 
+test.each(["--replay-user-messages", "--no-replay-user-messages", "--replay-user-messages=false"])("refuses an override of native input identity before spawn: %s", async (flag) => {
+  await expect(launchQoder("qoder", "session", { cwd: tmpdir(), launchArgs: [flag] })).rejects.toMatchObject({
+    name: "UnsupportedOptionError", option: "launchArgs",
+  });
+  expect(spawned.spawnLineProcess).not.toHaveBeenCalled();
+});
+
 function fileArgument(args: string[], flag: string): string {
   expect(args).toContain(flag);
   return args[args.indexOf(flag) + 1] ?? "";

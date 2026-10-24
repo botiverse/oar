@@ -32,7 +32,7 @@ identity, organization data or authentication material.
 | Model and effort | `--model` and `--reasoning-effort`, confirmed from native init and applied settings. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
-| Steer | Absent for now. Native user-message `priority: now` / `next` is a candidate for interruption or insertion at a tool boundary, but its behavior has not been verified. A separate follow-up will probe delivery and attribution. |
+| Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
 | MCP | Native stdio and HTTP servers through a private per-process configuration file. Credentials are omitted from argv and redacted from public records. |
 | System and tools | Native system/append prompt files, additional-directory and disallowed-tool startup flags. Native global configuration still applies. |
 | Unsupported options | `serviceTier`, `outputSchema` and persisted session `name` are explicitly refused. Image input is refused. |
@@ -49,6 +49,33 @@ new prompt, longer than the Windows command-line limit. An intentionally
 exhausted native replay retains its actual model input in the conversation's
 error details: that input contains the new prompt and neither old prompt.
 This checks request construction, not a successful remote-provider answer.
+
+### Steering and delivery
+
+OAR enables `--replay-user-messages` so native user echoes retain the submitted
+UUID as `user_message.inputId`. In the Linux 1.1.78 replay controls, a steer
+while an MCP handler was blocked joined that same query after the tool result;
+a steer during a text-only response became a second query after the first
+completed. Both paths ended successfully through the public OAR interface.
+The request-capture controls also confirmed the injected text in the next
+model request. This verifies the native loop with a local response reader,
+not a successful remote-provider call. The same two OAR steering cases passed
+on [Windows](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644261)
+and [macOS](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644019)
+at `b239c35`, alongside all six existing native Qoder cases and the shared
+behavior suite. The [initial Windows run](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271)
+passed both steering cases but failed an older effort test after native
+completion and exit. That revision included fixture cleanup in the whole-test
+deadline and did not measure its exact remaining cost. The later run uses
+the separate bounded cleanup hook described below.
+
+The steer's accepted response means the input was written, not consumed.
+The user echo confirms the runtime observed that input. Since steer writes do
+not project `input_queued`, an input-scoped `awaitTurnEnd` starting at the control request
+can return the original turn's end before the steer is echoed. To observe the
+turn that includes the steer, first observe its matching `user_message`, then
+wait for the end after that record's sequence. Echo identity is native evidence;
+OAR does not create an extra turn for an input absorbed by the current query.
 
 ### Usage and failures
 

@@ -55,7 +55,7 @@ false, the adapter holds queued input in this process.
 
 | runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
 |---|---|---|---|
-| qoder | absent: no verified active-turn injection | yes, while held | no |
+| qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
 | qwen | no: native busy writes queue | yes, while held | no |
 | claude | yes: a user message written to stdin mid-turn | yes | no |
 | codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |

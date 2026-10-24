@@ -5,6 +5,7 @@ The reusable probe is the native vendor suite and its fixture builder:
 ```sh
 OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder.vendor.test.ts
 OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder-prompts.vendor.test.ts
+OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder-steer.vendor.test.ts
 OAR_TEST=qoder-native pnpm sea-trial
 pnpm vitest run tests/qoder tests/login/qoder-login.test.ts
 ```
@@ -100,3 +101,51 @@ retains the instrumented run and a later whole-test timeout. Native vendor
 cases use `qoderFixture` so this cleanup runs in its own 90-second finished
 hook. Cleanup failures still fail the case. The native controls, assertions,
 session disposal and original behavior deadlines remain in the test body.
+
+### Input priority (2026-10-24)
+
+```sh
+OAR_QODER_BIN=/path/to/qodercli pnpm tsx experiments/qoder-native/priority.ts
+```
+
+On Linux Qoder 1.1.78, all eight controls passed. Each combination below runs
+once with a successful second scripted response and once with deliberate replay
+exhaustion. The exhausted response preserves the actual next model request,
+proving it contains the injected marker. Both input IDs reach native terminal
+lifecycle states. The report retains only normalized input identities, lifecycle
+and result facts, and marker-presence booleans, with no account or local paths.
+It is written to `oar-trial-run/qoder-priority/report.json`.
+
+| Injection point | `priority` | Native behavior |
+| --- | --- | --- |
+| First text delta | `now` | An `aborted_streaming` result and `cancelled` lifecycle end the initial input, then the injected input starts and completes as a new query. |
+| First text delta | `next` | The text-only initial query completes normally, then the injected input starts and completes as a new query. |
+| Blocked MCP handler | `now` | The initial query reports `aborted_streaming` and is cancelled while the handler remains blocked; the injected input starts a new query. The probe subsequently releases its own handler. |
+| Blocked MCP handler | `next` | After tool release, a user echo carries the injected input UUID. The injected lifecycle starts and completes inside the initial query, which emits one successful result. The captured model request includes both the tool result and the injected input. |
+
+`command_lifecycle.command_uuid` preserves both submitted input identities.
+The tool-boundary `next` echo also preserves the injected UUID. In the exhausted
+controls, native cancellation of the injected lifecycle is the expected result
+of the deliberate replay failure, not lost input: its marker is in the saved
+model request. Successful controls verify that the same paths can finish.
+
+OAR maps `next` to steering, with the same
+possibility of becoming a following turn when the current query has no further
+tool boundary. A `now` mapping must preserve the original turn's native abort
+and the following input's separate turn, so OAR does not use it for steering.
+Two native vendor regressions exercise the OAR `steer` path at both injection
+points, asserting echoed input identity, successful completion and exactly one
+or two native turn ends respectively. OAR enables `--replay-user-messages` to
+retain identity when the input becomes a following turn. The two OAR steering
+regressions passed on
+[Windows](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644261)
+and [macOS](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644019)
+at `b239c35`, with all eight native cases and the shared suite passing on both
+platforms. The raw eight-control `now`/`next` matrix was run only on Linux;
+arbitrary external-tool cancellation and process crashes remain untested.
+The [initial Windows run](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271)
+passed the two steering regressions but failed an older effort test at its
+whole-test deadline after its recorded turn completed and its process exited
+normally. That revision did not measure the remaining cleanup cost. Fixture
+cleanup now has its separate bound described above. No paid provider or
+existing login was used.

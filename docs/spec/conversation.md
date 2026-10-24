@@ -129,7 +129,7 @@ Native echoes (`user_message.input`) remain text only.
 `user_message` is a runtime event carried by a real frame, with `input`, optional
 `inputId`, `nativeMessageId`, `turnId`, and `evidence`:
 
-- `acknowledged`: Claude's replay-user-message acknowledgement. Its UUID is
+- `acknowledged`: Claude's and Qoder's replay-user-message acknowledgement. Its UUID is
   supplied on stdin and echoed on stdout. Adapter-held queued inputs retain it.
 - `turn_item`: Codex's `item/started` user message. `clientUserMessageId` is sent
   with prompt/steer/queue; `item.clientId` links the item to the input. The
@@ -340,8 +340,8 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
   comes as the runtime drains it, so it sits before the turn it starts, even
   in a later stream after resume.
 - Whether a stream echoes is read off the stream itself: once it has carried
-  a `user_message` with an `inputId` (the echo of the first prompt, on codex
-  and claude), later steers and queues wait for their echo. A stream that
+  a `user_message` with an `inputId` (the echo of the first prompt, on codex,
+  claude and qoder), later steers and queues wait for their echo. A stream that
   never has (the ACP runtimes echo nothing; pi's and cursor's echoes carry
   no `inputId`) places them at their request, the best fact it has. No
   capability flag or runtime name takes part.
