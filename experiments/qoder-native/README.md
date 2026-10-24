@@ -90,3 +90,13 @@ help took 1.375 to 1.773 seconds cold and 1.455 to 1.545 seconds warm. Both
 commands extracted native files, but version avoided the heavier help path.
 OAR now uses that single query. The timeout regression retains probe failure
 rather than misreporting an installed executable as missing.
+
+### Fixture cleanup (2026-10-24)
+
+Windows CI measured 21 to 43 seconds to remove an initialized isolated HOME
+after native exit, versus roughly 12 to 34 milliseconds to copy its logs.
+The [runtime evidence](../../docs/runtimes/qoder.md#concurrent-startup-observations)
+retains the instrumented run and a later whole-test timeout. Native vendor
+cases use `qoderFixture` so this cleanup runs in its own 90-second finished
+hook. Cleanup failures still fail the case. The native controls, assertions,
+session disposal and original behavior deadlines remain in the test body.
