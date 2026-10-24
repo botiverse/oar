@@ -6,7 +6,7 @@ import { runExecutable } from "../../../../packages/oar/src/shared/executable/in
 import { serveMcpTools, type McpServer } from "../../../../packages/oar/src/index.js";
 import { writeClaudeConfiguration } from "./claude-files.js";
 import { configurationModel, ORIGINAL } from "./model.js";
-import { mockRefresh, REFRESH } from "./claude-oauth.js";
+import { mockRefresh, REFRESH, ROTATED, TOKEN } from "./claude-oauth.js";
 
 /** Only local mocks are reachable through this child's proxy; no host credentials are inherited. */
 function cleanEnvironment(home: string, modelUrl: string): Record<string, string> {
@@ -46,6 +46,7 @@ export interface ClaudeConfigurationFixture {
   readonly home: string;
   readonly cwd: string;
   readonly credentials: string;
+  readonly debugFile: string;
   readonly model: Awaited<ReturnType<typeof configurationModel>>;
   readonly oauth: Awaited<ReturnType<typeof mockRefresh>>;
   readonly host: McpServer;
@@ -53,6 +54,7 @@ export interface ClaudeConfigurationFixture {
   close(): Promise<void>;
   expire(): Promise<void>;
   status(): Promise<unknown>;
+  diagnostics(): Promise<unknown>;
   clearHooks(): Promise<void>;
 }
 
@@ -86,8 +88,17 @@ export async function claudeConfigurationFixture(command: string): Promise<Claud
     const credential = { claudeAiOauth: { accessToken: ORIGINAL, refreshToken: REFRESH, expiresAt: Date.now() + 3_600_000, scopes: ["user:profile", "user:inference", "user:sessions:claude_code"], subscriptionType: "pro", rateLimitTier: "default_claude_pro" } };
     await writeFile(credentials, JSON.stringify(credential), { mode: 0o600 });
     return {
-      home, cwd, credentials, model, oauth, host: host.server, close,
+      home, cwd, credentials, debugFile: path.join(home, "native-debug.log"), model, oauth, host: host.server, close,
       env: { ...Object.fromEntries(Object.keys(process.env).map((key) => [key, null])), ...env },
+      async diagnostics(): Promise<unknown> {
+        const debug = await readFile(path.join(home, "native-debug.log"), "utf8").catch(() => "");
+        const persisted = await readFile(credentials, "utf8").catch(() => "");
+        const keychain = process.platform === "darwin" ? await runExecutable("security", ["show-keychain-info"], { cwd, env, timeoutMs: 5000 }) : undefined;
+        return { credentialFileExists: persisted !== "", persistedOriginal: persisted.includes(ORIGINAL),
+          saveFailed: debug.includes("Failed to save OAuth tokens"), keychainReadFailed: debug.includes("[keychain] read"),
+          keychainStatus: keychain?.exitCode ?? null, keychainReadable: keychain?.ok ?? null,
+          nativeWarnings: debug.split("\n").filter((line) => /Failed to save OAuth|keychain.*failed|keychain.*locked|secure_storage/iu.test(line)).map((line) => line.replaceAll(ORIGINAL, "<original>").replaceAll(REFRESH, "<refresh>").replaceAll(ROTATED, "<rotated-refresh>").replaceAll(TOKEN, "<rotated-access>").replaceAll(home, "<fixture-home>")).slice(-8) };
+      },
       async expire(): Promise<void> { credential.claudeAiOauth.expiresAt = 0; await writeFile(credentials, JSON.stringify(credential)); },
       async status(): Promise<unknown> { return JSON.parse(await checkedRun(command, ["auth", "status", "--json"], cwd, env)); },
       async clearHooks(): Promise<void> { await Promise.all(["user-hook", "project-hook", "plugin-hook"].map(async (name) => { await rm(path.join(home, name), { force: true }); })); },

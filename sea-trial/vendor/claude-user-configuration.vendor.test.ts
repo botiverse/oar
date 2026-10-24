@@ -10,9 +10,9 @@ import { ROTATED, TOKEN } from "./support/user-configuration/claude-oauth.js";
 
 type Fixture = Awaited<ReturnType<typeof claudeConfigurationFixture>>;
 
-async function observe(fixture: Fixture, command: string, exclude: boolean, hostMcp = true): Promise<string> {
+async function observe(fixture: Fixture, command: string, exclude: boolean, hostMcp = true, rotated = exclude): Promise<string> {
   const session = await claudeSession({ kind: "available", via: "executable", command }, {
-    cwd: fixture.cwd, env: fixture.env, userConfiguration: exclude ? "exclude" : "include", mcpServers: hostMcp ? [fixture.host] : [],
+    cwd: fixture.cwd, env: fixture.env, launchArgs: ["--debug-file", fixture.debugFile], userConfiguration: exclude ? "exclude" : "include", mcpServers: hostMcp ? [fixture.host] : [],
   });
   try {
     const turn = await promptAndWait(session, "probe user configuration", { timeoutMs: 30_000 });
@@ -34,7 +34,7 @@ async function observe(fixture: Fixture, command: string, exclude: boolean, host
     expect(existsSync(path.join(fixture.home, "project-hook"))).toBe(true);
     const auth = fixture.model.auth.splice(0);
     expect(auth.length).toBeGreaterThan(0);
-    expect(auth.every((entry) => exclude ? entry.rotated : entry.original), JSON.stringify({ exclude, auth, oauth: fixture.oauth.seen })).toBe(true);
+    expect(auth.every((entry) => rotated ? entry.rotated : entry.original), JSON.stringify({ exclude, auth, oauth: fixture.oauth.seen, storage: await fixture.diagnostics() })).toBe(true);
     return session.id;
   } finally { await session.dispose(); await fixture.clearHooks(); }
 }
@@ -80,7 +80,7 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude excludes user 
     } finally { await fixture.close(); }
   }, 60_000);
 
-  test("local plugins, hooks, catalogs and memory are excluded; native refresh survives and is reused", async () => {
+  test.each([false, true])("configuration exclusion=%s retains native refresh and reuses it", async (exclude) => {
     const installation = await claudeInstallation();
     assert.ok(installation.kind === "available" && installation.via === "executable");
     const fixture = await claudeConfigurationFixture(installation.command);
@@ -88,11 +88,11 @@ describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude excludes user 
       expect(await fixture.status()).toMatchObject({ loggedIn: true, authMethod: "claude.ai" });
       const id = await observe(fixture, installation.command, false);
       await fixture.expire();
-      await observe(fixture, installation.command, true);
+      await observe(fixture, installation.command, exclude, true, true);
       expect(fixture.oauth.seen).toMatchObject({ exchanges: 1, verified: true });
       const credential: unknown = JSON.parse(await readFile(fixture.credentials, "utf8"));
       expect(credential).toMatchObject({ claudeAiOauth: { accessToken: TOKEN, refreshToken: ROTATED } });
-      await observe(fixture, installation.command, true, false);
+      await observe(fixture, installation.command, exclude, false, true);
       expect(fixture.oauth.seen.exchanges).toBe(1);
       expect(await fixture.status()).toMatchObject({ loggedIn: true, authMethod: "claude.ai" });
       expect(existsSync(fixture.credentials)).toBe(true);
