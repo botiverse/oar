@@ -46,7 +46,9 @@ account or model. Run it with:
 OAR_CLAUDE_BIN=/path/to/claude pnpm tsx experiments/orientation/shared-refresh.ts
 ```
 
-The Linux 2.1.309 observations were:
+Claude 2.1.309 produced the following results on Linux with its native credential
+file and on macOS 26.6.2 with an isolated writable Keychain. Both macOS controls
+[passed in CI on October 24, 2026](https://github.com/botiverse/oar/actions/runs/40048891234/job/120736835442).
 
 | Control | Refresh exchanges | Result |
 | --- | --- | --- |
@@ -57,8 +59,10 @@ Both controls observed the native `.oauth_refresh.lock` and
 `.storage-write.lock`. Inspection of this version's native implementation also
 found a credential reread after acquiring the refresh lock. The probe records
 token-match booleans and normalized lock names, not credential values. It does
-not establish behavior for every provider failure or filesystem. macOS
-Keychain coordination remains unverified.
+not establish behavior for every provider failure or filesystem. The macOS
+control also read the rotated tokens back from the same Keychain and confirmed
+that a later auth-status process remained logged in. Locked or unavailable
+login Keychains are outside this successful control.
 
 The same two controls run in `sea-trial/vendor/claude-shared-refresh.vendor.test.ts`
 for the Claude aimock backend on each CI platform. Linux and Windows use the
