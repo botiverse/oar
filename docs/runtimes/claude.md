@@ -1590,8 +1590,14 @@ On macOS 26.6.2 CI with Claude 2.1.309, the default Keychain was unavailable
 a token from an expired plaintext credential, but subsequent model requests
 still used the old token. This is native behavior observed under that storage
 condition; it was not reproduced separately in SSH or launchd hosts.
-The macOS fixture now creates a
-disposable real Keychain and routes its child `security` commands to that file.
-It does not replace the default Keychain or search list. Seeding, refresh and
-readback use that same native store; other platforms retain the credential-file
+The writable-Keychain control passed on the same macOS CI version on
+2026-10-24: both inclusion and exclusion refreshed once, persisted the rotated
+credential in the original Keychain, and sent the new access token from a later
+fresh process without another refresh. Auth status remained logged in, and the
+same native session resumed in both modes. The fixture creates a disposable real
+Keychain and routes its child `security` commands to that file without replacing
+the default Keychain or search list. Its seeded account and child `USER` match;
+an earlier fixture revision had mismatched lookup accounts and failed before
+refresh. These controls distinguish that fixture error from the unavailable
+default-Keychain observation above. Other platforms retain the credential-file
 fixture. Setup errors fail the test, and token-reuse assertions remain strict.
