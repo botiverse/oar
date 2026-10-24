@@ -109,8 +109,9 @@ the Credits rejection. Earlier Linux and macOS native CI passed. Windows and
 Linux each passed a cold initialize probe, five serial native tests and all
 applicable shared behavior cases with two concurrent cases. Unbounded parallel
 startup exceeded existing help, version or initialize deadlines, so CI on
-all three platforms limits this backend to two concurrent cases. The adapter, assertions and
-deadlines are unchanged.
+all three platforms limits this backend to two concurrent cases. That change left
+the adapter, assertions and deadlines unchanged. The later initialization
+measurement below motivated a separate product deadline adjustment.
 The fake reader exercises the native agent loop but is not evidence of a
 particular remote provider's behavior. Reproduction commands and the first
 failures are recorded in [the native evidence guide](../../experiments/qoder-native/README.md).
@@ -144,7 +145,8 @@ Hosts can stagger cold session starts to avoid the observed burst; this is a
 workaround, not a demonstrated resource limit or a guarantee that all starts
 will fit these deadlines. Limiting test concurrency stabilizes evidence
 collection; it does not show that product behavior under concurrency is free
-of problems. OAR adds no startup retry and does not extend native deadlines.
+of problems. OAR adds no startup retry. The later measurements below explain
+the separate initialization deadline change.
 
 An earlier two-case Windows run completed the shared behavior suite, but
 one native effort test reached its 45-second test deadline
@@ -154,17 +156,16 @@ before that deadline; they do not establish which later phase consumed the
 remaining time. On the same revision, macOS also exceeded the old `--help`
 installation deadline ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724355)).
 The single-version installation query removes the extra help invocation;
-it is not evidence that every observed CI timeout is solved. Native control
-and test deadlines remain unchanged, and the revised Windows/macOS checks
-must establish their own results.
+it is not evidence that every observed CI timeout is solved. That revision left native control
+and test deadlines unchanged; the later measurement below covers initialization.
 
 The [single-version revision's Windows run](https://github.com/botiverse/oar/actions/runs/40021337004/job/120646366145)
 still failed three behavior cases at the 30-second initialize deadline, with
 two active cases. The trace does not retain startup stderr or native logs,
 so it does not establish the cause. The replay fixture now retains native
 startup logs in CI artifacts, and Qoder CI forwards child stderr. These
-diagnostics use only isolated, unauthenticated replay homes. No retry,
-deadline increase or further concurrency reduction was added.
+diagnostics use only isolated, unauthenticated replay homes. That diagnostic
+change added no retry, deadline increase or further concurrency reduction.
 
 The [latest macOS run](https://github.com/botiverse/oar/actions/runs/40023877345/job/120655031487)
 passed the suite's single installation query, then timed out in concurrent
@@ -175,3 +176,60 @@ startup load even when Qoder is installed. OAR preserves that failure and
 its diagnostics; it does not report the executable as missing. The single
 success and concurrent failures do not establish the underlying cause or
 show that every cold start will fit the deadline.
+
+The concurrency cap is not sufficient evidence of stable startup. Subsequent
+Windows runs at concurrency two still exceeded the 30-second initialization
+bound, including an unchanged rerun of PR #473. Native startup logs from
+[PR #475](https://github.com/botiverse/oar/actions/runs/40040828083) repeatedly
+spent 10 to 15 seconds in `framework.init_builtin_plugins.initialize`; two
+failed processes had not finished that stage. The same suite HOME was already
+in use, so these observations do not establish a first-use extraction cost.
+This delay can affect a real session open as well as tests.
+
+`experiments/qoder-startup.ts` and the opt-in CI pre-suite probe compare a fresh
+isolated HOME, a HOME with only `.qoder/.bin` copied, a reused HOME, and two
+concurrent starts with shared or separate HOMEs. They submit no model prompt,
+copy no credentials or session state, and use a separate HOME from the later
+behavior cases. Each result is retained, including failures. The measurement
+allows 90 seconds to observe native completion and marks samples exceeding the
+current product deadline and the former 30-second deadline separately. Failure to finish a measurement fails the job. The
+comparison does not retry failed behavior cases or promise faster startup.
+
+The CI probe is disabled by default. Set `OAR_QODER_STARTUP_PROBE=1` when
+collecting startup evidence; ordinary behavior CI does not pay for these controls.
+
+On October 24, 2026, Qoder 1.1.78 from npm typically took about **7 to 25
+seconds per session open** in these isolated initialization controls. This
+includes startup through the initialize reply, not a model turn. Hosts should
+allow for this visible delay when opening or resuming a conversation.
+
+| Platform | Sampling | Initialize duration |
+| --- | --- | --- |
+| Linux | Two CI rounds, fourteen controls | 6.6 to 10.4 seconds |
+| Linux xxwork | Local controls, seven samples | 9.0 to 10.7 seconds |
+| macOS | Two CI rounds, fourteen controls | 7.3 to 11.3 seconds |
+| Windows | Two CI rounds, fourteen controls | 7.6 to 24.7 seconds |
+
+The [first round](https://github.com/botiverse/oar/actions/runs/40044039964/attempts/1),
+[second Windows round](https://github.com/botiverse/oar/actions/runs/40044039964/attempts/2)
+[second macOS round](https://github.com/botiverse/oar/actions/runs/40044039964/attempts/3),
+and [second Linux round](https://github.com/botiverse/oar/actions/runs/40044039964/attempts/4)
+retain the measurements. The controls completed, including reused HOMEs;
+copying only the binary cache did not remove the per-open initialization cost.
+These small samples are not a latency guarantee. Earlier 30-second failures
+retained ongoing native plugin initialization, so that bound did not reliably
+distinguish slow startup from a stuck process.
+
+OAR now gives a session's `initialize` request **60 seconds on every platform**,
+leaving room beyond the measured maximum. This deadline detects a stuck child;
+it is not a performance requirement. Later control requests still have their
+30-second bound, and bounded model-list queries retain the caller's budget.
+No automatic startup retry or cache copying is added to the adapter.
+
+One Windows native resume test in round 1 reached its whole-test 90-second
+limit after both native processes had logged normal exits; round 2 passed.
+A missing-session message in the same job belongs to the expected negative
+resume test and is not evidence of a lost conversation. The failed test's
+remaining time is not explained by the initialize measurements. The fixture
+now records log-copy and HOME-removal boundaries to identify cleanup delays
+without changing that test's assertion or deadline.

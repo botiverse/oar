@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
+import { measureQoderStartup } from "./qoder-startup.js";
 import {
   claudeInstallation,
   claudeSession,
@@ -118,7 +119,7 @@ export async function selectBackend(target: string): Promise<Backend> {
           return session;
         },
       });
-      return { aimock: null, close: fixture.stop, runtime };
+      return { aimock: null, close: fixture.stop, runtime, ...(process.env.OAR_QODER_STARTUP_PROBE === "1" ? { beforeSuite: measureQoderStartup } : {}) };
     }
     case "codex-aimock": {
       const aimock = await startCodexAimock();

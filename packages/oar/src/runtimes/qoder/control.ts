@@ -2,10 +2,13 @@ import { randomUUID } from "node:crypto";
 import type { LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
+// Qoder initializes built-in plugins on every open; measured native starts reach 25s.
+export const qoderInitializeTimeoutMs = 60_000;
+
 interface QoderControl {
   end(this: void): void;
   consume(this: void, message: JsonRecord): boolean;
-  request(this: void, request: JsonRecord): Promise<JsonRecord>;
+  request(this: void, request: JsonRecord, requestTimeoutMs?: number): Promise<JsonRecord>;
 }
 
 /** Account data in initialize, including its access token, never enters public records. */
@@ -28,11 +31,11 @@ export function qoderControl(child: LineProcess, remember: (value: unknown) => v
       pending.get(id)?.(message);
       return true;
     },
-    async request(request: JsonRecord): Promise<JsonRecord> {
+    async request(request: JsonRecord, requestTimeoutMs = timeoutMs): Promise<JsonRecord> {
       const id = `oar-qoder-${randomUUID()}`;
       const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
       privateIds.add(id); pending.set(id, resolve);
-      const timer = setTimeout(() => { resolve(new Error(`Qoder did not answer ${String(request.subtype)} within ${String(timeoutMs)} ms`)); }, timeoutMs);
+      const timer = setTimeout(() => { resolve(new Error(`Qoder did not answer ${String(request.subtype)} within ${String(requestTimeoutMs)} ms`)); }, requestTimeoutMs);
       try {
         if (ended) { throw new Error("Qoder process has exited"); }
         child.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);

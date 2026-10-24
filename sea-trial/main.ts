@@ -31,7 +31,7 @@ if (installation === undefined || installation.kind !== "available") {
 // OAR_TEST-gated). The behavior CI job runs them right after this suite.
 const tracePath = openTrace(target);
 try { await beforeSuite?.(installation); }
-catch (error) { await aimockEnv?.stop(); throw error; }
+catch (error) { await aimockEnv?.stop(); await close?.(); throw error; }
 const limit = process.env.OAR_TEST_CONCURRENCY;
 const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, aimockEnv?.env), concurrency ?? (limit === undefined || limit === "" ? undefined : Number(limit)));
 let failures = 0;

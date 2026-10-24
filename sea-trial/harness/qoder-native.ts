@@ -2,6 +2,24 @@ import { cp, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { SessionOptions } from "../../packages/oar/src/contracts/session.js";
+import { record } from "./trace.js";
+
+/** Preserve cleanup boundaries even if a test times out after the native process exits. */
+async function cleanupPhase(home: string, phase: string, action: () => Promise<void>): Promise<void> {
+  const started = performance.now();
+  function report(outcome: string, error?: unknown): void {
+    const artifacts = process.env.OAR_TRIAL_RUN_DIR;
+    if (artifacts === undefined || artifacts === "") { return; }
+    const observation = { kind: "qoder_cleanup", fixture: path.basename(home), phase, outcome,
+      elapsedMs: performance.now() - started,
+      ...(error instanceof Error && "code" in error ? { code: String(error.code) } : {}) };
+    record(observation);
+    process.stdout.write(`${JSON.stringify(observation)}\n`);
+  }
+  report("started");
+  try { await action(); report("completed"); }
+  catch (error) { report("failed", error); throw error; }
+}
 
 export interface QoderReply {
   readonly text?: string;
@@ -35,9 +53,9 @@ export async function startQoderNative(replies: readonly QoderReply[], delayMs =
       const artifacts = process.env.OAR_TRIAL_RUN_DIR;
       if (artifacts !== undefined && artifacts !== "") {
         const destination = path.join(artifacts, "qoder-native", path.basename(home));
-        try { await cp(path.join(home, ".qoder", "logs"), destination, { recursive: true }); }
+        try { await cleanupPhase(home, "copy_logs", async () => { await cp(path.join(home, ".qoder", "logs"), destination, { recursive: true }); }); }
         catch (error) { if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) { throw error; } }
       }
-    } finally { await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+    } finally { await cleanupPhase(home, "remove_home", async () => { await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }); }
   } };
 }
