@@ -677,3 +677,12 @@ OAR's default and exclusion opens do not. A subsequent exclusion open
 reuses the original login and leaves its file unchanged. The stand-in
 rejects inference deliberately; this proves local configuration and
 credential use, not a successful model turn or remote account-rule behavior.
+
+## Orientation query costs
+
+`listModels()` loads the host-supplied SDK and calls `Cursor.models.list()`.
+This can make an authenticated remote catalog request, without opening a
+conversation. `Cursor.auth.status()` reads the SDK's stored user key, including
+expiry, and is declared local. It does not include a `CURSOR_API_KEY` supplied
+only through the environment. The stored user key has API-key form but is
+charged to the Cursor plan; those are independent facts.

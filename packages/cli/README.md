@@ -5,6 +5,7 @@ Command-line interface for `@botiverse/oar`. It installs the `oar` executable wi
 ```bash
 npx @botiverse/oar-cli list
 oar installation codex
+oar orient claude codex --depth account --json
 oar usage claude
 oar models claude
 oar upgrade --check
@@ -23,6 +24,14 @@ when it is omitted (or `all`). A runtime whose probe or
 read fails (a timeout, a network error) reports its `error` in place of a
 result, the others still report, and the exit code is 1.
 
+- `oar orient [runtime...]`: one bounded snapshot, with `--depth local` (default),
+  `account`, or `models`. Local skips unproven local auth readers; deeper reads
+  can refresh credentials, run key commands and load trusted configuration.
+  `--json` preserves complete evidence, `--customization` opts into native
+  inventories in an empty directory, and `--timeout <ms>` bounds the whole
+  read. Unlike per-runtime query commands, a partial snapshot exits 0; invalid
+  arguments or a rejected call fail. See
+  [orientation](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md).
 - `oar list`: registered runtimes and their capabilities.
 - `oar installation [runtime]` (alias `detect`): probe local installation
   and version, no account or usage I/O. `shadowed` lists the other copies of

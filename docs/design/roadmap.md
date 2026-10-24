@@ -37,13 +37,11 @@ increments, not a promise to add every feature listed.
 
 ### 1. Make orientation cheap
 
-Compose the existing installation, model, account and runtime probes into one
-compact machine-readable snapshot that answers "what can I do here?" without
-opening a session. Do not add a second discovery mechanism; keep source,
-timestamp and failure state explicit.
-
-**Acceptance:** one bounded read can choose a runtime or explain why none is
-usable; secrets are absent; stale and partial facts stay distinguishable.
+**Shipped:** `orient` composes existing readers into bounded local, account and
+model snapshots. Unproven local auth readers are explicitly skipped, native
+provider metadata can be read without resolving credentials, and customization
+inventories remain opt-in. Pure `usability` applies host version floors without
+ranking or caching. [Contract](../spec/orientation.md); CLI `oar orient`.
 
 ### 2. Make actions self-describing
 

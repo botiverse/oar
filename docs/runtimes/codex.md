@@ -1564,3 +1564,12 @@ OAR would not create a hidden permanent directory in the user's home. This
 is not implemented: revisit it when a host needs Codex exclusion, then test
 cross-mode resume, original history visibility and credential refresh with
 that lifecycle before accepting the option.
+
+## Orientation query costs
+
+`listModels()` starts an app-server, initializes it, reads paginated
+`model/list` and `config/read` for the current workspace, then closes the server.
+Catalog/account initialization can contact native services; no model turn is
+submitted. `authStatus()` uses `login status`, a declared local reader. Codex
+0.164.0 reports an API key as configured and says authentication is checked on
+a request. That is stored-configuration evidence, not remote key validation.

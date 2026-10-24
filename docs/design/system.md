@@ -74,6 +74,11 @@ The loop is restartable. A crashed worker can replay and continue; another
 worker can inspect the same evidence; a human can intervene at a control
 boundary without reconstructing hidden adapter state.
 
+Orientation follows this cost boundary: local discovery uses only evidenced
+local readers; account and catalog effects require a deeper explicit read.
+The [orientation contract](../spec/orientation.md) composes native readers,
+while its readiness projection leaves selection and freshness policy to hosts.
+
 ## Agent ergonomics are invariants
 
 - **Discoverability:** public names, docs, records, and errors answer what to

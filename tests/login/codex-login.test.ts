@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
-import { codexAuthStatus, codexLogin } from "../../packages/oar/src/runtimes/codex/login.js";
+import { codexAuthStatus, codexLogin, projectCodexLoginStatus } from "../../packages/oar/src/runtimes/codex/login.js";
 import { fakeLoginCli, reportedPid, type FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 import { gone } from "../fixtures/process-tree.js";
@@ -52,7 +52,9 @@ test("the device code and its URL are relayed, and account/read names the accoun
       ],
       "result": {
         "account": {
+          "credential": "account",
           "email": "user@example.com",
+          "metering": "plan",
           "method": "chatgpt",
           "plan": "plus",
         },
@@ -118,7 +120,9 @@ test("once codex reports success the login stands: an account/read that fails, a
       },
       {
         "account": {
+          "credential": "account",
           "email": "user@example.com",
+          "metering": "plan",
           "method": "chatgpt",
           "plan": "plus",
         },
@@ -133,7 +137,9 @@ test("a deadline after codex reported success is not a timeout: account/read sti
   expect(result).toMatchInlineSnapshot(`
     {
       "account": {
+        "credential": "account",
         "email": "user@example.com",
+        "metering": "plan",
         "method": "chatgpt",
         "plan": "plus",
       },
@@ -222,6 +228,8 @@ test("auth status reads codex login status", async () => {
     [
       {
         "account": {
+          "credential": "account",
+          "metering": "plan",
           "method": "chatgpt",
         },
         "kind": "logged_in",
@@ -238,4 +246,11 @@ test("auth status reads codex login status", async () => {
       },
     ]
   `);
+});
+
+
+test("Codex 0.164 reports an API key as configured without claiming it is validated", () => {
+  expect(projectCodexLoginStatus(0, "API key configured - ***\nAuthentication is checked when you send a request.")).toEqual({
+    kind: "logged_in", account: { method: "apiKey", credential: "api_key" }, source: "codex login status",
+  });
 });

@@ -181,3 +181,11 @@ show that every cold start will fit the deadline.
 `userConfiguration: "exclude"` is refused before launch. No native path has
 been verified to exclude user configuration while preserving Qoder's stored
 login and session history. Omission and `"include"` retain normal loading.
+
+## Orientation query costs
+
+`listModels()` first reads native auth status, then starts a process and
+requests `initialize` and `get_models` with `fetchStrategy: live`. It can perform
+account/catalog network I/O and pays native process initialization cost. No model
+prompt is submitted. `authStatus()` has no proven no-network declaration and is
+therefore skipped by local orientation; it is available at account depth.
