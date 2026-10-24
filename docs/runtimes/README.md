@@ -28,7 +28,7 @@ Pi Durable SDKs before selecting live probes.
 | [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [Qwen Code](qwen.md) | CLI SDK channel, bidirectional `stream-json` | Native initialization, held input queue, restored usage boundary and cold extension-store lock |
-| [Qoder](qoder.md) | Native CLI bidirectional `stream-json` | Private login/status, native input cancellation, per-query token visibility and current-open totals |
+| [Qoder](qoder.md) | Native CLI bidirectional `stream-json` | Private login/status, native input cancellation, next-priority steering, per-query token visibility and current-open totals |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
 | [Pi Durable](pi-durable.md) | Host-owned `@earendil-works/pi-durable` Harness and `watchEvents` | Durable submissions, adopted runs, snapshot recovery, controller-only disposal and browser use |
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
