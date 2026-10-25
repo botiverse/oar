@@ -16,6 +16,14 @@ HOME and project; the evidence directory contains both directions of the wire,
 stderr, provider requests and query results. It preserves temporary native state
 for inspection; remove the reported temporary root after inspection.
 
+Rechecked all four scenarios on Linux with **0.26.1** on 2026-10-25. Ordinary
+turns completed on fresh and resumed sessions; interrupt still produced a
+native error result followed by a successful new turn. MCP calls, permission
+responses, effort and the configured model catalog remained observable. The
+warm-HOME lock probe below also passed its assertions, reproducing the existing
+readiness limitation. See the [dated report](../runtime-version-checks/2026-10-25.md#qwen-0261)
+for the separate OAR vendor, behavior and installation checks.
+
 Observed 2026-10-23 on npm 0.26.0, published source
 ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9:
 

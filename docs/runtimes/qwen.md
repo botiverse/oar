@@ -12,6 +12,13 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
+Rechecked npm **0.26.1** on Linux on 2026-10-25: all six native vendor tests,
+16 applicable shared behavior cases and the four direct protocol scenarios
+passed. The warm-HOME lock probe still separates initialize acknowledgement
+from first-prompt readiness. The official standalone install also passed in
+an isolated HOME; see the [version check](../../experiments/runtime-version-checks/2026-10-25.md#qwen-0261)
+for evidence and limits.
+
 ## OAR mapping
 
 `qwenRuntime` is in `defaultRuntimes` and available separately from
@@ -119,6 +126,9 @@ confirmed that `initialize` completed in 1.65 seconds while an external lock
 remained held; the first prompt reached no provider until that lock was
 released. An ordinary later prompt completed with a held lock, which does
 not establish that extension refresh operations never acquire it again.
+The same probe on 0.26.1 on 2026-10-25 returned initialize in 1.755 seconds
+while the lock was held, then reproduced the blocked first prompt and
+successful later prompt. The lock limitation therefore remains.
 Serializing launches only through the initialize response is insufficient. Therefore this failure can
 arrive at the **first prompt**, as `result/error_during_execution`, after OAR
 has returned the Session. It ends that turn as `failed/unknown` with the native
