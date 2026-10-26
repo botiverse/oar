@@ -22,3 +22,13 @@ lives. Artifacts land under ./oar-trial-run/ per run.
 Pi Durable uses `OAR_TEST=pi-durable-aimock`: a real native Harness with host
 Models, memory or JSONL storage, and a scripted localhost provider. The
 vendor tests cover durable controls, reopen, adoption and watcher overflow.
+
+## Windows Pi RPC resource evidence
+
+CI wraps the Windows Pi RPC behavior and vendor commands with
+[`windows-resources.ps1`](windows-resources.ps1). It preserves native exit
+codes and output while flushing memory and process identity samples to
+`oar-trial-run/windows-resources/`. No command lines or environment values are
+collected. Sampling failures are recorded separately; they do not mask test
+failures. The investigation and remaining uncertainties are recorded in
+[Windows CI investigation](../experiments/windows-ci-2026-10-26.md).

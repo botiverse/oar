@@ -104,8 +104,18 @@ jobs:
       - run: npm install -g @qoder-ai/qodercli
         if: matrix.backend == 'qoder-native'
       - run: pnpm run sea-trial
+        if: matrix.os != 'windows-latest' || matrix.backend != 'pi-rpc-aimock'
+      - name: Pi RPC behavior with Windows resource samples
+        if: matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock'
+        shell: pwsh
+        run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
       - run: pnpm vitest run sea-trial/vendor
+        if: matrix.os != 'windows-latest' || matrix.backend != 'pi-rpc-aimock'
+      - name: Pi RPC vendor tests with Windows resource samples
+        if: matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock'
+        shell: pwsh
+        run: ./sea-trial/windows-resources.ps1 -Stage vendor -Command 'pnpm vitest run sea-trial/vendor'
       # The run directory is a test artifact: traces + logs, uploaded even
       # (especially) when the run failed.
       - uses: actions/upload-artifact@v4
