@@ -4,6 +4,7 @@ import { chmod, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { writeShellEnvironmentCapture } from "../packages/oar/src/index.js";
 import { UserShellEnvironmentError } from "../packages/oar/src/contracts/shell-environment.js";
 import { parseShellEnvironment, shellEnvironmentCommand, userShellEnvironment } from "../packages/oar/src/shared/shell-environment.js";
 
@@ -145,7 +146,7 @@ test("non-POSIX shells use their own quoting and external-command syntax", () =>
       "-i",
       "-l",
       "-c",
-      "'/a space/one\\'quote\\\\two/node' -e 'process.stdout.write("marker" + JSON.stringify(process.env) + "marker")'",
+      "'/a space/one\\'quote\\\\two/node' '-e' 'process.stdout.write("marker" + JSON.stringify(process.env) + "marker")'",
     ]
   `);
   expect(shellEnvironmentCommand("nu", executable, "marker")).toMatchInlineSnapshot(`
@@ -153,18 +154,75 @@ test("non-POSIX shells use their own quoting and external-command syntax", () =>
       "-i",
       "-l",
       "-c",
-      "^r#'/a space/one'quote\\two/node'# -e r#'process.stdout.write("marker" + JSON.stringify(process.env) + "marker")'#",
+      "^r#'/a space/one'quote\\two/node'# r#'-e'# r#'process.stdout.write("marker" + JSON.stringify(process.env) + "marker")'#",
     ]
   `);
   expect(shellEnvironmentCommand("pwsh", executable, "marker")).toMatchInlineSnapshot(`
     [
       "-Login",
       "-Command",
-      "& '/a space/one''quote\\two/node' -e 'process.stdout.write("marker" + JSON.stringify(process.env) + "marker")'",
+      "& '/a space/one''quote\\two/node' '-e' 'process.stdout.write("marker" + JSON.stringify(process.env) + "marker")'",
     ]
   `);
 });
 
 test.each(["null", "[]", '{"HOME":42}', '{"HOME":"synthetic-private-value",}', '{"BAD=KEY":"value"}', String.raw`{"KEY":"bad\u0000value"}`])("rejects malformed framed environment %s without retaining it", (payload) => {
   expect(() => parseShellEnvironment(`before MARK${payload}MARK after`, "MARK")).toThrow(UserShellEnvironmentError);
+});
+
+test("custom commands and arguments are quoted by each shell dialect", () => {
+  const executable = String.raw`/a space/one'quote\two/host`;
+  const args = ["capture", "a b", "quote'\"", String.raw`back\slash`, "'##", "$(echo no)", "", "line\nbreak"];
+  expect(["bash", "fish", "nu", "pwsh"].map((shell) => shellEnvironmentCommand(shell, executable, "marker", args))).toMatchInlineSnapshot(`
+    [
+      [
+        "-i",
+        "-l",
+        "-c",
+        "'/a space/one'"'"'quote\\two/host' 'capture' 'a b' 'quote'"'"'"' 'back\\slash' ''"'"'##' '$(echo no)' '' 'line
+    break' 'marker'",
+      ],
+      [
+        "-i",
+        "-l",
+        "-c",
+        "'/a space/one\\'quote\\\\two/host' 'capture' 'a b' 'quote\\'"' 'back\\\\slash' '\\'##' '$(echo no)' '' 'line
+    break' 'marker'",
+      ],
+      [
+        "-i",
+        "-l",
+        "-c",
+        "^r#'/a space/one'quote\\two/host'# r#'capture'# r#'a b'# r#'quote'"'# r#'back\\slash'# r###''##'### r#'$(echo no)'# r#''# r#'line
+    break'# r#'marker'#",
+      ],
+      [
+        "-Login",
+        "-Command",
+        "& '/a space/one''quote\\two/host' 'capture' 'a b' 'quote''"' 'back\\slash' '''##' '$(echo no)' '' 'line
+    break' 'marker'",
+      ],
+    ]
+  `);
+});
+
+
+test("the exported capture writer matches the default evaluator's framing without other effects", () => {
+  const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  writeShellEnvironmentCapture("test-marker");
+  const written = stdout.mock.calls[0]?.[0];
+  const same = written === `test-marker${JSON.stringify(process.env)}test-marker`;
+  const calls = stdout.mock.calls.length;
+  stdout.mockRestore();
+  // Never include the private snapshot in an assertion's diagnostic output.
+  expect(same).toBe(true);
+  expect(calls).toBe(1);
+});
+
+test("arguments without an explicit command are rejected before spawning", async () => {
+  vi.spyOn(process, "platform", "get").mockReturnValue("linux");
+  vi.stubEnv("SHELL", "/bin/bash");
+  vi.mocked(spawn).mockClear();
+  await expect(userShellEnvironment({ args: ["capture"] })).rejects.toThrow("args requires command");
+  expect(spawn).not.toHaveBeenCalled();
 });

@@ -163,6 +163,8 @@ import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
 
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
+export const writeCapture: (marker: string) => void = oar.writeShellEnvironmentCapture;
+export const capture = (command: string, args: readonly string[]) => oar.userShellEnvironment({ command, args });
 export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r), parsed: report.parseReport(report.formatReport(r)) });
 export const display = [observe.noticeText, observe.noticeTone, observe.phaseLabel, observe.failureText, observe.taskStatusLabel];
 `;

@@ -24,19 +24,19 @@ function rawQuote(value: string): string {
 const fishQuote = (value: string): string => `'${value.replaceAll("\\", String.raw`\\`).replaceAll("'", String.raw`\'`)}'`;
 
 /** Shell dialect only, with no interpolation of environment values into code. */
-export function shellEnvironmentCommand(shell: string, executable: string, marker: string): readonly string[] {
+export function shellEnvironmentCommand(shell: string, executable: string, marker: string, args?: readonly string[]): readonly string[] {
+  // Same framing as writeShellEnvironmentCapture, without importing OAR into
+  // the default Node subprocess or relying on a bundled function's source.
   const script = `process.stdout.write(${JSON.stringify(marker)} + JSON.stringify(process.env) + ${JSON.stringify(marker)})`;
+  const captureArgs = args === undefined ? ["-e", script] : [...args, marker];
   const name = basename(shell);
-  if (/^(?:pwsh|powershell)(?:-preview)?$/u.test(name)) {
-    return ["-Login", "-Command", `& ${psQuote(executable)} -e ${psQuote(script)}`];
-  }
-  if (name === "nu") {
-    return ["-i", "-l", "-c", `^${rawQuote(executable)} -e ${rawQuote(script)}`];
-  }
-  if (name === "fish") {
-    return ["-i", "-l", "-c", `${fishQuote(executable)} -e ${fishQuote(script)}`];
-  }
-  return ["-i", "-l", "-c", `${quote(executable)} -e ${quote(script)}`];
+  const powershell = /^(?:pwsh|powershell)(?:-preview)?$/u.test(name);
+  let quoteArgument = quote;
+  if (powershell) { quoteArgument = psQuote; }
+  else if (name === "nu") { quoteArgument = rawQuote; }
+  else if (name === "fish") { quoteArgument = fishQuote; }
+  const command = [executable, ...captureArgs].map((value) => quoteArgument(value)).join(" ");
+  return powershell ? ["-Login", "-Command", `& ${command}`] : ["-i", "-l", "-c", `${name === "nu" ? "^" : ""}${command}`];
 }
 
 /** Ignore profile chatter outside the two markers, but never accept a missing or malformed payload. */
@@ -118,20 +118,26 @@ export async function userShellEnvironment(options: UserShellEnvironmentOptions 
   if (shell === undefined || shell.trim() === "") { throw new UserShellEnvironmentError("shell_not_set"); }
   const timeoutMs = options.timeoutMs ?? 10_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647) { throw new RangeError("timeoutMs must be a positive integer that fits a timer"); }
-  const executable = await captureExecutable();
+  if (options.command === undefined && (options.args?.length ?? 0) > 0) { throw new RangeError("args requires command"); }
+  const executable = options.command ?? await captureExecutable();
+  const customCommand = options.command !== undefined;
   const marker = randomUUID().replaceAll("-", "");
   let output = "";
   try {
-    // Electron hosts must execute their binary as Node. This helper-only
-    // override is removed or restored before the environment reaches callers.
-    output = await capture(shell, shellEnvironmentCommand(shell, executable, marker), { ...inherited, ELECTRON_RUN_AS_NODE: "1" }, timeoutMs, options.signal);
+    // Only the default evaluator needs Electron's Node mode. A host-provided
+    // subcommand must run in its own executable mode, with no helper override.
+    const env = customCommand ? inherited : { ...inherited, ELECTRON_RUN_AS_NODE: "1" };
+    const args = shellEnvironmentCommand(shell, executable, marker, customCommand ? options.args ?? [] : undefined);
+    output = await capture(shell, args, env, timeoutMs, options.signal);
   } catch (error) {
     if (error instanceof UserShellEnvironmentError) { throw error; }
     throw new UserShellEnvironmentError("shell_unavailable");
   }
   const environment = parseShellEnvironment(output, marker);
-  if (inherited.ELECTRON_RUN_AS_NODE === undefined) { delete environment.ELECTRON_RUN_AS_NODE; }
-  else { environment.ELECTRON_RUN_AS_NODE = inherited.ELECTRON_RUN_AS_NODE; }
+  if (!customCommand) {
+    if (inherited.ELECTRON_RUN_AS_NODE === undefined) { delete environment.ELECTRON_RUN_AS_NODE; }
+    else { environment.ELECTRON_RUN_AS_NODE = inherited.ELECTRON_RUN_AS_NODE; }
+  }
   const removed = Object.keys(inherited).filter((key) => inherited[key] !== undefined && !Object.hasOwn(environment, key));
   return {
     env: { ...Object.fromEntries(removed.map((key) => [key, null])), ...environment },

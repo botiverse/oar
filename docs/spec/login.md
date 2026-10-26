@@ -83,7 +83,7 @@ also refuses it for login, logout and authentication status.
 
 ### Explicit login-shell environment
 
-`userShellEnvironment({ timeoutMs?, signal? })`, from the Node entry
+`userShellEnvironment({ command?, args?, timeoutMs?, signal? })`, from the Node entry
 `@botiverse/oar`, runs the configured `$SHELL` once and returns
 `{ env, changedVariables }`. Calling authentication or opening a session never
 invokes it implicitly. There is no cache or mutation of the host environment.
@@ -101,11 +101,47 @@ const session = await claudeRuntime.session(installation, { cwd, env });
 ```
 
 The helper starts an interactive login shell with closed stdin and no terminal,
-then captures a Node-generated JSON snapshot between random delimiters.
-Node SEA hosts and compiled Bun binaries cannot evaluate the capture script, so
-they are explicitly refused before any shell starts. Bun detection uses its
+then captures a JSON snapshot between random delimiters. By default it runs
+`process.execPath -e` to write the snapshot. Node SEA hosts and compiled Bun
+binaries cannot evaluate that script, so the default path refuses them before
+any shell starts. Bun detection uses its
 [documented standalone flag](https://bun.sh/docs/bundler/executables#detecting-standalone-mode-at-runtime);
-older Bun builds without that flag are also refused.
+older Bun builds without that flag are also refused on the default path.
+
+A single-file host can instead provide its own executable and capture subcommand:
+
+```ts
+import { userShellEnvironment, writeShellEnvironmentCapture } from "@botiverse/oar";
+
+// Register this handler for the host's internal capture subcommand.
+function captureEnvironment(marker: string): void {
+  writeShellEnvironmentCapture(marker);
+}
+
+// In the parent host, when explicitly requesting the login-shell snapshot:
+const snapshot = await userShellEnvironment({
+  command: process.execPath,
+  args: ["internal-capture-environment"],
+  timeoutMs: 10_000,
+});
+```
+
+The host routes `internal-capture-environment <marker>` to that handler before
+starting its normal application, then lets stdout drain and exits successfully.
+The exported writer only writes `marker + JSON.stringify(process.env) + marker`
+to stdout; call it only inside the private capture subprocess. It does not
+start a shell, exit the process, parse arguments or log anything else.
+
+With `command`, OAR runs `command ...args <marker>` inside the configured login
+shell, quoting the executable and every argument as literal words in that
+shell's dialect. It does not evaluate a command or argument as shell code.
+Arguments default to an empty array; nonempty `args` without `command` are a
+`RangeError`. OAR skips Node/SEA/Bun eligibility checks for this explicit path
+and does not inject `ELECTRON_RUN_AS_NODE`, so the host's own subcommand routing
+remains in control. The default evaluator still enables Electron's Node mode
+and removes or restores that helper override in its result. Both paths share
+the same parser, deadline, cancellation, output limit and environment comparison.
+
 Profile chatter outside the delimiters is ignored. Bash and Zsh use POSIX
 quoting; fish, Nushell and PowerShell use their own quoting and invocation.
 The approach follows [VS Code's shell-environment capture](https://github.com/microsoft/vscode/blob/main/src/vs/platform/shell/node/shellEnv.ts).
@@ -125,11 +161,11 @@ Failures reject with `UserShellEnvironmentError`; its `reason` is:
 
 | Reason | Meaning |
 | --- | --- |
-| `no_node_runtime` | Node SEA or compiled Bun host, or a Bun version without a reliable standalone flag. The helper refuses before starting the shell; supply an env map from the host instead. |
+| `no_node_runtime` | Node SEA or compiled Bun host, or a Bun version without a reliable standalone flag. Without `command`, the helper refuses before starting the shell. Supply a capture subcommand through `command`/`args`, or an env map directly. |
 | `unsupported_platform` | Windows has no supported login-shell capture. Authentication env overlays still work on Windows. |
 | `shell_not_set` | `$SHELL` is missing or blank. |
 | `shell_unavailable` | The configured shell could not start. |
-| `shell_failed` | The shell exited unsuccessfully or was signalled. |
+| `shell_failed` | The shell or capture command exited unsuccessfully or was signalled. A command not found inside a successfully started shell is also reported here; private shell diagnostics are not inspected. |
 | `timed_out` | Shell startup or output collection exceeded the deadline. |
 | `cancelled` | The caller aborted the operation. |
 | `invalid_output` | No single complete, valid environment snapshot was returned. |
@@ -143,6 +179,8 @@ snapshot. It can also supply its own env map without calling this helper.
 
 Native Bash, fish and Nushell capture is repeatable with
 [`experiments/user-shell-environment.ts`](../../experiments/user-shell-environment.ts).
+The custom command path also has executable-script regressions, including literal
+arguments under Bash, fish and Nushell when those shells are installed.
 PowerShell invocation is covered by quoting tests; native PowerShell capture
 has not been verified. Installation, usage, model and inventory readers and
 `orient` accept the same explicit `env`; in-process readers refuse an override

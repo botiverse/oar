@@ -1,6 +1,10 @@
 import type { SessionOptions } from "./session-options.js";
 
 export interface UserShellEnvironmentOptions {
+  /** Host executable with a capture subcommand; bypasses the default Node/SEA/Bun eligibility check. Executed inside the login shell, not as shell code. */
+  readonly command?: string;
+  /** Literal arguments to command, followed by OAR's capture marker. The subcommand calls writeShellEnvironmentCapture(marker). Requires command. */
+  readonly args?: readonly string[];
   /** Bounds shell startup and output collection; default 10 seconds. */
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;
@@ -25,7 +29,7 @@ export type UserShellEnvironmentFailure =
   | "output_too_large";
 
 const reasons: Readonly<Record<UserShellEnvironmentFailure, string>> = {
-  no_node_runtime: "The host executable cannot safely evaluate the environment capture script. Supply an environment map directly from the host instead.",
+  no_node_runtime: "The host executable cannot safely evaluate the environment capture script. Supply command and args for a host subcommand that calls writeShellEnvironmentCapture(marker), or supply an environment map directly.",
   unsupported_platform: "Reading a user login shell environment is unsupported on Windows.",
   shell_not_set: "SHELL does not name a user login shell.",
   shell_unavailable: "The user login shell could not be executed.",
