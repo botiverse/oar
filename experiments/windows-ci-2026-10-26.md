@@ -1,14 +1,17 @@
 # Windows CI investigation: 2026-10-26
 
-The available evidence separates runner loss from native startup deadlines.
-It neither proves a functional Pi RPC regression nor clears its cleanup and
-resource use. An unchanged rerun passing does not erase the original failure.
+Three successful main Windows Pi RPC jobs showed no resource exhaustion or
+Node processes left at the end of either test stage. Another main job lost
+runner communication after the sampler was added, without retaining logs or
+an artifact. The successful samples do not establish the cause of the lost
+jobs. A runner infrastructure fault remains a hypothesis, not a finding.
 
 | Run and job | Observation | Remaining uncertainty |
 | --- | --- | --- |
 | [main after #465, Pi RPC](https://github.com/botiverse/oar/actions/runs/40324749088/job/121578460726) | Lost runner communication; no failed step, retained log or Windows Pi RPC artifact. | Resource exhaustion, process cleanup and external failure remain unseparated. |
 | [main after #477, Pi RPC](https://github.com/botiverse/oar/actions/runs/40332163567/job/121604100950) | The same runner-loss annotation; again no retained log or artifact. | Repeated in this backend, but the cause is unknown. |
 | [#488 first Pi RPC job](https://github.com/botiverse/oar/actions/runs/40333444058/job/121608579249) | Lost runner communication; an unchanged rerun passed 19 shared cases and 78 native tests. | One passing rerun does not rule out a resource or cleanup problem. |
+| [main after #493, Pi RPC](https://github.com/botiverse/oar/actions/runs/40359896785/job/121702185703) | Lost runner communication with the sampler installed; shared behavior passed, vendor tests were the last active step. No retained log or Windows Pi RPC artifact. | No terminal resource sample could be recovered, so the fourth loss still has no identified cause. |
 | [main after #465, Qoder](https://github.com/botiverse/oar/actions/runs/40324749088/job/121578460583) | Two native tests reached the existing 60-second initialize deadline; six passed. | Startup failed before behavioral assertions, without runner loss. |
 
 The Qoder failures were `next-priority steer preserves input identity at tool`
@@ -68,12 +71,67 @@ exit status. Windows unit tests run harmless commands exiting 0 and 37,
 checking exit propagation, inherited output and sample contents. They skip on
 non-Windows hosts; native sampler execution must be checked in Windows CI.
 
-Collect several successful Windows runs after merge: report peak aggregate
-working set and private memory, minimum free physical memory, peak Node count,
-and whether counts fall after sessions end. These passing runs are the primary
-source of resource evidence because a lost runner may retain nothing. Near-zero
-free memory or continuously increasing counts would support the pressure/leak
-hypothesis; passing assertions alone would not disprove it.
+### Successful main samples
+
+The following three main jobs retained both sampler files. All six commands
+exited 0, with no sampling error or sample limit reached. Each stage's first
+and last samples contain zero Node processes. The machines reported 15.995 GiB
+physical memory; the lowest observed free memory was 11.614 GiB, corresponding
+to at most 4.381 GiB in use. These are sampled observations, not continuous
+upper bounds.
+
+| Main job | Stage | Samples | Minimum free GiB | Peak Node count | Peak Node working set / private GiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| [d9806e5](https://github.com/botiverse/oar/actions/runs/40356234924/job/121689342469) | Shared behavior | 7 | 11.866 | 18 | 1.918 / 2.143 |
+| d9806e5 | Vendor | 30 | 12.043 | 10 | 1.109 / 1.362 |
+| [e786679](https://github.com/botiverse/oar/actions/runs/40356722686/job/121691058554) | Shared behavior | 7 | 11.854 | 18 | 1.890 / 2.049 |
+| e786679 | Vendor | 30 | 12.090 | 9 | 1.075 / 1.297 |
+| [4339a32](https://github.com/botiverse/oar/actions/runs/40363303349/job/121714186400) | Shared behavior | 7 | 11.614 | 18 | 2.011 / 2.245 |
+| 4339a32 | Vendor | 23 | 12.225 | 9 | 0.939 / 1.283 |
+
+Node memory columns are the maximum, over the samples, of the sum of that
+field for all `node.exe` processes in a sample. Working sets can share pages;
+their sum is not unique physical memory use. System memory in use is computed
+separately as total minus free physical memory. The longest recorded CIM query
+in these main jobs took 531 ms. Five-second sampling can miss short-lived
+processes and resource spikes.
+
+For reproduction, download the `sea-trial-pi-rpc-aimock-windows-latest`
+artifact from each linked run and read `windows-resources/behavior.jsonl`
+and `windows-resources/vendor.jsonl`. Their artifact IDs, in table order,
+are 12667000443, 12665868007 and 12668094072. Use only `kind: "sample"` rows
+for resource extrema and the `stage_exit` row for each command's exit code.
+
+Two earlier successful Pi RPC jobs on PR #492
+([284ed50](https://github.com/botiverse/oar/actions/runs/40351279822/job/121671680600)
+and [3204ad8](https://github.com/botiverse/oar/actions/runs/40352938236/job/121677609367))
+also ended both stages at zero Node processes. Their lowest free memory was
+11.807 GiB and peak Node count was 18. They are supporting pre-merge samples,
+separate from the three main jobs above.
+
+### Lost-run evidence boundary
+
+The main e642251 job began its vendor step at 16:32:44 UTC. While the job was
+reported as running, `stamp run view --job --log` reported logs unavailable
+until completion, the job-log API returned BlobNotFound, and the live page
+could not be retrieved from the investigation machines. GitHub marked the
+job failed at 17:18:14 UTC with the runner-loss annotation. That timestamp
+does not establish when the runner actually lost contact. After completion,
+the log command reported that GitHub no longer retained the log, and no
+Windows Pi RPC artifact appeared among the run's 20 artifacts.
+
+The flushed checkpoints therefore did not preserve the failed runner's last
+state through the available interfaces. The sampler can describe completed
+jobs, including slow jobs that eventually finish; it cannot currently be
+relied on to recover a lost runner's terminal state. No external reporting
+service was added. This failed job was neither rerun nor canceled as part of
+the investigation.
+
+The bounded conclusion is: **successful runs showed no resource exhaustion
+or surviving Node processes at stage end; the four runner-loss causes remain
+unknown**. The data does not justify reducing concurrency or changing native
+deadlines. Keep the sampler for subsequent evidence; an authorized unchanged
+rerun may restore a failed CI check but would not explain its original failure.
 
 For a fresh failure, compare samples across both stages for children surviving
 their owner, rising private memory or sustained process counts. Check leaks
