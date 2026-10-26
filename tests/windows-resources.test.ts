@@ -15,7 +15,8 @@ test.skipIf(process.platform !== "win32").each([0, 37])("Windows sampler retains
       "-Stage", "fixture", "-Command", command, "-OutputDirectory", directory, "-IntervalMs", "1000"], {
       timeoutMs: 30_000, env: { ...process.env, OAR_RESOURCE_SECRET: "synthetic-must-not-enter-samples" },
     });
-    expect({ code: result.exitCode, ok: result.ok }).toEqual({ code: exitCode, ok: exitCode === 0 });
+    // runExecutable represents a successful native exit with ok=true and exitCode=null.
+    expect({ code: result.exitCode, ok: result.ok }).toEqual({ code: exitCode === 0 ? null : exitCode, ok: exitCode === 0 });
     expect(result.stdout).toContain("resource-stdout");
     expect(result.stderr).toContain("resource-stderr");
     const contents = await readFile(path.join(directory, "fixture.jsonl"), "utf8");

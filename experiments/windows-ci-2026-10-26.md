@@ -68,6 +68,13 @@ exit status. Windows unit tests run harmless commands exiting 0 and 37,
 checking exit propagation, inherited output and sample contents. They skip on
 non-Windows hosts; native sampler execution must be checked in Windows CI.
 
+Collect several successful Windows runs after merge: report peak aggregate
+working set and private memory, minimum free physical memory, peak Node count,
+and whether counts fall after sessions end. These passing runs are the primary
+source of resource evidence because a lost runner may retain nothing. Near-zero
+free memory or continuously increasing counts would support the pressure/leak
+hypothesis; passing assertions alone would not disprove it.
+
 For a fresh failure, compare samples across both stages for children surviving
 their owner, rising private memory or sustained process counts. Check leaks
 before lowering concurrency. The old runner-loss annotation alone is not
