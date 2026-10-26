@@ -1,5 +1,6 @@
 import type { ListModelsResult, ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { asRecord, asRecordList } from "../../shared/json.js";
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import { acquireConsole, morphStateDir } from "./console.js";
 
 /**
@@ -22,7 +23,8 @@ export function projectMorphModels(catalog: unknown): ModelEntry[] {
   return models;
 }
 
-export const morphListModels: ModelLister = async (installation): Promise<ListModelsResult> => {
+export const morphListModels: ModelLister = async (installation, options = {}): Promise<ListModelsResult> => {
+  refuseReaderEnvironment(options.env, "morph models come from its shared Console, which a reader cannot give a separate environment");
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "morph models are listed by its Console, which needs the morph executable" };
   }

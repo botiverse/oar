@@ -9,6 +9,7 @@ import { piRefusedSessionOptions } from "./open.js";
 import { createPiSession } from "./session.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { piRpcRefusedSessionOptions } from "./rpc/open.js";
+import { refuseChangedPiReaderEnvironment } from "./reader-environment.js";
 
 import type { PiRuntimeOptions } from "./options.js";
 
@@ -30,17 +31,33 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- JavaScript hosts can bypass the discriminated option type.
   if (!subprocess && options.command !== undefined) { throw new Error("A Pi command requires execution: subprocess"); }
   if (options.args !== undefined && options.command === undefined) { throw new Error("Pi command arguments require command"); }
-  return defineRuntime({
+  const inventories = createPiInventories(options);
+  const tools: typeof inventories.tools = async (installation, readOptions = {}) => {
+    if (subprocess) { refuseChangedPiReaderEnvironment(readOptions.env); }
+    const result = await inventories.tools(installation, readOptions);
+    return result;
+  };
+  const runtime = defineRuntime({
     id: "pi",
     brand: runtimeBrands.pi,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
     mcpToolsListChanged: "full",
-    ...createPiInventories(options),
+    ...inventories,
+    skills: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcSkillReader(options); }) : inventories.skills,
+    commands: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcCommandReader(options); }) : inventories.commands,
+    tools,
     installation: piInstallation,
-    providers: piProviders,
-    listModels: piModelLister(options),
+    providers: async (installation, readOptions) => {
+      if (subprocess) { refuseChangedPiReaderEnvironment(readOptions.env); }
+      const result = await piProviders(installation, readOptions);
+      return result;
+    },
+    listModels: subprocess
+      ? onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcModelLister(options); })
+      : piModelLister(options),
     session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options); }) : createPiSession(options),
   });
+  return runtime;
 }
 
 export const piRuntime = createPiRuntime();

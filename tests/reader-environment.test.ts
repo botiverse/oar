@@ -51,7 +51,7 @@ test.each([undefined, "subprocess"] as const)("Pi %s installation accepts env an
   await expect(pi.installation(options)).resolves.toEqual(bundled);
   const result = await orient(new RuntimeRegistry([pi]), options);
   expect(result.runtimes[0]?.installation).toMatchObject({ kind: "ok", value: bundled });
-  expect(result.runtimes[0]?.providers).toMatchObject({ kind: "ok", value: [] });
+  expect(result.runtimes[0]?.providers).toMatchObject(execution === "subprocess" ? { kind: "unsupported" } : { kind: "ok", value: [] });
   expect({ home: process.env.HOME, agent: process.env.OAR_PI_AGENT_DIR }).toEqual(before);
 });
 

@@ -183,6 +183,11 @@ refuses `env`, morph cannot be an `oar mcp` subagent. Images are not
 supported (`capabilities.images: false`); the API's `file_references` upload
 path is not used.
 
+The installation and model readers also reject a nonempty `env` with
+`UnsupportedOptionError("env")`, before executable discovery or acquiring a
+Console connection. Omission and `{}` use the host environment. `orient()`
+uses the declared session refusal to omit its overlay for Morph's readers.
+
 A Console OAR starts runs the user's whole Console configuration, including
 any channel runtimes it is set up to start.
 

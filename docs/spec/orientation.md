@@ -30,7 +30,7 @@ auth status, providers, usage, models and inventories. This decision uses the
 declaration, never the runtime name.
 
 It uses the same overlay as `SessionOptions.env`: a string overrides an
-inherited value and `null` removes it. Omission or `{}` keeps existing behavior.
+inherited value and `null` removes it. Omission or `{}` uses the host environment.
 The host's `process.env` is never mutated and shell profiles are never loaded
 implicitly. To use a login shell, call
 [`userShellEnvironment()`](login.md#explicit-login-shell-environment) explicitly
@@ -42,20 +42,25 @@ The individual readers accept `env` too: `installation({ env })`,
 `providers(installation, { env, resolve })`. Installation resolves binary
 pins, PATH/PATHEXT, shadowed copies and home-based fallbacks from that environment
 on each call, and uses it for readiness and version commands. An empty PATH
-never searches the working directory for a bare command; explicit paths and
-supported installation fallbacks remain usable.
+never searches the working directory for a bare command. An unset PATH searches
+`/usr/bin:/bin` on POSIX; on Windows an unset or empty PATH finds no bare command.
+Explicit paths and supported installation fallbacks remain usable.
 
-CLI readers pass that environment to their native processes. Cursor and Pi
-Durable direct readers reject nonempty overlays with
+CLI readers pass that environment to their native processes. Cursor, Pi
+Durable and community Morph direct readers reject nonempty overlays with
 `UnsupportedOptionError("env")`, matching their session refusals. `orient`
 therefore calls those readers without an overlay and preserves their host facts.
 
-Pi readers accept the overlay with its in-process session meaning: the
+Pi's in-process readers accept the overlay with their session's meaning: the
 inventory session's Bash tool receives it, while SDK configuration, credential
-resolution and SDK-owned key commands use the host environment. Bundled
-installation discovery is independent of the overlay. These readers remain in
-the host process even when Pi sessions use `execution: "subprocess"`; no separate
-query protocol or host-environment mutation is introduced.
+resolution and SDK-owned key commands use the host environment. With
+`execution: "subprocess"`, model, skill and command readers start bounded native
+RPC processes with the session's full environment and startup policy. Pi RPC
+has no tools/providers query: those readers still use the host SDK, and reject
+actual environment changes with `UnsupportedOptionError("env")` before loading
+it. Equal values and removal of absent variables are accepted. Bundled
+installation discovery is independent of the overlay in both modes.
+See [Pi's coverage and missing metadata](../runtimes/pi.md#reader-environment).
 
 Kimi usage supports credential and CLI environment changes but rejects actual
 changes to a fixed list of host HTTP/TLS variables

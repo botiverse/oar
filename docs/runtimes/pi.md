@@ -1151,7 +1151,7 @@ history. Omission and `"include"` retain existing behavior. See the
 
 ## Orientation query costs
 
-`listModels()` creates native agent-session services for the current
+In-process `listModels()` creates native agent-session services for the current
 workspace, loads its configuration and extensions, and asks the SDK's model
 runtime for available entries. This can execute user/project code, resolve key
 commands and refresh OAuth; it sends no model prompt. The orientation local
@@ -1162,13 +1162,44 @@ only credentials do not appear in that stored list.
 
 ## Reader environment
 
-Installation, model listing, provider listing and supported inventories accept
-`env`. They use the in-process session meaning: the inventory's replacement
+In-process model listing, provider listing and supported inventories accept
+`env` with their session's meaning: the inventory's replacement
 Bash tool receives the overlay through its spawn hook; SDK configuration,
 credential resolution and SDK-owned key commands keep the host environment.
 Installation probes the bundled SDK and is independent of the overlay. OAR
 never changes `process.env`.
 
-These readers still run in the host process with `execution: "subprocess"`;
-that option moves sessions, not readers, to a child. There is no separate
-subprocess query protocol. See [reader environments](../spec/orientation.md#environment).
+With `execution: "subprocess"`, model, skill and command readers start one
+bounded native RPC process per call. They reuse the session startup path:
+the same `command`/`args`, version check, complete environment, agent directory,
+project trust, offline policy and package preflight. They add `--no-session`
+and submit no prompt. The default 15-second budget includes version checking,
+startup and the query. Success, failure and timeout stop the owned process
+tree and remove its private files; a timeout starts cleanup using the same
+bounded shutdown grace as session disposal, so the process can outlive the
+query result during that grace. Startup that finishes after the deadline
+cannot launch a new process. Native startup can execute extension
+`session_start` hooks, including user code and credential commands.
+
+Models come from `get_available_models`, Pi's startup availability snapshot.
+The native models retain their effort menus; RPC supplies no provider display
+names or saved default, so those fields stay absent. Skills and commands come
+from `get_commands`: skill entries use their native name without the `skill:`
+invocation prefix and retain `sourceInfo.path`/`source`; extension and prompt
+entries retain their invocation names and source labels in `commands()`.
+RPC omits command `argumentHint` and skill `disableModelInvocation`; OAR does
+not fill them from the host SDK. Both inventories report `partial:true` because
+Pi RPC does not return loading diagnostics, so completeness cannot be confirmed.
+
+Pi RPC exposes neither a tool nor a provider inventory. Those two readers
+remain in the host SDK. In subprocess mode they reject any overlay that
+actually changes a host value with `UnsupportedOptionError("env")` before SDK
+loading, listing only changed variable names. Omission, `{}`, equal values,
+and removing an absent variable are accepted. This also covers arbitrary
+variables used by extensions, custom providers or `!` credential commands;
+a fixed list of API-key variables would miss them. Revisit this fallback if
+native RPC gains those queries or a host needs them under another environment.
+`orient()` records the refusal as unsupported. Bundled installation discovery
+remains in the host and independent of env.
+See [reader environments](../spec/orientation.md#environment) and the
+[native regressions](../../sea-trial/vendor/pi-rpc-readers.vendor.test.ts).

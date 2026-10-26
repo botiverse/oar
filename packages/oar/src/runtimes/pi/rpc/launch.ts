@@ -12,7 +12,7 @@ function defaultEntry(): string {
 }
 
 /** Check the actual executable before starting a session or loading extensions. */
-export async function piRpcLaunch(command: string | undefined, cwd: string, env: NodeJS.ProcessEnv, args: readonly string[] = []): Promise<{
+export async function piRpcLaunch(command: string | undefined, cwd: string, env: NodeJS.ProcessEnv, args: readonly string[] = [], signal?: AbortSignal): Promise<{
   readonly command: string;
   readonly args: readonly string[];
   readonly version: string;
@@ -20,7 +20,8 @@ export async function piRpcLaunch(command: string | undefined, cwd: string, env:
   const version = await piRpcVersion();
   const executable = command ?? process.execPath;
   const entry = command === undefined ? [defaultEntry()] : [...args];
-  const result = await runExecutable(executable, [...entry, "--version"], { cwd, env, timeoutMs: 15_000 });
+  signal?.throwIfAborted();
+  const result = await runExecutable(executable, [...entry, "--version"], { cwd, env, timeoutMs: 15_000, ...(signal === undefined ? {} : { signal }) });
   assertRan(result, "Cannot read the Pi RPC executable version");
   const actual = result.ok ? result.stdout.trim() : "unavailable";
   if (actual !== version) {

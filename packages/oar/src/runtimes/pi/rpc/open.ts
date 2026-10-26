@@ -5,11 +5,11 @@ import { homedir } from "node:os";
 import path from "node:path";
 import type { RpcSessionState, RpcResponse } from "@earendil-works/pi-coding-agent";
 import type { RefusedSessionOptions, SessionOptions } from "../../../contracts/index.js";
-import { sessionEnvironment } from "../../../shared/environment.js";
+import { environmentValue, sessionEnvironment } from "../../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../../shared/executable/index.js";
 import { privateTempDir, type PrivateTempDir } from "../../../shared/private-temp.js";
 import { checkSessionName, refuseSessionOptions } from "../../../shared/session-options.js";
-import type { SessionCredentials } from "../../../shared/session-credentials.js";
+import type { CredentialRedactor } from "../../../shared/credential-redactor.js";
 import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal, checkPiSystemPrompt } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
@@ -33,15 +33,22 @@ export function piRpcState(response: RpcResponse): RpcSessionState {
   return response.data;
 }
 
-interface OpenPiRpc {
+export interface OpenPiRpc {
   readonly child: LineProcess;
   readonly control: ReturnType<typeof piRpcControl>;
   readonly state: RpcSessionState;
   readonly directory: PrivateTempDir;
 }
 
+interface PiRpcReadLifetime {
+  readonly signal: AbortSignal;
+  readonly noSession: true;
+}
+
 /** Native RPC startup, with the same bundled version as the in-process runtime. */
-export async function openPiRpc(options: SessionOptions, credentials: SessionCredentials, receive: (message: Record<string, unknown>) => void, runtime: PiRuntimeOptions): Promise<OpenPiRpc> {
+export async function openPiRpc(options: SessionOptions, credentials: CredentialRedactor, receive: (message: Record<string, unknown>) => void, runtime: PiRuntimeOptions, lifetime?: PiRpcReadLifetime): Promise<OpenPiRpc> {
+  const signal = lifetime?.signal;
+  signal?.throwIfAborted();
   refuseSessionOptions(piRpcRefusedSessionOptions, options);
   checkSessionName(options);
   checkPiSystemPrompt(options.systemPrompt);
@@ -51,8 +58,8 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
   if (options.effort !== undefined) { piThinkingLevel(options.effort); }
   if (options.model !== undefined) { splitPiModelId(options.model); }
   const env = sessionEnvironment(options.env);
-  const agentDir = path.resolve([env.OAR_PI_AGENT_DIR, env.PI_CODING_AGENT_DIR].find((value) => value !== undefined && value.length > 0)
-    ?? path.join(env.HOME ?? env.USERPROFILE ?? homedir(), ".pi", "agent"));
+  const agentDir = path.resolve([environmentValue(env, "OAR_PI_AGENT_DIR"), environmentValue(env, "PI_CODING_AGENT_DIR")].find((value) => value !== undefined && value.length > 0)
+    ?? path.join(environmentValue(env, "HOME") ?? environmentValue(env, "USERPROFILE") ?? homedir(), ".pi", "agent"));
   const sessionDir = piSessionDir(options.cwd, agentDir);
   // This SDK import already serves native session-file lookup. The resolver
   // inspects package metadata without loading extensions or starting services.
@@ -60,7 +67,9 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
   const settings = SettingsManager.create(options.cwd, agentDir, { projectTrusted: runtime.projectTrusted ?? true });
   await checkPiProjectPackages(options.cwd, agentDir, settings, runtime);
   await reportMissingPiPackages(options.cwd, agentDir, settings);
-  const launch = await piRpcLaunch(runtime.command, options.cwd, env, runtime.args);
+  signal?.throwIfAborted();
+  const launch = await piRpcLaunch(runtime.command, options.cwd, env, runtime.args, signal);
+  signal?.throwIfAborted();
   const sessionFile = options.resume === undefined ? undefined : await piFindSessionFile(SessionManager, options.resume, options.cwd, sessionDir);
   const hasName = sessionFile !== undefined && SessionManager.open(sessionFile, sessionDir).getEntries().some((entry) => entry.type === "session_info");
   const directory = await privateTempDir("oar-pi-rpc-");
@@ -72,6 +81,7 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
     const extension = path.join(directory.path, "extension.mjs");
     await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
     const promptArgs = await piRpcPromptFiles(directory.path, options);
+    signal?.throwIfAborted();
     const child = spawnLineProcess(launch.command, [
       ...launch.args,
       runtime.projectTrusted === false ? "--no-approve" : "--approve",
@@ -79,6 +89,7 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
       // mode also prevents installation if the store changes after that check.
       ...(runtime.allowProjectPackageInstall === true ? [] : ["--offline"]),
       "--no-mcp", "--session-dir", sessionDir, "-e", extension,
+      ...(lifetime?.noSession === true ? ["--no-session"] : []),
       ...(sessionFile === undefined ? [] : ["--session", sessionFile]),
       ...(options.model === undefined ? [] : ["--model", options.model]),
       ...(options.effort === undefined ? [] : ["--thinking", options.effort]),
@@ -86,6 +97,10 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
       ...promptArgs,
       ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--exclude-tools", (options.disallowedTools ?? []).join(",")]),
     ], { cwd: options.cwd, env: { ...env, PI_CODING_AGENT_DIR: agentDir, OAR_PI_RPC_DIRECTORY: directory.path }, killTree: true, shutdown: "stdin", inheritStderr: false, extraPipe: true });
+    const stop = (): void => { child.kill(); };
+    signal?.addEventListener("abort", stop, { once: true });
+    child.onExit(() => { signal?.removeEventListener("abort", stop); });
+    if (signal?.aborted === true) { stop(); }
     const keyPipe = child.extraPipe;
     if (keyPipe === undefined) { child.kill(); await child.exited; throw new Error("Pi RPC requires a private credential pipe"); }
     readPiRpcCredentials(keyPipe, credentials.add, () => { child.kill(); });

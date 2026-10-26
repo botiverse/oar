@@ -17,8 +17,13 @@ The options object is optional. `cwd` defaults to `process.cwd()` and is resolve
 to an absolute path; a host should pass its project directory. `timeoutMs`
 defaults to 15 seconds and must be positive and finite. `env` applies the
 [reader environment overlay](orientation.md#environment) to native processes.
-Pi inventories run in process in both execution modes and reject a nonempty
-overlay before loading the SDK.
+Pi's in-process inventories pass it to the temporary session's Bash tool;
+SDK configuration, credentials and extension loading use the host environment.
+With `execution: "subprocess"`, skills and commands use a bounded native RPC
+process with the same full environment and startup policy as a session, plus
+`--no-session`. Tools still use the host SDK and reject actual environment
+changes before loading it. Unchanged values and removal of absent variables
+are accepted. See [Pi reader environments](../runtimes/pi.md#reader-environment).
 
 These operations discover native information independently of existing agents.
 There are **no Session inventory methods, session IDs, or session query mode**.
@@ -27,8 +32,9 @@ agent. No model prompt is submitted, but the runtime starts in `cwd` the way
 it would for a session: it can load and run that workspace's code (pi's
 project extensions, a configured stdio MCP server) and connect configured
 MCP servers. Do not take an inventory of a directory you do not trust; this
-holds for every reader. Pi uses a temporary in-memory SDK session,
-without writing trust configuration, and disposes it after discovery.
+holds for every reader. Pi uses a temporary in-memory SDK session or native
+RPC process with `--no-session`, without writing trust configuration, and
+disposes it after discovery.
 Inventory results never enter a session's record stream. Servers a session
 was given in `SessionOptions.mcpServers` are that session's, not the
 runtime's configuration, so `mcpServers()` never lists them.
@@ -59,6 +65,8 @@ runtime's configuration, so `mcpServers()` never lists them.
 | `mcp-only` | MCP tools only; built-in and other extension tools are not included |
 
 `partial:true` signals a native discovery error or pending/failed MCP startup.
+Pi RPC also reports `partial:true` because it provides no loading diagnostics:
+discovery completeness cannot be confirmed.
 It is independent of coverage: a complete MCP catalog is still `mcp-only`.
 Unknown fields are omitted. Enabled, active, loaded, auth and connection state
 are separate concepts. Names and descriptions are native strings; OAR never
@@ -78,8 +86,13 @@ and `"prompt"` as in its native command catalog. Duplicate extension names
 use Pi's resolved invocation names (for example `review:1` and `review:2`),
 not an OAR-generated suffix. It does not add skill commands or terminal UI
 built-ins. Skills remain in `skills()`; a host combines the two catalogs.
-Discovery does not run extension commands or bind `session_start` hooks, so
-this is the initial loaded catalog, not commands a live session adds later.
+In-process discovery does not run extension commands or bind `session_start`
+hooks. Subprocess discovery uses native RPC startup, which does run those
+hooks, then reads `get_commands`. It separates `source: "skill"` entries into
+`skills()` and retains extension/prompt source labels for commands. RPC does
+not expose `argumentHint`, skill `disableModelInvocation`, or loading diagnostics;
+those metadata fields are absent and both inventories have `partial:true`.
+Neither mode executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument
 hints. An explicit native `builtin: true` becomes `source: "builtin"`;
