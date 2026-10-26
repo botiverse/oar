@@ -34,7 +34,10 @@ function pack(directory: string, tarball: RegExp): string {
   rmSync(path.join(root, directory, "dist"), { recursive: true, force: true });
   run("pnpm", ["pack", "--pack-destination", work], path.join(root, directory));
   const name = readdirSync(work).find((file) => tarball.test(file)) ?? assert.fail(`no ${String(tarball)} in ${work}`);
-  return path.join(work, name);
+  const packed = path.join(work, name);
+  const license = execFileSync("tar", ["-xOf", packed, "package/LICENSE"]);
+  assert.deepEqual(license, readFileSync(path.join(root, "LICENSE")), `${directory} must ship the current root LICENSE verbatim`);
+  return packed;
 }
 
 function npmInstall(...specs: readonly string[]): void {
