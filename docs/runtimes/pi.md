@@ -686,6 +686,15 @@ configuration through threshold auto-compaction and cuts the host-skills
 block before its snapshot, since that block is the host's, present or absent
 per machine.
 
+An exactly empty `systemPrompt: ""` is refused with
+`UnsupportedOptionError("systemPrompt")` before opening either an SDK or RPC
+session. Pi 1.4.0's truthy `customPrompt` check otherwise silently uses its
+default base prompt, rather than replacing it with empty text. A whitespace-only
+replacement remains supported, and an empty `appendSystemPrompt` remains a
+no-op. The [native regression](../../sea-trial/vendor/pi-empty-system-prompt.vendor.test.ts)
+captured that default in the provider request before the guard; it also checks
+both allowed controls in both execution modes.
+
 **Context (mapped):** the `agent_settled` frame carries a `usage` event with
 native `getContextUsage()` read at that moment (post-compaction; tokens null
 when unknown), so `Session.contextUsage()` (a fold) is current at turn end.

@@ -108,6 +108,13 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
   serviceTier: "pi exposes no verified per-session service-tier setting and readback",
 };
 
+/** Pi 1.4.0's truthy customPrompt check replaces an empty string with its default. */
+export function checkPiSystemPrompt(prompt: string | undefined): void {
+  if (prompt === "") {
+    throw new UnsupportedOptionError("systemPrompt", "pi cannot replace its base system prompt with an empty string: native startup uses the default prompt instead");
+  }
+}
+
 /**
  * Opens (or resumes) the pi AgentSession the adapter wraps. Services first
  * (createAgentSessionServices loads the agent dir's extensions and their
@@ -118,6 +125,7 @@ export const piRefusedSessionOptions: RefusedSessionOptions = {
 export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   checkSessionName(options);
+  checkPiSystemPrompt(options.systemPrompt);
   validatePiMcpEnvironment(options);
   const thinkingLevel = options.effort === undefined ? undefined : piThinkingLevel(options.effort);
   const sdk = await import("@earendil-works/pi-coding-agent");

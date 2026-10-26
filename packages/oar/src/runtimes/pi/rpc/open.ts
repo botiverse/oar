@@ -11,7 +11,7 @@ import { privateTempDir, type PrivateTempDir } from "../../../shared/private-tem
 import { checkSessionName, refuseSessionOptions } from "../../../shared/session-options.js";
 import type { SessionCredentials } from "../../../shared/session-credentials.js";
 import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
-import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal } from "../open.js";
+import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal, checkPiSystemPrompt } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "../project.js";
@@ -44,6 +44,7 @@ interface OpenPiRpc {
 export async function openPiRpc(options: SessionOptions, credentials: SessionCredentials, receive: (message: Record<string, unknown>) => void, runtime: PiRuntimeOptions): Promise<OpenPiRpc> {
   refuseSessionOptions(piRpcRefusedSessionOptions, options);
   checkSessionName(options);
+  checkPiSystemPrompt(options.systemPrompt);
   // Removals are already applied to the RPC child's environment. Only the
   // in-process MCP path has to refuse them when re-inheriting the host env.
   validatePiMcpEnvironment({ ...options, env: {} });
