@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
 import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
 import { createPiInventories } from "./inventory.js";

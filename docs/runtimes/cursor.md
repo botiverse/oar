@@ -514,8 +514,10 @@ account; a status that reads logged out is `not_logged_in`.
 
 `CURSOR_API_KEY` comes first: the SDK uses it before the stored login for
 every call (an explicit key, then the variable, then the stored key), and
-`status()` ignores it. OAR does not guess: `authStatus` reports the stored
-login only, and a login started while the variable is set adds an `info`
+`status()` ignores it. When the variable is present, including an empty value,
+OAR's `authStatus` returns `unknown` and explains that native status neither
+reads nor validates the key sessions will use. It does not attach the stored
+login's email or expiry. A login started while the variable is set adds an `info`
 event saying that the variable wins until it is unset; its value is never
 read. A key stored against another backend (`CURSOR_BACKEND_URL`) also reads
 `logged-in`, though the SDK uses it only against that backend. The SDK's own
@@ -682,7 +684,25 @@ credential use, not a successful model turn or remote account-rule behavior.
 
 `listModels()` loads the host-supplied SDK and calls `Cursor.models.list()`.
 This can make an authenticated remote catalog request, without opening a
-conversation. `Cursor.auth.status()` reads the SDK's stored user key, including
-expiry, and is declared local. It does not include a `CURSOR_API_KEY` supplied
-only through the environment. The stored user key has API-key form but is
-charged to the Cursor plan; those are independent facts.
+conversation. OAR's auth reader is declared local. With `CURSOR_API_KEY`
+present it returns `unknown` without loading the SDK; otherwise it calls
+`Cursor.auth.status()` with no options. The stored user key has API-key form
+but is charged to the Cursor plan; those are independent facts.
+
+The SDK 1.0.40 bundle's status path loads its default `FileCredentialStore`,
+validates the stored shape and checks expiry. Its operation wrapper only
+normalizes errors. It does not use the model-request credential resolver
+(explicit `apiKey`, then `CURSOR_API_KEY`, then a stored backend-paired key),
+refresh tokens, execute a helper or validate a key remotely. An explicit model
+key is not an option accepted by status or supplied by OAR. A native caller
+can supply a custom status `store`; its `load()` may do arbitrary work, but
+OAR does not pass that option. A host replacing the official SDK must preserve
+this local status contract.
+
+[Credential-source controls](../../experiments/orientation/README.md#cursor-status-credential-sources)
+cover missing, malformed and foreign stores, unexpired and non-expiring keys,
+expired keys, environment-key overrides including an empty value, and a backend
+override. The native status still describes a stored login for another backend;
+it is not proof that an actual request will authenticate. Custom in-memory
+stores and a deliberately network-enabled custom store establish the boundary
+of the native status options. No real credential or model request is used.

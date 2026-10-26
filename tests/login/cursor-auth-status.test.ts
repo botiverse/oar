@@ -1,9 +1,21 @@
 import assert from "node:assert/strict";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createCursorRuntime } from "../../packages/oar/src/index.js";
 import { projectCursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/auth-status.js";
 import type { CursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/sdk.js";
 import { bundled, EXPIRES_MS, FakeCursor, KEY, leaks, unused } from "../fixtures/fake-cursor-auth.js";
+
+beforeEach(() => { vi.stubEnv("CURSOR_API_KEY", undefined); });
+afterEach(() => { vi.unstubAllEnvs(); });
+
+test.each(["environment-key", ""])("an environment key hides unrelated stored-login identity (%j)", async (key) => {
+  vi.stubEnv("CURSOR_API_KEY", key);
+  await Promise.all(([{ status: "logged-out" }, { status: "logged-in", email: "stale@example.invalid", apiKeyExpiresAtMs: EXPIRES_MS }] as const).map(async (stored) => {
+    const result = await new FakeCursor({ stored }).runtime().authStatus(bundled);
+    expect(result).toEqual({ kind: "unknown", detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: "Cursor.auth.status" });
+    expect(result).not.toHaveProperty("account");
+  }));
+});
 
 test("authStatus is Cursor.auth.status: the account with the key's expiry, or logged out, never the key", async () => {
   // As if an SDK returned its key: it must still not come out.

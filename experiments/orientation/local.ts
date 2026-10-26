@@ -49,8 +49,7 @@ async function query(label: string, id: string, depth: "local" | "account" = "lo
   assert.equal(runtimes.length, 1);
   for (const runtime of runtimes) { assert.equal(asRecord(asRecord(runtime.installation)?.value)?.kind, "available"); }
   console.log(JSON.stringify({ label, attempts, keyCommandRan: existsSync(marker), runtimes: runtimes.map(({ id: runtimeId, auth, providers }) => ({ id: runtimeId, auth, providers })) }));
-  if (label === "Cursor stored user key") { assert.equal(asRecord(asRecord(runtimes[0]?.auth)?.value)?.kind, "logged_in"); }
-  if (label === "Cursor expired user key") { assert.equal(asRecord(asRecord(runtimes[0]?.auth)?.value)?.kind, "logged_out"); }
+  if (id === "codex" && depth === "local") { assert.deepEqual(runtimes[0]?.auth, { kind: "skipped", because: "depth" }); }
   if (depth === "local") {
     assert.equal(attempts.length, 0, "local may not contact the network");
     assert.equal(existsSync(marker), false, "local may not execute key commands");
@@ -65,6 +64,18 @@ try {
   const piCredentials = JSON.stringify({ anthropic: { type: "oauth", access: "synthetic-expired", refresh: "synthetic-refresh", expires: 1 }, deepseek: { type: "api_key", key: `!${apiHelper}` } });
   await writeFile(path.join(piDir, "auth.json"), piCredentials);
   await query("Codex stored API key", "codex");
+  await rm(path.join(codexDir, "auth.json"));
+  // Native classification uses the at- prefix; other strings take the JWT path.
+  env.CODEX_ACCESS_TOKEN = "at-synthetic-personal-access-token";
+  env.CODEX_AUTHAPI_BASE_URL = proxyUrl;
+  await query("Codex personal access token is skipped locally", "codex");
+  assert.ok(env.OAR_CODEX_BIN !== undefined && env.OAR_CODEX_BIN !== "", "set OAR_CODEX_BIN for the native control");
+  const codexStatus = await runExecutable(env.OAR_CODEX_BIN, ["login", "status"], { cwd: home, env, timeoutMs: 20_000 });
+  assert.equal(codexStatus.ok, false, "the local endpoint refuses token hydration");
+  assert.ok(attempts.some((attempt) => attempt.includes("/v1/user-auth-credential/whoami")), "native Codex status hydrates personal access tokens over HTTP");
+  console.log(JSON.stringify({ label: "Codex native personal-access-token status control", attempts }));
+  delete env.CODEX_ACCESS_TOKEN;
+  delete env.CODEX_AUTHAPI_BASE_URL;
   await query("Pi expired OAuth and stored key command", "pi");
   await query("Claude expired OAuth is skipped locally", "claude");
   await query("Claude expired OAuth account-depth control", "claude", "account");
@@ -81,14 +92,6 @@ try {
   await query("Claude account-depth helper control", "claude", "account");
   assert.equal(existsSync(marker), true, "the explicit account-usage query resolves the configured helper");
   await rm(marker);
-  const cursorDir = path.join(home, ".cursor", "sdk");
-  await mkdir(cursorDir, { recursive: true });
-  const cursorAuth = { version: 1, backendUrl: proxyUrl, apiKey: "synthetic-key", createdAtMs: Date.now(), email: "fixture@example.invalid", apiKeyExpiresAtMs: Date.now() + 3_600_000 };
-  await writeFile(path.join(cursorDir, "auth.json"), JSON.stringify(cursorAuth));
-  await query("Cursor stored user key", "cursor");
-  cursorAuth.apiKeyExpiresAtMs = 1;
-  await writeFile(path.join(cursorDir, "auth.json"), JSON.stringify(cursorAuth));
-  await query("Cursor expired user key", "cursor");
   if (env.OAR_QODER_BIN !== undefined) { await query("Qoder unproven auth reader is skipped locally", "qoder"); }
 } finally {
   proxy.closeAllConnections();

@@ -84,8 +84,8 @@ async function readCodexAuthStatus(installation: AvailableInstallation, options:
   return projectCodexLoginStatus(result.ok ? 0 : result.exitCode, `${result.stdout}\n${result.stderr}`);
 }
 
-/** Native `login status` reads stored credentials without resolving them over the network. */
-export const codexAuthStatus: AuthStatusReader = Object.assign(readCodexAuthStatus, { localOnly: true as const });
+/** Native status can hydrate personal access tokens and identity credentials over the network. */
+export const codexAuthStatus: AuthStatusReader = readCodexAuthStatus;
 
 /** `account/read` after the sign-in; null when codex reports no account. */
 export function projectCodexAccount(result: unknown): LoginAccount | null {

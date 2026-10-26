@@ -12,7 +12,7 @@ function text(value: unknown): string | undefined {
 }
 
 /**
- * `Cursor.auth.status()` (SDK 1.0.35) reads the stored login
+ * `Cursor.auth.status()` (SDK 1.0.40) reads the stored login
  * (`~/.cursor/sdk/auth.json`) and answers `{ status: "logged-out" }`, also
  * for a key past its expiry, or `{ status: "logged-in", backendUrl, email?,
  * apiKeyExpiresAtMs? }`; it never returns the key. `CURSOR_API_KEY` is not
@@ -62,6 +62,9 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
     if (installation.via !== "bundled") {
       return { kind: "unknown", detail: "cursor's sign-in status needs the bundled @cursor/sdk" };
     }
+    if (process.env.CURSOR_API_KEY !== undefined) {
+      return { kind: "unknown", detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: STATUS_SOURCE };
+    }
     const sdk = await loadedSdk(load);
     if ("failed" in sdk) {
       return { kind: "unknown", detail: new LoginSecrets().line(sdk.failed) };
@@ -73,5 +76,6 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
     const status = await readCursorAuthStatus(auth, options.timeoutMs);
     return status;
   };
+  // With no status options, the official SDK uses only its local file store.
   return Object.assign(reader, { localOnly: true as const });
 }

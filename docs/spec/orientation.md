@@ -29,9 +29,13 @@ const choices = usability(facts, { minVersions: { codex: "0.164.0" } });
 
 An auth reader without an evidenced `localOnly` declaration is skipped at
 `local` depth with `{ kind: "skipped", because: "depth" }`. An absent reader
-is `unsupported`. Currently Codex and Cursor declare local auth status;
-Claude and Qoder require `account` depth. Other built-in runtimes do not expose
+is `unsupported`. Currently only Cursor declares local auth status;
+Claude, Codex and Qoder require `account` depth. Other built-in runtimes do not expose
 an auth reader. No direct credential-file parser is added for the aggregate.
+
+When `CURSOR_API_KEY` is present, Cursor reports `unknown`: sessions use that
+environment key, while the SDK's status method only describes a stored login.
+OAR neither validates the key nor attaches the unrelated stored identity.
 
 Pi's optional `Runtime.providers` reader reuses its provider facade. At local
 depth it reports `CredentialStore.list()` entries' stored type and the SDK's

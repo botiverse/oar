@@ -954,8 +954,9 @@ listens on `127.0.0.1:1455`, which a phone cannot reach.
 Device code sign-in must first be allowed in the ChatGPT account's security
 settings, or by an admin for a workspace account, and is still in beta
 [doc]; when it is not, codex's own error comes back as `failed` /
-`rejected`. `authStatus` runs `codex login status`, which reads the local
-credential store without a request: exit 0 logged in (`Logged in using
+`rejected`. `authStatus` runs `codex login status`, which can resolve native
+credentials over the network ([query costs](#orientation-query-costs)):
+exit 0 logged in (`Logged in using
 ChatGPT` or `... an API key`, read as the `method`; the masked key is never
 read), exit 1 with `Not logged in` logged out, anything else (an unreadable
 configuration) `unknown`. It names the method, not the account, so the status
@@ -1570,6 +1571,22 @@ that lifecycle before accepting the option.
 `listModels()` starts an app-server, initializes it, reads paginated
 `model/list` and `config/read` for the current workspace, then closes the server.
 Catalog/account initialization can contact native services; no model turn is
-submitted. `authStatus()` uses `login status`, a declared local reader. Codex
-0.164.0 reports an API key as configured and says authentication is checked on
-a request. That is stored-configuration evidence, not remote key validation.
+submitted. `authStatus()` uses `login status` and requires `account` depth.
+Although Codex 0.164.0 reads stored API-key and ChatGPT status locally, its
+personal access token path (`CODEX_ACCESS_TOKEN` or a stored token) calls
+`PersonalAccessTokenAuth::load` and then `hydrate_personal_access_token`, which
+requests metadata from `auth.openai.com`. Agent and workload identities also
+resolve over the network. The `localOnly` declaration must hold for every
+credential source, so OAR skips this reader at local depth without parsing
+native auth files to choose a path. Sources: [personal access token
+hydration](https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/login/src/auth/personal_access_token.rs)
+and [native auth loading](https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/login/src/auth/manager.rs).
+Revisit the declaration only if Codex exposes offline status or reports the
+method without hydrating credentials. A configured API key is not remotely
+validated by the status command.
+
+Codex 0.164.0's [app-server initialization](https://github.com/openai/codex/blob/rust-v0.164.0/codex-rs/app-server/src/lib.rs)
+passes `enable_codex_api_key_env: false`, as `login status` does. OAR uses this
+app-server, so `CODEX_API_KEY` alone does not override its stored account.
+This statement concerns the native account resolver, not a custom provider's
+separately configured `env_key`.

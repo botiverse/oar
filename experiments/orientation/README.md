@@ -11,15 +11,16 @@ OAR_CLAUDE_BIN=/path/to/claude OAR_CODEX_BIN=/path/to/codex \
 The script creates synthetic credential stores under a temporary HOME and
 routes HTTP(S) through a local proxy that rejects every request. No real
 account, model turn or login is used. A key-command sentinel records execution.
-The built CLI's JSON is checked for synthetic secrets. Cursor uses the CLI's
-installed SDK. `OAR_QODER_BIN` is optional; Claude and Codex are required.
+The built CLI's JSON is checked for synthetic secrets. `OAR_QODER_BIN` is
+optional; Claude and Codex are required. Cursor has a separate credential-source
+control below.
 
 Linux observations on October 24, 2026 used Claude 2.1.309, Codex 0.164.0,
 Cursor SDK 1.0.40 and Qoder 1.1.78. Pi uses the repository's pinned SDK.
 
 | Control | Observation |
 | --- | --- |
-| Codex stored API key, local | Native `login status` reports a configured key without network access. This is not remote validation. |
+| Codex stored API key, local (original October 24 implementation) | Native `login status` reported a configured key without network access. This covered only that source; the declaration was withdrawn after review, as described below. |
 | Pi expired OAuth and stored key command, local | Metadata remains visible; no refresh, key-command execution or credential-file rewrite. |
 | Claude expired OAuth, local | Auth is skipped by depth; no refresh. |
 | Claude expired OAuth, account | Native auth/usage queries attempt connections to the OAuth/API hosts. The proxy refuses them, retaining evidence of the cost. |
@@ -35,6 +36,63 @@ no parser for native credential files was added. A later control separated
 auth-status-only from the full account depth after the latter executed the
 helper. Native account operations can mutate credential stores, so hosts must
 choose them deliberately.
+
+## Codex source boundary
+
+The original stored-API-key control did not establish that every native status
+path was local. Codex 0.164.0's personal access token loader hydrates metadata
+over HTTP; agent and workload identity paths also resolve remotely. OAR now
+skips Codex auth at local depth for every credential source, without inspecting
+its auth files. `local.ts` checks that both a stored API key and an environment
+personal access token are skipped, then calls native `login status` directly
+with the synthetic personal token and a rejecting local auth endpoint. Its
+`/v1/user-auth-credential/whoami` request is the positive network control.
+The October 26 Linux run observed that request with Codex 0.164.0; all local
+snapshots made zero connections. The first control failed because its synthetic
+token omitted the native `at-` prefix and was parsed as an invalid identity JWT.
+Correcting the fixture selected the personal-token path without changing the
+assertion. The same run repeated the other CLI controls with Claude 2.1.310
+and Qoder 1.1.78.
+The original failed unit regression and subsequent passing check establish
+that the local snapshot does not start the status command; account depth does.
+
+Both `login status` and app-server initialization pass
+`enable_codex_api_key_env: false` in this version. `CODEX_API_KEY` alone does
+not select another account for OAR's app-server session. Custom providers can
+separately name an `env_key`; this observation does not override their settings.
+See the [runtime source links](../../docs/runtimes/codex.md#orientation-query-costs).
+
+## Cursor status credential sources
+
+Run `pnpm tsx experiments/orientation/cursor-status.ts`. It starts a fresh
+process with an isolated HOME, imports the actual SDK only after installing
+socket/fetch guards, and compares native status with OAR's local snapshot.
+Every file is synthetic, status leaves it unchanged, and no login or model
+request runs. Linux, SDK 1.0.40, October 26, 2026:
+
+| Source/control | Native status | OAR auth |
+| --- | --- | --- |
+| Missing, malformed or foreign-shaped file | logged-out | logged_out |
+| Stored unexpired or non-expiring user key | logged-in | logged_in, stored identity only |
+| Stored expired key | logged-out | logged_out |
+| Environment key without a stored login | logged-out | unknown, no account identity |
+| Environment key with a valid or expired stored login | The stored login's status | unknown, no account identity |
+| Empty environment key with a stored login | logged-in | unknown; the SDK's nullish precedence still selects the variable |
+| Backend override different from the stored key's backend | logged-in | Stored-login metadata; not remote key validation |
+| Explicit native in-memory store | Its unexpired/expired status | Not an OAR status option |
+| Native custom store whose load calls fetch | Network guard rejects it | Not an OAR status option |
+
+All normal controls made zero network attempts. The custom-store positive
+control made exactly one blocked fetch. The SDK bundle audit covered the
+operation error wrapper, `Cursor.auth.status`, `FileCredentialStore.load` and
+`parseStoredSdkCredentials`; none invokes the separate
+`resolveDefaultApiKey` used for model requests. That resolver accepts an
+explicit `apiKey`, then `CURSOR_API_KEY`, then a backend-paired stored key.
+Status accepts only an optional store, which OAR never supplies. Arbitrary
+custom stores are not covered by OAR's declaration. The relevant package
+declarations are `auth/login.d.ts`, `auth/credential-store.d.ts` and
+`auth/stored-credentials.d.ts`, alongside their bundled implementations in
+`@cursor/sdk@1.0.40`.
 
 ## Shared Claude credential refresh
 
