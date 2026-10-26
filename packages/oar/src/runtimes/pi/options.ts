@@ -1,7 +1,7 @@
 export interface PiProjectOptions {
   /** Trust this cwd for this open only. False disables native project configuration and extensions. */
   readonly projectTrusted?: boolean;
-  /** Allow native package installation. False conservatively guards the complete project/user package list. Defaults to false. */
+  /** Allow native package installation. False guards the complete project/user package list and keeps RPC startup offline. Defaults to false. */
   readonly allowProjectPackageInstall?: boolean;
 }
 

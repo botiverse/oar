@@ -118,9 +118,8 @@ export interface LineProcess {
   readonly resources: ReturnType<typeof treeResourcesReader>;
 }
 /**
- * Windows has no process groups: end the child and everything it started by
- * walking its process tree (`taskkill /T /F`), falling back to the child
- * alone when the walk fails. An exited child's pid may already be reused.
+ * Windows taskkill /T /F ends the child and its descendants, falling back to
+ * the child alone when the walk fails. An exited child's pid may already be reused.
  */
 export function killProcessTree(child: ChildProcess): void {
   if (child.exitCode !== null || child.signalCode !== null) { return; }

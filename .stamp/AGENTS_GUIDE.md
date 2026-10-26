@@ -16,7 +16,7 @@ change travels.
   (`--evidence-file`); on OAR only @Cindy uses it, for her own pull requests,
   after verifying them herself and getting a second look.
 - **Merge.** Squash only. All CI checks report SUCCESS on the exact head
-  (23 today). A pull request that changes only `**/*.md`, `docs/**` or
+  (26 today). A pull request that changes only `**/*.md`, `docs/**` or
   `assets/**` runs no CI by design and merges on the author's local check
   plus the review. The author merges once approved:
   `stamp pr merge N --repo botiverse/oar --auto --head SHA --base SHA`.

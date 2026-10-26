@@ -13,6 +13,8 @@ import type { SessionCredentials } from "../../../shared/session-credentials.js"
 import { piMcpServerConfig, validatePiMcpEnvironment } from "../mcp.js";
 import { piThinkingLevel, piRefusedSessionOptions, piEffortRefusal } from "../open.js";
 import { piFindSessionFile, piSessionDir, splitPiModelId } from "../resolve.js";
+import type { PiRuntimeOptions } from "../options.js";
+import { checkPiProjectPackages, reportMissingPiPackages } from "../project.js";
 import { piRpcControl } from "./control.js";
 import { readPiRpcCredentials } from "./credentials.js";
 import { piRpcLaunch } from "./launch.js";
@@ -38,7 +40,7 @@ interface OpenPiRpc {
 }
 
 /** Native RPC startup, with the same bundled version as the in-process runtime. */
-export async function openPiRpc(options: SessionOptions, credentials: SessionCredentials, receive: (message: Record<string, unknown>) => void, command?: string, args?: readonly string[]): Promise<OpenPiRpc> {
+export async function openPiRpc(options: SessionOptions, credentials: SessionCredentials, receive: (message: Record<string, unknown>) => void, runtime: PiRuntimeOptions): Promise<OpenPiRpc> {
   refuseSessionOptions(piRpcRefusedSessionOptions, options);
   checkSessionName(options);
   // Removals are already applied to the RPC child's environment. Only the
@@ -47,11 +49,16 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
   if (options.effort !== undefined) { piThinkingLevel(options.effort); }
   if (options.model !== undefined) { splitPiModelId(options.model); }
   const env = sessionEnvironment(options.env);
-  const launch = await piRpcLaunch(command, options.cwd, env, args);
   const agentDir = path.resolve([env.OAR_PI_AGENT_DIR, env.PI_CODING_AGENT_DIR].find((value) => value !== undefined && value.length > 0)
     ?? path.join(env.HOME ?? env.USERPROFILE ?? homedir(), ".pi", "agent"));
   const sessionDir = piSessionDir(options.cwd, agentDir);
-  const { SessionManager } = await import("@earendil-works/pi-coding-agent");
+  // This SDK import already serves native session-file lookup. The resolver
+  // inspects package metadata without loading extensions or starting services.
+  const { SessionManager, SettingsManager } = await import("@earendil-works/pi-coding-agent");
+  const settings = SettingsManager.create(options.cwd, agentDir, { projectTrusted: runtime.projectTrusted ?? true });
+  await checkPiProjectPackages(options.cwd, agentDir, settings, runtime);
+  await reportMissingPiPackages(options.cwd, agentDir, settings);
+  const launch = await piRpcLaunch(runtime.command, options.cwd, env, runtime.args);
   const sessionFile = options.resume === undefined ? undefined : await piFindSessionFile(SessionManager, options.resume, options.cwd, sessionDir);
   const hasName = sessionFile !== undefined && SessionManager.open(sessionFile, sessionDir).getEntries().some((entry) => entry.type === "session_info");
   const directory = await privateTempDir("oar-pi-rpc-");
@@ -64,7 +71,11 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
     await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
     const child = spawnLineProcess(launch.command, [
       ...launch.args,
-      "--approve", "--no-mcp", "--session-dir", sessionDir, "-e", extension,
+      runtime.projectTrusted === false ? "--no-approve" : "--approve",
+      // The shared preflight refuses missing packages first. Native offline
+      // mode also prevents installation if the store changes after that check.
+      ...(runtime.allowProjectPackageInstall === true ? [] : ["--offline"]),
+      "--no-mcp", "--session-dir", sessionDir, "-e", extension,
       ...(sessionFile === undefined ? [] : ["--session", sessionFile]),
       ...(options.model === undefined ? [] : ["--model", options.model]),
       ...(options.effort === undefined ? [] : ["--thinking", options.effort]),

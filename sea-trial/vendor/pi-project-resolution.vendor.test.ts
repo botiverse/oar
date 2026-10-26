@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { cp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { isPiBackend, piRpc } from "./support/pi-runtime.js";
 import { createPiRuntime } from "../../packages/oar/src/runtimes/pi/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { checkPiProjectPackages } from "../../packages/oar/src/runtimes/pi/project.js";
@@ -9,7 +10,7 @@ import { piProjectFixture } from "./support/pi-project.js";
 
 afterEach(() => { vi.unstubAllEnvs(); });
 
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project package resolution", () => {
+describe.skipIf(!isPiBackend)("Pi native project package resolution", () => {
   test.each(["installed", "missing", "mismatched"] as const)("autoload delta uses its %s user package", async (state) => {
     const fixture = await piProjectFixture(state);
     for (const [key, value] of Object.entries(fixture.env)) { vi.stubEnv(key, value); }
@@ -24,7 +25,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project package
     await writeFile(settingsPath, JSON.stringify({ ...settings, packages: [{ source: "npm:oar-fixture-package@2.0.0", autoload: false }] }));
     await writeFile(path.join(fixture.agentDir, "settings.json"), JSON.stringify({ packages: ["npm:oar-fixture-package@1.0.0"] }));
     try {
-      const opening = createPiRuntime().session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       if (state === "installed") { const session = await opening; await session.dispose(); }
       else { await expect(opening).rejects.toMatchObject({ name: "RuntimeFailureError", code: "project_packages_blocked" }); }
       expect(existsSync(fixture.installed)).toBe(false);

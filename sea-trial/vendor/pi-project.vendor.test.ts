@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createPiRuntime } from "../../packages/oar/src/runtimes/pi/index.js";
 import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-failure-error.js";
+import { isPiBackend, piRpc } from "./support/pi-runtime.js";
 import { piProjectFixture, type PackageState } from "./support/pi-project.js";
 
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
@@ -11,14 +12,14 @@ afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 const cases = (["none", "installed", "missing", "mismatched"] as const).flatMap((state) =>
   (["default", "offline", "allow"] as const).map((mode) => ({ state, mode })));
 
-describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project policy", () => {
+describe.skipIf(!isPiBackend)("Pi native project policy", () => {
   test.each(cases)("$state package in $mode mode", async ({ state, mode }) => {
     const fixture = await piProjectFixture(state);
     for (const [key, value] of Object.entries(fixture.env)) { vi.stubEnv(key, value); }
     vi.stubEnv("PI_OFFLINE", mode === "offline" ? "1" : "");
     const warning = vi.spyOn(process, "emitWarning").mockImplementation(() => {});
     try {
-      const opening = createPiRuntime({ allowProjectPackageInstall: mode === "allow" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process", allowProjectPackageInstall: mode === "allow" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       const refused = mode === "default" && (state === "missing" || state === "mismatched");
       if (refused) {
         const refusal = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
@@ -37,12 +38,27 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project policy"
     } finally { await fixture.stop(); }
   }, 30_000);
 
+  test("explicit project trust leaves an existing trust store unchanged", async () => {
+    const fixture = await piProjectFixture("none");
+    for (const [key, value] of Object.entries(fixture.env)) { vi.stubEnv(key, value); }
+    vi.stubEnv("PI_OFFLINE", "");
+    const trust = path.join(fixture.agentDir, "trust.json");
+    await writeFile(trust, "{}\n");
+    try {
+      const runtime = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process", projectTrusted: true });
+      const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      await session.dispose();
+      expect(existsSync(fixture.projectLoaded)).toBe(true);
+      expect(await readFile(trust, "utf8")).toBe("{}\n");
+    } finally { await fixture.stop(); }
+  }, 30_000);
+
   test("whitespace around PI_OFFLINE does not permit native package installation", async () => {
     const fixture = await piProjectFixture("missing");
     for (const [key, value] of Object.entries(fixture.env)) { vi.stubEnv(key, value); }
     vi.stubEnv("PI_OFFLINE", " 1 ");
     try {
-      const opening = createPiRuntime().session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       await expect(opening.then(async (session) => { await session.dispose(); return null; })).rejects.toBeInstanceOf(RuntimeFailureError);
       expect(existsSync(fixture.installed)).toBe(false);
     } finally { await fixture.stop(); }
@@ -55,7 +71,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi native project policy"
     const trust = path.join(fixture.agentDir, "trust.json");
     await writeFile(trust, "{}\n");
     try {
-      const runtime = createPiRuntime({ projectTrusted: false });
+      const runtime = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process", projectTrusted: false });
       const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       await session.dispose();
       const inventory = await runtime.tools({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });

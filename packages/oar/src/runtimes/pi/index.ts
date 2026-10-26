@@ -30,7 +30,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     ...createPiInventories(options),
     installation: piInstallation,
     listModels: piModelLister(options),
-    session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options.command, options.args); }) : createPiSession(options),
+    session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options); }) : createPiSession(options),
   });
 }
 

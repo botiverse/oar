@@ -146,8 +146,12 @@ acknowledgments. A handled command can be accepted without creating a turn.
 Steering is native; queued inputs remain in OAR until sent, preserving individual
 withdrawal instead of using native `clear_queue` (which clears everything).
 
-The subprocess uses native `--approve` to match the SDK's project trust:
-opening an untrusted cwd can execute its Pi extensions. The child receives the
+The same factory object accepts `execution`, `command`, `args`,
+`projectTrusted`, and `allowProjectPackageInstall`. The subprocess uses native
+`--approve` by default and `--no-approve` for `projectTrusted: false`. These are
+per-process overrides, not persistent trust grants. Like the SDK path, opening
+a cwd with the default trust can execute its Pi extensions. Package installation
+requires the explicit policy described below. The child receives the
 session environment, including removals, so provider variables and MCP children
 are isolated from the host. This is broader than the SDK's bash/MCP-only env
 overlay. OAR passes `--no-mcp` and supplies session MCP servers through a small
@@ -227,12 +231,17 @@ Sources: [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 ### Project trust and package installation
 
 `createPiRuntime({ projectTrusted, allowProjectPackageInstall })` configures
-the in-process runtime's session, model-list and inventory entry points.
+both execution locations and the SDK-backed model-list and inventory entry points.
 `piRuntime` uses the defaults below.
 
 - `projectTrusted` defaults to `true`: choosing a cwd permits its native
   project settings and extensions to load. OAR passes this decision to
-  `SettingsManager.create` for this operation; it never writes `trust.json`.
+  `SettingsManager.create` for this operation and selects native `--approve`
+  for RPC; neither writes `trust.json`. Pi 1.4.0 `cli/args.js` records that
+  flag only as `projectTrustOverride`; `main.js` passes it to this runtime's
+  settings manager and bypasses trust prompting and persistent decisions.
+  The native tests verify that new trust files are not created and an existing
+  file remains unchanged, with both trusted and untrusted operation.
 - `projectTrusted: false` uses Pi's native untrusted-project mode. Project
   settings, package declarations and extensions are not loaded. User/global
   configuration and extensions still apply; this is not a sandbox.
@@ -256,8 +265,26 @@ OAR does not copy Pi's inheritance, deduplication or version-matching logic.
 The preflight neither installs packages nor executes extensions and does
 not write the host's settings or trust store.
 
-Pi 1.4.0's resource loader has no per-operation no-install setting. Its
-offline switch reads the host process environment, which OAR never mutates.
+For RPC, OAR runs that same preflight before probing or starting the child.
+The SDK was already imported for native session-file lookup; this adds a
+settings manager and metadata resolution, not services or extension loading
+inside the host. Project policy also applies to the factory's model listing
+and inventories, which remain SDK-backed in both execution modes. The
+preflight's native offline exception is the host's `PI_OFFLINE` setting, just
+as in process. Child environment overrides do not relax this host policy.
+
+RPC additionally passes `--offline` unless installation is explicitly allowed.
+This prevents the native loader from installing if another process changes
+the package store after preflight. Missing or incompatible packages still
+receive the same typed refusal first; OAR does not silently skip them just
+because execution moved to a subprocess. Explicit host offline mode permits
+native skipping in both paths, and explicit installation permission removes
+the automatic flag without overriding a host or child `PI_OFFLINE` value.
+Native offline mode also disables other Pi startup network operations; provider
+requests still work. It is a startup option, not a sandbox for extension code.
+
+Pi 1.4.0's in-process resource loader has no per-operation no-install setting.
+Its offline switch reads the host process environment, which OAR never mutates.
 The preflight checks the package store before loading; it does not lock the
 store against concurrent changes or prevent extension code from doing its
 own work. Use native offline mode when the loader must never install, even
@@ -279,7 +306,7 @@ credentials and with no user packages configured:
 Additional native tests cover inherited user packages, conservative refusal
 of unrelated missing user packages, and `projectTrusted: false`: the latter
 neither installs packages nor executes project extensions, and leaves an existing trust
-file unchanged. [Policy tests](../../sea-trial/vendor/pi-project.vendor.test.ts),
+file unchanged. The same package-policy matrix runs against SDK and RPC startup. [Policy tests](../../sea-trial/vendor/pi-project.vendor.test.ts),
 [resolution tests](../../sea-trial/vendor/pi-project-resolution.vendor.test.ts).
 
 ### Session creation and resume
@@ -696,7 +723,7 @@ extension callback interface; its custom bash tool exists to overlay
 environment variables. Extensions make effective capabilities
 configuration-dependent.
 
-OAR pre-trusts cwd in native `trust.json`, an observable persistent write.
+OAR passes project trust for this operation only and never persists a trust grant.
 Extensions can still implement permission gates and interactive flows; OAR has
 no general approval/user-input bridge for them. Like pi's print and rpc
 modes, OAR initializes pi's theme from the settings before extensions load

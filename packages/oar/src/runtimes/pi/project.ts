@@ -15,7 +15,7 @@ export async function checkPiProjectPackages(cwd: string, agentDir: string, sett
   // oxlint-disable-next-line eslint/require-await, typescript/require-await -- Pi requires a Promise for this synchronous policy decision.
   await packages.resolve(async (source) => { missing.add(source); return "skip"; });
   if (missing.size > 0) {
-    throw new RuntimeFailureError("invalid_request", `Pi configuration requires installing or replacing packages: ${[...missing].map((source) => JSON.stringify(source)).join(", ")}. OAR conservatively checks the complete native package list, including user packages, because Pi's in-process SDK cannot disable installation per session. Start the host with PI_OFFLINE=1, or explicitly use createPiRuntime({ allowProjectPackageInstall: true }). OAR has not loaded extensions, installed packages or changed persistent trust.`, { code: "project_packages_blocked" });
+    throw new RuntimeFailureError("invalid_request", `Pi configuration requires installing or replacing packages: ${[...missing].map((source) => JSON.stringify(source)).join(", ")}. OAR conservatively checks the complete native package list, including user packages, because Pi's missing-package callback does not report scope. Start the host with PI_OFFLINE=1, or explicitly use createPiRuntime({ allowProjectPackageInstall: true }). OAR has not loaded extensions, installed packages or changed persistent trust.`, { code: "project_packages_blocked" });
   }
 }
 
