@@ -72,10 +72,10 @@ interface FlowState {
  * that cannot answer (it failed, or the caller aborted) leaves claude's own
  * report: a success it printed is `logged_in`, an exit 0 without one is not.
  */
-async function confirmed(installation: AvailableInstallation, signal: AbortSignal | undefined, reportedSuccess: boolean): Promise<LoginResult> {
+async function confirmed(installation: AvailableInstallation, signal: AbortSignal | undefined, reportedSuccess: boolean, env: LoginOptions["env"]): Promise<LoginResult> {
   const status = signal?.aborted === true
     ? undefined
-    : await claudeAuthStatus(installation, signal === undefined ? {} : { signal });
+    : await claudeAuthStatus(installation, { env, ...(signal === undefined ? {} : { signal }) });
   if (status?.kind === "logged_in") {
     return { kind: "logged_in", ...(status.account === undefined ? {} : { account: status.account }) };
   }
@@ -113,6 +113,7 @@ async function runClaudeLogin(
   interaction: ProviderLoginInteraction,
   timeoutMs: number,
   openBrowser: boolean,
+  overlay: LoginOptions["env"],
 ): Promise<LoginResult> {
   const secrets = new LoginSecrets();
   const interactionFailure = Promise.withResolvers<Ending>();
@@ -167,7 +168,7 @@ async function runClaudeLogin(
     }
   };
 
-  const env = claudeEnv();
+  const env = claudeEnv(overlay);
   if (!openBrowser) {
     // auth login honors BROWSER from 2.1.126, including for the automatic URL
     // it opens after printing the manual URL. Only this child gets the override.
@@ -234,7 +235,7 @@ async function runClaudeLogin(
     }
     // After `Login successful.` the new login is stored; a stop or an odd exit while claude flushes does not undo it.
     if (flow.reportedSuccess) {
-      return await confirmed(installation, interaction.signal, true);
+      return await confirmed(installation, interaction.signal, true, overlay);
     }
     switch (ending.kind) {
       case "stop":
@@ -245,7 +246,7 @@ async function runClaudeLogin(
         break;
     }
     return ending.exit.exitCode === 0 && ending.exit.error === undefined
-      ? await confirmed(installation, interaction.signal, false)
+      ? await confirmed(installation, interaction.signal, false, overlay)
       : failedExit(ending.exit, flow, secrets);
   } finally {
     flow.settled = true;
@@ -259,13 +260,13 @@ export async function claudeLogin(
   interaction: ProviderLoginInteraction,
   options: LoginOptions = {},
 ): Promise<LoginResult> {
-  const target = loginExecutable(installation, "claude", PASTE_FLOOR);
+  const target = loginExecutable(installation, "claude", PASTE_FLOOR, claudeEnv(options.env));
   if (target.kind === "settled") {
     return target.result;
   }
   if (interaction.signal?.aborted === true) {
     return { kind: "cancelled" };
   }
-  const result = await runClaudeLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options.openBrowser !== false);
+  const result = await runClaudeLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options.openBrowser !== false, options.env);
   return result;
 }

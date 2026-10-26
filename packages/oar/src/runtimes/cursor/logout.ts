@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RuntimeLogout } from "../../contracts/login.js";
 import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { confirmedLogout, logoutTimedOut, type NativeLogout } from "../../shared/logout.js";
@@ -40,6 +41,9 @@ async function sdkLogout(logout: () => Promise<void>, timeoutMs: number): Promis
 /** Signs cursor out with the SDK's own `Cursor.auth.logout`; `Cursor.auth.status` decides. */
 export function cursorLogoutWith(load: () => Promise<CursorSdk>): RuntimeLogout {
   return async (installation, options = {}) => {
+    if (options.env !== undefined && Object.keys(options.env).length > 0) {
+      throw new UnsupportedOptionError("env", "Cursor authentication runs in the host process and cannot isolate env; configure the host environment before loading the SDK.");
+    }
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "unsupported_installation", detail: "cursor signs out through the bundled @cursor/sdk" };
     }

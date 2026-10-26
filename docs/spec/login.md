@@ -63,6 +63,84 @@ that pi's provider login already uses.
   not allow it. `unsupported` is only for what the machine decides, its
   installation or its version.
 
+## Environment
+
+`LoginOptions.env`, `LogoutOptions.env` and `AuthStatusOptions.env` use the
+same overlay as [`SessionOptions.env`](runtime-matrix.md#session-environment):
+strings set variables, `null` removes them and omitted keys inherit. OAR does
+not change the host's `process.env`. Pass the same map to authentication and
+sessions to keep credential directories, proxies and executable lookup
+consistent. Login and logout confirmation queries receive that map too.
+OAR-owned overrides still win, including browser suppression and Claude's
+`CLAUDECODE` removal.
+
+Claude, Codex and Qoder apply the overlay to their authentication processes.
+Cursor's SDK runs in the host process: its three authentication methods reject
+any nonempty `env` with `UnsupportedOptionError` (`option: "env"`) before
+loading the SDK, as its sessions do. An empty map is a no-op. Runtime login is
+separate from Pi's provider-auth facade.
+
+### Explicit login-shell environment
+
+`userShellEnvironment({ timeoutMs?, signal? })`, from the Node entry
+`@botiverse/oar`, runs the configured `$SHELL` once and returns
+`{ env, changedVariables }`. Calling authentication or opening a session never
+invokes it implicitly. There is no cache or mutation of the host environment.
+
+```ts
+import { claudeRuntime, userShellEnvironment } from "@botiverse/oar";
+
+const { env, changedVariables } = await userShellEnvironment({ timeoutMs: 10_000 });
+// installation is the executable selected for this environment;
+// interaction presents the login URL and requests the user's pasted code.
+await claudeRuntime.login(installation, interaction, { env, openBrowser: false });
+const session = await claudeRuntime.session(installation, { cwd, env });
+// changedVariables contains names only. Never log or record env.
+```
+
+The helper starts an interactive login shell with closed stdin and no terminal,
+then captures a Node-generated JSON snapshot between random delimiters.
+Profile chatter outside the delimiters is ignored. Bash and Zsh use POSIX
+quoting; fish, Nushell and PowerShell use their own quoting and invocation.
+The approach follows [VS Code's shell-environment capture](https://github.com/microsoft/vscode/blob/main/src/vs/platform/shell/node/shellEnv.ts).
+A startup script that waits for interaction is bounded by the default ten-second
+deadline. Cancellation or the deadline kills the capture's process group.
+The combined stdout/stderr limit is 2 MiB. No shell output is forwarded, even
+with `OAR_CHILD_STDERR=inherit`, and no partial environment is returned.
+
+`env` is the complete shell snapshot, plus `null` for inherited variables the
+shell removed, so it can be passed directly as an overlay. It contains secrets.
+`changedVariables` contains only the names whose values changed: `HOME`, `PATH`,
+`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, and upper/lowercase `HTTP_PROXY`, `HTTPS_PROXY`,
+`ALL_PROXY`, `NO_PROXY`. Errors retain no output, environment values or native
+error cause.
+
+Failures reject with `UserShellEnvironmentError`; its `reason` is:
+
+| Reason | Meaning |
+| --- | --- |
+| `unsupported_platform` | Windows has no supported login-shell capture. Authentication env overlays still work on Windows. |
+| `shell_not_set` | `$SHELL` is missing or blank. |
+| `shell_unavailable` | The configured shell could not start. |
+| `shell_failed` | The shell exited unsuccessfully or was signalled. |
+| `timed_out` | Shell startup or output collection exceeded the deadline. |
+| `cancelled` | The caller aborted the operation. |
+| `invalid_output` | No single complete, valid environment snapshot was returned. |
+| `output_too_large` | Profile output and the snapshot exceeded the capture limit. |
+
+The helper does not detect whether a user has a registered login session.
+Under a service user without one, the returned environment may lack
+`XDG_RUNTIME_DIR` or `DBUS_SESSION_BUS_ADDRESS`. Availability of a keychain or
+secret service is not guaranteed. The host decides whether and when to use the
+snapshot. It can also supply its own env map without calling this helper.
+
+Native Bash, fish and Nushell capture is repeatable with
+[`experiments/user-shell-environment.ts`](../../experiments/user-shell-environment.ts).
+PowerShell invocation is covered by quoting tests; native PowerShell capture
+has not been verified. Installation, usage, model and inventory readers and
+`orient` still use the host environment in this revision; do not treat their
+results as observations of an authentication override.
+
 ## Interaction
 
 `options.openBrowser` permits the runtime to open a browser on the machine
@@ -131,6 +209,7 @@ declares no network, refresh or key-command execution. The
 | claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | 2.1.126 | 15 min |
 | codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | 0.118.0 | 16 min |
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.0.40 | 15 min |
+| qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
 | antigravity | no `login`: its terms do not allow a sign-in through a third-party tool ([page](../runtimes/antigravity.md)) | none | | |
 | grok, kimi, opencode, pi | not yet | not yet | | |
 
@@ -139,7 +218,8 @@ Claude normally attempts to open a browser; `openBrowser: false` overrides
 `BROWSER` only for its login child process, using a harmless executable.
 This works from the existing login floor, 2.1.126. Codex's device-code login
 never opens one, and OAR always passes `openBrowser: false` to Cursor's SDK,
-regardless of this option. The other runtimes have no runtime login member.
+regardless of this option. Qoder suppresses its browser with a per-login
+`BROWSER=www-browser` override. The other runtimes have no runtime login member.
 Pi's provider logins are on `createPiProviderAuth`, whose
 `loginProviders()` lists every provider pi's `/login` offers, with its methods
 ([pi page](../runtimes/pi.md#process-ownership-installation-login-and-account-usage)).
@@ -200,7 +280,7 @@ runtime oar does not sign in.
 | claude | `claude auth logout`, stdin closed | revokes the stored claude.ai OAuth refresh token, best effort | 2.1.41 | 60 s |
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.0.40 | 20 s |
-| antigravity, grok, kimi, opencode, pi | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| antigravity, grok, kimi, opencode, pi, qoder | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
 
 ## CLI
 

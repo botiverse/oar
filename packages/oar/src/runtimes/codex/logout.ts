@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import { loginExecutable } from "../../shared/login.js";
@@ -26,15 +27,15 @@ const LOGOUT_TIMEOUT_MS = 60_000;
 
 /** Signs codex out with `codex logout`; `codex login status` decides. */
 export async function codexLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
-  const target = loginExecutable(installation, "codex", LOGOUT_FLOOR);
+  const target = loginExecutable(installation, "codex", LOGOUT_FLOOR, sessionEnvironment(options.env));
   if (target.kind === "settled") {
     return target.result;
   }
   const timeoutMs = options.timeoutMs ?? LOGOUT_TIMEOUT_MS;
-  const end = await runLogoutCommand(target.installation.command, ["logout"], process.env, timeoutMs);
+  const end = await runLogoutCommand(target.installation.command, ["logout"], sessionEnvironment(options.env), timeoutMs);
   if (end.kind === "not_started") {
     return { kind: "failed", reason: "process_failed", detail: end.detail };
   }
   const native = commandLogout(end, LOGOUT_COMMAND, timeoutMs);
-  return confirmedLogout(native, await codexAuthStatus(installation), LOGOUT_COMMAND);
+  return confirmedLogout(native, await codexAuthStatus(installation, { env: options.env }), LOGOUT_COMMAND);
 }

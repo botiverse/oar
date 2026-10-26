@@ -147,3 +147,5 @@ export { UnsupportedOptionError } from "./errors.js";
 export { SessionNotFoundError } from "./session-not-found-error.js";
 export { SessionUnavailableError, type SessionUnavailableReason } from "./session-unavailable-error.js";
 export { RuntimeFailureError } from "./runtime-failure-error.js";
+export { UserShellEnvironmentError } from "./shell-environment.js";
+export type { UserShellEnvironment, UserShellEnvironmentOptions, UserShellEnvironmentFailure } from "./shell-environment.js";

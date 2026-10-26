@@ -1,3 +1,5 @@
+import { sessionEnvironment } from "../../shared/environment.js";
+
 /**
  * Variables a running Claude Code session sets for its own child processes
  * (its Bash tool, hooks): markers of that parent session, not configuration.
@@ -36,11 +38,7 @@ export function claudeSessionEnv(env: Readonly<Record<string, string | null>> | 
   return { ...removed, ...env, CLAUDECODE: null };
 }
 
-/** The environment for the claude subcommands OAR runs (auth, usage, model list, inventory): the host's, without parent-session markers. */
-export function claudeEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env };
-  for (const name of CLAUDE_PARENT_SESSION_MARKERS) {
-    env[name] = undefined;
-  }
-  return env;
+/** The environment for the claude subcommands OAR runs (auth, usage, model list, inventory): the caller overlay, with the same parent-session marker policy as sessions. */
+export function claudeEnv(overlay?: Readonly<Record<string, string | null>>): NodeJS.ProcessEnv {
+  return sessionEnvironment(claudeSessionEnv(overlay));
 }

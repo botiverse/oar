@@ -91,3 +91,4 @@ export { qoderSession } from "./runtimes/qoder/session.js";
 export { qoderInstallation } from "./runtimes/qoder/installation.js";
 export { qoderListModels, projectQoderModels } from "./runtimes/qoder/list-models.js";
 export { orient } from "./shared/orientation/index.js";
+export { userShellEnvironment } from "./shared/shell-environment.js";

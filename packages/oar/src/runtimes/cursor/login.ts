@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { LoginResult, RuntimeLogin } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { errorMessage, LoginSecrets, loginBounds, stoppedResult, type LoginStop } from "../../shared/login.js";
@@ -173,6 +174,9 @@ async function runCursorLogin(
 /** Signs cursor in with the SDK's own `Cursor.auth.login`, relaying its URL; the key goes to the SDK's store only. */
 export function cursorLoginWith(load: () => Promise<CursorSdk>): RuntimeLogin {
   return async (installation, interaction, options = {}) => {
+    if (options.env !== undefined && Object.keys(options.env).length > 0) {
+      throw new UnsupportedOptionError("env", "Cursor authentication runs in the host process and cannot isolate env; configure the host environment before loading the SDK.");
+    }
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "unsupported_installation", detail: "cursor signs in through the bundled @cursor/sdk" };
     }

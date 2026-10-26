@@ -1,5 +1,6 @@
 import type { AvailableInstallation } from "./installation.js";
 import type { ProviderLoginInteraction } from "./provider-auth.js";
+import type { SessionOptions } from "./session-options.js";
 import type { UtcInstant } from "./account-usage.js";
 
 /** What the runtime says about the account it is signed in to. Every field is the runtime's own word, absent when it gives none. */
@@ -48,6 +49,8 @@ export type LoginResult =
   | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail?: string };
 
 export interface LoginOptions {
+  /** Same overlay as SessionOptions.env: strings set, null deletes; never changes the host environment. */
+  readonly env?: SessionOptions["env"];
   /**
    * Allow the runtime to open a browser on this machine (default true).
    * false prevents local browser opening; auth_url/device_code events still
@@ -108,6 +111,8 @@ export type LogoutResult =
   | { readonly kind: "unsupported"; readonly reason: LoginUnsupportedReason; readonly detail?: string };
 
 export interface LogoutOptions {
+  /** Same overlay as SessionOptions.env: strings set, null deletes; never changes the host environment. */
+  readonly env?: SessionOptions["env"];
   /** Bound for the runtime's logout; each runtime has its own default. The status query after it has its own. */
   readonly timeoutMs?: number;
 }
@@ -150,6 +155,8 @@ export type AuthStatus =
   | { readonly kind: "unknown"; readonly detail?: string; readonly source?: string };
 
 export interface AuthStatusOptions {
+  /** Same overlay as SessionOptions.env: strings set, null deletes; never changes the host environment. */
+  readonly env?: SessionOptions["env"];
   readonly timeoutMs?: number;
 }
 

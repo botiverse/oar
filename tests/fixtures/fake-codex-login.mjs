@@ -27,6 +27,16 @@ function save(changes) {
   writeFileSync(stateFile, JSON.stringify(state));
 }
 
+// Capture only synthetic variables named by this test, never the inherited environment.
+if (state.captureEnv !== undefined) {
+  const environment = {};
+  for (const name of state.captureEnv) {
+    if (typeof name !== "string") { throw new TypeError("Expected a synthetic environment variable name"); }
+    environment[name] = process.env[name] ?? null;
+  }
+  save({ environments: [...state.environments ?? [], { args, environment }] });
+}
+
 save({ invocations: [...(state.invocations ?? []), args.join(" ")] });
 
 function send(message) {

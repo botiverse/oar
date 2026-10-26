@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
   AuthStatus,
@@ -80,7 +81,7 @@ async function readCodexAuthStatus(installation: AvailableInstallation, options:
   if (installation.via !== "executable") {
     return { kind: "unknown", detail: "not a machine-installed executable" };
   }
-  const result = await runExecutable(installation.command, ["login", "status"], { timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS });
+  const result = await runExecutable(installation.command, ["login", "status"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS });
   return projectCodexLoginStatus(result.ok ? 0 : result.exitCode, `${result.stdout}\n${result.stderr}`);
 }
 
@@ -155,12 +156,12 @@ function exitDetail(code: number | null | undefined): string {
   return `codex app-server exited${code === null || code === undefined ? "" : ` with code ${String(code)}`}`;
 }
 
-async function runCodexLogin(command: string, interaction: ProviderLoginInteraction, timeoutMs: number): Promise<LoginResult> {
+async function runCodexLogin(command: string, interaction: ProviderLoginInteraction, timeoutMs: number, env: LoginOptions["env"]): Promise<LoginResult> {
   const secrets = new LoginSecrets();
   let client: AppServerClient | null = null;
   try {
     // Its stderr never reaches the host's, and a stop takes its Windows process tree too.
-    client = startAppServerClient(command, undefined, {}, undefined, { inheritStderr: false, killTree: true });
+    client = startAppServerClient(command, env, {}, undefined, { inheritStderr: false, killTree: true });
   } catch (error) {
     return { kind: "failed", reason: "process_failed", detail: secrets.line(errorMessage(error)) };
   }
@@ -280,13 +281,13 @@ export async function codexLogin(
   interaction: ProviderLoginInteraction,
   options: LoginOptions = {},
 ): Promise<LoginResult> {
-  const target = loginExecutable(installation, "codex", DEVICE_CODE_FLOOR);
+  const target = loginExecutable(installation, "codex", DEVICE_CODE_FLOOR, sessionEnvironment(options.env));
   if (target.kind === "settled") {
     return target.result;
   }
   if (interaction.signal?.aborted === true) {
     return { kind: "cancelled" };
   }
-  const result = await runCodexLogin(target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS);
+  const result = await runCodexLogin(target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options.env);
   return result;
 }

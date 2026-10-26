@@ -26,16 +26,16 @@ const FAILURE = /^Logout failed:\s*(.*)$/u;
 
 /** Signs claude out with `claude auth logout`; `claude auth status --json` decides. */
 export async function claudeLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
-  const target = loginExecutable(installation, "claude", LOGOUT_FLOOR);
+  const target = loginExecutable(installation, "claude", LOGOUT_FLOOR, claudeEnv(options.env));
   if (target.kind === "settled") {
     return target.result;
   }
   const timeoutMs = options.timeoutMs ?? LOGOUT_TIMEOUT_MS;
-  const end = await runLogoutCommand(target.installation.command, ["auth", "logout"], claudeEnv(), timeoutMs);
+  const end = await runLogoutCommand(target.installation.command, ["auth", "logout"], claudeEnv(options.env), timeoutMs);
   if (end.kind === "not_started") {
     return { kind: "failed", reason: "process_failed", detail: end.detail };
   }
   const native = commandLogout(end, LOGOUT_COMMAND, timeoutMs, FAILURE);
-  const read = await readClaudeAuthStatus(installation);
+  const read = await readClaudeAuthStatus(installation, { env: options.env });
   return confirmedLogout(native, read.status, LOGOUT_COMMAND, read.apiKeySource === undefined ? [] : [`from ${read.apiKeySource}`]);
 }

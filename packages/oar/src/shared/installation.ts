@@ -30,11 +30,11 @@ function isPinnedPath(entry: string): boolean {
  * path must exist as given, a bare name resolves on PATH (and PATHEXT on
  * Windows). Null when it is not there.
  */
-export function locateExecutable(entry: string): string | null {
+export function locateExecutable(entry: string, env: Readonly<NodeJS.ProcessEnv> = process.env): string | null {
   if (isPinnedPath(entry)) {
     return existsSync(entry) ? entry : null;
   }
-  return resolveExecutable(entry);
+  return resolveExecutable(entry, env);
 }
 
 /** An executable found for an entry, and the copies on PATH it shadows (none for a pinned path). */

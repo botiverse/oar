@@ -278,7 +278,7 @@ export type LoginExecutable =
  * only exit. An unreadable version is tried, not refused: the login command
  * itself then answers.
  */
-export function loginExecutable(installation: AvailableInstallation, name: string, floor?: string): LoginExecutable {
+export function loginExecutable(installation: AvailableInstallation, name: string, floor?: string, env: Readonly<NodeJS.ProcessEnv> = process.env): LoginExecutable {
   if (installation.via !== "executable") {
     return { kind: "settled", result: { kind: "unsupported", reason: "unsupported_installation", detail: "not a machine-installed executable" } };
   }
@@ -289,7 +289,7 @@ export function loginExecutable(installation: AvailableInstallation, name: strin
       result: { kind: "unsupported", reason: "version_unsupported", detail: `${name} ${floor} or later is required; this is ${version}` },
     };
   }
-  if (locateExecutable(installation.command) === null) {
+  if (locateExecutable(installation.command, env) === null) {
     return { kind: "settled", result: { kind: "failed", reason: "process_failed", detail: `${name} executable not found: ${installation.command}` } };
   }
   return { kind: "executable", installation };

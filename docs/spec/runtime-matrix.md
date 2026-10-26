@@ -209,6 +209,12 @@ entrypoint wins so the host can deliberately choose it. Child-process and native
 Bash regressions: [session-env.test.ts](../../tests/session-env.test.ts),
 [pi-env.test.ts](../../tests/providers/pi-env.test.ts).
 
+Authentication options accept the same `env` map; use it for login, status,
+logout and sessions together. The explicit
+[`userShellEnvironment()` helper](login.md#explicit-login-shell-environment)
+can capture a login-shell environment for a service host without changing its
+process. It is never called implicitly.
+
 ## Custom model endpoints
 
 How to point each runtime at another model endpoint (a gateway, a self-hosted

@@ -19,6 +19,12 @@ const facts = await orient(defaultRuntimes, {
 const choices = usability(facts, { minVersions: { codex: "0.164.0" } });
 ```
 
+Authentication methods accept an explicit `env`, but `orient` and the other
+readers do not yet accept an environment override. Their snapshot describes
+the host environment, which can differ from a login or session using another
+`HOME`, credential directory or proxy. Do not use this snapshot to confirm
+that overridden environment; call `authStatus(installation, { env })` directly.
+
 ## Depth and effects
 
 | Depth | Readers | Effects |

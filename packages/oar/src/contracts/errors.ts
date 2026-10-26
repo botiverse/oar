@@ -9,6 +9,8 @@ import type { SessionOptions } from "./session.js";
  * runtime's reason. A host that must decide before opening reads the same
  * facts from `Runtime.refusedSessionOptions`
  * (docs/spec/runtime-matrix.md#refused-session-options).
+ * Authentication methods also use this error to refuse an unsupported env
+ * before starting the runtime or loading its SDK.
  */
 export class UnsupportedOptionError extends Error {
   override readonly name = "UnsupportedOptionError";

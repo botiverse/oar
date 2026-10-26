@@ -51,7 +51,7 @@ export async function readClaudeAuthStatus(
     return { status: { kind: "unknown", detail: "not a machine-installed executable" } };
   }
   const result = await runExecutable(installation.command, ["auth", "status", "--json"], {
-    env: claudeEnv(),
+    env: claudeEnv(options.env),
     timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS,
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   });

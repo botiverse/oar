@@ -1086,6 +1086,12 @@ mapped [below](#login).
 
 ### Login
 
+`login`, `logout` and `authStatus` accept the same `env` overlay as sessions,
+including their confirmation reads and executable lookup. `null` removes an
+inherited variable. `CLAUDECODE` is always removed and browser suppression
+overrides caller `BROWSER` only in the login child. The host environment is
+unchanged. See [environment capture](../spec/login.md#environment).
+
 **Mapped** ([runtime login](../spec/login.md)): `login` runs
 `claude auth login` (the default claude.ai subscription login; `--console`,
 `--email` and `--sso` are not exposed) over pipes, with `CLAUDECODE` cleared

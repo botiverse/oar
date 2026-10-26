@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
@@ -6,7 +7,7 @@ import { qoderAuthStatus } from "./auth-status.js";
 
 /** Native browser login restores the previous account first and does not log it out before an attempt. */
 export async function qoderLogin(installation: AvailableInstallation, interaction: ProviderLoginInteraction, options: LoginOptions = {}): Promise<LoginResult> {
-  const target = loginExecutable(installation, "Qoder");
+  const target = loginExecutable(installation, "Qoder", undefined, sessionEnvironment(options.env));
   if (target.kind === "settled") { return target.result; }
   const aborted = (): boolean => interaction.signal?.aborted === true;
   if (aborted()) { return { kind: "cancelled" }; }
@@ -19,7 +20,7 @@ export async function qoderLogin(installation: AvailableInstallation, interactio
   const flowState = { success: false };
   let rejected = false;
   let settled = false;
-  const env = { ...process.env };
+  const env = sessionEnvironment(options.env);
   if (options.openBrowser === false) {
     // Native login 1.1.78 does not consult NO_BROWSER. Its browser eligibility
     // predicate explicitly rejects BROWSER=www-browser on every platform.
@@ -54,7 +55,7 @@ export async function qoderLogin(installation: AvailableInstallation, interactio
     process.stop(); await process.exited;
     if (!flowState.success) { return result; }
     if (aborted()) { return { kind: "logged_in" }; }
-    const status = await qoderAuthStatus(installation);
+    const status = await qoderAuthStatus(installation, { env: options.env });
     return status.kind === "logged_out"
       ? { kind: "failed", reason: "not_logged_in", detail: "Qoder reported success but its status command reads logged out" }
       : { kind: "logged_in" };

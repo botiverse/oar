@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions } from "../../contracts/login.js";
 import { asRecord, parseJson } from "../../shared/json.js";
@@ -16,7 +17,7 @@ export function projectQoderAuthStatus(stdout: string): AuthStatus {
 
 export async function qoderAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
-  const result = await runExecutable(installation.command, ["status", "--output", "json"], { timeoutMs: options.timeoutMs ?? 30_000 });
+  const result = await runExecutable(installation.command, ["status", "--output", "json"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? 30_000 });
   if (!result.ok) {
     return { kind: "unknown", source: SOURCE, detail: "Qoder account query ended without an answer" };
   }

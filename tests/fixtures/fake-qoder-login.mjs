@@ -4,6 +4,16 @@ import { readFileSync, writeFileSync } from "node:fs";
 const [file, ...args] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(file, "utf8"));
 const save = () => writeFileSync(file, JSON.stringify(state));
+// Capture only synthetic variables named by this test, never the inherited environment.
+if (state.captureEnv !== undefined) {
+  const environment = {};
+  for (const name of state.captureEnv) {
+    if (typeof name !== "string") { throw new TypeError("Expected a synthetic environment variable name"); }
+    environment[name] = process.env[name] ?? null;
+  }
+  state.environments = [...state.environments ?? [], { args, environment }]; save();
+}
+
 state.calls = [...state.calls ?? [], args];
 if (args[0] === "login") { state.loginBrowser = process.env.BROWSER; }
 save();

@@ -99,6 +99,12 @@ that the requests incurred no usage. No further real model requests were made.
 
 ## Installation and login
 
+`login` and `authStatus` accept the same `env` overlay as sessions, including
+the status query after login and executable lookup. Strings set variables;
+`null` removes them. The per-login browser suppression override takes
+precedence over caller `BROWSER`. OAR leaves the host environment unchanged.
+See [environment capture](../spec/login.md#environment).
+
 OAR finds `OAR_QODER_BIN`, `qodercli` on PATH, or the official user installation
 under `~/.local/bin`. On Unix, `installPlan` describes the vendor's installer
 with `--skip-path`; `install` verifies the resulting executable. Windows

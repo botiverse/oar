@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { AuthStatus, AuthStatusReader, LoginAccount } from "../../contracts/login.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord } from "../../shared/json.js";
@@ -59,6 +60,9 @@ export async function readCursorAuthStatus(auth: CursorAuth, timeoutMs = STATUS_
 /** Read only: asks the SDK's `Cursor.auth.status`, never a login flow, and returns no key. */
 export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatusReader {
   const reader: AuthStatusReader = async (installation, options = {}) => {
+    if (options.env !== undefined && Object.keys(options.env).length > 0) {
+      throw new UnsupportedOptionError("env", "Cursor authentication runs in the host process and cannot isolate env; configure the host environment before loading the SDK.");
+    }
     if (installation.via !== "bundled") {
       return { kind: "unknown", detail: "cursor's sign-in status needs the bundled @cursor/sdk" };
     }

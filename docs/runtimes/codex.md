@@ -919,6 +919,12 @@ classifies the installation as unsupported.
 
 ### Login
 
+`login`, `logout` and `authStatus` accept the same `env` overlay as sessions.
+The app-server login process and CLI status/logout queries, including their
+confirmation reads, use it. This keeps `CODEX_HOME`, proxies and PATH lookup
+consistent without changing the host environment. See
+[environment capture](../spec/login.md#environment).
+
 **Mapped** ([runtime login](../spec/login.md)): `login` uses the app-server's
 ChatGPT device code flow on its own app-server process: `initialize`, then
 `account/login/start { type: "chatgptDeviceCode" }`, answered

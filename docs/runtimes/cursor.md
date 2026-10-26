@@ -466,6 +466,12 @@ on this account (probed), and each run reports its own tokens.
 
 ### Login
 
+`login`, `logout` and `authStatus` reject any nonempty `env` with
+`UnsupportedOptionError` before loading the SDK. The SDK runs in the host
+process and cannot isolate a per-call environment; OAR never temporarily
+changes `process.env`. An empty map is a no-op, as for sessions. See
+[authentication environments](../spec/login.md#environment).
+
 **Mapped** ([runtime login](../spec/login.md)):
 `login` is the SDK's own `Cursor.auth.login`, `authStatus` its
 `Cursor.auth.status`. Native behavior [bundle 1.0.35: `dist/esm/index.js`,

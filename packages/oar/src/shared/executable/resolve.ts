@@ -1,8 +1,15 @@
 import which from "which";
 
 /** Resolve one executable through PATH (and PATHEXT on Windows) without spawning anything. */
-export function resolveExecutable(executable: string): string | null {
-  return which.sync(executable, { nothrow: true });
+export function resolveExecutable(executable: string, env: Readonly<NodeJS.ProcessEnv> = process.env): string | null {
+  const key = (name: string): string | undefined => process.platform === "win32"
+    ? Object.keys(env).toSorted().find((entry) => entry.toUpperCase() === name)
+    : name;
+  const path = env[key("PATH") ?? "PATH"] ?? (process.platform === "win32" ? "" : "/usr/bin:/bin");
+  const pathExt = env[key("PATHEXT") ?? "PATHEXT"] ?? ".EXE;.CMD;.BAT;.COM";
+  // which treats empty options as absent and would restore the host PATH.
+  // A nonempty equivalent preserves an explicitly empty search path.
+  return which.sync(executable, { nothrow: true, path: path === "" ? "." : path, pathExt: pathExt === "" ? ";" : pathExt });
 }
 
 /**
