@@ -96,6 +96,19 @@ async function capture(shell: string, args: readonly string[], env: NodeJS.Proce
   return output;
 }
 
+/** A compiled host cannot evaluate -e: starting it would reenter the application. */
+async function captureExecutable(): Promise<string> {
+  const bun = asRecord(Reflect.get(globalThis, "Bun"));
+  if (bun !== null) {
+    // Older Bun builds without the documented flag cannot establish this safely.
+    if (bun.isStandaloneExecutable !== false) { throw new UserShellEnvironmentError("no_node_runtime"); }
+  } else {
+    const { isSea } = await import("node:sea");
+    if (isSea()) { throw new UserShellEnvironmentError("no_node_runtime"); }
+  }
+  return process.execPath;
+}
+
 /** Explicit, uncached and private: execute the configured login shell once without a terminal. */
 export async function userShellEnvironment(options: UserShellEnvironmentOptions = {}): Promise<UserShellEnvironment> {
   if (process.platform === "win32") { throw new UserShellEnvironmentError("unsupported_platform"); }
@@ -105,12 +118,13 @@ export async function userShellEnvironment(options: UserShellEnvironmentOptions 
   if (shell === undefined || shell.trim() === "") { throw new UserShellEnvironmentError("shell_not_set"); }
   const timeoutMs = options.timeoutMs ?? 10_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647) { throw new RangeError("timeoutMs must be a positive integer that fits a timer"); }
+  const executable = await captureExecutable();
   const marker = randomUUID().replaceAll("-", "");
   let output = "";
   try {
     // Electron hosts must execute their binary as Node. This helper-only
     // override is removed or restored before the environment reaches callers.
-    output = await capture(shell, shellEnvironmentCommand(shell, process.execPath, marker), { ...inherited, ELECTRON_RUN_AS_NODE: "1" }, timeoutMs, options.signal);
+    output = await capture(shell, shellEnvironmentCommand(shell, executable, marker), { ...inherited, ELECTRON_RUN_AS_NODE: "1" }, timeoutMs, options.signal);
   } catch (error) {
     if (error instanceof UserShellEnvironmentError) { throw error; }
     throw new UserShellEnvironmentError("shell_unavailable");

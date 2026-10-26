@@ -14,6 +14,7 @@ export interface UserShellEnvironment {
 }
 
 export type UserShellEnvironmentFailure =
+  | "no_node_runtime"
   | "unsupported_platform"
   | "shell_not_set"
   | "shell_unavailable"
@@ -24,6 +25,7 @@ export type UserShellEnvironmentFailure =
   | "output_too_large";
 
 const reasons: Readonly<Record<UserShellEnvironmentFailure, string>> = {
+  no_node_runtime: "The host executable cannot safely evaluate the environment capture script. Supply an environment map directly from the host instead.",
   unsupported_platform: "Reading a user login shell environment is unsupported on Windows.",
   shell_not_set: "SHELL does not name a user login shell.",
   shell_unavailable: "The user login shell could not be executed.",

@@ -7,8 +7,9 @@ export function resolveExecutable(executable: string, env: Readonly<NodeJS.Proce
     : name;
   const path = env[key("PATH") ?? "PATH"] ?? (process.platform === "win32" ? "" : "/usr/bin:/bin");
   const pathExt = env[key("PATHEXT") ?? "PATHEXT"] ?? ".EXE;.CMD;.BAT;.COM";
-  // which treats empty options as absent and would restore the host PATH.
-  // A nonempty equivalent preserves an explicitly empty search path.
+  // An explicitly empty search path must not discover a command in cwd.
+  if (path === "" && !executable.includes("/") && !executable.includes("\\")) { return null; }
+  // A pinned path still uses which for executable and PATHEXT checks.
   return which.sync(executable, { nothrow: true, path: path === "" ? "." : path, pathExt: pathExt === "" ? ";" : pathExt });
 }
 

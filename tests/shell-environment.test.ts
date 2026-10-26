@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
 import { chmod, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,9 +7,16 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { UserShellEnvironmentError } from "../packages/oar/src/contracts/shell-environment.js";
 import { parseShellEnvironment, shellEnvironmentCommand, userShellEnvironment } from "../packages/oar/src/shared/shell-environment.js";
 
+const isSea = vi.hoisted(() => vi.fn(() => false));
+vi.mock("node:sea", () => ({ isSea }));
+vi.mock("node:child_process", async (original) => {
+  const actual = await original<{ spawn: typeof spawn }>();
+  return { ...actual, spawn: vi.fn(actual.spawn) };
+});
+
 const directories: string[] = [];
 afterEach(async () => {
-  vi.unstubAllEnvs(); vi.restoreAllMocks();
+  vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); isSea.mockReturnValue(false);
   await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true }); }));
 });
 
@@ -29,6 +37,16 @@ async function fakeShell(source: string): Promise<void> {
 test("Windows is explicitly unsupported without trying to execute SHELL", async () => {
   vi.spyOn(process, "platform", "get").mockReturnValue("win32");
   await expect(userShellEnvironment()).rejects.toMatchObject({ name: "UserShellEnvironmentError", reason: "unsupported_platform" });
+});
+
+test.each(["sea", "compiled-bun", "old-bun"])("%s cannot reenter the host executable through a shell", async (host) => {
+  vi.spyOn(process, "platform", "get").mockReturnValue("linux");
+  vi.stubEnv("SHELL", "/bin/bash");
+  if (host === "sea") { isSea.mockReturnValue(true); }
+  else { vi.stubGlobal("Bun", host === "compiled-bun" ? { isStandaloneExecutable: true } : {}); }
+  vi.mocked(spawn).mockClear();
+  await expect(userShellEnvironment()).rejects.toMatchObject({ reason: "no_node_runtime" });
+  expect(spawn).not.toHaveBeenCalled();
 });
 
 // oxlint-disable-next-line max-lines-per-function -- Native subprocess cases share one platform gate.

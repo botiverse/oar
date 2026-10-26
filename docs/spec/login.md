@@ -78,7 +78,8 @@ Claude, Codex and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process: its three authentication methods reject
 any nonempty `env` with `UnsupportedOptionError` (`option: "env"`) before
 loading the SDK, as its sessions do. An empty map is a no-op. Runtime login is
-separate from Pi's provider-auth facade.
+separate from Pi's provider-auth facade. A runtime whose sessions refuse `env`
+also refuses it for login, logout and authentication status.
 
 ### Explicit login-shell environment
 
@@ -100,6 +101,10 @@ const session = await claudeRuntime.session(installation, { cwd, env });
 
 The helper starts an interactive login shell with closed stdin and no terminal,
 then captures a Node-generated JSON snapshot between random delimiters.
+Node SEA hosts and compiled Bun binaries cannot evaluate the capture script, so
+they are explicitly refused before any shell starts. Bun detection uses its
+[documented standalone flag](https://bun.sh/docs/bundler/executables#detecting-standalone-mode-at-runtime);
+older Bun builds without that flag are also refused.
 Profile chatter outside the delimiters is ignored. Bash and Zsh use POSIX
 quoting; fish, Nushell and PowerShell use their own quoting and invocation.
 The approach follows [VS Code's shell-environment capture](https://github.com/microsoft/vscode/blob/main/src/vs/platform/shell/node/shellEnv.ts).
@@ -119,6 +124,7 @@ Failures reject with `UserShellEnvironmentError`; its `reason` is:
 
 | Reason | Meaning |
 | --- | --- |
+| `no_node_runtime` | Node SEA or compiled Bun host, or a Bun version without a reliable standalone flag. The helper refuses before starting the shell; supply an env map from the host instead. |
 | `unsupported_platform` | Windows has no supported login-shell capture. Authentication env overlays still work on Windows. |
 | `shell_not_set` | `$SHELL` is missing or blank. |
 | `shell_unavailable` | The configured shell could not start. |

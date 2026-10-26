@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -11,7 +11,7 @@ import { recordedInteraction } from "../fixtures/login-interaction.js";
 
 const directories: string[] = [];
 afterEach(async () => {
-  vi.unstubAllEnvs();
+  vi.unstubAllEnvs(); vi.restoreAllMocks();
   await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true }); }));
 });
 
@@ -76,3 +76,17 @@ function assertCapturedEnvironment(row: unknown, runtime: string, expected: Reco
   if (login && runtime === "qoder") { browser = "www-browser"; }
   expect(row.environment).toEqual({ ...expected, BROWSER: browser, CLAUDECODE: runtime === "claude" ? null : "caller-marker" });
 }
+
+// oxlint-disable-next-line max-statements -- Keep the cwd executable and login preflight regression together.
+test("an explicitly empty PATH cannot execute a same-named file in cwd", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "oar-auth-cwd-")); directories.push(dir);
+  const name = `qoder-${path.basename(dir)}`;
+  const fake = fakeLoginCli({ dir, name, script: "fake-qoder-login.mjs", state: { mode: "success", loggedIn: false } });
+  const local = path.join(process.cwd(), path.basename(fake.command));
+  await copyFile(fake.command, local);
+  try {
+    const result = await qoderRuntime.login({ kind: "available", via: "executable", command: name }, recordedInteraction([]), { env: { PATH: "" } });
+    expect(result.kind).toBe("failed");
+    expect(fake.read().loggedIn).toBe(false);
+  } finally { await rm(local, { force: true }); }
+});
