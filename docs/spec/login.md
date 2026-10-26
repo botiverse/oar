@@ -177,6 +177,10 @@ Under a service user without one, the returned environment may lack
 secret service is not guaranteed. The host decides whether and when to use the
 snapshot. It can also supply its own env map without calling this helper.
 
+A host-provided capture subcommand must call
+`writeShellEnvironmentCapture(marker)` before the host's startup code modifies
+`process.env`. This preserves the environment produced by the login shell.
+
 Native Bash, fish and Nushell capture is repeatable with
 [`experiments/user-shell-environment.ts`](../../experiments/user-shell-environment.ts).
 The custom command path also has executable-script regressions, including literal
