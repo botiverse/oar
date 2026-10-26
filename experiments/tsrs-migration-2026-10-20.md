@@ -1,7 +1,14 @@
 # tsrs migration: 2026-10-20
 
-OAR typechecking and library/CLI emission move from official TypeScript 6.0.3
-to `tsrs@0.18.0-ts7.1.0-dev.20260929`, pinned exactly. The native executable
+Updated October 26: the exact pin is now `tsrs@0.20.0-ts7.1.0-beta`.
+This is a beta compiler build. Every tsrs upgrade must repeat the old/new
+emitted-file comparison, including declarations and source maps, and compare
+with the corresponding official TypeScript 7 compiler. The dated initial
+measurements below remain evidence for the original migration.
+
+The initial October 20 comparison moved OAR typechecking and library/CLI
+emission from official TypeScript 6.0.3 to
+`tsrs@0.18.0-ts7.1.0-dev.20260929`, pinned exactly. The native executable
 reports `7.1.0-dev.20260930.4`. This changes compiler semantics as well as
 execution speed. The upstream [repository](https://github.com/oxc-project/tsrs)
 and [compatibility notes](https://github.com/oxc-project/tsrs/blob/main/docs/COMPATIBILITY.md)
@@ -117,7 +124,63 @@ At 2026-10-20 19:55 UTC, npm's latest tsrs is the pinned 0.18.0 version and
 `npm view @tsrs/win32-x64 version` returns E404. Its optional packages cover
 Linux x64/arm64 (GNU and musl) and macOS arm64. The upstream compatibility
 notes place Windows support in the next release; Intel macOS also has no
-published binary. The existing three-OS CI matrix is unchanged. This PR
-must wait for a published Windows version, an updated exact pin and a green
-Windows check before merging. There is no tsc fallback or skipped Windows
-job. Recheck the registry and upstream notes before updating that conclusion.
+published binary. The three-OS CI matrix was unchanged. The migration waited for a published
+Windows version, an updated exact pin and a green Windows check. The
+October 26 update below supersedes this publication status; no tsc fallback
+or skipped Windows job was added.
+
+## October 26: published Windows support and the 0.20 beta
+
+npm published `@tsrs/win32-x64@0.20.0-ts7.1.0-beta` at 11:38 UTC. Its
+archive contains a 21,087,232-byte `tsrs.exe` and the compiler libraries;
+this is no longer the earlier placeholder package. The exact root package
+references matching native packages for Windows x64, both macOS
+architectures and Linux x64/arm64 on GNU and musl. Archive inspection is
+publication evidence; Windows execution still requires the unchanged CI job.
+
+The upgrade comparison uses the same source tree, based on OAR `c30bee7`
+after the orientation and Pi prompt-file changes, with no source or
+compiler-option changes between builds. Both `dist`
+directories were removed before each build. Caches are excluded from the
+file counts. The compiler identities were:
+
+- tsrs `0.18.0-ts7.1.0-dev.20260929`, reporting TypeScript
+  `7.1.0-dev.20260930.4` at `b85298b6a81f`.
+- tsrs `0.20.0-ts7.1.0-beta`, reporting TypeScript `7.1.0-beta` at
+  `3e9236361fa9`.
+- Official `typescript@7.1.0-beta`, installed in an independent directory.
+
+| Comparison | Library | CLI |
+|---|---|---|
+| New tsrs versus official TS 7.1 beta | All 1,292 files byte-identical | All 64 files byte-identical |
+| Old versus new tsrs | 646 JS/declaration files identical; 646 maps changed | 32 JS/declaration files identical; 32 maps changed |
+
+Every changed map omits only the old `sourceRoot: ""` property. Every other
+JSON field, including the complete `mappings` string, is identical. The
+strict comparison script exits nonzero for both packages on this metadata
+change; it was not relaxed. A separate file-by-file audit confirmed that no
+other metadata changed. Node 24.19.0's `SourceMap` reader then decoded all
+234,879 generated mapping positions across the 678 maps to identical entries,
+including source paths, original positions and names. This is the basis for
+accepting the empty-root omission as equivalent for these outputs; it is not
+a claim that the map bytes are unchanged or that every debugger was tested.
+The same omission in the official beta build confirms it is also upstream
+TypeScript behavior.
+
+Restoring both old tsrs output trees and their incremental caches before a
+new-tsrs build produces all 1,292/64 files byte-identically to the clean
+new-tsrs build. Restoring the old library cache again and adding a fresh
+`string = 123` error still fails with TS2322. The temporary error and its
+output were removed before final validation.
+
+Repeat using the comparison commands above with these three compiler versions
+and fresh output trees. A changed map metadata failure requires manual review
+of every differing field; do not normalize away a new difference merely to
+make the comparison pass. The October 20 timing table is historical evidence,
+not a benchmark for this beta or the larger current source tree.
+
+The final beta check on this source tree passed typechecking, lint, 2,104 unit
+tests and 19 mock behavior cases. Build and clean-install also passed;
+the latter compiled the packed beta-built declarations with official
+TypeScript 6.0.3. Three-platform execution, including the new Windows binary,
+remains the pull request's required CI gate.

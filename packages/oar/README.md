@@ -339,7 +339,7 @@ as the runtime's own image content. `session.capabilities.images` says whether
 the runtime takes them; an input it cannot deliver is rejected whole. See
 [Images](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#images).
 
-TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module: nodenext`, importing `@botiverse/oar` alone reports errors inside the pi SDK's declarations and their dependencies' (`@earendil-works/pi-ai` imports JSON without an import attribute, TS1543; its `@google/genai` imports the optional peer `@modelcontextprotocol/sdk`, TS2307, and without the DOM lib also misses `RequestInfo` and `HeadersInit`); OAR's own declarations check clean (official TypeScript 6.0.3 consuming a clean install of the tsrs-built 0.68.2 package, 2026-10-20). A host that installs `@cursor/sdk` and checks library files also needs the DOM lib for its `@connectrpc/connect` dependency (`HeadersInit`).
+TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module: nodenext`, importing `@botiverse/oar` alone reports errors inside the pi SDK's declarations and their dependencies' (`@earendil-works/pi-ai` imports JSON without an import attribute, TS1543; its `@google/genai` imports the optional peer `@modelcontextprotocol/sdk`, TS2307, and without the DOM lib also misses `RequestInfo` and `HeadersInit`); OAR's own declarations check clean (official TypeScript 6.0.3 consuming a clean install of the tsrs-built package, 2026-10-26). A host that installs `@cursor/sdk` and checks library files also needs the DOM lib for its `@connectrpc/connect` dependency (`HeadersInit`).
 
 ## Host-owned durable sessions
 

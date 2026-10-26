@@ -52,21 +52,29 @@ someone else can rerun turns "trust me, I checked" into "run this and see".
 
 Setup: Node.js 24+, `pnpm install`.
 
-`pnpm run typecheck` and both packages' builds use the exact `tsrs` version
-pinned in the root devDependencies, locally and in CI. tsrs targets TypeScript
-7.1 development semantics; it is not just a faster TypeScript 6 executable.
+`pnpm run typecheck` and both packages' builds use the exact
+`tsrs@0.20.0-ts7.1.0-beta` version pinned in the root devDependencies, locally
+and in CI. It targets TypeScript 7.1 beta semantics. This is a compiler
+upgrade, not just a faster TypeScript 6 executable. Keep the pin exact and
+repeat the emitted-file comparison against the previous tsrs and matching
+official TypeScript 7 build on every upgrade, especially declarations and
+source maps.
+
+The pinned release publishes native binaries for Linux x64/arm64 (GNU and
+musl), macOS x64/arm64 and Windows x64. On an unsupported platform, set
+`TSRS_BINARY` to a locally built compiler or rely on the required CI checks;
+there is no automatic tsc fallback. See the
+[migration evidence](../experiments/tsrs-migration-2026-10-20.md) for timings,
+comparisons and incremental-cache checks.
+
 The official `typescript` dependency stays only for `tests/clean-install.ts`,
 which checks that a host using TypeScript 6 can consume the packed, tsrs-built
-declarations. Type-aware lint still uses oxlint/oxlint-tsgolint; tsx, esbuild
-and vitest keep their existing roles. Incremental build caches live inside
-`dist` and are excluded from the npm packages; removing `dist` also forces
-a complete rebuild.
-
-The initial tsrs 0.18.0 package has Linux and Apple Silicon macOS binaries,
-but no Windows or Intel macOS binary. The Windows CI job remains required;
-the migration cannot merge until a published Windows package is pinned and
-that job passes. See the [migration evidence](../experiments/tsrs-migration-2026-10-20.md)
-for timings, emitted-file comparisons and incremental-cache checks.
+declarations. An editor using that workspace TypeScript 6 can report different
+diagnostics from CI; tsrs provides a language server with its own
+[editor setup](https://github.com/oxc-project/tsrs/blob/main/docs/LSP.md#editor-setup).
+Type-aware lint still uses oxlint/oxlint-tsgolint; tsx, esbuild and vitest keep
+their existing roles. Incremental build caches live inside `dist` and are
+excluded from the npm packages; removing `dist` forces a complete rebuild.
 
 The tests let whoever makes a change, human or coding agent, verify it end to
 end without a person as the bottleneck: a change is done when the tests prove

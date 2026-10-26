@@ -20,3 +20,11 @@ minimumReleaseAgeExclude:
   - '@cursor/sdk-linux-arm64@1.0.40'
   - '@cursor/sdk-linux-x64@1.0.40'
   - '@cursor/sdk-win32-x64@1.0.40'
+  - '@tsrs/darwin-arm64@0.20.0-ts7.1.0-beta'
+  - '@tsrs/darwin-x64@0.20.0-ts7.1.0-beta'
+  - '@tsrs/linux-arm64-gnu@0.20.0-ts7.1.0-beta'
+  - '@tsrs/linux-arm64-musl@0.20.0-ts7.1.0-beta'
+  - '@tsrs/linux-x64-gnu@0.20.0-ts7.1.0-beta'
+  - '@tsrs/linux-x64-musl@0.20.0-ts7.1.0-beta'
+  - '@tsrs/win32-x64@0.20.0-ts7.1.0-beta'
+  - tsrs@0.20.0-ts7.1.0-beta
