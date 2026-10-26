@@ -1,3 +1,4 @@
+import { readerEnvironment, expectReaderEnvironment } from "./fixtures/reader-environment.js";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { claudeAccountUsage, projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
 import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
@@ -47,7 +48,7 @@ test("native usage uses correlated control requests, never a prompt or credentia
     answer(self, id, subtype === "initialize" ? { account: { email: "person@example.com" } } : available);
   });
   spawnLineProcess.mockReturnValue(fake);
-  await expect(claudeAccountUsage(installation)).resolves.toEqual({
+  await expect(claudeAccountUsage(installation, { env: readerEnvironment() })).resolves.toEqual({
     kind: "available", email: "person@example.com", plan: "max", rateLimited: false,
     windows: [{ label: "Current session", usedRatio: 0.25, resetsAt: "2026-09-16T04:00:00.000Z", id: "five_hour", durationMs: 18_000_000 }],
   });
@@ -59,6 +60,8 @@ test("native usage uses correlated control requests, never a prompt or credentia
     "--safe-mode",
   ], expect.objectContaining({ killTree: true }));
   expect(spawnLineProcess.mock.calls[0]?.[2].env?.CLAUDECODE).toBeUndefined();
+  expectReaderEnvironment(spawnLineProcess.mock.calls[0]?.[2].env);
+  expectReaderEnvironment(runExecutable.mock.calls[0]?.[2]?.env);
   expect(fake.killed()).toBe(true);
 });
 

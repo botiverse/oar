@@ -1159,3 +1159,11 @@ provider reader instead uses credential-list metadata and the SDK's static
 subscription metadata. It does not resolve keys or refresh expired entries.
 A present stored entry is reported as configured, not validated; environment-
 only credentials do not appear in that stored list.
+
+## Reader environment
+
+Installation, model listing, provider listing and supported inventories run
+in the host process, even with `execution: "subprocess"`. A nonempty `env`
+on those readers throws `UnsupportedOptionError("env")` before SDK loading;
+`{}` preserves existing behavior. The subprocess session path does not provide
+a separate query protocol. See [reader environments](../spec/orientation.md#environment).

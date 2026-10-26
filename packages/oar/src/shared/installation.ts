@@ -1,3 +1,4 @@
+import { environmentValue, sessionEnvironment } from "./environment.js";
 import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
 import type { ExecutableInstallation, InstallationProbe, InstallationSnapshot } from "../contracts/installation.js";
@@ -19,7 +20,7 @@ export interface ExecutableInstallationOptions {
   readonly readVersion?: VersionReader;
 }
 
-export type ExecutableFallbacks = readonly string[] | (() => readonly string[]);
+export type ExecutableFallbacks = readonly string[] | ((env: Readonly<NodeJS.ProcessEnv>) => readonly string[]);
 
 function isPinnedPath(entry: string): boolean {
   return entry.includes("/") || entry.includes("\\");
@@ -44,8 +45,8 @@ export interface LocatedExecutable {
 }
 
 /** A bare command on PATH, like `which -a`: the copy that runs and the ones after it. Null when there is none. */
-export function locateOnPath(name: string): LocatedExecutable | null {
-  const matches = resolveExecutableAll(name);
+export function locateOnPath(name: string, env: Readonly<NodeJS.ProcessEnv> = process.env): LocatedExecutable | null {
+  const matches = resolveExecutableAll(name, env);
   const [command] = matches;
   return command === undefined ? null : { command, shadowed: shadowedCopies(matches) };
 }
@@ -89,18 +90,19 @@ export function shadowedCopies(matches: readonly string[]): readonly string[] {
   return shadowed;
 }
 
-function locateCandidate(entry: string): LocatedExecutable | null {
+function locateCandidate(entry: string, env: Readonly<NodeJS.ProcessEnv>): LocatedExecutable | null {
   if (isPinnedPath(entry)) {
     return existsSync(entry) ? { command: entry, shadowed: [] } : null;
   }
-  return locateOnPath(entry);
+  return locateOnPath(entry, env);
 }
 
 async function versionSnapshot(
   { command, shadowed }: LocatedExecutable,
   options: ExecutableInstallationOptions,
+  env: Readonly<NodeJS.ProcessEnv>,
 ): Promise<InstallationSnapshot> {
-  const version = await readExecutableVersion(command, options.versionTimeoutMs, options.readVersion);
+  const version = await readExecutableVersion(command, options.versionTimeoutMs, options.readVersion, env);
   const snapshot: ExecutableInstallation = {
     kind: "available",
     via: "executable",
@@ -125,17 +127,18 @@ export function executableInstallation(
   readiness?: readonly string[],
   options: ExecutableInstallationOptions = {},
 ): InstallationProbe {
-  return async (): Promise<InstallationSnapshot> => {
-    const pinned = process.env[envVar];
+  return async (probe = {}): Promise<InstallationSnapshot> => {
+    const env = sessionEnvironment(probe.env);
+    const pinned = environmentValue(env, envVar);
     const found: LocatedExecutable[] = [];
     if (pinned !== undefined && pinned !== "") {
-      const located = locateExecutable(pinned);
+      const located = locateExecutable(pinned, env);
       if (located !== null) {
         found.push({ command: located, shadowed: [] });
       }
     } else {
-      for (const entry of [command, ...(typeof fallbacks === "function" ? fallbacks() : fallbacks)]) {
-        const candidate = locateCandidate(entry);
+      for (const entry of [command, ...(typeof fallbacks === "function" ? fallbacks(env) : fallbacks)]) {
+        const candidate = locateCandidate(entry, env);
         if (candidate !== null && !found.some((other) => other.command === candidate.command)) {
           found.push(candidate);
         }
@@ -147,20 +150,18 @@ export function executableInstallation(
       return { kind: "not_found" };
     }
     if (readiness === undefined) {
-      return versionSnapshot(first, options);
+      return versionSnapshot(first, options, env);
     }
 
     for (const candidate of found) {
       const result = await runExecutable(
         candidate.command,
         readiness,
-        options.readinessTimeoutMs === undefined ? {} : {
-          timeoutMs: options.readinessTimeoutMs,
-        },
+        { env, ...(options.readinessTimeoutMs === undefined ? {} : { timeoutMs: options.readinessTimeoutMs }) },
       );
       assertRan(result, `Failed to run ${candidate.command} ${readiness.join(" ")}`);
       if (result.ok) {
-        return versionSnapshot(candidate, options);
+        return versionSnapshot(candidate, options, env);
       }
     }
     return { kind: "unsupported", reason: `${readiness.join(" ")} failed` };

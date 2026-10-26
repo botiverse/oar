@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
   client as createClient,
@@ -112,14 +113,14 @@ interface GrokAccountPayload {
 
 const USAGE = "Grok account usage";
 
-async function readBilling(command: string, timeoutMs: number): Promise<GrokAccountPayload> {
+async function readBilling(command: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<GrokAccountPayload> {
   // One budget for the whole read, shared by every request.
   const deadline = Date.now() + timeoutMs;
   const runtime = startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
     createClient({ name: "oar" }),
-    { env: process.env },
+    { env },
   );
   try {
     const initialize = methods.agent.initialize;
@@ -193,7 +194,7 @@ export const grokAccountUsage: AccountUsageReader = async (installation, options
   }
   try {
     // One grok start and up to four requests, which a slow launcher stretches.
-    const payload = await readBilling(installation.command, options.timeoutMs ?? 30_000);
+    const payload = await readBilling(installation.command, options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
     return projectGrokUsage(payload.billing, payload.email);
   } catch (error) {
     if (error instanceof RequestError) {

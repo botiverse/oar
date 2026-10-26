@@ -1,3 +1,4 @@
+import type { SessionOptions } from "./session-options.js";
 /** A verified machine-installed executable: the probed command and its reported version. */
 export interface ExecutableInstallation {
   readonly kind: "available";
@@ -42,5 +43,10 @@ export type InstallationSnapshot =
       readonly reason: string;
     };
 
+export interface InstallationProbeOptions {
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
+}
+
 /** A local-only installation observation. Implementations must not perform account or usage I/O. */
-export type InstallationProbe = () => Promise<InstallationSnapshot>;
+export type InstallationProbe = (options?: InstallationProbeOptions) => Promise<InstallationSnapshot>;

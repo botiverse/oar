@@ -60,7 +60,7 @@ export const codexListModels: ModelLister = async (installation, options = {}) =
   // resolves a relative CODEX_HOME); the project is the `config/read` cwd, as
   // it is the thread's cwd in a session.
   const cwd = listingCwd(options);
-  const client = startAppServerClient(installation.command);
+  const client = startAppServerClient(installation.command, options.env);
   const timeoutMs = options.timeoutMs ?? 15_000;
   const deadline = { timedOut: false };
   const timer = setTimeout(() => { deadline.timedOut = true; client.kill(); }, timeoutMs);

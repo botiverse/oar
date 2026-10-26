@@ -26,20 +26,20 @@ function absent(runtime: Runtime, installation: Probe<InstallationSnapshot>, opt
   };
 }
 
-async function models(runtime: Runtime, installation: AvailableInstallation, budget: ProbeBudget, slots: ProbeSlots, loggedOut: boolean): Promise<Probe<readonly ModelEntry[]>> {
+async function models(runtime: Runtime, installation: AvailableInstallation, budget: ProbeBudget, slots: ProbeSlots, loggedOut: boolean, options: OrientOptions): Promise<Probe<readonly ModelEntry[]>> {
   const reader = runtime.listModels;
   if (reader !== undefined && loggedOut) { return { kind: "skipped", because: "logged_out" }; }
-  const result = await budget.run(reader === undefined ? undefined : async (timeoutMs): Promise<ListModelsResult> => { const value = await reader(installation, { timeoutMs }); return value; }, slots);
+  const result = await budget.run(reader === undefined ? undefined : async (timeoutMs): Promise<ListModelsResult> => { const value = await reader(installation, { timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) }); return value; }, slots);
   if (result.kind !== "ok") { return result; }
   if (result.value.kind === "ok") { return { kind: "ok", value: result.value.models, observedAt: result.observedAt }; }
   return result.value.kind === "unsupported" ? { kind: "unsupported" } : { kind: "skipped", because: "logged_out" };
 }
 
-async function usage(runtime: Runtime, installation: AvailableInstallation, budget: ProbeBudget, loggedOut: boolean): Promise<Probe<AccountUsageSnapshot>> {
+async function usage(runtime: Runtime, installation: AvailableInstallation, budget: ProbeBudget, loggedOut: boolean, options: OrientOptions): Promise<Probe<AccountUsageSnapshot>> {
   const reader = runtime.accountUsage;
   if (reader !== undefined && loggedOut) { return { kind: "skipped", because: "logged_out" }; }
   const result = await budget.run(reader === undefined ? undefined : async (timeoutMs): Promise<AccountUsageSnapshot> => {
-    const value = await reader(installation, { timeoutMs });
+    const value = await reader(installation, { timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) });
     return value;
   });
   return result;
@@ -48,16 +48,17 @@ async function usage(runtime: Runtime, installation: AvailableInstallation, budg
 async function additional(runtime: Runtime, installation: AvailableInstallation, auth: Probe<AuthStatus>, options: OrientOptions, budget: ProbeBudget, slots: ProbeSlots): Promise<Pick<RuntimeOrientation, "accountUsage" | "models" | "customization">> {
   const loggedOut = auth.kind === "ok" && auth.value.kind === "logged_out";
   const [accountUsage, modelList, customization] = await Promise.all([
-    options.depth === "account" || options.depth === "models" ? usage(runtime, installation, budget, loggedOut) : undefined,
-    options.depth === "models" ? models(runtime, installation, budget, slots, loggedOut) : undefined,
-    options.include?.includes("customization") === true ? readCustomization(runtime, installation, budget, slots) : undefined,
+    options.depth === "account" || options.depth === "models" ? usage(runtime, installation, budget, loggedOut, options) : undefined,
+    options.depth === "models" ? models(runtime, installation, budget, slots, loggedOut, options) : undefined,
+    options.include?.includes("customization") === true ? readCustomization(runtime, installation, budget, slots, options.env) : undefined,
   ]);
   return { ...(accountUsage === undefined ? {} : { accountUsage }), ...(modelList === undefined ? {} : { models: modelList }), ...(customization === undefined ? {} : { customization }) };
 }
 
 async function readRuntime(runtime: Runtime, options: OrientOptions, until: number, slots: ProbeSlots): Promise<RuntimeOrientation> {
   const budget = new ProbeBudget(until, options.signal);
-  const installation = await budget.run(runtime.installation?.bind(runtime));
+  const installationReader = runtime.installation;
+  const installation = await budget.run(installationReader === undefined ? undefined : async (): Promise<InstallationSnapshot> => { const result = await installationReader.call(runtime, options.env === undefined ? {} : { env: options.env }); return result; });
   if (installation.kind !== "ok" || installation.value.kind !== "available") { return absent(runtime, installation, options); }
   const available = installation.value;
   const authReader = runtime.authStatus, providersReader = runtime.providers;
@@ -65,8 +66,8 @@ async function readRuntime(runtime: Runtime, options: OrientOptions, until: numb
   const [auth, providers] = await Promise.all([
     local && authReader !== undefined && authReader.localOnly !== true
       ? { kind: "skipped", because: "depth" } as const
-      : budget.run(authReader === undefined ? undefined : async (timeoutMs): Promise<AuthStatus> => { const result = await authReader(available, { timeoutMs }); return result; }),
-    providersReader === undefined ? undefined : budget.run(async (timeoutMs) => { const result = await providersReader(available, { resolve: options.depth === "account" || options.depth === "models", timeoutMs }); return result; }),
+      : budget.run(authReader === undefined ? undefined : async (timeoutMs): Promise<AuthStatus> => { const result = await authReader(available, { timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) }); return result; }),
+    providersReader === undefined ? undefined : budget.run(async (timeoutMs) => { const result = await providersReader(available, { resolve: options.depth === "account" || options.depth === "models", timeoutMs, ...(options.env === undefined ? {} : { env: options.env }) }); return result; }),
   ]);
   const extra = await additional(runtime, available, auth, options, budget, slots);
   return { id: runtime.id, brand: runtime.brand, installation, auth, ...(providers === undefined ? {} : { providers }), ...extra };

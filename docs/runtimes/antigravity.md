@@ -579,3 +579,9 @@ temporary native session to obtain the model config option. It closes the
 process without submitting a prompt. Native startup, workspace configuration
 and account/catalog network I/O remain possible. OAR has no local auth-status
 reader and never substitutes a login flow for this query.
+
+## Reader environment
+
+Installation and model listing accept the session-style `env` overlay for
+discovery, version checks and the native ACP query. See
+[reader environments](../spec/orientation.md#environment).

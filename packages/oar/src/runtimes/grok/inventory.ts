@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import type { InventoryReader, InventoryResult, McpServerEntry, SkillEntry } from "../../contracts/inventory.js";
 import { spawnLineProcess } from "../../shared/executable/index.js";
@@ -22,7 +23,7 @@ function reader<T>(project: (payload: JsonRecord) => T[]): InventoryReader<T> {
       return unsupportedInventory("installation_unsupported", "Grok inventory requires an executable");
     }
     const scope = workspaceScope(options);
-    const child = spawnLineProcess(installation.command, ["inspect", "--json"], { cwd: scope.cwd, killTree: true });
+    const child = spawnLineProcess(installation.command, ["inspect", "--json"], { cwd: scope.cwd, env: sessionEnvironment(options.env), killTree: true });
     let stdout = "";
     child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
     try {

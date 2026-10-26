@@ -834,3 +834,10 @@ history. Omission and `"include"` retain existing behavior. See the
 and calls the native `_x.ai/models/list` extension. Authentication and catalog
 reads can use the network; workspace configuration is loaded, but no model
 prompt is submitted. Local orientation has no auth-status reader for Grok.
+
+## Reader environment
+
+Installation, model listing, usage and MCP inventory queries accept the
+session-style `env` overlay. Discovery uses its installation directory
+variables and home fallback; native ACP queries use the same environment.
+See [reader environments](../spec/orientation.md#environment).

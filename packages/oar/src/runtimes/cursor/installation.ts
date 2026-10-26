@@ -1,3 +1,4 @@
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { InstallationProbe, InstallationSnapshot } from "../../contracts/installation.js";
 
 /** The platforms `@cursor/sdk` 1.0.35 ships a native companion package for. */
@@ -17,7 +18,8 @@ export function cursorInstallationFor(platform: string, arch: string): Installat
   const snapshot: InstallationSnapshot = PLATFORMS.has(`${platform}-${arch}`)
     ? { kind: "available", via: "bundled" }
     : { kind: "unsupported", reason: `@cursor/sdk has no native package for ${platform}-${arch}` };
-  return async () => {
+  return async (options = {}) => {
+    refuseReaderEnvironment(options.env, "Cursor installation probes the host SDK");
     await Promise.resolve();
     return snapshot;
   };

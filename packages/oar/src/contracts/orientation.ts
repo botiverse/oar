@@ -4,6 +4,7 @@ import type { InstallationSnapshot } from "./installation.js";
 import type { ModelEntry } from "./list-models.js";
 import type { ProviderAuthStatus } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
+import type { SessionOptions } from "./session-options.js";
 
 /** Facts, including missing evidence, without an embedded selection policy. */
 export type Probe<T> =
@@ -14,6 +15,8 @@ export type Probe<T> =
   | { readonly kind: "unsupported" };
 export type OrientationDepth = "local" | "account" | "models";
 export interface OrientOptions {
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
   readonly depth?: OrientationDepth;
   readonly runtimes?: readonly string[];
   /** Starts native inventories, which can execute configuration and connect MCP servers. Never implicit in local. */

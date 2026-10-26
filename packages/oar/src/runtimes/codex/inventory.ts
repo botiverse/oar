@@ -60,7 +60,7 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
       return unsupportedInventory("installation_unsupported", "Codex inventory requires an executable");
     }
     const scope = workspaceScope(options);
-    const client = startAppServerClient(installation.command, undefined, {}, scope.cwd);
+    const client = startAppServerClient(installation.command, options.env, {}, scope.cwd);
     client.handle({ onNotification: () => {}, onServerRequest: () => {} });
     try {
       return await inventoryRead(async () => {

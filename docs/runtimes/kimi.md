@@ -727,3 +727,11 @@ native channel, then opens a temporary native session to read its model config
 option. It closes the native session/process without a model prompt. This can
 load workspace configuration and contact the account service. OAR exposes no
 local auth-status reader; a model catalog is not used to invent one.
+
+## Reader environment
+
+Installation and model listing accept the session-style `env` overlay.
+Account usage also uses it for the provider CLI and credential paths, but
+rejects actual changes to its fixed host HTTP/TLS variable list before any
+process or request ([usage environment](../spec/account-usage.md#environment)).
+No host environment is temporarily changed.

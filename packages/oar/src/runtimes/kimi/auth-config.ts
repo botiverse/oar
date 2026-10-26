@@ -1,5 +1,6 @@
+import { environmentValue } from "../../shared/environment.js";
 import { createHash } from "node:crypto";
-import { homedir } from "node:os";
+import { environmentHome } from "../../shared/environment-home.js";
 import { basename, join } from "node:path";
 import { runExecutable } from "../../shared/executable/index.js";
 import { assertRan } from "../../shared/executable/diagnostics.js";
@@ -63,11 +64,12 @@ export const KIMI_USAGE = "Kimi account usage";
 export async function resolveKimiAuth(
   command: string,
   deadline: number,
+  env: Readonly<NodeJS.ProcessEnv> = process.env,
 ): Promise<KimiAuthContext | null> {
   // Kimi's public JSON command is the stable way to read its resolved TOML
   // shape without importing private packages or teaching OAR a TOML dialect.
   const result = await runExecutable(command, ["provider", "list", "--json"], {
-    env: process.env,
+    env,
     timeoutMs: remainingMs(deadline, KIMI_USAGE),
   });
   assertRan(result, `Failed to run ${command} provider list --json`);
@@ -80,8 +82,8 @@ export async function resolveKimiAuth(
     return null;
   }
   const configuredOAuth = asRecord(provider.oauth);
-  const envBaseUrl = text(process.env.KIMI_CODE_BASE_URL);
-  const envOAuthHost = text(process.env.KIMI_CODE_OAUTH_HOST ?? process.env.KIMI_OAUTH_HOST);
+  const envBaseUrl = text(environmentValue(env, "KIMI_CODE_BASE_URL"));
+  const envOAuthHost = text(environmentValue(env, "KIMI_CODE_OAUTH_HOST") ?? environmentValue(env, "KIMI_OAUTH_HOST"));
   const hasEnvironmentOverride = envBaseUrl !== undefined || envOAuthHost !== undefined;
   const baseUrl = normalizedEndpoint(envBaseUrl ?? text(provider.baseUrl) ?? DEFAULT_BASE_URL);
   const oauthHost = normalizedEndpoint(
@@ -97,7 +99,7 @@ export async function resolveKimiAuth(
     && configuredStorage !== undefined && configuredStorage !== "file"
     ? "other"
     : "file";
-  const home = text(process.env.KIMI_CODE_HOME) ?? join(homedir(), ".kimi-code");
+  const home = text(environmentValue(env, "KIMI_CODE_HOME")) ?? join(environmentHome(env), ".kimi-code");
   const selectedStorageName = storageName(selectedKey);
   return {
     baseUrl,

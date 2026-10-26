@@ -1,3 +1,4 @@
+import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -140,7 +141,8 @@ test("kimi lister initializes, authenticates with login, opens and closes a sess
 
 test("kimi lister opens its throwaway session in the requested directory", async () => {
   acp.request.mockImplementation(async (method) => (method === "session/new" ? newSessionResponse : {}));
-  await kimiListModels(installation, { cwd: "workspace" });
+  await kimiListModels(installation, { env: readerEnvironment(), cwd: "workspace" });
+  expectReaderEnvironment(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]?.env);
   const cwd = path.resolve("workspace");
   expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]).toMatchObject({ cwd });
   expect(acp.request.mock.calls.find(([method]) => method === "session/new")?.[1]).toEqual({ cwd, mcpServers: [] });

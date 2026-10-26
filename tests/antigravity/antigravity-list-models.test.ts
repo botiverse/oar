@@ -1,3 +1,4 @@
+import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import selection from "../fixtures/antigravity-1.4.0-config.json" with { type: "json" };
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import path from "node:path";
@@ -80,7 +81,8 @@ test("antigravity lister initializes and opens a session, then kills the process
 
 test("antigravity lister opens its throwaway session in the requested directory", async () => {
   acp.request.mockImplementation(async (method) => (method === "session/new" ? newSessionResponse : {}));
-  await antigravityListModels(installation, { cwd: "workspace" });
+  await antigravityListModels(installation, { env: readerEnvironment(), cwd: "workspace" });
+  expectReaderEnvironment(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]?.env);
   const cwd = path.resolve("workspace");
   expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]).toMatchObject({ cwd });
   expect(acp.request.mock.calls[1]?.[1]).toEqual({ cwd, mcpServers: [] });

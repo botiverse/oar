@@ -1,3 +1,4 @@
+import type { SessionOptions } from "../../contracts/session-options.js";
 import { randomUUID } from "node:crypto";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { effortLevelsOf } from "../../shared/effort-levels.js";
@@ -69,7 +70,7 @@ function controlError(inner: JsonRecord): string {
  * and the answer is the same models, faster). User settings stay loaded —
  * provider env and apiKeyHelper live there — so authentication is unaffected.
  */
-async function readListModels(command: string, cwd: string, timeoutMs: number): Promise<ReadOutcome> {
+async function readListModels(command: string, cwd: string, timeoutMs: number, env: SessionOptions["env"]): Promise<ReadOutcome> {
   const child = spawnLineProcess(command, [
     "-p",
     "--input-format", "stream-json",
@@ -78,7 +79,7 @@ async function readListModels(command: string, cwd: string, timeoutMs: number): 
     "--settings", "{\"disableAllHooks\":true}",
     "--strict-mcp-config",
     "--mcp-config", "{\"mcpServers\":{}}",
-  ], { cwd, env: claudeEnv(), killTree: true });
+  ], { cwd, env: claudeEnv(env), killTree: true });
   const requestId = `oar-list-models-${randomUUID()}`;
   const { promise: answered, resolve } = Promise.withResolvers<JsonRecord | null>();
   child.onLine((line) => {
@@ -123,9 +124,9 @@ async function readListModels(command: string, cwd: string, timeoutMs: number): 
   }
 }
 
-async function readOutcome(command: string, cwd: string, timeoutMs: number): Promise<ReadOutcome> {
+async function readOutcome(command: string, cwd: string, timeoutMs: number, env: SessionOptions["env"]): Promise<ReadOutcome> {
   try {
-    return await readListModels(command, cwd, timeoutMs);
+    return await readListModels(command, cwd, timeoutMs, env);
   } catch (error) {
     throw new Error("Failed to list Claude models", { cause: error });
   }
@@ -135,7 +136,7 @@ export const claudeListModels: ModelLister = async (installation, options = {}) 
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "claude model listing requires the claude executable" };
   }
-  const outcome = await readOutcome(installation.command, listingCwd(options), options.timeoutMs ?? 15_000);
+  const outcome = await readOutcome(installation.command, listingCwd(options), options.timeoutMs ?? 15_000, options.env);
   if (outcome.kind === "ok") {
     return { kind: "ok", models: projectClaudeModels(outcome.payload) };
   }

@@ -92,7 +92,8 @@ invokes it implicitly. There is no cache or mutation of the host environment.
 import { claudeRuntime, userShellEnvironment } from "@botiverse/oar";
 
 const { env, changedVariables } = await userShellEnvironment({ timeoutMs: 10_000 });
-// installation is the executable selected for this environment;
+const installation = await claudeRuntime.installation({ env });
+if (installation.kind !== "available") { throw new Error("Claude is unavailable"); }
 // interaction presents the login URL and requests the user's pasted code.
 await claudeRuntime.login(installation, interaction, { env, openBrowser: false });
 const session = await claudeRuntime.session(installation, { cwd, env });
@@ -144,8 +145,8 @@ Native Bash, fish and Nushell capture is repeatable with
 [`experiments/user-shell-environment.ts`](../../experiments/user-shell-environment.ts).
 PowerShell invocation is covered by quoting tests; native PowerShell capture
 has not been verified. Installation, usage, model and inventory readers and
-`orient` still use the host environment in this revision; do not treat their
-results as observations of an authentication override.
+`orient` accept the same explicit `env`; in-process readers refuse an override
+they cannot isolate. See [reader environments](orientation.md#environment).
 
 ## Interaction
 

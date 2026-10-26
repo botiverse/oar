@@ -1,9 +1,12 @@
 import type { AvailableInstallation } from "./installation.js";
+import type { SessionOptions } from "./session-options.js";
 
 /** Independent native discovery in a working directory. */
 export interface InventoryScope { readonly kind: "workspace"; readonly cwd: string }
 
 export interface InventoryOptions {
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
   /** Defaults to process.cwd(); hosts should pass their project directory explicitly. */
   readonly cwd?: string;
   readonly timeoutMs?: number;

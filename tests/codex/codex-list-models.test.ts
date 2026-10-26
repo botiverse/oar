@@ -1,10 +1,11 @@
+import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { codexListModels } from "../../packages/oar/src/runtimes/codex/list-models.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[], options?: { cwd?: string }) => FakeLineProcess>());
+const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[], options?: { cwd?: string; env?: NodeJS.ProcessEnv }) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
 
 const installation = { kind: "available", via: "executable", command: "codex", version: "0.161.0" } as const;
@@ -78,7 +79,8 @@ test("codex lister reads the configuration for the requested directory, from an 
     const result = message.method === "model/list" ? { data: [{ model: "gpt-5.5" }], nextCursor: null } : {};
     child.emit(`${JSON.stringify({ id: message.id, result })}\n`);
   }));
-  await codexListModels(installation, { cwd: "workspace" });
+  await codexListModels(installation, { env: readerEnvironment(), cwd: "workspace" });
+  expectReaderEnvironment(spawnLineProcess.mock.calls[0]?.[2]?.env);
   expect(requests.find((request) => request.method === "config/read")?.params).toEqual({ cwd: path.resolve("workspace"), includeLayers: false });
   expect(spawnLineProcess.mock.calls[0]?.[2]?.cwd).toBe(process.cwd());
 });

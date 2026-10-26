@@ -1,3 +1,5 @@
+import { environmentValue } from "../../shared/environment.js";
+import { environmentHome } from "../../shared/environment-home.js";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -10,13 +12,15 @@ export function grokInstalledExecutableCandidates(
 ): readonly string[] {
   const paths = platform === "win32" ? path.win32 : path.posix;
   const executable = platform === "win32" ? "grok.exe" : "grok";
+  const binDir = environmentValue(env, "GROK_BIN_DIR", platform);
+  const grokHome = environmentValue(env, "GROK_HOME", platform);
   return [
-    ...(env.GROK_BIN_DIR === undefined || env.GROK_BIN_DIR === ""
+    ...(binDir === undefined || binDir === ""
       ? []
-      : [paths.join(env.GROK_BIN_DIR, executable)]),
-    ...(env.GROK_HOME === undefined || env.GROK_HOME === ""
+      : [paths.join(binDir, executable)]),
+    ...(grokHome === undefined || grokHome === ""
       ? []
-      : [paths.join(env.GROK_HOME, "bin", executable)]),
+      : [paths.join(grokHome, "bin", executable)]),
     paths.join(home, ".grok", "bin", executable),
   ];
 }
@@ -24,6 +28,6 @@ export function grokInstalledExecutableCandidates(
 export const grokInstallation = executableInstallation(
   "OAR_GROK_BIN",
   "grok",
-  grokInstalledExecutableCandidates,
+  (env) => grokInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["agent", "stdio", "--help"],
 );

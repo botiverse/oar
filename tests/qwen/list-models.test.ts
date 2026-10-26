@@ -8,6 +8,7 @@ vi.mock("../../packages/oar/src/runtimes/qwen/launch.js", () => ({ launchQwen: v
 const installation = { kind: "available" as const, via: "executable" as const, command: "qwen", version: "0.26.0" };
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); vi.restoreAllMocks(); });
 
+// oxlint-disable-next-line max-statements -- Verify native query, cleanup and environment at the same boundary.
 test("model listing tolerates the observed 16-second startup without retrying", async () => {
   vi.useFakeTimers();
   const child = fakeLineProcess((line, process) => {
@@ -20,11 +21,13 @@ test("model listing tolerates the observed 16-second startup without retrying", 
   });
   child.stdin.on("finish", () => { child.end(0); });
   vi.mocked(launchQwen).mockResolvedValue(child);
-  const listing = qwenListModels(installation);
+  const env = { HOME: "qwen-home", OAR_READER_REMOVED: null };
+  const listing = qwenListModels(installation, { env });
   const result = expect(listing).resolves.toEqual({ kind: "ok", models: [{ id: "native" }] });
   await vi.advanceTimersByTimeAsync(16_001);
   await result;
   expect(launchQwen).toHaveBeenCalledTimes(1);
+  expect(launchQwen).toHaveBeenCalledWith("qwen", expect.any(String), expect.objectContaining({ env }));
   expect(await child.exited).toBe(0);
 });
 

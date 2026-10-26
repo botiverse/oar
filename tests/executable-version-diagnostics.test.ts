@@ -74,7 +74,7 @@ test("a version probe terminated by a signal preserves that signal", async () =>
 
 test("an ordinary nonzero version exit still means unavailable version, with the same deadline", async () => {
   runExecutable.mockResolvedValue({ ok: false, exitCode: 2, stdout: "", stderr: "unsupported flag" });
-  expect(await readExecutableVersion("runtime", 321)).toBeUndefined();
+  expect(await readExecutableVersion("runtime", 321, undefined, {})).toBeUndefined();
   expect(runExecutable.mock.calls).toMatchInlineSnapshot(`
     [
       [
@@ -83,6 +83,7 @@ test("an ordinary nonzero version exit still means unavailable version, with the
           "--version",
         ],
         {
+          "env": {},
           "timeoutMs": 321,
         },
       ],

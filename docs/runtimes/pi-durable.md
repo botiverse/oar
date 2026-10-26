@@ -307,3 +307,10 @@ history. Omission and `"include"` retain existing behavior. See the
 native process or model turn for this reader. Any dynamic catalog source and
 its cost are owned by the host. Installation is host-bundled; no auth-status or
 provider-auth reader is inferred from the Harness's ability to list models.
+
+## Reader environment
+
+Installation and model listing observe the host-owned Harness and model
+catalog. Both reject a nonempty `env` with `UnsupportedOptionError("env")`;
+an empty map preserves existing behavior. See
+[reader environments](../spec/orientation.md#environment).

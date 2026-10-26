@@ -15,6 +15,7 @@ export type {
   BundledInstallation,
   ExecutableInstallation,
   InstallationProbe,
+  InstallationProbeOptions,
   InstallationSnapshot,
 } from "./installation.js";
 export type {

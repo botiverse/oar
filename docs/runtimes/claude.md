@@ -1035,8 +1035,9 @@ part of the parent session (skill proposals off, org memory refused, no prompt
 history), and an inherited entrypoint replaces print mode's own `sdk-cli`.
 `TRACEPARENT` and an `AI_AGENT` set by another tool pass through. An explicit
 `SessionOptions.env` value for any of them still wins, except `CLAUDECODE`.
-The installation probe (`claude --version`) and the vendor install script run
-through the shared paths with the host environment.
+The installation probe (`claude --version`) uses its explicit environment
+overlay through the shared paths. The vendor install script uses the host
+environment.
 [Markers](../../packages/oar/src/runtimes/claude/environment.ts). See the
 [environment contract](../spec/runtime-matrix.md#session-environment). [Launch](../../packages/oar/src/runtimes/claude/launch.ts).
 
@@ -1654,3 +1655,10 @@ own scheduling of account queries; the aggregate adds no credential lock or
 retry. Both macOS controls passed in CI on 2026-10-24, with matching persisted
 tokens and a later fresh auth-status process still reporting logged in. This
 does not cover a locked or unavailable login Keychain.
+
+## Reader environment
+
+Installation, models, usage and inventories accept the same explicit `env` as
+authentication and sessions. Native queries retain Claude's parent-marker
+cleanup; installation readiness and version commands use the supplied overlay.
+See [reader environments](../spec/orientation.md#environment).

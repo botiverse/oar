@@ -1,3 +1,4 @@
+import { environmentHome } from "../../shared/environment-home.js";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -18,4 +19,4 @@ export function claudeInstalledExecutableCandidates(
   return [paths.join(home, ".local", "bin", platform === "win32" ? "claude.exe" : "claude")];
 }
 
-export const claudeInstallation = executableInstallation("OAR_CLAUDE_BIN", "claude", claudeInstalledExecutableCandidates);
+export const claudeInstallation = executableInstallation("OAR_CLAUDE_BIN", "claude", (env) => claudeInstalledExecutableCandidates(process.platform, environmentHome(env)));

@@ -10,7 +10,7 @@ test("installation uses one lightweight version query without starting help", as
   vi.stubEnv("OAR_QODER_BIN", process.execPath);
   runExecutable.mockResolvedValue({ ok: true, exitCode: null, stdout: "1.1.78\n", stderr: "" });
   await expect(qoderInstallation()).resolves.toMatchObject({ kind: "available", version: "1.1.78" });
-  expect(runExecutable).toHaveBeenCalledExactlyOnceWith(process.execPath, ["--version"], {});
+  expect(runExecutable).toHaveBeenCalledExactlyOnceWith(process.execPath, ["--version"], { env: process.env });
 });
 
 test("a timed out installed executable throws a probe failure, never not_found", async () => {

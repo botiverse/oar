@@ -25,3 +25,11 @@ export function sessionEnvironment(
   }
   return environment;
 }
+
+/** Read the same spelling Node selects on Windows, where environment keys ignore case. */
+export function environmentValue(env: Readonly<NodeJS.ProcessEnv>, name: string, platform: NodeJS.Platform = process.platform): string | undefined {
+  const key = platform === "win32"
+    ? Object.keys(env).toSorted().find((entry) => entry.toUpperCase() === name.toUpperCase()) ?? name
+    : name;
+  return env[key];
+}

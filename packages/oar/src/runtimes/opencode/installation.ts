@@ -1,3 +1,4 @@
+import { environmentHome } from "../../shared/environment-home.js";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -18,7 +19,7 @@ export function opencodeInstalledExecutableCandidates(
 export const opencodeInstallation = executableInstallation(
   "OAR_OPENCODE_BIN",
   "opencode",
-  opencodeInstalledExecutableCandidates,
+  (env) => opencodeInstalledExecutableCandidates(process.platform, environmentHome(env)),
   undefined,
   { versionTimeoutMs: 15_000 },
 );

@@ -295,3 +295,10 @@ requests `initialize` and `get_models` with `fetchStrategy: live`. It can perfor
 account/catalog network I/O and pays native process initialization cost. No model
 prompt is submitted. `authStatus()` has no proven no-network declaration and is
 therefore skipped by local orientation; it is available at account depth.
+
+## Reader environment
+
+Installation and model listing accept the same `env` overlay as login and
+sessions. Model listing uses it for both auth status and the native catalog;
+installation fallbacks use the supplied home directory on each call. See
+[reader environments](../spec/orientation.md#environment).

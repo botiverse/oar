@@ -1,4 +1,5 @@
 import type { AvailableInstallation } from "./installation.js";
+import type { SessionOptions } from "./session-options.js";
 
 /**
  * One model the runtime will accept as a session `model` right now.
@@ -52,6 +53,8 @@ export type ListModelsResult =
   | { readonly kind: "unsupported"; readonly reason: string };
 
 export interface ListModelsOptions {
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
   /**
    * The directory a session would run in, resolved against the host's cwd,
    * which is also the default. Project configuration there can change the

@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Runtime composition imports one module per capability and shared validation. */
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { Models } from "@earendil-works/pi-ai";
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai/models";
 import type { Harness } from "@earendil-works/pi-durable";
@@ -23,8 +25,8 @@ export function createPiDurableRuntime({ harness, models }: PiDurableRuntimeOpti
     id: "pi-durable",
     brand: runtimeBrands["pi-durable"],
     refusedSessionOptions: piDurableRefusedSessionOptions,
-    installation: async () => { await Promise.resolve(); return { kind: "available", via: "bundled" }; },
-    listModels: async () => { await Promise.resolve(); return { kind: "ok", models: projectPiModels(currentModels().getModels(), getSupportedThinkingLevels) }; },
+    installation: async (options = {}) => { refuseReaderEnvironment(options.env, "Pi Durable uses the host environment"); await Promise.resolve(); return { kind: "available", via: "bundled" }; },
+    listModels: async (_installation, options = {}) => { refuseReaderEnvironment(options.env, "Pi Durable uses the host environment"); await Promise.resolve(); return { kind: "ok", models: projectPiModels(currentModels().getModels(), getSupportedThinkingLevels) }; },
     session: async (installation: AvailableInstallation, options: SessionOptions) => {
       if (installation.via !== "bundled") { throw new Error("pi-durable requires the host's bundled Harness"); }
       const session = await piDurableSession(harness, currentModels(), options);

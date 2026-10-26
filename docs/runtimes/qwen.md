@@ -227,3 +227,10 @@ stream-JSON control channel, reads `get_available_models`, and closes it. Native
 configuration and provider setup can run during that process, so catalog reads
 are explicit `models`-depth work, not a cheap local metadata promise. No model
 prompt is submitted. There is no auth-status reader to infer a login from.
+
+## Reader environment
+
+Installation and model listing accept `env` using the session overlay rules.
+Discovery evaluates the QWEN installation directory variables and home
+fallback from that map on each call; the model query uses it too. See
+[reader environments](../spec/orientation.md#environment).

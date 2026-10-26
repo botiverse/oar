@@ -1,3 +1,4 @@
+import { environmentHome } from "../../shared/environment-home.js";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -37,6 +38,6 @@ export function codexInstalledExecutableCandidates(
 export const codexInstallation = executableInstallation(
   "OAR_CODEX_BIN",
   "codex",
-  codexInstalledExecutableCandidates,
+  (env) => codexInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["app-server", "--help"],
 );

@@ -1,3 +1,4 @@
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { UtcInstant } from "../../contracts/account-usage.js";
 import type { Probe } from "../../contracts/orientation.js";
 import type { ProbeSlots } from "./slots.js";
@@ -43,8 +44,9 @@ export class ProbeBudget {
     try {
       const result = await Promise.race([slots === undefined ? start() : slots.run(start), deadline.promise]);
       return result === expired ? { kind: "timed_out", observedAt: observedNow() } : { kind: "ok", value: result, observedAt: observedNow() };
-    } catch {
+    } catch (error) {
       this.#signal?.throwIfAborted();
+      if (error instanceof UnsupportedOptionError && error.option === "env") { return { kind: "unsupported" }; }
       // Native errors can contain credentials; only adapter-produced public facts are returned.
       return { kind: "failed", reason: "The runtime query failed", observedAt: observedNow() };
     } finally {

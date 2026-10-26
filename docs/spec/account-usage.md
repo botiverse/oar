@@ -8,6 +8,21 @@ A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
 `resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid
 date, rather than casting a string to `UtcInstant`.
 
+## Environment
+
+`options.env` uses the [reader environment contract](orientation.md#environment).
+Claude, Codex and Grok run their native usage queries in that environment.
+Kimi runs its provider CLI with the overlay and resolves credential paths,
+including `KIMI_CODE_HOME` and its home-directory fallback, from the same map.
+Its HTTP requests still execute in the host process. It refuses actual changes
+(setting or deletion) to `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`
+(including their lowercase forms), `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`,
+`SSL_CERT_DIR` and `NODE_TLS_REJECT_UNAUTHORIZED` before starting the CLI or HTTP.
+Equal values and deleting an absent variable are not changes. The rejection is
+`UnsupportedOptionError("env")` and names only the affected variables, never
+values. Other environment changes remain supported. `orient` records this as
+`unsupported`; explicit per-call proxy/CA handling is not provided.
+
 ## Windows
 
 Each window carries a display `label`, `usedRatio` (0 to 1), and, where the

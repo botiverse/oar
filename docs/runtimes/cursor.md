@@ -712,3 +712,9 @@ override. The native status still describes a stored login for another backend;
 it is not proof that an actual request will authenticate. Custom in-memory
 stores and a deliberately network-enabled custom store establish the boundary
 of the native status options. No real credential or model request is used.
+
+## Reader environment
+
+Installation and model listing reject a nonempty `env` before loading the
+SDK, just like the authentication methods. An empty map is a no-op. See
+[reader environments](../spec/orientation.md#environment).

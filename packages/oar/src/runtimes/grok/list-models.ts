@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
   client as createClient,
@@ -85,12 +86,12 @@ export function projectGrokModels(state: unknown): ModelEntry[] {
   return entries;
 }
 
-async function readModelState(command: string, cwd: string, timeoutMs: number): Promise<JsonRecord> {
+async function readModelState(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
   const runtime = startAcpProcess(
     command,
     ["agent", "--always-approve", "--no-leader", "stdio"],
     createClient({ name: "oar" }),
-    { cwd, env: process.env },
+    { cwd, env },
   );
   try {
     const initialize = methods.agent.initialize;
@@ -144,7 +145,7 @@ export const grokListModels: ModelLister = async (installation, options = {}) =>
     return { kind: "unsupported", reason: "grok model listing requires the grok executable" };
   }
   try {
-    const state = await readModelState(installation.command, listingCwd(options), options.timeoutMs ?? 10_000);
+    const state = await readModelState(installation.command, listingCwd(options), options.timeoutMs ?? 10_000, sessionEnvironment(options.env));
     return { kind: "ok", models: projectGrokModels(state) };
   } catch (error) {
     if (error instanceof RequestError) {

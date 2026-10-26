@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   isNonSubscriptionAccount,
   readFromAppServer,
@@ -192,4 +192,12 @@ test("codex distinguishes missing usage endpoint from unsupported auth mode", as
     throw new Error("method not found");
   });
   await expect(readFromAppServer("codex", 1000, () => server.client)).resolves.toEqual({ kind: "unsupported", reason: "endpoint_unavailable" });
+});
+
+test("usage forwards the environment to its app-server", async () => {
+  const { client } = fakeAppServer(async () => ({ account: { type: "apiKey" } }));
+  const start = vi.fn(() => client);
+  const env = { CODEX_HOME: "private-home", HTTP_PROXY: null };
+  await readFromAppServer("codex", 1000, start, env);
+  expect(start).toHaveBeenCalledWith("codex", env);
 });

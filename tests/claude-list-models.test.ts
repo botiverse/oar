@@ -1,3 +1,4 @@
+import { readerEnvironment, expectReaderEnvironment } from "./fixtures/reader-environment.js";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { claudeListModels } from "../packages/oar/src/runtimes/claude/list-models.js";
@@ -69,7 +70,8 @@ test("claude lister starts claude in the requested directory", async () => {
   spawnLineProcess.mockReturnValue(fakeLineProcess((text, self) => {
     self.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: requestIdOf(text), response: { models: [] } } })}\n`);
   }));
-  await expect(claudeListModels(installation, { cwd: "workspace" })).resolves.toEqual({ kind: "ok", models: [] });
+  await expect(claudeListModels(installation, { env: readerEnvironment(), cwd: "workspace" })).resolves.toEqual({ kind: "ok", models: [] });
+  expectReaderEnvironment(spawnLineProcess.mock.calls[0]?.[2].env);
   expect(spawnLineProcess.mock.calls[0]?.[2].cwd).toBe(path.resolve("workspace"));
 });
 

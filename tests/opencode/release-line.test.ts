@@ -48,7 +48,7 @@ test("v1 preserves verbose model metadata and performs no new session writes", a
       ],
     }
   `);
-  expect(run.mock.calls).toEqual([["opencode", ["models", "--verbose"], { cwd: process.cwd(), timeoutMs: 30_000 }]]);
+  expect(run.mock.calls).toEqual([["opencode", ["models", "--verbose"], { cwd: process.cwd(), env: process.env, timeoutMs: 30_000 }]]);
 });
 
 test("v2 empty native listing is unsupported, not a claim of no models", async () => {
@@ -59,14 +59,14 @@ test("v2 empty native listing is unsupported, not a claim of no models", async (
       "reason": "opencode 2.0.26 models --standalone exits before the cold catalog finishes loading; an empty response does not establish that no models exist (https://github.com/anomalyco/opencode/issues/53724)",
     }
   `);
-  expect(run.mock.calls).toEqual([["opencode", ["models", "--standalone"], { cwd: process.cwd(), timeoutMs: 1234 }]]);
+  expect(run.mock.calls).toEqual([["opencode", ["models", "--standalone"], { cwd: process.cwd(), env: process.env, timeoutMs: 1234 }]]);
 });
 
 // A project's opencode.json can add providers, so the catalog is read where a session would run.
 test("the listing runs opencode in the requested directory, resolved against the host's cwd", async () => {
   run.mockResolvedValueOnce(ok("opencode/big-pickle\n"));
   await opencodeListModels({ ...installation, version: "opencode v2.0.27" }, { cwd: "workspace" });
-  expect(run.mock.calls[0]?.[2]).toEqual({ cwd: path.resolve("workspace"), timeoutMs: 30_000 });
+  expect(run.mock.calls[0]?.[2]).toEqual({ cwd: path.resolve("workspace"), env: process.env, timeoutMs: 30_000 });
 });
 
 test("a ready v2 standalone listing uses native IDs without inventing effort menus", async () => {

@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { processFailure, stderrTail } from "../../shared/executable/diagnostics.js";
@@ -64,9 +65,9 @@ export const opencodeListModels: ModelLister = async (installation, options = {}
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "opencode model listing requires the opencode executable" };
   }
-  const major = await opencodeMajor(installation);
+  const major = await opencodeMajor(installation, { cwd: listingCwd(options), ...(options.env === undefined ? {} : { env: options.env }) });
   // v2's default command connects to a persistent daemon. Listing must not leave one behind.
-  const result = await runExecutable(installation.command, ["models", major === 2 ? "--standalone" : "--verbose"], { cwd: listingCwd(options), timeoutMs: options.timeoutMs ?? 30_000 });
+  const result = await runExecutable(installation.command, ["models", major === 2 ? "--standalone" : "--verbose"], { cwd: listingCwd(options), env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? 30_000 });
   if (!result.ok) {
     throw processFailure("Failed to list opencode models", result.diagnostics ?? {
       exitCode: result.exitCode, signal: null, stderr: stderrTail(result.stderr),

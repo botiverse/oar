@@ -1,3 +1,4 @@
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { ModelLister } from "../../contracts/list-models.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
@@ -38,6 +39,7 @@ export function createPiListModels<Model extends PiListedModel>(
   thinkingLevelsOf?: () => Promise<PiThinkingLevelsOf<Model>>,
 ): ModelLister {
   return async (installation, options = {}) => {
+    refuseReaderEnvironment(options.env, "pi model listing runs in the host process");
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "pi model listing runs through the bundled Pi SDK" };
     }

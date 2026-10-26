@@ -1,3 +1,4 @@
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 /* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
 import type { ProviderAuthReader } from "../../contracts/provider-auth.js";
@@ -15,6 +16,7 @@ import type { PiRuntimeOptions } from "./options.js";
 export type { PiRuntimeOptions } from "./options.js";
 
 const piProviders: ProviderAuthReader = async (_installation, options) => {
+  refuseReaderEnvironment(options.env, "Pi provider listing runs in the host process");
   const { createPiProviderAuth } = await import("./auth.js");
   const facade = await createPiProviderAuth();
   return facade.listProviders({ resolve: options.resolve });

@@ -775,3 +775,10 @@ history. Omission and `"include"` retain existing behavior. See the
 configuration, provider credentials and catalog cache affect the result; a cold
 catalog can involve network access. It does not submit a model turn. OAR exposes
 no auth-status reader for local orientation.
+
+## Reader environment
+
+Installation and model listing accept the session-style `env` overlay.
+The model reader uses it both when identifying an unknown native version and
+when querying that version's catalog. See
+[reader environments](../spec/orientation.md#environment).

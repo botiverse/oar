@@ -1,3 +1,4 @@
+import type { SessionOptions } from "../../contracts/session-options.js";
 import { randomUUID } from "node:crypto";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
 import { runExecutable, spawnLineProcess } from "../../shared/executable/index.js";
@@ -108,14 +109,15 @@ function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
  */
 const USAGE = "Claude account usage";
 const safeModeSupport = new Map<string, boolean>();
-async function supportsSafeMode(command: string, version: string | undefined, deadline: number): Promise<boolean> {
+async function supportsSafeMode(command: string, version: string | undefined, deadline: number, env: SessionOptions["env"]): Promise<boolean> {
   const key = `${command}\0${version ?? ""}`;
-  const known = safeModeSupport.get(key);
+  const cacheable = Object.keys(env ?? {}).length === 0;
+  const known = cacheable ? safeModeSupport.get(key) : undefined;
   if (known !== undefined) {
     return known;
   }
   const help = await runExecutable(command, ["--help"], {
-    env: claudeEnv(),
+    env: claudeEnv(env),
     timeoutMs: remainingMs(deadline, USAGE),
   });
   assertRan(help, `Failed to run ${command} --help`);
@@ -123,7 +125,7 @@ async function supportsSafeMode(command: string, version: string | undefined, de
     return false;
   }
   const supported = /(?:^|\s)--safe-mode\b/u.test(help.stdout);
-  safeModeSupport.set(key, supported);
+  if (cacheable) { safeModeSupport.set(key, supported); }
   return supported;
 }
 
@@ -139,14 +141,14 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   // One budget for the whole read, shared by the help probe and the query:
   // two claude starts, each of which a slow launcher can stretch.
   const deadline = Date.now() + (options.timeoutMs ?? 30_000);
-  if (!await supportsSafeMode(installation.command, installation.version, deadline)) {
+  if (!await supportsSafeMode(installation.command, installation.version, deadline, options.env)) {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
   const queryMs = remainingMs(deadline, USAGE);
   const child = spawnLineProcess(installation.command, [
     "-p", "--input-format", "stream-json", "--output-format", "stream-json",
     "--verbose", "--no-session-persistence", "--safe-mode",
-  ], { env: claudeEnv(), killTree: true });
+  ], { env: claudeEnv(options.env), killTree: true });
   let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
   let ended = false;
   let timedOut = false;

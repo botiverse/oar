@@ -1,3 +1,4 @@
+import { kimiUsageEnvironment } from "./usage-environment.js";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
@@ -223,9 +224,10 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
+  const env = kimiUsageEnvironment(options.env);
   // Match the probe/session budget: the Node launcher is slow under concurrent load.
   const deadline = Date.now() + (options.timeoutMs ?? 30_000);
-  const auth = await resolveKimiAuth(installation.command, deadline);
+  const auth = await resolveKimiAuth(installation.command, deadline, env);
   if (auth === null) {
     return { kind: "unsupported", reason: "auth_configuration_unavailable" };
   }

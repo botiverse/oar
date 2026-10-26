@@ -17,6 +17,7 @@ if (state.captureEnv !== undefined) {
 state.calls = [...state.calls ?? [], args];
 if (args[0] === "login") { state.loginBrowser = process.env.BROWSER; }
 save();
+if (args[0] === "--version") { console.log(state.version ?? "1.1.78"); process.exit(0); }
 if (args[0] === "status") {
   if (state.mode === "status-error") { console.error("private-account-must-not-leak"); process.exit(1); }
   console.log(JSON.stringify({ logged_in: state.loggedIn, username: "private-user", email: "private@example.invalid", org_id: "private-org", access_token: "synthetic-private-token" }));

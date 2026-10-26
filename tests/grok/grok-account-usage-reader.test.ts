@@ -1,6 +1,7 @@
+import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { grokAccountUsage } from "../../packages/oar/src/runtimes/grok/account-usage.js";
-import { withAcpDeadline } from "../../packages/oar/src/shared/acp/process.js";
+import { startAcpProcess, withAcpDeadline } from "../../packages/oar/src/shared/acp/process.js";
 
 const acp = vi.hoisted(() => ({
   kill: vi.fn<() => void>(),
@@ -79,7 +80,7 @@ test("grok reader matches native zero usage for billing without usage metrics", 
     }
   });
 
-  await expect(grokAccountUsage(installation)).resolves.toEqual({
+  await expect(grokAccountUsage(installation, { env: readerEnvironment() })).resolves.toEqual({
     kind: "available",
     plan: "SuperGrok",
     email: "person@example.com",
@@ -91,6 +92,7 @@ test("grok reader matches native zero usage for billing without usage metrics", 
     }],
   });
   expect(acp.kill).toHaveBeenCalledOnce();
+  expectReaderEnvironment(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]?.env);
 });
 
 test("grok reader merges email from the authenticated auth-info extension", async () => {

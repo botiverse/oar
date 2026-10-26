@@ -15,7 +15,10 @@ if (installation?.kind === "available") {
 
 The options object is optional. `cwd` defaults to `process.cwd()` and is resolved
 to an absolute path; a host should pass its project directory. `timeoutMs`
-defaults to 15 seconds and must be positive and finite.
+defaults to 15 seconds and must be positive and finite. `env` applies the
+[reader environment overlay](orientation.md#environment) to native processes.
+Pi inventories run in process in both execution modes and reject a nonempty
+overlay before loading the SDK.
 
 These operations discover native information independently of existing agents.
 There are **no Session inventory methods, session IDs, or session query mode**.

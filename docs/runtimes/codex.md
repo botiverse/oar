@@ -1596,3 +1596,9 @@ passes `enable_codex_api_key_env: false`, as `login status` does. OAR uses this
 app-server, so `CODEX_API_KEY` alone does not override its stored account.
 This statement concerns the native account resolver, not a custom provider's
 separately configured `env_key`.
+
+## Reader environment
+
+Installation, model listing, usage and inventories accept an explicit `env`
+overlay. Discovery, native status and app-server queries use that environment
+without changing the host. See [reader environments](../spec/orientation.md#environment).

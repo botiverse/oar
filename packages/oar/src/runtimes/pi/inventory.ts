@@ -1,3 +1,4 @@
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { CommandEntry, RuntimeInventories, InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
@@ -53,6 +54,7 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
 }
 function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, project: PiProjectOptions): InventoryReader<T> {
   return async (installation, options = {}) => {
+    refuseReaderEnvironment(options.env, "Pi inventory runs in the host process, including for subprocess sessions");
     if (installation.via !== "bundled") {
       return unsupportedInventory("installation_unsupported", "Pi inventory requires the bundled SDK");
     }

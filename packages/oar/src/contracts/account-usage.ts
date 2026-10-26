@@ -1,4 +1,5 @@
 import type { AvailableInstallation } from "./installation.js";
+import type { SessionOptions } from "./session-options.js";
 
 declare const utcInstantBrand: unique symbol;
 
@@ -66,6 +67,8 @@ export type AccountUsageSnapshot =
     };
 
 export interface AccountUsageReadOptions {
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
   /** Bounds the whole read, every process it starts and request it sends included; each reader has its own default. Past it the read rejects. */
   readonly timeoutMs?: number;
 }

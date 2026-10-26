@@ -1,3 +1,4 @@
+import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { cursorEffortParameter } from "./model.js";
 import type { CursorSdk, ModelListItem } from "./sdk.js";
@@ -35,6 +36,7 @@ function unauthenticated(error: unknown): string | null {
 
 export function cursorListModelsWith(load: () => Promise<CursorSdk>): ModelLister {
   return async (installation, options = {}) => {
+    refuseReaderEnvironment(options.env, "cursor model listing runs in the host process");
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "cursor model listing needs the bundled @cursor/sdk" };
     }

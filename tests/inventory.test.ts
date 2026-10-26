@@ -1,3 +1,4 @@
+import { readerEnvironment, expectReaderEnvironment } from "./fixtures/reader-environment.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { resolve } from "node:path";
 import { codexSkills, codexTools, codexMcpServers } from "../packages/oar/src/runtimes/codex/inventory.js";
@@ -40,6 +41,7 @@ function observeSettlement<T>(reading: Promise<T>): { settled(): boolean; result
   return { settled: () => settled, result };
 }
 
+// oxlint-disable-next-line max-statements -- Verify native query, cleanup and environment at the same boundary.
 test("Codex forwards resolved cwd and preserves disabled skills without creating a thread", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-09-16T00:00:00Z"));
@@ -51,7 +53,8 @@ test("Codex forwards resolved cwd and preserves disabled skills without creating
     ], errors: [{ message: "private error text" }] }] };
   });
   spawnLineProcess.mockReturnValue(fake);
-  const result = await codexSkills(executable, { cwd: "./project-b" });
+  const result = await codexSkills(executable, { env: readerEnvironment(), cwd: "./project-b" });
+  expectReaderEnvironment(spawnLineProcess.mock.calls[0]?.[2]?.env);
   expect(result).toEqual({
     kind: "ok", scope: { kind: "workspace", cwd: resolve("./project-b") },
     observedAt: "2026-09-16T00:00:00.000Z", view: "discovered", partial: true,
@@ -119,6 +122,7 @@ test("Claude skills are context entries, never initialize command aliases", asyn
   expect(fake.killed()).toBe(true);
 });
 
+// oxlint-disable-next-line max-statements -- Verify native query, cleanup and environment at the same boundary.
 test("Claude command discovery uses one private initialize answer, including aliases and hints", async () => {
   const methods: string[] = [];
   const fake = control((method) => {
@@ -129,7 +133,8 @@ test("Claude command discovery uses one private initialize answer, including ali
     ], account: { email: "private@example.test" }, organization: "secret org" };
   });
   spawnLineProcess.mockReturnValue(fake);
-  const result = await claudeCommands(executable, { cwd: "project-command" });
+  const result = await claudeCommands(executable, { env: readerEnvironment(), cwd: "project-command" });
+  expectReaderEnvironment(spawnLineProcess.mock.calls[0]?.[2]?.env);
   expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false });
   if (result.kind !== "ok") { throw new Error("expected native commands"); }
   expect(result.items).toMatchInlineSnapshot(`
@@ -255,10 +260,11 @@ test("Grok independent discovery never authenticates or creates a session", asyn
     });
     return fake;
   });
-  await expect(grokMcpServers(executable)).resolves.toMatchObject({
+  await expect(grokMcpServers(executable, { env: readerEnvironment() })).resolves.toMatchObject({
     kind: "ok", view: "discovered", items: [{ id: "compat", name: "compat", source: "project" }],
   });
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(["inspect", "--json"]);
+  expectReaderEnvironment(spawnLineProcess.mock.calls[0]?.[2]?.env);
   expect(spawnLineProcess.mock.calls[0]?.[2]?.killTree).toBe(true);
   expect(fake.written).toEqual([]);
 });

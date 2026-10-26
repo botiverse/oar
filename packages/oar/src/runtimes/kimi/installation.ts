@@ -1,3 +1,5 @@
+import { environmentValue } from "../../shared/environment.js";
+import { environmentHome } from "../../shared/environment-home.js";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -10,10 +12,11 @@ export function kimiInstalledExecutableCandidates(
 ): readonly string[] {
   const paths = platform === "win32" ? path.win32 : path.posix;
   const executable = platform === "win32" ? "kimi.exe" : "kimi";
+  const installDir = environmentValue(env, "KIMI_INSTALL_DIR", platform);
   return [
-    ...(env.KIMI_INSTALL_DIR === undefined || env.KIMI_INSTALL_DIR === ""
+    ...(installDir === undefined || installDir === ""
       ? []
-      : [paths.join(env.KIMI_INSTALL_DIR, "bin", executable)]),
+      : [paths.join(installDir, "bin", executable)]),
     paths.join(home, ".kimi-code", "bin", executable),
     // Retain the previous command name only as the last compatibility fallback.
     "kimi-code",
@@ -23,7 +26,7 @@ export function kimiInstalledExecutableCandidates(
 export const kimiInstallation = executableInstallation(
   "OAR_KIMI_BIN",
   "kimi",
-  kimiInstalledExecutableCandidates,
+  (env) => kimiInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   ["acp", "--help"],
   { readinessTimeoutMs: 30_000, versionTimeoutMs: 30_000 },
 );

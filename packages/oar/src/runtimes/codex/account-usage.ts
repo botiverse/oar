@@ -1,3 +1,4 @@
+import type { SessionOptions } from "../../contracts/session-options.js";
 import type {
   AccountUsageUnsupportedReason,
   AccountUsageReauthReason,
@@ -14,7 +15,7 @@ type ReadOutcome =
   | { readonly kind: "unsupported"; readonly reason: AccountUsageUnsupportedReason }
   | { readonly kind: "error" };
 
-type StartAppServerClient = (command: string) => AppServerClient;
+type StartAppServerClient = (command: string, env?: SessionOptions["env"]) => AppServerClient;
 
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -204,8 +205,9 @@ export async function readFromAppServer(
   command: string,
   timeoutMs: number,
   startClient: StartAppServerClient = startAppServerClient,
+  env?: SessionOptions["env"],
 ): Promise<ReadOutcome> {
-  const client = startClient(command);
+  const client = startClient(command, env);
   const deadline = setTimeout(() => {
     client.kill();
   }, timeoutMs);
@@ -252,7 +254,7 @@ export const codexAccountUsage: AccountUsageReader = async (installation, option
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000);
+  const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000, undefined, options.env);
   switch (outcome.kind) {
     case "ok":
       return projectCodexUsage(outcome.result, outcome.email);

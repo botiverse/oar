@@ -1,3 +1,4 @@
+import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -66,7 +67,8 @@ test("grok lister initializes, authenticates with the cached token, then lists",
 
 test("grok lister starts grok in the requested directory, as a session there would", async () => {
   acp.request.mockImplementation(async (method) => (method === "_x.ai/models/list" ? { result: { availableModels: [] } } : {}));
-  await grokListModels(installation, { cwd: "workspace" });
+  await grokListModels(installation, { env: readerEnvironment(), cwd: "workspace" });
+  expectReaderEnvironment(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]?.env);
   expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]).toMatchObject({ cwd: path.resolve("workspace") });
 });
 

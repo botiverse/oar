@@ -1,3 +1,4 @@
+import type { SessionOptions } from "../../contracts/session-options.js";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -33,7 +34,7 @@ function summarize(results: readonly (readonly [Category, Probe<InventoryResult<
 }
 
 /** Native readers own their child processes; the directory lives until they settle, including after a timeout. */
-export async function readCustomization(runtime: Runtime, installation: AvailableInstallation, budget: ProbeBudget, slots: ProbeSlots): Promise<Probe<Customization>> {
+export async function readCustomization(runtime: Runtime, installation: AvailableInstallation, budget: ProbeBudget, slots: ProbeSlots, env: SessionOptions["env"]): Promise<Probe<Customization>> {
   const result = await budget.run(async () => {
     const temporary = await mkdtemp(join(tmpdir(), "oar-orient-"));
     const pending: Promise<unknown>[] = [];
@@ -41,7 +42,7 @@ export async function readCustomization(runtime: Runtime, installation: Availabl
       const cwd = await realpath(temporary);
       const results = await Promise.all(categories.map(async (category): Promise<readonly [Category, Probe<InventoryResult<Sourced>>]> => {
         const probe = await budget.run(async (timeoutMs) => {
-          const read = runtime[category](installation, { cwd, timeoutMs });
+          const read = runtime[category](installation, { cwd, timeoutMs, ...(env === undefined ? {} : { env }) });
           pending.push(read);
           const value = await read;
           return value;

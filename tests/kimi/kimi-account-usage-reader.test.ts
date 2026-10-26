@@ -232,3 +232,60 @@ test("kimi reader rejects when `kimi provider list` timed out", async () => {
     .rejects.toThrow(/kimi provider list --json.*timeout after 2000 ms/u);
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+const installation = { kind: "available", via: "executable", command: "kimi", version: "0.38.0" } as const;
+const httpVariables = [
+  "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+  "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+  "NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_TLS_REJECT_UNAUTHORIZED",
+];
+
+test.each(httpVariables)("Kimi usage rejects changed %s before any process or HTTP request", async (name) => {
+  vi.stubEnv(name, "synthetic-host-value");
+  const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+  await Promise.all(["synthetic-child-value", null].map(async (value) => {
+    const result = kimiAccountUsage(installation, { env: { [name]: value } });
+    await expect(result).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "env" });
+    await expect(result).rejects.toThrow(`cannot isolate: ${name}`);
+    await expect(result).rejects.not.toThrow("synthetic-");
+  }));
+  expect(runExecutable).not.toHaveBeenCalled();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test.each(httpVariables)("Kimi usage permits unchanged %s and deleting an absent variable", async (name) => {
+  const home = await temporaryKimiHome();
+  mockDefaultProviderList();
+  vi.stubEnv(name, "synthetic-host-value");
+  await expect(kimiAccountUsage(installation, { env: { KIMI_CODE_HOME: home, [name]: "synthetic-host-value" } }))
+    .resolves.toMatchObject({ kind: "reauth_required" });
+  vi.stubEnv(name, undefined);
+  await expect(kimiAccountUsage(installation, { env: { KIMI_CODE_HOME: home, [name]: null } }))
+    .resolves.toMatchObject({ kind: "reauth_required" });
+  expect(runExecutable).toHaveBeenCalledTimes(2);
+});
+
+// oxlint-disable-next-line max-statements -- Pin credential selection, child env and host isolation in one real-file scenario.
+test("Kimi usage uses the same scoped CLI environment and credential HOME without changing the host", async () => {
+  const home = await temporaryKimiHome();
+  const otherHome = await temporaryKimiHome();
+  await writeToken(join(home, ".kimi-code"), Math.floor(Date.now() / 1000) + 3600);
+  vi.stubEnv("KIMI_CODE_HOME", otherHome);
+  vi.stubEnv("OAR_READER_REMOVED", "host");
+  mockDefaultProviderList();
+  const fetchMock = vi.fn(async (_input: string | URL, init?: RequestInit) => {
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer old-access");
+    return Response.json({ usage: { used: "25", limit: "100" } });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  await expect(kimiAccountUsage(installation, { env: {
+    HOME: home, USERPROFILE: home, KIMI_CODE_HOME: null, OAR_READER_REMOVED: null,
+  } })).resolves.toMatchObject({ kind: "available" });
+  const childEnv = runExecutable.mock.calls[0]?.[2]?.env;
+  expect(childEnv?.HOME).toBe(home);
+  expect(childEnv?.KIMI_CODE_HOME).toBeUndefined();
+  expect(childEnv?.OAR_READER_REMOVED).toBeUndefined();
+  expect(process.env.KIMI_CODE_HOME).toBe(otherHome);
+  expect(process.env.OAR_READER_REMOVED).toBe("host");
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});

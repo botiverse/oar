@@ -21,7 +21,7 @@ export function projectQwenModels(payload: unknown): ModelEntry[] {
 }
 
 /** Native catalog query; the environment parameter also lets the native harness isolate HOME. */
-export async function readQwenModels(command: string, cwd: string, timeoutMs = QWEN_CONTROL_TIMEOUT_MS, env?: Readonly<Record<string, string>>): Promise<ModelEntry[]> {
+export async function readQwenModels(command: string, cwd: string, timeoutMs = QWEN_CONTROL_TIMEOUT_MS, env?: Readonly<Record<string, string | null>>): Promise<ModelEntry[]> {
   const child = await launchQwen(command, randomUUID(), { cwd, ...(env === undefined ? {} : { env }) });
   const control = qwenControl(child, timeoutMs);
   child.onLine((line) => { const value = asRecord(parseJson(line)); if (value !== null) { control.consume(value); } });
@@ -35,5 +35,5 @@ export async function readQwenModels(command: string, cwd: string, timeoutMs = Q
 
 export const qwenListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Qwen model listing requires its executable" }; }
-  return { kind: "ok", models: await readQwenModels(installation.command, listingCwd(options), options.timeoutMs) };
+  return { kind: "ok", models: await readQwenModels(installation.command, listingCwd(options), options.timeoutMs, options.env) };
 };

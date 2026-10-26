@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { afterEach, expect, test, vi } from "vitest";
-import { defineRuntime, RuntimeRegistry, orient, type AuthStatusReader, type Runtime, type InstallationSnapshot, type ListModelsResult, type InventoryResult, type SkillEntry } from "../packages/oar/src/index.js";
+import { defineRuntime, RuntimeRegistry, orient, UnsupportedOptionError, type AuthStatusReader, type Runtime, type InstallationSnapshot, type ListModelsResult, type InventoryResult, type SkillEntry } from "../packages/oar/src/index.js";
 
 afterEach(() => { vi.useRealTimers(); });
 function runtime(overrides: Partial<Runtime> = {}): Runtime {
@@ -183,4 +183,32 @@ test("a declared local auth reader preserves its native answer", async () => {
   const registry = new RuntimeRegistry([runtime({ authStatus })]);
   const snapshot = await orient(registry);
   expect(snapshot.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "logged_out" } });
+});
+
+// oxlint-disable-next-line max-statements -- All observation surfaces must receive exactly the host's chosen overlay.
+test("orient forwards the same env to every reader, including customization", async () => {
+  const env = { HOME: "scoped", HTTP_PROXY: null };
+  const installation = vi.fn(async () => ({ kind: "available", via: "bundled" } as const));
+  const authStatus = vi.fn(async () => ({ kind: "logged_in", source: "fixture" } as const));
+  const providers = vi.fn(async () => []);
+  const accountUsage = vi.fn(async () => ({ kind: "available", rateLimited: false, windows: [] } as const));
+  const listModels = vi.fn(async () => ({ kind: "ok", models: [] } as const));
+  const inventory = vi.fn(async () => ({ ...catalog([]), items: [] }));
+  const fixture = runtime({ installation, authStatus, providers, accountUsage, listModels, skills: inventory, commands: inventory, tools: inventory, mcpServers: inventory });
+  await orient(new RuntimeRegistry([fixture]), { depth: "models", include: ["customization"], env });
+  expect(installation).toHaveBeenCalledWith({ env });
+  for (const read of [authStatus, providers, accountUsage, listModels, inventory]) {
+    expect(read).toHaveBeenCalledWith({ kind: "available", via: "bundled" }, expect.objectContaining({ env }));
+  }
+  expect(inventory).toHaveBeenCalledTimes(4);
+});
+
+const refuse = async (): Promise<never> => { throw new UnsupportedOptionError("env", "sensitive internal detail"); };
+
+test.each(["installation", "authStatus", "providers", "accountUsage", "listModels", "skills"] as const)("an env refusal from %s stays unsupported instead of failed", async (member) => {
+  const fixture = runtime({ [member]: refuse });
+  const result = await orient(new RuntimeRegistry([fixture]), { depth: "models", include: ["customization"], env: { HOME: "scoped" } });
+  const field = { installation: "installation", authStatus: "auth", providers: "providers", accountUsage: "accountUsage", listModels: "models", skills: "customization" } as const;
+  expect(result.runtimes[0]?.[field[member]]).toEqual({ kind: "unsupported" });
+  expect(JSON.stringify(result)).not.toContain("sensitive");
 });

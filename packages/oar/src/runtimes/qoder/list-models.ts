@@ -38,5 +38,5 @@ export const qoderListModels: ModelLister = async (installation, options = {}) =
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Qoder model listing requires its executable" }; }
   const status = await qoderAuthStatus(installation, options);
   if (status.kind === "logged_out") { return { kind: "unauthenticated" }; }
-  return { kind: "ok", models: await readQoderModels(installation.command, { cwd: listingCwd(options) }, options.timeoutMs) };
+  return { kind: "ok", models: await readQoderModels(installation.command, { cwd: listingCwd(options), ...(options.env === undefined ? {} : { env: options.env }) }, options.timeoutMs) };
 };

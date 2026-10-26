@@ -1,3 +1,4 @@
+import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
   client as createClient,
@@ -71,8 +72,8 @@ export function projectKimiModels(response: unknown): ModelEntry[] | undefined {
   return entries;
 }
 
-async function readNewSession(command: string, cwd: string, timeoutMs: number): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, ["acp"], createClient({ name: "oar" }), { cwd, env: process.env });
+async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
+  const runtime = startAcpProcess(command, ["acp"], createClient({ name: "oar" }), { cwd, env });
   try {
     const initialize = methods.agent.initialize;
     const initialized = await withAcpDeadline(
@@ -131,7 +132,7 @@ export const kimiListModels: ModelLister = async (installation, options = {}) =>
     return { kind: "unsupported", reason: "kimi model listing requires the kimi executable" };
   }
   try {
-    const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000);
+    const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
     const models = projectKimiModels(response);
     if (models === undefined) {
       return { kind: "unsupported", reason: "this kimi build returns no model config option on session/new" };

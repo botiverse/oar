@@ -7,6 +7,7 @@
  */
 
 import type { AvailableInstallation } from "./installation.js";
+import type { SessionOptions } from "./session-options.js";
 
 /** The two login methods a provider may accept. */
 export type ProviderLoginMethod = "oauth" | "api_key";
@@ -142,6 +143,8 @@ export interface ProviderAuthFacade {
 
 /** Resolution can refresh OAuth or execute configured key commands. False reads stored metadata only. */
 export interface ProviderAuthReadOptions {
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
   readonly resolve: boolean;
   readonly timeoutMs?: number;
 }

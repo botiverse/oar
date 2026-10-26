@@ -52,7 +52,7 @@ function reader<T>(read: (request: NativeInventoryRequest, scope: InventoryScope
     const scope = workspaceScope(options);
     const child = spawnLineProcess(installation.command, [
       "-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
-    ], { cwd: scope.cwd, env: claudeEnv(), killTree: true });
+    ], { cwd: scope.cwd, env: claudeEnv(options.env), killTree: true });
     let pending: { id: string; resolve(value: JsonRecord): void; reject(error: Error): void } | null = null;
     let closed = false;
     child.onLine((line) => {
