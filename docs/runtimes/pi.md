@@ -1151,7 +1151,7 @@ history. Omission and `"include"` retain existing behavior. See the
 
 ## Orientation query costs
 
-In-process `listModels()` creates native agent-session services for the current
+The host SDK path for `listModels()` creates native agent-session services for the current
 workspace, loads its configuration and extensions, and asks the SDK's model
 runtime for available entries. This can execute user/project code, resolve key
 commands and refresh OAuth; it sends no model prompt. The orientation local
@@ -1169,8 +1169,16 @@ credential resolution and SDK-owned key commands keep the host environment.
 Installation probes the bundled SDK and is independent of the overlay. OAR
 never changes `process.env`.
 
-With `execution: "subprocess"`, model, skill and command readers start one
-bounded native RPC process per call. They reuse the session startup path:
+With `execution: "subprocess"`, model, skill and command readers choose their
+path on each call by comparing the overlay with the host environment. Omission,
+`{}`, equal values and removal of absent variables keep the host SDK path,
+without starting an RPC process. That path retains native provider display
+names, the saved default model, command `argumentHint`, skill
+`disableModelInvocation` and loading diagnostics. Its inventories can report
+`partial:false` when discovery completes without errors.
+
+An overlay that actually changes a host value uses one bounded native RPC
+process per call. The readers reuse the session startup path:
 the same `command`/`args`, version check, complete environment, agent directory,
 project trust, offline policy and package preflight. They add `--no-session`
 and submit no prompt. The default 15-second budget includes version checking,
@@ -1190,6 +1198,10 @@ entries retain their invocation names and source labels in `commands()`.
 RPC omits command `argumentHint` and skill `disableModelInvocation`; OAR does
 not fill them from the host SDK. Both inventories report `partial:true` because
 Pi RPC does not return loading diagnostics, so completeness cannot be confirmed.
+RPC startup or model-query failures, including timeouts, reject with a generic
+Error without native details. `orient()` records the rejection as `failed`, or
+`timed_out` if its own budget expires first. Inventory failures retain their
+`unavailable` result with `query_failed` or `timeout`.
 
 Pi RPC exposes neither a tool nor a provider inventory. Those two readers
 remain in the host SDK. In subprocess mode they reject any overlay that

@@ -54,12 +54,18 @@ therefore calls those readers without an overlay and preserves their host facts.
 Pi's in-process readers accept the overlay with their session's meaning: the
 inventory session's Bash tool receives it, while SDK configuration, credential
 resolution and SDK-owned key commands use the host environment. With
-`execution: "subprocess"`, model, skill and command readers start bounded native
-RPC processes with the session's full environment and startup policy. Pi RPC
+`execution: "subprocess"`, model, skill and command readers keep the host SDK
+path when the overlay makes no actual change. That preserves its richer
+metadata and loading diagnostics without starting an RPC process. Actual
+changes use bounded native RPC processes with the session's full environment
+and startup policy. Pi RPC
 has no tools/providers query: those readers still use the host SDK, and reject
 actual environment changes with `UnsupportedOptionError("env")` before loading
 it. Equal values and removal of absent variables are accepted. Bundled
 installation discovery is independent of the overlay in both modes.
+RPC inventories have `partial:true` because loading diagnostics are absent;
+SDK inventories retain their native completeness result. RPC model-query
+failures reject and become `failed` or `timed_out`, rather than `unsupported`.
 See [Pi's coverage and missing metadata](../runtimes/pi.md#reader-environment).
 
 Kimi usage supports credential and CLI environment changes but rejects actual

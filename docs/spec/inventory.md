@@ -19,11 +19,13 @@ defaults to 15 seconds and must be positive and finite. `env` applies the
 [reader environment overlay](orientation.md#environment) to native processes.
 Pi's in-process inventories pass it to the temporary session's Bash tool;
 SDK configuration, credentials and extension loading use the host environment.
-With `execution: "subprocess"`, skills and commands use a bounded native RPC
-process with the same full environment and startup policy as a session, plus
-`--no-session`. Tools still use the host SDK and reject actual environment
-changes before loading it. Unchanged values and removal of absent variables
-are accepted. See [Pi reader environments](../runtimes/pi.md#reader-environment).
+With `execution: "subprocess"`, skills and commands use that host SDK path
+when the overlay makes no actual change. Otherwise they use a bounded native
+RPC process with the same full environment and startup policy as a session,
+plus `--no-session`. Tools still use the host SDK and reject actual environment
+changes before loading it. Omission, unchanged values and removal of absent
+variables keep the SDK path and its richer metadata and loading diagnostics.
+See [Pi reader environments](../runtimes/pi.md#reader-environment).
 
 These operations discover native information independently of existing agents.
 There are **no Session inventory methods, session IDs, or session query mode**.
@@ -86,13 +88,14 @@ and `"prompt"` as in its native command catalog. Duplicate extension names
 use Pi's resolved invocation names (for example `review:1` and `review:2`),
 not an OAR-generated suffix. It does not add skill commands or terminal UI
 built-ins. Skills remain in `skills()`; a host combines the two catalogs.
-In-process discovery does not run extension commands or bind `session_start`
-hooks. Subprocess discovery uses native RPC startup, which does run those
-hooks, then reads `get_commands`. It separates `source: "skill"` entries into
+SDK discovery, including subprocess-mode reads without actual environment
+changes, does not run extension commands or bind `session_start` hooks.
+Subprocess-mode reads with environment changes use native RPC startup, which
+does run those hooks, then read `get_commands`. This path separates `source: "skill"` entries into
 `skills()` and retains extension/prompt source labels for commands. RPC does
 not expose `argumentHint`, skill `disableModelInvocation`, or loading diagnostics;
 those metadata fields are absent and both inventories have `partial:true`.
-Neither mode executes a command or observes an existing session's later changes.
+Neither path executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument
 hints. An explicit native `builtin: true` becomes `source: "builtin"`;

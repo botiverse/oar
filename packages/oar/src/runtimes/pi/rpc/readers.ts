@@ -58,7 +58,8 @@ export const piRpcModelLister = (runtime: PiRuntimeOptions): ModelLister => asyn
       return { kind: "ok", models: projectPiModels(response.data.models, getSupportedThinkingLevels) };
     });
   } catch (error) {
-    return { kind: "unsupported", reason: error instanceof DOMException && error.name === "TimeoutError"
-      ? "Pi RPC model listing timed out" : "Pi RPC could not list available models" };
+    // oxlint-disable-next-line eslint/preserve-caught-error -- Native failures can contain credentials, including in cause.
+    throw new Error(error instanceof DOMException && error.name === "TimeoutError"
+      ? "Pi RPC model listing timed out" : "Pi RPC could not list available models");
   }
 };

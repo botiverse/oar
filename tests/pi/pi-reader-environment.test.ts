@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { afterEach, expect, test, vi } from "vitest";
 import { createPiRuntime } from "../../packages/oar/src/runtimes/pi/index.js";
 import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
@@ -6,11 +7,31 @@ import { refuseChangedPiReaderEnvironment } from "../../packages/oar/src/runtime
 const sdk = vi.hoisted(() => ({
   auth: vi.fn(async () => ({ listProviders: async () => [] })),
   tools: vi.fn(async () => ({ kind: "ok", items: [] })),
+  skills: vi.fn(async () => ({ kind: "ok", partial: false, items: [{ name: "sdk-skill", disableModelInvocation: true }] })),
+  commands: vi.fn(async () => ({ kind: "ok", partial: false, items: [{ name: "sdk-prompt", argumentHint: "<file>" }] })),
+  models: vi.fn(async () => ({ kind: "ok", models: [{ id: "sdk/model", default: true, provider: { id: "sdk", displayName: "SDK provider" } }] })),
 }));
+vi.mock("node:child_process", async (original) => ({ ...await original<object>(), spawn: vi.fn(() => { throw new Error("Unexpected subprocess"); }) }));
 vi.mock("../../packages/oar/src/runtimes/pi/auth.js", () => ({ createPiProviderAuth: sdk.auth }));
-vi.mock("../../packages/oar/src/runtimes/pi/inventory.js", () => ({ createPiInventories: () => ({ tools: sdk.tools }) }));
+vi.mock("../../packages/oar/src/runtimes/pi/inventory.js", () => ({ createPiInventories: () => ({ tools: sdk.tools, skills: sdk.skills, commands: sdk.commands }) }));
+vi.mock("../../packages/oar/src/runtimes/pi/list-models.js", async (original) => ({ ...await original<object>(), piModelLister: () => sdk.models }));
 afterEach(() => { vi.clearAllMocks(); vi.unstubAllEnvs(); });
 const installed = { kind: "available", via: "bundled" } as const;
+
+// oxlint-disable-next-line max-statements -- All three readers must retain SDK metadata and avoid native process startup.
+test.each([undefined, {}, { OAR_PI_READER_SAME: "same", OAR_PI_READER_ABSENT: null }])("unchanged env %j retains SDK readers without spawning", async (env) => {
+  vi.stubEnv("OAR_PI_READER_SAME", "same");
+  vi.stubEnv("OAR_PI_READER_ABSENT", undefined);
+  const runtime = createPiRuntime({ execution: "subprocess" });
+  const options = env === undefined ? {} : { env };
+  await expect(runtime.skills(installed, options)).resolves.toMatchObject({ partial: false, items: [{ disableModelInvocation: true }] });
+  await expect(runtime.commands(installed, options)).resolves.toMatchObject({ partial: false, items: [{ argumentHint: "<file>" }] });
+  await expect(runtime.listModels(installed, options)).resolves.toMatchObject({ models: [{ default: true, provider: { displayName: "SDK provider" } }] });
+  for (const reader of [sdk.skills, sdk.commands, sdk.models]) {
+    expect(reader).toHaveBeenCalledExactlyOnceWith(installed, options);
+  }
+  expect(spawn).not.toHaveBeenCalled();
+});
 
 // oxlint-disable-next-line max-statements -- Both native entry points, privacy and unchanged host state form the refusal regression.
 test.each(["private-new-value", null])("RPC host-only readers reject actual env changes (%s) before invoking the SDK", async (value) => {

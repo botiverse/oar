@@ -9,7 +9,7 @@ import { piRefusedSessionOptions } from "./open.js";
 import { createPiSession } from "./session.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { piRpcRefusedSessionOptions } from "./rpc/open.js";
-import { refuseChangedPiReaderEnvironment } from "./reader-environment.js";
+import { piReaderForEnvironment, refuseChangedPiReaderEnvironment } from "./reader-environment.js";
 
 import type { PiRuntimeOptions } from "./options.js";
 
@@ -43,8 +43,8 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
     mcpToolsListChanged: "full",
     ...inventories,
-    skills: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcSkillReader(options); }) : inventories.skills,
-    commands: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcCommandReader(options); }) : inventories.commands,
+    skills: subprocess ? piReaderForEnvironment(inventories.skills, onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcSkillReader(options); })) : inventories.skills,
+    commands: subprocess ? piReaderForEnvironment(inventories.commands, onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcCommandReader(options); })) : inventories.commands,
     tools,
     installation: piInstallation,
     providers: async (installation, readOptions) => {
@@ -53,7 +53,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
       return result;
     },
     listModels: subprocess
-      ? onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcModelLister(options); })
+      ? piReaderForEnvironment(piModelLister(options), onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcModelLister(options); }))
       : piModelLister(options),
     session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options); }) : createPiSession(options),
   });

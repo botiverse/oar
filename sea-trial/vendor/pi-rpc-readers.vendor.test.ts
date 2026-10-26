@@ -89,7 +89,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
     } finally { await f.stop(); }
   }, 120_000);
 
-  test.each(["version", "query"])("a reader's deadline kills a stalled %s process and removes any private directory", async (stage) => {
+  test.each([{ stage: "version", reader: "commands" }, { stage: "query", reader: "commands" }, { stage: "query", reader: "models" }])("$reader deadline kills a stalled $stage process and removes any private directory", async ({ stage, reader }) => {
     const f = await fixture();
     const pidFile = path.join(f.root, "stalled.json"), script = path.join(f.root, "stalled-pi.mjs");
     const { PI_AI_VERSION } = await import("@earendil-works/pi-ai");
@@ -98,8 +98,13 @@ if (process.argv.includes("--version") && ${JSON.stringify(stage)} !== "version"
 else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ pid: process.pid, directory: process.env.OAR_PI_RPC_DIRECTORY })); setInterval(() => {}, 1000); }`);
     const runtime = createPiRuntime({ execution: "subprocess", command: process.execPath, args: [script] });
     try {
-      const result = await runtime.commands(installed, { cwd: f.cwd, env: f.env, timeoutMs: 8000 });
-      expect(result).toMatchObject({ kind: "unavailable", code: "timeout" });
+      const options = { cwd: f.cwd, env: f.env, timeoutMs: 8000 };
+      if (reader === "models") {
+        await expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC model listing timed out");
+      } else {
+        const result = await runtime.commands(installed, options);
+        expect(result).toMatchObject({ kind: "unavailable", code: "timeout" });
+      }
       const child = children(pidFile)[0];
       assert.ok(child !== undefined);
       // Timeout begins the same bounded native shutdown as a session dispose.
@@ -111,10 +116,12 @@ else { writeFileSync(${JSON.stringify(pidFile)}, JSON.stringify({ pid: process.p
   }, 30_000);
 
   test("a failed native command cannot become a successful empty catalog", async () => {
+    vi.stubEnv("OAR_PI_READER_CHANGED", "host");
     const runtime = createPiRuntime({ execution: "subprocess", command: "oar-missing-pi-reader-command" });
-    const result = await runtime.commands(installed, { timeoutMs: 10_000 });
+    const options = { env: { OAR_PI_READER_CHANGED: "child" }, timeoutMs: 10_000 };
+    const result = await runtime.commands(installed, options);
     assert.equal(result.kind, "unavailable");
     expect(result).toMatchObject({ code: "query_failed", reason: "Native inventory query failed" });
-    await expect(runtime.listModels(installed, { timeoutMs: 10_000 })).resolves.toMatchObject({ kind: "unsupported" });
+    await expect(runtime.listModels(installed, options)).rejects.toThrow("Pi RPC could not list available models");
   });
 });
