@@ -43,3 +43,23 @@ a raw SDK VERSION was polluted by the host's PI_PACKAGE_DIR, fixed by reading
 the dependency version. These are adapter observations, not claimed upstream
 fixes. Native extension default restoration remains different between the
 locations; see [Pi runtime](../../docs/runtimes/pi.md#optional-native-rpc-process).
+
+## Private prompt files
+
+On October 26, 2026, the dedicated
+[prompt-file tests](../../sea-trial/vendor/pi-rpc-prompt-files.vendor.test.ts)
+verified Pi 1.4.0 through both the bundled RPC entry and an installed CLI.
+Each system and appended prompt exceeds 44,000 characters and contains many
+newlines. The scripted provider receives both complete bodies without a private
+file path; the child arguments contain only paths. POSIX files have mode 0600
+inside a 0700 directory. Disposal, native startup failure and a later native
+process crash all remove the private files. Linux passed locally; these tests
+also run in the Windows and macOS RPC jobs.
+
+Pi's `src/core/resource-loader.ts` `resolvePromptInput` falls back to the input
+string when a path is missing or cannot be read, with only a warning for a read
+failure. OAR verifies each private file before spawning the session process and
+retains it until process exit. Separate unreadable system-file and append-file
+controls fail explicitly, start no session process, send no provider request
+and leave no private directory. The original four native regressions failed
+before the fix; all six controls pass with file arguments and the readback guard.

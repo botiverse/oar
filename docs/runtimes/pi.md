@@ -141,7 +141,19 @@ Lookup accepts that spelling as well as the supplied cwd within the same
 session directory, so macOS `/var` aliases and linked project directories can
 resume without moving their files or searching other projects.
 Model and thinking are read back after startup; name and system prompts use
-native startup flags. These options do not rewrite global defaults. `prompt` uses native `started`/`queued`/`handled`
+native startup flags. These options do not rewrite global defaults.
+
+System and appended prompt text travels in separate files inside the private
+session directory, with 0600 file permissions and a 0700 directory on POSIX.
+Only the file paths appear in the process arguments, so long multiline prompts
+do not consume the Windows command-line limit. Pi 1.4.0's `resolvePromptInput`
+reads an existing path, but treats a missing or unreadable path as literal
+prompt text; a read error only emits a warning. OAR therefore reads each file
+back before starting the session process and explicitly fails if that read
+fails or differs from the requested text. Files remain until the child exits
+or is disposed, and startup failures remove the private directory as well.
+
+`prompt` uses native `started`/`queued`/`handled`
 acknowledgments. A handled command can be accepted without creating a turn.
 Steering is native; queued inputs remain in OAR until sent, preserving individual
 withdrawal instead of using native `clear_queue` (which clears everything).
@@ -200,6 +212,7 @@ Provider login and account APIs remain outside the session interface.
 
 Evidence: [native RPC probe](../../experiments/pi-rpc-native/README.md),
 [process-boundary tests](../../sea-trial/vendor/pi-rpc.vendor.test.ts),
+[private prompt-file tests](../../sea-trial/vendor/pi-rpc-prompt-files.vendor.test.ts),
 [single-file host test](../../sea-trial/vendor/pi-rpc-bundled.vendor.test.ts),
 and the same portable Pi vendor and shared behavior suites for `pi-aimock` and
 `pi-rpc-aimock`. SDK-object-specific tests stay on the SDK path. The following

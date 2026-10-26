@@ -19,6 +19,7 @@ import { piRpcControl } from "./control.js";
 import { readPiRpcCredentials } from "./credentials.js";
 import { piRpcLaunch } from "./launch.js";
 import { piRpcExtensionSource } from "./extension.js";
+import { piRpcPromptFiles } from "./prompt-files.js";
 import { RuntimeFailureError } from "../../../contracts/runtime-failure-error.js";
 
 export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
@@ -69,6 +70,7 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
     // A bundled host need not ship its own source files or a node_modules tree.
     const extension = path.join(directory.path, "extension.mjs");
     await writeFile(extension, piRpcExtensionSource, { mode: 0o600 });
+    const promptArgs = await piRpcPromptFiles(directory.path, options);
     const child = spawnLineProcess(launch.command, [
       ...launch.args,
       runtime.projectTrusted === false ? "--no-approve" : "--approve",
@@ -80,8 +82,7 @@ export async function openPiRpc(options: SessionOptions, credentials: SessionCre
       ...(options.model === undefined ? [] : ["--model", options.model]),
       ...(options.effort === undefined ? [] : ["--thinking", options.effort]),
       ...(options.name === undefined || hasName ? [] : ["--name", options.name]),
-      ...(options.systemPrompt === undefined ? [] : ["--system-prompt", options.systemPrompt]),
-      ...(options.appendSystemPrompt === undefined ? [] : ["--append-system-prompt", options.appendSystemPrompt]),
+      ...promptArgs,
       ...((options.disallowedTools?.length ?? 0) === 0 ? [] : ["--exclude-tools", (options.disallowedTools ?? []).join(",")]),
     ], { cwd: options.cwd, env: { ...env, PI_CODING_AGENT_DIR: agentDir, OAR_PI_RPC_DIRECTORY: directory.path }, killTree: true, shutdown: "stdin", inheritStderr: false, extraPipe: true });
     const keyPipe = child.extraPipe;
