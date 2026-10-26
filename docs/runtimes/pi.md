@@ -1162,8 +1162,13 @@ only credentials do not appear in that stored list.
 
 ## Reader environment
 
-Installation, model listing, provider listing and supported inventories run
-in the host process, even with `execution: "subprocess"`. A nonempty `env`
-on those readers throws `UnsupportedOptionError("env")` before SDK loading;
-`{}` preserves existing behavior. The subprocess session path does not provide
-a separate query protocol. See [reader environments](../spec/orientation.md#environment).
+Installation, model listing, provider listing and supported inventories accept
+`env`. They use the in-process session meaning: the inventory's replacement
+Bash tool receives the overlay through its spawn hook; SDK configuration,
+credential resolution and SDK-owned key commands keep the host environment.
+Installation probes the bundled SDK and is independent of the overlay. OAR
+never changes `process.env`.
+
+These readers still run in the host process with `execution: "subprocess"`;
+that option moves sessions, not readers, to a child. There is no separate
+subprocess query protocol. See [reader environments](../spec/orientation.md#environment).

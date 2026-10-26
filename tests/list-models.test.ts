@@ -209,7 +209,7 @@ test("pi lister builds pi's services for the requested directory", async () => {
     seen.push(cwd);
     return { getAvailable: async () => { await Promise.resolve(); return []; } };
   });
-  await lister(bundled, { cwd: "workspace" });
+  await lister(bundled, { cwd: "workspace", env: { OAR_PI_AGENT_DIR: "child-only-dir" } });
   await lister(bundled);
   expect(seen).toEqual([path.resolve("workspace"), process.cwd()]);
 });

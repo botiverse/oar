@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { expect, test, vi } from "vitest";
 import { qoderListModels, projectQoderModels } from "../../packages/oar/src/runtimes/qoder/list-models.js";
 import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
@@ -26,8 +27,8 @@ vi.mock("../../packages/oar/src/runtimes/qoder/control.js", () => ({ qoderContro
 
 test("Qoder model listing uses the same environment for authentication and the native catalog", async () => {
   const env = { HOME: "scoped-home", REMOVED: null };
-  const result = await qoderListModels({ kind: "available", via: "executable", command: "qodercli" }, { cwd: "/project", env });
+  const result = await qoderListModels({ kind: "available", via: "executable", command: "qodercli" }, { cwd: resolve("/project"), env });
   expect(result).toEqual({ kind: "ok", models: [{ id: "model" }] });
   expect(vi.mocked(qoderAuthStatus).mock.calls[0]?.[1]?.env).toEqual(env);
-  expect(vi.mocked(launchQoder).mock.calls[0]?.[2]).toEqual({ cwd: "/project", env });
+  expect(vi.mocked(launchQoder).mock.calls[0]?.[2]).toEqual({ cwd: resolve("/project"), env });
 });

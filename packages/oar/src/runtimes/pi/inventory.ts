@@ -1,4 +1,3 @@
-import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { CommandEntry, RuntimeInventories, InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
@@ -8,6 +7,7 @@ import { piAgentDir } from "./resolve.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
 import type { PiProjectOptions } from "./options.js";
 import { initPiTheme } from "./theme.js";
+import { piEnvBashTool } from "./open.js";
 
 interface PiReaders {
   readonly skills: () => InventoryResult<SkillEntry>;
@@ -54,7 +54,6 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
 }
 function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, project: PiProjectOptions): InventoryReader<T> {
   return async (installation, options = {}) => {
-    refuseReaderEnvironment(options.env, "Pi inventory runs in the host process, including for subprocess sessions");
     if (installation.via !== "bundled") {
       return unsupportedInventory("installation_unsupported", "Pi inventory requires the bundled SDK");
     }
@@ -71,6 +70,7 @@ function reader<T>(select: (readers: PiReaders) => () => InventoryResult<T>, pro
       const services = await sdk.createAgentSessionServices({ cwd: scope.cwd, agentDir, settingsManager });
       const { session } = await sdk.createAgentSessionFromServices({
         services, sessionManager: sdk.SessionManager.inMemory(scope.cwd),
+        ...(options.env === undefined ? {} : { customTools: [await piEnvBashTool(scope.cwd, options.env)] }),
       });
       try {
         return select(piInventories(session, scope))();

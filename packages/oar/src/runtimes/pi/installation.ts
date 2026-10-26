@@ -1,4 +1,3 @@
-import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { InstallationProbe, InstallationSnapshot } from "../../contracts/installation.js";
 
 const SDK_PACKAGE = "@earendil-works/pi-coding-agent";
@@ -21,8 +20,7 @@ async function sdkLoads(): Promise<boolean> {
  * on disk, so fall back to actually importing the compiled-in sdk. An install
  * where neither works (a bundle that left the sdk out) is an honest not_found.
  */
-export const piInstallation: InstallationProbe = async (options = {}): Promise<InstallationSnapshot> => {
-  refuseReaderEnvironment(options.env, "Pi installation probes the host SDK");
+export const piInstallation: InstallationProbe = async (): Promise<InstallationSnapshot> => {
   const resolvable = ((): boolean => {
     try {
       import.meta.resolve(SDK_PACKAGE);

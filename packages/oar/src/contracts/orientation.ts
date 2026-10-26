@@ -15,7 +15,7 @@ export type Probe<T> =
   | { readonly kind: "unsupported" };
 export type OrientationDepth = "local" | "account" | "models";
 export interface OrientOptions {
-  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  /** Session overlay: strings override and null removes. Omitted for runtimes declaring refusedSessionOptions.env. */
   readonly env?: SessionOptions["env"];
   readonly depth?: OrientationDepth;
   readonly runtimes?: readonly string[];

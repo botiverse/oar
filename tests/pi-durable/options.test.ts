@@ -3,6 +3,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxProvider } from "@earendil-works/pi-ai/providers/faux";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
+import { orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";
 import { openConversation } from "../../packages/oar/src/runtimes/pi-durable/options.js";
 import { SessionNotFoundError } from "../../packages/oar/src/contracts/session-not-found-error.js";
@@ -149,4 +150,14 @@ test.each([
   await expect(runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", ...option })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: Object.keys(option)[0] });
   const records = await harness.commit(async (tx) =>  tx.scanConversations({}, 10), BACKGROUND_CONTEXT);
   expect(records.items).toHaveLength(0);
+});
+
+
+test("orient keeps Pi Durable host catalog facts while direct readers refuse env", async () => {
+  const { runtime } = await setup();
+  const env = { HOME: "ignored-by-host-harness" };
+  await expect(runtime.installation?.({ env })).rejects.toMatchObject({ option: "env" });
+  const report = await orient(new RuntimeRegistry([runtime]), { depth: "models", env });
+  expect(report.runtimes[0]?.installation).toMatchObject({ kind: "ok", value: { kind: "available", via: "bundled" } });
+  expect(report.runtimes[0]?.models).toMatchObject({ kind: "ok", value: [{ id: "faux/reasoning" }, { id: "faux/plain" }] });
 });

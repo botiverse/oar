@@ -21,8 +21,14 @@ const choices = usability(facts, { minVersions: { codex: "0.164.0" } });
 
 ## Environment
 
-`OrientOptions.env` is passed to every reader the requested depth and includes
-select: installation, auth status, providers, usage, models and inventories.
+`OrientOptions.env` observes the environment a session can use. For each
+runtime, `orient` checks its `refusedSessionOptions.env` declaration. When
+present, `orient` omits the overlay from that runtime's readers and observes
+the host environment; it does not mark the runtime unsupported. Otherwise it
+passes the overlay to every reader selected by depth and includes: installation,
+auth status, providers, usage, models and inventories. This decision uses the
+declaration, never the runtime name.
+
 It uses the same overlay as `SessionOptions.env`: a string overrides an
 inherited value and `null` removes it. Omission or `{}` keeps existing behavior.
 The host's `process.env` is never mutated and shell profiles are never loaded
@@ -39,15 +45,22 @@ on each call, and uses it for readiness and version commands. An empty PATH
 never searches the working directory for a bare command; explicit paths and
 supported installation fallbacks remain usable.
 
-CLI readers pass that environment to their native processes. In-process SDK
-readers cannot isolate arbitrary environment changes: Pi (including the readers
-on its subprocess runtime), Pi Durable and Cursor reject any nonempty `env`
-with `UnsupportedOptionError("env")` before loading or querying the SDK. Pi's
-subprocess option changes session execution, not its reader execution. Kimi
-usage supports credential and CLI environment changes but rejects actual
+CLI readers pass that environment to their native processes. Cursor and Pi
+Durable direct readers reject nonempty overlays with
+`UnsupportedOptionError("env")`, matching their session refusals. `orient`
+therefore calls those readers without an overlay and preserves their host facts.
+
+Pi readers accept the overlay with its in-process session meaning: the
+inventory session's Bash tool receives it, while SDK configuration, credential
+resolution and SDK-owned key commands use the host environment. Bundled
+installation discovery is independent of the overlay. These readers remain in
+the host process even when Pi sessions use `execution: "subprocess"`; no separate
+query protocol or host-environment mutation is introduced.
+
+Kimi usage supports credential and CLI environment changes but rejects actual
 changes to a fixed list of host HTTP/TLS variables
-([list and rationale](account-usage.md#environment)). No new subprocess reader
-protocol or temporary host-environment mutation is introduced.
+([list and rationale](account-usage.md#environment)). Its sessions accept env,
+so `orient` passes the overlay and preserves that reader's precise refusal.
 
 `orient` maps `UnsupportedOptionError("env")` to `{ kind: "unsupported" }`,
 not `failed`, without exposing exception text or environment values. Other

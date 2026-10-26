@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { createCursorRuntime } from "../../packages/oar/src/index.js";
+import { createCursorRuntime, orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { projectCursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/auth-status.js";
 import type { CursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/sdk.js";
 import { bundled, EXPIRES_MS, FakeCursor, KEY, leaks, unused } from "../fixtures/fake-cursor-auth.js";
@@ -99,4 +99,13 @@ test("a status that fails, never answers or cannot be read is unknown, never a g
       },
     ]
   `);
+});
+
+
+test("orient observes Cursor in its host environment when sessions refuse env", async () => {
+  const cursor = new FakeCursor({ stored: { status: "logged-in", email: "host@example.invalid" } }).runtime();
+  const report = await orient(new RuntimeRegistry([cursor]), { depth: "account", env: { CURSOR_API_KEY: "overlay-must-not-reach-sdk" } });
+  expect(report.runtimes[0]?.installation).toMatchObject({ kind: "ok", value: { kind: "available", via: "bundled" } });
+  expect(report.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "logged_in", account: { email: "host@example.invalid" } } });
+  expect(process.env.CURSOR_API_KEY).toBeUndefined();
 });

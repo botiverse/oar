@@ -9,6 +9,8 @@ const sdk = vi.hoisted(() => ({
   SessionManager: { inMemory: vi.fn((cwd: string) => ({ cwd })) },
   SettingsManager: { create: vi.fn((cwd: string) => ({ cwd, getTheme: () => "dark", getProjectSettings: () => ({}), getGlobalSettings: () => ({}) })) },
   initTheme: vi.fn(),
+  defineTool: vi.fn((tool: unknown) => tool),
+  createBashToolDefinition: vi.fn((cwd: string, options: { spawnHook: (context: { env: NodeJS.ProcessEnv }) => { env: NodeJS.ProcessEnv } }) => ({ name: "bash", cwd, ...options })),
 }));
 vi.mock("@earendil-works/pi-coding-agent", () => sdk);
 
@@ -147,5 +149,19 @@ test.each([piTools, piCommands])("Pi startup resolving after the query deadline 
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
   opening.resolve({ session: agent });
   await vi.advanceTimersByTimeAsync(0);
+  expect(agent.dispose).toHaveBeenCalledOnce();
+});
+
+
+test("Pi inventory accepts env without changing SDK configuration and applies it to its bash tool", async () => {
+  const agent = session();
+  sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+  const host = process.env.OAR_PI_AGENT_DIR;
+  const result = await piTools(bundled, { cwd: "/inventory", env: { OAR_PI_AGENT_DIR: "child-only-dir", REMOVE: null } });
+  expect(result.kind).toBe("ok");
+  expect(sdk.createAgentSessionServices).toHaveBeenCalledWith(expect.objectContaining({ agentDir: host ?? "/fake/agent" }));
+  const hook = sdk.createBashToolDefinition.mock.calls[0]?.[1].spawnHook;
+  expect(hook?.({ env: { KEEP: "inherited", REMOVE: "remove" } }).env).toEqual({ KEEP: "inherited", OAR_PI_AGENT_DIR: "child-only-dir" });
+  expect(process.env.OAR_PI_AGENT_DIR).toBe(host);
   expect(agent.dispose).toHaveBeenCalledOnce();
 });

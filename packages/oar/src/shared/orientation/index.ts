@@ -55,7 +55,10 @@ async function additional(runtime: Runtime, installation: AvailableInstallation,
   return { ...(accountUsage === undefined ? {} : { accountUsage }), ...(modelList === undefined ? {} : { models: modelList }), ...(customization === undefined ? {} : { customization }) };
 }
 
-async function readRuntime(runtime: Runtime, options: OrientOptions, until: number, slots: ProbeSlots): Promise<RuntimeOrientation> {
+async function readRuntime(runtime: Runtime, requested: OrientOptions, until: number, slots: ProbeSlots): Promise<RuntimeOrientation> {
+  // Observe the environment a session can actually use, based on its declaration.
+  const { env, ...rest } = requested;
+  const options: OrientOptions = runtime.refusedSessionOptions?.env === undefined && env !== undefined ? { ...rest, env } : rest;
   const budget = new ProbeBudget(until, options.signal);
   const installationReader = runtime.installation;
   const installation = await budget.run(installationReader === undefined ? undefined : async (): Promise<InstallationSnapshot> => { const result = await installationReader.call(runtime, options.env === undefined ? {} : { env: options.env }); return result; });

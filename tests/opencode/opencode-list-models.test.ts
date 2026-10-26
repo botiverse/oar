@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import { expect, test, vi } from "vitest";
 import { opencodeListModels, projectOpencodeModels } from "../../packages/oar/src/runtimes/opencode/list-models.js";
@@ -40,11 +41,11 @@ test("OpenCode listing and a missing version probe both receive the scoped envir
 
   run.mockResolvedValueOnce({ ok: true, stdout: "2.1.2", stderr: "", exitCode: 0 })
     .mockResolvedValueOnce({ ok: true, stdout: "provider/model", stderr: "", exitCode: 0 });
-  const result = await opencodeListModels({ kind: "available", via: "executable", command: "opencode" }, { cwd: "/project", env: readerEnvironment() });
+  const result = await opencodeListModels({ kind: "available", via: "executable", command: "opencode" }, { cwd: resolve("/project"), env: readerEnvironment() });
   expect(result).toEqual({ kind: "ok", models: [{ id: "provider/model" }] });
   expect(run.mock.calls.map((call) => call[1])).toEqual([["--version"], ["models", "--standalone"]]);
   for (const call of run.mock.calls) {
     expectReaderEnvironment(call[2]?.env);
-    expect(call[2]?.cwd).toBe("/project");
+    expect(call[2]?.cwd).toBe(resolve("/project"));
   }
 });

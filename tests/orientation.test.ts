@@ -186,7 +186,7 @@ test("a declared local auth reader preserves its native answer", async () => {
 });
 
 // oxlint-disable-next-line max-statements -- All observation surfaces must receive exactly the host's chosen overlay.
-test("orient forwards the same env to every reader, including customization", async () => {
+test.each([false, true])("orient uses the declared session env policy for every reader (refused: %s)", async (refused) => {
   const env = { HOME: "scoped", HTTP_PROXY: null };
   const installation = vi.fn(async () => ({ kind: "available", via: "bundled" } as const));
   const authStatus = vi.fn(async () => ({ kind: "logged_in", source: "fixture" } as const));
@@ -194,11 +194,15 @@ test("orient forwards the same env to every reader, including customization", as
   const accountUsage = vi.fn(async () => ({ kind: "available", rateLimited: false, windows: [] } as const));
   const listModels = vi.fn(async () => ({ kind: "ok", models: [] } as const));
   const inventory = vi.fn(async () => ({ ...catalog([]), items: [] }));
-  const fixture = runtime({ installation, authStatus, providers, accountUsage, listModels, skills: inventory, commands: inventory, tools: inventory, mcpServers: inventory });
+  const fixture = runtime({ refusedSessionOptions: refused ? { env: "fixture uses host environment" } : {}, installation, authStatus, providers, accountUsage, listModels, skills: inventory, commands: inventory, tools: inventory, mcpServers: inventory });
   await orient(new RuntimeRegistry([fixture]), { depth: "models", include: ["customization"], env });
-  expect(installation).toHaveBeenCalledWith({ env });
+  expect(installation).toHaveBeenCalledWith(refused ? {} : { env });
   for (const read of [authStatus, providers, accountUsage, listModels, inventory]) {
-    expect(read).toHaveBeenCalledWith({ kind: "available", via: "bundled" }, expect.objectContaining({ env }));
+    if (refused) {
+      const calls: readonly (readonly unknown[])[] = read.mock.calls;
+      for (const call of calls) { expect(call[1]).not.toHaveProperty("env"); }
+    }
+    else { expect(read).toHaveBeenCalledWith({ kind: "available", via: "bundled" }, expect.objectContaining({ env })); }
   }
   expect(inventory).toHaveBeenCalledTimes(4);
 });
