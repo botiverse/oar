@@ -14,19 +14,26 @@ beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-Current required SDK: **1.0.40**, the exact optional peer version. Hosts
+Current required SDK: **1.1.0**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
-On **1.0.40** (2026-10-21; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
-reusing an existing login), all 12 applicable live session scenarios and
-all three root tool-selection scenarios passed on the first run;
-`kill-runtime` remains skipped. Abort and disposal ended as aborted, resume
-preserved the id/model/history, and restricted new and resumed sessions
-kept read usable while denying shell/MCP. The native login/logout probe
-passed all 11 scenarios against a local substitute, without a real login.
-See the [October 21 report](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040)
-for usage and scope. Earlier observations remain in the
+On **1.1.0** (2026-10-27; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
+reusing an existing login), all 12 applicable live session scenarios passed;
+`kill-runtime` remains skipped. The three root tool-selection scenarios passed
+with a new file per phase. The initial resume reused a previously read file
+and failed the required-read assertion because the model quoted history;
+no denied tool or MCP handler executed. Login/logout passed all 11 local
+substitute scenarios, and the configuration-source probe passed all four
+controls without using a real account.
+
+SDK 1.1.0 changed token accounting: `inputTokens` already includes cache
+reads and writes, so OAR no longer adds them again. Cursor `input` values can
+therefore be smaller; cache parts remain available separately. The
+[October 27 report](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110)
+records source evidence, native samples and the unverified nonzero cache-write
+case. Earlier observations remain in the
+[October 21 report](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040),
 [October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)
 and [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md).
 
@@ -58,7 +65,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.0.40`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.1.0`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -231,16 +238,20 @@ Cursor reproduced it the same day and called it unintended.
 
 **Mapped:** every update is one frame (`type` is the update's `type`).
 `text-delta` is a `text_delta`, `thinking-delta` a `reasoning` text, and
-`turn-ended` a `usage` event: its `inputTokens` exclude cache reads and
-writes, so OAR adds `cacheReadTokens` and `cacheWriteTokens` to the input,
-and the totals accumulate; the two also accumulate as `cacheRead` and
-`cacheWrite` (required numbers in SDK 1.0.36's `TurnEndedUpdateSchema`, so
-both are present once a turn reported usage;
-[spec](../spec/attribution.md#cache-reads-and-writes)). SDK 1.0.37's optional
+`turn-ended` a `usage` event: OAR accumulates `inputTokens` as input, with
+`cacheReadTokens` and `cacheWriteTokens` also accumulated as its separate
+parts. SDK 1.1.0's `toTokenUsage` and `sumTokenUsage` calculate
+`totalTokens = inputTokens + outputTokens`; neither adds cache parts again
+[src]. Real 1.1.0 samples on October 27 include nonzero cache reads and match
+that total; all cache writes were zero, so nonzero write inclusion remains
+unverified against a real provider. The
+[recorded fixture](../../tests/fixtures/cursor-usage-1.1.0.json) pins these
+samples; a separate synthetic test covers nonzero writes. Required numeric
+cache fields preserve explicit zero
+([spec](../spec/attribution.md#cache-reads-and-writes)). Optional
 `reasoningTokens` accumulates as `reasoning`, already included in output;
-an absent native field stays absent. This mapping is pinned by the SDK's
-usage types and projection tests, without claiming a nonzero real-provider
-measurement. It is the run's usage, recorded on the root; no
+an absent native field stays absent. Nonzero reasoning was observed on
+October 27. It is the run's usage, recorded on the root; no
 update reports a child's own tokens, and whether the run's figure includes a
 child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),
@@ -347,7 +358,7 @@ refuses to spawn a cursor child.
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
 the host's entry script. OAR does not modify `process.env` while loading it.
-SDK 1.0.40 exposes no per-local-agent environment or native-package-path
+SDK 1.1.0 exposes no per-local-agent environment or native-package-path
 option; its bundle reads these variables directly from the host environment.
 
 A host using a non-hoisted pnpm layout, a bundled entry, or a single executable
@@ -531,7 +542,7 @@ warning when a backend has no `POST /auth/poll` (it falls back to `GET`) goes
 to the host's stderr, out of OAR's reach; it names the backend, not the
 verifier.
 
-The floor is `@cursor/sdk` 1.0.40, the exact peer dependency. An SDK handed
+The floor is `@cursor/sdk` 1.1.0, the exact peer dependency. An SDK handed
 over without `Cursor.auth` and `FileCredentialStore` makes the login
 `unsupported` / `version_unsupported` and the status `unknown`; an
 installation other than `bundled` is `unsupported_installation`, and an SDK
@@ -549,7 +560,7 @@ polls and while it mints, each in an empty home and over a previous login;
 the SDK stopped polling on its signal, minted and asked `GetMe` after a
 cancel, then saved only through OAR's store, which refused it, so
 `auth.json` stayed absent or byte for byte as it was; all 11 scenarios
-passed again on 1.0.40, 2026-10-21, with other network access blocked).
+passed again on 1.1.0, 2026-10-27, with other network access blocked).
 **Run that experiment on every `@cursor/sdk` upgrade**: it needs no account
 and fails if the SDK writes `auth.json` outside the store it is given. On a real login, on
 2026-10-06 and 2026-10-07, on a fresh Linux test machine with `@cursor/sdk`
@@ -669,7 +680,7 @@ answer; OAR does not substitute that unrelated field or a prompt instruction.
 ## User configuration
 
 `userConfiguration: "exclude"` explicitly passes `local.settingSources: []`
-and keeps `local.sandboxOptions: { enabled: false }`. SDK 1.0.40 already
+and keeps `local.sandboxOptions: { enabled: false }`. SDK 1.1.0 still
 loads no ambient settings when setting sources are omitted, so omission and
 `"include"` retain that native default. Project settings are absent too.
 The SDK still reads `~/.cursor/sandbox.json`, but the explicit sandbox option
@@ -695,7 +706,7 @@ present it returns `unknown` without loading the SDK; otherwise it calls
 `Cursor.auth.status()` with no options. The stored user key has API-key form
 but is charged to the Cursor plan; those are independent facts.
 
-The SDK 1.0.40 bundle's status path loads its default `FileCredentialStore`,
+The SDK 1.1.0 bundle's status path loads its default `FileCredentialStore`,
 validates the stored shape and checks expiry. Its operation wrapper only
 normalizes errors. It does not use the model-request credential resolver
 (explicit `apiKey`, then `CURSOR_API_KEY`, then a stored backend-paired key),

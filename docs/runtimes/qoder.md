@@ -4,6 +4,12 @@ Qoder CLI exposes a bidirectional JSON-line protocol through `--print
 --input-format stream-json --output-format stream-json`. OAR uses this native
 interface, with one process per open session. The interface and the bundled
 implementation were probed on Qoder 1.1.78, Linux, on October 23, 2026.
+The 1.1.79 recheck on October 27 passed eight native cases, 17 shared
+behavior cases (two skipped), and all eight native priority controls after
+isolating the test settings files. The first shared run's startup failure
+and the unchanged passing recheck are retained in the
+[daily report](../../experiments/runtime-version-checks/2026-10-27.md#qoder-1179).
+No real account or paid provider was used.
 
 ## Native interface
 
@@ -150,6 +156,18 @@ particular remote provider's behavior. Reproduction commands and the first
 failures are recorded in [the native evidence guide](../../experiments/qoder-native/README.md).
 
 ### Concurrent startup observations
+
+On October 27, 2026, Qoder 1.1.79 once exited while reading incomplete JSON
+from `/tmp/qoder-settings-1cc73090ab49cfc6.json`. Its installed bundle writes
+inline `--settings` to a shared temporary path named from the settings'
+content hash; that hash matches the failing path. An unchanged suite rerun
+passed, and 12 serial plus 12 concurrent inline-setting controls did not
+reproduce the error. Twelve concurrent file-path controls also passed. This
+supports a shared-file hazard, not a deterministic reproduction or proof of
+the failed read's exact timing. Passing a settings file path avoids that
+shared inline-settings file. Hosts can pass either native form through
+`launchArgs`; OAR does not rewrite or block it. Test fixtures now each use
+their own immutable file. See the [controls and report draft](../../experiments/qoder-native/inline-settings-report.md).
 
 On `windows-latest` with Qoder 1.1.78, the behavior suite starts 19 cases
 without a concurrency cap; skipped and query-only cases do not all create

@@ -149,3 +149,26 @@ whole-test deadline after its recorded turn completed and its process exited
 normally. That revision did not measure the remaining cleanup cost. Fixture
 cleanup now has its separate bound described above. No paid provider or
 existing login was used.
+
+### Inline settings (2026-10-27)
+
+```sh
+OAR_QODER_BIN=/path/to/qodercli pnpm tsx experiments/qoder-native/inline-settings.ts
+```
+
+Qoder 1.1.79 on Linux failed one shared behavior case while parsing its
+content-hash-named temporary settings file. The unchanged recheck passed.
+The [comparison probe](inline-settings.ts) performs 12 serial inline opens,
+12 concurrent inline opens and 12 concurrent opens with separate settings
+files, retaining every outcome. It uses isolated homes and a disposable
+shared temporary directory, with no prompt or real login. All 36 opens
+passed, so the intermittent failure was not reproduced. Serial or file-path
+control failures fail the probe; concurrent inline failures are reported
+as observations rather than hidden by a retry.
+
+After changing the test fixture to supply each home's immutable settings
+file, all eight native cases and 17 shared behavior cases passed (two skipped),
+as did all eight controls in `priority.ts`. Product launch behavior, test
+assertions, concurrency and deadlines did not change. The
+[upstream report draft](inline-settings-report.md) records the observed
+failure, source-path match and unsuccessful reproduction for a human to submit.

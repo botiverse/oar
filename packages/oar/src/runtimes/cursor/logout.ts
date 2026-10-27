@@ -53,7 +53,7 @@ export function cursorLogoutWith(load: () => Promise<CursorSdk>): RuntimeLogout 
     }
     const { auth } = sdk.Cursor;
     if (auth?.logout === undefined) {
-      return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.0.40 is required; this one has no Cursor.auth.logout" };
+      return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.1.0 is required; this one has no Cursor.auth.logout" };
     }
     // With no store: the SDK's own default, the file `status()` reads.
     const native = await sdkLogout(async () => {

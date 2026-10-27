@@ -13,7 +13,7 @@ function text(value: unknown): string | undefined {
 }
 
 /**
- * `Cursor.auth.status()` (SDK 1.0.40) reads the stored login
+ * `Cursor.auth.status()` (SDK 1.1.0) reads the stored login
  * (`~/.cursor/sdk/auth.json`) and answers `{ status: "logged-out" }`, also
  * for a key past its expiry, or `{ status: "logged-in", backendUrl, email?,
  * apiKeyExpiresAtMs? }`; it never returns the key. `CURSOR_API_KEY` is not
@@ -75,7 +75,7 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
     }
     const { auth } = sdk.Cursor;
     if (auth === undefined) {
-      return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.0.40" };
+      return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.1.0" };
     }
     const status = await readCursorAuthStatus(auth, options.timeoutMs);
     return status;

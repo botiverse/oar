@@ -16,9 +16,9 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The newest checked release
-is **kimi 2.3.2** (2026-10-25): all 11 scripted-provider vendor tests and
+is **kimi 2.3.3** (2026-10-27): all 11 scripted-provider vendor tests and
 15 shared behavior cases passed on the first run, with four behavior skips
-([version check](../../experiments/runtime-version-checks/2026-10-25.md#kimi-232)).
+([version check](../../experiments/runtime-version-checks/2026-10-27.md#kimi-233)).
 The earlier 2.3.0 hook-test initialization timeout did not recur. That test
 uses a shortened 2,000 ms `requestTimeoutMs`, while OAR's Kimi request
 default is 30 seconds; the earlier failure did not establish a user-facing

@@ -262,9 +262,11 @@ SessionView preserve it through JSON replay.
 zero, agent/child totals and replay. The
 [Codex vendor test](../../sea-trial/vendor/reasoning-tokens.vendor.test.ts)
 checks nonzero counts on both sides of a resume without an account or model
-request to a real provider. Pi and Cursor field mappings are verified with
-their SDK types and projection tests; no real-provider nonzero count is
-claimed for those SDKs.
+request to a real provider. Pi's field mapping is verified with its SDK
+types and projection tests; no real-provider nonzero count is claimed for Pi.
+Cursor 1.1.0 reported nonzero reasoning on October 27, 2026; its
+[recorded native fixture](../../tests/fixtures/cursor-usage-1.1.0.json) and
+projection tests retain that evidence.
 
 ### Cache reads and writes
 
@@ -287,7 +289,7 @@ without `input` changing under existing consumers
 | Runtime | `cacheRead` | `cacheWrite` | Evidence |
 | --- | --- | --- | --- |
 | claude | `cacheReadInputTokens` of each `result.modelUsage` model (total); `result.usage.cache_read_input_tokens` (root) | `cacheCreationInputTokens` of each model (total); `result.usage.cache_creation_input_tokens` (root) | both added into `input` (`inputTokens` and `input_tokens` exclude them); recorded `result` frames in the background-tasks and claude-usage replay fixtures [env] |
-| cursor | `turn-ended.usage.cacheReadTokens` | `turn-ended.usage.cacheWriteTokens` | both added into `input`; `@cursor/sdk` 1.0.36 `TurnEndedUpdateSchema` [src], probe 2026-10-03 [env] |
+| cursor | `turn-ended.usage.cacheReadTokens` | `turn-ended.usage.cacheWriteTokens` | already included in `inputTokens`, copied without addition; `@cursor/sdk` 1.1.0 `toTokenUsage` / `sumTokenUsage` [src]; 2026-10-27 native samples confirm nonzero reads [env], nonzero writes unverified with a real provider ([report](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110)) |
 | pi | assistant `usage.cacheRead` | assistant `usage.cacheWrite` | both added into `input`; pi-ai 1.0.4 `Usage` [src], pi-aimock replay fixture [env] |
 | pi-durable | model and tool ledger entries' `cacheRead` | their `cacheWrite` | both added into `input`, less the totals at attachment; Pi Durable `UsageState` uses pi-ai `Usage` [src] |
 | codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own thread total, less the total re-reported on resume like `input` [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |

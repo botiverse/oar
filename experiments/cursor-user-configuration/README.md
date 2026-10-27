@@ -7,7 +7,8 @@ its local backend, and removes its files afterward. Run it as a separate
 process because it observes native filesystem calls and sets process-wide
 environment variables. No real account or model inference is used.
 
-Observed on Linux, SDK 1.0.40, 2026-10-23:
+Observed on Linux, SDK 1.0.40 on 2026-10-23; all four controls passed
+again with SDK 1.1.0 on 2026-10-27:
 
 | Open | User skill, hook and MCP files read | User MCP connects | Original stored login used |
 |---|---|---|---|

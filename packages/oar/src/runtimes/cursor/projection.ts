@@ -170,12 +170,12 @@ function eventsOf(
       if (usage === null) {
         return { state, events: [] };
       }
-      // `inputTokens` excludes cache reads and writes (totalTokens is the sum
-      // of all four), so input counts them back in, as claude's and pi's do;
-      // each also stands as its own part.
+      // SDK 1.1.0 treats cache reads and writes as parts of inputTokens:
+      // its totalTokens is inputTokens + outputTokens. Keep those parts
+      // without counting them a second time in input.
       const cache = cacheParts(usage, { read: "cacheReadTokens", write: "cacheWriteTokens" });
       const tokens = addTokens(state.tokens.get(pathKey(path)) ?? noTokens, {
-        input: (asNumber(usage.inputTokens) ?? 0) + (cache.cacheRead ?? 0) + (cache.cacheWrite ?? 0),
+        input: asNumber(usage.inputTokens) ?? 0,
         output: asNumber(usage.outputTokens) ?? 0,
         ...reasoningPart(usage, "reasoningTokens"),
         ...cache,

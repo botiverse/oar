@@ -37,6 +37,10 @@ export interface QoderNativeEnv {
 export async function startQoderNative(replies: readonly QoderReply[], delayMs = 1): Promise<QoderNativeEnv> {
   const home = await mkdtemp(path.join(tmpdir(), "oar-qoder-native-"));
   const cwd = path.join(home, "project"); await mkdir(cwd);
+  // Native inline settings reuse and overwrite a content-hash file in the
+  // system temp directory. Concurrent fixtures must not share that file.
+  const settings = path.join(home, "settings.json");
+  await writeFile(settings, JSON.stringify({ security: { auth: { useExternal: true } } }), { mode: 0o600 });
   const responses = path.join(home, "responses.jsonl");
   await writeFile(responses, `${replies.map((reply) => JSON.stringify({ method: "generateContentStream", response: (reply.chunks ?? [reply.text ?? "ok"]).map((text) => ({
     candidates: [{ content: { parts: reply.tool === undefined ? [{ text }] : [{ functionCall: reply.tool }] }, finishReason: "STOP" }],
@@ -45,7 +49,7 @@ export async function startQoderNative(replies: readonly QoderReply[], delayMs =
   const options: SessionOptions = { cwd,
     env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: path.join(home, "config"), QODER_FAKE_STREAM_DELAY_MS: String(delayMs),
       QODER_PERSONAL_ACCESS_TOKEN: "", QODER_API_KEY: "", NO_PROXY: "*" },
-    launchArgs: ["--settings", JSON.stringify({ security: { auth: { useExternal: true } } }), "--fake-responses", responses],
+    launchArgs: ["--settings", settings, "--fake-responses", responses],
   };
   return { options, home, stop: async (): Promise<void> => {
     try {

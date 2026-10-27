@@ -43,11 +43,17 @@ const wrapped: CursorSdk = {
 const runtime = createCursorRuntime({ sdk: async () => { await Promise.resolve(); return wrapped; } });
 const installation = { kind: "available", via: "bundled" } as const;
 const model = process.env.OAR_TEST_MODEL ?? "gpt-5.4-nano";
-const probe = "Use the shell tool to run printf 'SHELL_PROBE_OK', then invoke the oar_echo MCP tool with text 'MCP_PROBE_OK'. Do not use another tool as a substitute. If either is unavailable, just say so. Finally use the read tool to read probe.txt. Do not delegate.";
+function probe(file: string): string {
+  return `Use the shell tool to run printf 'SHELL_PROBE_OK', then invoke the oar_echo MCP tool with text 'MCP_PROBE_OK'. Do not use another tool as a substitute. If either is unavailable, just say so. Finally use the read tool to read ${file}, a new file whose contents are not in earlier turns. Do not delegate.`;
+}
 
 async function round(session: Session, phase: string): Promise<string[]> {
   try {
-    const result = await promptAndWait(session, probe, { timeoutMs: 90_000 });
+    // A resumed model can quote a previously read file without calling read.
+    // Each phase needs a new file to prove that the allowed tool still executes.
+    const file = `probe-${phase}.txt`;
+    await writeFile(path.join(cwd, file), `READ_PROBE_OK_${phase}\n`);
+    const result = await promptAndWait(session, probe(file), { timeoutMs: 90_000 });
     assert.equal(result.kind, "ended");
     assert.equal(result.outcome.kind, "completed", JSON.stringify(result));
     return session.records().flatMap((record) => record.kind === "frame" ? record.body.events.flatMap((event) => event.kind === "tool_call_started" ? [event.tool] : []) : []);
@@ -59,7 +65,6 @@ async function round(session: Session, phase: string): Promise<string[]> {
 }
 
 try {
-  await writeFile(path.join(cwd, "probe.txt"), "READ_PROBE_OK\n");
   const baseline = await runtime.session(installation, { cwd, model });
   const baselineTools = await round(baseline, "baseline");
   console.log(JSON.stringify({ phase: "baseline", tools: baselineTools, echoCalls: echoCalls.length }));

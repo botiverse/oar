@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
+import usageFixture from "../fixtures/cursor-usage-1.1.0.json" with { type: "json" };
 import {
   cursorOpenedFrame,
   cursorRunFailedFrame,
@@ -104,17 +105,32 @@ test("a delivered steer's echo is a user message without an input id", () => {
   assert.deepEqual(one(update).events, [{ kind: "user_message", input: "Also include the word PELICAN in your final reply.", evidence: "conversation" }]);
 });
 
-// #161: cacheReadTokens / cacheWriteTokens (required in SDK 1.0.36's
-// TurnEndedUpdateSchema) are parts of input, accumulated across turns like
-// it; a reported 0 stays 0.
-test("each turn's usage adds to a running total, cache reads and writes counted as input and as its parts", () => {
+test("Cursor 1.1.0 native usage matches its run totals without counting cache reads twice", () => {
+  const { frames } = fold(usageFixture.turns.map((turn) => turn.update));
+  let expected = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, total: 0 };
+  for (const [index, turn] of usageFixture.turns.entries()) {
+    const native = turn.runUsage;
+    expected = {
+      input: expected.input + native.inputTokens, output: expected.output + native.outputTokens,
+      cacheRead: expected.cacheRead + native.cacheReadTokens, cacheWrite: expected.cacheWrite + native.cacheWriteTokens,
+      reasoning: expected.reasoning + (native.reasoningTokens ?? 0), total: expected.total + native.totalTokens,
+    };
+    const { total, ...tokens } = expected;
+    expect(frames[index]?.events).toEqual([{ kind: "usage", usage: { tokens } }]);
+    expect(tokens.input + tokens.output).toBe(total);
+  }
+});
+
+// Synthetic nonzero cache-write control; the recorded 1.1.0 provider samples
+// above only report cache reads. Both optional parts preserve explicit zero.
+test("Cursor accumulates cache parts without adding them again to inclusive input", () => {
   const { frames } = fold([
-    { type: "turn-ended", usage: { inputTokens: 11_703, outputTokens: 60, cacheReadTokens: 8224, cacheWriteTokens: 0 } },
+    { type: "turn-ended", usage: { inputTokens: 100, outputTokens: 60, cacheReadTokens: 0, cacheWriteTokens: 0 } },
     { type: "turn-ended", usage: { inputTokens: 100, outputTokens: 5, cacheReadTokens: 10, cacheWriteTokens: 1 } },
   ]);
   assert.deepEqual(frames.map((frame) => frame.events), [
-    [{ kind: "usage", usage: { tokens: { input: 19_927, output: 60, cacheRead: 8224, cacheWrite: 0 } } }],
-    [{ kind: "usage", usage: { tokens: { input: 20_038, output: 65, cacheRead: 8234, cacheWrite: 1 } } }],
+    [{ kind: "usage", usage: { tokens: { input: 100, output: 60, cacheRead: 0, cacheWrite: 0 } } }],
+    [{ kind: "usage", usage: { tokens: { input: 200, output: 65, cacheRead: 10, cacheWrite: 1 } } }],
   ]);
 });
 

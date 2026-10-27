@@ -191,7 +191,7 @@ export function cursorLoginWith(load: () => Promise<CursorSdk>): RuntimeLogin {
     const { auth } = sdk.Cursor;
     const Store = sdk.FileCredentialStore;
     if (auth === undefined || Store === undefined) {
-      return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.0.40 is required; this one has no Cursor.auth" };
+      return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.1.0 is required; this one has no Cursor.auth" };
     }
     // The caller may have aborted while the SDK loaded.
     if (aborted()) {

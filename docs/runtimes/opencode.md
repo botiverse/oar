@@ -53,15 +53,21 @@ investigation):
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Verified on `@opencode/cli`
-**2.1.4** (2026-10-23,
-[October 23 report](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility)):
+**2.2.0** (2026-10-27,
+[October 27 report](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220)):
 shared session behavior (15 passed, 4 skipped on recheck), a nine-model
-catalog, prompt refusals and MCP list changes. The first shared run failed
-one case before server readiness; its saved native log reports
-`SQLiteError: database is locked`. The unchanged recheck passed. This
-identifies that run's startup error, not the cause of every earlier failure.
-Initial stderr, native state and elapsed times were preserved before cleanup.
+catalog, prompt refusals and MCP list changes. Like the
+[2.1.4 observation](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility),
+the first shared run failed one case before server readiness; the saved
+native log reports `SQLiteError: database is locked`. The unchanged recheck
+passed. This identifies those runs' startup errors, not the cause of every
+earlier failure. Initial stderr, native state and elapsed times were
+preserved before cleanup.
 
+All six direct cold resumes called echo on 2.2.0, but every resume still
+removed the tool 39 to 160 ms after the prompt and re-added it 1,260 to
+3,184 ms after the prompt. Successful calls do not eliminate this catalog
+race ([October 27 evidence](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220)).
 Only one of six direct cold resumes called echo on 2.1.4. A catalog removal
 47 ms after the first resume's prompt persisted until re-addition 2,337 ms
 after the sixth resume's prompt
