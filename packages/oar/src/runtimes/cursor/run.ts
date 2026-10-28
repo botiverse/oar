@@ -1,4 +1,5 @@
 import type { ResponseBody } from "../../contracts/session.js";
+import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { cursorRunFailedFrame, cursorRunResultFrame, cursorStreamFrame, type CursorFrame } from "./projection.js";
 import type { CursorRun, SteerAckOutcome } from "./sdk.js";
 
@@ -39,25 +40,60 @@ export function giveUp(launch: Launch, reason: string): void {
 }
 
 /**
- * Drain the SDK's independent message buffer while `onDelta` keeps feeding
- * raw updates. `wait()` may settle before the buffer closes. Record its
- * result only after both settle, including on cancellation or failure.
- * An iterator failure is evidence of a lost view, not the run's outcome.
+ * Adapter budget for the local message-buffer tail after `wait()` settles,
+ * not a vendor guarantee. The SDK closes it after terminal bookkeeping;
+ * two seconds gives that work time without exhausting dispose's five seconds.
  */
-export async function observeRun(run: CursorRun, record: (frame: CursorFrame) => void): Promise<CursorFrame> {
-  const stream = (async (): Promise<void> => {
+const STREAM_SETTLE_MS = 2000;
+
+function readStream(run: CursorRun, record: (frame: CursorFrame) => void): { readonly done: Promise<void>; stop(): void } {
+  const state = { accepting: true };
+  let iterator: AsyncIterator<unknown> | undefined = undefined;
+  const done = (async (): Promise<void> => {
     try {
-      for await (const message of run.stream()) { record(cursorStreamFrame(message)); }
+      iterator = run.stream()[Symbol.asyncIterator]();
+      for (;;) {
+        // oxlint-disable-next-line eslint/no-await-in-loop -- only one request for the next SDK message may be outstanding.
+        const next = await iterator.next();
+        if (!state.accepting || next.done === true) { return; }
+        record(cursorStreamFrame(next.value));
+      }
     } catch (error) {
-      record({ type: "cursor/stream_failed", native: { message: error instanceof Error ? error.message : String(error) }, events: [], agentPath: [] });
+      if (state.accepting) {
+        record({ type: "cursor/stream_failed", native: { message: new LoginSecrets().line(errorMessage(error)) }, events: [], agentPath: [] });
+      }
     }
   })();
-  const terminal = (async (): Promise<CursorFrame> => {
+  return {
+    done,
+    stop() {
+      state.accepting = false;
+      // An async generator can leave return() queued behind its pending next().
+      // Request cleanup without waiting; late values/errors cannot enter records.
+      void (async (): Promise<void> => {
+        try { await iterator?.return?.(); } catch { /* The stream gap is already recorded. */ }
+      })();
+    },
+  };
+}
+
+/** The auxiliary view may lose messages; it must not hold a terminal run open. */
+export async function observeRun(run: CursorRun, record: (frame: CursorFrame) => void): Promise<CursorFrame> {
+  const stream = readStream(run, record);
+  const frame = await (async (): Promise<CursorFrame> => {
     try { return cursorRunResultFrame(await run.wait()); }
-    catch (error) { return cursorRunFailedFrame(error instanceof Error ? error.message : String(error)); }
+    catch (error) { return cursorRunFailedFrame(errorMessage(error)); }
   })();
-  const [, frame] = await Promise.all([stream, terminal]);
-  return frame;
+  const deadline = Promise.withResolvers<"unclosed">();
+  const timer = setTimeout(() => { deadline.resolve("unclosed"); }, STREAM_SETTLE_MS);
+  timer.unref();
+  try {
+    if (await Promise.race([stream.done, deadline.promise]) === "unclosed") {
+      stream.stop();
+      record({ type: "cursor/stream_unclosed", native: { timeoutMs: STREAM_SETTLE_MS }, events: [], agentPath: [] });
+    }
+    return frame;
+  } finally { clearTimeout(timer); }
 }
 
 /**
