@@ -21,6 +21,9 @@
  * vendor/behavior suites (local provider, isolated HOME, no account). Also run
  * qwen-native/lock-lifetime.ts: a successful warmup does not prove shared-HOME
  * concurrency is safe; retain initialization timing and the held-lock result.
+ * Compare Qwen provider presets' envKey values and native auth-key variables
+ * with runtimes/qwen/auth-status.ts KEY_NAMES; add new sources and regressions
+ * so configured credentials cannot become a false logged_out result.
  * A changed Kimi binary also needs sea-trial/vendor/kimi-login.vendor.test.ts
  * with OAR_TEST=kimi-login (local OAuth stand-in, no account). Recheck all three platforms before updating the CI login pin
  * and the minimum version accepted by loginExecutable in kimi/login.ts and
