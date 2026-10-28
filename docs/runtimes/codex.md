@@ -88,8 +88,17 @@ serviceTier?, approvalPolicy: "never", experimentalRawEvents: true,
 baseInstructions?, developerInstructions?, config?: { model_reasoning_effort?,
 mcp_servers? } }`. OAR requires a thread id in the reply,
 and a model and effort readback matching any explicit request, before
-constructing its Session; otherwise it kills the process and throws (an RPC
-failure reads `codex thread/start failed: <message>`).
+constructing its Session. Any failure before the Session is returned kills
+the app-server and awaits its exit before rejecting: initialization, tool
+filter preflight, thread start/resume, missing thread id, settings readback
+and naming. This also applies after the same home has initialized successfully;
+the cold-home coordination is not the session's cleanup boundary. Native
+errors retain their existing types and redacted details (a start RPC failure
+reads `codex thread/start failed: <message>`).
+[Process cleanup regressions](../../tests/codex/codex-startup-cleanup.test.ts)
+use a real child that refuses requests without exiting; on POSIX a shutdown
+barrier proves rejection waits for exit, and Windows checks the process is
+gone when open rejects.
 
 The app-server talks before the thread exists ([env] 0.154.0):
 `remoteControl/status/changed { status: "disabled", serverName,

@@ -113,10 +113,9 @@ function resumeError(method: string, resumeId: string | undefined, cause: JsonRe
 /**
  * The open RPCs, with their failure named after the method (a refused resume
  * must say `thread/resume`: "no rollout found for thread id …" alone does
- * not) and the app-server that was started for them killed.
+ * not). The session opener owns process cleanup on every failure.
  */
 export async function openThread(
-  client: AppServerClient,
   method: "thread/start" | "thread/resume" | "thread/name/set",
   send: () => Promise<JsonRecord>,
   serviceTier?: string,
@@ -125,7 +124,6 @@ export async function openThread(
   try {
     return await send();
   } catch (error) {
-    client.kill();
     const message = error instanceof Error ? error.message : String(error);
     const typed = resumeError(method, resumeId, asRecord(error instanceof Error ? error.cause : undefined), message);
     if (typed !== null) {
@@ -142,7 +140,7 @@ export async function nameThread(client: AppServerClient, threadId: string, name
   if (name === null) {
     return;
   }
-  await openThread(client, "thread/name/set", async () => {
+  await openThread("thread/name/set", async () => {
     const reply = await client.request("thread/name/set", { threadId, name });
     return reply;
   });

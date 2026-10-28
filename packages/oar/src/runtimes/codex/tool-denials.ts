@@ -67,17 +67,11 @@ export function withCodexToolDenials(params: JsonRecord, denials: JsonRecord): J
   return { ...params, config: { ...config, mcp_servers: servers } };
 }
 
-/** Resolve session filters before thread creation; release the process on refusal. */
+/** Resolve filters before thread creation; the session opener owns failure cleanup. */
 export async function prepareCodexToolDenials(client: AppServerClient, options: SessionOptions, params: JsonRecord): Promise<JsonRecord> {
   if ((options.disallowedTools?.length ?? 0) === 0) {
     return params;
   }
-  try {
-    const effective = await client.request("config/read", { cwd: options.cwd, includeLayers: false });
-    return withCodexToolDenials(params, codexToolDenialsConfig(options, asRecord(effective.config) ?? {}));
-  } catch (error) {
-    client.kill();
-    await client.exited;
-    throw error;
-  }
+  const effective = await client.request("config/read", { cwd: options.cwd, includeLayers: false });
+  return withCodexToolDenials(params, codexToolDenialsConfig(options, asRecord(effective.config) ?? {}));
 }
