@@ -778,40 +778,54 @@ process's last `modelUsage`, which a live read found identical
 ### Tools, permissions, and extensions
 
 Native Claude supports tool selection, MCP, agents, skills, plugins,
-permission modes, and SDK approval/hook callbacks. Apart from session MCP
-servers (`--mcp-config`, [below](#session-mcp-servers)) these are **not
-exposed** as OAR configuration or interaction APIs. Native configuration may
-still affect execution by default. `userConfiguration: "exclude"` sets strict
-MCP and setting-source controls as described in [user configuration](#user-configuration).
-OAR does not pass `--tools` or `--agents`. Startup always passes
-`--dangerously-skip-permissions`; there is no OAR approval request/reply
-channel, and `launchArgs` cannot carry `--permission-mode`, which that flag
-would override ([launch arguments](#launch-arguments)). A host that needs
-enforcement rather than a preference isolates the session instead: an OS
-sandbox profile or a container whose filesystem, network and credentials are
-only what the agent may touch. `disallowedTools` removes named tools from the
-session altogether ([disallowed tools](#disallowed-tools)). [Native MCP][native-mcp], [permissions][native-permissions],
-[adapter](../../packages/oar/src/runtimes/claude/session.ts).
+permission modes, and SDK approval/hook callbacks. OAR passes session MCP
+servers, tool denials and explicit noninteractive permission modes. Other
+native settings can be supplied through configuration or `launchArgs`;
+there is no OAR approval request/reply API. Native configuration still
+applies by default. `userConfiguration: "exclude"` sets the controls described
+in [user configuration](#user-configuration).
 
-[env + src, 2.1.311, Linux] A [permission-mode investigation](../../experiments/claude-permissions/README.md)
-ran native stream-json processes without OAR's bypass. With the current
-launch shape, absent a permission prompt tool, requests needing approval
-were denied locally. An explicit `--permission-prompt-tool stdio` made
-`default` and `acceptEdits` emit `can_use_tool`; OAR's current Claude adapter
-records that request without answering it. `--permission-prompts none`
-denied those requests locally even with the stdio target, while preserving
-operations already allowed by the mode. These are native observations,
-not newly supported OAR options. On resume, supplied modes took effect;
-omitting `acceptEdits` or `plan` returned to `default` in these fixtures, and
-omitting `none` restored host prompting with an explicit stdio target.
+Without an explicit mode, OAR passes `--dangerously-skip-permissions`.
+To tighten native policy without interactive approval, prefer
+`launchArgs: ["--permission-mode", "dontAsk"]`. OAR also accepts `default`,
+`acceptEdits` and `plan`, including `--permission-mode=plan`. With any of
+these modes OAR omits its bypass and adds `--permission-prompts none`:
+a remaining request for approval becomes a native local denial, while
+operations already allowed by the mode or native rules can proceed.
+
+`--permission-prompt-tool` is refused before launch because OAR has no
+interface for answering permission requests. A host-supplied
+`--permission-prompts` must be `none`; unknown or missing mode values and
+combining a mode with `--dangerously-skip-permissions` are also refused with
+`UnsupportedOptionError` on `launchArgs`. This prevents waiting for a host
+permission answer; it does not bound hooks, model requests, tools or MCP
+elicitations. Unexpected native requests remain recorded and unanswered.
+
+**On resume, supply `--permission-mode` again.** OAR does not store
+`launchArgs`. Omitting the mode restores OAR's default bypass, so a previously
+restricted session becomes unrestricted by that mode. This differs from
+native Claude without OAR: in the isolated fixtures, omitting a saved
+`acceptEdits` or `plan` mode returned to native `default`. Hosts must retain
+and reapply their own launch policy on every open.
+
 The actual reported mode is in the native `system/init.permissionMode`
-frame, which OAR retains verbatim when Claude starts the turn, including
+frame, which OAR retains verbatim when Claude starts a turn, including
 after resume. Before the first turn, `get_settings` provides no current-mode
 readback; its `effective.permissions.defaultMode` is configuration and can
-differ from the active mode. Hosts can inspect the init frame, without a new
-OAR event type or an inferred opening value.
-Plan-mode Bash decisions also consulted a model classifier: a scripted
-allow result permitted a file write. Permission modes are not OS isolation.
+differ from the active mode. OAR adds no inferred opening value or event.
+
+[env + src] The [native investigation](../../experiments/claude-permissions/README.md)
+on 2.1.311 and adapter regressions on 2.1.312 use local model providers.
+Write was allowed under `acceptEdits`, denied under the other three modes,
+and no host permission request waited. Reapplying `dontAsk` on resume
+preserved denial; omitting the mode restored bypass and allowed the write.
+Plan-mode Bash decisions also consult a model classifier: a scripted allow
+result permitted a file write, while a deny result blocked it. These checks
+do not claim what a real model will classify as safe. Permission modes are
+not OS isolation. A host needing an enforcement boundary supplies an OS
+sandbox or container; `disallowedTools` separately removes named tools from
+the session. [Native permissions][native-permissions],
+[adapter regressions](../../sea-trial/vendor/claude-permissions.vendor.test.ts).
 
 Inventories (2026-09-16) are control queries in their own
 `--no-session-persistence` process, scoped to a workspace cwd, without a
@@ -1266,7 +1280,8 @@ former only.
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
    --verbose --replay-user-messages --include-partial-messages
-   --dangerously-skip-permissions` plus `--session-id <uuid>` (and `--name`)
+   --dangerously-skip-permissions` by default, or an explicit native permission
+   mode with `--permission-prompts none`; plus `--session-id <uuid>` (and `--name`)
    or `--resume <id>`, and optional `--model`, `--effort` (then a
    `get_settings` control request before the first turn), `--settings`
    (service tier), `--json-schema`, `--system-prompt-file`,
@@ -1277,8 +1292,7 @@ former only.
    host entrypoint wins). Prompts are `user` message lines on stdin. Present
    in 2.1.261 help but not on the session path:
    `--fork-session`, `--no-session-persistence` (the inventory and account
-   usage readers pass it), `--permission-mode`, `--permission-prompts`,
-   `--strict-mcp-config`, `--tools`, `--agents`, `--bg`, `--cloud`, `--teleport`,
+   usage readers pass it), `--tools`, `--agents`, `--bg`, `--cloud`, `--teleport`,
    `--remote-control`. Source:
    [launch](../../packages/oar/src/runtimes/claude/launch.ts).
 2. **Session and state storage.** Native identity and transcript are claude's;
@@ -1313,15 +1327,18 @@ former only.
    them and has no evidence about their lifecycle events. Source:
    [death test](../../tests/claude/claude-session-death.test.ts); vendor
    [CLI reference][native-cli].
-7. **Tools and permissions.** Always `--dangerously-skip-permissions`; no
-   approval channel. Tool blocks map as in the
+7. **Tools and permissions.** Default `--dangerously-skip-permissions`, or
+   explicit `default`, `dontAsk`, `acceptEdits` or `plan` with native local
+   approval denial (`--permission-prompts none`); no host approval channel.
+   Reapply the mode on resume. Tool blocks map as in the
    [mapping](#high-level-mapping-to-oar); a `control_request` from claude is a
    `toApp` request nobody answers. Under skip permissions no `can_use_tool`
    has been observed; an MCP server's `elicitation` has (2.1.292), and claude
    cancels it on an interrupt. Source: projection.
 8. **Extension points.** MCP, agents, skills, plugins, hooks, and permission
-   callbacks exist natively; OAR passes only session MCP servers
-   (`--mcp-config`) and tool denials (`--disallowed-tools`). OAR reads skills, MCP
+   callbacks exist natively; OAR passes session MCP servers (`--mcp-config`),
+   tool denials (`--disallowed-tools`) and noninteractive native permission
+   modes through launch arguments. OAR reads skills, MCP
    servers, and MCP tools through workspace-scoped inventory queries, and
    discovers models with the `list_models` control request. Source:
    [tools section](#tools-permissions-and-extensions),
@@ -1468,7 +1485,18 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--add-dir`, `--mcp-config` and `--disallowed-tools`. Each takes several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-mode` (OAR's `--dangerously-skip-permissions` overrides it), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--add-dir`, `--mcp-config` and `--disallowed-tools`. Each takes several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-prompt-tool` (OAR has no interface for answering permission requests), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+
+`--permission-mode` accepts `default`, `dontAsk`, `acceptEdits` and `plan`,
+in separate-value or equals form. It replaces OAR's default bypass and
+forces `--permission-prompts none`. An explicit prompt target other than
+`none`, a missing/unknown mode, or a conflicting bypass flag is refused
+before spawn. See [permissions](#tools-permissions-and-extensions) for the
+native classifier and policy limits.
+
+**Resume must repeat the mode: omission restores OAR bypass.** The native
+init frame reports the actual mode after a turn starts; launch arguments
+are neither persisted nor reconstructed from transcript history.
 
 ## Additional directories
 
@@ -1577,7 +1605,8 @@ Where an SDK option has a counterpart:
 | `settingSources` | `launchArgs: ["--setting-sources", ""]` |
 | `plugins` | `launchArgs: ["--plugin-dir", path]` |
 | `maxTurns`, `maxBudgetUsd` | `launchArgs: ["--max-turns", "2"]`, `["--max-budget-usd", "0.5"]`; ends as `failure: "limit_reached"` |
-| `permissionMode`, `canUseTool`, hooks | not offered: OAR allows every tool by design (host approvals deferred) |
+| `permissionMode` | `launchArgs: ["--permission-mode", "dontAsk"]` (also default, acceptEdits, plan); noninteractive local denial, must be repeated on resume |
+| `canUseTool`, hooks callbacks | no OAR callback/answer API; native configured hooks remain native |
 | `listSessions`, `getSessionMessages` | not yet ([#340](https://github.com/botiverse/oar/issues/340)) |
 | `result.usage`, `modelUsage` | `session.usage()`, `contextBreakdown()`; `contextUsage()` from the last call's assistant `usage` |
 | `result.total_cost_usd` | not reported (list-price estimate) |

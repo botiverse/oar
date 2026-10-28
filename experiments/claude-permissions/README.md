@@ -1,8 +1,10 @@
 # Claude permission modes, 2026-10-28
 
-Research only: the adapter still starts with permission bypass and refuses
-`--permission-mode` in `launchArgs`. The question is which native modes can
-be offered without adding an OAR approval API. Default behavior is unchanged.
+This report records the native investigation before adapter support. At
+that point OAR always supplied bypass and refused `--permission-mode`. The
+subsequent implementation accepts four noninteractive modes through launch
+arguments; see [current behavior](../../docs/runtimes/claude.md#tools-permissions-and-extensions).
+The observations below retain the original native fixtures and limits.
 
 ## Reproduce
 
@@ -146,4 +148,5 @@ broad; it is corrected in this research change.
 Recommendation for discussion: use the first option if the immediate need
 is DSH's noninteractive restriction; keep the default bypass unchanged and
 require resupplying the flags on resume. Do not implement the second option
-as an incidental launchArgs relaxation. No option is implemented by this PR.
+as an incidental launchArgs relaxation. That research change implemented no option; the current adapter policy is
+linked above.

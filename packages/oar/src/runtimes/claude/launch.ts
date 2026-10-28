@@ -3,7 +3,7 @@ import { claudeUserConfiguration } from "./user-configuration.js";
 import { claudeServiceTierSettings } from "./service-tier.js";
 import type { JsonRecord } from "../../shared/json.js";
 import { UnsupportedOptionError, type SessionOptions } from "../../contracts/index.js";
-import { refuseManagedLaunchArgs } from "./launch-args.js";
+import { claudePermissionArgs, refuseManagedLaunchArgs } from "./launch-args.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
@@ -36,10 +36,6 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     "--input-format", "stream-json",
     "--output-format", "stream-json",
     "--verbose", "--replay-user-messages", "--include-partial-messages",
-    // YOLO by default (repo policy, 2026-08-24): in embedded/SDK use there is
-    // no human at an approval prompt: a permission gate is a hang, not
-    // safety. Isolation is the sandbox's job, not the approval flow's.
-    "--dangerously-skip-permissions",
     ...(options.resume === undefined ? ["--session-id", sessionId] : ["--resume", sessionId]),
     // SessionOptions.name (#368) names a new session only: `--name` on a
     // resume replaces the name the session has, which may be the user's
@@ -52,7 +48,7 @@ function spawnClaude(command: string, sessionId: string, options: SessionOptions
     ...nativeArgs,
     ...configuration.args,
     ...(options.outputSchema === undefined ? [] : ["--json-schema", JSON.stringify(options.outputSchema)]),
-    // The host's own flags, unchecked (SessionOptions.launchArgs), ahead of
+    // The host's flags, after managed/permission validation, ahead of
     // the variadic flags below so none swallows them as values.
     ...options.launchArgs ?? [],
     ...(directories.length === 0 ? [] : ["--add-dir", ...directories]),
@@ -86,6 +82,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
     }
   }
   refuseManagedLaunchArgs(options.launchArgs);
+  const permissions = claudePermissionArgs(options.launchArgs);
   checkSessionName(options);
   const tierSettings = claudeServiceTierSettings(options.serviceTier);
   const servers = givenMcpServers(options.mcpServers);
@@ -98,7 +95,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   let prompts: Awaited<ReturnType<typeof claudePromptFiles>> = null;
   try {
     prompts = await claudePromptFiles(options);
-    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierSettings, prompts?.args ?? []);
+    child = spawnClaude(command, sessionId, options, mcpConfig?.path ?? null, tierSettings, [...permissions, ...prompts?.args ?? []]);
     // Exit also covers a failed asynchronous spawn. Both cleanups are idempotent.
     child.onExit(() => {
       mcpConfig?.end();

@@ -12,6 +12,30 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Noninteractive native permission modes, not host approvals (2026-10-28)
+
+**Accepted:** a Claude host can tighten native policy through `launchArgs`
+without adding a general approval API. The Claude adapter omits its default
+bypass when an explicit supported mode is given, supplies native local
+approval denial, and refuses interactive prompt targets before launch.
+Default bypass remains unchanged. This lets embedded hosts such as DSH
+choose a native restriction without silently waiting on an answer nobody
+can send. The durable evidence is the [native investigation](../../experiments/claude-permissions/README.md)
+and [adapter regression](../../sea-trial/vendor/claude-permissions.vendor.test.ts).
+
+The runtime owns permission evaluation. OAR neither grants requests on the
+host's behalf nor presents plan classification as an OS sandbox. The host
+owns policy persistence: it must repeat its mode on resume, because omission
+restores OAR bypass. Mode readback uses Claude's native init frame, never a
+configured default or inferred opening record. This remains Claude-specific
+launch policy, with no new shared Session member or event.
+
+**Deferred:** `Session.answer` and a human approval flow. They need request
+ownership, response records, cancellation and exit handling, and a policy
+for unanswered requests. **What would reopen it:** a host that needs to
+present a native permission request to a human and return that person's
+answer. The current demand is noninteractive restriction, not that workflow.
+
 ## Control objects as the event model (2026-09-03)
 
 **Considered:** the first event model (v1), in which control objects carry

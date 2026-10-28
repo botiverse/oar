@@ -4,7 +4,7 @@ import { refuseManagedLaunchArgs } from "../../packages/oar/src/runtimes/claude/
 
 // #336 (Lookout's SDK comparison, claude 2.1.296): `--continue` made claude exit next to OAR's
 // `--session-id`, and after `--fork-session` Session.id kept the old id. Refuse such flags up front.
-test.each(["--continue", "-c", "--resume", "-r", "--session-id", "--fork-session", "--permission-mode=plan", "--permission-mode", "-p", "--output-format", "--json-schema"])("launchArgs %s is refused", (flag) => {
+test.each(["--continue", "-c", "--resume", "-r", "--session-id", "--fork-session", "--permission-prompt-tool=stdio", "--permission-prompt-tool", "-p", "--output-format", "--json-schema"])("launchArgs %s is refused", (flag) => {
   expect(() => { refuseManagedLaunchArgs([flag, "value"]); }).toThrow(UnsupportedOptionError);
 });
 

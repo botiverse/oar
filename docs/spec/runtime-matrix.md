@@ -269,8 +269,9 @@ the list again when resuming; OAR does not persist host options.
 
 `SessionOptions.launchArgs` adds the host's own command-line arguments to
 the runtime process a session starts, for a flag OAR does not model (codex
-`-c service_tier="fast"`, claude `--settings`). OAR passes them unchecked:
-it promises nothing about their effect, and one that changes the protocol
+`-c service_tier="fast"`, claude `--settings`). Outside documented managed
+flags and permission validation, OAR passes them unchecked: it promises
+nothing about their effect, and one that changes the protocol
 OAR speaks breaks the session. A flag the runtime does not know usually
 makes it exit: claude, codex, grok, kimi and opencode all did (2026-10-08),
 so the open rejects, except that claude opens with its exit as the first
@@ -286,6 +287,19 @@ again on resume.
 | kimi, opencode | after `acp` |
 | antigravity | after OAR's own arguments |
 | pi, cursor | refused: they run in the host process through their SDKs, with no command line |
+
+For Claude, `--permission-mode` (`default`, `dontAsk`, `acceptEdits`, `plan`)
+replaces OAR's default bypass and adds `--permission-prompts none`. OAR
+refuses `--permission-prompt-tool`, non-`none` prompt targets, missing or
+unknown modes, and a conflicting bypass flag before spawning. The mode
+and prompt target support both separate-value and equals spelling.
+
+**Claude resume must repeat `--permission-mode`.** OAR does not persist
+launch arguments; omission restores `--dangerously-skip-permissions` even
+if the preceding process used a restricted mode. Hosts retain and reapply
+their own policy. The native `system/init.permissionMode` frame reports
+what Claude applied after the turn starts; there is no applied-mode query
+before that point. See [native limits and regression evidence](../runtimes/claude.md#tools-permissions-and-extensions).
 
 ## Claude partial output
 

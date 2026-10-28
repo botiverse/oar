@@ -8,8 +8,8 @@ vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineP
 afterEach(() => { spawnLineProcess.mockReset(); });
 
 // Native Claude 2.1.311 sends this shape when its stdio permission target is enabled.
-// OAR currently prevents opting into permission modes; this pins the existing
-// behavior if a request nevertheless reaches the adapter, without adding policy.
+// Explicit modes use none and prompt targets are refused. If a request still
+// reaches the adapter, retain the native fact without inventing an answer.
 test("Claude records a permission request without granting it or replying", async () => {
   const child = fakeLineProcess();
   spawnLineProcess.mockReturnValue(child);
