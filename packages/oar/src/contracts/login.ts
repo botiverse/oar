@@ -32,6 +32,7 @@ export type LoginFailureReason =
 
 /** Why oar cannot drive this runtime's login. */
 export type LoginUnsupportedReason =
+  | "browser_suppression_unavailable" // this machine cannot guarantee openBrowser:false; nothing is launched
   | "unsupported_installation" // not the installation the runtime's login runs on (claude, codex: a machine-installed executable; cursor: the bundled SDK)
   | "version_unsupported"; // the installed version predates the login path oar drives (`detail` names the floor)
 
@@ -71,7 +72,10 @@ export interface LoginOptions {
  *   `kind: "manual_code"`; the answer is written to the runtime's stdin only.
  * - Never: a token or a pasted code in an event, a result, an error or a log.
  * - Never logs the current account out first: a login that fails, times out
- *   or is cancelled leaves the previous login as it was.
+ *   or is cancelled normally leaves the previous login as it was. Native
+ *   exceptions are documented per runtime: Kimi can write credentials before
+ *   reporting success. Re-read authStatus after an unsuccessful Kimi login;
+ *   OAR never rolls back native writes.
  * - Aborting `interaction.signal` stops the login process with everything it
  *   started (an in-process SDK's login: its wait, and any write after it)
  *   and resolves `cancelled`. A prompt still open when the login

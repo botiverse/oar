@@ -103,7 +103,7 @@ engine-generated `sessionId`, `configOptions`, and `modes`.
 true`, `sessionCapabilities` `list`/`resume`/`close`/`delete`/`fork`/
 `additionalDirectories`, `promptCapabilities` image + embeddedContext (no
 audio), `mcpCapabilities` http + sse, and one auth method `login`
-(`type: "terminal"`, a device-code flow OAR never starts). `session/new`
+(`type: "terminal"`, a device-code flow OAR never starts during session creation). `session/new`
 answers `sessionId`, `configOptions` (`model`, `thinking`, `mode` with
 `default`/`plan`/`auto`/`yolo`) and `modes` (the same four); the model
 catalog and `thinking` values are under
@@ -591,8 +591,8 @@ reads `code.kimi.com`.
 The region marker (`~/.kimi-code/region`) only seeds the first login: once
 signed in, the login's own host decides. So a copy from this installer signs
 in to Moonshot's mainland China service by default. People outside mainland
-China sign in with `kimi login --region global` (OAR has no kimi login yet,
-see [runtime login](../spec/login.md)). The installer never overwrites an
+China sign in with `kimi login --region global`, or pass `region: "global"`
+to `kimiRuntime.login` (see below). The installer never overwrites an
 existing marker.
 
 `checkUpdate` reads the release pointer kimi's own updater installs from, and
@@ -613,6 +613,67 @@ and `displayName` (`nickname`). Phone or WeChat sign-ins return no `email`, so
 `displayName` is often their only readable identity. Account quota and
 session context occupancy are distinct APIs; neither supplies the missing
 child-agent usage stream.
+
+## Runtime login and logout
+
+[src, env] Verified against the npm `@moonshot-ai/kimi-code@2.3.3` bundle
+(`apps/kimi-code/src/cli/login-flow.ts`, `src/utils/open-url.ts`,
+`packages/acp-server/src/server.ts` and `packages/oauth/src/`). OAR drives
+`kimi login` over private pipes and relays the URL and device code printed on
+stderr. Kimi owns polling, credentials and model provisioning. A native
+`Logged in to ...` marker establishes success, then OAR checks authentication.
+No token, arbitrary stderr or account identity reaches events or results.
+
+`KimiLoginOptions.region` accepts `mainland-cn` or `global`. With no option,
+Kimi resolves endpoint environment overrides, its saved OAuth reference, the
+install-region marker and finally mainland China. Explicit endpoint overrides
+also take precedence over an explicit region. Kimi does not report the actual
+region in its result, so OAR supplies no inferred account fields.
+
+`openBrowser: false` uses a per-login private PATH helper because native Kimi
+ignores `BROWSER`. Kimi resolves PATH itself, excludes candidates inside its
+working directory, then calls `execFile` with the absolute executable path.
+OAR supplies a no-op `xdg-open` on Linux, `open` on macOS, or a private copy
+of Windows `hostname.exe` named `powershell.exe`. The latter cannot open a URL
+with Kimi's PowerShell flags. No shell profile or host environment is modified.
+The helper is removed after the login process exits. If a helper cannot be
+created outside Kimi's excluded directory, or the platform is unsupported,
+login returns `unsupported/browser_suppression_unavailable` before launching.
+The login and credential-storage paths do not use these commands for anything
+else; native credential storage is file-based.
+
+`authStatus` starts `kimi acp`, initializes and calls
+`authenticate {methodId: "login"}` without opening a session. Success means
+native readiness, `-32000` means `logged_out`, and other failures or the
+20-second deadline mean `unknown` with a generic explanation. It never
+requests device authorization or starts login. Both the readiness check and
+its OAuth-summary fallback read cached credentials without refreshing them.
+This is not proof that every part of ACP startup is local-only, so this reader
+does not declare `localOnly`. It returns no inferred email, credential form or billing basis.
+Login, status and logout use the same explicit `env` overlay as sessions.
+
+A failed, timed-out or cancelled login does **not** guarantee the old
+credentials are unchanged. Kimi may mark a rejected refresh as invalid; after
+device authorization it saves the new token before fetching models and
+printing success. OAR does not roll back these native writes. Re-read
+`authStatus` after an unsuccessful login. A successful login also updates the
+managed provider, model aliases, default model/thinking and service settings.
+These are native changes to user configuration.
+
+`logout` calls native ACP `logout`, then re-reads authentication. Native logout
+removes its stored credential and managed configuration; it does not revoke
+the token on the server. API keys from the environment are untouched. A native
+logout followed by an authenticated status is `failed/still_logged_in`.
+
+The [native OAuth regression](../../sea-trial/vendor/kimi-login.vendor.test.ts)
+runs Kimi against a local OAuth/model server with isolated storage. It checks
+browser-command execution both permitted and suppressed, native model and
+credential writes, status without login, logout, cancellation and a failure
+after the credential write. Linux passed on 2026-10-28; macOS and Windows
+evidence comes from the same test in the three-platform CI check job. Real
+account login remains a separate human validation. Run locally with
+`OAR_TEST=kimi-login pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts`
+and an installed Kimi 2.3.3 (`OAR_KIMI_LOGIN_COMMAND` selects its executable).
 
 ## Verification and open gaps
 
@@ -645,7 +706,8 @@ held before the turn end).
 completion, the Agent report) and the dispose-after-death answer.
 [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
 yolo selection to the recorded 0.38.0 schema. The
-[real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Kimi.
+[session behavior CI matrix](../../.github/workflows/ci.yml) excludes Kimi;
+the native login tests above run in the three platform check jobs.
 
 Open gaps: questions and approvals (no `request_permission` arrives under
 yolo), post-turn compaction, whether every kimi tool opens with its name as
@@ -658,8 +720,8 @@ a hidden same-name user server still starts is unmeasured. Install by
 region is open too: the install script's comments name a global mirror
 (`code.kimi.ai/kimi-code/install.sh`, which records region `global`), but
 Moonshot's README documents only `code.kimi.com`, so `install` runs that one.
-Choose the source by region once kimi documents the mirror, or once OAR has a
-kimi login that needs a regional install. Keep native API capabilities,
+Choosing an installer source by region still needs a documented global
+mirror; the runtime login region option does not change the installer source. Keep native API capabilities,
 transport limitations, OAR omissions, and unexecuted checks separate when
 designing or claiming support.
 

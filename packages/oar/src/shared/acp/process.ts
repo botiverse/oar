@@ -37,6 +37,8 @@ function processClosed(process: AcpProcess): boolean {
 export interface AcpProcessOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
+  /** Authentication queries keep all native diagnostics private. */
+  readonly inheritStderr?: boolean;
   /** Session MCP credentials must not appear in protocol error messages, data or causes. */
   readonly redact?: (text: string) => string;
   /** Track notification arrival relative to the native session-open answer. */

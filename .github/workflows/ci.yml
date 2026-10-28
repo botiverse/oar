@@ -27,6 +27,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
       - run: pnpm run build
+      # Real Kimi device login, local OAuth/model server, no account or browser.
+      - run: npm install -g @moonshot-ai/kimi-code@2.3.3
+      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts
+        env:
+          OAR_TEST: kimi-login
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kimi-login-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run/kimi-login
+          if-no-files-found: warn
 
   # The packed packages installed into an empty project the way a host
   # installs them: OAR without its optional peer @cursor/sdk must load,

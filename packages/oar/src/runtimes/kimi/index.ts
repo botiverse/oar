@@ -14,6 +14,9 @@ export const kimiRuntime = defineRuntime({
   installPlan: kimiInstallPlan,
   install: kimiInstall,
   accountUsage: kimiAccountUsage,
+  login: onFirstCall(async () => { const { kimiLogin } = await import("./login.js"); return kimiLogin; }),
+  authStatus: onFirstCall(async () => { const { kimiAuthStatus } = await import("./auth-status.js"); return kimiAuthStatus; }),
+  logout: onFirstCall(async () => { const { kimiLogout } = await import("./logout.js"); return kimiLogout; }),
   listModels: onFirstCall(async () => {
     const { kimiListModels } = await import("./list-models.js");
     return kimiListModels;
@@ -30,3 +33,4 @@ export const kimiRuntime = defineRuntime({
 
 export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";
 export { kimiAccountDisplayName, kimiAccountEmail } from "./profile.js";
+export type { KimiLoginOptions } from "./login.js";

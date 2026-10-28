@@ -31,8 +31,11 @@ that pi's provider login already uses.
   secret in it, when a backend lacks `POST /auth/poll`.)
 - **Never log out first.** oar never drives a path that clears the stored
   credentials before the new ones exist (`codex login` does; oar uses codex's
-  app-server instead). `timed_out` and `cancelled` therefore mean the previous
-  login is untouched. Cursor's SDK ignores an abort once the browser sign-in
+  app-server instead). Kimi is an explicit native exception to preservation
+  on failure: it may mark a rejected refresh invalid or save new credentials
+  before model provisioning fails. After a failed, timed-out or cancelled
+  Kimi login, re-read `authStatus`; the outcome does not promise unchanged
+  credentials. OAR does not roll back native writes. Cursor's SDK ignores an abort once the browser sign-in
   is done and saves its new key anyway; the store oar passes it refuses that
   save once the login has ended.
 - **Success is final.** Once the runtime reports success it has stored the
@@ -55,8 +58,8 @@ that pi's provider login already uses.
 - **Not serialized.** oar does not stop two logins from running at once;
   whether a host allows that is its own policy.
 - **`login` changes the machine.** oar never calls it on its own; a host
-  calls it on a person's request. `authStatus` is read only and cheap: the
-  runtime's local status query, no login flow, no secret in the result.
+  calls it on a person's request. `authStatus` never starts a login flow and returns no secret; a native
+  status query may contact its service or refresh stored credentials.
 - **Absent where oar never drives it.** A runtime whose login oar would
   refuse on every machine has no `login` member
   ([capabilities](../design/capabilities.md)): antigravity, whose terms do
@@ -74,7 +77,7 @@ consistent. Login and logout confirmation queries receive that map too.
 OAR-owned overrides still win, including browser suppression and Claude's
 `CLAUDECODE` removal.
 
-Claude, Codex and Qoder apply the overlay to their authentication processes.
+Claude, Codex, Kimi and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process: its three authentication methods reject
 any nonempty `env` with `UnsupportedOptionError` (`option: "env"`) before
 loading the SDK, as its sessions do. An empty map is a no-op. Runtime login is
@@ -235,6 +238,7 @@ caller closes it. A prompt or event handler that throws stops the login with
 | Unsupported reason | Meaning |
 | --- | --- |
 | unsupported_installation | Not the installation the login runs on: a machine-installed executable for claude and codex, the bundled SDK for cursor. |
+| browser_suppression_unavailable | Kimi cannot safely place its private browser helper on this platform or outside the working directory. Nothing is launched. |
 | version_unsupported | The installed version predates the login path oar drives (for cursor, an SDK without `Cursor.auth`); `detail` names the floor. An unreadable version is tried, not refused. |
 
 ## Status results
@@ -260,7 +264,8 @@ declares no network, refresh or key-command execution. The
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.1.0 | 15 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
 | antigravity | no `login`: its terms do not allow a sign-in through a third-party tool ([page](../runtimes/antigravity.md)) | none | | |
-| grok, kimi, opencode, pi | not yet | not yet | | |
+| kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
+| grok, opencode, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
 Claude normally attempts to open a browser; `openBrowser: false` overrides
@@ -268,10 +273,24 @@ Claude normally attempts to open a browser; `openBrowser: false` overrides
 This works from the existing login floor, 2.1.126. Codex's device-code login
 never opens one, and OAR always passes `openBrowser: false` to Cursor's SDK,
 regardless of this option. Qoder suppresses its browser with a per-login
-`BROWSER=www-browser` override. The other runtimes have no runtime login member.
+`BROWSER=www-browser` override. Kimi ignores `BROWSER`: OAR places a private
+no-op `xdg-open`, `open` or `powershell.exe` first on only the login child
+PATH, then removes it after the child exits. Unsupported platforms or an
+unusable temporary location return `browser_suppression_unavailable` before
+launch. The other runtimes have no runtime login member.
 Pi's provider logins are on `createPiProviderAuth`, whose
 `loginProviders()` lists every provider pi's `/login` offers, with its methods
 ([pi page](../runtimes/pi.md#process-ownership-installation-login-and-account-usage)).
+
+Kimi accepts `KimiLoginOptions.region` (`"mainland-cn"` or `"global"`) on
+`kimiRuntime.login`. Omission preserves native resolution: endpoint env
+overrides, persisted OAuth reference, install marker, then mainland China.
+The native login does not report the selected region or account identity, so
+OAR invents neither. Login can also write managed provider/model configuration
+and the default model. The ACP authentication gate reads cached credentials
+without refreshing them; OAR has not established that the whole ACP startup
+is local-only, so it has no `localOnly` declaration. See [Kimi](../runtimes/kimi.md#runtime-login-and-logout)
+for side effects and the repeatable local OAuth test.
 
 ## Logout
 
@@ -329,7 +348,8 @@ runtime oar does not sign in.
 | claude | `claude auth logout`, stdin closed | revokes the stored claude.ai OAuth refresh token, best effort | 2.1.41 | 60 s |
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.1.0 | 20 s |
-| antigravity, grok, kimi, opencode, pi, qoder | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
+| antigravity, grok, opencode, pi, qoder | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
 
 ## CLI
 

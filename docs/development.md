@@ -165,6 +165,8 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
+  The same jobs install Kimi 2.3.3 and run its native login tests against a
+  local OAuth/model server, including browser suppression and credential writes.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,
