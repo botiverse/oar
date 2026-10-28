@@ -103,7 +103,12 @@ are two ways past a gap:
 - **Ask.** Closing it changes one adapter and, where needed, the shared
   contract, in one repository, released on oar's own schedule. A capability
   that lives in a cross-vendor protocol moves only as fast as the protocol,
-  every agent's adapter, and their releases.
+  every agent's adapter, and their releases. Steering a running turn, for
+  example, was proposed for ACP in May 2026
+  ([discussion #1220](https://github.com/orgs/agentclientprotocol/discussions/1220),
+  [RFD PR #1261](https://github.com/agentclientprotocol/agent-client-protocol/pull/1261))
+  and is still unmerged at the end of October; the v2 prompt lifecycle RFD
+  explicitly leaves queueing and steering out.
 - **Fork.** The contract, every adapter, the behavior suites and the evidence
   live in one repository. A team that needs a native capability now can
   change the adapter and ship its own build, with no separate protocol layer,
