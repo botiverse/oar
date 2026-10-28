@@ -71,7 +71,7 @@ async function observed(label: string, include: boolean, open: () => Promise<Cur
     assert.ok(typeof result === "object" && result !== null && "status" in result && result.status === "error");
     const reads = new Set(observer.reads.map((file) => path.relative(root, file)));
     for (const name of ["skills/config-probe/SKILL.md", "hooks.json", "mcp.json"]) {
-      assert.equal(reads.has(path.join(".cursor", name)), include, `${label}: ${name}`);
+      assert.equal(reads.has(path.join(".cursor", name)), include, `${label}: ${name}; observed reads: ${JSON.stringify([...reads])}`);
     }
     assert.equal(backend.seen.some((request) => request.path === "/user-mcp"), include);
     assert.ok(backend.seen.some((request) => request.path === "/auth/exchange_user_api_key" && request.storedKey));

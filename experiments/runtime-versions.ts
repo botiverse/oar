@@ -3,8 +3,9 @@
  * Run: pnpm tsx experiments/runtime-versions.ts > versions.json
  *
  * Compare with the last probe report, then run live-contract.ts for changed
- * versions; for a changed Cursor SDK, also cursor-login/probe.ts (no
- * account needed). For a changed Claude binary, also run
+ * versions; for a changed Cursor SDK, also cursor-login/probe.ts and
+ * cursor-user-configuration/probe.ts (no account needed). For a changed Claude
+ * binary, also run
  * claude-login-browser/probe.ts on Linux (local OAuth stand-in, no account):
  * recheck BROWSER suppression and no fallback after a failed opener, and
  * record the result in that day's runtime-version-checks report.
@@ -26,6 +27,12 @@
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check
  * its companion Chord SDK when upgrading and run the pi-durable-aimock backend.
+ * Prioritize a Pi release newer than 1.4.0 the same day: upgrade OAR's own undici
+ * together to Pi's exact pin, verify one resolved copy, then run both Pi modes
+ * and Pi Durable. Do not bump undici independently.
+ * Also compare deepseek-harness master with the last report: OAR patch files,
+ * its workspace OAR pin/patchedDependencies and both experimental subagent-oar
+ * packages. Record changed patches and their reason for maintainer review.
  * OpenCode has separate v1/v2 release sources. Compare only the selected
  * executable's own line; an unselected line is not an outdated installation.
  * A changed OpenCode binary also needs opencode-release-lines.ts; v1 additionally

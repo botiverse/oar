@@ -8,7 +8,7 @@ process because it observes native filesystem calls and sets process-wide
 environment variables. No real account or model inference is used.
 
 Observed on Linux, SDK 1.0.40 on 2026-10-23; all four controls passed
-again with SDK 1.1.0 on 2026-10-27:
+again with SDK 1.1.0 on 2026-10-27 and SDK 1.2.0 on 2026-10-28:
 
 | Open | User skill, hook and MCP files read | User MCP connects | Original stored login used |
 |---|---|---|---|
@@ -19,6 +19,13 @@ again with SDK 1.1.0 on 2026-10-27:
 
 The SDK also reports one user rule and skill in the positive control. The
 observer records actual native reads without changing their results.
+SDK 1.2.0's bundled text decoder opens a `FileHandle` and calls its
+`readFile`; 1.1.0 used `fs.promises.readFile`. The old observer therefore
+missed the positive control's skill read even though the SDK reported
+loading it. The initial failure, unchanged recheck and diagnostic failure
+are retained. Adding observation of `FileHandle.readFile` made all four
+original controls pass; no assertion, deadline or adapter behavior changed.
+See the [daily report](../runtime-version-checks/2026-10-28.md#configuration-observer).
 Every open exchanges the synthetic stored key and reaches the local run
 endpoint with the returned access token. That endpoint intentionally rejects
 inference, and the probe asserts the terminal error. The login file remains

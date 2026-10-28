@@ -9,6 +9,10 @@ behavior cases (two skipped), and all eight native priority controls after
 isolating the test settings files. The first shared run's startup failure
 and the unchanged passing recheck are retained in the
 [daily report](../../experiments/runtime-version-checks/2026-10-27.md#qoder-1179).
+On October 28, **1.1.80** passed the same eight native cases, 17 shared
+cases (two skipped) and eight priority controls on the first run, using
+separate settings files ([report](../../experiments/runtime-version-checks/2026-10-28.md#qoder-1180)).
+This does not establish that native inline settings no longer share a path.
 No real account or paid provider was used.
 
 ## Native interface

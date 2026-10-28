@@ -16,7 +16,7 @@ through OAR's cursor `login`, `logout` and `authStatus`
 ([login](../../packages/oar/src/runtimes/cursor/login.ts),
 [logout](../../packages/oar/src/runtimes/cursor/logout.ts)). The backend it
 talks to is [`mock-backend.ts`](mock-backend.ts), which serves only the
-endpoints the 1.0.35 through 1.0.38, 1.0.40 and 1.1.0 bundles call: the browser page
+endpoints the 1.0.35 through 1.0.38, 1.0.40, 1.1.0 and 1.2.0 bundles call: the browser page
 `/loginDeepControl?challenge=…&uuid=…`, `POST /auth/poll` (it checks the
 PKCE verifier against the page's challenge), and the Connect RPCs
 `DashboardService/CreateUserApiKey` and `GetMe` (binary protobuf over
@@ -129,3 +129,7 @@ only synthetic credentials and its local backend; no real login was repeated.
 2026-10-27, `@cursor/sdk` 1.1.0, Linux x64, Node 24.19.0: the network
 guard and all 11 login/logout scenarios passed. Only the local backend and
 synthetic credentials were used; no real login was repeated.
+
+2026-10-28, `@cursor/sdk` 1.2.0, Linux x64, Node 24.19.0: the network
+guard and all 11 login/logout scenarios passed again. No real account or
+model inference was used.

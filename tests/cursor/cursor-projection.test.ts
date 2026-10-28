@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import usageFixture from "../fixtures/cursor-usage-1.1.0.json" with { type: "json" };
+import newReleaseUsageFixture from "../fixtures/cursor-usage-1.2.0.json" with { type: "json" };
 import {
   cursorOpenedFrame,
   cursorRunFailedFrame,
@@ -105,10 +106,10 @@ test("a delivered steer's echo is a user message without an input id", () => {
   assert.deepEqual(one(update).events, [{ kind: "user_message", input: "Also include the word PELICAN in your final reply.", evidence: "conversation" }]);
 });
 
-test("Cursor 1.1.0 native usage matches its run totals without counting cache reads twice", () => {
-  const { frames } = fold(usageFixture.turns.map((turn) => turn.update));
+test.each([usageFixture, newReleaseUsageFixture])("Cursor $sdk native usage matches its run totals without counting cache reads twice", (fixture) => {
+  const { frames } = fold(fixture.turns.map((turn) => turn.update));
   let expected = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0, total: 0 };
-  for (const [index, turn] of usageFixture.turns.entries()) {
+  for (const [index, turn] of fixture.turns.entries()) {
     const native = turn.runUsage;
     expected = {
       input: expected.input + native.inputTokens, output: expected.output + native.outputTokens,

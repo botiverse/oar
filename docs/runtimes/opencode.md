@@ -48,6 +48,10 @@ investigation):
   unchanged recheck after one native startup failed a workspace-table
   creation statement; the underlying cause was not identified
   ([October 23 report](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility)).
+- **1.19.5** (2026-10-28): 10 native tests, 17 shared behavior cases (two
+  skipped), the prompt-options probe and a nine-model catalog passed on the
+  first run against local scripted providers, without an account
+  ([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#opencode-1195)).
 
 ## OpenCode v2
 

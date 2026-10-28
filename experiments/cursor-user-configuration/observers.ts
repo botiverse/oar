@@ -24,6 +24,7 @@ export function observeLocalOnly(port: number): { readonly reads: string[]; read
   // oxlint-disable-next-line typescript/unbound-method -- Reflect.apply restores the original socket receiver.
   const { connect } = net.Socket.prototype;
   const read = fs.readFile;
+  const { open } = fs;
   function guarded(this: net.Socket, ...args: unknown[]): net.Socket {
     const target = connectTarget(args);
     if (!allowed.has(target)) { blocked.push(target); throw new Error("configuration probe refused nonlocal traffic"); }
@@ -36,14 +37,31 @@ export function observeLocalOnly(port: number): { readonly reads: string[]; read
     const result: unknown = await Reflect.apply(read, fs, args);
     return result;
   }
+  // SDK 1.2.0's text decoder reads through a FileHandle. Observe the read,
+  // not merely opening the path, and preserve the native handle and result.
+  async function observedOpen(...args: Parameters<typeof fs.open>): Promise<Awaited<ReturnType<typeof fs.open>>> {
+    const handle = await open(...args);
+    const readHandle = handle.readFile.bind(handle);
+    Object.defineProperty(handle, "readFile", {
+      configurable: true, writable: true,
+      value: async (...options: Parameters<typeof handle.readFile>) => {
+        if (typeof args[0] === "string") { reads.push(args[0]); }
+        const result = await readHandle(...options);
+        return result;
+      },
+    });
+    return handle;
+  }
   Object.defineProperty(net.Socket.prototype, "connect", { value: guarded, configurable: true, writable: true });
   Object.defineProperty(fs, "readFile", { value: observedRead, configurable: true, writable: true });
+  Object.defineProperty(fs, "open", { value: observedOpen, configurable: true, writable: true });
   syncBuiltinESMExports();
   return {
     reads, blocked,
     restore(): void {
       Object.defineProperty(net.Socket.prototype, "connect", { value: connect });
       Object.defineProperty(fs, "readFile", { value: read });
+      Object.defineProperty(fs, "open", { value: open });
       syncBuiltinESMExports();
     },
   };

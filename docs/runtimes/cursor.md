@@ -18,21 +18,26 @@ Current required SDK: **1.1.0**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
-On **1.1.0** (2026-10-27; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
-reusing an existing login), all 12 applicable live session scenarios passed;
-`kill-runtime` remains skipped. The three root tool-selection scenarios passed
-with a new file per phase. The initial resume reused a previously read file
-and failed the required-read assertion because the model quoted history;
-no denied tool or MCP handler executed. Login/logout passed all 11 local
-substitute scenarios, and the configuration-source probe passed all four
-controls without using a real account.
+On **1.2.0** (2026-10-28; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
+reusing an existing login), existing interfaces were compatible: all 12
+applicable live session scenarios and three root tool-selection scenarios
+passed; `kill-runtime` remains skipped.
+All 11 local login/logout scenarios passed. The four configuration-source
+controls passed after the probe learned to observe the SDK's new
+`FileHandle.readFile` path; the initial failures and unchanged recheck are
+retained in the [October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120).
+The required peer remains **1.1.0**. The compatibility check does not require
+hosts to upgrade again; adopting 1.2.0 will accompany an OAR feature or fix
+that needs it.
 
-SDK 1.1.0 changed token accounting: `inputTokens` already includes cache
-reads and writes, so OAR no longer adds them again. Cursor `input` values can
-therefore be smaller; cache parts remain available separately. The
-[October 27 report](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110)
-records source evidence, native samples and the unverified nonzero cache-write
-case. Earlier observations remain in the
+Since SDK 1.1.0, its `toTokenUsage` and `sumTokenUsage` formulas add only
+input and output. OAR follows that accounting and no longer adds cache
+reads or writes to `inputTokens` again; cache parts remain separate. The
+1.1.0 and 1.2.0 native samples confirm nonzero cache reads are included;
+nonzero cache writes remain source-backed and synthetically tested only.
+This does not establish whether 1.0.40's native input field had different
+semantics. Earlier observations remain in the
+[October 27 report](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110),
 [October 21 report](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040),
 [October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)
 and [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md).
@@ -101,6 +106,16 @@ not restore its own model (a `send` without one is refused, probed), so
 without `SessionOptions.model` OAR reopens with the model of the agent's
 latest run (`Agent.listRuns`), or `default` when it has none. The next prompt
 recalls what was taught before disposal (`resume`).
+
+A cross-version check on October 28 created an agent and completed a turn
+with SDK 1.0.40, then resumed it in a separate SDK 1.1.0 process without
+specifying a model. The agent id, original run and `gpt-5.4-nano` selection
+were preserved, and the second turn recalled a random marker absent from
+its prompt [env]. The two bundles have identical agent/run and checkpoint
+SQL schemas; the checkpoint database sets `user_version = 1` in both [src].
+The agent index does not explicitly set that pragma. The same schema
+statements were also found in 1.2.0, but this is not a rollback guarantee.
+[Probe and evidence](../../experiments/runtime-version-checks/2026-10-28.md#sdk-1040-to-110-resume).
 
 An SDK `agent_not_found` error from either the run lookup or `Agent.resume`
 becomes `SessionNotFoundError`, retaining the requested `sessionId` and a
@@ -240,13 +255,14 @@ Cursor reproduced it the same day and called it unintended.
 `text-delta` is a `text_delta`, `thinking-delta` a `reasoning` text, and
 `turn-ended` a `usage` event: OAR accumulates `inputTokens` as input, with
 `cacheReadTokens` and `cacheWriteTokens` also accumulated as its separate
-parts. SDK 1.1.0's `toTokenUsage` and `sumTokenUsage` calculate
+parts. SDK 1.1.0 and 1.2.0's `toTokenUsage` and `sumTokenUsage` calculate
 `totalTokens = inputTokens + outputTokens`; neither adds cache parts again
-[src]. Real 1.1.0 samples on October 27 include nonzero cache reads and match
-that total; all cache writes were zero, so nonzero write inclusion remains
-unverified against a real provider. The
-[recorded fixture](../../tests/fixtures/cursor-usage-1.1.0.json) pins these
-samples; a separate synthetic test covers nonzero writes. Required numeric
+[src]. Real 1.1.0 and 1.2.0 samples on October 27 and 28 include nonzero
+cache reads and match that total; all cache writes were zero, so nonzero
+write inclusion remains unverified against a real provider. Recorded
+[1.1.0](../../tests/fixtures/cursor-usage-1.1.0.json) and
+[1.2.0](../../tests/fixtures/cursor-usage-1.2.0.json) fixtures pin these samples;
+a separate synthetic test covers nonzero writes. Required numeric
 cache fields preserve explicit zero
 ([spec](../spec/attribution.md#cache-reads-and-writes)). Optional
 `reasoningTokens` accumulates as `reasoning`, already included in output;
@@ -256,9 +272,14 @@ update reports a child's own tokens, and whether the run's figure includes a
 child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),
 `tool-requests-listed`, `step-started`, `step-completed` and
-`shell-output-delta` are recorded with no events. The SDK drops its
-`summary` updates before `onDelta`, so compaction is not observable, and no
-update reports context occupancy, so `contextUsage()` stays empty.
+`shell-output-delta` are recorded with no events. SDK 1.2.0 still filters
+`summary`, `summary-started` and `summary-completed` before `onDelta` [src].
+It now exposes `summary` status messages through `run.stream()` and a native
+`Agent.summarize()` control. OAR currently consumes `onDelta` and `run.wait()`;
+it neither reads those summary messages nor exposes the manual control.
+Mapping the stream's statuses to the existing compaction events needs a
+separate integration that preserves every existing delta. No update used by
+OAR reports context occupancy, so `contextUsage()` stays empty.
 
 `shell-output-delta` is separate from model tool calls. In SDK 1.0.37,
 its `{event: {case: "stdout" | "stderr", value: {data}}}` carries no
@@ -560,7 +581,7 @@ polls and while it mints, each in an empty home and over a previous login;
 the SDK stopped polling on its signal, minted and asked `GetMe` after a
 cancel, then saved only through OAR's store, which refused it, so
 `auth.json` stayed absent or byte for byte as it was; all 11 scenarios
-passed again on 1.1.0, 2026-10-27, with other network access blocked).
+passed again on 1.2.0, 2026-10-28, with other network access blocked).
 **Run that experiment on every `@cursor/sdk` upgrade**: it needs no account
 and fails if the SDK writes `auth.json` outside the store it is given. On a real login, on
 2026-10-06 and 2026-10-07, on a fresh Linux test machine with `@cursor/sdk`

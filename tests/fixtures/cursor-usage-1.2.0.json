@@ -1,0 +1,64 @@
+{
+  "sdk": "1.2.0",
+  "recordedAt": "2026-10-28",
+  "model": "gpt-5.4-nano",
+  "scope": "Root turn-ended updates and matching run.wait usage only; identifiers and conversation content omitted. Cache writes are zero in these real samples.",
+  "turns": [
+    {
+      "update": {
+        "type": "turn-ended",
+        "usage": {
+          "inputTokens": 8467,
+          "outputTokens": 18,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 11
+        }
+      },
+      "runUsage": {
+        "inputTokens": 8467,
+        "outputTokens": 18,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8485,
+        "reasoningTokens": 11
+      }
+    },
+    {
+      "update": {
+        "type": "turn-ended",
+        "usage": {
+          "inputTokens": 8529,
+          "outputTokens": 6,
+          "cacheReadTokens": 7680,
+          "cacheWriteTokens": 0
+        }
+      },
+      "runUsage": {
+        "inputTokens": 8529,
+        "outputTokens": 6,
+        "cacheReadTokens": 7680,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8535
+      }
+    },
+    {
+      "update": {
+        "type": "turn-ended",
+        "usage": {
+          "inputTokens": 8579,
+          "outputTokens": 6,
+          "cacheReadTokens": 7680,
+          "cacheWriteTokens": 0
+        }
+      },
+      "runUsage": {
+        "inputTokens": 8579,
+        "outputTokens": 6,
+        "cacheReadTokens": 7680,
+        "cacheWriteTokens": 0,
+        "totalTokens": 8585
+      }
+    }
+  ]
+}

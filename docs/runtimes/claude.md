@@ -12,9 +12,9 @@ with no adapter change.
 The 61 native vendor tests (MCP attachment and resume, tool search and list changes,
 tool denial, streamed input, child attribution, structured output, service
 tiers, effort, additional directories, error redaction, opening hooks) and
-the shared behavior cases (17 passed, 2 skipped) last passed on **2.1.311** against a
+the shared behavior cases (17 passed, 2 skipped) last passed on **2.1.312** against a
 local scripted provider
-([2026-10-27 report](../../experiments/runtime-version-checks/2026-10-27.md#claude-21311)).
+([2026-10-28 report](../../experiments/runtime-version-checks/2026-10-28.md#claude-21312)).
 Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)
@@ -1145,9 +1145,9 @@ uses a local OAuth stand-in and synthetic credentials. It verified browser
 suppression on Linux, Windows and macOS with 2.1.126 and 2.1.304. Linux and
 Windows also completed the login and status query; macOS login completion
 remains unverified in the CI keychain environment, as recorded in the probe.
-The Linux probe passed again on 2.1.311 (2026-10-27), including login
+The Linux probe passed again on 2.1.312 (2026-10-28), including login
 completion and the failing-browser control
-([report](../../experiments/runtime-version-checks/2026-10-27.md#claude-21311)).
+([report](../../experiments/runtime-version-checks/2026-10-28.md#claude-21312)).
 
 **Many claude processes on one machine share one login, and can lose it
 ([#402](https://github.com/botiverse/oar/issues/402)).** Every claude process
