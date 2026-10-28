@@ -1,5 +1,5 @@
 /* oxlint-disable eslint/no-await-in-loop -- Resume phases must share one native conversation in order. */
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
@@ -8,13 +8,22 @@ import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 
+function bashArgument(value: string): string {
+  return `'${value.replaceAll("\\", "/").replaceAll("'", String.raw`'\''`)}'`;
+}
+
 async function fixture(tool: "Write" | "Bash" = "Write", severity = 90): Promise<{
   readonly options: SessionOptions;
   readonly classifierCalls: () => number;
   readonly wrote: (marker: string) => Promise<boolean>;
   readonly stop: () => Promise<void>;
 }> {
-  const directory = await mkdtemp(path.join(tmpdir(), "oar-permission-mode-"));
+  // Windows tmpdir can contain an 8.3 alias that native permission checks
+  // deliberately require manual approval for, even in acceptEdits mode.
+  const temporary = await mkdtemp(path.join(tmpdir(), "oar-permission-mode-"));
+  const directory = await realpath(temporary);
+  const script = path.join(directory, "write-fixture.cjs");
+  await writeFile(script, 'require("node:fs").writeFileSync(process.argv[2], process.argv[3]);\n');
   const calls = new Map<string, number>();
   let classifierCalls = 0;
   const provider = await startClaudeAimock((mock) => {
@@ -30,7 +39,7 @@ async function fixture(tool: "Write" | "Bash" = "Write", severity = 90): Promise
       calls.set(marker, count + 1);
       const file = path.join(directory, `${marker}.txt`);
       const input = tool === "Write" ? { file_path: file, content: marker }
-        : { command: `node -e 'require("node:fs").writeFileSync(${JSON.stringify(file)},${JSON.stringify(marker)})'` };
+        : { command: [process.execPath, script, file, marker].map((argument) => bashArgument(argument)).join(" ") };
       return count === 0 ? { toolCalls: [{ id: marker, name: tool, arguments: JSON.stringify(input) }] } : { content: "finished" };
     });
   });

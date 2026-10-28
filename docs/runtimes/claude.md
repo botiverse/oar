@@ -792,6 +792,10 @@ To tighten native policy without interactive approval, prefer
 these modes OAR omits its bypass and adds `--permission-prompts none`:
 a remaining request for approval becomes a native local denial, while
 operations already allowed by the mode or native rules can proceed.
+Native safety checks still apply: on Windows, 2.1.312 refused an
+`acceptEdits` write through an 8.3 short-path alias as requiring manual
+approval, and `none` converted that request into a local denial ([observed
+tool result](https://github.com/botiverse/oar/actions/runs/40713945389/job/122906405704)).
 
 `--permission-prompt-tool` is refused before launch because OAR has no
 interface for answering permission requests. A host-supplied
