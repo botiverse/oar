@@ -9,6 +9,10 @@ export const qwenRuntime = defineRuntime({
   id: "qwen", brand: runtimeBrands.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
   installation: qwenInstallation,
+  authStatus: Object.assign(onFirstCall(async () => {
+    const { qwenAuthStatus } = await import("./auth-status.js");
+    return qwenAuthStatus;
+  }), { localOnly: true as const }),
   installPlan: qwenInstallPlan,
   install: qwenInstall,
   listModels: onFirstCall(async () => {

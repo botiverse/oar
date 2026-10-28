@@ -245,8 +245,9 @@ caller closes it. A prompt or event handler that throws stops the login with
 
 `logged_in` (with `account` when the status names one), `logged_out`, or
 `unknown` when the status query failed or answered in a way oar cannot read;
-never a guess either way. `source` names the command (or SDK call) that
-answered.
+never a guess either way. `source` names the native command, SDK call or
+configuration observed. `logged_out.detail` can give setup guidance and the
+limits of that observation.
 
 `LoginAccount.credential` optionally reports account versus API-key form;
 `metering` independently reports plan versus usage billing. Unknown facts stay
@@ -265,6 +266,7 @@ declares no network, refresh or key-command execution. The
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
 | antigravity | no `login`: its terms do not allow a sign-in through a third-party tool ([page](../runtimes/antigravity.md)) | none | | |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
+| qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
 | grok, opencode, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
@@ -356,3 +358,21 @@ runtime oar does not sign in.
 `oar login`, `oar login --status` and `oar logout` run these from a
 terminal; their flags, output and exit codes are in the
 [CLI reference](../../packages/cli/README.md#commands).
+
+
+## Machine/user status scope
+
+`authStatus()` observes this user's authentication on this machine, rather
+than whether a session in one particular workspace can run. It has no `cwd`
+or `launchArgs` option. Qwen's local reader includes the session environment
+(inherited plus `env` overlay), user and system `security.auth` and
+`settings.env`, variables referenced by `modelProviders` entries' `envKey`,
+user-level `.env` files independent of a workspace walk, and Vertex ADC file
+existence. Project settings, workspace `.env` and `--openai-api-key` launch
+arguments are excluded. Configured or offline-indeterminate sources return
+`unknown` with source kinds only, never credential values. No source in that
+scope returns `logged_out` with the explicit caveat that the excluded sources
+may still supply credentials. Neither result validates a remote credential.
+Qwen's OAuth free tier ended on 2026-04-15; use provider configuration instead.
+See [Qwen authentication status](../runtimes/qwen.md#authentication-status) for
+the source inventory and read-only regression evidence.

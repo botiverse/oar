@@ -267,3 +267,23 @@ field (pi declined the same request upstream, pi#9007).
 **What would reopen it:** a runtime that documents a text form as its
 stable interface for the fact. When a runtime ships the fact as a field,
 OAR maps the field, as it did for pi's exit code.
+
+
+## Authentication status scoped to a workspace (2026-10-28)
+
+**Considered:** adding `cwd` and `launchArgs` to `AuthStatusOptions` so Qwen's
+reader can see project credentials and `--openai-api-key` too.
+
+**Refused:** the shared status surface describes this user's authentication on
+this machine. It is not proof that any particular session can run. Other
+runtimes, including Claude, can also acquire credentials from project settings
+that their status does not inspect. Qwen keeps that common scope, reports
+configured credentials as `unknown`, and states the excluded sources in its
+logged-out detail. The [status contract](../spec/login.md#machineuser-status-scope)
+and [Qwen mapping](../runtimes/qwen.md#authentication-status) keep these limits
+visible without selecting or validating a provider.
+
+**What would reopen it:** a host needs authentication evidence scoped to a
+specific workspace or launch configuration. Revisit the common contract then,
+with evidence across the affected runtimes, instead of adding Qwen-only
+options now.

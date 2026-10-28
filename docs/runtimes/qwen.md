@@ -45,6 +45,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Structured output | Refused with `UnsupportedOptionError`: native 0.26.0 explicitly disallows `--json-schema` with stream-json input. No adapter emulation. |
 | Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
 | Login | No `login` member. Native `qwen auth` was removed. Configure a provider externally, for example OPENAI_API_KEY, OPENAI_BASE_URL and OPENAI_MODEL. No OAR login prompt or browser flow. |
+| Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
 | Other surfaces | No service tier or session-name setting; no account quota, inventory, updater, live configure or context breakdown mapping. |
 
 The install plan checks writes to both the executable directory and the library
@@ -220,17 +221,72 @@ verified separation of user configuration from native login and session
 history. Omission and `"include"` retain existing behavior. See the
 [shared contract](../spec/runtime-matrix.md#user-configuration).
 
+## Authentication status
+
+[source, 0.26.2] Native `qwen auth` was removed; OAR exposes no login or
+logout flow. Qwen says its OAuth free tier ended on **2026-04-15**. Configure
+a provider externally: `OPENAI_API_KEY`, `OPENAI_BASE_URL` and `OPENAI_MODEL`,
+a Bailian plan key and its regional plan endpoint, or an OpenRouter/Requesty
+key and provider endpoint. These are configuration instructions, not proof
+that an account or endpoint works.
+
+`authStatus()` is a local presence observation with the same inherited
+environment and explicit `env` overlay as a session. It reads user and system
+settings (`security.auth`, `settings.env`, and variables referenced by
+`modelProviders[].envKey`), native provider-key variables, and the user-level
+`.env` files Qwen reads independently of a workspace walk: the global Qwen
+configuration directory, legacy `~/.qwen`, and the home directory. It honors
+`QWEN_HOME`, including its user `.env` bootstrap, and the native system settings
+path overrides. JSONC and dotenv are parsed without running Qwen's settings
+loader, migrations or provider setup. Existing files are not modified.
+
+Project settings, workspace `.env` files and launch arguments such as
+`--openai-api-key` are outside this machine/user observation. `AuthStatusOptions`
+does not add `cwd` or `launchArgs`. Any configured source in scope gives
+`unknown`, including a source shadowed by another setting. The reader does not
+choose an effective provider or test a key. Its detail names source kinds,
+environment variable names or a known `selectedType`, never values. A selected
+API-key protocol or a model entry with an unset key alone is not a credential.
+
+Vertex ADC and legacy Qwen OAuth files are checked for existence only, without
+reading their tokens. A missing explicit ADC file, external authentication,
+or a Vertex configuration that might use metadata credentials remains
+`unknown`; offline evidence cannot establish their usability. The ADC locations
+follow [Google's documented lookup](https://docs.cloud.google.com/docs/authentication/application-default-credentials).
+Malformed, unreadable, oversized or unrecognized-version configuration and a
+query timeout also produce `unknown` with generic detail. No key helper,
+Google credential client, token refresh or network request runs. The reader
+therefore declares `localOnly: true`.
+
+Only when no source is found in scope does it return `logged_out`. Its detail
+includes provider setup guidance and says that project settings, workspace
+`.env` or launch arguments may still supply credentials. This is not a claim
+that every workspace session will fail. `orient()` uses the existing
+logged-out skip rule for account/model reads; hosts that need a particular
+workspace's catalog can call `listModels()` directly.
+
+Evidence: the pinned [0.26.2 source](https://github.com/QwenLM/qwen-code/tree/402911146f6b2a80cb97423309faf1956f6defe4)
+(`commands/auth.ts`, `config/auth.ts`, `config/environment.ts`,
+`config/storage-paths-lite.ts`, `core/models/modelConfigResolver.ts` and the
+provider presets) supplies the source inventory. The
+[isolated reader regressions](../../tests/qwen/auth-status.test.ts) cover
+system/user settings, JSONC, dotenv bootstrap, custom keys, overlay removal,
+metadata-only token checks, excluded workspaces, privacy, deadlines and local
+orientation. They establish local observation, not remote authentication.
+
 ## Orientation query costs
 
 `listModels()` starts Qwen in the selected workspace, initializes its
 stream-JSON control channel, reads `get_available_models`, and closes it. Native
 configuration and provider setup can run during that process, so catalog reads
 are explicit `models`-depth work, not a cheap local metadata promise. No model
-prompt is submitted. There is no auth-status reader to infer a login from.
+prompt is submitted. The local auth-status reader observes configuration only;
+it cannot confirm a usable provider login.
 
 ## Reader environment
 
-Installation and model listing accept `env` using the session overlay rules.
+Installation, authentication status and model listing accept `env` using the
+session overlay rules.
 Discovery evaluates the QWEN installation directory variables and home
 fallback from that map on each call; the model query uses it too. See
 [reader environments](../spec/orientation.md#environment).

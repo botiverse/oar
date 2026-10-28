@@ -149,13 +149,14 @@ export type RuntimeLogout = (
 ) => Promise<LogoutResult>;
 
 /**
- * Whether the runtime is logged in, from its own local status query.
- * `source` names the command (or SDK call) that answered.
+ * Whether the runtime is logged in, from its native status or local configuration.
+ * `source` names the command, SDK call or configuration observed.
+ * `logged_out.detail` can explain setup and the observation scope.
  */
 export type AuthStatus =
   | { readonly kind: "logged_in"; readonly account?: LoginAccount; readonly source: string }
-  | { readonly kind: "logged_out"; readonly source: string }
-  /** The status query failed or gave an answer oar cannot read; never a guess either way. */
+  | { readonly kind: "logged_out"; readonly source: string; readonly detail?: string }
+  /** The status query failed, was unreadable, or local configuration cannot establish a login. */
   | { readonly kind: "unknown"; readonly detail?: string; readonly source?: string };
 
 export interface AuthStatusOptions {
