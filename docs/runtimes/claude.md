@@ -793,6 +793,20 @@ only what the agent may touch. `disallowedTools` removes named tools from the
 session altogether ([disallowed tools](#disallowed-tools)). [Native MCP][native-mcp], [permissions][native-permissions],
 [adapter](../../packages/oar/src/runtimes/claude/session.ts).
 
+[env + src, 2.1.311, Linux] A [permission-mode investigation](../../experiments/claude-permissions/README.md)
+ran native stream-json processes without OAR's bypass. With the current
+launch shape, absent a permission prompt tool, requests needing approval
+were denied locally. An explicit `--permission-prompt-tool stdio` made
+`default` and `acceptEdits` emit `can_use_tool`; OAR's current Claude adapter
+records that request without answering it. `--permission-prompts none`
+denied those requests locally even with the stdio target, while preserving
+operations already allowed by the mode. These are native observations,
+not newly supported OAR options. On resume, supplied modes took effect;
+omitting `acceptEdits` or `plan` returned to `default` in these fixtures, and
+omitting `none` restored host prompting with an explicit stdio target.
+Plan-mode Bash decisions also consulted a model classifier: a scripted
+allow result permitted a file write. Permission modes are not OS isolation.
+
 Inventories (2026-09-16) are control queries in their own
 `--no-session-persistence` process, scoped to a workspace cwd, without a
 prompt: skills from `get_context_usage` skill frontmatter (view `context`),

@@ -121,11 +121,13 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 ## Open questions
 
-1. **Answering runtime requests.** Adapters answer `toApp` requests
-   automatically (full access by default) and `Session` has no
-   `answer(requestId)`. A UI that wants human approval needs an opt-out of the
-   automatic answer plus an answer call: the first session addition this
-   direction forces.
+1. **Answering runtime requests.** `Session` has no `answer(requestId)`.
+   Answering depends on the adapter: some automatically allow permission
+   requests; Claude normally starts with permission bypass and records any
+   incoming `toApp` request without answering it. A UI that wants human
+   approval needs explicit request ownership, an answer call and an opt-out
+   wherever an adapter currently answers automatically. See the
+   [Claude permission investigation](../../experiments/claude-permissions/README.md).
 2. **Long-lived streams over HTTP.** `AssistantTransport` assumes a command
    opens a run whose stream then closes, while OAR sessions stream
    continuously (queued input runs later, runtimes start turns on their own).
