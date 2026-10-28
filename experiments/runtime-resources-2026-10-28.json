@@ -1,0 +1,1927 @@
+{
+  "observedAt": "2026-10-28",
+  "machine": {
+    "platform": "linux",
+    "architecture": "x64",
+    "kernel": "6.12.93",
+    "cpuModel": "Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz",
+    "logicalCpus": 16,
+    "memoryBytes": 67419242496
+  },
+  "provider": "local scripted replies; no account quota",
+  "resources": [
+    {
+      "runtime": "claude",
+      "version": "2.1.312 (Claude Code)",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 184.01,
+        "cpuPercentOneCore": 3.94,
+        "cpuIsLowerBound": false,
+        "fds": 14,
+        "processes": 1,
+        "sampleMs": 5077
+      },
+      "afterTurn": {
+        "rssMiB": 195.43,
+        "cpuPercentOneCore": 0.792,
+        "cpuIsLowerBound": false,
+        "fds": 14,
+        "processes": 1,
+        "sampleMs": 5052
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "claude",
+      "version": "2.1.312 (Claude Code)",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 1792.32,
+        "cpuPercentOneCore": 13.902,
+        "cpuIsLowerBound": false,
+        "fds": 140,
+        "processes": 10,
+        "sampleMs": 5107
+      },
+      "afterTurn": {
+        "rssMiB": 1919.32,
+        "cpuPercentOneCore": 16.889,
+        "cpuIsLowerBound": false,
+        "fds": 149,
+        "processes": 10,
+        "sampleMs": 5092
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "claude",
+      "version": "2.1.312 (Claude Code)",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 900.57,
+        "cpuPercentOneCore": 7.915,
+        "cpuIsLowerBound": false,
+        "fds": 70,
+        "processes": 5,
+        "sampleMs": 5054
+      },
+      "afterTurn": {
+        "rssMiB": 966.02,
+        "cpuPercentOneCore": 6.101,
+        "cpuIsLowerBound": false,
+        "fds": 75,
+        "processes": 5,
+        "sampleMs": 5081
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "codex",
+      "version": "codex-cli 0.165.0",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 177.8,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": true,
+        "fds": 57,
+        "processes": 2,
+        "sampleMs": 5090
+      },
+      "afterTurn": {
+        "rssMiB": 197.91,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 71,
+        "processes": 2,
+        "sampleMs": 5046
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "codex",
+      "version": "codex-cli 0.165.0",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 1782.66,
+        "cpuPercentOneCore": 1.374,
+        "cpuIsLowerBound": true,
+        "fds": 578,
+        "processes": 20,
+        "sampleMs": 5093
+      },
+      "afterTurn": {
+        "rssMiB": 1974.42,
+        "cpuPercentOneCore": 0.793,
+        "cpuIsLowerBound": false,
+        "fds": 690,
+        "processes": 20,
+        "sampleMs": 5043
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "codex",
+      "version": "codex-cli 0.165.0",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 886.02,
+        "cpuPercentOneCore": 0.788,
+        "cpuIsLowerBound": false,
+        "fds": 285,
+        "processes": 10,
+        "sampleMs": 5076
+      },
+      "afterTurn": {
+        "rssMiB": 985.89,
+        "cpuPercentOneCore": 1.381,
+        "cpuIsLowerBound": false,
+        "fds": 351,
+        "processes": 10,
+        "sampleMs": 5069
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 447.59,
+        "cpuPercentOneCore": 1.386,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5051
+      },
+      "afterTurn": {
+        "rssMiB": 456.34,
+        "cpuPercentOneCore": 0.983,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5088
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 3633.7,
+        "cpuPercentOneCore": 63.139,
+        "cpuIsLowerBound": false,
+        "fds": 220,
+        "processes": 10,
+        "sampleMs": 5068
+      },
+      "afterTurn": {
+        "rssMiB": 3369.93,
+        "cpuPercentOneCore": 40.777,
+        "cpuIsLowerBound": false,
+        "fds": 220,
+        "processes": 10,
+        "sampleMs": 5101
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 2223.27,
+        "cpuPercentOneCore": 4.564,
+        "cpuIsLowerBound": false,
+        "fds": 110,
+        "processes": 5,
+        "sampleMs": 5040
+      },
+      "afterTurn": {
+        "rssMiB": 1695.41,
+        "cpuPercentOneCore": 40.468,
+        "cpuIsLowerBound": false,
+        "fds": 110,
+        "processes": 5,
+        "sampleMs": 5090
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "qoder",
+      "version": "1.1.80",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 717.43,
+        "cpuPercentOneCore": 7.682,
+        "cpuIsLowerBound": false,
+        "fds": 38,
+        "processes": 1,
+        "sampleMs": 5077
+      },
+      "afterTurn": {
+        "rssMiB": 370.84,
+        "cpuPercentOneCore": 7.128,
+        "cpuIsLowerBound": false,
+        "fds": 37,
+        "processes": 1,
+        "sampleMs": 5050
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "qoder",
+      "version": "1.1.80",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 4155.02,
+        "cpuPercentOneCore": 1.583,
+        "cpuIsLowerBound": false,
+        "fds": 316,
+        "processes": 10,
+        "sampleMs": 5055
+      },
+      "afterTurn": {
+        "rssMiB": 3777.46,
+        "cpuPercentOneCore": 0.793,
+        "cpuIsLowerBound": false,
+        "fds": 298,
+        "processes": 10,
+        "sampleMs": 5045
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "qoder",
+      "version": "1.1.80",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 2265.96,
+        "cpuPercentOneCore": 0.991,
+        "cpuIsLowerBound": false,
+        "fds": 195,
+        "processes": 5,
+        "sampleMs": 5048
+      },
+      "afterTurn": {
+        "rssMiB": 1875.05,
+        "cpuPercentOneCore": 9.487,
+        "cpuIsLowerBound": false,
+        "fds": 179,
+        "processes": 5,
+        "sampleMs": 5059
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "qwen",
+      "version": "0.26.2",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 457.3,
+        "cpuPercentOneCore": 3.57,
+        "cpuIsLowerBound": false,
+        "fds": 45,
+        "processes": 2,
+        "sampleMs": 5043
+      },
+      "afterTurn": {
+        "rssMiB": 486.46,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 45,
+        "processes": 2,
+        "sampleMs": 5048
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "qwen",
+      "version": "0.26.2",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 4497.97,
+        "cpuPercentOneCore": 14.449,
+        "cpuIsLowerBound": false,
+        "fds": 450,
+        "processes": 20,
+        "sampleMs": 5052
+      },
+      "afterTurn": {
+        "rssMiB": 4852.38,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 450,
+        "processes": 20,
+        "sampleMs": 5055
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "qwen",
+      "version": "0.26.2",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 2234.05,
+        "cpuPercentOneCore": 18.195,
+        "cpuIsLowerBound": false,
+        "fds": 225,
+        "processes": 10,
+        "sampleMs": 5056
+      },
+      "afterTurn": {
+        "rssMiB": 2429.0,
+        "cpuPercentOneCore": 0.196,
+        "cpuIsLowerBound": false,
+        "fds": 225,
+        "processes": 10,
+        "sampleMs": 5092
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "mode": "shared",
+      "count": 1,
+      "idle": {
+        "rssMiB": 448.25,
+        "cpuPercentOneCore": 1.187,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5054
+      },
+      "afterTurn": {
+        "rssMiB": 457.13,
+        "cpuPercentOneCore": 1.191,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5040
+      },
+      "afterClose": {
+        "rssMiB": 332.3,
+        "cpuPercentOneCore": 20.777,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5054
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "mode": "shared",
+      "count": 10,
+      "idle": {
+        "rssMiB": 470.7,
+        "cpuPercentOneCore": 2.348,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5110
+      },
+      "afterTurn": {
+        "rssMiB": 395.72,
+        "cpuPercentOneCore": 1.773,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5076
+      },
+      "afterClose": {
+        "rssMiB": 381.57,
+        "cpuPercentOneCore": 12.683,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5046
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "mode": "shared",
+      "count": 5,
+      "idle": {
+        "rssMiB": 450.16,
+        "cpuPercentOneCore": 1.581,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5061
+      },
+      "afterTurn": {
+        "rssMiB": 373.45,
+        "cpuPercentOneCore": 1.387,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5046
+      },
+      "afterClose": {
+        "rssMiB": 368.39,
+        "cpuPercentOneCore": 10.493,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5051
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 430.2,
+        "cpuPercentOneCore": 0.195,
+        "cpuIsLowerBound": false,
+        "fds": 59,
+        "processes": 2,
+        "sampleMs": 5115
+      },
+      "afterTurn": {
+        "rssMiB": 456.8,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 59,
+        "processes": 2,
+        "sampleMs": 5062
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 4267.41,
+        "cpuPercentOneCore": 2.174,
+        "cpuIsLowerBound": false,
+        "fds": 584,
+        "processes": 20,
+        "sampleMs": 5059
+      },
+      "afterTurn": {
+        "rssMiB": 4680.33,
+        "cpuPercentOneCore": 2.759,
+        "cpuIsLowerBound": false,
+        "fds": 590,
+        "processes": 20,
+        "sampleMs": 5075
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 2132.24,
+        "cpuPercentOneCore": 0.986,
+        "cpuIsLowerBound": false,
+        "fds": 295,
+        "processes": 10,
+        "sampleMs": 5070
+      },
+      "afterTurn": {
+        "rssMiB": 2334.19,
+        "cpuPercentOneCore": 1.187,
+        "cpuIsLowerBound": false,
+        "fds": 295,
+        "processes": 10,
+        "sampleMs": 5054
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "mode": "shared",
+      "count": 1,
+      "idle": {
+        "rssMiB": 428.87,
+        "cpuPercentOneCore": 0.792,
+        "cpuIsLowerBound": false,
+        "fds": 59,
+        "processes": 2,
+        "sampleMs": 5051
+      },
+      "afterTurn": {
+        "rssMiB": 457.32,
+        "cpuPercentOneCore": 0.396,
+        "cpuIsLowerBound": false,
+        "fds": 59,
+        "processes": 2,
+        "sampleMs": 5047
+      },
+      "afterClose": {
+        "rssMiB": 455.47,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 59,
+        "processes": 2,
+        "sampleMs": 5054
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "mode": "shared",
+      "count": 10,
+      "idle": {
+        "rssMiB": 1495.94,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 230,
+        "processes": 11,
+        "sampleMs": 5059
+      },
+      "afterTurn": {
+        "rssMiB": 2193.16,
+        "cpuPercentOneCore": 0.983,
+        "cpuIsLowerBound": false,
+        "fds": 230,
+        "processes": 11,
+        "sampleMs": 5084
+      },
+      "afterClose": {
+        "rssMiB": 2191.77,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 230,
+        "processes": 11,
+        "sampleMs": 5049
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "mode": "shared",
+      "count": 5,
+      "idle": {
+        "rssMiB": 902.16,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 135,
+        "processes": 6,
+        "sampleMs": 5048
+      },
+      "afterTurn": {
+        "rssMiB": 1224.01,
+        "cpuPercentOneCore": 0.197,
+        "cpuIsLowerBound": false,
+        "fds": 135,
+        "processes": 6,
+        "sampleMs": 5068
+      },
+      "afterClose": {
+        "rssMiB": 1224.26,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 135,
+        "processes": 6,
+        "sampleMs": 5048
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 114.01,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 27,
+        "processes": 1,
+        "sampleMs": 5045
+      },
+      "afterTurn": {
+        "rssMiB": 123.06,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 28,
+        "processes": 1,
+        "sampleMs": 5052
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 1138.62,
+        "cpuPercentOneCore": 1.382,
+        "cpuIsLowerBound": false,
+        "fds": 270,
+        "processes": 10,
+        "sampleMs": 5066
+      },
+      "afterTurn": {
+        "rssMiB": 1231.28,
+        "cpuPercentOneCore": 0.992,
+        "cpuIsLowerBound": false,
+        "fds": 280,
+        "processes": 10,
+        "sampleMs": 5039
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 569.8,
+        "cpuPercentOneCore": 0.794,
+        "cpuIsLowerBound": false,
+        "fds": 135,
+        "processes": 5,
+        "sampleMs": 5038
+      },
+      "afterTurn": {
+        "rssMiB": 615.48,
+        "cpuPercentOneCore": 0.589,
+        "cpuIsLowerBound": false,
+        "fds": 140,
+        "processes": 5,
+        "sampleMs": 5091
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "mode": "shared",
+      "count": 1,
+      "idle": {
+        "rssMiB": 116.08,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 27,
+        "processes": 1,
+        "sampleMs": 5056
+      },
+      "afterTurn": {
+        "rssMiB": 125.58,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 28,
+        "processes": 1,
+        "sampleMs": 5058
+      },
+      "afterClose": {
+        "rssMiB": 124.58,
+        "cpuPercentOneCore": 0.197,
+        "cpuIsLowerBound": false,
+        "fds": 22,
+        "processes": 1,
+        "sampleMs": 5073
+      },
+      "close": {
+        "reply": {
+          "_meta": {
+            "x.ai/closeOutcome": "closed"
+          }
+        }
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "mode": "shared",
+      "count": 10,
+      "idle": {
+        "rssMiB": 138.95,
+        "cpuPercentOneCore": 0.196,
+        "cpuIsLowerBound": false,
+        "fds": 99,
+        "processes": 1,
+        "sampleMs": 5096
+      },
+      "afterTurn": {
+        "rssMiB": 158.79,
+        "cpuPercentOneCore": 0.395,
+        "cpuIsLowerBound": false,
+        "fds": 100,
+        "processes": 1,
+        "sampleMs": 5069
+      },
+      "afterClose": {
+        "rssMiB": 158.31,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 94,
+        "processes": 1,
+        "sampleMs": 5045
+      },
+      "close": {
+        "reply": {
+          "_meta": {
+            "x.ai/closeOutcome": "closed"
+          }
+        }
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "mode": "shared",
+      "count": 5,
+      "idle": {
+        "rssMiB": 128.24,
+        "cpuPercentOneCore": 0.198,
+        "cpuIsLowerBound": false,
+        "fds": 59,
+        "processes": 1,
+        "sampleMs": 5056
+      },
+      "afterTurn": {
+        "rssMiB": 141.87,
+        "cpuPercentOneCore": 0.196,
+        "cpuIsLowerBound": false,
+        "fds": 60,
+        "processes": 1,
+        "sampleMs": 5096
+      },
+      "afterClose": {
+        "rssMiB": 141.89,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 52,
+        "processes": 1,
+        "sampleMs": 5080
+      },
+      "close": {
+        "reply": {
+          "_meta": {
+            "x.ai/closeOutcome": "closed"
+          }
+        }
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 520.05,
+        "cpuPercentOneCore": 108.705,
+        "cpuIsLowerBound": false,
+        "fds": 34,
+        "processes": 1,
+        "sampleMs": 5124
+      },
+      "afterTurn": {
+        "rssMiB": 767.83,
+        "cpuPercentOneCore": 7.127,
+        "cpuIsLowerBound": false,
+        "fds": 37,
+        "processes": 1,
+        "sampleMs": 5051
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 3158.75,
+        "cpuPercentOneCore": 28.733,
+        "cpuIsLowerBound": false,
+        "fds": 207,
+        "processes": 10,
+        "sampleMs": 5046
+      },
+      "afterTurn": {
+        "rssMiB": 4461.75,
+        "cpuPercentOneCore": 45.002,
+        "cpuIsLowerBound": false,
+        "fds": 237,
+        "processes": 10,
+        "sampleMs": 5044
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 2006.19,
+        "cpuPercentOneCore": 102.097,
+        "cpuIsLowerBound": false,
+        "fds": 112,
+        "processes": 5,
+        "sampleMs": 5054
+      },
+      "afterTurn": {
+        "rssMiB": 2595.95,
+        "cpuPercentOneCore": 26.472,
+        "cpuIsLowerBound": false,
+        "fds": 127,
+        "processes": 5,
+        "sampleMs": 5100
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "mode": "shared",
+      "count": 1,
+      "idle": {
+        "rssMiB": 636.78,
+        "cpuPercentOneCore": 131.871,
+        "cpuIsLowerBound": false,
+        "fds": 34,
+        "processes": 1,
+        "sampleMs": 5043
+      },
+      "afterTurn": {
+        "rssMiB": 665.29,
+        "cpuPercentOneCore": 1.578,
+        "cpuIsLowerBound": false,
+        "fds": 37,
+        "processes": 1,
+        "sampleMs": 5070
+      },
+      "afterClose": {
+        "rssMiB": 571.55,
+        "cpuPercentOneCore": 11.875,
+        "cpuIsLowerBound": false,
+        "fds": 39,
+        "processes": 1,
+        "sampleMs": 5053
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "mode": "shared",
+      "count": 10,
+      "idle": {
+        "rssMiB": 1018.83,
+        "cpuPercentOneCore": 131.221,
+        "cpuIsLowerBound": false,
+        "fds": 34,
+        "processes": 1,
+        "sampleMs": 5068
+      },
+      "afterTurn": {
+        "rssMiB": 1258.01,
+        "cpuPercentOneCore": 105.928,
+        "cpuIsLowerBound": false,
+        "fds": 64,
+        "processes": 1,
+        "sampleMs": 5051
+      },
+      "afterClose": {
+        "rssMiB": 1247.5,
+        "cpuPercentOneCore": 70.734,
+        "cpuIsLowerBound": false,
+        "fds": 67,
+        "processes": 1,
+        "sampleMs": 5061
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "mode": "shared",
+      "count": 5,
+      "idle": {
+        "rssMiB": 773.62,
+        "cpuPercentOneCore": 135.368,
+        "cpuIsLowerBound": false,
+        "fds": 34,
+        "processes": 1,
+        "sampleMs": 5060
+      },
+      "afterTurn": {
+        "rssMiB": 1032.02,
+        "cpuPercentOneCore": 94.009,
+        "cpuIsLowerBound": false,
+        "fds": 49,
+        "processes": 1,
+        "sampleMs": 5063
+      },
+      "afterClose": {
+        "rssMiB": 1016.24,
+        "cpuPercentOneCore": 46.273,
+        "cpuIsLowerBound": false,
+        "fds": 51,
+        "processes": 1,
+        "sampleMs": 5057
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "mode": "isolated",
+      "count": 1,
+      "idle": {
+        "rssMiB": 382.18,
+        "cpuPercentOneCore": 2.332,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5145
+      },
+      "afterTurn": {
+        "rssMiB": 363.49,
+        "cpuPercentOneCore": 1.981,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5047
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "mode": "isolated",
+      "count": 10,
+      "idle": {
+        "rssMiB": 3636.06,
+        "cpuPercentOneCore": 27.176,
+        "cpuIsLowerBound": false,
+        "fds": 330,
+        "processes": 20,
+        "sampleMs": 5115
+      },
+      "afterTurn": {
+        "rssMiB": 3622.3,
+        "cpuPercentOneCore": 13.664,
+        "cpuIsLowerBound": false,
+        "fds": 330,
+        "processes": 20,
+        "sampleMs": 5050
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "mode": "isolated",
+      "count": 5,
+      "idle": {
+        "rssMiB": 1832.4,
+        "cpuPercentOneCore": 20.658,
+        "cpuIsLowerBound": false,
+        "fds": 165,
+        "processes": 10,
+        "sampleMs": 5083
+      },
+      "afterTurn": {
+        "rssMiB": 1812.2,
+        "cpuPercentOneCore": 6.936,
+        "cpuIsLowerBound": false,
+        "fds": 165,
+        "processes": 10,
+        "sampleMs": 5046
+      },
+      "afterClose": null,
+      "close": null,
+      "messageIsolation": null,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "mode": "shared",
+      "count": 1,
+      "idle": {
+        "rssMiB": 381.84,
+        "cpuPercentOneCore": 1.585,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5049
+      },
+      "afterTurn": {
+        "rssMiB": 363.73,
+        "cpuPercentOneCore": 5.153,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5045
+      },
+      "afterClose": {
+        "rssMiB": 364.21,
+        "cpuPercentOneCore": 1.782,
+        "cpuIsLowerBound": false,
+        "fds": 35,
+        "processes": 2,
+        "sampleMs": 5049
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "mode": "shared",
+      "count": 10,
+      "idle": {
+        "rssMiB": 489.42,
+        "cpuPercentOneCore": 1.977,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5059
+      },
+      "afterTurn": {
+        "rssMiB": 510.29,
+        "cpuPercentOneCore": 3.953,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5060
+      },
+      "afterClose": {
+        "rssMiB": 483.67,
+        "cpuPercentOneCore": 8.502,
+        "cpuIsLowerBound": false,
+        "fds": 35,
+        "processes": 2,
+        "sampleMs": 5058
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "mode": "shared",
+      "count": 5,
+      "idle": {
+        "rssMiB": 448.98,
+        "cpuPercentOneCore": 1.781,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5054
+      },
+      "afterTurn": {
+        "rssMiB": 461.0,
+        "cpuPercentOneCore": 3.358,
+        "cpuIsLowerBound": false,
+        "fds": 33,
+        "processes": 2,
+        "sampleMs": 5063
+      },
+      "afterClose": {
+        "rssMiB": 433.08,
+        "cpuPercentOneCore": 7.329,
+        "cpuIsLowerBound": false,
+        "fds": 35,
+        "processes": 2,
+        "sampleMs": 5048
+      },
+      "close": {
+        "reply": {}
+      },
+      "messageIsolation": true,
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "codex",
+      "version": "0.165.0",
+      "mode": "shared",
+      "count": 10,
+      "idle": {
+        "rssMiB": 191.54,
+        "cpuPercentOneCore": 0.395,
+        "cpuIsLowerBound": true,
+        "fds": 70,
+        "processes": 2,
+        "sampleMs": 5063
+      },
+      "afterTurn": {
+        "rssMiB": 217.99,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 89,
+        "processes": 2,
+        "sampleMs": 5067
+      },
+      "afterUnsubscribe": {
+        "rssMiB": 216.03,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 89,
+        "processes": 2,
+        "sampleMs": 5119
+      },
+      "afterUnsubscribeGrace": {
+        "rssMiB": 215.71,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 89,
+        "processes": 2,
+        "sampleMs": 5117
+      },
+      "afterArchive": {
+        "rssMiB": 218.09,
+        "cpuPercentOneCore": 0,
+        "cpuIsLowerBound": false,
+        "fds": 87,
+        "processes": 2,
+        "sampleMs": 5113
+      },
+      "loadedAfterUnsubscribe": 10,
+      "loadedAfterArchive": 9,
+      "cleanupSurvivors": 0
+    }
+  ],
+  "codexInterrupt": [
+    {
+      "mode": "native-shared",
+      "kind": "stream",
+      "repetition": 1,
+      "interruptToEndMs": 12.77,
+      "toolsAliveAtTurnEnd": 0,
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "allToolsStoppedMs": 0,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "stream",
+      "repetition": 2,
+      "interruptToEndMs": 12.06,
+      "toolsAliveAtTurnEnd": 0,
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "allToolsStoppedMs": 0,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "stream",
+      "repetition": 3,
+      "interruptToEndMs": 11.5,
+      "toolsAliveAtTurnEnd": 0,
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "allToolsStoppedMs": 0,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "foreground",
+      "repetition": 1,
+      "interruptToEndMs": 59.62,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 45299.91,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "foreground",
+      "repetition": 2,
+      "interruptToEndMs": 19.85,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 44782.24,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "foreground",
+      "repetition": 3,
+      "interruptToEndMs": 13.51,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 44979.62,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "wait",
+      "repetition": 1,
+      "interruptToEndMs": 13.18,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 43775.4,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "wait",
+      "repetition": 2,
+      "interruptToEndMs": 11.64,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 43778.1,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "native-shared",
+      "kind": "wait",
+      "repetition": 3,
+      "interruptToEndMs": 14.2,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 43787.31,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "stream",
+      "repetition": 1,
+      "interruptToEndMs": 18.95,
+      "toolsAliveAtTurnEnd": 0,
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "allToolsStoppedMs": 0,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "stream",
+      "repetition": 2,
+      "interruptToEndMs": 22.87,
+      "toolsAliveAtTurnEnd": 0,
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "allToolsStoppedMs": 0,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "stream",
+      "repetition": 3,
+      "interruptToEndMs": 13.33,
+      "toolsAliveAtTurnEnd": 0,
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "allToolsStoppedMs": 0,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "foreground",
+      "repetition": 1,
+      "interruptToEndMs": 28.85,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 45265.74,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "foreground",
+      "repetition": 2,
+      "interruptToEndMs": 23.45,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 44990.77,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "foreground",
+      "repetition": 3,
+      "interruptToEndMs": 13.95,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 44846.7,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "wait",
+      "repetition": 1,
+      "interruptToEndMs": 16.99,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 43792.82,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "wait",
+      "repetition": 2,
+      "interruptToEndMs": 14.11,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 43697.22,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    },
+    {
+      "mode": "oar-isolated",
+      "kind": "wait",
+      "repetition": 3,
+      "interruptToEndMs": 12.22,
+      "toolsAliveAtTurnEnd": 2,
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "allToolsStoppedMs": 43626.69,
+      "peersCompleted": 9,
+      "peersEndedBeforeRelease": 0,
+      "cleanupSurvivors": 0
+    }
+  ],
+  "codexCleanup": [
+    {
+      "action": "terminate",
+      "repetition": 1,
+      "response": {
+        "terminated": true
+      },
+      "requestToToolsStoppedMs": 48.42,
+      "commandCount": 1,
+      "osPids": [
+        null
+      ],
+      "peersCompleted": 9
+    },
+    {
+      "action": "terminate",
+      "repetition": 2,
+      "response": {
+        "terminated": true
+      },
+      "requestToToolsStoppedMs": 48.42,
+      "commandCount": 1,
+      "osPids": [
+        null
+      ],
+      "peersCompleted": 9
+    },
+    {
+      "action": "terminate",
+      "repetition": 3,
+      "response": {
+        "terminated": true
+      },
+      "requestToToolsStoppedMs": 46.82,
+      "commandCount": 1,
+      "osPids": [
+        null
+      ],
+      "peersCompleted": 9
+    },
+    {
+      "action": "archive",
+      "repetition": 1,
+      "response": {},
+      "requestToToolsStoppedMs": 56.61,
+      "commandCount": 1,
+      "osPids": [
+        null
+      ],
+      "peersCompleted": 9
+    },
+    {
+      "action": "archive",
+      "repetition": 2,
+      "response": {},
+      "requestToToolsStoppedMs": 45.13,
+      "commandCount": 1,
+      "osPids": [
+        null
+      ],
+      "peersCompleted": 9
+    },
+    {
+      "action": "archive",
+      "repetition": 3,
+      "response": {},
+      "requestToToolsStoppedMs": 48.52,
+      "commandCount": 1,
+      "osPids": [
+        null
+      ],
+      "peersCompleted": 9
+    }
+  ],
+  "codexArchiveTwoCommands": {
+    "commands": 2,
+    "toolProcesses": 4,
+    "cleanupRequestToStoppedMs": 91.28,
+    "peerCount": 9,
+    "lifecycle": [
+      {
+        "method": "thread/archive",
+        "errorCategory": "no_rollout_found",
+        "sameThreadId": null,
+        "turnCount": null,
+        "status": null
+      },
+      {
+        "method": "thread/read",
+        "errorCategory": null,
+        "sameThreadId": true,
+        "turnCount": 1,
+        "status": {
+          "type": "notLoaded"
+        }
+      },
+      {
+        "method": "thread/resume",
+        "errorCategory": "archived_requires_unarchive",
+        "sameThreadId": null,
+        "turnCount": null,
+        "status": null
+      },
+      {
+        "method": "thread/unarchive",
+        "errorCategory": null,
+        "sameThreadId": true,
+        "turnCount": 0,
+        "status": {
+          "type": "notLoaded"
+        }
+      },
+      {
+        "method": "thread/resume",
+        "errorCategory": null,
+        "sameThreadId": true,
+        "turnCount": 1,
+        "status": {
+          "type": "idle"
+        }
+      },
+      {
+        "method": "thread/read",
+        "errorCategory": null,
+        "sameThreadId": true,
+        "turnCount": 1,
+        "status": {
+          "type": "idle"
+        }
+      }
+    ]
+  },
+  "acpIsolation": [
+    {
+      "runtime": "antigravity",
+      "version": "1.4.3",
+      "outcome": "completed",
+      "cwdIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "mcpIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "explicitCwdRequired": true,
+      "cancelToEndMs": 9.0,
+      "stopReason": "cancelled",
+      "peerEndedBeforeRelease": false,
+      "peerStopReason": "end_turn",
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "nativeClose": {
+        "value": {}
+      },
+      "hostDisposedTargetTerminals": false,
+      "toolsTwoSecondsAfterClose": 0,
+      "toolsStoppedByMs": 12311.82,
+      "peerAfterClose": "end_turn",
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "outcome": "completed",
+      "cwdIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "mcpIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "explicitCwdRequired": false,
+      "cancelToEndMs": 4.0,
+      "stopReason": "cancelled",
+      "peerEndedBeforeRelease": false,
+      "peerStopReason": "end_turn",
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "nativeClose": {
+        "value": {
+          "_meta": {
+            "x.ai/closeOutcome": "closed"
+          }
+        }
+      },
+      "hostDisposedTargetTerminals": false,
+      "toolsTwoSecondsAfterClose": 2,
+      "toolsStoppedByMs": 44867.46,
+      "peerAfterClose": "end_turn",
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.3.3",
+      "outcome": "completed",
+      "cwdIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "mcpIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "explicitCwdRequired": false,
+      "cancelToEndMs": 14.19,
+      "stopReason": "cancelled",
+      "peerEndedBeforeRelease": false,
+      "peerStopReason": "end_turn",
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "nativeClose": {
+        "value": {}
+      },
+      "hostDisposedTargetTerminals": false,
+      "toolsTwoSecondsAfterClose": 0,
+      "toolsStoppedByMs": 12311.98,
+      "peerAfterClose": "end_turn",
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "outcome": "completed",
+      "cwdIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "mcpIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "explicitCwdRequired": false,
+      "cancelToEndMs": 91.18,
+      "stopReason": "cancelled",
+      "peerEndedBeforeRelease": false,
+      "peerStopReason": "end_turn",
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "nativeClose": {
+        "value": {}
+      },
+      "hostDisposedTargetTerminals": false,
+      "toolsTwoSecondsAfterClose": 0,
+      "toolsStoppedByMs": 12266.37,
+      "peerAfterClose": "end_turn",
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.0",
+      "outcome": "completed",
+      "cwdIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "mcpIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "explicitCwdRequired": false,
+      "cancelToEndMs": 22.62,
+      "stopReason": "cancelled",
+      "peerEndedBeforeRelease": false,
+      "peerStopReason": "end_turn",
+      "toolsAtTwoSeconds": 0,
+      "toolsAtTenSeconds": 0,
+      "nativeClose": {
+        "value": {}
+      },
+      "hostDisposedTargetTerminals": false,
+      "toolsTwoSecondsAfterClose": 0,
+      "toolsStoppedByMs": 12247.14,
+      "peerAfterClose": "end_turn",
+      "cleanupSurvivors": 0
+    },
+    {
+      "runtime": "grok-host-dispose",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "outcome": "completed",
+      "cwdIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "mcpIsolation": [
+        {
+          "index": 0,
+          "matched": true
+        },
+        {
+          "index": 1,
+          "matched": true
+        }
+      ],
+      "explicitCwdRequired": false,
+      "cancelToEndMs": 1.93,
+      "stopReason": "cancelled",
+      "peerEndedBeforeRelease": false,
+      "peerStopReason": "end_turn",
+      "toolsAtTwoSeconds": 2,
+      "toolsAtTenSeconds": 2,
+      "nativeClose": {
+        "value": {
+          "_meta": {
+            "x.ai/closeOutcome": "closed"
+          }
+        }
+      },
+      "hostDisposedTargetTerminals": true,
+      "toolsTwoSecondsAfterClose": 0,
+      "toolsStoppedByMs": 12235.72,
+      "peerAfterClose": "end_turn",
+      "cleanupSurvivors": 0
+    }
+  ],
+  "retainedInitialLimitations": [
+    "Kimi resource setup callback was initially absent; observer corrected before a native session was started.",
+    "Shared Codex fd read EACCES is retained; unknown descriptor counts are now explicit.",
+    "First Kimi shared message matcher missed its added date reminder; raw turns retained, corrected matcher passed.",
+    "First OpenCode v2 isolation script sent v1 bash and MCP tool names; native refused them. Correct shell/execute calls passed.",
+    "Original Codex interruption two-second tool-stop assertion fails in both modes; the native processes continue to their scripted natural exit."
+  ]
+}
