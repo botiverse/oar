@@ -53,11 +53,13 @@ async function fixture(tool: "Write" | "Bash" = "Write", severity = 90): Promise
   };
 }
 
-async function phase(session: Session, marker: string, mode: string): Promise<void> {
+async function phase(session: Session, marker: string, mode: string): Promise<string> {
   expect(await promptAndWait(session, marker, { timeoutMs: 25_000 })).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
   const init = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "system/init" ? [asRecord(record.body.native)] : []).at(-1);
   expect(init?.permissionMode).toBe(mode);
   expect(session.records().filter((record) => record.kind === "request" && record.direction === "toApp")).toEqual([]);
+  return JSON.stringify(session.records().flatMap((record) => record.kind === "frame"
+    ? record.body.events.filter((event) => event.kind === "tool_call_ended") : []));
 }
 
 test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([
@@ -69,8 +71,8 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([
     const installation = await claudeInstallation();
     expectAvailable(installation, "Claude");
     session = await claudeSession(installation, { ...setup.options, launchArgs: [...setup.options.launchArgs ?? [], "--permission-mode", mode] });
-    await phase(session, "PERMISSION_PHASE_1", mode);
-    expect(await setup.wrote("PERMISSION_PHASE_1")).toBe(allowed);
+    const results = await phase(session, "PERMISSION_PHASE_1", mode);
+    expect(await setup.wrote("PERMISSION_PHASE_1"), results).toBe(allowed);
   } finally { await session?.dispose(); await setup.stop(); }
 }, 60_000);
 
@@ -87,8 +89,8 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude resume reapplies a
       if (id !== undefined) { expect(session.id).toBe(id); }
       id = session.id;
       const marker = `PERMISSION_PHASE_${String(index)}`;
-      await phase(session, marker, mode ?? "bypassPermissions");
-      expect(await setup.wrote(marker)).toBe(mode === undefined);
+      const results = await phase(session, marker, mode ?? "bypassPermissions");
+      expect(await setup.wrote(marker), results).toBe(mode === undefined);
       await session.dispose();
     }
   } finally { await session?.dispose(); await setup.stop(); }
@@ -102,8 +104,8 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([0, 90])("Claude plan
     const installation = await claudeInstallation();
     expectAvailable(installation, "Claude");
     session = await claudeSession(installation, { ...setup.options, launchArgs: [...setup.options.launchArgs ?? [], "--permission-mode=plan"] });
-    await phase(session, "PERMISSION_PHASE_1", "plan");
+    const results = await phase(session, "PERMISSION_PHASE_1", "plan");
     expect(setup.classifierCalls()).toBeGreaterThan(0);
-    expect(await setup.wrote("PERMISSION_PHASE_1")).toBe(severity === 0);
+    expect(await setup.wrote("PERMISSION_PHASE_1"), results).toBe(severity === 0);
   } finally { await session?.dispose(); await setup.stop(); }
 }, 60_000);
