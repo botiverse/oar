@@ -93,6 +93,25 @@ system (that layer exists as separate protocols; oar emits, they persist).
 - **Nothing lost.** Because the producer is lossless, native payloads remain
   reachable, so using oar doesn't wall you off from harness-specific power.
 
+## When oar lacks something
+
+oar connects each runtime at the lowest interface its vendor ships (an
+app-server, a structured headless protocol, an SDK), so a missing capability
+is a gap in oar's mapping, not a ceiling set by a protocol in between. There
+are two ways past a gap:
+
+- **Ask.** Closing it changes one adapter and, where needed, the shared
+  contract, in one repository, released on oar's own schedule. A capability
+  that lives in a cross-vendor protocol moves only as fast as the protocol,
+  every agent's adapter, and their releases.
+- **Fork.** The contract, every adapter, the behavior suites and the evidence
+  live in one repository. A team that needs a native capability now can
+  change the adapter and ship its own build, with no separate protocol layer,
+  agent-side driver or driver installation to change.
+
+oar is meant to be the developer's last stop: the place where a runtime is
+wired up once, by us or by whoever forks it.
+
 ## The honest boundary
 
 If an application uses exactly one harness and its native SDK fits, direct
