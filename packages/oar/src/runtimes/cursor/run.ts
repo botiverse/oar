@@ -1,5 +1,5 @@
 import type { ResponseBody } from "../../contracts/session.js";
-import { cursorRunFailedFrame, cursorRunResultFrame, type CursorFrame } from "./projection.js";
+import { cursorRunFailedFrame, cursorRunResultFrame, cursorStreamFrame, type CursorFrame } from "./projection.js";
 import type { CursorRun, SteerAckOutcome } from "./sdk.js";
 
 export interface ActiveRun {
@@ -39,21 +39,40 @@ export function giveUp(launch: Launch, reason: string): void {
 }
 
 /**
+ * Drain the SDK's independent message buffer while `onDelta` keeps feeding
+ * raw updates. `wait()` may settle before the buffer closes. Record its
+ * result only after both settle, including on cancellation or failure.
+ * An iterator failure is evidence of a lost view, not the run's outcome.
+ */
+export async function observeRun(run: CursorRun, record: (frame: CursorFrame) => void): Promise<CursorFrame> {
+  const stream = (async (): Promise<void> => {
+    try {
+      for await (const message of run.stream()) { record(cursorStreamFrame(message)); }
+    } catch (error) {
+      record({ type: "cursor/stream_failed", native: { message: error instanceof Error ? error.message : String(error) }, events: [], agentPath: [] });
+    }
+  })();
+  const terminal = (async (): Promise<CursorFrame> => {
+    try { return cursorRunResultFrame(await run.wait()); }
+    catch (error) { return cursorRunFailedFrame(error instanceof Error ? error.message : String(error)); }
+  })();
+  const [, frame] = await Promise.all([stream, terminal]);
+  return frame;
+}
+
+/**
  * A run the SDK returned after its launch was given up: it did start, so it
  * is stopped, and its end still enters the stream.
  */
 export function stopOrphan(run: CursorRun, record: (frame: CursorFrame) => void): void {
   void (async (): Promise<void> => {
+    const terminal = observeRun(run, record);
     try {
       await run.cancel();
     } catch {
       // It may have ended on its own.
     }
-    try {
-      record(cursorRunResultFrame(await run.wait()));
-    } catch (error) {
-      record(cursorRunFailedFrame(error instanceof Error ? error.message : String(error)));
-    }
+    record(await terminal);
   })();
 }
 

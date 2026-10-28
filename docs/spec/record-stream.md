@@ -540,9 +540,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   Codex 0.162.0 exposes no corresponding native argument notification.
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
-  `contextCompaction` item (no trigger). Never claude (it reports only the
-  boundary after the fact), cursor (its SDK drops the `summary` updates) or
-  ACP.
+  `contextCompaction` item (no trigger); cursor SDK 1.2.0 `run.stream()`
+  summary status `running` (no trigger). Never claude (it reports only the
+  boundary after the fact) or ACP.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
   above); claude `system/compact_boundary` → completed with `trigger` from
@@ -550,7 +550,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `item/completed` for the `contextCompaction` item → completed, while the
   deprecated `thread/compacted` notification closes an open compaction only
   when the item did not already (the projection dedupes, so codex never ends
-  a compaction twice) [env 0.154.0 schema]. Cursor and ACP never. An ended
+  a compaction twice) [env 0.154.0 schema]; cursor SDK 1.2.0 summary status
+  `completed` or `error` gives completed or failed, without trigger/reason.
+  Cursor's fallback flag stays native; an aborted run without a terminal
+  summary creates no compaction end. ACP never reports one. An ended
   compaction starts no work: `statusOf` keeps an idle agent idle, and only
   moves an already-running agent to `waiting_model`.
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No

@@ -173,11 +173,11 @@ export type RuntimeEventBody =
   | ToolCallProgress
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
-  /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex: none). claude reports only the boundary after the fact, so it never says this. */
+  /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex/cursor: none). claude reports only the boundary after the fact, so it never says this. */
   | { readonly kind: "compaction_started"; readonly trigger?: string }
   /**
    * The runtime finished (or gave up) compacting (pi `compaction_end`, claude
-   * `system/compact_boundary`, codex `contextCompaction` item completed).
+   * `system/compact_boundary`, codex `contextCompaction` completed, cursor SDK summary `completed` or `error`).
    * `trigger` as above (claude: manual | auto); `reason` is the runtime's
    * error text when it failed. ACP runtimes report no compaction.
    */

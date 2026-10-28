@@ -54,6 +54,7 @@ export type CursorDeltaListener = (args: { readonly update: unknown }) => void;
 /** One send: a run of the agent loop until the agent ends it. */
 export interface CursorRun {
   readonly id: string;
+  stream(): AsyncIterable<unknown>;
   /** Settles with the run's status once it ends (finished, error or cancelled). */
   wait(): Promise<unknown>;
   cancel(): Promise<void>;
