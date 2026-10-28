@@ -21,6 +21,10 @@
  * vendor/behavior suites (local provider, isolated HOME, no account). Also run
  * qwen-native/lock-lifetime.ts: a successful warmup does not prove shared-HOME
  * concurrency is safe; retain initialization timing and the held-lock result.
+ * A changed Kimi binary also needs sea-trial/vendor/kimi-login.vendor.test.ts
+ * with OAR_TEST=kimi-login (local OAuth stand-in, no account). Recheck all three platforms before updating the CI login pin
+ * and the minimum version accepted by loginExecutable in kimi/login.ts and
+ * kimi/logout.ts; keep the native login fixture's version aligned.
  * A changed Qoder binary also needs the qoder-native vendor/behavior suites
  * and login tests (native model replay, isolated HOME, no account).
  * A version match is not a compatibility result. Pi, Pi Durable and Cursor are
