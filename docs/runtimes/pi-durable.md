@@ -163,7 +163,9 @@ factory can use. It does not grant access to a local filesystem in a browser.
 `appendSystemPrompt` maps to native `instructions`, appended after extension
 prompt sections. Saved instructions survive reopen: omitting the option
 retains them; supplying it replaces the saved instructions value, without
-concatenating it again. `systemPrompt` replacement is refused.
+concatenating it again. `systemPrompt` replacement is refused. This differs
+from [Pi SDK/RPC sessions](pi.md), which require prompt options again on
+resume and return to the default prompt when they are omitted.
 
 Resume configuration is transactional. While adopting an active run, supplied
 cwd/model/effort/instructions must match its saved settings; changed values

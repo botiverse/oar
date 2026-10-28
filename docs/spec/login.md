@@ -66,6 +66,19 @@ that pi's provider login already uses.
   not allow it. `unsupported` is only for what the machine decides, its
   installation or its version.
 
+## Qwen provider configuration
+
+`createQwenProviderAuth(installation, { cwd?, env?, timeoutMs? })` is separate
+from `Runtime.login`. Its native `listProviders()` metadata and
+`connect({ providerId, apiKey?, baseUrl?, protocol?, wireApi?, modelIds?, scope? })`
+configure Qwen providers through ACP. It has no OAuth or logout operation.
+Connect's `success: true` confirms configuration completion, not that the
+provider accepts the key. Scope omission is the native runtime's choice,
+not an OAR default. `existingConfig` is settings-file metadata, not login
+status; use the runtime's `authStatus` for local credential observation.
+See [Qwen's mapping](../runtimes/qwen.md#provider-setup) for coverage, process
+costs, error codes, secret handling and indeterminate write outcomes.
+
 ## Environment
 
 `LoginOptions.env`, `LogoutOptions.env` and `AuthStatusOptions.env` use the

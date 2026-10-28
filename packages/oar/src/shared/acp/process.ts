@@ -4,6 +4,7 @@ import {
   type ClientApp,
   type ClientConnection,
   type SendRequestOptions,
+  type AnyMessage,
 } from "@agentclientprotocol/sdk";
 import { Readable, Writable } from "node:stream";
 import { spawnLineProcess } from "../executable/index.js";
@@ -35,6 +36,10 @@ function processClosed(process: AcpProcess): boolean {
 }
 
 export interface AcpProcessOptions {
+  /** Apply credential-operation policy before the SDK can log a malformed native message. */
+  readonly incoming?: (message: AnyMessage) => AnyMessage | undefined;
+  /** Observe request ids when an incoming filter must discard unsolicited responses. */
+  readonly outgoing?: (message: AnyMessage) => void;
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
   /** Authentication queries keep all native diagnostics private. */
@@ -122,7 +127,22 @@ export function startAcpProcess(
   const output = Writable.toWeb(child.stdin) as Parameters<typeof ndJsonStream>[0];
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
   const input = Readable.toWeb(child.stdout) as Parameters<typeof ndJsonStream>[1];
-  const stream = ndJsonStream(output, input);
+  const nativeStream = ndJsonStream(output, input);
+  const incoming = options.incoming;
+  const writer = options.outgoing === undefined ? undefined : nativeStream.writable.getWriter();
+  const stream = incoming === undefined && writer === undefined ? nativeStream : {
+    writable: writer === undefined ? nativeStream.writable : new WritableStream<AnyMessage>({
+      async write(message): Promise<void> { options.outgoing?.(message); await writer.write(message); },
+      async close(): Promise<void> { await writer.close(); },
+      async abort(reason: unknown): Promise<void> { await writer.abort(reason); },
+    }),
+    readable: incoming === undefined ? nativeStream.readable : nativeStream.readable.pipeThrough(new TransformStream<AnyMessage, AnyMessage>({
+      transform(message, controller): void {
+        const projected = incoming(message);
+        if (projected !== undefined) { controller.enqueue(projected); }
+      },
+    })),
+  };
   const connection = app.connect(options.opening === undefined ? stream : observeAcpOpening(stream, options.opening));
   let ended = false;
   let exitCode: number | null = null;

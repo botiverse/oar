@@ -5,6 +5,9 @@ import { qwenInstallation } from "./installation.js";
 import { qwenInstall, qwenInstallPlan } from "./install.js";
 import { qwenRefusedSessionOptions } from "./options.js";
 
+export { createQwenProviderAuth, QwenProviderAuthError } from "./provider-auth.js";
+export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProviderAuthErrorKind, QwenProviderConnectOptions, QwenProviderConnectResult } from "./provider-auth.js";
+
 export const qwenRuntime = defineRuntime({
   id: "qwen", brand: runtimeBrands.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,

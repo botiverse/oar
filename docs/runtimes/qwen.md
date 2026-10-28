@@ -1,10 +1,11 @@
 # Qwen Code
 
 Qwen owns a process, a persisted conversation UUID and a sequence of turns.
-OAR uses the native CLI's bidirectional SDK channel, not its ACP interface:
+OAR sessions use the native CLI's bidirectional SDK channel:
 `qwen --input-format stream-json --output-format stream-json --channel=SDK`.
 The first stdin frame is a control `initialize` request. A user frame first
-would select direct mode and disable the control dispatcher.
+would select direct mode and disable the control dispatcher. Provider setup
+uses separate, short-lived ACP processes described below.
 
 Baseline: npm `@qwen-code/qwen-code` **0.26.0**, published source
 [`ac97ce7a`](https://github.com/QwenLM/qwen-code/tree/ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9),
@@ -44,7 +45,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Images | Rejected before input submission; `images: false`. |
 | Structured output | Refused with `UnsupportedOptionError`: native 0.26.0 explicitly disallows `--json-schema` with stream-json input. No adapter emulation. |
 | Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
-| Login | No `login` member. Native `qwen auth` was removed. Configure a provider externally, for example OPENAI_API_KEY, OPENAI_BASE_URL and OPENAI_MODEL. No OAR login prompt or browser flow. |
+| Login / provider setup | No runtime `login` member or browser flow; native `qwen auth` was removed. `createQwenProviderAuth` drives native ACP provider list/connect. Environment configuration also remains available. |
 | Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
 | Other surfaces | No service tier or session-name setting; no account quota, inventory, updater, live configure or context breakdown mapping. |
 
@@ -88,6 +89,64 @@ and projects the tool result, with no `user_message` or host `inputId`. Text
 alongside a tool result or in a separate non-replay runtime user frame is also
 retained only in the native frame. The provider request is probe evidence,
 not an additional OAR input or record.
+
+## Provider setup
+
+`createQwenProviderAuth(installation, { cwd?, env?, timeoutMs? })` is an async
+factory exported by the root and `@botiverse/oar/runtimes/qwen`. It returns
+`listProviders()` and `connect(options)`, not the Pi facade's OAuth, logout
+or credential-status methods: Qwen's native extensions expose none of those.
+Each operation starts `qwen --acp`, initializes it, sends exactly one provider
+request, then terminates its process tree and awaits exit. No conversation or
+prompt is created. The default 30-second total budget covers initialization
+and the request; bounded process cleanup follows. The factory itself starts
+no process. `cwd` defaults to the host's directory; `env` has the same overlay
+semantics as sessions. Calls are not serialized; hosts own concurrent writes.
+
+`listProviders()` forwards `qwen/providers/list`. Its ids, labels, protocol and
+additional native UI metadata are retained. `existingConfig` is **Qwen's own
+settings-file configuration**, including its original fields. It excludes
+process environment variables, `.env` and `security.auth.apiKey`, and depends
+on the launch directory. It can exist with model entries and no key; even
+`hasApiKey: true` says only that settings contain a key, not that a provider
+accepts it. Absence is not logout. Use `qwenRuntime.authStatus` for the broader
+local credential observation, which is also not a remote authentication test.
+The ACP process may perform Qwen's ordinary startup work; this reader is not
+the `localOnly` auth-status implementation.
+
+`connect({ providerId, apiKey?, baseUrl?, protocol?, wireApi?, modelIds?,
+scope? })` forwards `qwen/providers/connect`. Protocols are `openai`,
+`anthropic` or `gemini`; OpenAI wire choices are `chat-completions` or
+`responses`. Qwen validates whether a preset accepts each choice. Omitting
+`apiKey` lets Qwen reuse its stored key when possible. Scope is `user` or
+`workspace`; omitting it leaves the destination to Qwen. **0.26.2 probes wrote
+to user settings when scope was omitted**; that is not an OAR default.
+Qwen owns validation and writes through its native install plan. OAR never
+edits settings files or clears credentials before connecting.
+
+The result's `success: true` means Qwen completed configuration, **not that
+the provider accepted the key**. The local endpoint received zero requests
+in the probe, even though it would reject authentication. Run a turn if the
+host needs to verify provider acceptance. Keys supplied to connect travel
+only on ACP stdin, never in argv or an added environment variable. Stderr is
+not forwarded, including with `OAR_CHILD_STDERR=inherit`. There is no OAR
+record stream for these calls. Native settings store the key; workspace scope
+therefore intentionally writes a credential into the workspace configuration.
+
+Failures throw `QwenProviderAuthError`. `kind: "native"` preserves Qwen's
+numeric ACP `code` (observed `-32602` for invalid parameters and `-32603` for
+a failed settings write). Raw native messages, data and causes are omitted
+because they can contain a supplied or previously stored key. Transport
+failures have `timeout`, `process_exited` or `launch_failed`; malformed result
+payloads have `invalid_response`. Unsolicited or invalid envelopes are
+discarded before the SDK can log them; without a valid response the request
+times out. A timeout or lost reply can leave an unknown write outcome. OAR
+neither retries connect nor promises to roll back Qwen's writes.
+
+Evidence: [source and isolated probes](../../experiments/qwen-provider-auth/README.md)
+on Qwen **0.26.2**, Linux, 2026-10-28; three native facade regressions also
+cover metadata scope, user/workspace writes and key reuse across processes.
+No real account or model tokens were used.
 
 ## Usage and failures
 

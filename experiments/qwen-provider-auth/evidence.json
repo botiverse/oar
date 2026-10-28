@@ -1,0 +1,366 @@
+{
+  "runtime": "@qwen-code/qwen-code@0.26.2",
+  "source": "402911146f6b2a80cb97423309faf1956f6defe4",
+  "platform": "linux x64",
+  "date": "2026-10-28",
+  "credentials": "synthetic only",
+  "coverage": [
+    {
+      "name": "empty",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": []
+    },
+    {
+      "name": "process-env",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": []
+    },
+    {
+      "name": "home-dotenv",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": []
+    },
+    {
+      "name": "user-settings-env",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": [
+        {
+          "id": "deepseek",
+          "existingConfig": {
+            "protocol": "openai",
+            "wireApi": "chat-completions",
+            "baseUrl": "https://api.deepseek.com",
+            "hasApiKey": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "system-settings-env",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": [
+        {
+          "id": "deepseek",
+          "existingConfig": {
+            "protocol": "openai",
+            "wireApi": "chat-completions",
+            "baseUrl": "https://api.deepseek.com",
+            "hasApiKey": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "workspace-settings-env",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": [
+        {
+          "id": "deepseek",
+          "existingConfig": {
+            "protocol": "openai",
+            "wireApi": "chat-completions",
+            "baseUrl": "https://api.deepseek.com",
+            "hasApiKey": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "workspace-settings-other-cwd",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": []
+    },
+    {
+      "name": "workspace-dotenv",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": []
+    },
+    {
+      "name": "user-auth-key",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": []
+    },
+    {
+      "name": "models-no-key",
+      "agent": {
+        "name": "qwen-code",
+        "title": "Qwen Code",
+        "version": "0.26.2"
+      },
+      "count": 15,
+      "configured": [
+        {
+          "id": "deepseek",
+          "existingConfig": {
+            "protocol": "openai",
+            "wireApi": "chat-completions",
+            "baseUrl": "https://api.deepseek.com",
+            "modelIds": [
+              "deepseek-v4-pro"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "connect": {
+    "requests": 0,
+    "rows": [
+      {
+        "scope": "user",
+        "name": "connect",
+        "result": {
+          "success": true,
+          "providerId": "custom-openai-compatible",
+          "providerLabel": "Custom Provider",
+          "authType": "openai",
+          "modelId": "oar-fixture-model",
+          "baseUrl": "http://127.0.0.1:38889/v1"
+        }
+      },
+      {
+        "scope": "user",
+        "name": "reuse-key",
+        "result": {
+          "success": true,
+          "providerId": "custom-openai-compatible",
+          "providerLabel": "Custom Provider",
+          "authType": "openai",
+          "modelId": "oar-fixture-model",
+          "baseUrl": "http://127.0.0.1:38889/v1"
+        }
+      },
+      {
+        "scope": "user",
+        "name": "unknown-provider",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Unknown provider: missing-[redacted]"
+        }
+      },
+      {
+        "scope": "user",
+        "name": "invalid-scope",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Invalid scope for provider connect"
+        }
+      },
+      {
+        "scope": "user",
+        "name": "persisted",
+        "userKey": true,
+        "workspaceKey": false,
+        "existingConfig": {
+          "protocol": "openai",
+          "wireApi": "chat-completions",
+          "baseUrl": "http://127.0.0.1:38889/v1",
+          "hasApiKey": true,
+          "modelIds": [
+            "oar-fixture-model"
+          ]
+        }
+      },
+      {
+        "scope": "workspace",
+        "name": "connect",
+        "result": {
+          "success": true,
+          "providerId": "custom-openai-compatible",
+          "providerLabel": "Custom Provider",
+          "authType": "openai",
+          "modelId": "oar-fixture-model",
+          "baseUrl": "http://127.0.0.1:38889/v1"
+        }
+      },
+      {
+        "scope": "workspace",
+        "name": "reuse-key",
+        "result": {
+          "success": true,
+          "providerId": "custom-openai-compatible",
+          "providerLabel": "Custom Provider",
+          "authType": "openai",
+          "modelId": "oar-fixture-model",
+          "baseUrl": "http://127.0.0.1:38889/v1"
+        }
+      },
+      {
+        "scope": "workspace",
+        "name": "unknown-provider",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Unknown provider: missing-[redacted]"
+        }
+      },
+      {
+        "scope": "workspace",
+        "name": "invalid-scope",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Invalid scope for provider connect"
+        }
+      },
+      {
+        "scope": "workspace",
+        "name": "persisted",
+        "userKey": false,
+        "workspaceKey": true,
+        "existingConfig": {
+          "protocol": "openai",
+          "wireApi": "chat-completions",
+          "baseUrl": "http://127.0.0.1:38889/v1",
+          "hasApiKey": true,
+          "modelIds": [
+            "oar-fixture-model"
+          ]
+        }
+      },
+      {
+        "scope": "omitted",
+        "name": "connect",
+        "result": {
+          "success": true,
+          "providerId": "custom-openai-compatible",
+          "providerLabel": "Custom Provider",
+          "authType": "openai",
+          "modelId": "oar-fixture-model",
+          "baseUrl": "http://127.0.0.1:38889/v1"
+        }
+      },
+      {
+        "scope": "omitted",
+        "name": "reuse-key",
+        "result": {
+          "success": true,
+          "providerId": "custom-openai-compatible",
+          "providerLabel": "Custom Provider",
+          "authType": "openai",
+          "modelId": "oar-fixture-model",
+          "baseUrl": "http://127.0.0.1:38889/v1"
+        }
+      },
+      {
+        "scope": "omitted",
+        "name": "unknown-provider",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Unknown provider: missing-[redacted]"
+        }
+      },
+      {
+        "scope": "omitted",
+        "name": "invalid-scope",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Invalid scope for provider connect"
+        }
+      },
+      {
+        "scope": "omitted",
+        "name": "persisted",
+        "userKey": true,
+        "workspaceKey": false,
+        "existingConfig": {
+          "protocol": "openai",
+          "wireApi": "chat-completions",
+          "baseUrl": "http://127.0.0.1:38889/v1",
+          "hasApiKey": true,
+          "modelIds": [
+            "oar-fixture-model"
+          ]
+        }
+      },
+      {
+        "scope": "persist-failure",
+        "name": "connect",
+        "error": {
+          "name": "RequestError",
+          "code": -32603,
+          "data": {
+            "details": "EISDIR: illegal operation on a directory, read"
+          },
+          "message": "Internal error"
+        }
+      },
+      {
+        "scope": "persist-failure",
+        "name": "reuse-key",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Invalid or missing apiKey"
+        }
+      },
+      {
+        "scope": "persist-failure",
+        "name": "unknown-provider",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Unknown provider: missing-[redacted]"
+        }
+      },
+      {
+        "scope": "persist-failure",
+        "name": "invalid-scope",
+        "error": {
+          "name": "RequestError",
+          "code": -32602,
+          "message": "Invalid params: Invalid scope for provider connect"
+        }
+      }
+    ]
+  }
+}

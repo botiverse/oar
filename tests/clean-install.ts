@@ -67,10 +67,16 @@ function cursorPeerVersion(): string {
  * `{ kinds, models }`.
  */
 const PROBE = `
-import { createCursorRuntime, defaultRuntimes } from "@botiverse/oar";
+import assert from "node:assert/strict";
+import { createCursorRuntime, createQwenProviderAuth, defaultRuntimes } from "@botiverse/oar";
 for (const entry of ["browser", "forms", "observe", "kernel", "brands", "testing", "agents", "agents/report"]) {
   await import("@botiverse/oar/" + entry);
 }
+const qwenEntry = await import("@botiverse/oar/runtimes/qwen");
+assert.equal(qwenEntry.createQwenProviderAuth, createQwenProviderAuth);
+const qwenAuth = await createQwenProviderAuth({ kind: "available", via: "executable", command: "unused-qwen" });
+assert.equal(typeof qwenAuth.listProviders, "function");
+assert.equal(typeof qwenAuth.connect, "function");
 const kinds = {};
 for (const runtime of defaultRuntimes.list()) {
   kinds[runtime.id] = runtime.installation === undefined ? null : (await runtime.installation()).kind;

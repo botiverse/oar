@@ -489,8 +489,10 @@ itself, so `refusedSessionOptions` does not declare them; each is the same
 | --- | --- | --- |
 | Claude, `resume` supplied | `systemPrompt`, `appendSystemPrompt` | Omit both to keep the saved prompts; create a new session to change them. |
 | Codex, `resume` supplied | `appendSystemPrompt` | Omit it to keep saved developer instructions; create a new session to change them. A replacement `systemPrompt` still applies on resume. |
+| Pi SDK/RPC, `resume` supplied | No refusal for nonempty prompt options | Pass `systemPrompt` and `appendSystemPrompt` again: the session file does not save them, and omission returns to Pi's default prompt and current project resources. |
+| Pi Durable, `resume` supplied | `systemPrompt` (also refused on creation) | Omitted `appendSystemPrompt` retains saved instructions; supplying it replaces them. Changes while adopting an active run are refused. |
 
-These prompt refusals happen before any process starts, including for empty
+The Claude/Codex prompt refusals happen before any process starts, including for empty
 strings or the same text a host supplies on every open. Neither native
 interface provides the original text for an authoritative comparison.
 Claude 2.1.309 ignores both overrides; Codex 0.164.0 ignores the append but

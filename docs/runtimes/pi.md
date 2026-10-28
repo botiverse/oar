@@ -671,6 +671,12 @@ none restores the recorded one (live 2026-09-29: opened at `low`, resumed at
 [lister](../../packages/oar/src/runtimes/pi/list-models.ts),
 [readback probe](../../experiments/README.md).
 
+Pi session files do not store the system prompt. On every open, including
+resume in SDK and RPC modes, pass `systemPrompt` and `appendSystemPrompt`
+again to keep them; omitting them returns to Pi's default prompt and current
+project resources. [Pi Durable](pi-durable.md#options-models-and-instructions)
+persists its append instructions instead.
+
 Replace/append instructions map to ResourceLoader options (`systemPrompt`,
 `appendSystemPrompt`). **Replace is not the whole system prompt:** pi's
 `buildSystemPrompt` (`core/system-prompt.js`, `customPrompt` branch) keeps its
