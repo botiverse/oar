@@ -287,13 +287,21 @@ projected events, so text, tools and usage remain counted once through
 is reported; `fallback` stays native and means a trimmed transcript was saved
 [src]. It still counts as completed compaction.
 
-The two views retain reception order, including buffered messages received
-after earlier raw updates. OAR drains both before recording `run.wait()`'s
-result or sending queued input. An iterator error is retained as
-`cursor/stream_failed` without replacing the native run outcome. Cancellation
+Each view preserves its own internal order. The merged frames retain OAR's
+reception order; no global native order is guaranteed between the two views.
+After `run.wait()` settles, OAR allows the iterator up to two seconds to drain
+before recording the run result and sending queued input. This is an adapter
+budget for the local buffer tail, below the five-second disposal wait, not an
+SDK guarantee. The initial native probe measured tail gaps of 0, 1 and 0 ms
+at millisecond resolution. An unclosed iterator produces `cursor/stream_unclosed`
+with `timeoutMs: 2000` and no events. OAR stops consuming it, requests its
+`return()` without waiting and ignores any pending read's late value or error.
+An iterator error is retained as `cursor/stream_failed`, using the same bounded,
+first-line token redaction as Cursor authentication diagnostics, without
+replacing the native run outcome. Cancellation
 can end the run with only a summary start observed; OAR adds no compaction
 end in that case. Disposal keeps its existing five-second wait for run
-settlement; late runs are still cancelled and drained.
+settlement; late runs are still cancelled and observed with the same tail bound.
 See the [probe and evidence boundaries](../../experiments/cursor-compaction.md)
 for native success/cancellation, source-only error/fallback evidence and the
 adapter regressions. Automatic context-threshold compaction was not forced

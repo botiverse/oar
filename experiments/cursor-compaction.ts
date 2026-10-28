@@ -12,6 +12,7 @@ import { Agent, type InteractionUpdate, type Run, type RunResult, type SDKMessag
 
 interface Observation {
   readonly seq: number;
+  readonly at: number;
   readonly phase: string;
   readonly channel: string;
   readonly value: unknown;
@@ -25,7 +26,7 @@ const cwd = path.join(output, "workspace");
 mkdirSync(cwd, { mode: 0o700 });
 const observations: Observation[] = [];
 function log(phase: string, channel: string, value: unknown): void {
-  const observation = { seq: observations.length, phase, channel, value };
+  const observation = { seq: observations.length, at: Date.now(), phase, channel, value };
   observations.push(observation);
   appendFileSync(path.join(output, "events.jsonl"), `${JSON.stringify(observation)}\n`, { mode: 0o600 });
 }

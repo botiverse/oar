@@ -1,8 +1,10 @@
 /* oxlint-disable eslint/max-statements -- each race is driven and checked as one complete run. */
 import { setImmediate as settle } from "node:timers/promises";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { openFakeCursor } from "../fixtures/fake-cursor-sdk.js";
+import { FakeCursorRun, openFakeCursor } from "../fixtures/fake-cursor-sdk.js";
+
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
 const summary = (status: string, extra = {}) => ({ type: "summary", agent_id: "agent-1", run_id: "run-1", status, ...extra });
 
@@ -51,6 +53,48 @@ test("wait settling first does not drain queued input before the final summary",
   await session.dispose();
 });
 
+test.each(["message", "error"] as const)("an unclosed stream cannot hold a finished run or leak a late %s into the next turn", async (late) => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const release = Promise.withResolvers<void>();
+  const iterator = (async function* delayedSummary() {
+    yield summary("running");
+    await release.promise;
+    if (late === "error") { throw new Error("late stream failure"); }
+    yield summary("completed");
+  })();
+  const next = vi.spyOn(iterator, "next");
+  const close = vi.spyOn(iterator, "return");
+  vi.spyOn(FakeCursorRun.prototype, "stream").mockReturnValueOnce(iterator);
+  const { session, agent } = await openFakeCursor();
+  const prompt = await session.prompt("first");
+  await session.queue("second");
+  await vi.advanceTimersByTimeAsync(10_000);
+  expect(agent.runs).toHaveLength(1);
+  expect(close).not.toHaveBeenCalled();
+  agent.latest().end("finished");
+  await vi.advanceTimersByTimeAsync(1900);
+  expect(agent.runs).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(100);
+  expect(agent.runs).toHaveLength(2);
+  expect(await awaitTurnEnd(session, prompt.seq)).toEqual({ kind: "completed" });
+  expect(close).toHaveBeenCalledTimes(1);
+  expect(next).toHaveBeenCalledTimes(2);
+  const frames = session.records().flatMap((record) => record.kind === "frame" ? [record.body] : []);
+  expect(frames.filter((frame) => frame.type === "cursor/stream_unclosed")).toEqual([
+    { type: "cursor/stream_unclosed", native: { timeoutMs: 2000 }, events: [] },
+  ]);
+  expect(frames.findIndex((frame) => frame.type === "cursor/stream_unclosed")).toBeLessThan(frames.findIndex((frame) => frame.type === "cursor/run_result"));
+  expect(frames.flatMap((frame) => frame.events).filter((event) => event.kind.startsWith("compaction_"))).toEqual([{ kind: "compaction_started" }]);
+  agent.latest().delta({ type: "thinking-delta", text: "second turn" });
+  const retained = [...session.records()];
+  release.resolve();
+  await settle();
+  expect(session.records()).toEqual(retained);
+  expect(next).toHaveBeenCalledTimes(2);
+  expect(session.status().value).toMatchObject({ kind: "running", phase: "thinking" });
+  await session.dispose();
+});
+
 test("the second view retains messages without duplicating text, tools or usage events", async () => {
   const { session, agent } = await openFakeCursor();
   const prompt = await session.prompt("work");
@@ -72,17 +116,17 @@ test("the second view retains messages without duplicating text, tools or usage 
   await session.dispose();
 });
 
-test("an iterator error is recorded without replacing a successful native run result", async () => {
+test("an iterator error is redacted without replacing a successful native run result", async () => {
   const { session, agent } = await openFakeCursor();
   const prompt = await session.prompt("work");
   const run = agent.latest();
   run.streamMessage(summary("running"));
-  run.closeStream(new Error("stream buffer overflow"));
+  run.closeStream(new Error("stream buffer overflow: sk-test-secret-not-for-retention eyJhbGciOi.test.signature\nprivate log tail"));
   await settle();
   run.end("finished");
   expect(await awaitTurnEnd(session, prompt.seq)).toEqual({ kind: "completed" });
   expect(session.records().flatMap((record) => record.kind === "frame" && record.body.type === "cursor/stream_failed" ? [record.body] : [])).toEqual([
-    { type: "cursor/stream_failed", native: { message: "stream buffer overflow" }, events: [] },
+    { type: "cursor/stream_failed", native: { message: "stream buffer overflow: [redacted] [redacted]" }, events: [] },
   ]);
   expect(session.records().flatMap((record) => record.kind === "frame" ? record.body.events : []).some((event) => event.kind === "compaction_ended")).toBe(false);
   await session.dispose();

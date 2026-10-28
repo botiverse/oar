@@ -18,7 +18,7 @@ import type { ModelSelection } from "./sdk.js";
  * their statuses through `run.stream()`. Its messages are separate frames;
  * only summaries add events, so text, tools and usage are not counted twice.
  * The run's end is not an update: `run.wait()` answers with the run's status,
- * recorded after the message stream drains.
+ * recorded after the message stream drains or its bounded tail wait expires.
  */
 
 /** `tokens`: cumulative per agent path, so usage events stay summable. */

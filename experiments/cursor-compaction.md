@@ -57,17 +57,37 @@ preventing duplicate text, tools and usage. Unknown messages/statuses remain
 raw records without an invented interpretation.
 
 Records retain reception order across the two native views. Buffered messages
-can arrive after earlier `onDelta` callbacks; OAR does not reconstruct an
-unobserved global order. It waits for both the iterator and `run.wait()` before
-recording the run result and releasing queued input. Iterator errors become
-`cursor/stream_failed` records with no events; they do not replace the run's
-own outcome. Cancellation, disposal and failed runs never manufacture a
-missing compaction end. A late run returned after disposal is still drained
-and cancelled.
+can arrive after earlier `onDelta` callbacks; each view is internally ordered,
+but OAR does not reconstruct an unobserved global native order between them.
+After `run.wait()` settles, OAR waits at most two seconds for the iterator
+before recording the run result and releasing queued input. An unclosed
+stream yields `cursor/stream_unclosed` with `timeoutMs: 2000` and no events.
+OAR stops consuming it and requests `return()` without awaiting that call,
+which can itself wait behind a stuck `next()`. Late messages and errors from
+the pending read cannot enter a later turn.
+
+The two seconds are an adapter budget for local terminal bookkeeping, below
+the existing five-second disposal wait, not an SDK guarantee. The first real
+probe's retained `Date.now()` timestamps give these gaps from observed
+`wait()` completion to iterator closure: normal run **0 ms**, successful
+summary **1 ms**, cancelled summary **0 ms**. The median is **0 ms** and maximum
+**1 ms**, at 1 ms clock resolution; a zero denotes the same clock tick, not
+proof of zero elapsed time. This is three Linux samples, far below two seconds,
+not a latency guarantee. The second probe and live battery did not record both
+timestamps, so they do not add timing samples. The reusable probe now retains
+`at` on each observation so future runs can repeat this measurement.
+
+Iterator errors become `cursor/stream_failed` records with no events, using
+Cursor authentication diagnostics' bounded, first-line token redaction. They
+do not replace the run's own outcome. Cancellation, disposal and failed runs
+never manufacture a missing compaction end. A late run returned after disposal
+is still cancelled and observed with the same tail bound.
 
 Deterministic adapter regressions cover success, failed summaries, fallback,
-unknown messages, duplicate suppression, iterator failure, a result preceding
-the last summary, cancellation, disposal, failed waits and late runs. The
+unknown messages, duplicate suppression, redacted iterator failure, a result
+preceding the last summary, a permanently unclosed stream and blocked return,
+queue progress after the deadline, late messages/errors, cancellation,
+disposal, failed waits and late runs. The
 manual `Agent.summarize()` control remains outside OAR's public API.
 
 This feature requires the exact SDK 1.2.0 peer and matching CLI dependency.
@@ -88,7 +108,7 @@ request, which was correctly rejected with `no_active_turn`. The original
 failure is retained. An unchanged rerun of only `abort` passed in 13 seconds;
 no adapter workaround, assertion or deadline was changed.
 
-The type/lint/unit/mock gate passed: 2,227 unit tests and 19 mock behavior
+The type/lint/unit/mock gate passed: 2,229 unit tests and 19 mock behavior
 cases. Build and packed clean installation passed. Across both native probes,
 the full live battery and the one abort rerun, 22 run results were retained.
 Six omitted usage: four summary runs and two cancelled ordinary runs.
