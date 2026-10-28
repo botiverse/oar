@@ -8,6 +8,8 @@ import { claudeInstallation, claudeSession, codexInstallation, codexSession, def
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv, type LLMock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
+// oxlint-disable-next-line import/max-dependencies -- Three provider evidence tables plus durable failure diagnostics.
+import { openTrace, record } from "../harness/trace.js";
 
 /*
  * Every mapped cell of docs/spec/runtime-matrix.md#failure-evidence, on the
@@ -135,7 +137,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex: failure classes
   const runtime = defineRuntime({ id: "codex-aimock", session: codexSession, installation: codexInstallation });
   const cells: readonly Cell[] = [
     { name: "invalid key", reply: openai(401, "invalid_request_error", "invalid_api_key", "Incorrect API key provided: aimock."), expected: { failure: "auth", status: 401 } },
-    { name: "unknown model", reply: openai(404, "invalid_request_error", "model_not_found", "The model `oar-missing-model` does not exist or you do not have access to it."), expected: { failure: "model_unavailable", status: 404 } },
+    { name: "unknown model", reply: openai(404, "invalid_request_error", "model_not_found", "The model `oar-missing-model` does not exist or you do not have access to it."), expected: { failure: "model_unavailable" } },
     { name: "rate limited", reply: openai(429, "requests", "rate_limit_exceeded", "Rate limit reached for aimock-model. Please try again in 20s."), expected: { failure: "rate_limited", status: 429 } },
     { name: "usage limit", reply: openai(429, "requests", "organization_usage_limit_exceeded", "Organization usage limit reached"), expected: { failure: "quota" } },
     { name: "a ChatGPT plan's usage limit", reply: openai(429, "usage_limit_reached", undefined, "The usage limit has been reached"), expected: { failure: "quota" } },
@@ -149,14 +151,21 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex: failure classes
     { name: "rate limited in the stream", reply: responseFailed("rate_limit_exceeded", "Rate limit reached for aimock-model. Please try again in 1s."), expected: { failure: "rate_limited" } },
   ];
   test.each(cells)("$name", async (cell) => {
+    // A case owns its trace, including failures and a missing native completion.
+    openTrace(`vendor-codex-failure-${cell.name.replaceAll(/[^a-z0-9]+/gu, "-")}`);
+    record({ kind: "case_started", name: cell.name });
     const { fixtures, rewrite } = configure(cell);
     const env: AimockEnv = await startCodexAimock(fixtures, rewrite === undefined ? {} : { rewriteResponse: rewrite });
     try {
       // One retry, not five: the class is the same, the wait is not.
       await appendFile(path.join(env.env?.CODEX_HOME ?? "", "config.toml"), "request_max_retries = 1\nstream_max_retries = 1\n");
+      record({ kind: "opening" });
       const session = await runtimeUnderTest(runtime, env.env).startSession();
-      expect(classOf(await runTurn(session, "Say hello."))).toEqual(cell.expected);
-      await session.dispose();
+      try {
+        const outcome = await runTurn(session, "Say hello.");
+        record({ kind: "outcome", outcome });
+        expect(classOf(outcome)).toEqual(cell.expected);
+      } finally { await session.dispose(); }
     } finally {
       await env.stop();
     }

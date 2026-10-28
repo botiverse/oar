@@ -829,7 +829,7 @@ and the message "Reconnecting... n/5".
 |---|---|---|---|
 | missing login (no key, the default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` (the status) |
 | invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` (the status) |
-| unknown model | `{httpConnectionFailed: {httpStatusCode: 404}}` | 5 | `model_unavailable` (the status) |
+| unknown model | `modelNotFound` on 0.165.0; formerly `{httpConnectionFailed: {httpStatusCode: 404}}` | 1 on 0.165.0 | `model_unavailable`; status only when native reports it |
 | rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `rate_limited` (the status) |
 | usage limit, plan usage limit | `usageLimitExceeded` ("Quota exceeded. Check your plan and billing details."; "You've hit your usage limit.") | no | `quota` |
 | billing (both codes) | `usageLimitExceeded` ("Quota exceeded…") | no | `quota` |

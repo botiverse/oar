@@ -54,6 +54,7 @@ test("claude: an error result's reason keeps the subtype and adds claude's error
 // codex 0.160.1: `turn.error.codexErrorInfo`.
 test.each([
   { name: "missing login or invalid key", codexErrorInfo: { httpConnectionFailed: { httpStatusCode: 401 } }, message: "", expected: { failure: "auth", status: 401 } },
+  { name: "named unknown model without a fabricated HTTP status", codexErrorInfo: "modelNotFound", message: "", expected: { failure: "model_unavailable" } },
   { name: "unknown model", codexErrorInfo: { httpConnectionFailed: { httpStatusCode: 404 } }, message: "", expected: { failure: "model_unavailable", status: 404 } },
   { name: "rate limited", codexErrorInfo: { responseTooManyFailedAttempts: { httpStatusCode: 429 } }, message: "", expected: { failure: "rate_limited", status: 429 } },
   { name: "usage limit or billing", codexErrorInfo: "usageLimitExceeded", message: "Quota exceeded. Check your plan and billing details.", expected: { failure: "quota" } },

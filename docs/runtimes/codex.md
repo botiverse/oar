@@ -543,6 +543,19 @@ slug back (`model: "oar-no-such-model-xyz"`) with a `warning` "Model metadata
 ChatGPT account."}}`, class `invalid_request` (live-contract `bad-model`;
 [readback probe](../../experiments/session-model-readback.ts)).
 
+[env] Codex 0.165.0 reports a provider `404 model_not_found` as the named
+`codexErrorInfo: "modelNotFound"` in both its `error` notification and failed
+`turn/completed`. OAR maps that explicit value to `model_unavailable`. The
+HTTP status is absent in the native report, so OAR leaves `status` absent.
+The older transport variant with `httpStatusCode: 404` still maps to the
+same class and retains its reported status. The
+[failure-class vendor test](../../sea-trial/vendor/failure-classes.vendor.test.ts)
+saves a separate trace for every Codex error case, including incomplete runs.
+On 2026-10-28 the first Windows 0.165.0 unknown-model case reached the test
+deadline without a retained case trace; the cause and completion behavior of
+that run are unconfirmed. The trace now distinguishes a missing native
+completion from an incorrect projection, without changing the adapter deadline.
+
 **Effort (mapped):** `SessionOptions.effort` governs every turn of the
 thread, a turn codex starts from its own queue included ([env] 0.155.1). A
 new thread takes it as the config override `config: {model_reasoning_effort}`

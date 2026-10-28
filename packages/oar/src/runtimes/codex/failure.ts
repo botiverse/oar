@@ -4,7 +4,7 @@ import { asNumber, asRecord } from "../../shared/json.js";
 
 /*
  * A failed codex turn, classified from its `turn.error.codexErrorInfo`
- * (docs/spec/runtime-matrix.md#codex), observed on 0.160.1 against a scripted
+ * (docs/spec/runtime-matrix.md#codex), observed on 0.160.1 and 0.165.0 against a scripted
  * provider: a named value, or a transport variant carrying the HTTP status.
  * `other` (an HTTP 400 codex does not name) carries the provider's JSON body
  * as its message, read for its code. A usage limit and an exhausted credit
@@ -14,6 +14,7 @@ import { asNumber, asRecord } from "../../shared/json.js";
  */
 
 const NAMED: Readonly<Partial<Record<string, Classified["failure"]>>> = {
+  modelNotFound: "model_unavailable",
   usageLimitExceeded: "quota",
   rateLimitExceeded: "rate_limited",
   serverOverloaded: "overloaded",
