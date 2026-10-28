@@ -23,6 +23,7 @@ interface Scenario {
   readonly tool: "Bash" | "Write";
   readonly bypass?: boolean;
   readonly classifierSeverity?: number;
+  readonly configuredMode?: string;
 }
 const command = process.env.OAR_CLAUDE_BIN;
 assert.ok(command !== undefined, "set OAR_CLAUDE_BIN to the Claude executable");
@@ -50,7 +51,8 @@ async function run(scenario: Scenario, workspace: Workspace, resume = false): Pr
     });
   }, { captureRaw: true });
   const args = ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--replay-user-messages", "--include-partial-messages", "--model", "haiku", resume ? "--resume" : "--session-id", id,
-    "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--settings", '{"disableAllHooks":true}',
+    "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--settings", JSON.stringify({ disableAllHooks: true,
+      ...(scenario.configuredMode === undefined ? {} : { permissions: { defaultMode: scenario.configuredMode } }) }),
     ...(scenario.mode === undefined ? [] : ["--permission-mode", scenario.mode]),
     ...(scenario.none === true ? ["--permission-prompts", "none"] : []),
     ...(scenario.stdio === true ? ["--permission-prompt-tool", "stdio"] : []),
@@ -65,20 +67,25 @@ async function run(scenario: Scenario, workspace: Workspace, resume = false): Pr
   const permissions: unknown[] = [];
   const done = Promise.withResolvers<string>();
   const ready = Promise.withResolvers<void>();
+  const afterSettings = Promise.withResolvers<void>();
+  const settingsEvidence: unknown[] = [];
   let result: unknown = null;
   let applied: unknown = null;
   const started = Date.now();
   let permissionTimer: ReturnType<typeof setTimeout> | undefined = undefined;
-  const timer = setTimeout(() => { ready.resolve(); done.resolve("deadline"); }, 25_000);
-  child.onExit(() => { ready.resolve(); done.resolve("exited"); });
+  const timer = setTimeout(() => { ready.resolve(); afterSettings.resolve(); done.resolve("deadline"); }, 25_000);
+  child.onExit(() => { ready.resolve(); afterSettings.resolve(); done.resolve("exited"); });
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message === null) { return; }
-    if (message.type === "control_response" && asRecord(message.response)?.request_id === "settings") {
+    const requestId = asRecord(message.response)?.request_id;
+    if (message.type === "control_response" && (requestId === "settings" || requestId === "after-settings")) {
       const value = asRecord(asRecord(message.response)?.response);
       const selected = asRecord(value?.applied);
+      settingsEvidence.push({ phase: requestId, fields: Object.keys(value ?? {}).toSorted(), appliedFields: Object.keys(selected ?? {}).toSorted(),
+        topLevelMode: value?.permissionMode ?? null, configuredDefaultMode: asRecord(asRecord(value?.effective)?.permissions)?.defaultMode ?? null });
       applied = { permissionMode: selected?.permissionMode ?? null, model: selected?.model ?? null };
-      ready.resolve();
+      if (requestId === "settings") { ready.resolve(); } else { afterSettings.resolve(); }
       return;
     }
     frames.push({ ms: Date.now() - started, message });
@@ -101,6 +108,10 @@ async function run(scenario: Scenario, workspace: Workspace, resume = false): Pr
     await ready.promise;
     child.write(`${JSON.stringify({ type: "user", uuid: randomUUID(), message: { role: "user", content: `Run the requested probe ${scenario.label}.` } })}\n`);
     ended = await done.promise;
+    if (ended === "result") {
+      child.write(`${JSON.stringify({ type: "control_request", request_id: "after-settings", request: { subtype: "get_settings" } })}\n`);
+      await afterSettings.promise;
+    }
   } finally {
     clearTimeout(timer);
     clearTimeout(permissionTimer);
@@ -110,7 +121,7 @@ async function run(scenario: Scenario, workspace: Workspace, resume = false): Pr
   }
   const wrote = await readFile(marker, "utf8").then((value) => value === scenario.label, () => false);
   const init = asRecordList(frames.map((frame) => asRecord(frame)?.message)).find((frame) => frame.type === "system" && frame.subtype === "init");
-  const report = { ...scenario, resume, id, ended, wrote, calls, classifierCalls, applied, initPermissionMode: init?.permissionMode ?? null,
+  const report = { ...scenario, resume, id, ended, wrote, calls, classifierCalls, applied, settingsEvidence, initPermissionMode: init?.permissionMode ?? null,
     nativeSessionId: asRecord(result)?.session_id ?? init?.session_id ?? null, permissions,
     result: result === null ? null : { subtype: asRecord(result)?.subtype, is_error: asRecord(result)?.is_error,
       permission_denials: asRecord(result)?.permission_denials }, ms: Date.now() - started };
@@ -129,7 +140,8 @@ for (const mode of ["dontAsk", "default", "acceptEdits", "plan"]) {
 for (const mode of ["dontAsk", "default", "acceptEdits", "plan"]) {
   scenarios.push({ label: `${mode}-stdio`, mode, tool: "Bash", stdio: true }, { label: `${mode}-stdio-none`, mode, tool: "Bash", stdio: true, none: true });
 }
-scenarios.push({ label: "plan-stdio-high-severity", mode: "plan", tool: "Bash", stdio: true, classifierSeverity: 90 },
+scenarios.push({ label: "settings-configured-acceptEdits-flag-plan", configuredMode: "acceptEdits", mode: "plan", tool: "Write", none: true },
+  { label: "plan-stdio-high-severity", mode: "plan", tool: "Bash", stdio: true, classifierSeverity: 90 },
   { label: "default-stdio-allow", mode: "default", tool: "Bash", stdio: true, answer: "allow" },
   { label: "default-stdio-deny", mode: "default", tool: "Bash", stdio: true, answer: "deny" });
 try {

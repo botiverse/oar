@@ -88,9 +88,21 @@ same id with the same mode/stdio target but omitting `none` sent a host
 permission request and did not finish within the four-second observation.
 Both the desired mode and prompt target must be supplied again by a host
 that needs the same behavior. These are empty-configuration fixtures, not
-a promise to override every native saved/configured policy. The initial
-`get_settings.applied` response omitted permissionMode; the result above
-uses the later native init frame, not a guessed value.
+a promise to override every native saved/configured policy. Before the first turn and after it completed, `get_settings` returned
+`effective`, `sources` and `applied`; its applied fields were model, effort,
+advisor and the three ultracode fields, with no current permission mode.
+A separate control configured `permissions.defaultMode: acceptEdits` but
+launched with `--permission-mode plan`. The effective configuration still
+reported acceptEdits before and after the turn, while init reported plan
+and Write was denied. Configured defaultMode is not an applied-mode readback.
+The embedded `get_settings` handler at byte 277590227 and `PJr` at byte
+240282401 confirm that distinction.
+
+The actual mode is available in Claude's `system/init.permissionMode` when
+it starts a turn, including the first turn after resume. OAR already retains
+that native frame verbatim; hosts can inspect it to confirm the resumed
+mode. It is not available through this query before the first turn. No new
+public event or inferred opening record is added.
 
 ## Source and OAR behavior
 

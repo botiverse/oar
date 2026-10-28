@@ -804,6 +804,12 @@ operations already allowed by the mode. These are native observations,
 not newly supported OAR options. On resume, supplied modes took effect;
 omitting `acceptEdits` or `plan` returned to `default` in these fixtures, and
 omitting `none` restored host prompting with an explicit stdio target.
+The actual reported mode is in the native `system/init.permissionMode`
+frame, which OAR retains verbatim when Claude starts the turn, including
+after resume. Before the first turn, `get_settings` provides no current-mode
+readback; its `effective.permissions.defaultMode` is configuration and can
+differ from the active mode. Hosts can inspect the init frame, without a new
+OAR event type or an inferred opening value.
 Plan-mode Bash decisions also consulted a model classifier: a scripted
 allow result permitted a file write. Permission modes are not OS isolation.
 
