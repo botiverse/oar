@@ -1,0 +1,68 @@
+{
+  "observedAt": "2026-10-28",
+  "platform": "linux x64",
+  "provider": "local scripted responses; no real account",
+  "codex": {
+    "version": "0.165.0",
+    "outcome": "completed",
+    "turnsWhilePaused": 1,
+    "clear": {
+      "cleared": true
+    },
+    "cleared": {
+      "goal": null
+    },
+    "clearAgain": {
+      "cleared": false
+    },
+    "paused": {
+      "objective": "Finish the local test on the next automatic continuation",
+      "status": "paused",
+      "tokenBudget": 100000,
+      "tokensUsed": 0,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793194459,
+      "updatedAt": 1793194459
+    },
+    "completed": {
+      "objective": "Finish the local test on the next automatic continuation",
+      "status": "complete",
+      "tokenBudget": 100000,
+      "tokensUsed": 60,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793194459,
+      "updatedAt": 1793194459
+    },
+    "budgetLimited": {
+      "objective": "Budget-bound local test",
+      "status": "budgetLimited",
+      "tokenBudget": 1,
+      "tokensUsed": 60,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793194459,
+      "updatedAt": 1793194460
+    },
+    "hostTurnStarts": 1,
+    "nativeTurnStarts": 4,
+    "goalNotifications": [
+      "thread/goal/updated",
+      "thread/goal/updated",
+      "thread/goal/updated",
+      "thread/goal/updated",
+      "thread/goal/cleared",
+      "thread/goal/updated",
+      "thread/goal/updated",
+      "thread/goal/cleared"
+    ]
+  },
+  "claude": {
+    "version": "2.1.312",
+    "outcome": "completed",
+    "mainModelCalls": 2,
+    "stopEvaluatorCalls": 2,
+    "structuredGoalStatusObserved": false,
+    "statusText": "No goal set",
+    "clearText": "No goal set",
+    "limit": "No structured goal outcome is inferred from ordinary result success or command text"
+  }
+}
