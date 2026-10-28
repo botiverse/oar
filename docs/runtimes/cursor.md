@@ -14,10 +14,13 @@ beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-Current required SDK: **1.1.0**, the exact optional peer version. Hosts
+Current required SDK: **1.2.0**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
+The [compaction probe](../../experiments/cursor-compaction.md) records 1.2.0's
+dual-stream behavior, the adapter's live checks and an initial late-abort
+failure followed by an unchanged successful rerun.
 On **1.2.0** (2026-10-28; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
 reusing an existing login), existing interfaces were compatible: all 12
 applicable live session scenarios and three root tool-selection scenarios
@@ -26,9 +29,6 @@ All 11 local login/logout scenarios passed. The four configuration-source
 controls passed after the probe learned to observe the SDK's new
 `FileHandle.readFile` path; the initial failures and unchanged recheck are
 retained in the [October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120).
-The required peer remains **1.1.0**. The compatibility check does not require
-hosts to upgrade again; adopting 1.2.0 will accompany an OAR feature or fix
-that needs it.
 
 Since SDK 1.1.0, its `toTokenUsage` and `sumTokenUsage` formulas add only
 input and output. OAR follows that accounting and no longer adds cache
@@ -53,8 +53,10 @@ persistent conversation bound to a working directory and stored under
 model and token usage; `run.steer(text)` adds input mid run; `run.cancel()`
 stops it. Progress arrives through `send(…, { onDelta })` as updates, each a
 record with a `type`; `run.stream()` offers a coarser message view of the
-same run. An agent takes one run at a time: a second `send` while one runs is
-refused (`already has active run`, probed).
+same run, including compaction statuses omitted from `onDelta` in SDK 1.2.0.
+The native `Agent.summarize()` starts a manual summary run; OAR exposes no
+manual-compaction control. An agent takes one run at a time: a second `send`
+while one runs is refused (`already has active run`, probed).
 
 The credential is `CURSOR_API_KEY`, or, without it, the key
 `Cursor.auth.login()` mints and stores in `~/.cursor/sdk/auth.json`. It is
@@ -70,7 +72,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.1.0`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.2.0`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
@@ -272,14 +274,30 @@ update reports a child's own tokens, and whether the run's figure includes a
 child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),
 `tool-requests-listed`, `step-started`, `step-completed` and
-`shell-output-delta` are recorded with no events. SDK 1.2.0 still filters
-`summary`, `summary-started` and `summary-completed` before `onDelta` [src].
-It now exposes `summary` status messages through `run.stream()` and a native
-`Agent.summarize()` control. OAR currently consumes `onDelta` and `run.wait()`;
-it neither reads those summary messages nor exposes the manual control.
-Mapping the stream's statuses to the existing compaction events needs a
-separate integration that preserves every existing delta. No update used by
-OAR reports context occupancy, so `contextUsage()` stays empty.
+`shell-output-delta` are recorded with no events. No update reports context
+occupancy, so `contextUsage()` stays empty.
+
+**Compaction (SDK 1.2.0):** OAR concurrently drains `run.stream()` to capture
+summary statuses absent from `onDelta`. Each message is retained verbatim
+as `cursor/stream/<type>`. A summary's `running` status becomes
+`compaction_started`, `completed` becomes `compaction_ended: completed`,
+and `error` becomes `compaction_ended: failed`. Other stream messages have no
+projected events, so text, tools and usage remain counted once through
+`onDelta`. Unknown summary statuses stay raw. No trigger or failure reason
+is reported; `fallback` stays native and means a trimmed transcript was saved
+[src]. It still counts as completed compaction.
+
+The two views retain reception order, including buffered messages received
+after earlier raw updates. OAR drains both before recording `run.wait()`'s
+result or sending queued input. An iterator error is retained as
+`cursor/stream_failed` without replacing the native run outcome. Cancellation
+can end the run with only a summary start observed; OAR adds no compaction
+end in that case. Disposal keeps its existing five-second wait for run
+settlement; late runs are still cancelled and drained.
+See the [probe and evidence boundaries](../../experiments/cursor-compaction.md)
+for native success/cancellation, source-only error/fallback evidence and the
+adapter regressions. Automatic context-threshold compaction was not forced
+in the live probe; the native manual method was only its trigger.
 
 `shell-output-delta` is separate from model tool calls. In SDK 1.0.37,
 its `{event: {case: "stdout" | "stderr", value: {data}}}` carries no

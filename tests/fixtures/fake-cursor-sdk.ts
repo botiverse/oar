@@ -31,6 +31,12 @@ export class FakeCursorRun implements CursorRun {
   /** How the next steer is answered; `never` leaves it unanswered. */
   ack: SteerAckOutcome | "never" = "complete_delivered";
   private readonly done = Promise.withResolvers<RunResult>();
+  private readonly messages: unknown[] = [];
+  private changed = Promise.withResolvers<void>();
+  private streamClosed = false;
+  private streamError: Error | undefined;
+  holdStream = false;
+  streamDrained = false;
 
   constructor(readonly id: string, readonly message: unknown, readonly onDelta: CursorDeltaListener) {}
 
@@ -42,6 +48,31 @@ export class FakeCursorRun implements CursorRun {
   /** `wait()` rejects instead of answering. */
   fail(error: Error): void {
     this.done.reject(error);
+    this.closeStream();
+  }
+
+  streamMessage(message: unknown): void {
+    this.messages.push(message);
+    this.changed.resolve();
+    this.changed = Promise.withResolvers<void>();
+  }
+
+  closeStream(error?: Error): void {
+    this.streamError = error;
+    this.streamClosed = true;
+    this.changed.resolve();
+  }
+
+  async *stream(): AsyncGenerator {
+    try {
+      for (;;) {
+        if (this.messages.length > 0) { yield this.messages.shift(); }
+        else if (this.streamError !== undefined) { throw this.streamError; }
+        else if (this.streamClosed) { return; }
+        // oxlint-disable-next-line eslint/no-await-in-loop -- the next message is not available until notified.
+        else { await this.changed.promise; }
+      }
+    } finally { this.streamDrained = true; }
   }
 
   async cancel(): Promise<void> {
@@ -70,6 +101,7 @@ export class FakeCursorRun implements CursorRun {
 
   end(status: RunResult["status"], extra: Partial<RunResult> = {}): void {
     this.done.resolve({ id: this.id, status, model: { id: "composer-2.5" }, ...extra });
+    if (!this.holdStream) { this.closeStream(); }
   }
 }
 
