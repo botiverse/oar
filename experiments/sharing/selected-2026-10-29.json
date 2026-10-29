@@ -1,0 +1,853 @@
+{
+  "platform": "linux-x64",
+  "date": "2026-10-29",
+  "node": "24.19.0",
+  "note": "Selected local-fixture observations; no raw account, path or transcript data. Resource CPU is short post-turn idle CPU only.",
+  "codex": {
+    "version": "0.165.0",
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": {
+        "sameServerNameRemainsThreadScoped": true
+      },
+      "childAttribution": {
+        "parentCompleted": true,
+        "nativeActivityScopedToParent": true,
+        "peerNotClassifiedAsChild": true,
+        "childNotifications": 13,
+        "childRequests": 1
+      },
+      "loadedResume": {
+        "returnedModel": "gpt-5.1",
+        "requestedModel": "gpt-5.2",
+        "status": "completed",
+        "providerModels": [
+          "gpt-5.1"
+        ]
+      },
+      "unsubscribeResume": {
+        "returnedModel": "gpt-5.2",
+        "status": "completed",
+        "providerModels": [
+          "gpt-5.2"
+        ]
+      },
+      "wrongOwnerTerminate": {
+        "terminated": false
+      },
+      "wrongOwnerSurvivorCounts": [
+        2,
+        2
+      ],
+      "correctOwnerSurvivorCounts": [
+        0,
+        2
+      ],
+      "cancel": {
+        "target": "interrupted",
+        "peerStillRunning": true,
+        "peer": "completed"
+      },
+      "closeResumeRace": {
+        "outcomes": [
+          "fulfilled",
+          "fulfilled"
+        ],
+        "model": "gpt-5.1",
+        "turn": "completed"
+      },
+      "exitWithActiveThreads": {
+        "exit": null,
+        "reads": [
+          "rejected",
+          "rejected"
+        ],
+        "completionsAfterExit": []
+      }
+    },
+    "resources": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:23:29.403Z",
+        "opened": {
+          "elapsedMs": 5017.7277859999995,
+          "cpuPercentOneCore": 2.192227332596875,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 4,
+          "rssBytes": 1884110848,
+          "processes": 23
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5015.383853000001,
+            "cpuPercentOneCore": 2.193251867136798,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 2082086912,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5014.324128,
+            "cpuPercentOneCore": 0.9971433581806142,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2083397632,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5014.625078000001,
+            "cpuPercentOneCore": 0.598250109098186,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2083397632,
+            "processes": 20
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:23:56.714Z",
+        "opened": {
+          "elapsedMs": 5013.214963999999,
+          "cpuPercentOneCore": 0.5984183845183306,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 202592256,
+          "processes": 2
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5019.551608000002,
+            "cpuPercentOneCore": 0.19922098189133702,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 256925696,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5013.450430000004,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 256720896,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5011.305542000002,
+            "cpuPercentOneCore": 0.1995487985354216,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 256720896,
+            "processes": 2
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:24:23.278Z",
+        "opened": {
+          "elapsedMs": 5014.182579,
+          "cpuPercentOneCore": 0.3988686029057339,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 203059200,
+          "processes": 2
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5014.222338000007,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 256094208,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5017.292568000004,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 256004096,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5010.8970779999945,
+            "cpuPercentOneCore": 0.19956506478459365,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 256004096,
+            "processes": 2
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:24:49.782Z",
+        "opened": {
+          "elapsedMs": 5015.924713999993,
+          "cpuPercentOneCore": 2.5917454390245496,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 4,
+          "rssBytes": 1884819456,
+          "processes": 23
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5015.5305059999955,
+            "cpuPercentOneCore": 1.9938070335804292,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 2081472512,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5014.382836000004,
+            "cpuPercentOneCore": 1.5954106939273178,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2083115008,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5013.844047999999,
+            "cpuPercentOneCore": 0.9972388355386679,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2083115008,
+            "processes": 20
+          }
+        ],
+        "outcome": "completed"
+      }
+    ]
+  },
+  "kimi": {
+    "version": "2.4.0",
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "child": {
+        "providerRequests": 1,
+        "distinctTransportSessionIds": 2,
+        "peerReceivedChildReply": false
+      },
+      "resume": {
+        "method": "session/resume",
+        "retainedHistory": true,
+        "providerModels": [
+          "aimock-model"
+        ]
+      },
+      "cleanup": {
+        "afterCancel": [
+          0,
+          2
+        ],
+        "afterNativeClose": [
+          0,
+          2
+        ],
+        "afterHostCleanup": [
+          0,
+          2
+        ]
+      },
+      "peerEndedBeforeRelease": false,
+      "closeResumeOutcomes": [
+        "fulfilled",
+        "fulfilled"
+      ],
+      "exit": {
+        "completedBeforeFault": 0,
+        "exit": null,
+        "rejectedPrompts": 2
+      }
+    },
+    "resources": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:48:08.365Z",
+        "opened": {
+          "elapsedMs": 5025.399068999999,
+          "cpuPercentOneCore": 44.57357454093165,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 4172181504,
+          "processes": 10
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5018.001510999995,
+            "cpuPercentOneCore": 56.396953922718794,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3646971904,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5021.476449000002,
+            "cpuPercentOneCore": 46.79898479794701,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3515064320,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5022.633246999998,
+            "cpuPercentOneCore": 45.991811195447234,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3495473152,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:48:56.218Z",
+        "opened": {
+          "elapsedMs": 5025.0034520000045,
+          "cpuPercentOneCore": 1.9900483841498446,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 492847104,
+          "processes": 1
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5021.608281000008,
+            "cpuPercentOneCore": 13.939757162034178,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 399007744,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5020.541129999998,
+            "cpuPercentOneCore": 15.735355602992549,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 398999552,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5027.407254999998,
+            "cpuPercentOneCore": 1.7901871767100361,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 398999552,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      }
+    ]
+  },
+  "grok": {
+    "version": "1.0.70",
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "child": {
+        "providerRequests": 2,
+        "distinctTransportSessionIds": 3,
+        "peerReceivedChildReply": false
+      },
+      "resume": {
+        "method": "session/resume",
+        "retainedHistory": true,
+        "providerModels": [
+          "aimock-model"
+        ]
+      },
+      "cleanup": {
+        "afterCancel": [
+          2,
+          2
+        ],
+        "afterNativeClose": [
+          2,
+          2
+        ],
+        "afterHostCleanup": [
+          0,
+          2
+        ]
+      },
+      "peerEndedBeforeRelease": false,
+      "closeResumeOutcomes": [
+        "fulfilled",
+        "rejected"
+      ],
+      "exit": {
+        "completedBeforeFault": 0,
+        "exit": null,
+        "rejectedPrompts": 2
+      }
+    },
+    "resources": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:50:04.599Z",
+        "opened": {
+          "elapsedMs": 5016.824218000001,
+          "cpuPercentOneCore": 1.1959757287234494,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1190350848,
+          "processes": 10
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5016.9097500000025,
+            "cpuPercentOneCore": 0.797303559227869,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1288134656,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5013.833646000003,
+            "cpuPercentOneCore": 1.5955854471522681,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1288134656,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5017.876388000001,
+            "cpuPercentOneCore": 0.9964374594713511,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1288134656,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:50:35.753Z",
+        "opened": {
+          "elapsedMs": 5015.676568999996,
+          "cpuPercentOneCore": 0.19937489713364348,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 146014208,
+          "processes": 1
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5016.542260000002,
+            "cpuPercentOneCore": 0.19934049155204359,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 165240832,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5016.047228000003,
+            "cpuPercentOneCore": 0.19936016439755883,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 165240832,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5013.985124999999,
+            "cpuPercentOneCore": 0.5983264659166696,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 165240832,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      }
+    ]
+  },
+  "opencode": {
+    "version": "2.2.1",
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "child": {
+        "providerRequests": 1,
+        "distinctTransportSessionIds": 2,
+        "peerReceivedChildReply": false
+      },
+      "resume": {
+        "method": "session/resume",
+        "retainedHistory": true,
+        "providerModels": [
+          "aimock-model"
+        ]
+      },
+      "cleanup": {
+        "afterCancel": [
+          0,
+          2
+        ],
+        "afterNativeClose": [
+          0,
+          2
+        ],
+        "afterHostCleanup": [
+          0,
+          2
+        ]
+      },
+      "peerEndedBeforeRelease": false,
+      "closeResumeOutcomes": [
+        "fulfilled",
+        "fulfilled"
+      ],
+      "exit": {
+        "completedBeforeFault": 0,
+        "exit": null,
+        "rejectedPrompts": 2
+      }
+    },
+    "resources": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:51:50.176Z",
+        "opened": {
+          "elapsedMs": 5055.314194999999,
+          "cpuPercentOneCore": 29.27612296509298,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 3773464576,
+          "processes": 20
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5016.704506999999,
+            "cpuPercentOneCore": 16.146057613514532,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3742552064,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5012.370822000004,
+            "cpuPercentOneCore": 17.15754940207812,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3738025984,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5013.300476000004,
+            "cpuPercentOneCore": 10.571877798612915,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3733196800,
+            "processes": 20
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:52:31.374Z",
+        "opened": {
+          "elapsedMs": 5018.593182000004,
+          "cpuPercentOneCore": 4.383698618749684,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 420560896,
+          "processes": 2
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5016.780120000003,
+            "cpuPercentOneCore": 5.780600167104788,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 414355456,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5015.708449999998,
+            "cpuPercentOneCore": 2.99060444791204,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 408977408,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5012.12208999999,
+            "cpuPercentOneCore": 2.593711758525824,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 408580096,
+            "processes": 2
+          }
+        ],
+        "outcome": "completed"
+      }
+    ]
+  },
+  "antigravity": {
+    "version": "1.4.4",
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "child": {
+        "providerRequests": 1,
+        "distinctTransportSessionIds": 2,
+        "peerReceivedChildReply": false
+      },
+      "resume": {
+        "method": "session/resume",
+        "retainedHistory": true,
+        "providerModels": [
+          "gemini-3.8-flash"
+        ]
+      },
+      "cleanup": {
+        "afterCancel": [
+          0,
+          2
+        ],
+        "afterNativeClose": [
+          0,
+          2
+        ],
+        "afterHostCleanup": [
+          0,
+          2
+        ]
+      },
+      "peerEndedBeforeRelease": false,
+      "closeResumeOutcomes": [
+        "fulfilled",
+        "fulfilled"
+      ],
+      "exit": {
+        "completedBeforeFault": 0,
+        "exit": null,
+        "rejectedPrompts": 2
+      }
+    },
+    "resources": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:53:54.601Z",
+        "opened": {
+          "elapsedMs": 5043.090742,
+          "cpuPercentOneCore": 2.379493174703617,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 4457787392,
+          "processes": 20
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5023.311627000003,
+            "cpuPercentOneCore": 3.583293519607875,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5187973120,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5018.697727999999,
+            "cpuPercentOneCore": 1.7932938957028177,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5186318336,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5015.200183000001,
+            "cpuPercentOneCore": 2.392726025309287,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5184991232,
+            "processes": 20
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:54:54.802Z",
+        "opened": {
+          "elapsedMs": 5027.805871000004,
+          "cpuPercentOneCore": 0.19889391628422304,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1568940032,
+          "processes": 11
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5019.080027000004,
+            "cpuPercentOneCore": 0.5977191006841058,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2314113024,
+            "processes": 11
+          },
+          {
+            "elapsedMs": 5016.329866,
+            "cpuPercentOneCore": 0.5980467951945487,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2312409088,
+            "processes": 11
+          },
+          {
+            "elapsedMs": 5016.472007999997,
+            "cpuPercentOneCore": 0.19934328316897898,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2312409088,
+            "processes": 11
+          }
+        ],
+        "outcome": "completed"
+      }
+    ]
+  },
+  "qoder": {
+    "version": "1.1.81",
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "loadedResume": {
+        "accepted": false,
+        "error": "Error: Qoder refused daemon.open_session"
+      },
+      "closeResumeOutcomes": [
+        {
+          "status": "fulfilled"
+        },
+        {
+          "status": "rejected",
+          "error": "Error: Qoder refused daemon.open_session"
+        }
+      ],
+      "subsequentResumeResult": "RACE_CONFIRMED",
+      "cleanup": {
+        "afterCancel": [
+          0,
+          2
+        ],
+        "afterClose": [
+          0,
+          2
+        ]
+      },
+      "child": {
+        "nestedFrames": 2,
+        "lifecycleFrames": 2
+      },
+      "exit": {
+        "completedBeforeFault": 0,
+        "exit": null,
+        "rejectedPrompts": 2
+      }
+    },
+    "resources": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "at": "2026-10-29T19:56:23.043Z",
+        "opened": {
+          "elapsedMs": 5014.710917000004,
+          "cpuPercentOneCore": 97.91192515913467,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 5872144384,
+          "processes": 20
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5017.477136999994,
+            "cpuPercentOneCore": 89.68650732488639,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5326761984,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5013.824932999996,
+            "cpuPercentOneCore": 86.76010945992883,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5343027200,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5016.591887000002,
+            "cpuPercentOneCore": 76.14731447258345,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5355245568,
+            "processes": 20
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "at": "2026-10-29T19:58:00.736Z",
+        "opened": {
+          "elapsedMs": 5013.79924800001,
+          "cpuPercentOneCore": 18.748257628682744,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 778297344,
+          "processes": 2
+        },
+        "afterTurn": [
+          {
+            "elapsedMs": 5017.620999999999,
+            "cpuPercentOneCore": 7.5733101404031915,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 783970304,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5013.147645999983,
+            "cpuPercentOneCore": 4.3884604151952145,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 785281024,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5010.546537999995,
+            "cpuPercentOneCore": 27.14274759621046,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 473227264,
+            "processes": 2
+          }
+        ],
+        "outcome": "completed"
+      }
+    ]
+  }
+}

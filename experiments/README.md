@@ -2,8 +2,10 @@
 
 Manual experiment records against real runtimes, the analogue of OpenDAL's
 `core/edge/`. Each is a standalone script that may burn real tokens, never
-runs in CI, and deliberately avoids repo machinery where independence is the
-point. This page is the index: the full observations, including earlier
+runs in the normal CI change-validation gate, and deliberately avoids repo
+machinery where independence is the point. The manual [sharing evidence
+workflow](../.github/workflows/shared-runtime-evidence.yml) runs only the
+account-free sharing probes to collect platform observations. This page is the index: the full observations, including earlier
 versions, are in the script's `OBSERVED` header where it has one, otherwise in
 the linked findings.
 
@@ -59,6 +61,7 @@ time.
 | [Qwen reply blocks and Token Plan](qwen-native/reply-text-2026-10-29.md) | Thinking/text snapshot identity, repeated-answer regression and a private real-key validation probe. | [qwen](../docs/runtimes/qwen.md) | 2026-10-29, 0.26.3 Linux; local native reproduction and Singapore Token Plan before/after validation |
 | [codebuddy-native/](codebuddy-native/2026-10-29/README.md) | Native ACP versus stream-json consecutive prompts; real international login and ACP resume. | [CodeBuddy](../docs/runtimes/codebuddy.md) | 2026-10-29, 2.178.1: ACP 6/6 native controls and three real arm64 turns passed; custom-endpoint stream-json still duplicates, cause unknown |
 | [qoder-native/](qoder-native/README.md) | Native fake-response loop, lifecycle, resume, priority now/next, token visibility, effort, permissions and MCP; separate real quota failure evidence. | [qoder](../docs/runtimes/qoder.md) | 2026-10-29, 1.1.78 through 1.1.81 on Linux; nine native cases and 17 shared behavior cases pass per version, with two capability skips; no paid request |
+| [Shared native process gates](sharing/README.md) | Native root/child routing, scoped cleanup, loaded resume, fault/race observations and same-version memory/CPU comparisons. | `pnpm tsx experiments/sharing/codex.ts`; see run instructions for ACP and Qoder | 2026-10-29, Linux observations for six runtimes; other platforms and adapter admission remain pending |
 | [`qoder-native/daemon.ts`](qoder-native/daemon.ts) | Published SDK daemon entry, concurrent session routing and survivor after peer close. | [report](qoder-native/daemon-2026-10-29.md) | 2026-10-29, Qoder 1.1.81 on Linux: two sessions, three correctly routed results, survivor completes after peer closes; full sharing gates remain unverified |
 | [`qoder-native/inline-settings.ts`](qoder-native/inline-settings.ts) | Serial/concurrent inline settings versus per-fixture files, native initialize only. | [report draft](qoder-native/inline-settings-report.md) | 2026-10-27, Qoder 1.1.79: one earlier parse failure at the shared hash path; all 36 controls passed without reproducing it |
 | [`qoder-native/model-selection.ts`](qoder-native/model-selection.ts) | Native catalog selectors versus init names and applied settings; optional public list-to-open check. | [report](qoder-native/model-selection-report.md) | 2026-10-29, Qoder 1.1.78 on Linux: two enabled selectors resolve through `serverModel.display_name`; no model prompt |

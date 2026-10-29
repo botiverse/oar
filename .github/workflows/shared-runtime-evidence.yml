@@ -1,0 +1,94 @@
+name: Shared runtime evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtimes:
+        description: 'JSON array of runtimes to observe'
+        required: true
+        default: '["codex","kimi","grok","opencode","antigravity","qoder"]'
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        runtime: ${{ fromJSON(inputs.runtimes) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      EVIDENCE_RUNTIME: ${{ matrix.runtime }}
+      EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.165.0","kimi":"@moonshot-ai/kimi-code@2.4.0","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.1","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - if: matrix.runtime != 'antigravity'
+        run: npm install -g "$EVIDENCE_PACKAGE"
+      - name: Install pinned Antigravity ACP archive
+        if: matrix.runtime == 'antigravity'
+        shell: pwsh
+        run: |
+          # Versioned archives and digests from the public ACP registry.
+          $archives = @{
+            'Linux-X64' = @('linux/agy-acp-server-1.4.4-linux-x86_64.zip', 'baf31b7a97602dee359cf2a43f72b6e11c6bf354be874987d80660cd3526bb6a')
+            'macOS-ARM64' = @('macos/agy-acp-server-1.4.4-darwin-arm64.zip', 'a3cf324046396380fcd8c055a4a4c83ac4ea74a38ea883ccbfce5ca1e9927ae9')
+            'macOS-X64' = @('macos/agy-acp-server-1.4.4-darwin-x86_64.zip', '019e6ce30cf906ba94b761d752c7ccd01a324f4701efca31542de04b60be8fd7')
+            'Windows-X64' = @('windows/agy-acp-server-1.4.4-windows-x86_64.zip', '4b68e5936a3d7a60b520aa1ee9479c8be58c43e015f026dc41e7ad17ec54d427')
+          }
+          $entry = $archives["$env:RUNNER_OS-$env:RUNNER_ARCH"]
+          if (-not $entry) { throw 'No verified archive for runner platform' }
+          $archive = Join-Path $env:RUNNER_TEMP 'antigravity.zip'
+          $destination = Join-Path $env:RUNNER_TEMP 'antigravity'
+          Invoke-WebRequest "https://dl.google.com/agy-extensions/releases/$($entry[0])" -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry[1]) { throw 'Archive digest mismatch' }
+          Expand-Archive $archive $destination
+          $name = if ($IsWindows) { 'agy_acp_server.exe' } else { 'agy_acp_server.par' }
+          $binaries = @(Get-ChildItem $destination -Recurse -File -Filter $name)
+          if ($binaries.Count -ne 1) { throw 'Expected one ACP executable' }
+          if (-not $IsWindows) {
+            Get-ChildItem $destination -Recurse -File | ForEach-Object { chmod u+x $_.FullName }
+          }
+          "OAR_ANTIGRAVITY_BIN=$($binaries[0].FullName)" >> $env:GITHUB_ENV
+      - name: Codex native observations
+        if: matrix.runtime == 'codex'
+        run: pnpm tsx experiments/sharing/codex.ts
+        timeout-minutes: 5
+      - name: ACP native observations
+        if: contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime)
+        run: pnpm tsx experiments/sharing/acp.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 7
+      - name: Qoder native observations
+        if: matrix.runtime == 'qoder'
+        run: pnpm tsx experiments/sharing/qoder.ts
+        timeout-minutes: 7
+      - name: Codex resources
+        if: success() && matrix.runtime == 'codex'
+        run: pnpm tsx experiments/sharing/codex-resources.ts
+        timeout-minutes: 8
+      - name: ACP resources
+        if: success() && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime)
+        run: pnpm tsx experiments/sharing/acp-resources.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 8
+      - name: Qoder resources
+        if: success() && matrix.runtime == 'qoder'
+        run: pnpm tsx experiments/sharing/qoder-resources.ts
+        timeout-minutes: 8
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shared-evidence-${{ matrix.runtime }}-${{ runner.os }}-${{ runner.arch }}
+          path: oar-trial-run
+          if-no-files-found: warn
+          retention-days: 14

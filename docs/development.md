@@ -141,9 +141,12 @@ provider's view or a vendor-specific trigger. Each is gated with
 
 `experiments/`, run by `pnpm tsx experiments/<name>.ts`. A live probe that
 answers one question about a real runtime, kept as evidence with its
-conclusion indexed in the experiments README. Not run in CI and not part of
-validating a change; reach for one when the vendor's actual behavior is the
-open question.
+conclusion indexed in the experiments README. These are not part of the normal
+CI change-validation gate; reach for one when the vendor's actual behavior is
+the open question. The manual [shared-runtime evidence workflow](../.github/workflows/shared-runtime-evidence.yml)
+is an explicit exception for the account-free `experiments/sharing` probes:
+it collects platform observations, preserves failures, and does not admit a
+runtime to sharing or alter the pull-request gate.
 
 ### Live: does the strong claim hold on the real runtime?
 
