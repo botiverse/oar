@@ -30,11 +30,11 @@ function daemonSessionProcesses(): FakeLineProcess[] {
 }
 
 // oxlint-disable-next-line eslint/max-statements -- Verbatim storage and continued session usability are checked in one transcript.
-test("an unknown connection-wide daemon notification remains verbatim without ending the session", async () => {
+test.each([{}, { session_id: null }])("an unknown connection-wide daemon notification remains verbatim without ending the session: %j", async (scope) => {
   const children = daemonSessionProcesses();
   const session = await qoderSession({ ...installation, version: "1.1.81" }, { cwd: "/work" });
   try {
-    const native = { type: "daemon.future_notice", message: "future protocol addition", extra: { value: 1 } };
+    const native = { type: "daemon.future_notice", ...scope, message: "future protocol addition", extra: { value: 1 } };
     children[0]?.emit(`${JSON.stringify(native)}\n`);
     expect(session.records()).toContainEqual(expect.objectContaining({ kind: "frame", body: { type: native.type, native, events: [] } }));
     expect(children[0]?.killed()).toBe(false);

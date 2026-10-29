@@ -1,17 +1,14 @@
-import type { JsonRecord } from "../../shared/json.js";
-
-/** Native 2.178.1 ExtensionMethod and extNotification call sites. Preserve
+/** Native 2.178.1 ExtensionMethod and extNotification call sites.
+ * question and delegateTool are requests, not notifications. Preserve
  * received notifications without inventing typed UI, task or child semantics. */
 export const codebuddyNotifications: readonly string[] = [
   "_codebuddy.ai/artifact",
   "_codebuddy.ai/artifactBatch",
-  "_codebuddy.ai/question",
   "_codebuddy.ai/checkpoint",
   "_codebuddy.ai/command",
   "_codebuddy.ai/authUrl",
   "_codebuddy.ai/liteModelReset",
   "_codebuddy.ai/file_history_snapshot",
-  "_codebuddy.ai/delegateTool",
   "_codebuddy.ai/delegateToolsChanged",
   "_codebuddy.ai/uiControl",
   "_codebuddy.ai/modRender",
@@ -28,11 +25,3 @@ export const codebuddyNotifications: readonly string[] = [
   "_codebuddy.ai/modClientReadyRequired",
   "_codebuddy.ai/modCustomizationChanged",
 ];
-
-/** Browser authorization links belong to the private login interaction,
- * never a session's durable records. Preserve the surrounding native fact. */
-export function redactCodebuddyNotification(method: string, params: JsonRecord): JsonRecord {
-  return method === "_codebuddy.ai/authUrl" && typeof params.authUrl === "string"
-    ? { ...params, authUrl: "[redacted]" }
-    : params;
-}

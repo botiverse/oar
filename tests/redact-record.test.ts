@@ -40,14 +40,26 @@ test("idempotent: a redacted record, and records no rule touches, come back as t
 });
 
 test("REDACTION_RULES names every frame type a rule can change; any other frame is never changed", () => {
-  expect(Number.isInteger(REDACTION_RULES.version) && REDACTION_RULES.version >= 1).toBe(true);
+  expect(Number.isInteger(REDACTION_RULES.version) && REDACTION_RULES.version >= 2).toBe(true);
   const secret = { mcpServers: [{ name: "x", env: { TOKEN: "secret-value" } }] };
   for (const prefix of REDACTION_RULES.frameTypePrefixes) {
-    const covered = frame(`${prefix}${prefix.endsWith("/") ? "servers_updated" : ""}`, secret);
+    const covered = frame(`${prefix}${prefix.endsWith("/") ? "servers_updated" : ""}`, prefix === "_codebuddy.ai/authUrl" ? { authUrl: "https://example.invalid/?state=secret-value" } : secret);
     expect(JSON.stringify(redactRecord(covered))).not.toContain("secret-value");
   }
   for (const type of ["_x.ai/other", "session/update", "x_x.ai/mcp/servers_updated", "thread/tokenUsage/updated"]) {
     const other = frame(type, secret);
     expect(redactRecord(other)).toBe(other);
   }
+});
+
+test("CodeBuddy authorization URL redaction is shared, idempotent and limited to its documented field", () => {
+  const original = frame("_codebuddy.ai/authUrl", { sessionId: "s", authUrl: "https://example.invalid/?state=private-state", provider: "external", extra: { name: "retained" } });
+  const redacted = redactRecord(original);
+  expect(redacted).toEqual(frame("_codebuddy.ai/authUrl", { sessionId: "s", authUrl: "[redacted]", provider: "external", extra: { name: "retained" } }));
+  expect(redactRecord(redacted)).toBe(redacted);
+  expect(JSON.stringify(original)).toContain("private-state");
+  expect(JSON.stringify(redacted)).not.toContain("private-state");
+  expect(REDACTION_RULES.frameTypePrefixes).toContain("_codebuddy.ai/authUrl");
+  const other = frame("_codebuddy.ai/command", { authUrl: "unrelated field", params: { action: "open" } });
+  expect(redactRecord(other)).toBe(other);
 });

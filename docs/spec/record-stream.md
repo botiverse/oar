@@ -70,7 +70,9 @@ Further rules:
   rule is added or broadened, so a host rescans stored records only when it
   changes; `frameTypePrefixes` lists the `body.type` prefixes a rule can
   change, and a frame matching none is never changed, so storage can be
-  pre-filtered by them.
+  pre-filtered by them. Version 2 adds CodeBuddy's `_codebuddy.ai/authUrl`
+  prefix: the exact notification's `authUrl` field is replaced with `[redacted]`
+  in both live frames and stored-record cleanup, preserving other fields.
 - **Known session credentials are removed by value as well.** Before any
   request, response or frame is retained or published, its string values and
   keys are redacted, including native data and projected failure reasons.

@@ -41,9 +41,9 @@ function redactMcpTree(value: unknown): unknown {
  * can pre-filter its storage by them.
  */
 export const REDACTION_RULES: { readonly version: number; readonly frameTypePrefixes: readonly string[] } = {
-  version: 1,
-  // grok's MCP notifications (0.32.1).
-  frameTypePrefixes: ["_x.ai/mcp/", "_x.ai/mcp_initialized"],
+  version: 2,
+  // Grok MCP credentials and CodeBuddy browser authorization links.
+  frameTypePrefixes: ["_x.ai/mcp/", "_x.ai/mcp_initialized", "_codebuddy.ai/authUrl"],
 };
 
 /** Whether a frame `type` is one the redaction rules cover. */
@@ -58,5 +58,16 @@ export function redactionCovers(type: string): boolean {
  * edit free-form text, other field names, other notifications or the received object.
  */
 export function redactGrokNotification(method: string, params: JsonRecord): JsonRecord {
-  return redactionCovers(method) ? redactMcpFields(params) : params;
+  return method.startsWith("_x.ai/mcp/") || method.startsWith("_x.ai/mcp_initialized") ? redactMcpFields(params) : params;
+}
+
+/** Browser authorization URLs belong to the private login interaction, not stored session records. */
+export function redactCodebuddyNotification(method: string, params: JsonRecord): JsonRecord {
+  return method === "_codebuddy.ai/authUrl" && typeof params.authUrl === "string"
+    ? { ...params, authUrl: "[redacted]" } : params;
+}
+
+/** Shared dispatch for both live frames and a host's previously stored records. */
+export function redactCredentialNotification(method: string, params: JsonRecord): JsonRecord {
+  return redactCodebuddyNotification(method, redactGrokNotification(method, params));
 }

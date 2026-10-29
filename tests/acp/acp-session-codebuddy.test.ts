@@ -49,15 +49,15 @@ test.each(["usage-never", "codebuddy-zero-context"])("CodeBuddy preserves absent
   }
 });
 
-test("CodeBuddy reads failure metadata even in a successful prompt RPC, without leaking its message", () => {
+test("CodeBuddy preserves the native failure reason even in a successful prompt RPC", () => {
   expect(codebuddyPromptOutcome({ stopReason: "refusal", _meta: {
     "codebuddy.ai/outcome": "FAILED_MODEL_REQUEST",
-    "codebuddy.ai/errorMessage": JSON.stringify({ data: { statusCode: 401 }, message: "private-provider-detail" }),
+    "codebuddy.ai/errorMessage": JSON.stringify({ data: { statusCode: 401 }, message: "native-provider-detail" }),
   } })).toMatchInlineSnapshot(`
     {
       "failure": "auth",
       "kind": "failed",
-      "reason": "CodeBuddy refused the model request",
+      "reason": "native-provider-detail",
       "status": 401,
     }
   `);
@@ -65,11 +65,24 @@ test("CodeBuddy reads failure metadata even in a successful prompt RPC, without 
     {
       "failure": "unknown",
       "kind": "failed",
-      "reason": "CodeBuddy refused the model request",
+      "reason": "FAILED_OTHER",
     }
   `);
   expect(codebuddyPromptOutcome({ stopReason: "cancelled" })).toEqual({ kind: "aborted" });
   expect(codebuddyPromptOutcome({ stopReason: "end_turn" })).toBeNull();
+});
+
+test.each(["FAILED_TOOL_EXECUTION", "FAILED_AGENT_LOOP"])("%s is not reported as a fabricated model refusal", (outcome) => {
+  expect(codebuddyPromptOutcome({ stopReason: "end_turn", _meta: { "codebuddy.ai/outcome": outcome } })).toEqual({ kind: "failed", failure: "unknown", reason: outcome });
+});
+
+test.each([["quota", "quota"], ["auth", "auth"], ["custom_model_auth", "auth"], ["network", "unknown"], ["model_service", "provider"], ["empty_model_response", "provider"], ["internal", "unknown"]])("native %s precedes a conflicting HTTP status", (category, failure) => {
+  for (const nested of [false, true]) {
+    const error = { message: "Native category detail", data: { category, statusCode: 429 } };
+    expect(codebuddyPromptOutcome({ stopReason: "refusal", _meta: {
+      "codebuddy.ai/errorMessage": JSON.stringify(nested ? { error } : error),
+    } })).toEqual({ kind: "failed", failure, status: 429, reason: "Native category detail" });
+  }
 });
 
 test("CodeBuddy model entries only attach the current model's effort menu and omit on/off toggles", () => {

@@ -1,5 +1,5 @@
 import type { RawEvent } from "../contracts/records.js";
-import { redactGrokNotification } from "../shared/credential-redaction.js";
+import { redactCredentialNotification } from "../shared/credential-redaction.js";
 import { asRecord } from "../shared/json.js";
 
 /**
@@ -21,7 +21,7 @@ export function redactRecord(record: RawEvent): RawEvent {
   if (native === null) {
     return record;
   }
-  const redacted = redactGrokNotification(record.body.type, native);
+  const redacted = redactCredentialNotification(record.body.type, native);
   if (redacted === native || JSON.stringify(redacted) === JSON.stringify(native)) {
     return record;
   }

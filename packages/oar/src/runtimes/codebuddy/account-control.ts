@@ -20,7 +20,7 @@ function rememberSecrets(value: unknown, secrets: LoginSecrets): void {
   const record = asRecord(value);
   if (record === null) { return; }
   for (const [key, item] of Object.entries(record)) {
-    if (typeof item === "string" && /token|secret|password|api.?key|authUrl|^state$|email/iu.test(key)) { secrets.add(item); }
+    if (typeof item === "string" && /token|secret|password|api.?key|authUrl|^state$|email|^uid$|^userId$|nickname|enterpriseName|enterpriseId|^username$|^displayName$/iu.test(key)) { secrets.add(item); }
     else if (typeof item === "object") { rememberSecrets(item, secrets); }
   }
 }

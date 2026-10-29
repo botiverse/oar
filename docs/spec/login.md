@@ -322,7 +322,7 @@ declares no network, refresh or key-command execution. The
 | claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | 2.1.126 | 15 min |
 | codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | 0.118.0 | 16 min |
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.1.0 | 15 min |
-| codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent | international 2.178.1, Linux arm64 verified; native rejection reason can be generic | 5 min |
+| codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent; non-empty `CODEBUDDY_API_KEY` instead yields `unknown` with a configured source label | international 2.178.1, Linux arm64 verified; generic `auth_failed` is process failure, not user denial | 5 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
 | antigravity | no `login`: its terms do not allow a sign-in through a third-party tool ([page](../runtimes/antigravity.md)) | none | | |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
@@ -335,7 +335,9 @@ Claude normally attempts to open a browser; `openBrowser: false` overrides
 This works from the existing login floor, 2.1.126. Codex's device-code login
 never opens one, and OAR always passes `openBrowser: false` to Cursor's SDK,
 regardless of this option. Qoder suppresses its browser with a per-login
-`BROWSER=www-browser` override. Kimi ignores `BROWSER`: OAR places a private
+`BROWSER=www-browser` override. CodeBuddy uses a login-only `BROWSER=true`
+override on POSIX and `<SystemRoot>/System32/hostname.exe` on Windows; its native
+URL helper honors this setting without launching a browser. Kimi ignores `BROWSER`: OAR places a private
 no-op `xdg-open`, `open` or `powershell.exe` first on only the login child
 PATH, then removes it after the child exits. Unsupported platforms or an
 unusable temporary location return `browser_suppression_unavailable` before

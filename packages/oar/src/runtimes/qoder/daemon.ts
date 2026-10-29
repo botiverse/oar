@@ -16,7 +16,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
   child.onLine((line) => {
     const frame = asRecord(parseJson(line));
     if (frame === null || failure.error !== undefined) { return; }
-    if (frame.session_id !== undefined && frame.session_id !== sessionId) {
+    if (frame.session_id !== undefined && frame.session_id !== null && frame.session_id !== sessionId) {
       failure.error = new Error("Qoder daemon received a frame belonging to another session; OAR terminated the owned process");
       controls.end(); child.kill(); return;
     }
@@ -33,7 +33,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     for (const line of text.split("\n")) {
       if (line.trim().length === 0) { continue; }
       const frame = asRecord(parseJson(line));
-      if (frame === null || (frame.session_id !== undefined && frame.session_id !== sessionId)) {
+      if (frame === null || (frame.session_id !== undefined && frame.session_id !== null && frame.session_id !== sessionId)) {
         throw new Error("Qoder daemon input does not belong to this session");
       }
       const request = asRecord(frame.request);

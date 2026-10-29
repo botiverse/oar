@@ -8,7 +8,8 @@ suite: task #60 branch based on `45411a0`.
 
 `status.json` and `login.json` came from the portable OAR helper on a second
 Linux x64 computer with Node 24.22.1. They contain only version and state data.
-The initial status read was logged out. One login returned rejected before
+The initial status read was logged out. The earlier helper classified one
+login as rejected before
 exposing an authorization URL; the helper's fresh post-login read was still
 logged out. No real model prompt was sent.
 
@@ -25,14 +26,16 @@ the login observation lasted 85.899 seconds and ended with `failed / rejected`;
 the fresh account read was still `logged_out`. This duration includes the
 helper's checks, not just the native authentication request. The URL was sent
 privately to the account owner; whether it was opened and what the browser
-displayed are unconfirmed. The cause of this rejection is unknown. There was
+displayed are unconfirmed. The cause of this failure is unknown. There was
 no successful authorization at that point. A second authorized attempt
 (`arm64-login-second.json`) also returned rejected after 81.892 seconds.
 
 The third attempt succeeded (`arm64-login-success.json`): logged out before,
 logged in afterward. A separate process confirmed logged in
 (`arm64-status-after.json`), then one real conversation completed with the fixed
-answer (`arm64-chat.json`, input 6,730 and output 8). These reports verify only
+answer (`arm64-chat.json`, input 6,730 and output 8). That earlier draft used a
+stream-json conversation helper; the counts are not an ACP token ledger. The
+selected ACP adapter reports `usage().total: null`. These reports verify only
 international login, status and one short conversation on Linux arm64 with
 Node 24.18.1 and CodeBuddy 2.178.1. Logout, refresh, domestic service and other
 platforms were not covered. No credentials or account identifiers were copied.
@@ -40,8 +43,29 @@ platforms were not covered. No credentials or account identifiers were copied.
 `auth-source.json` records the inspected binary and source constants: the native
 external-link flow has a five-minute overall deadline and one-second polling;
 provider failures can be folded into a generic `auth_failed`, which the OAR draft
-reports as rejected. The first two arm64 failures remain unexplained. Their
+incorrectly reported as rejected. The adapter now returns `process_failed`
+for `auth_failed` or control failures, preserving a sanitized reason; native
+timeout and cancellation remain distinct. The first two arm64 failures remain
+unexplained. Their
 state-only reports cannot prove user denial or a particular polling failure.
+
+## Environment-key account projection
+
+`auth-environment.json` records a fresh-HOME probe of native 2.178.1 with a
+synthetic `CODEBUDDY_API_KEY` and localhost endpoint. `initialize.account` was
+an object, despite no browser login or credential validation. No object fields,
+credentials or account identifiers are recorded. Reproduce from the repository
+root with:
+
+```sh
+OAR_CODEBUDDY_BIN=/absolute/path/to/codebuddy OAR_PROBE_OUTPUT=/private/path/report.json pnpm tsx experiments/codebuddy-native/auth-environment.ts
+```
+
+Consequently a non-empty effective environment key yields OAR `unknown` with
+`configured: ["environment: CODEBUDDY_API_KEY"]`. Without the key, the native
+account query remains authoritative for local browser-login state. Unit tests
+cover inherited, overridden, removed and empty keys, both with and without a
+stored account.
 
 ## Native consecutive-prompt reproduction
 
@@ -63,7 +87,8 @@ node codebuddy-consecutive-prompts.mjs /absolute/path/to/codebuddy 1000
 Every run initialized, exited with code 0 and stayed within the existing
 60-second bound. `consecutive-results.json` retains all six sanitized results;
 `environment.json` records the version and archive/script checksums. The native
-stream-json duplicate execution remains present. The later ACP experiment below
+stream-json duplicate execution remains present with this custom endpoint.
+The later ACP experiment below
 therefore selected a different native interface without adding a delay.
 
 Upstream: [CodeBuddy issue 1847](https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847).
@@ -140,13 +165,17 @@ is empty. The profile regression separately asserts no update means null.
 ### Interface limits observed in native source
 
 The native model config option reports its current selection; the thought-level
-menu describes that model, not every catalog entry. Native mode setters can
+menu describes that model, not every catalog entry. The model setter
+acknowledges acceptance but its returned config does not strictly confirm the
+requested selection; OAR applies it without claiming that readback. Effort
+requires a matching native readback. Native mode setters can
 persist settings, so the adapter uses the process launch permission flag.
 Known vendor notification names come from `ExtensionMethod` and
 `extNotification` calls. They remain native records, with authorization links
 redacted. `ACP_META_STEER_CLIENT_META` participates in user-message broadcast and
 replay; it is not evidence of a callable steering method. Goal and UI extension
-methods were not adopted as OAR controls. Attribution remains opaque.
+methods were not adopted as OAR controls. The question and delegateTool methods
+are native requests, not registered notifications. Attribution remains opaque.
 
 The selected paths and limits are documented in
 [CodeBuddy](../../../docs/runtimes/codebuddy.md). WorkBuddy remains outside this

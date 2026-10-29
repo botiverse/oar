@@ -34,14 +34,14 @@ CodeBuddy installer, updater, logout, account quota reader or provider facade.
 | Prompt / queue | One prompt RPC at a time; held input belongs to OAR, `queue.durable: false`, and can be withdrawn before dispatch. |
 | Steer | Absent. No callable immediate-injection contract has been verified. Native `codebuddy.ai/steerClientMeta` appears in user-message broadcast/replay code; that field alone does not establish a steering input API. |
 | Abort / dispose | `session/cancel`, with the shared bounded fallback; disposal stops the owned process tree and hosted terminals. Turn completion is not proof that every native background task stopped. |
-| Models / effort | `listModels()` opens a disposable ACP session without a prompt, then reads the model config option. Only the current model receives its observed `thought_level` menu. On/off toggles are not effort levels. Open uses `session/set_config_option` and checks native readback. Listing failures throw a generic error without native account details. |
+| Models / effort | `listModels()` opens a disposable ACP session without a prompt, then reads the model config option. Only the current model receives its observed `thought_level` menu. On/off toggles are not effort levels. Open applies the model with `session/set_config_option`; a successful setter reply does not strictly confirm the requested model in the returned config. Effort is checked against native readback and a mismatch rejects the open. Listing failures throw a generic error without native account details. |
 | System prompt | Replacement through a mode-0600 file in a private temporary directory, read back before launch and retained until process exit. The prompt text is absent from argv. An empty replacement is refused. Append is refused because no private append-file input was verified. |
 | Tool policy | Native `--disallowedTools`; applied on new and resumed opens. `--permission-mode bypassPermissions` selects noninteractive execution for this process, without calling the persistent mode setter. This is not a sandbox. |
 | MCP | Host stdio and HTTP entries, including credential overlays, travel in the private ACP open request. New/resumed invocation and record redaction passed; an audit after shutdown found neither synthetic credential in native HOME files. SSE was advertised but was not exercised. Live tool-list change semantics remain unverified and undeclared. |
 | Images | Advertised by native initialize and checked by the shared image case. |
 | Records | Standard updates remain native frames with shared text, reasoning, tool, model, effort and context projections. Known vendor notifications are recorded without inventing typed UI/task semantics; authorization URLs are redacted. |
 | Attribution | `opaque`. No verified child identity mapping or child token ledger is claimed. |
-| Failures | A successful prompt RPC can carry `refusal` and `_meta["codebuddy.ai/outcome"]: "FAILED_MODEL_REQUEST"`. OAR treats that as failure, reading a native HTTP status when present; 401 is authentication failure. Its error message stays generic. |
+| Failures | A successful prompt RPC can carry `refusal` and `_meta["codebuddy.ai/outcome"]: "FAILED_MODEL_REQUEST"`. Every `FAILED*` outcome or refusal is a failure. The reason preserves the native message or outcome name. Native error category takes precedence over HTTP status: quota, authentication and provider errors are distinguished; network/internal remain unknown. Known credentials are redacted from the reason. |
 
 `env` is applied to installation selection, account helpers, model listing and
 sessions. Unsupported goals, additional directories, service tier, final-output
@@ -73,8 +73,24 @@ authorization URL to the caller; `auth_result_callback` supplies the native
 result. After a successful result, OAR opens a new process to read the account
 state again. A subsequent `logged_out` contradicts success.
 
+With `openBrowser: false`, the login child gets `BROWSER=true` on POSIX or
+`BROWSER=<SystemRoot>/System32/hostname.exe` on Windows. The host environment
+and later account processes are unchanged. Native timeout and cancellation
+remain `timed_out` and `cancelled`; initialization, control and generic
+`auth_failed` errors are `process_failed` with a sanitized reason. Only an
+explicit native authorization denial could justify `rejected`; none has been
+verified on this interface.
+
 `authStatus()` reads `initialize.account`: an account object is `logged_in`,
-`null` is `logged_out`, and a missing or unreadable value is `unknown`. A native successful login remains successful if a fresh status read is unknown;
+`null` is `logged_out`, and a missing or unreadable value is `unknown`. A non-empty
+`CODEBUDDY_API_KEY` overrides this projection: status is `unknown` with
+`configured: ["environment: CODEBUDDY_API_KEY"]`, never an account or key value.
+[env] With a synthetic key, a fresh HOME and a local provider, 2.178.1 returned
+an account object without validating that key. Such an object therefore does
+not establish a browser login or remote authentication. Removing the key from
+the effective environment restores the account query.
+
+A native successful login remains successful if a fresh status read is unknown;
 a fresh logged-out result contradicts it. Confirmation shares the login deadline
 and cancellation signal. The
 token-bearing account object is consumed privately and never returned. Local
@@ -95,20 +111,23 @@ The adapter preserves the native account environment rather than changing region
   started there.
 - On a second Linux x64 computer, Node 24.22.1 and CodeBuddy 2.178.1 ran the same
   draft's bundled account helpers. The initial read returned `logged_out`.
-  One login attempt returned `failed / rejected` in about seven seconds, without
+  The earlier helper classified one login attempt as `failed / rejected` in
+  about seven seconds, without
   an authorization URL. A fresh account read still returned `logged_out`.
 - That operator separately observed a TLS unexpected EOF at both the
   international homepage and the authentication path (curl exit 35, no HTTP
   status). This is a connectivity failure, but the state-only login report does
-  not establish that it is the exact cause of the native rejection.
+  not establish that it is the exact cause of the native failure.
 - A third computer returned HTTP 404 for HEAD at the authentication path and
   homepage. On Linux arm64, Node 24.18.1, CodeBuddy 2.178.1 and an isolated HOME,
   the first two authorized login attempts produced URLs but ended with
-  `failed / rejected`; fresh status reads remained `logged_out`. The full helper
+  the earlier helper's `failed / rejected`; fresh status reads remained `logged_out`. The full helper
   runs lasted 85.899 and 81.892 seconds. The exact failing step is unknown.
 - A third attempt on that arm64 computer succeeded: `login` returned
   `logged_in`, a separate process read `logged_in`, and one real conversation
-  completed with the expected fixed answer. Usage was input 6,730 and output 8.
+  completed with the expected fixed answer. That earlier draft used a
+  stream-json conversation helper, which reported input 6,730 and output 8;
+  these counts are not from the selected ACP adapter, whose token total is null.
   The operator confirmed international browser authorization by the account
   owner. No account identity, authorization URL or credentials are included in
   the reports. Credentials remain only on the operator's computer.
@@ -116,7 +135,7 @@ The adapter preserves the native account environment rather than changing region
   conversation on Linux arm64. It does not verify logout, refresh, the domestic
   service or other platforms. ACP sessions are verified separately below.
 
-### What `rejected` establishes
+### Native authentication failure evidence
 
 [src] The inspected 2.178.1 `ExternalLinkAuthenticationProvider` sets a
 300,000 ms overall deadline and waits 1,000 ms between polls. After creating
@@ -124,8 +143,9 @@ state with POST, it polls `GET /v2/plugin/auth/token`, then
 `GET /v2/plugin/login/account`. The token poll continues for native pending code
 11217; other token errors end the attempt. The account pending code is 12151.
 `AuthenticationManager.login` catches provider errors and returns false;
-`authenticate` then reports `success: false` with `auth_failed`. OAR maps
-this to `failed / rejected`.
+`authenticate` then reports `success: false` with `auth_failed`. The earlier
+helper mislabeled this `failed / rejected`; the adapter now reports
+`failed / process_failed`. Historical reports keep the original result.
 
 That result is not evidence that a person denied authorization. It can also
 represent a transport, server, polling or other native authentication failure.
@@ -135,7 +155,7 @@ raw native error details that can contain account data. The source audit's
 identity and constants are in the dated evidence directory.
 
 See the [dated observations and sanitized reports](../../experiments/codebuddy-native/2026-10-29/README.md).
-The portable helper's successful, rejected and false-success login paths were
+The portable helper's successful, failed, timed-out and false-success paths were
 checked with a synthetic native process; these checks do not stand in for a
 real account login.
 
