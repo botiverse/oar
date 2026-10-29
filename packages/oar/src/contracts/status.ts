@@ -46,4 +46,4 @@ export type AgentStatus = (
       readonly phase: RunningPhase;
       /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;
-    }) & { readonly pendingPrompt?: PendingPrompt };
+    }) & { readonly pendingPrompt?: PendingPrompt; readonly released?: true };

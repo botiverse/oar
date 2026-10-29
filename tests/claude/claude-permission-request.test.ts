@@ -22,8 +22,16 @@ test("Claude records a permission request without granting it or replying", asyn
     child.emit(`${JSON.stringify(native)}\n`);
     await Promise.resolve();
     expect(child.written).toEqual(before);
-    expect(session.records().filter((record) => record.kind === "request").map((record) => ({ id: record.id, direction: record.direction, body: record.body }))).toMatchInlineSnapshot(`
+    expect(session.records().filter((record) => record.kind === "request").map((record) => ({ id: record.body.kind === "open" ? "<open>" : record.id, direction: record.direction, body: record.body }))).toMatchInlineSnapshot(`
       [
+        {
+          "body": {
+            "kind": "open",
+            "placement": "auto",
+          },
+          "direction": "toRuntime",
+          "id": "<open>",
+        },
         {
           "body": {
             "kind": "native",
@@ -46,7 +54,7 @@ test("Claude records a permission request without granting it or replying", asyn
         },
       ]
     `);
-    expect(session.records().filter((record) => record.kind === "response")).toEqual([]);
+    expect(session.records().filter((record) => record.kind === "response").map((record) => record.body)).toEqual([{ kind: "opened", placement: "isolated" }]);
     expect("answer" in session).toBe(false);
   } finally { await session.dispose(); }
 });

@@ -47,7 +47,7 @@ export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntim
     authStatus: cursorAuthStatusWith(load),
     session: cursorSessionWith(load),
     refusedSessionOptions: cursorRefusedSessionOptions,
-  });
+  }, { execution: "in_process" });
 }
 
 export { projectCursorModels } from "./list-models.js";

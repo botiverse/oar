@@ -1,3 +1,4 @@
+import type { SessionOpenContext, SessionPlacement } from "../contracts/placement.js";
 import type { AvailableInstallation } from "../contracts/installation.js";
 import type { AdapterSession, Session, SessionOptions, StartSession } from "../contracts/session.js";
 import { sessionCredentialRedactor, type CredentialRedactor } from "./credential-redactor.js";
@@ -10,7 +11,7 @@ export interface SessionCredentials extends CredentialRedactor {
 }
 
 /** Credentials supplied for this session, plus native keys the adapter resolves. No inherited environment or credential-file scan. */
-function sessionCredentials(options: SessionOptions): SessionCredentials {
+function sessionCredentials(options: SessionOptions, context: SessionOpenContext): SessionCredentials {
   const { add, redact, redactValue } = sessionCredentialRedactor(options);
   const guard = <Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>): ((...args: Args) => Promise<Result>) =>
     async (...args) => {
@@ -20,7 +21,7 @@ function sessionCredentials(options: SessionOptions): SessionCredentials {
     add,
     redact,
     redactValue,
-    kernel: (id) => createSessionKernel(id, redactValue),
+    kernel: (id) => { const kernel = createSessionKernel(id, redactValue); kernel.opened(context); return kernel; },
     seal: (adapter) => sealSession({
       ...adapter,
       ...(adapter.goal === undefined ? {} : { goal: {
@@ -41,9 +42,9 @@ function sessionCredentials(options: SessionOptions): SessionCredentials {
 }
 
 /** Keep opening failures and later adapter errors under the same session credential rules as the record stream. */
-export function withSessionCredentials(open: (installation: AvailableInstallation, options: SessionOptions, credentials: SessionCredentials) => Promise<Session>): StartSession {
-  return async (installation, options) => {
-    const credentials = sessionCredentials(options);
+export function withSessionCredentials(open: (installation: AvailableInstallation, options: SessionOptions, credentials: SessionCredentials) => Promise<Session>, placement: SessionPlacement = "isolated"): StartSession {
+  return async (installation, options, context) => {
+    const credentials = sessionCredentials(options, context ?? { requested: "auto", placement });
     try { return await open(installation, options, credentials); }
     catch (error) { throw credentials.redactValue(error); }
   };

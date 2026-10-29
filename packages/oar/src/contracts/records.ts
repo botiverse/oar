@@ -1,5 +1,6 @@
 import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
 import type { InputImage, InputOrigin, UserMessage } from "./input.js";
+import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
 import type { FailureClass } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
@@ -207,6 +208,7 @@ export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" 
  * carried by a Frame.
  */
 export type ControlEventBody =
+  | SessionRelease
   /** A prompt request was recorded: the turn's start. `requestId` pairs it with a later `control_rejected` when the prompt did not begin a turn. */
   | { readonly kind: "turn_started"; readonly requestId: string; readonly input: string }
   /** A withdraw was accepted: the held input `inputId` was removed before it was sent, and the caller owns it again. The queue request that held it stays in the stream unchanged. */
@@ -234,6 +236,7 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
 export type Event = EventBody & RecordEnvelope;
 
 export type RequestBody =
+  | { readonly kind: "open"; readonly placement: PlacementRequest }
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
   | { readonly kind: "goal_read" }
   | { readonly kind: "goal_clear" }
@@ -265,6 +268,8 @@ export type RejectionCode =
   | "unsupported"
   /** The stream already holds the process exit. */
   | "runtime_exited"
+  /** Abort fallback released this session without a dispose request; its native work and shared process may continue. */
+  | "session_released"
   /** The stream already holds this session's dispose request. */
   | "disposed"
   /** The runtime answered no (its typed refusal, an RPC error); `reason` is its message. */
@@ -272,12 +277,11 @@ export type RejectionCode =
   /** The adapter could not deliver (a thrown transport error); `reason` is the exception message. */
   | "error";
 
-/**
- * Control responses answer only "accepted or not"; final states and landing
- * points are always events. The remaining bodies are outcomes only oar
- * observes: its own answer to a runtime→app request, and the process exit.
- */
+/** Control acceptance is distinct from lifecycle observations: opening, cleanup, release and process exit. */
 export type ResponseBody =
+  | { readonly kind: "opened"; readonly placement: SessionPlacement }
+  | { readonly kind: "cleanup"; readonly result: SessionCleanup }
+  | SessionRelease
   /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
   | { readonly kind: "accepted"; readonly native?: unknown }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
@@ -286,7 +290,6 @@ export type ResponseBody =
   | { readonly kind: "answered"; readonly native: unknown }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason exists only when OAR terminated the process and explains why. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
-
 /** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
 export interface ContextUsage {
   readonly tokens: number | null;

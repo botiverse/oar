@@ -1,6 +1,9 @@
+/* oxlint-disable import/max-dependencies -- Runtime composes the independently owned capability contracts. */
 import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
 import type { InstallLine, InstallPlanner, Installer } from "./install.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
+// oxlint-disable-next-line import/consistent-type-specifier-style -- Keep types and implementation from the same contract in one import.
+import { type PlacementRequest, type RuntimePlacementOptions, placementSession } from "./placement.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
 import type { AccountUsageReader } from "./account-usage.js";
 import type { InstallationProbe } from "./installation.js";
@@ -40,6 +43,10 @@ export type McpToolsListChanged = "full" | "additions" | "none";
 
 /** One provider-independent runtime adoption unit. */
 export interface Runtime extends RuntimeInventories {
+  /** Requested policy. The opened Session reports what actually ran. */
+  readonly placement: PlacementRequest;
+  /** A new runtime instance, with its own pool. Refusals are checked at session open. */
+  withPlacement(placement: PlacementRequest): Runtime;
   readonly id: string;
   readonly brand: RuntimeBrand;
   readonly session: StartSession; // the core capability: a runtime without sessions is not usable
@@ -101,6 +108,17 @@ async function unsupported(): Promise<InventoryResult<never>> {
   };
 }
 
-export function defineRuntime<const T extends Omit<Runtime, keyof RuntimeInventories | "brand"> & Partial<RuntimeInventories> & { readonly brand?: RuntimeBrand }>(runtime: T): T & RuntimeInventories & { readonly brand: RuntimeBrand } {
-  return { skills: unsupported, commands: unsupported, mcpServers: unsupported, tools: unsupported, ...runtime, brand: runtime.brand ?? { name: runtime.id, icon: null } };
+type RuntimeDefinition = Omit<Runtime, keyof RuntimeInventories | "brand" | "placement" | "withPlacement"> & Partial<RuntimeInventories> & { readonly brand?: RuntimeBrand };
+type DefinedRuntime<T> = Omit<T, "session" | "placement" | "withPlacement"> & Runtime;
+
+export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, options: RuntimePlacementOptions = {}): DefinedRuntime<T> {
+  const create = (requested: PlacementRequest): DefinedRuntime<T> => (
+    {
+      skills: unsupported, commands: unsupported, mcpServers: unsupported, tools: unsupported,
+      ...runtime, brand: runtime.brand ?? { name: runtime.id, icon: null }, placement: requested,
+      withPlacement: create,
+      session: placementSession(runtime.session, requested, options),
+    }
+  );
+  return create("auto");
 }

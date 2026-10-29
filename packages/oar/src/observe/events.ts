@@ -18,7 +18,7 @@ export type KnownControl = ControlAction | Extract<RequestBody, { readonly kind:
 
 /** What `eventsOf` keeps of a request body: null for a runtime→app body. */
 export function knownControl(body: RequestBody): KnownControl | null {
-  if (body.kind === "native") {
+  if (body.kind === "native" || body.kind === "open") {
     return null;
   }
   return body.kind === "withdraw" ? body : body.kind;
@@ -56,6 +56,8 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, KnownCon
           }]
         : [];
     case "response": {
+      if (record.body.kind === "released") { return [{ ...record.body, ...envelope }]; }
+      if (record.body.kind === "opened" || record.body.kind === "cleanup") { return []; }
       if (record.body.kind === "exited") {
         return [{ kind: "exited", code: record.body.code, ...(record.body.reason === undefined ? {} : { reason: record.body.reason }), ...envelope }];
       }

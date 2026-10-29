@@ -1,8 +1,8 @@
-import type { InputOptions, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
+import type { InputOptions, Session, SessionOptions, SessionResources, StartSession } from "../../packages/oar/src/contracts/session.js";
 import { withdrawHeld } from "../../packages/oar/src/shared/held-input.js";
 import { inputImagesRefusal } from "../../packages/oar/src/shared/input-images.js";
 import { sealSession } from "../../packages/oar/src/shared/seal-session.js";
-import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
+import { createSessionKernel, type SessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 
 /** The mock's reasoning-effort menu (its `listModels` lists it for `mock-1`) and the level it runs when asked for none. */
 export const MOCK_EFFORT_LEVELS: readonly string[] = ["low", "high"];
@@ -14,13 +14,20 @@ export const MOCK_DEFAULT_EFFORT = "high";
  * about one screenful, and this file is that acceptance test. The "runtime"
  * here is a timer that echoes; its frames are the `native` bodies.
  */
-export const startMockSession: StartSession = async (_installation, options): Promise<Session> => {
+export interface MockAttachment {
+  dispose(this: void): Promise<void>;
+  resources(this: void): Promise<SessionResources | null>;
+}
+export type AttachMock = (kernel: SessionKernel, options: SessionOptions, stop: () => void) => Promise<MockAttachment>;
+
+export const createMockSession = (attach?: AttachMock): StartSession => async (_installation, options, context): Promise<Session> => {
   await Promise.resolve();
   const effort = options.effort ?? MOCK_DEFAULT_EFFORT;
   if (!MOCK_EFFORT_LEVELS.includes(effort)) {
     throw new Error(`mock runtime has no effort level ${effort} (levels: ${MOCK_EFFORT_LEVELS.join(", ")})`);
   }
   const kernel = createSessionKernel(options.resume);
+  kernel.opened(context ?? { requested: "auto", placement: "in_process" });
   const steered: string[] = [];
   const queued: { readonly input: string; readonly inputId: string | undefined }[] = [];
   let active: { timer: NodeJS.Timeout | null; aborted: boolean } | null = null;
@@ -50,10 +57,16 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     }, 10);
     active = { timer, aborted: false };
   }
+  const stop = (): void => {
+    if (active?.timer !== null && active?.timer !== undefined) { clearTimeout(active.timer); }
+    active = null; queued.length = 0; steered.length = 0;
+  };
+  const attachment = await attach?.(kernel, options, stop);
   kernel.frame({ type: "mock/model", native: { model: "mock-1", effort }, events: [{ kind: "model", model: "mock-1" }, { kind: "effort", effort }] });
   const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
   return sealSession({
     id: kernel.sessionId,
+    ...(attachment === undefined ? {} : { resources: attachment.resources }),
     capabilities,
     prompt: async (input, inputOptions?: InputOptions) => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
@@ -127,6 +140,7 @@ export const startMockSession: StartSession = async (_installation, options): Pr
         return;
       }
       disposed = true;
+      if (attachment !== undefined) { await attachment.dispose(); return; }
       const request = kernel.request("toRuntime", { kind: "dispose" });
       if (active !== null) {
         if (active.timer !== null) {
@@ -139,3 +153,5 @@ export const startMockSession: StartSession = async (_installation, options): Pr
     },
   });
 };
+
+export const startMockSession = createMockSession();

@@ -34,7 +34,7 @@ test.each([undefined, "old-id"])("per-process settings and initialization confir
   expect(spawnLineProcess.mock.calls[0]?.[1]).toEqual(expect.arrayContaining(["--settings", '{"fastMode":true}']));
   expect(child.written).toHaveLength(resume === undefined ? 1 : 2);
   expect(session.serviceTier().value).toBeNull();
-  expect(session.records()).toEqual([]);
+  expect(session.records().map((record) => record.body)).toEqual([{ kind: "open", placement: "auto" }, { kind: "opened", placement: "isolated" }]);
   child.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "opus", fast_mode_state: "cooldown" })}\n`);
   expect(session.serviceTier().value).toBe("default");
   child.emit(`${JSON.stringify({ type: "result", subtype: "success", fast_mode_state: "on" })}\n`);

@@ -84,7 +84,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
   const operationKey = (id: string): string => JSON.stringify([streamId, identity(record, id)]);
   const publish = (input: ConversationInput): void => { inputs.set(input.id, input); updates.push({ kind: "input", input }); };
   let handled = false;
-  if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind !== "native") {
+  if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind !== "native" && record.body.kind !== "open") {
     actions.set(operationKey(record.id), record.body.kind === "withdraw" ? record.body : record.body.kind);
     const target = record.body.kind === "withdraw" ? inputs.get(identity(record, record.body.inputId)) : undefined;
     if (target !== undefined && target.attempts.length > 0) {

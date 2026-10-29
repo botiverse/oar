@@ -85,7 +85,7 @@ class InterruptBatch {
 
   private track(record: RawEvent): void {
     if (record.sessionId !== this.session.id || record.agentPath.length > 0 || record.seq < this.since) { return; }
-    if (record.kind === "response" && record.body.kind === "exited") { this.exited = true; this.ended.resolve(); }
+    if (record.kind === "response" && (record.body.kind === "exited" || record.body.kind === "released")) { this.exited = true; this.ended.resolve(); }
     if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "dispose") { this.disposed = true; this.ended.resolve(); }
     if (record.kind !== "frame") { return; }
     for (const event of record.body.events) {

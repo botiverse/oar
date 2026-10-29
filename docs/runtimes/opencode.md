@@ -62,7 +62,8 @@ least one process before readiness. A direct, OAR-free startup probe reproduced
 `account_state already exists` in one of four simultaneous starts over a
 fresh database, then in three of four starts in the final probe run.
 Sequential and warm-database controls succeeded in both runs. The inspected
-native bootstrap semaphore is process-local.
+native bootstrap semaphore is process-local. The observations are tracked in
+[upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879#issuecomment-6503527526).
 This evidence does not establish that every earlier startup failure has
 this cause, nor that warmup is a general fix. Hosts can serialize the first
 startup and wait for readiness before opening more sessions against the

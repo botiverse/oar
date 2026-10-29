@@ -119,7 +119,7 @@ test("the accepted response comes before the turn's first event", async () => {
   const started = await session.prompt("hi");
   await awaitTurnEnd(session, started.seq);
   const kinds = session.records().map((record) => (record.kind === "frame" ? record.body.type : record.kind));
-  assert.deepEqual(kinds.slice(0, 4), ["scripted/model", "request", "response", "scripted/text"]);
+  assert.deepEqual(kinds.slice(0, 6), ["request", "response", "scripted/model", "request", "response", "scripted/text"]);
   await session.dispose();
 });
 

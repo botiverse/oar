@@ -32,4 +32,4 @@ export const grokRuntime = defineRuntime({
     const { grokSession } = await import("./session.js");
     return grokSession;
   }),
-});
+}, { execution: "process" });

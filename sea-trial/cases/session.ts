@@ -1,17 +1,9 @@
 import assert from "node:assert/strict";
-import type { ControlResult, RequestRecord, ResponseRecord, Session, RawEvent, TurnOutcome } from "../../packages/oar/src/contracts/session.js";
+import { accepted, runTurn } from "../harness/session-controls.js";
+import { assertPlacement } from "../harness/placement.js";
+import type { ControlResult, RequestRecord, ResponseRecord, RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd, turnEndAfter } from "../../packages/oar/src/observe/turns.js";
 import { steerOrSkip, type TrialCase } from "../harness/runner.js";
-/** Prompt and insist the runtime accepted it. */
-async function accepted(session: Session, input: string, options?: Parameters<Session["prompt"]>[1]): Promise<ControlResult> {
-  const result = await session.prompt(input, options);
-  assert.ok(result.response.body.kind === "accepted", `prompt ${JSON.stringify(input)} was not accepted: ${JSON.stringify(result.response.body)}`);
-  return result;
-}
-async function runTurn(session: Session, input: string): Promise<TurnOutcome> {
-  const result = await accepted(session, input);
-  return awaitTurnEnd(session, result.request.seq);
-}
 /** Root-agent records of one turn: from the prompt request through the runtime's turn end. */
 function turnRecords(records: readonly RawEvent[], result: ControlResult): readonly RawEvent[] {
   const start = records.findIndex((record) => record.seq === result.request.seq);
@@ -29,6 +21,7 @@ function rootTurnEnds(records: readonly RawEvent[]): readonly RawEvent[] {
   return records.filter((record) =>
     record.agentPath.length === 0 && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"));
 }
+
 
 export const sessionCases: readonly TrialCase[] = [
   {
@@ -66,6 +59,7 @@ export const sessionCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
+      assertPlacement(session);
       const live: RawEvent[] = [];
       session.rawEvents((record) => {
         live.push(record);
@@ -266,8 +260,8 @@ export const sessionCases: readonly TrialCase[] = [
       const records = session.records();
       const dispose = records.find((record): record is RequestRecord => record.kind === "request" && record.body.kind === "dispose");
       assert.ok(dispose !== undefined, "dispose is a request record");
-      const answer = records.find((record): record is ResponseRecord => record.kind === "response" && record.requestId === dispose.id);
-      assert.ok(answer !== undefined && (answer.body.kind === "exited" || answer.body.kind === "accepted"), "the observed release answers the dispose request");
+      const answer = records.find((record): record is ResponseRecord => record.kind === "response" && record.requestId === dispose.id && record.body.kind !== "cleanup");
+      assert.ok(answer !== undefined && (answer.body.kind === "exited" || answer.body.kind === "released" || answer.body.kind === "accepted"), "the observed release answers the dispose request");
       const after = await session.prompt("after dispose");
       assert.equal(after.response.body.kind, "rejected", "a disposed session rejects further control");
       await session.dispose();
@@ -292,6 +286,7 @@ export const sessionCases: readonly TrialCase[] = [
         return;
       }
       const resumed = attempt.session;
+      assertPlacement(resumed);
       assert.equal(resumed.id, sessionId, "a resumed session keeps the runtime-native id");
       assert.deepEqual(await runTurn(resumed, "hello again"), { kind: "completed" });
       await resumed.dispose();

@@ -25,6 +25,7 @@ import type {
  */
 
 export interface Draft {
+  readonly released: boolean;
   messages: ViewMessage[];
   pendingInputs: ConversationInput[];
   openTurn: number;
@@ -43,6 +44,7 @@ export interface Draft {
 
 export function draftOf(state: SessionView): Draft {
   return {
+    released: state.status.released === true,
     messages: [...state.messages],
     pendingInputs: [...state.pendingInputs],
     openTurn: state.openTurn,
@@ -76,7 +78,7 @@ export function assemble(
     serviceTier: draft.serviceTier,
     context: draft.context,
     usage,
-    pendingRequests: draft.pendingRequests,
+    pendingRequests: status.released === true ? [] : draft.pendingRequests,
     exited: draft.exited,
     conversation,
     rootSessionId: draft.rootSessionId,

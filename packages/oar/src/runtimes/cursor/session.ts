@@ -46,7 +46,7 @@ const DISPOSE_SETTLE_MS = 5000;
 const SEND_TIMEOUT_MS = 60_000;
 
 export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession {
-  return async (installation, options) => {
+  return async (installation, options, context) => {
     if (installation.via !== "bundled") {
       throw new Error("The cursor session adapter needs the bundled @cursor/sdk installation");
     }
@@ -55,6 +55,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     const agent = await openCursorAgent(sdk, options);
 
     const kernel = createSessionKernel(agent.agentId);
+    kernel.opened(context ?? { requested: "auto", placement: "in_process" });
     let projection: CursorProjectionState = initialCursorProjection;
     // A turn is running from an accepted prompt (or a drained queue input)
     // until its run's end is recorded. Held in an object so closures always

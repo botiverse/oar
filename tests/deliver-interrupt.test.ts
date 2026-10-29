@@ -71,7 +71,7 @@ for (const { name, profile } of profiles) {
     await awaitTurnEnd(session, delivered.result.seq);
     expect(text(session)).toEqual(["working", JSON.stringify([{ type: "text", text: "first\n\nsecond" }])]);
     const controls = session.records().filter((record) => record.kind === "request").map((record) => record.body.kind);
-    expect(controls).toEqual(["prompt", "queue", "queue", "withdraw", "withdraw", "abort", "prompt"]);
+    expect(controls).toEqual(["open", "prompt", "queue", "queue", "withdraw", "withdraw", "abort", "prompt"]);
     expect([...conversationOf(session.records()).inputs.values()].filter((input) => delivered.mergedInputIds?.includes(input.inputId ?? "") === true).map((input) => [input.input, input.state])).toEqual([["first", "accepted"], ["second", "accepted"]]);
   });
 

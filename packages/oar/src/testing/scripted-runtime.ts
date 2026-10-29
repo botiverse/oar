@@ -73,13 +73,14 @@ const tokensOf = (text: string): number => Math.ceil(text.length / 4);
 export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
   const id = options.id ?? "scripted";
   const model = options.model ?? "scripted-1";
-  const start: StartSession = async (_installation, sessionOptions): Promise<Session> => {
+  const start: StartSession = async (_installation, sessionOptions, context): Promise<Session> => {
     await Promise.resolve();
     // SessionOptions.effort's contract: a runtime that lists no effort levels refuses one, never ignores it.
     if (sessionOptions.effort !== undefined) {
       throw new Error(`${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
     }
     const kernel = createSessionKernel(sessionOptions.resume);
+    kernel.opened(context ?? { requested: "auto", placement: "in_process" });
     const queued: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly InputImage[] }[] = [];
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
@@ -279,5 +280,5 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       await Promise.resolve();
       return { kind: "available" as const, via: "bundled" as const };
     },
-  });
+  }, { execution: "in_process" });
 }

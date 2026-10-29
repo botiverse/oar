@@ -7,19 +7,19 @@ import type { ViewPart, ViewSection } from "./session-view.js";
  * or a native tool end time. Inputs may have split the turn into segments;
  * walk back to its prompt, the preceding outcome, or the preceding exit.
  */
-export function endRootTools(draft: Draft, sessionId: string): void {
+export function endRootTools(draft: Draft, sessionId: string, allTurns = false): void {
   for (let index = draft.messages.length - 1; index >= 0; index -= 1) {
     const message = draft.messages[index];
     if (message?.kind === "notice" && message.notice.cause === "exited") { break; }
     if (message?.kind !== "turn") { continue; }
     // The record fold may already have stamped this segment's exit outcome.
-    if (index !== draft.openTurn && message.outcome !== undefined) { break; }
+    if (!allTurns && index !== draft.openTurn && message.outcome !== undefined) { break; }
     const sections = message.sections.map((section) => endRootSectionTools(section, sessionId));
     if (sections.some((section, s) => section !== message.sections[s])) {
       draft.messages[index] = { ...message, sections };
       if (index === draft.openTurn) { draft.turn = null; }
     }
-    if (message.openedBy !== undefined) { break; }
+    if (!allTurns && message.openedBy !== undefined) { break; }
   }
 }
 

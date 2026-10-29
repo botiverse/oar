@@ -33,7 +33,7 @@ export const claudeRuntime = defineRuntime({
   logout: claudeLogout,
   authStatus: claudeAuthStatus,
   session: claudeSession,
-});
+}, { execution: "process" });
 
 export { claudeAccountUsage } from "./account-usage.js";
 export { claudeListModels, projectClaudeModels } from "./list-models.js";

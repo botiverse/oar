@@ -29,7 +29,7 @@ export const kimiRuntime = defineRuntime({
   }),
   refusedSessionOptions: kimiRefusedSessionOptions,
   mcpToolsListChanged: "none",
-});
+}, { execution: "process" });
 
 export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";
 export { kimiAccountDisplayName, kimiAccountEmail } from "./profile.js";

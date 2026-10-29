@@ -40,12 +40,12 @@ async function runEvents(options: { coalesceText?: boolean | { maxHoldMs: number
 test("events() reads the flat events off the stream: one per reading, sharing the record's seq", async () => {
   expect(await runEvents({})).toMatchInlineSnapshot(`
     [
-      "1 turn_started",
-      "5 text:echo:hello",
-      "6 text:steer:extra",
-      "7 turn_ended",
-      "7 usage",
-      "9 exited",
+      "3 turn_started",
+      "7 text:echo:hello",
+      "8 text:steer:extra",
+      "9 turn_ended",
+      "9 usage",
+      "11 exited",
     ]
   `);
 });
@@ -53,11 +53,11 @@ test("events() reads the flat events off the stream: one per reading, sharing th
 test("events({ coalesceText }) merges consecutive text into one event carrying the last piece's seq", async () => {
   expect(await runEvents({ coalesceText: true })).toMatchInlineSnapshot(`
     [
-      "1 turn_started",
-      "6 text:echo:hellosteer:extra",
-      "7 turn_ended",
-      "7 usage",
-      "9 exited",
+      "3 turn_started",
+      "8 text:echo:hellosteer:extra",
+      "9 turn_ended",
+      "9 usage",
+      "11 exited",
     ]
   `);
 });

@@ -14,9 +14,9 @@ import type { SessionOptions } from "./session.js";
  */
 export class UnsupportedOptionError extends Error {
   override readonly name = "UnsupportedOptionError";
-  readonly option: keyof SessionOptions;
+  readonly option: keyof SessionOptions | "placement";
 
-  constructor(option: keyof SessionOptions, message: string) {
+  constructor(option: keyof SessionOptions | "placement", message: string) {
     super(message);
     this.option = option;
   }

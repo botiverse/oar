@@ -1,6 +1,6 @@
 import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
 
-import { exitTurnOutcome, reduceTurnStop } from "./turn-stop.js";
+import { exitTurnOutcome, releaseTurnOutcome, reduceTurnStop } from "./turn-stop.js";
 
 export type { AgentStatus, RunningPhase } from "../contracts/session.js";
 
@@ -71,6 +71,7 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
 }
 
 export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?: string): AgentStatus {
+  if (previous.released === true) { return previous; }
   const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
   if (foreignSession && !belongsToSession(record, sessionId)) {
     return previous;
@@ -98,6 +99,11 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
         ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
         : previous;
     case "response":
+      if (record.body.kind === "released") {
+        if (previous.kind === "running") { return { kind: "idle", released: true, lastTurnOutcome: releaseTurnOutcome(previous.stop) }; }
+        if (previous.pendingPrompt !== undefined) { return { kind: "idle", released: true, lastTurnOutcome: releaseTurnOutcome(previous.pendingPrompt.stop) }; }
+        return { ...previous, released: true };
+      }
       if (record.body.kind === "rejected" && previous.kind === "running" && previous.requestId === record.requestId) {
         return { kind: "idle" };
       }

@@ -4,7 +4,7 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-Control (prompt / steer / queue / withdraw / abort / dispose and their replies) and
+Control (open / prompt / steer / queue / withdraw / abort / dispose and their replies) and
 facts (what the runtime actually said) are records on one stream, and
 control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and
@@ -23,15 +23,86 @@ evidence is in the
 
 ## The rules
 
+### Placement and release
+
+`Runtime.placement` is the host's request: `auto`, `shared` or `isolated`.
+`withPlacement()` returns a new instance with its own process pool. Module-level
+default instances request `auto`. At session open, the adapter checks the
+installation's version and platform against its observed sharing support.
+`auto` uses isolated processes until that evidence exists; explicit `shared`
+is refused with `UnsupportedOptionError` on `placement`. An in-process runtime
+also refuses explicit `isolated`. No shipped native runtime shares yet.
+The in-process SDK runtimes use `in_process` under `auto` and refuse both
+explicit process placements. Custom adapters without a placement declaration
+keep their existing `auto` behavior and refuse explicit placement requests.
+
+Each opened session exposes its actual `placement` (`shared`, `isolated` or
+`in_process`). An `open` request records the requested placement and its
+`opened` response records the actual placement, without recording environment
+values or process configuration. A pool belongs to one runtime instance;
+process-level executable, arguments, environment, home and configuration
+directories must all match before sessions join it.
+Environment matching includes resolved inherited values, not only the overlay.
+Session-level cwd, model, effort and MCP settings do not split a pool only where
+the runtime's protocol has proved their isolation. Legacy custom adapters and
+logs without an `opened` record report `Session.placement` as `null`; OAR never
+guesses it from the runtime's name.
+
+On every successful open, including `resume`, the new stream begins at seq 0
+with `toRuntime` request `{ kind: "open", placement: "auto" | "shared" | "isolated" }`.
+Seq 1 is its paired `{ kind: "opened", placement: "shared" | "isolated" | "in_process" }`
+response. These are OAR lifecycle records, not native initialization frames.
+Native initialization frames and requests follow them in their original wire
+order, including frames that arrived before the native session's opening reply.
+An open that rejects before returning a Session exposes no session stream.
+
+Runtime definitions now include `placement` and `withPlacement`; custom runtime
+objects can use `defineRuntime` to obtain these members. The new request/response
+body kinds and the `released` event extend the public TypeScript unions. Exhaustive consumers must handle them. Hosts must not assume
+the first record is a native frame or a prompt. `events()` omits open, opened
+and cleanup; it projects released as an OAR event. Voyage records retain all
+these bodies unchanged, and `redactRecord` preserves these credential-free
+lifecycle shapes. Logs without opening records remain replayable: folds do not
+invent placement or extra records for them.
+
+A `released` response is OAR's own observation: it stopped controlling this
+session while peers can still use the process. It answers a dispose or an
+accepted abort that reached its fallback. It explicitly says the native turn
+may still run and work started after cleanup may continue. It is not a native
+`turn_ended`, a process exit, or Pi Durable's watch-only dispose.
+
+Release ends the waiting turn as `aborted` only after that turn's accepted
+abort or dispose request, using the same stop-evidence rule as exit. Later
+controls are rejected. `session_released` means an abort fallback released the
+session without a host dispose request. Once the host requests `dispose`,
+`disposed` takes precedence, including shared sessions; an actual process exit
+still takes precedence as `runtime_exited`. `session_released` is a new member
+of the `RejectionCode` union, so hosts with exhaustive TypeScript switches must
+handle it. Every late native frame remains recorded,
+including tool and usage evidence; it cannot reopen OAR's released turn.
+Neither tools nor background tasks are inferred stopped from release. A view
+may show late native content in a new display segment, while its OAR status
+stays released and its settled wait keeps the original outcome. Pending input
+delivery is not declared failed or safe to retry merely because control was
+released: the native process can still consume it. A `cleanup` response
+records whether the per-session cleanup completed or failed; failure never
+claims that work stopped. Cleanup runs at abort fallback and again at dispose.
+Abort fallback records `accepted` and `released` before awaiting bounded cleanup,
+so late native completion cannot admit another prompt during that cleanup.
+The cleanup result is recorded separately even if the process exits meanwhile.
+Shared disposal releases this session, or records an actual exit when the last
+session disposes the process. A process fault records its exit for every
+session. Sessions and processes are never silently restarted.
+
 **frame**: the runtime's own words. Expects no reply; append-only;
 monotonic seq. oar never synthesizes a frame. The turn's start *is* the
 prompt request itself, and its end is the runtime's own completion event
 (claude's `result`, codex's `turn/completed`); if a runtime doesn't report
-one, it is honestly absent. No oar-made facts exist in the stream, so there
+one, it is honestly absent. No oar-made native frames exist in the stream, so there
 is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: prompt / steer / queue / withdraw / abort / dispose. runtime→app:
+app→runtime: open / prompt / steer / queue / withdraw / abort / dispose. runtime→app:
 approvals, questions, external tools. toApp request bodies are runtime
 verbatim with an open vocabulary, so `direction` is the only way a server
 can decide "does the app need to answer this" without understanding the
@@ -135,17 +206,18 @@ Further rules:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.
 - **Reachability is read off the stream.** Once the stream holds an
-  `exited` response (the runtime is gone) or a `dispose` request (the
+  `exited` response (the runtime is gone), `released` response (OAR has
+  relinquished control) or a `dispose` request (the
   session is being released), every later prompt / steer / queue / withdraw /
-  abort or goal-control request is rejected (`runtime_exited` / `disposed`) by the shared kernel
+  abort or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
   before any adapter code runs: no adapter keeps a private "is it alive"
   flag. `dispose` is the one control that still goes through after an
-  observed exit: it is recorded and answered `accepted` at once (nothing is
+  release or observed exit. After exit it is recorded and answered `accepted` at once (nothing is
   left to release), so a session whose runtime died on its own still ends
   with an answered dispose rather than a dangling one.
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. A rejection carries one typed `code`
-  (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`,
+  (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`, `session_released`,
   `disposed`, `runtime_refused`, `error`) next to the prose `reason`, so an application
   branches on a word, not on vendor text. `unsupported` means the runtime
   cannot do this control with these inputs (images where it takes none,
@@ -202,7 +274,10 @@ Further rules:
   too), counted from one reading of the process table (Linux:
   `/proc/<pid>/stat`, its resident pages times the page size; other POSIX
   systems: `ps -A -o pid=,ppid=,pgid=,rss=`), and how many processes that
-  was. It is `null` once the process has exited, on Windows, which has no
+  was. Shared placement adds `scope: "shared_process"`: this is the whole
+  shared process and its children, never a per-session allocation. A released
+  session can still read that process while peers retain it.
+  It is `null` once the process has exited, on Windows, which has no
   reader yet, and when the table cannot be read whole (a process gone between
   the listing and its read is skipped; any other failure gives no reading,
   never a short count). Concurrent calls share the read in flight. It is the host machine's state, not a runtime fact, so it
@@ -359,18 +434,21 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // accepted {native?} | rejected {code, reason, native?} | answered {native} | exited {code}
+  body: ResponseBody;           // opened {placement} | accepted {native?} | rejected {code, reason, native?} | answered {native} | cleanup {result} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
 }
 // accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
 // grant): an outcome the runtime did not say.
-// exited: the process exit, the one outcome the runtime can never say
+// opened: actual placement, answering the host's open request.
+// cleanup: completed | failed {reason}, answering an abort fallback or dispose.
+// released: OAR stopped controlling this session; native work may continue.
+// exited: the process exit, an outcome the runtime can never say
 // itself; answers the dispose request when oar caused it, stands alone
 // (requestId "") when the runtime died on its own.
 ```
@@ -396,7 +474,9 @@ returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
 and `reason` at hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
 takes), and `request` / `response` are still the records themselves.
 `dispose()` returns void: its request and response are read from the stream.
-Process adapters release owned work and record `exited`. A Session borrowing
+Isolated process adapters stop owned work and record `exited`. Shared adapters
+attempt native cleanup for only this session, then record `released`; the last
+owner instead stops the process and records `exited`. A Session borrowing
 a host-owned durable Harness detaches its watch and answers `accepted`; it
 does not abort work, delete history, close the Harness or fabricate an exit.
 Call `abort()` first when stopping that durable work is intended. The turn helpers build on this:
@@ -482,6 +562,7 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 //   control_rejected {requestId, action, code, reason} ← a rejected response
 //   app_request {requestId, type}                      ← a toApp request
 //   app_answered {requestId}                           ← an answered response
+//   released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} ← a released response
 //   exited {code}                                      ← an exited response
 ```
 
@@ -634,7 +715,8 @@ The rules that make this a projection and not a second source of truth:
   the frame's envelope, a `turn_started` for a prompt request, an
   `app_request` for a toApp request, a `control_rejected` for a rejected
   response, an `input_withdrawn` for an accepted withdraw response, an
-  `app_answered` for an answered response, an `exited` for the exit. A
+  `app_answered` for an answered response, `released` for OAR's release, and
+  `exited` for the exit. `open`, `opened` and `cleanup` stay record-only. A
   response names only its `requestId`, so the reading takes the toRuntime
   requests seen before it (`controlActionsOf(records)` builds them from a
   log). `events()` is `rawEvents()` with `eventsOf` applied to every
@@ -668,12 +750,17 @@ exit does not end the stream's tasks; a turn ending while the runtime stays
 alive does not end background work either. Already terminal tasks stay as
 reported. The inferred `endedAt` is the exit record's `receivedAt`.
 
-Background work does not outlive the session. A task the runtime started
+Release alone does not end a task: the shared process can still run it or
+start more work. Only native task facts or an actual process exit change the
+task projection. Even a completed cleanup is not evidence that future work
+has stopped.
+
+In isolated placement, background work does not outlive the owned process. A task the runtime started
 (a dev server, a build, a claude Bash command run in the background) is a
 process in the runtime's tree, so ending the runtime ends it: `dispose()`,
 the abort fallback and host exit all do, since 0.36.1 also for processes
 that left the runtime's process group. A host that stops idle sessions and
-wants background work to keep running must not dispose a session whose
+wants background work to keep running must not dispose an isolated session whose
 tasks are still running; `tasksOf` says which are.
 
 The inferred status is `stopped` if the root received a `dispose` request

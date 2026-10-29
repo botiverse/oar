@@ -26,4 +26,4 @@ export const qwenRuntime = defineRuntime({
     const { qwenSession } = await import("./session.js");
     return qwenSession;
   }),
-});
+}, { execution: "process" });

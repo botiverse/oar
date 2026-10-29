@@ -53,7 +53,9 @@ test("notifications and server requests sent before thread/start are recorded fi
   });
   spawnLineProcess.mockReturnValue(fake);
   const session = await codexSession(installation, { cwd: "/work" });
-  expect(session.records().slice(0, 3).map((record) => describe(record))).toEqual([
+  expect(session.records().slice(0, 5).map((record) => describe(record))).toEqual([
+    "toRuntime open",
+    "response opened",
     "event remoteControl/status/changed",
     "toApp account/login/required",
     "event thread/start",
@@ -79,7 +81,9 @@ test("a server request before a notification keeps its wire order ahead of the o
   });
   spawnLineProcess.mockReturnValue(fake);
   const session = await codexSession(installation, { cwd: "/work" });
-  expect(session.records().slice(0, 3).map((record) => describe(record))).toEqual([
+  expect(session.records().slice(0, 5).map((record) => describe(record))).toEqual([
+    "toRuntime open",
+    "response opened",
     "toApp account/login/required",
     "event remoteControl/status/changed",
     "event thread/start",
@@ -114,7 +118,9 @@ test("the open event precedes a thread/started written in the same chunk as the 
   });
   spawnLineProcess.mockReturnValue(fake);
   const session = await codexSession(installation, { cwd: "/work" });
-  expect(session.records().slice(0, 3).map((record) => describe(record))).toEqual([
+  expect(session.records().slice(0, 5).map((record) => describe(record))).toEqual([
+    "toRuntime open",
+    "response opened",
     "event thread/start",
     "event thread/started",
     "event thread/status/changed",

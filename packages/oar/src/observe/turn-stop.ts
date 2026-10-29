@@ -28,3 +28,9 @@ export function exitTurnOutcome(stop: TurnStop | undefined, reason?: string): Tu
     ? { kind: "aborted" }
     : { kind: "failed", reason: reason ?? "runtime exited", failure: "runtime_exited" };
 }
+
+/** A release ends OAR's wait, without claiming the runtime process exited. */
+export function releaseTurnOutcome(stop: TurnStop | undefined): TurnOutcome {
+  return stop?.abortedOnExit === true ? { kind: "aborted" }
+    : { kind: "failed", reason: "session released; native work may continue", failure: "unknown" };
+}

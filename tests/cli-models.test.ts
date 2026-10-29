@@ -1,10 +1,9 @@
+import { defineRuntime } from "../packages/oar/src/index.js";
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { readModels, renderModels } from "../packages/cli/src/models.js";
 
-// The CLI resolves `@botiverse/oar` to the built package, whose branded types
-// are not identical to the src ones, so fixtures take their shapes from the
-// CLI function under test rather than from the library source.
+// Fixtures use the runtime definition helper and the CLI functions' input shapes.
 type Runtime = Parameters<typeof readModels>[0];
 type AvailableInstallation = Parameters<NonNullable<Runtime["listModels"]>>[0];
 
@@ -23,7 +22,7 @@ const noInventory = async () => ({
 const inventories = { skills: noInventory, commands: noInventory, mcpServers: noInventory, tools: noInventory };
 
 test("readModels reports unsupported when the runtime has no listModels", async () => {
-  const runtime: Runtime = {
+  const runtime: Runtime = defineRuntime({
     ...inventories,
     id: "bare",
     brand: { name: "bare", icon: null },
@@ -32,7 +31,7 @@ test("readModels reports unsupported when the runtime has no listModels", async 
       await Promise.resolve();
       return available;
     },
-  };
+  });
   const report = await readModels(runtime);
   assert.equal(report.runtimeId, "bare");
   assert.equal(report.installation, undefined);
@@ -41,7 +40,7 @@ test("readModels reports unsupported when the runtime has no listModels", async 
 });
 
 test("readModels echoes the installation and null models when not available", async () => {
-  const runtime: Runtime = {
+  const runtime: Runtime = defineRuntime({
     ...inventories,
     id: "gone",
     brand: { name: "gone", icon: null },
@@ -54,7 +53,7 @@ test("readModels echoes the installation and null models when not available", as
       await Promise.resolve();
       throw new Error("must not be called");
     },
-  };
+  });
   const report = await readModels(runtime);
   assert.deepEqual(report, {
     runtimeId: "gone",
@@ -66,7 +65,7 @@ test("readModels echoes the installation and null models when not available", as
 
 test("readModels forwards the installation and timeout to listModels", async () => {
   const seen: unknown[] = [];
-  const runtime: Runtime = {
+  const runtime: Runtime = defineRuntime({
     ...inventories,
     id: "ok",
     brand: { name: "ok", icon: null },
@@ -87,7 +86,7 @@ test("readModels forwards the installation and timeout to listModels", async () 
         ],
       };
     },
-  };
+  });
   const report = await readModels(runtime, { timeoutMs: 1500 });
   assert.deepEqual(seen, [available, { timeoutMs: 1500 }]);
   assert.deepEqual(renderModels(report), [
@@ -109,7 +108,7 @@ test("renderModels distinguishes unauthenticated from an empty list", () => {
 
 test("readModels forwards the listing directory and renderModels marks the default model", async () => {
   const seen: unknown[] = [];
-  const runtime: Runtime = {
+  const runtime: Runtime = defineRuntime({
     ...inventories,
     id: "pi",
     brand: { name: "pi", icon: null },
@@ -120,7 +119,7 @@ test("readModels forwards the listing directory and renderModels marks the defau
       await Promise.resolve();
       return { kind: "ok", models: [{ id: "xai/grok-4.6", default: true }, { id: "xai/grok-4.5" }] };
     },
-  };
+  });
   const report = await readModels(runtime, { cwd: "/work/app" });
   assert.deepEqual(seen, [{ cwd: "/work/app" }]);
   assert.deepEqual(renderModels(report), ["pi\txai/grok-4.6 (default)", "pi\txai/grok-4.5"]);

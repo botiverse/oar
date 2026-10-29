@@ -61,6 +61,7 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   whose start was never seen becomes a `?` part. A root turn end or exit
  *   changes its unresolved root tools to `ended`, without a result content
  *   or tool end time. Later native results still replace that unknown result.
+ *   Release leaves tools running: it proves only that OAR gave up control.
  * - A root exit stamps the record-derived status outcome on its open turn:
  *   aborted after an accepted abort or dispose request, failed otherwise.
  *   Flat events lack accepted controls: exit ends tools without a turn outcome.
@@ -83,6 +84,7 @@ export type ViewNotice =
     }
   | { readonly cause: "control_rejected"; readonly action: ControlAction; readonly reason: string }
   | { readonly cause: "child_turn_ended"; readonly outcome: TurnOutcome }
+  | { readonly cause: "released"; readonly reason: "abort_fallback" | "dispose" }
   | { readonly cause: "exited"; readonly code: number | null };
 
 export type ViewPart =
@@ -128,7 +130,6 @@ export type ViewPart =
       readonly cancelled?: boolean;
       readonly body?: unknown; // the `toApp` body verbatim, as in `pendingRequests`
     };
-
 /** One lane's parts in first-appearance order; named messages can continue in place. */
 export interface ViewSection {
   readonly sessionId: string;
@@ -181,7 +182,7 @@ export interface SessionView {
   readonly serviceTier: string | null;
   readonly context: ContextUsage | null;
   readonly usage: SessionUsage;
-  /** `toApp` requests someone is waited on for: unanswered, not withdrawn by the runtime (`app_request_cancelled`), and emptied when the process exits. */
+  /** `toApp` requests someone is waited on for: unanswered, not withdrawn by the runtime (`app_request_cancelled`), and emptied when the process exits or OAR releases the session. */
   readonly pendingRequests: readonly PendingRequest[];
   /** The last observed process exit, when the stream recorded one. */
   readonly exited: { readonly code: number | null } | null;
@@ -243,7 +244,7 @@ export function reduceSessionView(
     draft.rootSessionId = record.sessionId;
   }
   const status = reduceStatus(previous.status, record, draft.rootSessionId);
-  if (record.kind === "response" && record.body.kind === "exited" && previous.status.kind === "running" && status.kind === "idle" && status.lastTurnOutcome !== undefined) {
+  if (record.kind === "response" && (record.body.kind === "exited" || record.body.kind === "released") && previous.status.kind === "running" && status.kind === "idle" && status.lastTurnOutcome !== undefined) {
     stampTurnOutcome(draft, `turn:${streamId}:${record.sessionId}:${record.seq}`, status.lastTurnOutcome);
   }
   const conversation = reduceConversation(previous.conversation, record, streamId);

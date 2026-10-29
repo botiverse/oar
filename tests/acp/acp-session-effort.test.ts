@@ -11,7 +11,7 @@ import { describe, fixture, start } from "../fixtures/acp-session-support.js";
 test("the opening answers report the agent's effort, so effort() is a fold even when none was requested", async () => {
   const session = await start();
   const opening = session.records().map((record) => describe(record));
-  assert.equal(opening[2], "event session/new → model:fixture-model-x, effort:medium");
+  assert.equal(opening[4], "event session/new → model:fixture-model-x, effort:medium");
   assert.equal(session.effort().value, "medium");
   await session.dispose();
 });

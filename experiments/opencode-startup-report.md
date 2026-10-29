@@ -1,8 +1,9 @@
-# Upstream issue draft: concurrent cold startup creates the same SQLite schema twice
+# Upstream report: concurrent cold startup creates the same SQLite schema twice
 
-Publication handoff: maintainer review required; not submitted by this
-probe. The script link below points to the review branch. Replace it with
-the reviewed commit link when publishing. The issue body starts below.
+The maintainer added these observations to the existing upstream
+[issue 53879](https://github.com/anomalyco/opencode/issues/53879#issuecomment-6503527526).
+The detailed evidence is retained here; the reproducer link is pinned to
+the reviewed merge commit.
 
 ## Title
 
@@ -19,7 +20,7 @@ the reviewed commit link when publishing. The issue body starts below.
 
 ## Reproduction
 
-[Standalone reproducer](https://github.com/botiverse/oar/blob/agent/otter/runtime-daily-2026-10-29/experiments/opencode-startup.ts)
+[Standalone reproducer](https://github.com/botiverse/oar/blob/91568b9b91807569a3644c792f8ff685331e50cf/experiments/opencode-startup.ts)
 uses only Node built-ins. Save it locally, install `tsx` if needed, then:
 
 ```sh

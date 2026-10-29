@@ -56,7 +56,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
       ? piReaderForEnvironment(piModelLister(options), onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcModelLister(options); }))
       : piModelLister(options),
     session: subprocess ? onFirstCall(async () => { const rpc = await import("./rpc/session.js"); return rpc.createPiRpcSession(options); }) : createPiSession(options),
-  });
+  }, { execution: subprocess ? "process" : "in_process" });
   return runtime;
 }
 

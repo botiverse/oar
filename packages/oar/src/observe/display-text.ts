@@ -64,6 +64,7 @@ export function noticeText(notice: ViewNotice): string {
       return detail(`${actionLabel(notice.action)} rejected`, notice.reason);
     case "child_turn_ended":
       return detail(`Subagent turn ${outcomeLabel(notice.outcome.kind)}`, notice.outcome.kind === "failed" ? notice.outcome.reason : undefined);
+    case "released": return "Session released; native work may still be running.";
     case "exited":
       return notice.code === null ? "Runtime exited" : `Runtime exited (code ${notice.code})`;
     default:
@@ -79,6 +80,7 @@ export function noticeTone(notice: ViewNotice): NoticeTone {
     case "retry": return "warning";
     case "control_rejected": return "warning";
     case "child_turn_ended": return outcomeTone(notice.outcome.kind);
+    case "released": return "warning";
     case "exited": return notice.code === 0 ? "quiet" : (notice.code === null ? "warning" : "danger");
     default: return unreachable(notice);
   }

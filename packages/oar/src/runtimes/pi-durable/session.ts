@@ -1,3 +1,4 @@
+import type { SessionOpenContext } from "../../contracts/placement.js";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import type { Models } from "@earendil-works/pi-ai";
 import { watchEvents, type Conversation, type Harness, type SubmissionRecord, type WatchEnd } from "@earendil-works/pi-durable";
@@ -30,10 +31,11 @@ async function withdraw(harness: Harness, conversation: Conversation, inputId: s
   return native === "aborted" ? { kind: "accepted", native } : { kind: "rejected", code: "not_queued", reason: native ?? "No submission with this inputId", native };
 }
 
-export async function piDurableSession(harness: Harness, models: Models, options: SessionOptions): Promise<Session> {
+export async function piDurableSession(harness: Harness, models: Models, options: SessionOptions, context?: SessionOpenContext): Promise<Session> {
   const conversation = await openConversation(harness, models, options);
   const stream = await watchEvents(harness, conversation.id, BACKGROUND_CONTEXT);
   const kernel = createSessionKernel(String(conversation.id));
+  kernel.opened(context ?? { requested: "auto", placement: "in_process" });
   let state = initialDurableProjection(stream.snapshot);
   const initial = foldDurableBatch(state, [stream.snapshot]);
   state = initial.state;

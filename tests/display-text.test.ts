@@ -12,6 +12,7 @@ const notices = {
   ],
   control_rejected: [{ notice: { cause: "control_rejected", action: "abort", reason: "No active turn" }, text: "Abort rejected: No active turn", tone: "warning" }],
   child_turn_ended: [{ notice: { cause: "child_turn_ended", outcome: { kind: "completed" } }, text: "Subagent turn completed", tone: "quiet" }],
+  released: [{ notice: { cause: "released", reason: "abort_fallback" }, text: "Session released; native work may still be running.", tone: "warning" }],
   exited: [
     { notice: { cause: "exited", code: 0 }, text: "Runtime exited (code 0)", tone: "quiet" },
     { notice: { cause: "exited", code: 1 }, text: "Runtime exited (code 1)", tone: "danger" },

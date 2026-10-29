@@ -13,4 +13,4 @@ export const qoderRuntime = defineRuntime({
   authStatus: onFirstCall(async () => { const { qoderAuthStatus } = await import("./auth-status.js"); return qoderAuthStatus; }),
   listModels: onFirstCall(async () => { const { qoderListModels } = await import("./list-models.js"); return qoderListModels; }),
   session: onFirstCall(async () => { const { qoderSession } = await import("./session.js"); return qoderSession; }),
-});
+}, { execution: "process" });

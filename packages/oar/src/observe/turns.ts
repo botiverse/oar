@@ -1,5 +1,5 @@
 import { initialStatus, reduceStatus } from "./agent-status.js";
-import { exitTurnOutcome } from "./turn-stop.js";
+import { exitTurnOutcome, releaseTurnOutcome } from "./turn-stop.js";
 import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, TurnOutcome } from "../contracts/session.js";
 
 /**
@@ -48,6 +48,7 @@ function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, o
     }
     const previous = status;
     status = reduceStatus(previous, record, sessionId);
+    if (previous.released === true) { return null; }
     if (record.kind === "frame") {
       for (const event of record.body.events) {
         if (inputId !== undefined && event.kind === "input_queued" && event.inputId === inputId) { waitingForInput = true; }
@@ -63,9 +64,10 @@ function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, o
         if (record.seq > afterSeq && !waitingForInput && event.kind === "turn_ended" && (!onlyWhenIdle || status.kind === "idle")) { return event.outcome; }
       }
     }
-    return record.seq > afterSeq && record.kind === "response" && record.body.kind === "exited"
-      ? exitTurnOutcome(previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop, record.body.reason)
-      : null;
+    if (record.seq <= afterSeq || record.kind !== "response") { return null; }
+    const stop = previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop;
+    if (record.body.kind === "released") { return releaseTurnOutcome(stop); }
+    return record.body.kind === "exited" ? exitTurnOutcome(stop, record.body.reason) : null;
   };
 }
 

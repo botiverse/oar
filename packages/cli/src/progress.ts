@@ -116,6 +116,8 @@ export function createProgressRenderer(
         return [`${agent}[runtime withdrew its request]`];
       case "control_rejected":
         return [`${agent}[${event.action} rejected] ${event.reason}`];
+      case "released":
+        return [`${agent}[session released; native work may continue]`];
       case "exited":
         return [`${agent}[runtime exited${event.code === null ? "" : `: ${String(event.code)}`}]`];
       case "task_started":

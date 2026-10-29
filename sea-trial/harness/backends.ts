@@ -1,5 +1,6 @@
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
 import { startCodebuddyAimock } from "./codebuddy-aimock.js";
+import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
 import { measureQoderStartup } from "./qoder-startup.js";
 import {
@@ -73,6 +74,9 @@ async function qwenBackend(): Promise<Backend> {
 
 export async function selectBackend(target: string): Promise<Backend> {
   switch (target) {
+    case "mock-shared":
+    case "mock-isolated":
+      return { runtime: pooledMockRuntime().withPlacement(target === "mock-shared" ? "shared" : "isolated"), aimock: null };
     case "mock":
       return {
         runtime: defineRuntime({
@@ -88,7 +92,7 @@ export async function selectBackend(target: string): Promise<Backend> {
             await Promise.resolve();
             return { kind: "ok" as const, models: [{ id: "mock-1", effortLevels: MOCK_EFFORT_LEVELS, defaultEffort: MOCK_DEFAULT_EFFORT }] };
           },
-        }),
+        }, { execution: "in_process" }),
         aimock: null,
       };
     case "scripted":

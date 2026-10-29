@@ -1,3 +1,4 @@
+import type { SessionOpenContext } from "../contracts/placement.js";
 import { carriesRefusal, emptyInputRefusal } from "./control-input.js";
 import { withSessionRecord } from "../observe/graph.js";
 import type {
@@ -45,7 +46,7 @@ export interface RecordAt {
  * - the control shape: `control()` records a `toRuntime` request, lets the
  *   adapter decide, and records the accept/reject response; and the
  *   reachability rule: once the stream holds an `exited` response or a
- *   `dispose` request, control is rejected here without consulting the
+ *   `released` response or `dispose` request, control is rejected here without consulting the
  *   adapter (record-stream.md, "Reachability is read off the stream");
  * - empty prompt/steer/queue input without images is recorded and refused
  *   before the adapter is consulted (conversation.md, "Images").
@@ -59,6 +60,8 @@ export interface RecordAt {
  */
 export interface SessionKernel {
   readonly sessionId: string;
+  /** Record the requested and actual placement once the adapter has opened. */
+  opened(context: SessionOpenContext): void;
   /** Append the runtime's frame. Returns the stamped record. */
   frame(body: FrameBody, at?: RecordAt): Frame;
   /** Append a request; `id` defaults to a fresh UUID (runtime-issued ids for `toApp` requests keep their own). */
@@ -75,12 +78,12 @@ export interface SessionKernel {
   control(body: RequestBody, decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>, at?: RecordAt): Promise<ControlResult>;
   /**
    * Why a control cannot reach the runtime any more, derived from the stream
-   * itself: an `exited` response has been recorded (the runtime is gone) or a
-   * `dispose` request has (the session is being released). Null while the
+   * itself: an `exited` response (the runtime is gone), a `released` response, or a
+   * `dispose` request (the session is being released). Null while the
    * runtime is reachable. Adapters that record control outside `control()`
    * apply it themselves; adapter-held liveness flags are not needed.
    */
-  unreachable(): { readonly kind: "rejected"; readonly code: "runtime_exited" | "disposed"; readonly reason: string } | null;
+  unreachable(): { readonly kind: "rejected"; readonly code: "runtime_exited" | "disposed" | "session_released"; readonly reason: string } | null;
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe;
   records(): readonly RawEvent[];
   graph(): SessionGraph;
@@ -130,6 +133,8 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
   let graph: SessionGraph = { nodes: [{ id: sessionId }], edges: [] };
   let seq = 0;
   let exited = false;
+  let released = false;
+  let opened = false;
   let disposing = false;
 
   const append = <T extends RawEvent>(build: (envelope: {
@@ -151,10 +156,12 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
     const retained = redact === undefined ? record : redact(record);
     log.push(retained);
     graph = withSessionRecord(graph, retained, nodeIds);
-    if (record.kind === "response" && record.body.kind === "exited") {
+    const root = record.sessionId === sessionId && record.agentPath.length === 0;
+    if (root && record.kind === "response" && record.body.kind === "released") { released = true; }
+    if (root && record.kind === "response" && record.body.kind === "exited") {
       exited = true;
     }
-    if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "dispose") {
+    if (root && record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "dispose") {
       disposing = true;
     }
     // A synchronous observer may withdraw before an adapter drains. Its new
@@ -167,7 +174,8 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
     if (exited) {
       return { kind: "rejected", code: "runtime_exited", reason: "runtime exited" };
     }
-    return disposing ? { kind: "rejected", code: "disposed", reason: "session disposed" } : null;
+    if (disposing) { return { kind: "rejected", code: "disposed", reason: "session disposed" }; }
+    return released ? { kind: "rejected", code: "session_released", reason: "session released; its runtime process may still be running" } : null;
   };
   const request: SessionKernel["request"] = (direction, body, at) =>
     append((envelope) => ({ ...envelope, kind: "request", id: at?.id ?? globalThis.crypto.randomUUID(), direction, body }), at);
@@ -176,6 +184,13 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
 
   return {
     sessionId,
+    opened(context) {
+      if (opened) { throw new Error("Session placement was already recorded"); }
+      if (seq !== 0) { throw new Error("Session opening must precede all native records"); }
+      opened = true;
+      const issued = request("toRuntime", { kind: "open", placement: context.requested });
+      respond(issued.id, { kind: "opened", placement: context.placement });
+    },
     frame: (body, at) => append((envelope) => ({ ...envelope, kind: "frame", body }), at),
     request,
     respond,

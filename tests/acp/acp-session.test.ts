@@ -42,7 +42,7 @@ test("ACP session records every update verbatim with its events, and the prompt 
 test("the handshake answers are events, so model() and effort() are folds over the stream", async () => {
   const session = await start();
   const opening = session.records().map((record) => describe(record));
-  assert.deepEqual(opening.slice(0, 3), ["event initialize", "event authenticate", "event session/new → model:fixture-model-x, effort:medium"]);
+  assert.deepEqual(opening.slice(0, 5), ["request open", "response opened", "event initialize", "event authenticate", "event session/new → model:fixture-model-x, effort:medium"]);
   assert.equal(session.model().value, "fixture-model-x");
   assert.equal(session.effort().value, "medium");
   await session.dispose();

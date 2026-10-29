@@ -31,7 +31,7 @@ export const codexRuntime = defineRuntime({
   logout: codexLogout,
   authStatus: codexAuthStatus,
   session: codexSession,
-});
+}, { execution: "process" });
 
 export { codexAccountUsage, projectCodexUsage } from "./account-usage.js";
 export { codexListModels, projectCodexModels } from "./list-models.js";

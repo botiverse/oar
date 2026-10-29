@@ -103,7 +103,7 @@ test("workflow_progress stays native, with nested credentials redacted", async (
   try {
     child.emit(`${JSON.stringify({ type: "system", subtype: "task_progress", task_id: "workflow", description: "Gather: alpha",
       workflow_progress: [{ type: "workflow_agent", lastToolName: "Bash", lastToolSummary: `echo ${secret}` }] })}\n`);
-    const [record] = session.records();
+    const record = session.records().at(-1);
     expect(record?.kind === "frame" ? record.body.events : null).toEqual([{ kind: "task_updated", taskId: "workflow", description: "Gather: alpha" }]);
     expect(JSON.stringify(record)).not.toContain(secret);
     expect(record?.kind === "frame" ? record.body.native : null).toMatchObject({ workflow_progress: [{ type: "workflow_agent", lastToolName: "Bash", lastToolSummary: "echo [redacted]" }] });

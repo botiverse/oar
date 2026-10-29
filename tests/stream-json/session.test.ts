@@ -29,8 +29,8 @@ for (const answer of [{ behavior: "allow", updatedInput: { command: "echo ok" } 
       child.emit(`${JSON.stringify({ type: "control_request", request_id: "permission", request: { subtype: "can_use_tool", input: { command: "echo ok" } } })}\n`);
       const reply = { type: "control_response", response: { subtype: "success", request_id: "permission", response: answer } };
       expect(child.written).toEqual([`${JSON.stringify(reply)}\n`]);
-      expect(session.records().filter((record) => record.kind === "request")).toMatchObject([{ id: "permission", direction: "toApp", body: { kind: "native", type: "can_use_tool" } }]);
-      expect(session.records().filter((record) => record.kind === "response")).toMatchObject([{ requestId: "permission", body: { kind: "accepted", native: reply } }]);
+      expect(session.records().filter((record) => record.kind === "request")).toMatchObject([{ direction: "toRuntime", body: { kind: "open", placement: "auto" } }, { id: "permission", direction: "toApp", body: { kind: "native", type: "can_use_tool" } }]);
+      expect(session.records().filter((record) => record.kind === "response")).toMatchObject([{ body: { kind: "opened", placement: "isolated" } }, { requestId: "permission", body: { kind: "accepted", native: reply } }]);
       expect(Object.hasOwn(session, "steer")).toBe(false);
     } finally { await session.dispose(); }
   });
@@ -42,8 +42,8 @@ test("an absent permission policy preserves Claude's record-only behavior", asyn
   try {
     child.emit(`${JSON.stringify({ type: "control_request", request_id: "permission", request: { subtype: "can_use_tool" } })}\n`);
     expect(child.written).toEqual([]);
-    expect(session.records().filter((record) => record.kind === "request")).toHaveLength(1);
-    expect(session.records().filter((record) => record.kind === "response")).toEqual([]);
+    expect(session.records().filter((record) => record.kind === "request").map((record) => record.body.kind)).toEqual(["open", "native"]);
+    expect(session.records().filter((record) => record.kind === "response").map((record) => record.body)).toEqual([{ kind: "opened", placement: "isolated" }]);
   } finally { await session.dispose(); }
 });
 

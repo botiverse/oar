@@ -23,4 +23,4 @@ export const antigravityRuntime = defineRuntime({
   checkUpdate: antigravityCheckUpdate,
   refusedSessionOptions: antigravityRefusedSessionOptions,
   mcpToolsListChanged: "full",
-});
+}, { execution: "process" });

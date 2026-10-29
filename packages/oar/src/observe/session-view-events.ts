@@ -176,12 +176,22 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
         });
       }
       return;
+    case "released":
+      if (event.sessionId !== scope || event.agentPath.length > 0) {
+        noticePart(draft, event, streamId, { cause: "released", reason: event.reason }); return;
+      }
+      draft.pendingRequests.splice(0);
+      sealTurn(draft);
+      draft.messages.push({ kind: "notice", id: `nt:${streamId}:${event.sessionId}:${event.seq}`,
+        notice: { cause: "released", reason: event.reason } });
+      return;
     case "exited":
       if (event.sessionId !== scope || event.agentPath.length > 0) {
         noticePart(draft, event, streamId, { cause: "exited", code: event.code });
         return;
       }
-      endRootTools(draft, scope);
+      // A released turn can still have unresolved tools before the current segment.
+      endRootTools(draft, scope, draft.released);
       // Whoever asked is gone with the process: nobody is waited on any more.
       draft.pendingRequests.splice(0);
       draft.exited = { code: event.code };

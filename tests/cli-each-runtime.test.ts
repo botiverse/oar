@@ -1,17 +1,16 @@
+import { defineRuntime } from "../packages/oar/src/index.js";
 import { expect, test } from "vitest";
 import { readEach } from "../packages/cli/src/each-runtime.js";
 import { subagentTools } from "../packages/cli/src/mcp-tools.js";
 import { createSubagents } from "../packages/oar/src/agents/index.js";
 
-// The CLI resolves `@botiverse/oar` to the built package, whose branded types
-// are not identical to the src ones, so fixtures take their shapes from the
-// CLI functions under test rather than from the library source.
+// Fixtures use the runtime definition helper and the CLI functions' input shapes.
 type Runtime = Parameters<typeof readEach>[0][number];
 
 const noInventory = async () => ({ kind: "unsupported" as const, code: "native_query_unavailable" as const, reason: "not exercised" });
 
 function runtime(id: string, probe: Runtime["installation"]): Runtime {
-  return {
+  return defineRuntime({
     id,
     brand: { name: id, icon: null },
     session: async () => {
@@ -22,7 +21,7 @@ function runtime(id: string, probe: Runtime["installation"]): Runtime {
     mcpServers: noInventory,
     tools: noInventory,
     ...(probe === undefined ? {} : { installation: probe }),
-  };
+  });
 }
 
 const present = runtime("present", async () => {

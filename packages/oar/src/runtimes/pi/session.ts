@@ -268,6 +268,6 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     },
   });
   return session;
-});
+}, "in_process");
 
 export const piSession = createPiSession();

@@ -74,8 +74,8 @@ test("concurrent sessions on a fresh home wait for the first native initializati
   await Promise.all(results.map(async (result) => {
     if (result.status === "fulfilled") {
       // Waiting must not move the open marker past a same-chunk notification.
-      expect(result.value.records().slice(0, 2).map((record) => record.kind === "frame" ? record.body.type : record.kind))
-        .toEqual(["thread/start", "thread/started"]);
+      expect(result.value.records().slice(0, 4).map((record) => record.kind === "frame" ? record.body.type : record.kind))
+        .toEqual(["request", "response", "thread/start", "thread/started"]);
       await result.value.dispose();
     }
   }));

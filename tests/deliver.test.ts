@@ -81,6 +81,6 @@ test("interrupt uses the ordinary idle prompt and native steer without touching 
 test.each([-1, NaN, Infinity])("interrupt rejects invalid maxWaitMs %s before taking ownership", async (maxWaitMs) => {
   const session = await sessionOf(new Gate());
   await expect(session.deliver("input", { when: "interrupt", maxWaitMs })).rejects.toThrow(RangeError);
-  expect(session.records().some((record) => record.kind === "request")).toBe(false);
+  expect(session.records().filter((record) => record.kind === "request").map((record) => record.body)).toEqual([{ kind: "open", placement: "auto" }]);
   await session.dispose();
 });

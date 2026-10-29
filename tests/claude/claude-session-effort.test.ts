@@ -85,6 +85,8 @@ test("the get_settings answer never enters the stream; the hook frames around it
   const session = await claudeSession(installation, { cwd: "/work", effort: "low" });
   const records = session.records();
   expect(records.map((record) => (record.kind === "frame" ? record.body.type : record.kind))).toEqual([
+    "request",
+    "response",
     "system/hook_started",
     "system/hook_response",
   ]);

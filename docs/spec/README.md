@@ -67,6 +67,10 @@ contract on a real login; each runtime page states which live checks are verifie
 - one stream of `frame` / `request` / `response` records with a dense
   monotonic `seq`, `sessionId`, `agentPath`, optional runtime-native
   `spanId`, and `receivedAt`;
+- requested placement on the Runtime instance and observed placement on the
+  Session; every open, including resume, records `open` and `opened` before
+  native frames. Shared release ends OAR control without claiming native work
+  stopped ([placement and release](record-stream.md#placement-and-release));
 - every runtime frame recorded verbatim as a `Frame` (`type`, `native`)
   with oar's typed `events` beside it: nothing gated, nothing dropped,
   nothing synthesized; a prompt request provisionally starts a turn, while
@@ -77,7 +81,7 @@ contract on a real login; each runtime page states which live checks are verifie
   reasoning, tool call start / progress / end, turn end, usage, model,
   effort, compaction start / end, retry and tasks as the runtime says them,
   plus `turn_started`, `input_withdrawn`, `control_rejected`, `app_request`,
-  `app_answered` and `exited` read off request/response records; a pure
+  `app_answered`, `released` and `exited` read off request/response records; a pure
   projection (`eventsOf`) over the stream, never a second source of truth;
 - control as records: prompt / steer / queue / withdraw / abort / dispose requests
   answered `accepted` / `rejected` (a rejection carries a typed `code` beside

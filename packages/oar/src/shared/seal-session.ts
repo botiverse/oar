@@ -1,3 +1,4 @@
+import type { SessionPlacement } from "../contracts/placement.js";
 import type {
   ControlOutcome,
   ControlResult,
@@ -22,8 +23,8 @@ const identify = (options: InputOptions = {}): InputOptions => {
 
 /**
  * Read a control's answer off its two records. A toRuntime control is only
- * ever answered `accepted` or `rejected`; the other two bodies answer other
- * things (`answered`: a toApp request; `exited`: a dispose), so they are
+ * ever answered `accepted` or `rejected`; the other bodies answer opening,
+ * cleanup, release, exit or a toApp request, so they are
  * mapped totally rather than thrown on, should an adapter ever route one here.
  */
 export function controlOutcomeOf(result: ControlResult): ControlOutcome {
@@ -32,10 +33,18 @@ export function controlOutcomeOf(result: ControlResult): ControlOutcome {
   if (response.body.kind === "rejected") {
     return { kind: "rejected", code: response.body.code, reason: response.body.reason, ...at };
   }
-  if (response.body.kind === "exited") {
-    return { kind: "rejected", code: "runtime_exited", reason: "runtime exited", ...at };
+  if (response.body.kind === "exited" || response.body.kind === "released") {
+    return { kind: "rejected", code: response.body.kind === "released" ? "session_released" : "runtime_exited", reason: response.body.kind === "released" ? "session released; native work may continue" : "runtime exited", ...at };
   }
   return { kind: "accepted", ...at };
+}
+
+function sessionPlacement(session: AdapterSession): SessionPlacement | null {
+  for (const record of session.records()) {
+    if (record.sessionId === session.id && record.agentPath.length === 0 && record.kind === "response" && record.body.kind === "opened") { return record.body.placement; }
+  }
+  // Legacy custom adapters have no process-placement record.
+  return null;
 }
 
 /**
@@ -83,6 +92,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
   const adapterGoal = adapterSession.goal;
   const sealed: Session = {
     ...adapterFace,
+    placement: sessionPlacement(adapterSession),
     ...(adapterGoal === undefined ? {} : { goal: {
       set: async (options) => controlOutcomeOf(await adapterGoal.set(options)),
       read: async () => controlOutcomeOf(await adapterGoal.read()),

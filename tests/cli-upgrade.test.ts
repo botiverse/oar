@@ -1,9 +1,9 @@
+import { defineRuntime } from "../packages/oar/src/index.js";
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { readUpgrade, renderUpgradeReport, upgradeFailed } from "../packages/cli/src/upgrade.js";
 
-// The CLI resolves `@botiverse/oar` to the built package, so fixtures take
-// their shapes from the CLI function under test.
+// Fixtures use the runtime definition helper and the CLI functions' input shapes.
 type Runtime = Parameters<typeof readUpgrade>[0];
 type AvailableInstallation = Parameters<NonNullable<Runtime["checkUpdate"]>>[0];
 type UpdateCheck = Awaited<ReturnType<NonNullable<Runtime["checkUpdate"]>>>;
@@ -22,7 +22,7 @@ const noInventory = async () => ({
 });
 
 function runtime(id: string, extra: Partial<Runtime>, installation: AvailableInstallation = executable): Runtime {
-  return {
+  return defineRuntime({
     skills: noInventory, commands: noInventory,
     mcpServers: noInventory,
     tools: noInventory,
@@ -34,7 +34,7 @@ function runtime(id: string, extra: Partial<Runtime>, installation: AvailableIns
       return installation;
     },
     ...extra,
-  };
+  });
 }
 
 const newer: UpdateCheck = { kind: "ok", installed: "1.0.0", latest: "1.1.0", updateAvailable: true, channel: "stable", source: "fake update --check" };

@@ -48,7 +48,7 @@ test.each(options)("opening keeps account details out of records and replay: %o"
     // A duplicate answer after opening must remain private, too.
     const request = asRecord(JSON.parse(fake.written[0] ?? "null"));
     fake.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: initialized } })}\n`);
-    expect(session.records()).toEqual([]);
+    expect(session.records().map((record) => record.body)).toEqual([{ kind: "open", placement: "auto" }, { kind: "opened", placement: "isolated" }]);
     expect(observed).toEqual([]);
     expect(session.serviceTier().value).toBeNull();
   } finally { await session.dispose(); }

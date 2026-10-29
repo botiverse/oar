@@ -115,6 +115,8 @@ test("a prompt is one request/response pair, the turn ends on codex's own turn/c
   expect(session.model().value).toBe("gpt-5.5");
   await session.dispose();
   expect(skeleton(session.records())).toEqual([
+    "toRuntime open",
+    "response opened",
     "event thread/start → model",
     "toRuntime prompt",
     "response accepted",
@@ -326,7 +328,7 @@ test("native Codex activity adopts a turn, while child activity does not start t
   notify(fake, "turn/started", { threadId, turn: { id: "native-turn" } });
   const record = session.records().at(-1);
   expect(session.status().value).toEqual({ kind: "running", phase: "waiting_model", sinceSeq: record?.seq, lastEventAt: record?.receivedAt });
-  expect(session.records().filter((item) => item.kind === "request")).toHaveLength(0);
+  expect(session.records().filter((item) => item.kind === "request").map((item) => item.body)).toEqual([{ kind: "open", placement: "auto" }]);
   expect(viewOf(session.records(), session.id).messages.filter((item) => item.kind === "turn")).toHaveLength(1);
   notify(fake, "turn/completed", { threadId, turn: { id: "native-turn", status: "completed" } });
   expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });

@@ -148,7 +148,7 @@ test("a native Pi run is running before its first content, with no invented prom
   const nativeRun = pi.prompt("native extension input");
   const record = session.records().at(-1);
   expect(session.status().value).toEqual({ kind: "running", phase: "waiting_model", sinceSeq: record?.seq, lastEventAt: record?.receivedAt });
-  expect(session.records().filter((item) => item.kind === "request")).toHaveLength(0);
+  expect(session.records().filter((item) => item.kind === "request").map((item) => item.body)).toEqual([{ kind: "open", placement: "auto" }]);
   pi.end();
   await nativeRun;
   expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });

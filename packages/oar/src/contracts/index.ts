@@ -152,3 +152,5 @@ export { SessionUnavailableError, type SessionUnavailableReason } from "./sessio
 export { RuntimeFailureError } from "./runtime-failure-error.js";
 export { UserShellEnvironmentError } from "./shell-environment.js";
 export type { UserShellEnvironment, UserShellEnvironmentOptions, UserShellEnvironmentFailure } from "./shell-environment.js";
+
+export type { PlacementRequest, SessionPlacement, SessionOpenContext, SessionCleanup, SessionRelease, RuntimePlacementOptions } from "./placement.js";

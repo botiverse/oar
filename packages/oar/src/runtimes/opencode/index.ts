@@ -20,4 +20,4 @@ export const opencodeRuntime = defineRuntime({
     return opencodeSession;
   }),
   listModels: opencodeListModels,
-});
+}, { execution: "process" });

@@ -1,3 +1,4 @@
+import { defineRuntime } from "../packages/oar/src/index.js";
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import { PassThrough } from "node:stream";
@@ -11,8 +12,7 @@ import {
 import { EchoGate, hidesInput, renderLoginEvent, selectAnswer } from "../packages/cli/src/login-terminal.js";
 import { logoutExitCode, renderLogoutReport, runLogout } from "../packages/cli/src/logout.js";
 
-// The CLI resolves `@botiverse/oar` to the built package, so fixtures take
-// their shapes from the CLI functions under test.
+// Fixtures use the runtime definition helper and the CLI functions' input shapes.
 type Runtime = Parameters<typeof runLogin>[0];
 type Interaction = Parameters<typeof runLogin>[1];
 type AvailableInstallation = Parameters<NonNullable<Runtime["login"]>>[0];
@@ -38,7 +38,7 @@ const noInventory = async () => ({
 });
 
 function runtime(id: string, extra: Partial<Runtime>): Runtime {
-  return {
+  return defineRuntime({
     skills: noInventory, commands: noInventory,
     mcpServers: noInventory,
     tools: noInventory,
@@ -50,7 +50,7 @@ function runtime(id: string, extra: Partial<Runtime>): Runtime {
       return executable;
     },
     ...extra,
-  };
+  });
 }
 
 const silent: Interaction = {
