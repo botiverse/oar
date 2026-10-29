@@ -6,13 +6,22 @@ import { qoderAuthStatus } from "../../packages/oar/src/runtimes/qoder/auth-stat
 
 test("native catalog uses selector ids and preserves disabled entries without exposing private fields", () => {
   expect(projectQoderModels({ account: { email: "private@example.invalid" }, models: [
-    { value: "qfmodel", displayName: "Qwen 3.8 Flash", isDefault: true, isEnabled: true, efforts: ["low", "high"], defaultEffort: "low", token: "private" },
+    { value: "qfmodel", displayName: "Qwen 3.8 Flash", serverModel: { display_name: "Qwen3.8-Flash", token: "private" }, isDefault: true, isEnabled: true, efforts: ["low", "high"], defaultEffort: "low", token: "private" },
     { value: "disabled-model", displayName: "Disabled", isEnabled: false },
     { displayName: "No native id" },
   ] })).toEqual([
-    { id: "qfmodel", displayName: "Qwen 3.8 Flash", default: true, effortLevels: ["low", "high"], defaultEffort: "low" },
+    { id: "qfmodel", resolvedId: "Qwen3.8-Flash", displayName: "Qwen 3.8 Flash", default: true, effortLevels: ["low", "high"], defaultEffort: "low" },
     { id: "disabled-model", displayName: "Disabled", disabled: { reason: "Qoder reports this model disabled" } },
   ]);
+});
+
+test("model display labels do not substitute for an absent native resolved name", () => {
+  expect(projectQoderModels({ models: [
+    { value: "a", displayName: "A" },
+    { value: "b", displayName: "B", serverModel: { display_name: "" } },
+    { value: "c", serverModel: { display_name: null } },
+    { value: "literal", serverModel: { display_name: "literal" } },
+  ] })).toEqual([{ id: "a", displayName: "A" }, { id: "b", displayName: "B" }, { id: "c" }, { id: "literal" }]);
 });
 
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => ({

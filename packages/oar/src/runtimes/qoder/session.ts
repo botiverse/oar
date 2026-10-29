@@ -2,10 +2,30 @@ import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
-import { asRecord } from "../../shared/json.js";
+import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
+import { qoderNativeModelName } from "./list-models.js";
+
+async function readSelectedModel(control: ReturnType<typeof qoderControl>, requested: string, fetchStrategy: "cache" | "live"): Promise<JsonRecord | undefined> {
+  const catalog = await control.request({ subtype: "get_models", fetchStrategy }).catch((error: unknown) => {
+    throw new Error(`Qoder could not read ${fetchStrategy} model catalog to confirm ${JSON.stringify(requested)}: ${String(error)}`, { cause: error });
+  });
+  const payload = asRecord(asRecord(catalog.response)?.response);
+  return asRecordList(payload?.models).find((entry) => entry.value === requested);
+}
+
+async function confirmModel(control: ReturnType<typeof qoderControl>, requested: string, reported: string | null): Promise<void> {
+  let selected = await readSelectedModel(control, requested, "cache");
+  if (qoderNativeModelName(selected) === undefined) { selected = await readSelectedModel(control, requested, "live"); }
+  if (selected === undefined) { throw new Error(`Qoder model catalog did not contain requested selector ${JSON.stringify(requested)}`); }
+  const resolvedId = qoderNativeModelName(selected);
+  if (resolvedId === undefined) { throw new Error(`Qoder model catalog did not provide a resolved name for ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}`); }
+  if (resolvedId !== reported) {
+    throw new Error(`Qoder did not confirm model ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}, catalog resolved ${JSON.stringify(resolvedId)}`);
+  }
+}
 
 export const qoderSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") { throw new Error("Qoder requires its executable installation"); }
@@ -26,9 +46,7 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
       },
       open: async (projection) => {
         await control.request({ subtype: "initialize" }, qoderInitializeTimeoutMs);
-        if (options.model !== undefined && model !== options.model) {
-          throw new Error(`Qoder did not confirm model ${JSON.stringify(options.model)}; reported ${JSON.stringify(model)}`);
-        }
+        if (options.model !== undefined && model !== options.model) { await confirmModel(control, options.model, model); }
         const answer = await control.request({ subtype: "get_settings" });
         const applied = asRecord(asRecord(asRecord(answer.response)?.response)?.applied);
         const effort = typeof applied?.effort === "string" ? applied.effort : null;

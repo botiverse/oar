@@ -7,7 +7,8 @@ import type { SessionOptions } from "./session-options.js";
  * `id` is the selector to pass back to the runtime (a Claude alias such as
  * `sonnet`, a Codex slug, a Grok model id, or a Pi `provider/model` pair).
  * `resolvedId` is present only when the runtime distinguishes the selector
- * from the concrete model it resolves to today.
+ * from the concrete model it resolves to today, such as Qoder's `qfmodel`
+ * selector and native `Qwen3.8-Flash` session model name.
  */
 export interface ModelEntry {
   readonly id: string;

@@ -13,7 +13,9 @@ On October 28, **1.1.80** passed the same eight native cases, 17 shared
 cases (two skipped) and eight priority controls on the first run, using
 separate settings files ([report](../../experiments/runtime-version-checks/2026-10-28.md#qoder-1180)).
 This does not establish that native inline settings no longer share a path.
-No real account or paid provider was used.
+Those replay checks used no real account or paid provider. The later
+[model-selection probe](../../experiments/qoder-native/model-selection-report.md)
+uses an existing login for catalog reads and opens, without a model prompt.
 
 ## Native interface
 
@@ -29,7 +31,7 @@ frame while projecting that text once. Parent tool ids attribute child-agent
 frames when present; no separate child-session control is exposed.
 
 `get_settings` reports `applied.effort`, and `get_models` supplies native model
-ids, display names, default selection, effort levels and disabled entries.
+selectors, resolved names, display names, default selection, effort levels and disabled entries.
 These queries do not require a prompt. Configuration and account responses
 are private: OAR exposes only the applied readback and model fields, never
 identity, organization data or authentication material.
@@ -39,7 +41,7 @@ identity, organization data or authentication material.
 | Surface | Mapping and boundary |
 | --- | --- |
 | Session | Native session UUID; `--resume` opens its saved conversation. A missing id is refused, without creating a replacement. |
-| Model and effort | `--model` and `--reasoning-effort`, confirmed from native init and applied settings. Failure to confirm an explicit choice refuses opening. |
+| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`). Init may report the catalog's `serverModel.display_name`, exposed as `resolvedId` only when non-empty and different from `id`; a mismatch with the requested id is confirmed by an exact lookup in the same process's native catalog. `model()` retains the init name. `--reasoning-effort` is confirmed by applied settings. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
@@ -317,6 +319,33 @@ requests `initialize` and `get_models` with `fetchStrategy: live`. It can perfor
 account/catalog network I/O and pays native process initialization cost. No model
 prompt is submitted. `authStatus()` has no proven no-network declaration and is
 therefore skipped by local orientation; it is available at account depth.
+
+An explicit model whose init name differs from the requested selector adds
+one `get_models` query with `fetchStrategy: cache` in that session's process.
+If the selected entry or its native name is missing, OAR reads once more with
+`fetchStrategy: live`, allowing a model from a fresh listing to be confirmed.
+A present but different name refuses opening immediately, without a live read.
+There is no second listing process, and omitted models or direct init matches
+need no catalog query. Only the selected entry's non-empty
+`serverModel.display_name` can confirm the mismatch; OAR does not normalize
+names or substitute a display label. The query keeps the normal 30-second
+control deadline for each read (at most two reads), and a query error or timeout
+closes the process without retrying. A live result still missing the entry or
+its native name also refuses opening. The private responses do not enter
+public records.
+
+[src, env] Qoder 1.1.78 on xxwork (Linux), 2026-10-29: the enabled selectors
+`qfmodel` and `dfmodel` produced `Qwen3.8-Flash` and `DeepSeek-Flash` in init,
+exactly matching their catalog fields. `efficient` produced `Efficient`,
+while omission selected `Qwen3.8-Flash`. Applied settings contained only
+`effort` and `ultracode`, with no model readback. The bundled init projection
+reads the selected server model's `display_name`, falling back to the selector.
+The native catalog has `live` and `cache` paths, but cache may wait for a
+catalog or refresh it in the background; it is not an offline guarantee.
+Four same-process cache reads after initialization took 5.2 to 6.7 ms; one
+live read took 463 ms. These samples use an existing login and warmed local
+state, exclude process initialization, and do not bound cold or remote work.
+[Probe, public API comparison and verification limits](../../experiments/qoder-native/model-selection-report.md).
 
 ## Reader environment
 

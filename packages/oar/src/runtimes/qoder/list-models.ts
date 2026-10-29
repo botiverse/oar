@@ -8,11 +8,19 @@ import { launchQoder, closeQoder } from "./launch.js";
 import { qoderControl } from "./control.js";
 import { qoderAuthStatus } from "./auth-status.js";
 
+/** Native init resolves the selector through this server catalog field. */
+export function qoderNativeModelName(model: unknown): string | undefined {
+  const name = asRecord(asRecord(model)?.serverModel)?.display_name;
+  return typeof name === "string" && name.length > 0 ? name : undefined;
+}
+
 export function projectQoderModels(payload: unknown): ModelEntry[] {
   return asRecordList(asRecord(payload)?.models).flatMap((model) => {
     if (typeof model.value !== "string" || model.value.length === 0) { return []; }
     const efforts = effortLevelsOf(model.efforts);
+    const resolvedId = qoderNativeModelName(model);
     return [{ id: model.value,
+      ...(resolvedId !== undefined && resolvedId !== model.value ? { resolvedId } : {}),
       ...(typeof model.displayName === "string" ? { displayName: model.displayName } : {}),
       ...(efforts === undefined ? {} : { effortLevels: efforts }),
       ...(typeof model.defaultEffort === "string" ? { defaultEffort: model.defaultEffort } : {}),
