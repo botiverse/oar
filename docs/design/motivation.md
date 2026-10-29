@@ -96,21 +96,21 @@ system (that layer exists as separate protocols; oar emits, they persist).
 ## When oar lacks something
 
 oar connects each runtime through an interface its own vendor ships and
-maintains, preferring the most native one: an app-server, a structured
-headless protocol, an SDK, or the vendor's own ACP server, never a
-third-party adapter
+maintains (an app-server, a structured headless protocol, an SDK, or the
+vendor's own ACP server), never a third-party adapter
 ([decision](decisions.md#reaching-a-runtime-through-another-hosts-adapter-2026-10-05)).
 A missing capability is then either a gap in oar's mapping or a limit of
 the interface oar uses for that runtime, and the runtime page says which.
 Kimi shows the second kind: its Node SDK can steer a running turn, `kimi acp`
 has no steer method, so oar's Kimi session has no `steer`
-([kimi](../runtimes/kimi.md)). There are two ways past either kind of gap:
+([kimi](../runtimes/kimi.md)). There are two ways to close either kind of gap:
 
 - **Ask.** Closing it changes one adapter and, where needed, the shared
   contract, in one repository, released on oar's own schedule. That includes
-  moving an adapter to a lower vendor interface. A capability defined by a
-  cross-vendor protocol moves at the pace of the protocol, each agent's
-  implementation and their releases, unless a vendor adds its own extension.
+  moving an adapter to a different vendor interface, such as Kimi's Node SDK.
+  A capability defined by a cross-vendor protocol depends on the protocol,
+  each agent's implementation and their releases, unless a vendor adds its
+  own extension.
   Steering a running turn, for example, was proposed for ACP in May 2026
   ([discussion #1220](https://github.com/orgs/agentclientprotocol/discussions/1220),
   [RFD PR #1261](https://github.com/agentclientprotocol/agent-client-protocol/pull/1261))
