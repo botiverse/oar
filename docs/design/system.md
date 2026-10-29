@@ -132,33 +132,37 @@ maps; that is evidence-backed follow-up, never permission to infer support.
 
 ## Placement
 
-A session and the process that runs it are separate layers. For an agent
-that executes code on the user's machine, the target is one runtime process
-per session: only a process boundary gives a stop that does not depend on the
-agent's cooperation, fault and memory isolation from the host and from other
-sessions, per-session environment and configuration, and a dependency tree
+A session and the process that runs it are separate layers. An agent that
+executes code on the user's machine runs in a runtime process apart from the
+host: only a process boundary gives a stop that does not depend on the agent's
+cooperation, fault and memory isolation from the host, and a dependency tree
 apart from the host's. CLI runtimes have this natively. Where a runtime's
 primary interface is an in-process SDK, OAR drives the vendor's own
 out-of-process interface as an explicit placement (Pi's RPC mode); it does not
 build its own process wrapper around an SDK. In-process remains an explicit
 choice for what only it provides: host functions injected as tools, browser
-hosts, and engines whose storage the host owns (pi-durable). The Session
-contract does not change with placement; differences are declared like any
-other capability difference. A host shipped as a single executable supplies
-the command that starts the runtime process, and OAR checks that the started
-runtime is the version it pins.
+hosts, and engines whose storage the host owns (pi-durable). Whether sessions
+share a runtime process is a further choice, below. The Session contract does
+not change with placement; differences are declared like any other capability
+difference. A host shipped as a single executable supplies the command that
+starts the runtime process, and OAR checks that the started runtime is the
+version it pins.
 
 ### Shared runtime processes
 
-One process per session stays the default. Some runtimes' own servers hold
-many sessions in one process: the Codex app-server, and ACP agents that accept
-concurrent `session/new` on one connection. Sharing saves a lot: ten Codex
-sessions took about 1,974 MiB of RSS as ten app-servers and 218 MiB as ten
-threads on one, and the ACP agents measured showed similar ratios
+Some runtimes' own servers hold many sessions in one process: the Codex
+app-server, and ACP agents that accept concurrent `session/new` on one
+connection. Those servers are built for it, and sharing saves a lot: ten
+Codex sessions took about 1,974 MiB of RSS as ten app-servers and 218 MiB as
+ten threads on one, and the ACP agents measured showed similar ratios
 ([2026-10-28 report](../../experiments/runtime-resources-2026-10-28.md)).
-A host may therefore choose shared placement when it creates such a runtime.
-The choice belongs to the runtime, because the pool is shared state across
-sessions, and the Session contract stays the same. Five rules hold it:
+So where a runtime offers it, its sessions share a process by default. A host
+that needs what only a process per session gives (a stop that does not
+depend on the runtime, a crash or leak confined to one session) chooses
+isolated placement when it creates the runtime. The choice belongs to the
+runtime, because the pool is shared state across sessions; the runtime
+declares the placement in effect, and the Session contract stays the same.
+Five rules hold sharing:
 
 1. **Share only what the process fixes.** Sessions join one process only when
    everything the runtime reads at process level is identical: executable and
@@ -168,7 +172,8 @@ sessions, and the Session contract stays the same. Five rules hold it:
 2. **A stop without killing the process.** `abort` stays the runtime's own
    interrupt. A session whose turn does not end within the fallback interval
    is failed and detached, with the reason recorded, instead of ending the
-   process its peers run in. This is the guarantee sharing gives up.
+   process its peers run in. This is the guarantee sharing gives up; a host
+   that needs it chooses isolated placement.
 3. **Ending a session stops what it started, and only that.** Disposal uses
    the runtime's own per-session cleanup: terminating the session's
    background commands (Codex `thread/backgroundTerminals/terminate`), or
@@ -176,13 +181,14 @@ sessions, and the Session contract stays the same. Five rules hold it:
    changes persisted state is used only with that change handled: Codex
    `thread/archive` stops every command of the thread, but a later resume must
    unarchive it first, and archiving twice fails. Where no per-session cleanup
-   exists or it is unverified, the runtime does not offer shared placement.
+   exists or it is unverified, the runtime does not share.
 4. **One fault, every session.** If the shared process exits, every session
    in it ends, each with its own exit record. The process ends when its last
    session is disposed.
-5. **Offered only with evidence.** A runtime offers shared placement for a
-   version only after concurrent sessions, isolation of messages, cwd and MCP
-   servers, cancellation that leaves peers running, and per-session cleanup
-   have been observed on it. Otherwise it refuses the option with a typed
-   reason. Claude, Qwen, Qoder and Pi RPC run one session per native process
-   and do not offer it.
+5. **Shared only with evidence.** A runtime shares a version's process only
+   after concurrent sessions, isolation of messages, cwd and MCP servers,
+   cancellation that leaves peers running, and per-session cleanup have been
+   observed on it. Otherwise it runs one process per session, and an explicit
+   request for shared placement is refused with a typed reason. Claude, Qwen,
+   Qoder and Pi RPC run one session per native process and are always
+   isolated.
