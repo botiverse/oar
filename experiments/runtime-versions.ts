@@ -17,6 +17,9 @@
  * (real login and tokens). Revisit refused native channels in the tool-denial audit.
  * A changed Antigravity server also needs antigravity-native-settings.ts:
  * recheck instruction/effort channels and native MCP credential persistence.
+ * Also rerun antigravity-steering.ts. Watch agy stream-json and ACP for a
+ * publicly documented immediate-send/control-request interface; notify the
+ * maintainer before changing the transport or adding steering.
  * A changed Qwen binary also needs qwen-native/probe.ts and the qwen-aimock
  * vendor/behavior suites (local provider, isolated HOME, no account). Also run
  * qwen-native/lock-lifetime.ts: a successful warmup does not prove shared-HOME

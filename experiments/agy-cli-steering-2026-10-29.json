@@ -1,0 +1,148 @@
+{
+  "cliVersion": "1.4.9",
+  "summaries": [
+    {
+      "mode": "queue",
+      "secondSentAt": 937,
+      "requestsBeforeRelease": 1,
+      "requests": [
+        {
+          "at": 632,
+          "first": true,
+          "second": false,
+          "toolResult": false,
+          "firstAnswer": false
+        },
+        {
+          "at": 1658,
+          "first": true,
+          "second": false,
+          "toolResult": true,
+          "firstAnswer": false
+        },
+        {
+          "at": 1968,
+          "first": true,
+          "second": true,
+          "toolResult": true,
+          "firstAnswer": true
+        }
+      ]
+    },
+    {
+      "mode": "send-immediately",
+      "secondSentAt": 906,
+      "requestsBeforeRelease": 1,
+      "requests": [
+        {
+          "at": 605,
+          "first": true,
+          "second": false,
+          "toolResult": false,
+          "firstAnswer": false
+        },
+        {
+          "at": 1631,
+          "first": true,
+          "second": true,
+          "toolResult": true,
+          "firstAnswer": false
+        }
+      ]
+    },
+    {
+      "mode": "send-immediately",
+      "secondSentAt": 882,
+      "requestsBeforeRelease": 1,
+      "requests": [
+        {
+          "at": 581,
+          "first": true,
+          "second": false,
+          "toolResult": false,
+          "firstAnswer": false
+        },
+        {
+          "at": 1607,
+          "first": true,
+          "second": true,
+          "toolResult": true,
+          "firstAnswer": false
+        }
+      ]
+    },
+    {
+      "mode": "send-immediately",
+      "secondSentAt": 890,
+      "requestsBeforeRelease": 1,
+      "requests": [
+        {
+          "at": 591,
+          "first": true,
+          "second": false,
+          "toolResult": false,
+          "firstAnswer": false
+        },
+        {
+          "at": 1613,
+          "first": true,
+          "second": true,
+          "toolResult": true,
+          "firstAnswer": false
+        }
+      ]
+    },
+    {
+      "mode": "stream-json",
+      "secondSentAt": 822,
+      "requestsBeforeRelease": 1,
+      "requests": [
+        {
+          "at": 522,
+          "first": true,
+          "second": false,
+          "toolResult": false,
+          "firstAnswer": false
+        },
+        {
+          "at": 1547,
+          "first": true,
+          "second": false,
+          "toolResult": true,
+          "firstAnswer": false
+        },
+        {
+          "at": 1604,
+          "first": true,
+          "second": true,
+          "toolResult": true,
+          "firstAnswer": true
+        }
+      ]
+    },
+    {
+      "mode": "control_request",
+      "requests": []
+    },
+    {
+      "mode": "control_response",
+      "requests": []
+    }
+  ],
+  "controls": {
+    "control_request": {
+      "exitCode": 2
+    },
+    "control_response": {
+      "exitCode": 2
+    }
+  },
+  "streamJson": {
+    "resultCount": 2,
+    "sameConversationId": true
+  },
+  "interactive": {
+    "sameLanguageServerPid": true,
+    "internalRpcInvokedByProbe": false
+  }
+}

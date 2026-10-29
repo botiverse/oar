@@ -40,11 +40,49 @@ category `thought_level`. The native session still holds a concrete variant
 such as `gemini-3.8-flash-high`. A child agent started through the `start_subagent`
 tool has its own id inside the harness but no ACP session of its own.
 
-Antigravity offers three programmatic surfaces: the `agy` CLI's print mode (a
-one-shot stream with no control channel while a turn runs), the SDK's local
-harness (undocumented), and `agy_acp_server`, a separate package of about
-1 GB that speaks ACP JSON-RPC over stdio. Only the ACP server has prompt,
-cancel, resume and reverse requests on one connection, so OAR uses it. The
+Both the `agy` CLI and the separate ACP service are vendor-native entry
+points. The CLI now has a documented persistent `stream-json` input mode;
+the earlier one-shot print-mode description is no longer complete. OAR keeps
+ACP because it exposes the session controls needed by a host on one stdio
+connection. The bundled Python SDK drives its companion harness underneath
+ACP; OAR does not call that private connection directly.
+
+### CLI versus ACP, checked October 29
+
+The comparison uses **agy CLI 1.4.9** and **ACP 1.4.4** on Linux x64.
+`[obs]` is the local-provider probe, `[src]` is the packaged implementation,
+and `[doc]` is the vendor's public documentation. Account-specific evidence
+elsewhere on this page retains its original version. Details, source paths,
+request ordering and the internal-interface boundary are in the
+[steering report](../../experiments/antigravity-steering-2026-10-29.md).
+
+| Host need | agy stream-json | ACP service |
+| --- | --- | --- |
+| Multiple turns | [obs] One process and conversation id, two successful results. Busy input waits for the first answer. | [obs] Repeated `session/prompt`; serialize them to avoid the race below. |
+| Mid-turn input | [obs] No injection in stream-json. The interactive UI's `send-immediately` setting does inject before the active tool loop ends. | [src/obs] No exposed steering path; concurrent prompts wait, then race over the shared stream. |
+| Cancel | [doc] Process SIGINT; no JSON cancel request. | [src] `session/cancel`; the older real-shell timing limitation below still applies. |
+| Resume | [doc] `--conversation` or `--continue`. | [src] `session/resume`, `session/load` and native listing. |
+| Model and effort readback | [doc/obs] Launch flags; init reports an explicit model override, not a live model/effort query. | [src] Model and `thinking_level` config options report native choices and current selection. |
+| MCP | [doc] Global/project configuration; stdio and streamable HTTP. | [src] Session MCP configuration; native stdio, HTTP and SSE handling. |
+| Permission decisions | [doc/obs] Headless policy decisions; control envelopes fail with exit 2. | [src] Reverse `session/request_permission` plus permission mode controls. |
+| Usage | [obs] Result has usage and cumulative turn count; this dummy provider reports zero tokens. | [src] 1.4.4 emits `usage_update` and prompt usage; old 1.2.1 observations of absent usage do not describe this source. |
+| Linux x64 download / installed payload | [obs] 63.29 MiB tarball / 219.07 MiB executable. | [obs] 321.24 MiB zip / 1012.48 MiB archive plus companion, before Python extraction caches. |
+| Updates | [doc/src] Official installer and auto-updater manifest. | [src] Registry versioned archive; update server and companion together. |
+
+References: [headless interface](https://antigravity.google/docs/cli/headless/),
+[CLI settings](https://antigravity.google/docs/settings?tab=cli),
+[CLI MCP](https://antigravity.google/docs/mcp?tab=cli),
+[installer](https://antigravity.google/cli/install.sh), and the
+[ACP registry](https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json).
+
+**Decision:** continue using ACP. The CLI adds persistent sequential input,
+but its public stream does not replace ACP's cancel, permission response and
+configuration controls. The UI's internal `SendUserCascadeMessage` RPC is
+not an OAR integration surface. Daily checks should report a newly public
+immediate-send or control-request interface in either product before
+reconsidering this choice.
+
+The
 server keeps its own credential store under `$GEMINI_HOME/antigravity-acp/`,
 separate from the `agy` CLI's login. Its file tools are confined to the
 session's `cwd` and the skills directories, but its own `view_file` also
@@ -167,9 +205,33 @@ containing a `USER_REQUEST` wrapper and metadata. The
 confirms image delivery without an empty text block, using a local scripted
 provider and a dummy key (passing on 1.4.1).
 
-**Steer (not available on this transport):** ACP has no steer method, so
-the session has no `steer`; the live `steer` scenario skips on that.
-`steerOrQueue()` and `deliver()` therefore queue.
+**Steer (no native route found in ACP server 1.4.4):** the October 29 source
+review and [busy-prompt probe](../../experiments/antigravity-steering-2026-10-29.md)
+checked the packaged ACP server, its private metadata and its bundled SDK.
+`server.py:5580-5711` passes each prompt to `agent.chat()` without reading
+prompt metadata. `google/antigravity/conversation/conversation.py:93-120`
+waits for an active conversation to become idle before sending another
+message. The adapter has no extension handler exposing the SDK's lower-level
+trigger notification. This is a checked transport limitation, not an inference
+from the standard ACP method list alone.
+
+With the first provider response held, three concurrent-prompt trials all
+kept the second input out of the first tool loop. It reached the model only
+after the first final answer. All three also exposed a native concurrency bug:
+the second RPC returned `end_turn` before its model request, an agent message
+reported concurrent `receive_steps()` calls, and the first RPC stayed open
+through the second answer. A sequential control delivered two separate turns
+without that error. The [report](../../experiments/antigravity-steering-2026-10-29.md)
+records the source chain, timings and repeat measurements; these use a local
+scripted provider, not a personal login.
+
+OAR therefore exposes no `steer` and does not send concurrent prompts on this
+transport. `steerOrQueue()` and default `deliver()` use the host queue; an
+explicit interrupt delivery keeps its separate abort-and-prompt meaning.
+Re-run the steering probe when upgrading Antigravity. The CLI UI result is
+separate: three `send-immediately` trials put new input into the next model
+request before the first final answer, whereas UI queue mode and stream-json
+waited for that answer. This does not supply an ACP or public stream control.
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`), drained one input per turn end; the

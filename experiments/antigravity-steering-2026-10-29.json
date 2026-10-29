@@ -1,0 +1,270 @@
+[
+  {
+    "name": "0-sequential",
+    "agentInfo": {
+      "name": "antigravity-acp",
+      "title": "Google Antigravity",
+      "version": "1.4.4"
+    },
+    "beforeRelease": {
+      "at": 3243,
+      "requestCount": 1,
+      "replyCount": 0
+    },
+    "requests": [
+      {
+        "at": 3243,
+        "first": true,
+        "second": false,
+        "toolResult": false,
+        "firstAnswer": false
+      },
+      {
+        "at": 3269,
+        "first": true,
+        "second": false,
+        "toolResult": true,
+        "firstAnswer": false
+      },
+      {
+        "at": 3318,
+        "first": true,
+        "second": true,
+        "toolResult": true,
+        "firstAnswer": true
+      }
+    ],
+    "outcomes": [
+      {
+        "text": "OAR_FIRST_REQUEST_9571",
+        "sentAt": 3096,
+        "replyAt": 3279,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "text": "OAR_SECOND_REQUEST_2846",
+        "sentAt": 3279,
+        "replyAt": 3327,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "messages": [
+      {
+        "at": 3273,
+        "text": "FIRST_LOOP_FINISHED"
+      },
+      {
+        "at": 3322,
+        "text": "SECOND_LOOP_FINISHED"
+      }
+    ]
+  },
+  {
+    "name": "1-busy",
+    "agentInfo": {
+      "name": "antigravity-acp",
+      "title": "Google Antigravity",
+      "version": "1.4.4"
+    },
+    "beforeRelease": {
+      "at": 3445,
+      "requestCount": 1,
+      "replyCount": 0
+    },
+    "requests": [
+      {
+        "at": 3194,
+        "first": true,
+        "second": false,
+        "toolResult": false,
+        "firstAnswer": false
+      },
+      {
+        "at": 3472,
+        "first": true,
+        "second": false,
+        "toolResult": true,
+        "firstAnswer": false
+      },
+      {
+        "at": 3522,
+        "first": true,
+        "second": true,
+        "toolResult": true,
+        "firstAnswer": true
+      }
+    ],
+    "outcomes": [
+      {
+        "text": "OAR_SECOND_REQUEST_2846",
+        "sentAt": 3194,
+        "replyAt": 3487,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "text": "OAR_FIRST_REQUEST_9571",
+        "sentAt": 3055,
+        "replyAt": 3533,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "messages": [
+      {
+        "at": 3476,
+        "text": "FIRST_LOOP_FINISHED"
+      },
+      {
+        "at": 3487,
+        "text": "Agent connection was lost and could not be re-established: Concurrent receive_steps() calls are not supported on this connection."
+      },
+      {
+        "at": 3526,
+        "text": "SECOND_LOOP_FINISHED"
+      }
+    ]
+  },
+  {
+    "name": "2-busy",
+    "agentInfo": {
+      "name": "antigravity-acp",
+      "title": "Google Antigravity",
+      "version": "1.4.4"
+    },
+    "beforeRelease": {
+      "at": 3406,
+      "requestCount": 1,
+      "replyCount": 0
+    },
+    "requests": [
+      {
+        "at": 3156,
+        "first": true,
+        "second": false,
+        "toolResult": false,
+        "firstAnswer": false
+      },
+      {
+        "at": 3430,
+        "first": true,
+        "second": false,
+        "toolResult": true,
+        "firstAnswer": false
+      },
+      {
+        "at": 3485,
+        "first": true,
+        "second": true,
+        "toolResult": true,
+        "firstAnswer": true
+      }
+    ],
+    "outcomes": [
+      {
+        "text": "OAR_SECOND_REQUEST_2846",
+        "sentAt": 3156,
+        "replyAt": 3445,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "text": "OAR_FIRST_REQUEST_9571",
+        "sentAt": 3012,
+        "replyAt": 3497,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "messages": [
+      {
+        "at": 3434,
+        "text": "FIRST_LOOP_FINISHED"
+      },
+      {
+        "at": 3445,
+        "text": "Agent connection was lost and could not be re-established: Concurrent receive_steps() calls are not supported on this connection."
+      },
+      {
+        "at": 3490,
+        "text": "SECOND_LOOP_FINISHED"
+      }
+    ]
+  },
+  {
+    "name": "3-busy",
+    "agentInfo": {
+      "name": "antigravity-acp",
+      "title": "Google Antigravity",
+      "version": "1.4.4"
+    },
+    "beforeRelease": {
+      "at": 3405,
+      "requestCount": 1,
+      "replyCount": 0
+    },
+    "requests": [
+      {
+        "at": 3155,
+        "first": true,
+        "second": false,
+        "toolResult": false,
+        "firstAnswer": false
+      },
+      {
+        "at": 3430,
+        "first": true,
+        "second": false,
+        "toolResult": true,
+        "firstAnswer": false
+      },
+      {
+        "at": 3481,
+        "first": true,
+        "second": true,
+        "toolResult": true,
+        "firstAnswer": true
+      }
+    ],
+    "outcomes": [
+      {
+        "text": "OAR_SECOND_REQUEST_2846",
+        "sentAt": 3155,
+        "replyAt": 3446,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "text": "OAR_FIRST_REQUEST_9571",
+        "sentAt": 3011,
+        "replyAt": 3493,
+        "reply": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "messages": [
+      {
+        "at": 3435,
+        "text": "FIRST_LOOP_FINISHED"
+      },
+      {
+        "at": 3445,
+        "text": "Agent connection was lost and could not be re-established: Concurrent receive_steps() calls are not supported on this connection."
+      },
+      {
+        "at": 3485,
+        "text": "SECOND_LOOP_FINISHED"
+      }
+    ]
+  }
+]
