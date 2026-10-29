@@ -175,8 +175,11 @@ native provider is `token-plan`, region `ap-southeast-1`, endpoint
 model `qwen3.7-plus`. The connect reply omitted `baseUrl`; a second
 `listProviders()` confirmed the persisted address. `authStatus` moved from
 `logged_out` to `unknown`, as designed for local credential presence.
-Those runs exposed the duplicate text projection described above, so they
-are not clean end-to-end reply validations. The
+Those first two runs exposed the duplicate text projection described
+above. A third run using the repaired adapter passed end to end: the reply
+was exactly the expected 22-character marker, without duplication, and
+reasoning remained separate. It used 21,971 input and 230 output tokens;
+processes and the private HOME were cleaned up. The
 [portable probe](../../experiments/qwen-native/token-plan-real.ts) keeps the
 key on the executing machine and reports only fixed configuration labels,
 status, usage numbers and content-free text checks.

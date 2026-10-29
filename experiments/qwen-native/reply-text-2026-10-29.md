@@ -74,8 +74,21 @@ No real response content, key or account identifier was collected.
 temporary HOME, accepts a key only through `OAR_QWEN_TOKEN_PLAN_KEY`, writes
 a mode-0600 report, then disposes processes and removes the private HOME.
 The key reaches native provider configuration on stdin, not argv. The
-report excludes raw frames, native errors and model text. A repaired real
-run is still pending at the time of this note.
+report excludes raw frames, native errors and model text. The third consented real run passed: exactly 22 reply characters,
+`equalsAfterTrim: true`, `equalsMarkerTwice: false`, seven reasoning events
+and 91 reasoning characters. The turn completed with 21,971 input and 230
+output tokens. Process cleanup and removal of the private HOME both passed.
+The repair package used base `2287205` plus the source changes committed as
+`b28339d`; only the evidence documentation changed afterward.
+
+The original content-free reports are retained as
+[before v1](token-plan-2026-10-29/before-v1.json),
+[before v2](token-plan-2026-10-29/before-v2.json) and
+[after v3](token-plan-2026-10-29/after-v3.json).
+The first report establishes a failed exact-text check; the second adds
+length and channel diagnostics. Only the isolated native probe proves the
+id mismatch. The repaired real run establishes success for this provider,
+model, version and machine, not every account, model or platform.
 
 ## Upstream issue draft
 

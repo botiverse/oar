@@ -1,0 +1,64 @@
+{
+  "probe": "qwen-token-plan-real-2026-10-29",
+  "revision": 3,
+  "platform": "linux",
+  "arch": "x64",
+  "node": "24.22.1",
+  "providerId": "token-plan",
+  "region": "ap-southeast-1",
+  "baseUrl": "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+  "model": "qwen3.7-plus",
+  "startedAt": "2026-10-29T14:43:59.333Z",
+  "pass": true,
+  "mode": "one_real_turn",
+  "runtimeAvailable": true,
+  "versionMatches": true,
+  "version": "0.26.3",
+  "authStatusBefore": "logged_out",
+  "providerFound": true,
+  "endpointMatchesNativeCatalog": true,
+  "modelInProviderDefaults": true,
+  "connect": {
+    "success": true,
+    "providerMatches": true,
+    "endpointMatches": null,
+    "modelMatches": true,
+    "openai": true
+  },
+  "persisted": {
+    "keyPresent": true,
+    "endpointMatches": true,
+    "modelPresent": true
+  },
+  "authStatusAfter": "unknown",
+  "authStatusMeaning": "local credential presence only; remote validity is not inferred",
+  "models": {
+    "available": true,
+    "count": 1,
+    "selectedPresent": true
+  },
+  "configurationVerified": true,
+  "textChecks": {
+    "length": 22,
+    "containsMarker": true,
+    "equalsAfterTrim": true,
+    "equalsAfterTrimAndFinalPeriod": true,
+    "equalsMarkerTwice": false,
+    "reasoningEventCount": 7,
+    "reasoningCharacterCount": 91,
+    "messageEventCount": 3
+  },
+  "turn": {
+    "ended": true,
+    "completed": true,
+    "expectedText": true
+  },
+  "usage": {
+    "input": 21971,
+    "output": 230,
+    "cacheRead": 0
+  },
+  "processCleanup": true,
+  "privateHomeRemoved": true,
+  "finishedAt": "2026-10-29T14:44:16.189Z"
+}
