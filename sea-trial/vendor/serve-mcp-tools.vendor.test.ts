@@ -7,6 +7,7 @@ import { startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harnes
 import { runtimeUnderTest } from "../harness/subject.js";
 import { echoesReceived, echoFixtures, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
+import { record } from "../harness/trace.js";
 
 /**
  * serveMcpTools (#341) on the real harnesses, against a scripted provider:
@@ -41,7 +42,7 @@ interface Backend {
 
 const runtime = (id: string, session: Runtime["session"], installation: NonNullable<Runtime["installation"]>): Runtime => defineRuntime({ id, session, installation });
 
-// claude, codex and pi run in CI; opencode, kimi and grok locally (CI has no ACP aimock backend).
+// CI runs claude, codex, pi, OpenCode v1, kimi and grok with local scripted providers.
 const backends: readonly Backend[] = [
   { id: "claude-aimock", runtime: runtime("claude-aimock", claudeSession, claudeInstallation), instructions: true, start: async () => startClaudeAimock(script(), { captureRaw: true }) },
   { id: "codex-aimock", runtime: runtime("codex-aimock", codexSession, codexInstallation), instructions: true, start: async () => startCodexAimock(script(), { captureRaw: true, rewriteResponse: namespaceMcpToolCalls }) },
@@ -57,10 +58,16 @@ for (const backend of backends) {
     test("the agent calls a tool the host serves, and the bearer token stays out of the records", async () => {
       const served = await serveMcpTools({ name: "host", tools: [hostEcho], instructions: INSTRUCTIONS });
       const env = await backend.start();
+      let phase = "opening";
+      const progress = process.env.OAR_TEST_MCP_PROGRESS === "1" ? setInterval(() => {
+        record({ kind: "served_mcp_progress", backend: backend.id, phase, providerRequests: env.raw.length });
+      }, 10_000).unref() : undefined;
       try {
         const session = await runtimeUnderTest(backend.runtime, env.env).startSession({ mcpServers: [served.server] });
+        phase = "tool_turn";
         await structuralToolRound(session, env.mock, "please call the host tool");
         const records = JSON.stringify(session.records());
+        phase = "dispose";
         await session.dispose();
         expect(echoesReceived(env.raw)).toEqual(["echo:host-call via=host token=served"]);
         // The runtime decides whether the server's instructions reach the model (#378).
@@ -69,6 +76,8 @@ for (const backend of backends) {
         expect(token.length).toBeGreaterThan(40);
         expect(records).not.toContain(token);
       } finally {
+        phase = "fixture_cleanup";
+        if (progress !== undefined) { clearInterval(progress); }
         await env.stop();
         await served.close();
       }

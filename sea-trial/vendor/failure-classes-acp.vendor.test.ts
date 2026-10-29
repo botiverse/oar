@@ -14,8 +14,8 @@ import { runTurn } from "./support/asserts.js";
 /*
  * The ACP cells of docs/spec/runtime-matrix.md#failure-evidence, each CLI
  * against a scripted provider (harness/aimock-acp.ts), as
- * failure-classes.vendor.test.ts does for claude, codex and pi. Run locally
- * (OAR_TEST=<id>), as CI has no ACP aimock backend. Pinned too: what kimi
+ * failure-classes.vendor.test.ts does for claude, codex and pi. CI runs Grok,
+ * Kimi and OpenCode v1; Antigravity remains local. Pinned too: what kimi
  * and antigravity report as a completed turn (a known gap) and what opencode
  * classes only by its words (its last resort).
  */

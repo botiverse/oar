@@ -97,7 +97,8 @@ folds, resolvers, process plumbing. Use virtual time via `vi.useFakeTimers`
 
 One suite in `sea-trial/cases/`, run against interchangeable backends that
 `OAR_TEST` selects (`sea-trial/harness/backends.ts`; unset means `mock`, an
-unavailable runtime skips). Write a case for a contract promise every runtime
+unavailable runtime skips locally; `OAR_TEST_REQUIRE_AVAILABLE=1` makes an
+unavailable installation fail). Write a case for a contract promise every runtime
 must honor: it asserts only through the public Session API and must pass on
 the mock, the aimock backends and real logins alike, race-honest where
 runtimes may legitimately differ.
@@ -106,14 +107,15 @@ runtimes may legitimately differ.
   binaries or network; the default validation for any change to contracts or
   session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
-  `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`; Qoder uses
+  `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
+  `grok-aimock`, `kimi-aimock`, `opencode-aimock`; Qoder uses
   `qoder-native`): the real vendor binary and adapter with only the model
   provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends concurrently,
-  by default mock plus the six aimock backends and Qoder native replay. Use it before pushing a
+  by default mock plus the nine aimock backends and Qoder native replay. Use it before pushing a
   change to shared runtime machinery.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`): your local installation and login. The final word when
@@ -125,7 +127,8 @@ runtimes may legitimately differ.
 `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. The ACP
 runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
 `antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`) need the installed
-CLI and run only locally; CI runs the seven behavior backends. Vendor tests see
+CLI. Grok, Kimi and OpenCode v1 run in three-platform CI; Antigravity
+remains a local probe. Vendor tests see
 the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
 handles vendor-specific behavior; write one for anything that needs the
@@ -177,6 +180,15 @@ or pull request whose changes are all Markdown files or under `docs/` or
   vendor step has a 12-minute CI ceiling and each job has a 20-minute ceiling.
   This is an observation experiment after repeated runner losses, not a
   proven fix or a change to assertions, concurrency or native deadlines.
+- `acp-behavior`: Kimi 2.3.3, Grok 1.0.70 and OpenCode v1 1.19.5 on
+  Linux, macOS and Windows, with npm download caches. Shared behavior and
+  vendor tests use native programs with local scripted providers, isolated
+  configuration and synthetic keys. Shared-case concurrency and Vitest
+  worker count are both 2. A missing installation fails; individual
+  unsupported capabilities remain visible skips. Each job has a 20-minute
+  ceiling and each suite step a 12-minute ceiling, without changing case
+  assertions or native deadlines. Logs and traces upload even on failure.
+  [Evidence and deferred runtimes](../experiments/acp-ci-2026-10-29.md).
 - `browser-demo`: `pnpm durable-demo:smoke` in headless Chromium on Linux.
   The real Pi Durable Harness and native fetch provider run in the browser;
   provider requests go to local scripted responses using a synthetic key.

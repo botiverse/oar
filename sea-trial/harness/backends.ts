@@ -24,6 +24,7 @@ import { allRuntimes } from "./runtimes.js";
 import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
+import { acpBackend } from "./acp-backends.js";
 
 /**
  * OAR_TEST backend selection. Every entry answers: which runtime, and does
@@ -111,6 +112,9 @@ export async function selectBackend(target: string): Promise<Backend> {
       return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation }), aimock };
     }
     case "qwen-aimock": return qwenBackend();
+    case "kimi-aimock": return acpBackend("kimi");
+    case "grok-aimock": return acpBackend("grok");
+    case "opencode-aimock": return acpBackend("opencode");
     case "qoder-native": {
       const fixture = await startQoderNative(Array.from({ length: 100 }, () => ({ chunks: ["o", "k"] })), 900);
       const runtime = defineRuntime({

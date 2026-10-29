@@ -12,6 +12,8 @@
  * For a changed Grok binary, also grok-prompt-options.ts
  * (local provider, no login): recheck native prompt precedence and resume
  * rules so an upstream fix can retire the conditional refusal.
+ * Keep the Kimi, Grok and OpenCode v1 ACP CI package pins in ci.yml aligned
+ * with verified upgrades; rerun shared and vendor suites on all three platforms.
  * Tool selection: rerun sea-trial/vendor/disallowed-tools*.vendor.test.ts
  * on changed supporting runtimes; Cursor also needs cursor-disallowed-tools.ts
  * (real login and tokens). Revisit refused native channels in the tool-denial audit.

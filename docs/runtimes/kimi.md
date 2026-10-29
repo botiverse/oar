@@ -706,8 +706,11 @@ held before the turn end).
 completion, the Agent report) and the dispose-after-death answer.
 [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
 yolo selection to the recorded 0.38.0 schema. The
-[session behavior CI matrix](../../.github/workflows/ci.yml) excludes Kimi;
-the native login tests above run in the three platform check jobs.
+[session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.3.3
+on Linux, macOS and Windows, using a local scripted provider. Its shared
+suite reports capability skips separately; the native login tests above
+also run in the three platform check jobs.
+[CI scope and evidence](../../experiments/acp-ci-2026-10-29.md).
 
 Open gaps: questions and approvals (no `request_permission` arrives under
 yolo), post-turn compaction, whether every kimi tool opens with its name as
@@ -715,7 +718,7 @@ yolo), post-turn compaction, whether every kimi tool opens with its name as
 controllers and in-flight work across OAR subprocesses, and any child usage
 (the transport carries none). [Session MCP servers](#session-mcp-servers)
 ran against a scripted provider only, not on the real login and model, and
-their vendor test runs locally (`OAR_TEST=kimi-aimock`), not in CI; whether
+their vendor test runs in CI (`OAR_TEST=kimi-aimock`); whether
 a hidden same-name user server still starts is unmeasured. Install by
 region is open too: the install script's comments name a global mirror
 (`code.kimi.ai/kimi-code/install.sh`, which records region `global`), but

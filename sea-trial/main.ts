@@ -1,6 +1,7 @@
 /**
  * Behavior-test entry, OpenDAL-style: the backend is selected by environment
- * and an absent backend SKIPS rather than fails.
+ * and an absent backend skips locally. OAR_TEST_REQUIRE_AVAILABLE=1 makes
+ * an absent installation fail, as required by the pinned ACP CI jobs.
  *
  *   pnpm sea-trial                        # mock fixture (what CI also runs)
  *   OAR_TEST=codex pnpm sea-trial         # the real, logged-in codex
@@ -21,10 +22,11 @@ const { runtime, aimock: aimockEnv, concurrency, beforeSuite, close } = await se
 
 const installation = await runtime.installation?.();
 if (installation === undefined || installation.kind !== "available") {
-  process.stdout.write(`${target}: not available (${installation?.kind ?? "no probe"}), skipping\n`);
+  const required = process.env.OAR_TEST_REQUIRE_AVAILABLE === "1";
+  process.stdout.write(`${target}: not available (${installation?.kind ?? "no probe"}), ${required ? "failing" : "skipping"}\n`);
   await aimockEnv?.stop();
   await close?.();
-  process.exit(0);
+  process.exit(required ? 1 : 0);
 }
 
 // Vendor error-edge tests live in sea-trial/vendor/*.vendor.test.ts (vitest,
@@ -40,10 +42,11 @@ for (const outcome of outcomes) {
     failures += 1;
     process.stdout.write(`FAIL ${outcome.caseId}: ${outcome.reason}\n`);
   } else {
-    process.stdout.write(`${outcome.kind.toUpperCase().padEnd(7)} ${outcome.caseId}\n`);
+    process.stdout.write(`${outcome.kind.toUpperCase().padEnd(7)} ${outcome.caseId}${outcome.kind === "skipped" ? ` (missing: ${outcome.missing.join(", ")})` : ""}\n`);
   }
 }
-process.stdout.write(`${target}: ${outcomes.length - failures}/${outcomes.length} clean\n`);
+const skipped = outcomes.filter((outcome) => outcome.kind === "skipped").length;
+process.stdout.write(`${target}: ${outcomes.length - failures - skipped} passed, ${skipped} skipped, ${failures} failed\n`);
 process.stdout.write(`trace: ${tracePath}\n`);
 await aimockEnv?.stop();
 await close?.();

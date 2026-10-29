@@ -764,8 +764,9 @@ usage across compaction; concurrent same-ID controllers, cross-process live
 attachment and load-fallback code effects; the `skills-reload` response's
 payload; the [sym]-only vendor methods; [session MCP
 servers](#session-mcp-servers) on a real login and model (measured against
-a scripted provider only; their vendor test runs locally,
-`OAR_TEST=grok-aimock`, not in CI). Design should distinguish restoring
+a scripted provider only; their vendor test and the shared behavior suite
+run in CI with `OAR_TEST=grok-aimock`, pinned to Grok 1.0.70 on Linux,
+macOS and Windows; [scope and evidence](../../experiments/acp-ci-2026-10-29.md)). Design should distinguish restoring
 context, replaying observations, and adopting live execution; the Session
 OAR returns does not imply all three.
 

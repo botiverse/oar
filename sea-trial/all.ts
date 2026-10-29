@@ -10,7 +10,7 @@ import path from "node:path";
 import { resolveRunDir } from "./harness/trace.js";
 
 const backends = process.argv.slice(2);
-const targets = backends.length > 0 ? backends : ["mock", "claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native"];
+const targets = backends.length > 0 ? backends : ["mock", "claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "grok-aimock", "kimi-aimock", "opencode-aimock"];
 const runDir = resolveRunDir();
 
 const results = await Promise.all(targets.map(async (target) => {
@@ -32,7 +32,7 @@ const results = await Promise.all(targets.map(async (target) => {
       const lines = buffer.split("\n");
       buffer = lines.pop() ?? "";
       for (const line of lines) {
-        if (/^(?:FAIL |SKIPPED )|clean$|, skipping$/u.test(line)) {
+        if (/^(?:FAIL |SKIPPED )|\d+ failed$|, (?:skipping|failing)$/u.test(line)) {
           summary.push(line);
         }
       }

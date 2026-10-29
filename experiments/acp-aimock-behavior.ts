@@ -18,30 +18,19 @@
  * are retained in runtime-version-checks/2026-10-23.md.
  */
 import assert from "node:assert/strict";
-import { antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession } from "../packages/oar/src/index.js";
 import { trialCases } from "../sea-trial/cases/suite.js";
 import { runSuite } from "../sea-trial/harness/runner.js";
 import { runtimeUnderTest } from "../sea-trial/harness/subject.js";
-import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../sea-trial/harness/aimock-acp.js";
+import { acpBackend } from "../sea-trial/harness/acp-backends.js";
 import { openTrace } from "../sea-trial/harness/trace.js";
 
 const [id] = process.argv.slice(2);
 assert.ok(id === "antigravity" || id === "grok" || id === "kimi" || id === "opencode", "Choose antigravity, grok, kimi or opencode");
-const backends = {
-  antigravity: { installation: antigravityInstallation, session: antigravitySession, start: startAntigravityAimock },
-  grok: { installation: grokInstallation, session: grokSession, start: startGrokAimock },
-  kimi: { installation: kimiInstallation, session: kimiSession, start: startKimiAimock },
-  opencode: { installation: opencodeInstallation, session: opencodeSession, start: startOpencodeAimock },
-};
-const backend = backends[id];
 const name = `${id}-aimock`;
-const env = await backend.start(mock => {
-  mock.onMessage(/slow/u, {content: "ok"}, {latency:900});
-  mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, {content:"ok"}, {latency:80});
-});
+const { runtime, aimock: env } = await acpBackend(id);
 try {
   console.log(`trace: ${openTrace(name)}`);
-  const outcomes = await runSuite(trialCases, runtimeUnderTest(defineRuntime({id: name, installation: backend.installation, session: backend.session}), env.env));
+  const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, env.env));
   process.stdout.write(`${JSON.stringify(outcomes, null, 2)}\n`);
   process.exitCode = outcomes.some(o => o.kind === "fail") ? 1 : 0;
 } finally { await env.stop(); }

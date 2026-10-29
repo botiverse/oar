@@ -1,14 +1,13 @@
 /* oxlint-disable promise/avoid-new -- Native HTTP pass-through with a callback-based server lifecycle. */
 import { createServer, request as httpRequest } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { McpToolsListChanged } from "../../../packages/oar/src/contracts/runtime.js";
-import type { Session } from "../../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../../packages/oar/src/observe/turns.js";
-import { serveMcpTools, type HostTool, type ServedMcpTools } from "../../../packages/oar/src/index.js";
+import { serveMcpTools, type HostTool, type ServedMcpTools, type Session, type McpToolsListChanged } from "../../../packages/oar/src/index.js";
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
 import type { AimockEnv, LLMock } from "../../harness/aimock.js";
 import { claudeMcpCatalog } from "./claude-tools.js";
 import { currentTurnSays } from "./echo-mcp.js";
+import { record } from "../../harness/trace.js";
 
 /*
  * Does a running session take a change to an attached MCP server's tools
@@ -137,27 +136,37 @@ export async function runToolsListChanged(env: AimockEnv, open: (server: { reado
   const log: string[] = [];
   const served = await serveMcpTools({ name: SERVER, tools: [tool(ALPHA)] });
   const proxy = await loggingProxy(served, log);
+  let phase = "opening";
+  const progress = process.env.OAR_TEST_MCP_PROGRESS === "1" ? setInterval(() => {
+    record({ kind: "mcp_catalog_progress", phase, methods: [...log], providerRequests: env.raw.length });
+  }, 10_000).unref() : undefined;
   try {
     const session = await open({ name: SERVER, type: "http", url: proxy.url });
     try {
       // A client may list the tools after the session opens (opencode 2.x) or
       // only at the first prompt (antigravity): the first turn waits a while,
       // then runs anyway.
+      phase = "initial_catalog";
       await poll(() => log.includes("tools/list"), 10_000);
+      phase = "first_turn";
       await turn(session, "first turn: reply ok");
       const afterFirst = env.raw.length;
       const connected = log.includes("tools/list");
       served.setTools([tool(BETA)]);
       log.push("setTools");
+      phase = "changed_catalog";
       const relistedNow = (): boolean => log.slice(log.indexOf("setTools")).includes("tools/list");
       // A client that heard the notification lists again before the second turn is built.
       await poll(relistedNow, 10_000);
+      phase = "second_turn";
       await turn(session, "second turn: reply ok");
       return { turns: [env.raw.slice(0, afterFirst), env.raw.slice(afterFirst)], log: [...log], connected, relisted: relistedNow() };
     } finally {
+      phase = "dispose";
       await session.dispose();
     }
   } finally {
+    if (progress !== undefined) { clearInterval(progress); }
     await proxy.close();
     await served.close();
   }

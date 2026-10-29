@@ -20,7 +20,7 @@ import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/
 
 const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
 
-// claude, codex and pi run in CI; opencode, kimi and grok locally (CI has no ACP aimock backend).
+// CI runs claude, codex, pi, OpenCode v1, kimi and grok with local scripted providers.
 const backends: readonly { readonly id: string; readonly runtime: string; readonly start: () => Promise<AimockEnv> }[] = [
   { id: "claude-aimock", runtime: "claude", start: async () => startClaudeAimock(loadClaudeProbeTools, { captureRaw: true }) },
   { id: "codex-aimock", runtime: "codex", start: async () => startCodexAimock(replyOk, { captureRaw: true }) },
