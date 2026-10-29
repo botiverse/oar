@@ -30,7 +30,23 @@ CI wraps the Windows Pi RPC behavior and vendor commands with
 codes and output while flushing memory and process identity samples to
 `oar-trial-run/windows-resources/`. No command lines or environment values are
 collected. Sampling failures are recorded separately; they do not mask test
-failures. The investigation and remaining uncertainties are recorded in
+failures. The vendor job also enables `OAR_PI_RPC_DIAGNOSTICS` in its isolated aimock
+fixtures. `pi-rpc-progress.ts` persists case names and results from Vitest's
+parent process; `windows-resources.ps1` enforces a separate three-minute case
+ceiling and ten-minute command ceiling. Existing shorter Vitest timeouts stay
+unchanged. An external timeout returns 124 and stops only the launched test
+process tree, leaving the CI step able to upload evidence.
+
+`pi-rpc-stderr.ts` observes the real Pi RPC launch in test workers without
+changing its inputs or process implementation. It periodically saves the last
+8 KiB of stderr with the active case name, applying the session's credential
+redactor and inherited credential environment redaction. Native sessions keep
+stderr private in production. These files and the combined Vitest output are
+under `oar-trial-run/pi-rpc-diagnostics/`, included in the existing `always()`
+artifact upload. The bundled-host subprocess is outside this test observer;
+its reported errors remain in the combined test output.
+
+The investigation and remaining uncertainties are recorded in
 [Windows CI investigation](../experiments/windows-ci-2026-10-26.md).
 
 ## ACP jobs

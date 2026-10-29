@@ -177,10 +177,17 @@ or pull request whose changes are all Markdown files or under `docs/` or
   `pnpm run sea-trial` plus that backend's vendor tests. Windows Pi RPC is
   excluded from this combined job and runs as `pi-rpc-windows (behavior)`
   and `pi-rpc-windows (vendor)` on separate VMs. Both retain the original
-  commands and resource sampler; their artifacts have phase suffixes. The
-  vendor step has a 12-minute CI ceiling and each job has a 20-minute ceiling.
-  This is an observation experiment after repeated runner losses, not a
-  proven fix or a change to assertions, concurrency or native deadlines.
+  commands and resource sampler; their artifacts have phase suffixes. Vendor
+  cases retain their existing 30 to 120 second Vitest limits. An external
+  monitor also stops the test process tree if a case (including hooks) stays
+  active for three minutes, naming it in the resource log. A ten-minute
+  command ceiling also covers collection or shutdown hangs; the CI step and
+  job ceilings remain 12 and 20 minutes. Exit 124 means this diagnostic
+  monitor stopped the command, not a native test result.
+  The always-uploaded artifact includes incremental case events, the last
+  active cases, combined Vitest output and redacted Pi RPC stderr tails.
+  These observations change no assertion, concurrency or native deadline and
+  do not establish the cause of the intermittent Windows hangs.
 - `acp-behavior`: Kimi 2.4.0, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.178.1 on
   Linux and macOS, with npm download caches. Shared behavior and
   vendor tests use native programs with local scripted providers, isolated

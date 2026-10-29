@@ -159,7 +159,11 @@ jobs:
         if: matrix.phase == 'vendor'
         timeout-minutes: 12
         shell: pwsh
-        run: ./sea-trial/windows-resources.ps1 -Stage vendor -Command 'pnpm vitest run sea-trial/vendor'
+        env:
+          OAR_PI_RPC_DIAGNOSTICS: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
+        run: |
+          New-Item -ItemType Directory -Force $env:OAR_PI_RPC_DIAGNOSTICS | Out-Null
+          ./sea-trial/windows-resources.ps1 -Stage vendor -ActiveTestsPath "$env:OAR_PI_RPC_DIAGNOSTICS/active-tests.json" -CaseTimeoutSeconds 180 -CommandTimeoutSeconds 600 -Command 'pnpm vitest run sea-trial/vendor 2>&1 | Tee-Object -FilePath "$env:OAR_PI_RPC_DIAGNOSTICS/vitest.log"'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

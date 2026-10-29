@@ -5,7 +5,10 @@ param(
     [Parameter(Mandatory)][string]$Command,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '../oar-trial-run/windows-resources'),
     [ValidateRange(1000, 60000)][int]$IntervalMs = 5000,
-    [ValidateRange(1, 720)][int]$MaxSamples = 720
+    [ValidateRange(1, 720)][int]$MaxSamples = 720,
+    [string]$ActiveTestsPath,
+    [ValidateRange(1, 600)][int]$CaseTimeoutSeconds = 180,
+    [ValidateRange(0, 3600)][int]$CommandTimeoutSeconds = 0
 )
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'Windows resource sampling requires Windows.' }
@@ -55,6 +58,7 @@ function Write-Sample {
 }
 
 $child = $null
+$timedOut = $false
 try {
     Write-Record @{ kind = 'stage_start'; samplerPid = $PID }
     Write-Sample
@@ -66,17 +70,45 @@ try {
     }
     # Standard streams are inherited, so CI still receives the native test output.
     $child = [System.Diagnostics.Process]::Start($start)
+    $commandTimer = [System.Diagnostics.Stopwatch]::StartNew()
     Write-Record @{ kind = 'command_start'; pid = $child.Id; createdAt = $child.StartTime.ToUniversalTime().ToString('o') }
     $samples = 0
     while (-not $child.HasExited -and $samples -lt $MaxSamples) {
         Write-Sample
+        $expired = @()
+        if ($ActiveTestsPath -and (Test-Path $ActiveTestsPath)) {
+            try {
+                $progress = [System.IO.FileStream]::new($ActiveTestsPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+                $reader = [System.IO.StreamReader]::new($progress)
+                try { $active = @($reader.ReadToEnd() | ConvertFrom-Json) } finally { $reader.Dispose() }
+                $expired = @($active | Where-Object { ([DateTime]::UtcNow - [DateTime]$_.startedAt).TotalSeconds -ge $CaseTimeoutSeconds })
+            } catch {
+                Write-Record @{ kind = 'progress_read_error'; errorType = $_.Exception.GetType().Name }
+            }
+        }
+        if ($expired.Count -gt 0 -or ($CommandTimeoutSeconds -gt 0 -and $commandTimer.Elapsed.TotalSeconds -ge $CommandTimeoutSeconds)) {
+            $timedOut = $true
+            foreach ($test in $expired) {
+                Write-Record @{ kind = 'case_timeout'; name = $test.name; file = $test.file; timeoutSeconds = $CaseTimeoutSeconds }
+                Write-Host "FAILED: $($test.file) > $($test.name) exceeded the external $CaseTimeoutSeconds second case deadline."
+            }
+            if ($expired.Count -eq 0) { Write-Record @{ kind = 'command_timeout'; timeoutSeconds = $CommandTimeoutSeconds } }
+            # Own only the launched test command and its descendants. Keep the sampler alive to upload evidence.
+            $child.Kill($true)
+            break
+        }
         $samples += 1
         [void]$child.WaitForExit($IntervalMs)
     }
     if (-not $child.HasExited) { Write-Record @{ kind = 'sampling_limit'; samples = $samples } }
     # The sampling limit bounds diagnostic volume, not the test's existing deadline.
-    $child.WaitForExit()
-    $code = $child.ExitCode
+    if ($timedOut) {
+        [void]$child.WaitForExit(5000)
+        $code = 124
+    } else {
+        $child.WaitForExit()
+        $code = $child.ExitCode
+    }
     Write-Sample
     Write-Record @{ kind = 'stage_exit'; pid = $child.Id; exitCode = $code }
 } finally {
