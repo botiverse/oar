@@ -523,7 +523,10 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
 - [Session MCP servers](#session-mcp-servers) ran against a scripted
   provider only, not a logged-in provider or a free `opencode/*` model. The
   vendor test and shared behavior suite run in CI (`OAR_TEST=opencode-aimock`),
-  pinned to `opencode-ai@1.19.5` on Linux, macOS and Windows.
+  pinned to `opencode-ai@1.19.5` on Linux and macOS. Windows runs the same
+  suites after main pushes in a separate
+  [observation workflow](../../.github/workflows/acp-windows.yml), outside
+  PR gates because intermittent startup or MCP timeouts remain unexplained.
   [Scope and evidence](../../experiments/acp-ci-2026-10-29.md).
   The broken-command clash was probed, not tested.
 - The `opencode-aimock` vendor suite is v1 only: 5 of its 10 cases fail on

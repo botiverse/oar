@@ -752,8 +752,10 @@ nested snake_case lineage → graph edge, the envelope-parent
 methods, and per-prompt ledgers accumulating into `usage()`. [Terminal tests](../../tests/acp/acp-terminal.test.ts)
 cover shell compatibility, truncation, and cleanup. [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts)
 check recorded schema assumptions (1.0.5), not execution of the current
-harness. The [CI behavior matrix](../../.github/workflows/ci.yml) runs real
-Claude, Codex, and Pi backends, not Grok.
+harness. The [CI behavior matrix](../../.github/workflows/ci.yml) also runs
+Grok against a local scripted provider on Linux and macOS. Windows runs in
+the separate [main-push observation workflow](../../.github/workflows/acp-windows.yml):
+intermittent startup or MCP timeouts remain unexplained and do not gate PRs.
 
 Open gaps: grok 1.0.41 pushes `_x.ai/session/setup {method: "session/new",
 phase: "model_switch", sessionId}` while opening (seen 2026-09-29 below the
@@ -766,7 +768,7 @@ payload; the [sym]-only vendor methods; [session MCP
 servers](#session-mcp-servers) on a real login and model (measured against
 a scripted provider only; their vendor test and the shared behavior suite
 run in CI with `OAR_TEST=grok-aimock`, pinned to Grok 1.0.70 on Linux,
-macOS and Windows; [scope and evidence](../../experiments/acp-ci-2026-10-29.md)). Design should distinguish restoring
+macOS, with Windows main-push observations; [scope and evidence](../../experiments/acp-ci-2026-10-29.md)). Design should distinguish restoring
 context, replaying observations, and adopting live execution; the Session
 OAR returns does not imply all three.
 

@@ -707,7 +707,10 @@ completion, the Agent report) and the dispose-after-death answer.
 [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
 yolo selection to the recorded 0.38.0 schema. The
 [session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.3.3
-on Linux, macOS and Windows, using a local scripted provider. Its shared
+on Linux and macOS, using a local scripted provider. Windows runs the same
+suites after main pushes in the separate
+[ACP observation workflow](../../.github/workflows/acp-windows.yml), because
+startup or MCP timeouts remain intermittent and unexplained. The shared
 suite reports capability skips separately; the native login tests above
 also run in the three platform check jobs.
 [CI scope and evidence](../../experiments/acp-ci-2026-10-29.md).

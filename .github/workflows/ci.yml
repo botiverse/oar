@@ -174,7 +174,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         backend: [kimi-aimock, grok-aimock, opencode-aimock]
         include:
           - backend: kimi-aimock
@@ -193,7 +193,6 @@ jobs:
       OAR_TEST_REQUIRE_AVAILABLE: '1'
       OAR_TEST_CONCURRENCY: '2'
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
-      OAR_CHILD_STDERR: ${{ matrix.os == 'windows-latest' && 'inherit' || '' }}
       OAR_TEST_MCP_PROGRESS: '1'
     steps:
       - uses: actions/checkout@v4
@@ -213,10 +212,6 @@ jobs:
           key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.package }}
       - run: npm install -g ${{ matrix.package }}
       - run: ${{ matrix.command }} --version
-      - name: Measure Grok ACP launch paths
-        if: matrix.backend == 'grok-aimock'
-        run: pnpm tsx experiments/grok-acp-startup.ts "$(npm root -g)"
-        timeout-minutes: 3
       - run: pnpm run sea-trial
         timeout-minutes: 12
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2

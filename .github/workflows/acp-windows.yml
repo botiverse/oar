@@ -1,0 +1,68 @@
+name: Windows ACP observations
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**/*.md", "docs/**", "assets/**"]
+  workflow_dispatch:
+
+jobs:
+  # Observations remain red on failure and retain artifacts. This workflow
+  # never runs on pull requests; ci.yml remains the merge and release gate.
+  acp-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        backend: [kimi-aimock, grok-aimock, opencode-aimock]
+        include:
+          - backend: kimi-aimock
+            package: '@moonshot-ai/kimi-code@2.3.3'
+            command: kimi
+          - backend: grok-aimock
+            package: '@xai-official/grok@1.0.70'
+            command: grok
+          - backend: opencode-aimock
+            package: opencode-ai@1.19.5
+            command: opencode
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      OAR_TEST: ${{ matrix.backend }}
+      OAR_TEST_REQUIRE_AVAILABLE: '1'
+      OAR_TEST_CONCURRENCY: '2'
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      OAR_CHILD_STDERR: ${{ matrix.os == 'windows-latest' && 'inherit' || '' }}
+      OAR_TEST_MCP_PROGRESS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # All three packages carry native dependencies in npm tarballs. Cache
+      # downloads, not a mutable global installation or runtime HOME.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/AppData/Local/npm-cache
+          key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.package }}
+      - run: npm install -g ${{ matrix.package }}
+      - run: ${{ matrix.command }} --version
+      - run: pnpm run sea-trial
+        timeout-minutes: 12
+      - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        timeout-minutes: 12
+      - name: Measure Grok ACP launch paths
+        if: always() && matrix.backend == 'grok-aimock'
+        run: pnpm tsx experiments/grok-acp-startup.ts "$(npm root -g)"
+        timeout-minutes: 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn

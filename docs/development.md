@@ -127,7 +127,8 @@ runtimes may legitimately differ.
 `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. The ACP
 runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
 `antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`) need the installed
-CLI. Grok, Kimi and OpenCode v1 run in three-platform CI; Antigravity
+CLI. Grok, Kimi and OpenCode v1 run in Linux/macOS pull-request CI and
+Windows main-push observations; Antigravity
 remains a local probe. Vendor tests see
 the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
@@ -181,13 +182,20 @@ or pull request whose changes are all Markdown files or under `docs/` or
   This is an observation experiment after repeated runner losses, not a
   proven fix or a change to assertions, concurrency or native deadlines.
 - `acp-behavior`: Kimi 2.3.3, Grok 1.0.70 and OpenCode v1 1.19.5 on
-  Linux, macOS and Windows, with npm download caches. Shared behavior and
+  Linux and macOS, with npm download caches. Shared behavior and
   vendor tests use native programs with local scripted providers, isolated
   configuration and synthetic keys. Shared-case concurrency and Vitest
   worker count are both 2. A missing installation fails; individual
   unsupported capabilities remain visible skips. Each job has a 20-minute
   ceiling and each suite step a 12-minute ceiling, without changing case
   assertions or native deadlines. Logs and traces upload even on failure.
+  Windows runs the same three backends in a separate
+  [`acp-windows.yml`](../.github/workflows/acp-windows.yml) workflow after
+  main pushes, outside the pull-request and release gates. All three had
+  intermittent Windows startup or MCP timeouts whose causes remain unknown.
+  The observation jobs still fail and retain their logs and traces; daily
+  inspection summarizes them. They do not use `continue-on-error` or retries.
+  Grok's launch comparison runs after its tests, so it cannot prewarm them.
   [Evidence and deferred runtimes](../experiments/acp-ci-2026-10-29.md).
 - `browser-demo`: `pnpm durable-demo:smoke` in headless Chromium on Linux.
   The real Pi Durable Harness and native fetch provider run in the browser;
