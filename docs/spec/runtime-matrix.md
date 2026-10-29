@@ -101,6 +101,28 @@ false, the adapter holds queued input in this process.
 | opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
 | opencode v2 (ACP) | absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
 
+### What `abort` stops
+
+`abort` ends the active turn: accepted means the runtime was asked to
+interrupt, and the outcome is the runtime's own turn end. It does not promise
+that processes the turn started have stopped. Some runtimes keep a command
+running across turns on purpose, so a later turn can read its output. Ending a
+session with `dispose()` is a different operation: OAR stops the runtime's
+process tree and, for ACP runtimes, every terminal OAR hosted for the session.
+Observed on Linux on 2026-10-28 with a command that starts a parent and a
+child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
+
+| runtime | after `abort` | how the command is stopped |
+|---|---|---|
+| codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop it; OAR does not call them yet |
+| grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session |
+| kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
+| claude, qwen, qoder, pi, cursor | not measured | `dispose()` |
+
+A host that must know the command is gone ends the session, or waits for the
+command's own end in the record stream. It never infers that from the turn
+end.
+
 ## Context breakdown
 
 `contextBreakdown` is a member a session may lack, like `steer`: only claude
