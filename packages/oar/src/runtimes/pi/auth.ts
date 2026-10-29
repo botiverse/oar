@@ -6,10 +6,12 @@ import type {
   ProviderLoginEvent,
   ProviderLoginInteraction,
   ProviderLoginMethod,
+  ProviderLoginOptions,
   ProviderLoginPrompt,
 } from "../../contracts/provider-auth.js";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { piFacadeRuntime, type PiModelRuntimePaths } from "./facade-runtime.js";
+import type { PiModelRuntimePaths } from "./facade-runtime.js";
+import { piLiteralConfigValue } from "./config-value.js";
 
 /*
  * Pi's `ModelRuntime.login` takes its own `AuthInteraction` / `AuthType`, whose
@@ -48,8 +50,10 @@ export function toLoginEvent(event: PiAuthEvent): ProviderLoginEvent {
 }
 
 export function toLoginPrompt(prompt: PiAuthPrompt): ProviderLoginPrompt {
+  const cancellation = prompt.signal === undefined ? {} : { signal: prompt.signal };
   if (prompt.type === "select") {
     return {
+      ...cancellation,
       kind: "select",
       message: prompt.message,
       options: prompt.options.map((option) => ({
@@ -60,6 +64,7 @@ export function toLoginPrompt(prompt: PiAuthPrompt): ProviderLoginPrompt {
     };
   }
   return {
+    ...cancellation,
     kind: prompt.type,
     message: prompt.message,
     ...(prompt.placeholder === undefined ? {} : { placeholder: prompt.placeholder }),
@@ -100,16 +105,40 @@ export function piLoginProvider(provider: PiLoginProvider): LoginProvider | unde
   return methods.length === 0 ? undefined : { providerId: provider.id, name: provider.name, methods };
 }
 
-/** Bridge an oar {@link ProviderLoginInteraction} into Pi's interaction shape. */
-function toPiInteraction(interaction: ProviderLoginInteraction): PiInteraction {
+/** A host may leave its input callback pending after cancellation; Pi must still get the rejection. */
+async function answerPrompt(interaction: ProviderLoginInteraction, prompt: ProviderLoginPrompt): Promise<string> {
+  const { signal } = prompt;
+  signal?.throwIfAborted();
+  if (signal === undefined) {
+    return interaction.prompt(prompt);
+  }
+  const { promise, reject } = Promise.withResolvers<never>();
+  const abort = (): void => { reject(signal.reason); };
+  signal.addEventListener("abort", abort, { once: true });
+  try {
+    const answer = (async (): Promise<string> => {
+      await Promise.resolve();
+      signal.throwIfAborted();
+      return interaction.prompt(prompt);
+    })();
+    return await Promise.race([answer, promise]);
+  } finally {
+    signal.removeEventListener("abort", abort);
+  }
+}
+
+/** Bridge cancellation and native prompts; only API-key secrets use Pi's literal config-value escapes. */
+function toPiInteraction(interaction: ProviderLoginInteraction, method: ProviderLoginMethod): PiInteraction {
   return {
     ...(interaction.signal === undefined ? {} : { signal: interaction.signal }),
     notify: (event: PiAuthEvent): void => {
       interaction.onEvent(toLoginEvent(event));
     },
     prompt: async (prompt: PiAuthPrompt): Promise<string> => {
-      const answer = await interaction.prompt(toLoginPrompt(prompt));
-      return answer;
+      const signal = prompt.signal === undefined ? interaction.signal
+        : (interaction.signal === undefined ? prompt.signal : AbortSignal.any([prompt.signal, interaction.signal]));
+      const answer = await answerPrompt(interaction, toLoginPrompt({ ...prompt, ...(signal === undefined ? {} : { signal }) }));
+      return method === "api_key" && prompt.type === "secret" ? piLiteralConfigValue(answer) : answer;
     },
   };
 }
@@ -195,9 +224,10 @@ class PiProviderAuth implements ProviderAuthFacade {
     providerId: string,
     method: ProviderLoginMethod,
     interaction: ProviderLoginInteraction,
+    options?: ProviderLoginOptions,
   ): Promise<ProviderAuthStatus> {
     const authType: PiAuthType = method;
-    await this.#runtime.login(providerId, authType, toPiInteraction(interaction));
+    await this.#runtime.login(providerId, authType, toPiInteraction(interaction, method), options);
     const status = await this.#statusOf(providerId);
     return status;
   }
@@ -206,7 +236,7 @@ class PiProviderAuth implements ProviderAuthFacade {
     // Persist the key by running pi's api-key login flow, answering its key
     // prompt and nothing else (see keyOnlyInteraction).
     const authType: PiAuthType = "api_key";
-    await this.#runtime.login(providerId, authType, toPiInteraction(keyOnlyInteraction(providerId, apiKey)));
+    await this.#runtime.login(providerId, authType, toPiInteraction(keyOnlyInteraction(providerId, apiKey), authType));
   }
 
   async logout(providerId: string): Promise<void> {
@@ -219,6 +249,7 @@ export type PiProviderAuthOptions = PiModelRuntimePaths;
 
 /** Create a {@link ProviderAuthFacade} backed by Pi's `ModelRuntime`. */
 export async function createPiProviderAuth(options: PiProviderAuthOptions = {}): Promise<ProviderAuthFacade> {
+  const { piFacadeRuntime } = await import("./facade-runtime.js");
   const runtime = await piFacadeRuntime(options, { allowModelNetwork: false, refreshOnCreate: false });
   return new PiProviderAuth(runtime);
 }

@@ -64,3 +64,5 @@ export const piRuntime = createPiRuntime();
 
 export { piListModels, projectPiModels } from "./list-models.js";
 export { piSession } from "./session.js";
+export { createPiProviderAuth } from "./auth.js";
+export type { PiProviderAuthOptions } from "./auth.js";

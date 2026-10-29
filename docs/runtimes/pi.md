@@ -1002,6 +1002,34 @@ answered every prompt with the key.
 [Test](../../tests/providers/provider-auth.test.ts) against pi's real
 registry and login flows, with fake stored credentials.
 
+The provider facade is exported from both `@botiverse/oar` and
+`@botiverse/oar/runtimes/pi`; the latter loads no other runtime adapter.
+`login(id, method, interaction, { getDeviceId?, agentName? })` passes the
+host's options to `ModelRuntime.login`. Pi 1.4.0's OpenAI "Sign in with
+ChatGPT" flow requires `getDeviceId()` to return a stable installation UUID,
+which it formats as `urn:uuid:<uuid>` in the authorization URL. The host
+generates and retains the UUID; OAR does neither. `agentName` supplies the
+native login identity hint. Other native flows decide whether to read these
+options. Pi's per-prompt abort signal is forwarded as
+`ProviderLoginPrompt.signal`, combined with the host's login abort signal.
+Either rejects a pending input even when the host callback remains pending;
+only the host signal cancels the whole login. Hosts should dismiss that
+input when its signal aborts.
+
+**Key storage behavior:** API keys entered through `setApiKey` and secret
+prompts in API-key `login` are literal strings. Pi's `resolveConfigValue`
+executes a leading `!` as a shell command and expands `$NAME`/`${NAME}`.
+OAR escapes `$` to `$$` and a leading `!` to `$!` before native login stores
+the key, so Pi's resolver and request-auth path return the original string.
+OAuth answers and non-secret provider settings are unchanged. The audit of
+OAR's Pi writes found only these two key-entry paths: the model catalog reads
+`models.json`, and session MCP env/headers already use the same literal
+encoding. Existing files are not migrated, and hand-written Pi key commands
+or references retain native behavior on resolved reads.
+[Regression](../../tests/providers/pi-provider-login.test.ts): native
+1.4.0 login/store/parser and request-auth resolution, synthetic keys, no
+model request; cancellation and options forwarding are also covered.
+
 ### User input identity and observation
 
 Input requests retain a logical `inputId`, including steer → queue fallback.

@@ -29,6 +29,7 @@ export type {
   ProviderLoginEvent,
   ProviderLoginInteraction,
   ProviderLoginMethod,
+  ProviderLoginOptions,
   ProviderLoginPrompt,
 } from "./provider-auth.js";
 export type {

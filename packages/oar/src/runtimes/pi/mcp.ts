@@ -4,6 +4,9 @@ import path from "node:path";
 import type { InlineExtension, McpServerConfig } from "@earendil-works/pi-coding-agent";
 import type { McpServer, SessionOptions } from "../../contracts/session.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
+import { piLiteralConfigValue } from "./config-value.js";
+
+export { piLiteralConfigValue } from "./config-value.js";
 
 /*
  * SessionOptions.mcpServers on pi: the SDK's own MCP support, as the pi CLI
@@ -28,16 +31,6 @@ import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../sha
 
 /** The names pi takes (`validateMcpServerConfig`); its tool namespace folds `-` into `_`, so `a-b` and `a_b` would be one server. */
 const PI_MCP_SERVER_NAME = /^[\w-]+$/u;
-
-/**
- * A value as pi reads it literally: pi resolves `env` and `headers` values
- * (`resolveConfigValue`), running one that starts with `!` as a shell
- * command and interpolating `$NAME`; `$$` and `$!` are its escapes for a
- * literal `$` and `!`.
- */
-export function piLiteralConfigValue(value: string): string {
-  return value.replaceAll(/[$!]/gu, (character) => `$${character}`);
-}
 
 function literalValues(values: Readonly<Record<string, string>>): Record<string, string> {
   return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, piLiteralConfigValue(value)]));

@@ -12,6 +12,14 @@ import type { SessionOptions } from "./session-options.js";
 /** The two login methods a provider may accept. */
 export type ProviderLoginMethod = "oauth" | "api_key";
 
+/** Host identity supplied to provider login flows that need it. */
+export interface ProviderLoginOptions {
+  /** Stable installation UUID owned by the host. Called only by flows that need it, including Pi's ChatGPT login. */
+  readonly getDeviceId?: () => string;
+  /** Host name used during login; omission keeps the backend's own default. */
+  readonly agentName?: string;
+}
+
 /** A non-secret snapshot of one provider's stored auth. */
 export interface ProviderAuthStatus {
   readonly providerId: string;
@@ -81,7 +89,10 @@ export type ProviderLoginEvent =
   | { readonly kind: "info"; readonly message: string };
 
 /** A prompt the login flow needs the caller to answer. */
-export type ProviderLoginPrompt =
+export type ProviderLoginPrompt = {
+  /** Aborts this input request, e.g. when an OAuth browser callback wins. The host should close its input UI. */
+  readonly signal?: AbortSignal;
+} & (
   | {
       readonly kind: "text" | "secret" | "manual_code";
       readonly message: string;
@@ -91,7 +102,7 @@ export type ProviderLoginPrompt =
       readonly kind: "select";
       readonly message: string;
       readonly options: readonly { readonly id: string; readonly label: string; readonly description?: string }[];
-    };
+    });
 
 /**
  * Caller-supplied login interaction: observe flow events (the OAuth URL or
@@ -123,14 +134,15 @@ export interface ProviderAuthFacade {
   loginProviders(): readonly LoginProvider[];
   /** The status of one provider (`configured: false` when nothing is stored). */
   status(providerId: string): Promise<ProviderAuthStatus>;
-  /** Run the provider's OAuth or API-key login flow and persist the result. */
+  /** Run the provider's OAuth or API-key login flow and persist the result. API keys are literal; rejects on cancellation. */
   login(
     providerId: string,
     method: ProviderLoginMethod,
     interaction: ProviderLoginInteraction,
+    options?: ProviderLoginOptions,
   ): Promise<ProviderAuthStatus>;
   /**
-   * Store an API key for a provider without an interactive flow: it answers
+   * Store a literal API key for a provider without an interactive flow: it answers
    * the provider's key prompt and nothing else. When the provider's API-key
    * login asks more (an auth method, an account id), it rejects, storing
    * nothing, and the error names `login(providerId, "api_key", interaction)`

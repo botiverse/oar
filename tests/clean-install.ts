@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import PI_AUTH_PROBE from "./fixtures/pi-auth-entry-probe.js";
 
 /*
  * The published packages installed the way a host installs them: packed by
@@ -126,11 +127,7 @@ assert.equal(toolGroupSummary([], "running"), "Thinking…");
 assert.ok(loaded.every((file) => !file.startsWith("dist/runtimes/")), "Pure entries loaded a runtime adapter");
 `;
 
-/**
- * The forms entry alone, from the packed package, in a fresh process: it loads
- * only its own dist/forms files (no builtin, no other package, no runtime
- * adapter), writes no global, leaves nothing running, and its exports work.
- */
+/** The forms entry loads only its own modules, writes no global and leaves nothing running. */
 const FORMS_PROBE = `
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
@@ -167,10 +164,15 @@ import * as brands from "@botiverse/oar/brands";
 import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
+import { createPiProviderAuth, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
 export const writeCapture: (marker: string) => void = oar.writeShellEnvironmentCapture;
 export const capture = (command: string, args: readonly string[]) => oar.userShellEnvironment({ command, args });
+export async function piLogin(paths: PiProviderAuthOptions, interaction: oar.ProviderLoginInteraction, options: oar.ProviderLoginOptions) {
+  const auth = await createPiProviderAuth(paths);
+  return auth.login("openai", "oauth", interaction, options);
+}
 export const forward = (r: SubagentReport) => ({ text: report.formatReport(r), origin: report.reportOrigin(r), parsed: report.parseReport(report.formatReport(r)) });
 export const display = [observe.noticeText, observe.noticeTone, observe.phaseLabel, observe.failureText, observe.taskStatusLabel];
 `;
@@ -233,6 +235,7 @@ assert.deepEqual(Object.values(browser.metafile.outputs).flatMap((output) => out
 
 run(process.execPath, ["--input-type=module", "-e", REPORT_PROBE], host);
 run(process.execPath, ["--input-type=module", "-e", FORMS_PROBE], host);
+run(process.execPath, ["--input-type=module", "-e", PI_AUTH_PROBE], host);
 assert.equal(readdirSync(path.join(host, "node_modules")).includes("@cursor"), false, "@cursor/sdk was installed without being asked for");
 assert.equal(readdirSync(path.join(host, "node_modules/@earendil-works")).includes("pi-durable"), false, "pi-durable was installed without being asked for");
 const bare = probe();

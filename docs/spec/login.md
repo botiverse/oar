@@ -66,6 +66,40 @@ that pi's provider login already uses.
   not allow it. `unsupported` is only for what the machine decides, its
   installation or its version.
 
+## Pi provider authentication
+
+`createPiProviderAuth({ authPath?, modelsPath? })` is available from both
+`@botiverse/oar` and `@botiverse/oar/runtimes/pi`. The Pi entry loads no other
+runtime adapter. The facade uses Pi's provider registry, login flows and
+credential store; it is separate from `Runtime.login`.
+
+`login(providerId, method, interaction, options?)` accepts
+`ProviderLoginOptions.getDeviceId` and `agentName`, passed to Pi's
+`ModelRuntime.login` unchanged. The host owns a stable installation UUID and
+returns it from `getDeviceId`; OAR neither generates nor persists one. Pi's
+"Sign in with ChatGPT" requires it and rejects a missing or invalid UUID.
+Other flows call the getter only if they need it. `agentName` is the host's
+login identity hint, with Pi's native default when omitted.
+
+`ProviderLoginPrompt.signal` carries cancellation for that specific prompt,
+including Pi closing a manual-code prompt after a browser callback wins.
+Pi prompts also receive the host's `interaction.signal`; either cancellation
+rejects a pending prompt even if the host callback does not settle. Hosts
+should close the corresponding input UI when that signal aborts. Aborting
+the host signal cancels the whole login; closing one prompt does not by
+itself cancel the whole flow. Provider login rejects on cancellation, unlike
+the separate runtime-login result union.
+
+API keys supplied to `setApiKey` or secret prompts in `login(..., "api_key", ...)`
+are literal values. Before Pi stores them, OAR escapes every `$` as `$$` and
+a leading `!` as `$!`, using Pi's native config-value syntax. Resolving the
+stored value yields exactly the supplied key, without shell execution or
+environment expansion. OAuth answers and non-secret provider settings keep
+their native semantics. Existing hand-written credentials and `models.json`
+are not rewritten; resolved reads of those files retain Pi's command and
+environment-reference behavior. Stored metadata reads
+(`listProviders({ resolve: false })`) remain non-resolving.
+
 ## Qwen provider configuration
 
 `createQwenProviderAuth(installation, { cwd?, env?, timeoutMs? })` is separate
