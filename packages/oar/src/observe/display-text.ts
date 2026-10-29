@@ -35,6 +35,9 @@ function actionLabel(action: ControlAction): string {
     case "withdraw": return "Withdraw";
     case "abort": return "Abort";
     case "dispose": return "Dispose";
+    case "goal_set": return "Set goal";
+    case "goal_read": return "Read goal";
+    case "goal_clear": return "Clear goal";
     default: return unreachable(action);
   }
 }

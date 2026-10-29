@@ -393,6 +393,36 @@ prompt/steer/queue/abort is `rejected: runtime exited`, and a later
 `session disposed`) are the shared kernel's, read off the stream before the
 adapter's own gates; the adapter keeps no liveness flag. [Kernel][oar-kernel].
 
+### Native goals
+
+`SessionOptions.goals: true` enables `features.goals` for this process and
+exposes `Session.goal.set/read/clear`. OAR verifies the effective config
+before opening the thread; conflicting launch arguments cannot silently
+disable an explicit request. Omitted or false leaves native config alone
+and exposes no member; this does not disable tools enabled by the user's
+config. Supply true again when resuming.
+
+The controls map to `thread/goal/set`, `/get`, and `/clear`, with native
+`origin: "user"` on mutations. Native answers and `thread/goal/updated` or
+`thread/goal/cleared` notifications project `goal_changed`; unknown status
+words and missing counter fields stay as reported. The reply and any later
+notification remain separate observations, including repeated snapshots.
+Goal usage belongs to the native goal, not OAR's current-Session ledger.
+
+[env] Codex 0.165.0 exposes `get_goal`, `create_goal` and `update_goal` to the
+model whenever the feature is enabled, even without a goal. Disabled and
+ephemeral-thread RPC calls reject, a refused budget update leaves the saved
+state intact, resume reports the saved paused goal, and pausing an active
+goal does not interrupt the current turn. An active goal can cause native
+turns without another OAR prompt; only native evidence says it is complete.
+OAR does not start a continuation loop, infer completion from `turn_ended`,
+or translate these controls into text commands for other runtimes.
+
+[Goal contract](../spec/goals.md),
+[boundary probe and source](../../experiments/codex-goal-boundaries-2026-10-29.md),
+[unit/replay regression](../../tests/codex/codex-goals.test.ts),
+[native regression](../../sea-trial/vendor/codex-goals.vendor.test.ts).
+
 ### Observation, children, and history
 
 **Mapped:** native thread read/list/fork operations expose stored state, and

@@ -1,0 +1,112 @@
+{
+  "at": "2026-10-29T00:54:45.516Z",
+  "toolsDisabled": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image",
+    "multi_agent_v1",
+    "close_agent",
+    "resume_agent",
+    "send_input",
+    "spawn_agent",
+    "wait_agent"
+  ],
+  "disabled": "Error: goals feature is disabled",
+  "freshRead": {
+    "goal": null
+  },
+  "toolsEnabledNoGoal": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image",
+    "multi_agent_v1",
+    "close_agent",
+    "resume_agent",
+    "send_input",
+    "spawn_agent",
+    "wait_agent",
+    "get_goal",
+    "create_goal",
+    "update_goal"
+  ],
+  "noGoal": {
+    "goal": null
+  },
+  "ephemeral": "Error: ephemeral thread does not support goals: 01a18526-fa01-7343-b7bf-d80d0928d6c9",
+  "rejectedBudget": "Error: goal budgets must be positive when provided",
+  "afterRejectedUpdate": {
+    "goal": {
+      "threadId": "01a18526-f99d-7a71-af00-ac1fb412c5c6",
+      "objective": "Persistent paused objective",
+      "status": "paused",
+      "tokenBudget": 100000,
+      "tokensUsed": 0,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793235286,
+      "updatedAt": 1793235286
+    }
+  },
+  "resumeNotifications": [
+    {
+      "method": "thread/goal/updated",
+      "params": {
+        "threadId": "01a18526-f99d-7a71-af00-ac1fb412c5c6",
+        "turnId": null,
+        "goal": {
+          "threadId": "01a18526-f99d-7a71-af00-ac1fb412c5c6",
+          "objective": "Persistent paused objective",
+          "status": "paused",
+          "tokenBudget": 100000,
+          "tokensUsed": 0,
+          "timeUsedSeconds": 0,
+          "createdAt": 1793235286,
+          "updatedAt": 1793235286
+        }
+      }
+    }
+  ],
+  "resumed": {
+    "goal": {
+      "threadId": "01a18526-f99d-7a71-af00-ac1fb412c5c6",
+      "objective": "Persistent paused objective",
+      "status": "paused",
+      "tokenBudget": 100000,
+      "tokensUsed": 0,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793235286,
+      "updatedAt": 1793235286
+    }
+  },
+  "pauseDuringTurn": {
+    "goal": {
+      "threadId": "01a18526-f99d-7a71-af00-ac1fb412c5c6",
+      "objective": "Persistent paused objective",
+      "status": "paused",
+      "tokenBudget": 100000,
+      "tokensUsed": 0,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793235286,
+      "updatedAt": 1793235286
+    }
+  },
+  "completedAtPause": 0,
+  "turnsAfterPause": 1,
+  "afterPause": {
+    "goal": {
+      "threadId": "01a18526-f99d-7a71-af00-ac1fb412c5c6",
+      "objective": "Persistent paused objective",
+      "status": "paused",
+      "tokenBudget": 100000,
+      "tokensUsed": 0,
+      "timeUsedSeconds": 0,
+      "createdAt": 1793235286,
+      "updatedAt": 1793235286
+    }
+  },
+  "clear": {
+    "cleared": true
+  },
+  "outcome": "passed"
+}

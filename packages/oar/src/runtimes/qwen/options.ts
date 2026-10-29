@@ -2,6 +2,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 
 export const qwenRefusedSessionOptions: RefusedSessionOptions = {
+  goals: "This runtime interface exposes no structured native goal controls",
   userConfiguration: "qwen has no verified separation of user configuration from its native login",
   serviceTier: "Qwen's stream-json interface does not expose a service-tier setting",
   outputSchema: "Qwen rejects --json-schema with its long-lived stream-json input protocol",

@@ -20,10 +20,11 @@ optional member and its presence is the capability. `Runtime.accountUsage`,
 `logout` and `authStatus` already work this way (antigravity, whose terms
 rule out a sign-in through OAR, has no `login`, only the runtimes OAR signs
 in have a `logout`, and bundled pi and cursor have no `install`);
-`Session` `steer`, `withdraw` and `resources` do too: a session that cannot
+`Session` `steer`, `withdraw`, `resources` and `goal` do too: a session that cannot
 steer has no `steer`, one whose queue OAR does not hold (codex) has no
 `withdraw`, and one whose runtime runs in the host process (pi, cursor) has
-no `resources`.
+no `resources`. A session without structured native goal controls has no
+`goal`; enabling that native feature is an explicit session choice.
 TypeScript makes every caller handle the absence, and the check works the
 same for a runtime chosen at run time: it reads the member, not a name.
 
@@ -119,11 +120,13 @@ Where it goes depends on how long it holds:
   knobs `OAR_CODEX_BIN`, `OAR_CODEX_SANDBOX` and `OAR_PI_AGENT_DIR` are
   settings of this kind; they move into constructors when a host first needs
   them per instance.
-- **For one session** (a native feature switch for one agent): with the
-  session, keyed by the runtime it is for (`SessionOptions.native.codex`),
-  so a host still sends one set of options to every runtime. Not built until
-  a real need arrives; it becomes a shared `SessionOptions` field once a
-  second runtime has the same concept.
+- **For one session**, use the smallest option for the verified capability.
+  `SessionOptions.goals: true` enables structured native goals; unsupported
+  runtimes declare and refuse it. It is a shared concept even while only Codex
+  exposes it. Omission and false preserve native defaults and expose no
+  `Session.goal` member. Enabling changes the model's tool set, so it is not
+  implicit. No runtime-keyed `native` namespace or parallel capability flag
+  is needed for this option ([contract](../spec/goals.md)).
 
 A package the host installs is handed over, never looked up. Written in the
 host's own code, `import("@cursor/sdk")` fails the host's compile when the

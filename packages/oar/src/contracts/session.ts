@@ -1,14 +1,14 @@
+import type { AdapterGoalControl, GoalControl } from "./goal.js";
 import type {
   ContextUsage,
   Cursor,
   Event,
   RawEvent,
   RejectionCode,
-  RequestRecord,
-  ResponseRecord,
   SessionGraph,
   TokenTotals,
 } from "./records.js";
+import type { ControlOutcome, ControlResult } from "./control.js";
 import type { DeliverOptions, DeliverResult } from "./deliver.js";
 import type { InputImage, InputOrigin } from "./input.js";
 import type { AgentStatus } from "./status.js";
@@ -16,6 +16,8 @@ import type { AvailableInstallation } from "./installation.js";
 import type { ContextBreakdown } from "./context-breakdown.js";
 import type { SessionOptions } from "./session-options.js";
 
+export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
+export type { ControlResult, ControlOutcome } from "./control.js";
 export type { McpServer, SessionOptions } from "./session-options.js";
 export type { CredentialProblem, FailedTurn, FailureClass } from "./failure.js";
 export type { ContextBreakdown, ContextCategory, ContextItem } from "./context-breakdown.js";
@@ -125,24 +127,6 @@ export type StartSession = (
 
 // ─── Control surface ──────────────────────────────────────────────────────
 
-/** Both records a control call produced: the request (its `seq` is where the action sits in the stream) and the accept/reject response. What an adapter returns (the SPI face). */
-export interface ControlResult {
-  readonly request: RequestRecord;
-  readonly response: ResponseRecord;
-}
-
-/**
- * What `Session.prompt / steer / queue / withdraw / abort` return (the API face): the
- * answer read off the two records, with the records still underneath. A
- * consumer branches on `kind` (two cases, not the four a response body can
- * carry) and on the typed `code`; `seq` is the request's position in the
- * stream, what `awaitTurnEnd` takes. `request` / `response` remain for
- * consumers who want the stream's own word (`native`, the exact records).
- */
-export type ControlOutcome =
-  | (ControlResult & { readonly kind: "accepted"; readonly seq: number; readonly requestId: string })
-  | (ControlResult & { readonly kind: "rejected"; readonly seq: number; readonly requestId: string; readonly code: RejectionCode; readonly reason: string });
-
 /**
  * Which tier of the attribution spectrum the adapter carries, declared
  * explicitly and required to match what the runtime exposes (adapter red
@@ -202,6 +186,8 @@ export interface SessionResources {
  * with derivations sealSession computes over the stream.
  */
 export interface AdapterSession {
+  /** Optional recorded controls for the runtime's structured goal. */
+  readonly goal?: AdapterGoalControl;
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
   prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.
@@ -219,6 +205,8 @@ export interface AdapterSession {
 
 /** The API face: the SPI plus surfaces sealSession derives from the stream. Control members answer with `ControlOutcome`: the same records, read. */
 export interface Session extends AdapterSession {
+  /** Present only when structured native goals were explicitly enabled for this session. */
+  readonly goal?: GoalControl;
   prompt(input: string, options?: PromptOptions): Promise<ControlOutcome>;
   /** Present only when the runtime can steer; `steerOrQueue` / ordinary `deliver` queue without it. Explicit interrupt delivery can withdraw, abort and merge instead. */
   steer?(input: string, options?: InputOptions): Promise<ControlOutcome>;

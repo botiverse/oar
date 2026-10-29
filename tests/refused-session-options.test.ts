@@ -10,6 +10,7 @@ import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const given: Readonly<Record<RefusableSessionOption, Partial<SessionOptions>>> = {
+  goals: { goals: true },
   userConfiguration: { userConfiguration: "exclude" },
   additionalDirectories: { additionalDirectories: ["/extra"] },
   outputSchema: { outputSchema: {} },
@@ -41,9 +42,9 @@ function refusalMessage(reason: string | undefined, key: RefusableSessionOption)
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "codex", "cursor", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codex", "cursor", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
-    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
+    const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
       const opening = runtime.session(nowhere(runtime.id), { cwd: "/tmp", ...given[key] });
       // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
@@ -57,16 +58,16 @@ test("every declared refusal is what session() rejects with", async () => {
 test("the declarations say which options each runtime refuses", () => {
   const refused = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, Object.keys(runtime.refusedSessionOptions ?? {}).toSorted()]));
   assert.deepEqual(refused, {
-    antigravity: ["additionalDirectories", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    claude: [],
+    antigravity: ["additionalDirectories", "goals", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    claude: ["goals"],
     codex: ["userConfiguration"],
-    cursor: ["appendSystemPrompt", "env", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
-    grok: ["additionalDirectories", "disallowedTools", "name", "serviceTier", "userConfiguration"],
-    kimi: ["appendSystemPrompt", "disallowedTools", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    opencode: ["disallowedTools", "name", "outputSchema", "serviceTier", "userConfiguration"],
-    pi: ["additionalDirectories", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
-    qoder: ["name", "outputSchema", "serviceTier", "userConfiguration"],
-    qwen: ["name", "outputSchema", "serviceTier", "userConfiguration"],
+    cursor: ["appendSystemPrompt", "env", "goals", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    grok: ["additionalDirectories", "disallowedTools", "goals", "name", "serviceTier", "userConfiguration"],
+    kimi: ["appendSystemPrompt", "disallowedTools", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    opencode: ["disallowedTools", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    pi: ["additionalDirectories", "goals", "launchArgs", "outputSchema", "serviceTier", "userConfiguration"],
+    qoder: ["goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
+    qwen: ["goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
   });
 });
 
@@ -77,6 +78,13 @@ test.each(["", "   ", "a\0b"])("a blank name or one with a NUL is refused before
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", name }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "name", message: "name must not be blank or contain NUL characters" });
   }
   expect(allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.name === undefined).map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "pi"]);
+});
+
+test("omitted or false goals preserves native defaults on every declared runtime", () => {
+  for (const runtime of allRuntimes.list()) {
+    expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp" }); }).not.toThrow();
+    expect(() => { refuseSessionOptions(runtime.refusedSessionOptions ?? {}, { cwd: "/tmp", goals: false }); }).not.toThrow();
+  }
 });
 
 test("an empty mcpServers list is no MCP server given, so no runtime refuses it", () => {

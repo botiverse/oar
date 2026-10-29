@@ -54,7 +54,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
   // A session that cannot steer (or withdraw) has no `steer` (`withdraw`): its
   // absence is the capability. Where the adapter has one, the sealed member
   // below replaces it in the spread.
-  const adapterFace: Omit<AdapterSession, "steer" | "withdraw"> = adapterSession;
+  const adapterFace: Omit<AdapterSession, "steer" | "withdraw" | "goal"> = adapterSession;
   const adapterSteer = adapterSession.steer?.bind(adapterSession);
   const steer = adapterSteer === undefined
     ? undefined
@@ -80,8 +80,14 @@ export function sealSession(adapterSession: AdapterSession): Session {
       ? { landed: "queued", result: queued }
       : { landed: "rejected", code: queued.code, reason: queued.reason, result: queued };
   };
+  const adapterGoal = adapterSession.goal;
   const sealed: Session = {
     ...adapterFace,
+    ...(adapterGoal === undefined ? {} : { goal: {
+      set: async (options) => controlOutcomeOf(await adapterGoal.set(options)),
+      read: async () => controlOutcomeOf(await adapterGoal.read()),
+      clear: async () => controlOutcomeOf(await adapterGoal.clear()),
+    } }),
     prompt,
     ...(steer === undefined ? {} : { steer }),
     queue,

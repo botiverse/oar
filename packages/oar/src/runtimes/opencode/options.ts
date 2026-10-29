@@ -8,6 +8,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
  * mapping is upstream's.
  */
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
+  goals: "This runtime interface exposes no structured native goal controls",
   userConfiguration: "opencode has no verified separation of user configuration from its native login",
   outputSchema: "OpenCode ACP exposes no final-output schema channel; its HTTP prompt format is not configurable through ACP",
   name: "opencode ACP exposes no verified session name setting",

@@ -214,6 +214,9 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
         draft.effort = event.effort;
       }
       break;
+    case "goal_changed":
+      // Goal snapshots are state observations, not transcript content.
+      break;
     case "task_started":
     case "task_updated":
     case "task_ended":

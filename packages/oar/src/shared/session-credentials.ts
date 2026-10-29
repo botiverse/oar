@@ -23,6 +23,11 @@ function sessionCredentials(options: SessionOptions): SessionCredentials {
     kernel: (id) => createSessionKernel(id, redactValue),
     seal: (adapter) => sealSession({
       ...adapter,
+      ...(adapter.goal === undefined ? {} : { goal: {
+        set: guard(adapter.goal.set.bind(adapter.goal)),
+        read: guard(adapter.goal.read.bind(adapter.goal)),
+        clear: guard(adapter.goal.clear.bind(adapter.goal)),
+      } }),
       prompt: guard(adapter.prompt.bind(adapter)),
       queue: guard(adapter.queue.bind(adapter)),
       ...(adapter.steer === undefined ? {} : { steer: guard(adapter.steer.bind(adapter)) }),

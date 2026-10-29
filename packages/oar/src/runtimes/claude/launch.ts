@@ -1,3 +1,4 @@
+import { claudeRefusedSessionOptions } from "./options.js";
 /* oxlint-disable import/max-dependencies -- Launch validates native options and owns MCP and prompt-file handoffs. */
 import { claudeUserConfiguration } from "./user-configuration.js";
 import { claudeServiceTierSettings } from "./service-tier.js";
@@ -7,7 +8,7 @@ import { claudePermissionArgs, refuseManagedLaunchArgs } from "./launch-args.js"
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { givenMcpServers } from "../../shared/mcp-servers.js";
-import { checkSessionName } from "../../shared/session-options.js";
+import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { handOverMcpConfig, sweepAbandonedMcpConfigs } from "./mcp-config.js";
 import { claudePromptFiles } from "./prompt-files.js";
 
@@ -83,6 +84,7 @@ export async function launchClaude(command: string, sessionId: string, options: 
   }
   refuseManagedLaunchArgs(options.launchArgs);
   const permissions = claudePermissionArgs(options.launchArgs);
+  refuseSessionOptions(claudeRefusedSessionOptions, options);
   checkSessionName(options);
   const tierSettings = claudeServiceTierSettings(options.serviceTier);
   const servers = givenMcpServers(options.mcpServers);

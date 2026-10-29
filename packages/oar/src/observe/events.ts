@@ -68,7 +68,11 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, KnownCon
           ? []
           : [{ kind: "control_rejected", requestId: record.requestId, action: typeof known === "string" ? known : known.kind, code: record.body.code, reason: record.body.reason, ...envelope }];
       }
-      // Accepted: an event of its own only for a withdraw, the input taken back.
+      // Accepted native control replies can carry observed state, just as frames do.
+      if (record.body.events !== undefined) {
+        return record.body.events.map((event): Event => ({ ...event, ...envelope }));
+      }
+      // A withdraw reports the input taken back.
       return known === undefined || typeof known === "string"
         ? []
         : [{ kind: "input_withdrawn", requestId: record.requestId, inputId: known.inputId, ...envelope }];

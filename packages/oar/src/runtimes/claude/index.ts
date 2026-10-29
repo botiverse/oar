@@ -1,3 +1,4 @@
+import { claudeRefusedSessionOptions } from "./options.js";
 /* oxlint-disable import/max-dependencies -- The runtime declaration imports one module per capability. */
 import { runtimeBrands } from "../../brands.js";
 import { claudeCommands, claudeSkills, claudeMcpServers, claudeTools } from "./inventory.js";
@@ -13,6 +14,7 @@ import { claudeSession } from "./session.js";
 
 export const claudeRuntime = defineRuntime({
   id: "claude",
+  refusedSessionOptions: claudeRefusedSessionOptions,
   brand: runtimeBrands.claude,
   skills: claudeSkills,
   commands: claudeCommands,

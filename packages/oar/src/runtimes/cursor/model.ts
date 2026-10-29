@@ -53,6 +53,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * '--system-prompt'" (probed 2026-10-03), and there is no append.
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
+  goals: "This runtime interface exposes no structured native goal controls",
   outputSchema: "Cursor SDK exposes no final-output schema option",
   name: "cursor exposes no verified session name setting",
   serviceTier: "cursor exposes no verified per-session service-tier setting and readback",

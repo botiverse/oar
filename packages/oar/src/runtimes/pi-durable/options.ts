@@ -9,6 +9,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
+  goals: "This runtime interface exposes no structured native goal controls",
   userConfiguration: "pi-durable uses host-owned harness configuration, with no per-conversation user-configuration exclusion",
   outputSchema: "Pi Durable exposes no final-output schema option",
   name: "pi-durable exposes no session name",

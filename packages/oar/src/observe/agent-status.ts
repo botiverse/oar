@@ -178,6 +178,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "app_request_cancelled":
     case "session_linked":
     case "user_message":
+    case "goal_changed":
     case "usage":
     case "model":
     case "effort":

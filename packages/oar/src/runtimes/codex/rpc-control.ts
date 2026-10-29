@@ -19,7 +19,7 @@ export interface RpcControlPlan {
   readonly method: string;
   readonly params: () => JsonRecord;
   readonly onReply: (reply: JsonRecord) => ResponseBody;
-  readonly onError: (message: string) => ResponseBody;
+  readonly onError: (message: string, native?: JsonRecord) => ResponseBody;
   /** Arm a turn fallback that can take over and accept before the RPC settles. */
   readonly onPending?: (accept: () => void) => void;
 }
@@ -66,7 +66,7 @@ export async function rpcControl(
         } else if (outcome.kind === "exited") {
           record({ kind: "rejected", code: "runtime_exited", reason: outcome.error.message });
         } else {
-          record(outcome.kind === "result" ? plan.onReply(outcome.result) : plan.onError(outcome.error.message));
+          record(outcome.kind === "result" ? plan.onReply(outcome.result) : plan.onError(outcome.error.message, outcome.native));
         }
       });
     } catch (error) {

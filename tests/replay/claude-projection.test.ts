@@ -63,7 +63,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "text_delta":
           case "turn_active": case "input_queued":
           case "tool_call_ended":
-          case "service_tier":
+          case "goal_changed": case "service_tier":
           case "app_request_cancelled":
           case "input_dropped":
           case "session_linked": case "user_message":

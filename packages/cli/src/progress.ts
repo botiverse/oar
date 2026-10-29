@@ -132,6 +132,7 @@ export function createProgressRenderer(
       case "input_dropped":
       case "session_linked":
       case "user_message":
+      case "goal_changed":
       case "usage":
       case "model":
       case "effort":

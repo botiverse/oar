@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Each native event family has its own projection; keep this dispatcher explicit. */
+import { codexGoalEvents } from "./goal.js";
 import { foldCodexInputs, type CodexInputs } from "./input-delivery.js";
 import type {
   FrameBody,
@@ -167,6 +169,9 @@ function spanIdOf(params: JsonRecord): string | undefined {
 
 function viewsFor(state: CodexProjectionState, reporter: string, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
+    case "thread/goal/updated":
+    case "thread/goal/cleared":
+      return codexGoalEvents(method, params);
     case "turn/started":
       return [{ kind: "turn_active" }];
     case "item/agentMessage/delta":

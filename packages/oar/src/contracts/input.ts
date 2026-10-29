@@ -22,3 +22,13 @@ export interface InputOrigin {
   /** What produced it, in the host's words (`subagent:reviewer`, `ci`). */
   readonly source?: string;
 }
+
+/** A native user-message observation, not proof of model consumption. */
+export interface UserMessage {
+  readonly kind: "user_message";
+  readonly input: string;
+  readonly inputId?: string;
+  readonly nativeMessageId?: string;
+  readonly turnId?: string;
+  readonly evidence: "acknowledged" | "turn_item" | "conversation";
+}

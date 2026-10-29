@@ -181,6 +181,9 @@ What else a session gives you:
   implements as an MCP server a session attaches like any other; replace
   the list mid-session where `Runtime.mcpToolsListChanged` says the running
   session sees it ([reference](docs/spec/runtime-matrix.md#host-served-tools)).
+- **Native goals where supported.** Opt in with `goals: true`, check
+  `Session.goal`, and observe native goal snapshots without a host continuation
+  loop ([contract](docs/spec/goals.md)).
 - **Projections for UIs.** `@botiverse/oar/observe` folds records into a
   conversation (`reduceConversation`, `viewOf`), status, tasks and stalls,
   with no Node imports, so it runs in a browser.

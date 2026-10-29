@@ -1,3 +1,4 @@
+import { codexGoalControl, confirmCodexGoals } from "./goal.js";
 /* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
 import { randomUUID } from "node:crypto";
 import type { ControlResult, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
@@ -44,7 +45,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   // wants the user's own config to win can set OAR_CODEX_SANDBOX=inherit to
   // skip the override entirely.
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
-  const configOverrides = sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` };
+  const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
   // Every error the client reports goes through the redactor first: the
   // open's config carries the session's MCP credentials to codex.
   const client = startAppServerClient(installation.command, options.env, configOverrides, undefined, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
@@ -54,6 +55,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       capabilities: { experimentalApi: true },
     });
     client.notify("initialized", {});
+    if (options.goals === true) { await confirmCodexGoals(client); }
     const filteredOpenParams = await prepareCodexToolDenials(client, options, openParams);
     // The open event is marked at the reply's wire position AS the reply line
     // is read (onSettled → client.mark), not after this await: a frame codex
@@ -259,6 +261,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     };
     const session: Session = credentials.seal({
       id: kernel.sessionId,
+      ...(options.goals === true ? { goal: codexGoalControl(kernel, client, threadId) } : {}),
       capabilities,
       prompt: via(promptPlan),
       steer: via(steerPlan),
@@ -282,8 +285,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         }
         client.kill();
         // Await the actual exit: the process may hold state (codex's sqlite
-        // runtime in CODEX_HOME) that the next session needs released. The
-        // exit response is recorded by onExit.
+        // runtime in CODEX_HOME) that the next session needs released; onExit records it.
         await client.exited;
       },
     });

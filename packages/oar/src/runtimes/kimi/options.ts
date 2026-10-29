@@ -3,6 +3,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
 export const kimiRefusedSessionOptions: RefusedSessionOptions = {
+  goals: "This runtime interface exposes no structured native goal controls",
   userConfiguration: "kimi isolated homes cannot safely share native history: atomic writes replace the workspace-index link and split the workspace catalog",
   outputSchema: "Kimi ACP and launch configuration expose no final-output schema channel",
   name: "kimi exposes no verified session name setting",
