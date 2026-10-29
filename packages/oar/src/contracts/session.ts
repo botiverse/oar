@@ -205,19 +205,19 @@ export interface AdapterSession {
   resources?(): Promise<SessionResources | null>; // the runtime's memory, read now (`SessionResources`); null once its process has exited, and on Windows (no reader yet). ABSENT where the runtime has no process of its own (pi, cursor: its memory is the host's).
   contextBreakdown?(): Promise<ContextBreakdown | null>; // what fills the context window, by the runtime's own categories, asked of the runtime now and never recorded (`ContextBreakdown`); null from the start of a dispose and once its process has exited. A read can cost provider requests (claude counts tokens), so read on demand, never poll. ABSENT where the runtime cannot itemize its context (all but claude): a host then shows `contextUsage()`.
   /**
-   * Idempotent, bounded disposal recorded on the stream. Isolated placement
-   * stops the owned process tree and records exit. Shared placement attempts
-   * per-session native cleanup and records release; only the last owner stops
-   * the process. Release does not prove native work stopped. After an observed
-   * exit, answers accepted immediately. A borrowed Harness only detaches its
-   * watch and answers accepted; use abort to stop that durable work.
+   * Bounded, recorded disposal. Success is idempotent; a failed close records rejected and can be retried.
+   * Isolated placement stops the owned process tree and records exit. Shared placement attempts
+   * per-session native cleanup and records release; only the last owner stops the process.
+   * Completed shared disposal detaches its exit listener; no later exit is recorded.
+   * Release does not prove native work stopped. After an observed exit, answers accepted.
+   * A borrowed Harness only detaches its watch and answers accepted; use abort to stop its work.
    */
   dispose(): Promise<void>;
 }
 
 /** The API face: the SPI plus surfaces sealSession derives from the stream. Control members answer with `ControlOutcome`: the same records, read. */
 export interface Session extends AdapterSession {
-  /** Actual execution from the root open response; null for legacy custom adapters without that record. */
+  /** Actual execution from the root open response; null for Morph and legacy custom adapters without that record. */
   readonly placement: SessionPlacement | null;
   /** Present only when structured native goals were explicitly enabled for this session. */
   readonly goal?: GoalControl;

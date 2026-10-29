@@ -100,6 +100,9 @@ export function createProcessPool<T extends PooledProcess>(start: (configuration
   acquire(configuration: ProcessConfiguration, placement: "shared" | "isolated"): Promise<ProcessLease<T>>;
 } {
   const entries = new Map<string, Entry<T>>();
+  // Retain strong references to processes removed from acquisition during
+  // shutdown, including failed stops. Only actual exit removes this ownership;
+  // the last lease can retry shutdown without admitting new sessions.
   const retiring = new Set<Entry<T>>();
   return {
     async acquire(configuration, placement) {

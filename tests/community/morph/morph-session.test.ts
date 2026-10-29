@@ -137,6 +137,14 @@ test("open creates the topic and attaches cwd; Session.id is the topic id", asyn
   await session.dispose();
 });
 
+test("Console sessions leave placement unknown instead of claiming isolation or sharing", async () => {
+  const { session } = await open(new FakeConsole());
+  try {
+    expect(session.placement).toBeNull();
+    expect(session.records().some((record) => record.kind === "response" && record.body.kind === "opened")).toBe(false);
+  } finally { await session.dispose(); }
+});
+
 // oxlint-disable-next-line eslint/max-statements -- one turn followed from prompt to its end, in order.
 test("a turn: prompt, snapshots, busy, then the terminal task answer ends it with context usage", async () => {
   const fake = new FakeConsole();
