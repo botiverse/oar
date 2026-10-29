@@ -152,11 +152,12 @@ version it pins.
 
 Some runtimes' own servers hold many sessions in one process: the Codex
 app-server, and ACP agents that accept concurrent `session/new` on one
-connection. Sharing that process saves memory. Ten Codex sessions took about
-1,974 MiB of RSS as ten app-servers and 218 MiB as ten threads on one; the ACP
-agents measured used between about half (Antigravity) and an eighth (Kimi)
-of their isolated RSS, and one OpenCode version used more CPU shared than
-isolated. These are Linux measurements only
+connection. Sharing that runtime process (with its children) saves memory.
+At ten sessions after one turn, Codex took about 1,974 MiB of RSS as ten
+app-servers (each including about 50 MiB of npm launcher) and 218 MiB as ten
+threads on one; the ACP agents measured used between about half
+(Antigravity) and an eighth (Kimi) of their isolated RSS, and one OpenCode
+version used more CPU shared than isolated. These are Linux measurements only
 ([2026-10-28 report](../../experiments/runtime-resources-2026-10-28.md)).
 
 The default follows the runtime: once a runtime version meets the evidence
@@ -166,33 +167,38 @@ not depend on the runtime, and a crash or leak confined to one session. A
 host that needs them chooses isolated placement on the runtime instance it
 opens sessions from. Sessions share a process (the pool) only when they come
 from the same runtime instance; the default runtime instances are module
-level, so their pools span the host process. The runtime declares the
-placement in effect.
+level, so every session opened from one of them in the host process joins
+the same pool. The runtime declares the placement in effect.
 
 The Session members stay the same in both placements. What `dispose`, the
 abort fallback and `resources()` guarantee differs, and is declared: in a
 shared process, a session can end without its process exiting, the abort
-fallback detaches the session instead of killing the process (rule 2), and
+fallback releases the session instead of killing the process (rule 2), and
 `resources()` reports the whole shared process, saying so.
 
 Sharing follows five rules:
 
-1. **Share only what the process fixes.** Sessions join one process only when
-   everything the runtime reads at process level is identical: executable and
-   arguments, environment overlay, home and configuration directories, launch
-   arguments. What the protocol carries per session (cwd, model, effort,
+1. **Share only when process-level settings match.** Sessions join one
+   process only when everything the runtime reads at process level is
+   identical: executable and arguments, environment overlay, home and
+   configuration directories. What the protocol carries per session (cwd, model, effort,
    instructions, MCP servers) does not split the pool, where evidence shows
    it stays per session.
-2. **The fallback detaches; it does not kill.** `abort` stays the runtime's
-   own interrupt. If the turn has not ended within the fallback interval, OAR
-   accepts the pending abort and records a detach for that session: OAR's own
-   fact, recorded like an exit, saying OAR released the session while the
-   runtime had not ended the turn. Folds read a detach after an accepted
-   abort as the turn's end, `aborted`, as they read an exit in isolated
-   placement; no native outcome is invented, and the record says the native
-   turn may still be running. Frames the runtime sends for the session
-   afterwards are still recorded. Per-session cleanup (rule 3) runs.
-3. **Ending a session stops what it started, and only that.** Disposal uses
+2. **The fallback releases the session; it does not kill.** `abort` stays
+   the runtime's own interrupt. If the turn has not ended within the fallback
+   interval, OAR accepts the pending abort and records a release for that
+   session: OAR's own fact, recorded like an exit, saying OAR stopped
+   controlling the session while its process keeps running for peers.
+   Disposal in a shared process records the same release (or an exit, if the
+   session was the last). Folds read a release after that turn's accepted
+   abort or its dispose request as the turn's end, `aborted`, as they read an
+   exit in isolated placement; later controls are refused as after an exit.
+   No native outcome is invented, and the record says the native turn may
+   still be running. Frames the runtime sends for the session afterwards are
+   still recorded. Per-session cleanup (rule 3) runs at the release and again
+   at dispose; a command the turn starts after the last cleanup is not
+   stopped, and the record says so.
+3. **Ending a session stops only what it started.** Disposal uses
    the runtime's own per-session cleanup, addressed by the runtime's own ids,
    never by OS process tree (which would reach peers): terminating each of
    the session's background commands (Codex
@@ -203,8 +209,9 @@ Sharing follows five rules:
    `thread/unsubscribe` leaves the thread loaded), the runtime declares that
    the shared process keeps it, including any refusal to resume it in
    another process meanwhile. Cleanup never changes the user's persisted
-   state: Codex `thread/archive` also stops a thread's commands, but a
-   resume would then need unarchive, which OAR never does, so it is not used.
+   state: Codex `thread/archive` was observed to stop a thread's commands,
+   but a resume would then need unarchive, which OAR never does, so it is not
+   used.
    Where no per-session cleanup exists or it is unverified, the runtime does
    not share.
 4. **One fault, every session.** If the shared process exits, every session
@@ -217,7 +224,8 @@ Sharing follows five rules:
    session attribution on the shared connection; cancellation that leaves
    peers running; per-session cleanup; resuming a session already loaded in
    the process; and the process's failure cases (exit with sessions running,
-   close and resume at the same time). Until then it runs one process per
+   close and resume at the same time); and lower memory without higher CPU
+   than isolated, measured on that version and platform. Until then it runs one process per
    session, and an explicit request for shared placement is refused with a
    typed reason. No runtime meets this gate yet: the 2026-10-28 report covers
    Linux only and none of the failure cases. Claude, Qwen, Qoder and Pi RPC

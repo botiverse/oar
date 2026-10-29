@@ -32,11 +32,13 @@ The design answer is to make death observable in the record stream itself:
   event.
 - **Process exit produces a response record.** Death shows up in the stream,
   not only in the OS.
-- **A detach is recorded the same way.** In a shared runtime process a
-  session can end while the process keeps running for its peers. OAR then
-  records a detach for that session, which settles waiting folds as an exit
-  does, without inventing a native outcome
-  ([shared runtime processes](system.md#shared-runtime-processes)).
+- **A release is recorded the same way.** In shared placement (designed; no
+  runtime uses it yet) a session can end while its process keeps running for
+  its peers. OAR will then record a release for that session, which settles
+  waiting folds as an exit does, without inventing a native outcome
+  ([shared runtime processes](system.md#shared-runtime-processes)). The
+  record stream spec gains this record when sharing ships; it is distinct
+  from pi-durable's dispose, which stops watching a run and records no exit.
 - **Death settles what was waiting, without inventing outcomes.** When a
   process dies mid tool call, the `exited` record is what lets every fold
   stop waiting: the turn is sealed and the tool call stays without an
