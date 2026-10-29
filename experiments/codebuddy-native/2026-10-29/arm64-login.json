@@ -1,0 +1,20 @@
+{
+  "probe": "oar-task60-codebuddy-login-2026-10-29",
+  "oarBase": "cf66cd24e04a2ca85eef6b973b3aa9f631e8223b",
+  "mode": "login",
+  "region": "international",
+  "startedAt": "2026-10-29T10:44:32.086Z",
+  "platform": "linux",
+  "arch": "arm64",
+  "node": "24.18.1",
+  "installation": "available",
+  "nativeVersion": "2.178.1",
+  "authStatusBefore": "logged_out",
+  "login": {
+    "kind": "failed",
+    "reason": "rejected"
+  },
+  "authStatusAfter": "logged_out",
+  "ok": false,
+  "finishedAt": "2026-10-29T10:45:57.985Z"
+}

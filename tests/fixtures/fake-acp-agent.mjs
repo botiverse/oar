@@ -1,4 +1,5 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
+import codebuddyOpening from "./fake-acp-codebuddy.mjs";
 import { createInterface } from "node:readline";
 import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
@@ -15,15 +16,11 @@ const antigravity = mode === "antigravity";
 const opencode = mode === "opencode";
 const sessionCapabilities = { "grok-usage-load": {}, opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
-
 function send(message) { process.stdout.write(`${JSON.stringify(message)}\n`); }
-
 function result(id, value = {}) { send({ jsonrpc: "2.0", id, result: value }); }
-
 function error(id, code, message, data) {
   send({ jsonrpc: "2.0", id, error: { code, message, ...(data === undefined ? {} : { data }) } });
 }
-
 function update(value, sessionId = "fake-session") {
   send({ jsonrpc: "2.0", method: "session/update", params: { sessionId, update: value } });
 }
@@ -47,7 +44,6 @@ function promptText(params) {
 // Kimi f9ca33376 modes "usage-after-response" / "usage-never": the prompt
 // answers before the un-awaited usage push (or none). `used` grows each turn.
 let completedTurns = 0;
-
 function completePrompt(id, text) {
   grokMcpCredentials(send, "live", mode);
   completedTurns += 1;
@@ -60,7 +56,10 @@ function completePrompt(id, text) {
     }
     return;
   }
-  update({ sessionUpdate: "usage_update", used: 250, size: 1000 });
+  // Native CodeBuddy credit-only report, with no known context cap.
+  update(mode === "codebuddy-zero-context"
+    ? { sessionUpdate: "usage_update", used: 0, size: 0, cost: { amount: 0.01, currency: "USD" } }
+    : { sessionUpdate: "usage_update", used: 250, size: 1000 });
   result(id, { stopReason: "end_turn" });
 }
 
@@ -208,6 +207,7 @@ function handleSessionRequest(message) {
       result(message.id);
       break;
     case "session/new":
+      codebuddyOpening(mode, send);
       result(message.id, {
         sessionId: "fake-session",
         modes: {

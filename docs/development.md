@@ -108,16 +108,16 @@ runtimes may legitimately differ.
   session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
   `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
-  `grok-aimock`, `kimi-aimock`, `opencode-aimock`; Qoder uses
+  `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`; Qoder uses
   `qoder-native`): the real vendor binary and adapter with only the model
   provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends concurrently,
-  by default mock plus the nine aimock backends and Qoder native replay. Use it before pushing a
+  by default mock plus the ten aimock backends and Qoder native replay. Use it before pushing a
   change to shared runtime machinery.
-- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codex`, `cursor`, `grok`,
+- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 
@@ -181,11 +181,12 @@ or pull request whose changes are all Markdown files or under `docs/` or
   vendor step has a 12-minute CI ceiling and each job has a 20-minute ceiling.
   This is an observation experiment after repeated runner losses, not a
   proven fix or a change to assertions, concurrency or native deadlines.
-- `acp-behavior`: Kimi 2.4.0, Grok 1.0.70 and OpenCode v1 1.19.5 on
+- `acp-behavior`: Kimi 2.4.0, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.178.1 on
   Linux and macOS, with npm download caches. Shared behavior and
   vendor tests use native programs with local scripted providers, isolated
   configuration and synthetic keys. Shared-case concurrency and Vitest
-  worker count are both 2. A missing installation fails; individual
+  worker count are both 2; CodeBuddy serializes shared cases in its isolated
+  fixture HOME. A missing installation fails; individual
   unsupported capabilities remain visible skips. Each job has a 20-minute
   ceiling and each suite step a 12-minute ceiling, without changing case
   assertions or native deadlines. Logs and traces upload even on failure.

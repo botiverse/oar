@@ -1,0 +1,36 @@
+{
+  "probe": "oar-task60-codebuddy-login-2026-10-29",
+  "oarBase": "cf66cd24e04a2ca85eef6b973b3aa9f631e8223b",
+  "mode": "chat",
+  "region": "international",
+  "startedAt": "2026-10-29T11:28:18.289Z",
+  "platform": "linux",
+  "arch": "arm64",
+  "node": "24.18.1",
+  "installation": "available",
+  "nativeVersion": "2.178.1",
+  "authStatusBefore": "logged_in",
+  "chat": {
+    "kind": "ended",
+    "outcome": "completed",
+    "expectedReply": true,
+    "replyCharacters": 22
+  },
+  "ok": true,
+  "usage": {
+    "total": {
+      "input": 6730,
+      "output": 8,
+      "cacheRead": 0,
+      "cacheWrite": 0
+    },
+    "byAgent": [],
+    "unattributed": {
+      "input": 6730,
+      "output": 8,
+      "cacheRead": 0,
+      "cacheWrite": 0
+    }
+  },
+  "finishedAt": "2026-10-29T11:28:38.555Z"
+}

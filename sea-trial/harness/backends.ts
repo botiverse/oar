@@ -1,3 +1,5 @@
+import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
+import { startCodebuddyAimock } from "./codebuddy-aimock.js";
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
 import { measureQoderStartup } from "./qoder-startup.js";
 import {
@@ -112,6 +114,23 @@ export async function selectBackend(target: string): Promise<Backend> {
       return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation }), aimock };
     }
     case "qwen-aimock": return qwenBackend();
+    case "codebuddy-aimock": {
+      const aimock = await startCodebuddyAimock();
+      return { aimock, concurrency: 1, runtime: {
+        ...codebuddyRuntime, id: target,
+        listModels: async (installation, options) => {
+          const result = await codebuddyRuntime.listModels(installation, { ...options, cwd: aimock.cwd, env: { ...options?.env, ...aimock.env } });
+          return result;
+        },
+        session: async (installation, options) => {
+          const session = await codebuddyRuntime.session(installation, {
+          ...options, cwd: aimock.cwd, env: { ...options.env, ...aimock.env },
+          launchArgs: ["--model", "deepseek-flash", ...options.launchArgs ?? []],
+          });
+          return session;
+        },
+      } };
+    }
     case "kimi-aimock": return acpBackend("kimi");
     case "grok-aimock": return acpBackend("grok");
     case "opencode-aimock": return acpBackend("opencode");

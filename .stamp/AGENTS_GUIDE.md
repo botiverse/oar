@@ -16,7 +16,7 @@ change travels.
   (`--evidence-file`); on OAR only @Cindy uses it, for her own pull requests,
   after verifying them herself and getting a second look.
 - **Merge.** Squash only. All CI checks report SUCCESS on the exact head
-  (33 in `ci.yml` today). The separate Windows ACP observation workflow
+  (35 in `ci.yml` today). The separate Windows ACP observation workflow
   runs after main pushes, retains failures, and is not a pull-request gate. A pull request that changes only `**/*.md`, `docs/**` or
   `assets/**` runs no CI by design and merges on the author's local check
   plus the review. The author merges once approved:

@@ -124,7 +124,7 @@ consistent. Login and logout confirmation queries receive that map too.
 OAR-owned overrides still win, including browser suppression and Claude's
 `CLAUDECODE` removal.
 
-Claude, Codex, Kimi and Qoder apply the overlay to their authentication processes.
+Claude, Codex, CodeBuddy, Kimi and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process: its three authentication methods reject
 any nonempty `env` with `UnsupportedOptionError` (`option: "env"`) before
 loading the SDK, as its sessions do. An empty map is a no-op. Runtime login is
@@ -322,6 +322,7 @@ declares no network, refresh or key-command execution. The
 | claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | 2.1.126 | 15 min |
 | codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | 0.118.0 | 16 min |
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.1.0 | 15 min |
+| codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent | international 2.178.1, Linux arm64 verified; native rejection reason can be generic | 5 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
 | antigravity | no `login`: its terms do not allow a sign-in through a third-party tool ([page](../runtimes/antigravity.md)) | none | | |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
@@ -410,7 +411,7 @@ runtime oar does not sign in.
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.1.0 | 20 s |
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
-| antigravity, grok, opencode, pi, qoder | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| antigravity, codebuddy, grok, opencode, pi, qoder | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
 
 ## CLI
 

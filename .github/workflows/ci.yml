@@ -175,7 +175,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        backend: [kimi-aimock, grok-aimock, opencode-aimock]
+        backend: [kimi-aimock, grok-aimock, opencode-aimock, codebuddy-aimock]
         include:
           - backend: kimi-aimock
             package: '@moonshot-ai/kimi-code@2.4.0'
@@ -183,6 +183,9 @@ jobs:
           - backend: grok-aimock
             package: '@xai-official/grok@1.0.70'
             command: grok
+          - backend: codebuddy-aimock
+            package: '@tencent-ai/codebuddy-code@2.178.1'
+            command: codebuddy
           - backend: opencode-aimock
             package: opencode-ai@1.19.5
             command: opencode
@@ -202,7 +205,7 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # All three packages carry native dependencies in npm tarballs. Cache
+      # These packages carry native dependencies in npm tarballs. Cache
       # downloads, not a mutable global installation or runtime HOME.
       - uses: actions/cache@v4
         with:

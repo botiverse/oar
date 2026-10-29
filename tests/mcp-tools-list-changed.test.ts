@@ -7,6 +7,7 @@ test("the declarations say how a running session takes a change to an MCP server
   expect(declared).toEqual({
     antigravity: "full",
     claude: "additions",
+    codebuddy: null,
     codex: "none",
     cursor: null,
     grok: "none",

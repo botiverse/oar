@@ -37,6 +37,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
+      <a href="docs/runtimes/codebuddy.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/codebuddy-on-dark.svg">
+          <img src="packages/oar/assets/brands/codebuddy-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        CodeBuddy Code
+      </a>
+    </td>
+    <td align="center" width="112">
       <a href="docs/runtimes/cursor.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/cursor-on-dark.svg">

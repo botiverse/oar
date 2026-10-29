@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { createPiRuntime, createCursorRuntime, orient, RuntimeRegistry } from "../packages/oar/src/index.js";
 import { executableInstallation } from "../packages/oar/src/shared/installation.js";
+import { codebuddyInstallation } from "../packages/oar/src/runtimes/codebuddy/installation.js";
 import { qoderInstallation } from "../packages/oar/src/runtimes/qoder/installation.js";
 import { fakeLoginCli } from "./fixtures/login-fixtures.js";
 
@@ -28,14 +29,17 @@ test("installation uses one environment for its override, PATH, version and shad
   expect({ pin: process.env.OAR_READER_BIN, removed: process.env.OAR_READER_REMOVED }).toEqual(before);
 });
 
-test.skipIf(process.platform === "win32")("fallback HOME is evaluated on each call using the overlay", async () => {
+test.skipIf(process.platform === "win32").each([
+  { probe: qoderInstallation, name: "qodercli", variable: "OAR_QODER_BIN", script: "fake-qoder-login.mjs" },
+  { probe: codebuddyInstallation, name: "codebuddy", variable: "OAR_CODEBUDDY_BIN", script: "fake-codebuddy-login.mjs" },
+] as const)("fallback HOME is evaluated on each call using the overlay: $name", async ({ probe, name, variable, script }) => {
   for (const home of [await temporary(), await temporary()]) {
     const bin = path.join(home, ".local", "bin");
     // oxlint-disable-next-line no-await-in-loop -- Repeated calls verify that fallback discovery is not cached.
     await mkdir(bin, { recursive: true });
-    const fake = fakeLoginCli({ dir: bin, name: "qodercli", script: "fake-qoder-login.mjs", state });
+    const fake = fakeLoginCli({ dir: bin, name, script, state });
     // oxlint-disable-next-line no-await-in-loop -- Repeated calls verify that fallback discovery is not cached.
-    const found = await qoderInstallation({ env: { HOME: home, PATH: "", OAR_QODER_BIN: null } });
+    const found = await probe({ env: { HOME: home, PATH: "", [variable]: null } });
     expect(found).toEqual({ kind: "available", via: "executable", command: fake.command, version: "1.1.78" });
   }
 });

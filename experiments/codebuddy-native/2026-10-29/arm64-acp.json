@@ -1,0 +1,44 @@
+{
+  "probe": "codebuddy-acp-real-2026-10-29",
+  "platform": "linux",
+  "arch": "arm64",
+  "startedAt": "2026-10-29T12:05:03.989Z",
+  "version": "2.178.1",
+  "authStatus": "logged_in",
+  "capabilities": {
+    "queue": {
+      "durable": false
+    },
+    "attribution": "opaque",
+    "images": true
+  },
+  "turns": [
+    {
+      "marker": "OAR_CODEBUDDY_FIRST",
+      "kind": "ended",
+      "outcome": "completed",
+      "expectedText": true
+    },
+    {
+      "marker": "OAR_CODEBUDDY_SECOND",
+      "kind": "ended",
+      "outcome": "completed",
+      "expectedText": true
+    }
+  ],
+  "sameSessionId": true,
+  "resumed": {
+    "kind": "ended",
+    "outcome": "completed"
+  },
+  "tokenUsage": {
+    "total": null
+  },
+  "contextUsage": {
+    "tokens": 0,
+    "contextWindow": 0,
+    "percent": null
+  },
+  "pass": true,
+  "finishedAt": "2026-10-29T12:05:39.006Z"
+}

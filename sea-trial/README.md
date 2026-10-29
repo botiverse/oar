@@ -49,3 +49,10 @@ Vendor tests for other backends are collected but skipped by `OAR_TEST`.
 OpenCode CI uses v1: existing vendor assertions depend on its direct MCP
 and prompt protocol. OpenCode v2 and Antigravity remain local probes; see
 [platform evidence, timings and feasibility](../experiments/acp-ci-2026-10-29.md).
+
+CodeBuddy uses `OAR_TEST=codebuddy-aimock` with the same public behavior suite,
+its own fresh-HOME local-provider fixture, and native ACP vendor tests. It
+runs in Linux/macOS pull-request CI; Windows support is not yet verified.
+The backend exposes its native model catalog and serializes shared cases.
+Title-generation requests receive a separate fixture, so they cannot consume
+conversation replies or be counted as duplicated turns.

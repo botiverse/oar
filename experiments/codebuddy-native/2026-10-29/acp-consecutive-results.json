@@ -1,0 +1,446 @@
+[
+  {
+    "file": "run-1-delay-0.json",
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  {
+    "file": "run-1-delay-1000.json",
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 1000,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  {
+    "file": "run-2-delay-0.json",
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  {
+    "file": "run-2-delay-1000.json",
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 1000,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  {
+    "file": "run-3-delay-0.json",
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  {
+    "file": "run-3-delay-1000.json",
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 1000,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  }
+]

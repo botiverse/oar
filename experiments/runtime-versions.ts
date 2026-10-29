@@ -74,6 +74,7 @@ const sources: readonly { id: string; url: string; major?: number }[] = [
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },
   { id: "opencode", major: 1, url: "https://registry.npmjs.org/opencode-ai/latest" },
   { id: "opencode", major: 2, url: "https://registry.npmjs.org/@opencode/cli/latest" },
+  { id: "codebuddy", url: "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest" },
   { id: "qoder", url: "https://registry.npmjs.org/@qoder-ai/qodercli/latest" },
   { id: "qwen", url: "https://registry.npmjs.org/@qwen-code/qwen-code/latest" },
   { id: "pi", url: `https://registry.npmjs.org/${PI_PACKAGE}/latest` },

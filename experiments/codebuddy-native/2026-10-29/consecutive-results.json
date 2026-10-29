@@ -1,0 +1,137 @@
+{
+  "date": "2026-10-29",
+  "version": "2.178.1",
+  "platform": "Linux",
+  "arch": "x86_64",
+  "archiveSha256": "f773ff2e570d10b874fb4063813c36f635724dfd9e0541da500219ead0eb0f93",
+  "scriptSha256": "d918aa7d94b866e73dd00db277c4be95718b3766216538ed1af058b9dd40e23a",
+  "sameScriptAsOct26": true,
+  "runs": [
+    {
+      "attempt": 1,
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 2,
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 3,
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 1,
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 2,
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 3,
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    }
+  ]
+}

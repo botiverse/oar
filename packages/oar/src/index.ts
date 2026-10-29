@@ -1,6 +1,8 @@
+/* oxlint-disable import/max-dependencies -- The root entry is the composition point for all built-in runtimes. */
 import { RuntimeRegistry } from "./registry.js";
 import { antigravityRuntime } from "./runtimes/antigravity/index.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
+import { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
@@ -77,6 +79,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   antigravityRuntime,
   claudeRuntime,
   codexRuntime,
+  codebuddyRuntime,
   grokRuntime,
   kimiRuntime,
   opencodeRuntime,
@@ -95,3 +98,8 @@ export { qoderListModels, projectQoderModels } from "./runtimes/qoder/list-model
 export { orient } from "./shared/orientation/index.js";
 export { userShellEnvironment } from "./shared/shell-environment.js";
 export { writeShellEnvironmentCapture } from "./shared/shell-environment-capture.js";
+
+export { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
+export { codebuddySession } from "./runtimes/codebuddy/session.js";
+export { codebuddyInstallation } from "./runtimes/codebuddy/installation.js";
+export { codebuddyListModels, projectCodebuddyModels } from "./runtimes/codebuddy/list-models.js";

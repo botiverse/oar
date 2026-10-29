@@ -1,0 +1,18 @@
+{
+  "version": "2.178.1",
+  "inspected": "official Linux x64 standalone executable embedded JavaScript",
+  "executableSha256": "a3a804a3f654ed1b147490004005818542e7946d06807937c84e0a72cbc31628",
+  "externalLinkProviderModule": 147262,
+  "totalDeadlineMs": 300000,
+  "pollIntervalMs": 1000,
+  "tokenPendingCode": 11217,
+  "accountPendingCode": 12151,
+  "flow": [
+    "POST /v2/plugin/auth/state",
+    "open authorization URL",
+    "GET /v2/plugin/auth/token",
+    "GET /v2/plugin/login/account"
+  ],
+  "errorFlow": "ExternalLinkAuthenticationProvider throws on non-pending token errors; AuthenticationManager.login catches provider errors and returns false; authenticate then returns success:false with auth_failed. The OAR draft maps this to failed/rejected.",
+  "observedFailureCause": "unknown; state-only reports do not identify the failing step"
+}

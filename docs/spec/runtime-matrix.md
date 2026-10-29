@@ -24,6 +24,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | cursor (`@cursor/sdk`) | `attributed` | a child's updates arrive inside the parent's `task` call as `tool-call-delta {callId, taskUpdate}` and carry `agentPath = [...parentPath, taskCallId]` ([env] SDK 1.0.35) |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
 | antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1) |
+| codebuddy (ACP) | `opaque` | standard updates and known vendor notifications are retained; no verified child mapping is inferred ([mapping](../runtimes/codebuddy.md)) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
 | opencode v1 (ACP) | `opaque` | `opencode acp` forwards only its own sessions' parts; a `task` subagent runs in a child session whose frames never reach the transport, so only the parent's tool call shows ([src] opencode 1.18.34 `acp/event.ts`) |
 | opencode v2 (ACP) | `nested` | forwarded child updates carry `_meta["opencode/child-session"]`; OAR uses its `id` and `parentID` for the child session and graph edge, retaining the original envelope in `native` |
@@ -39,6 +40,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | cursor (`@cursor/sdk`) | wrapper records (#2) in the parent run's updates | the `task` call id on `tool-call-delta` | each run's `turn-ended` usage is the root's; none seen for a child ([env]) | `agentPath` (not in graph) | `agentId` | [native/current mapping](../runtimes/cursor.md) |
 | grok (ACP) | nested sessions (#3), same connection | child has its own ACP sessionId | child ledgers stay native-only: the root's prompt ledger already includes a foreground child's spend, and `withChildren` is absent ([grok](../runtimes/grok.md#context-usage-billing-and-compaction)) | parent→child session edges (in graph, [sym]) | ACP `sessionId` | [native/current mapping](../runtimes/grok.md) |
 | antigravity (ACP) | opaque (#1): child activity flattened onto the parent session | `start_subagent` tool card only; child id only as a `toolCallId` prefix | no usage reported for any session ([env]) | nothing fabricated | ACP `sessionId` | [native/current mapping](../runtimes/antigravity.md) |
+| codebuddy (ACP) | child identity mapping unverified | nothing inferred | context reports only; token ledger unknown | no inferred child edges | ACP session ID | [mapping](../runtimes/codebuddy.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | opencode v1 (ACP) | opaque (#1): child sessions not forwarded | root `task` tool card only | no child usage exposed | nothing fabricated | ACP `sessionId` (opencode `ses_` id) | [native/current mapping](../runtimes/opencode.md) |
 | opencode v2 (ACP) | child updates forwarded on the parent envelope | native child `id` / `parentID` metadata | children report context only, so there is no token total and no `withChildren` | native parent/child session edges | native ACP session id | [v2 mapping](../runtimes/opencode.md#opencode-v2) |
@@ -71,7 +73,7 @@ refer to files elsewhere. Host options retain their existing refusals, so
 | Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent, as in its default. |
 | Codex | Refused: the temporary-home workaround leaves shared history indexes pointing at paths deleted during cleanup. |
 | Kimi | Refused: native atomic writes replace the workspace-index symlink and split the workspace catalog. |
-| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Antigravity | Refused: no verified separation preserving login and history. |
+| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Antigravity, CodeBuddy | Refused: no verified separation preserving login and history. |
 
 A refusal is `UnsupportedOptionError("userConfiguration", reason)` before
 starting a session and is declared in `Runtime.refusedSessionOptions`.
@@ -96,6 +98,7 @@ false, the adapter holds queued input in this process.
 | pi | yes: the SDK session's `steer` | yes | no |
 | cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`) | yes | no |
 | grok (ACP) | yes: a prompt RPC with `_meta.sendNow` | yes | no |
+| codebuddy (ACP) | absent: no verified injection interface | yes | no |
 | kimi (ACP) | no | yes | no |
 | antigravity (ACP) | no | yes | no |
 | opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |

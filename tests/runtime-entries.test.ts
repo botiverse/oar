@@ -34,7 +34,7 @@ function staticPackages(metafile: Metafile, file: string, reached = new Set<stri
   return found;
 }
 
-test.each(["claude", "codex", "pi", "cursor", "opencode", "kimi", "grok", "antigravity", "qwen", "qoder"])("the %s entry statically imports no runtime SDK", async (id) => {
+test.each(["claude", "codex", "pi", "cursor", "opencode", "kimi", "grok", "antigravity", "qwen", "qoder", "codebuddy"])("the %s entry statically imports no runtime SDK", async (id) => {
   const entry = `packages/oar/src/runtimes/${id}/index.ts`;
   const result = await build({ entryPoints: [entry], bundle: true, platform: "node", format: "esm", write: false, metafile: true, packages: "external" });
   expect([...staticPackages(result.metafile, entry)].filter((name) => !light(name))).toEqual([]);
