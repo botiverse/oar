@@ -13,14 +13,16 @@ installer behaved when run.
 ## Principles
 
 - **Only the vendor's documented installer runs.** For each runtime, the
-  installer script its vendor documents, run as documented (with the
+  installation command its vendor documents, run as documented (with the
   installer's own switch for skipping prompts, if it has one). Each adapter
   and runtime page cites the page that documents it. No mirrors, no pinned
   versions, no third party packages.
 - **The method is the one the runtime's updater expects.** Each method puts
   the copy where the runtime's own updater recognizes it, so `checkUpdate()`
   and `upgrade()` work on it afterwards: never a copy that `checkUpdate()`
-  would answer `unmanaged_installation` or `package_manager`.
+  would answer `unmanaged_installation` or `package_manager`. CodeBuddy is an
+  explicit exception: its stable documented method is npm, its independent
+  installer remains Beta, and OAR does not yet expose its updater.
 - **The probe decides, not the exit code.** `install` probes first and runs
   nothing when the probe finds an available installation. After the installer
   ran, it probes again, with the same discovery sessions use: the result is
@@ -29,10 +31,16 @@ installer behaved when run.
   does not look is a probe to fix, so the probes also look where the
   installers put them (claude's `~/.local/bin`, codex's `~/.local/bin`, grok's
   `~/.grok/bin`, kimi's `~/.kimi-code/bin`, opencode's `~/.opencode/bin`),
-  which a GUI or service process's PATH can miss.
+  which a GUI or service process's PATH can miss. CodeBuddy also queries npm's
+  configured global prefix when ordinary discovery finds nothing.
 - **`installPlan` is read only.** It looks up the installer's tools on PATH
-  and checks that the directories it writes are writable, and never runs,
-  downloads or writes anything. It gives the same `unsupported` that `install`
+  and checks that the directories it writes are writable. npm plans may run
+  a bounded, local `npm prefix -g` configuration query with logging, timing
+  files and update checks disabled. Its cache points at an existing directory
+  for the query only, preventing npm from creating a cache while planning;
+  they never run an installer, download or write anything. A failed prefix
+  query throws a generic error instead of guessing the destination or rights.
+  The plan gives the same `unsupported` that `install`
   would.
 - **Never over another copy.** A runtime whose vendor ships parallel
   release lines of one command (opencode 1 and 2) declares them in
@@ -84,17 +92,17 @@ neither.
 
 | Reason | Meaning |
 | --- | --- |
-| platform | The installer does not run here. oar runs the macOS and Linux scripts (x64, arm64); on Windows the detail names the vendor's own Windows command, which oar does not run. |
+| platform | The installer does not run here. Script installers run on macOS and Linux (x64, arm64); on Windows their detail names the vendor's command, which oar does not run. CodeBuddy's npm installer runs on Linux, macOS and Windows. |
 | requires_privileges | A directory the installer writes is not writable by this user (an install location variable naming `/usr/local`, say). oar never uses sudo. `steps` and `source` carry the vendor's command, for the person to run with the rights it needs. |
 | requires_gui | The vendor installs the runtime only from inside an app (antigravity). |
-| missing_tool | A program the documented command runs (`curl`, `bash`, `sh`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
+| missing_tool | A program the documented command runs (`curl`, `bash`, `sh`, `npm`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |
 
 ## Per runtime
 
-Each method is the one the runtime's updater recognizes afterwards: claude's
+The script methods are the ones the runtime's updater recognizes afterwards: claude's
 native install is what `claude update` updates (`installMethod: native`),
 codex's standalone install is what `codex update` reruns (doctor's update
 action `standalone installer`), grok's script install is its `internal`
@@ -106,6 +114,7 @@ method and stays on the line.
 | --- | --- | --- | --- |
 | claude | `curl -fsSL https://claude.ai/install.sh \| bash` | [code.claude.com/docs/en/setup](https://code.claude.com/docs/en/setup) | `~/.local/bin/claude` → `~/.local/share/claude/versions/<v>` (native) |
 | codex | `curl -fsSL https://chatgpt.com/codex/install.sh \| CODEX_NON_INTERACTIVE=1 sh` | [github.com/openai/codex](https://github.com/openai/codex#installing-and-running-codex-cli) | `$CODEX_INSTALL_DIR/codex` (default `~/.local/bin/codex`) → `$CODEX_HOME/packages/standalone/current` |
+| codebuddy | `npm install -g @tencent-ai/codebuddy-code` | [codebuddy.ai/docs/cli/installation](https://www.codebuddy.ai/docs/cli/installation) | npm's configured global prefix: `bin/codebuddy` on POSIX, `codebuddy.cmd` on Windows |
 | grok | `curl -fsSL https://x.ai/cli/install.sh \| bash` | [docs.x.ai/build/overview](https://docs.x.ai/build/overview) | `$GROK_BIN_DIR/grok` (default `~/.grok/bin/grok`) → `~/.grok/downloads/grok-<v>-<platform>` |
 | kimi | `curl -fsSL https://code.kimi.com/kimi-code/install.sh \| bash` | [github.com/MoonshotAI/kimi-code](https://github.com/MoonshotAI/kimi-code#install) | `$KIMI_INSTALL_DIR/bin/kimi` (default `~/.kimi-code/bin/kimi`) |
 | opencode `v1` | `curl -fsSL https://opencode.ai/install \| bash` | [opencode.ai/docs](https://opencode.ai/docs/#install) | `~/.opencode/bin/opencode` (1.x) |

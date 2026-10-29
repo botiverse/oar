@@ -72,7 +72,7 @@ export function unwritableAncestor(dir: string): string | null {
   }
 }
 
-const thisMachine: InstallHost = {
+export const defaultInstallHost: InstallHost = {
   platform: process.platform,
   arch: process.arch,
   locate: (tool) => resolveExecutable(tool),
@@ -127,7 +127,7 @@ export function scriptInstallPlanOn(method: ScriptInstallMethod, host: InstallHo
 }
 
 /** A runtime with one release line: a `line` is refused, never ignored. */
-export function scriptInstallPlan(method: ScriptInstallMethod, host: InstallHost = thisMachine): InstallPlanner {
+export function scriptInstallPlan(method: ScriptInstallMethod, host: InstallHost = defaultInstallHost): InstallPlanner {
   return async (options: InstallOptions = {}) => {
     await Promise.resolve();
     if (options.line !== undefined) {
@@ -148,7 +148,7 @@ export interface LinedInstallMethods {
  * (oar does not choose a line for the person), `unknown_line` for a line the
  * runtime does not ship.
  */
-export function linedInstallPlan(lined: LinedInstallMethods, host: InstallHost = thisMachine): InstallPlanner {
+export function linedInstallPlan(lined: LinedInstallMethods, host: InstallHost = defaultInstallHost): InstallPlanner {
   const names = lined.lines.map((entry) => entry.line).join(", ");
   return async (options: InstallOptions = {}) => {
     await Promise.resolve();

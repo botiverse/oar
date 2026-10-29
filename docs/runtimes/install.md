@@ -14,7 +14,7 @@ codex 0.162.0, grok 1.0.50, kimi 2.1.1, opencode 1.18.35 (`v1`) and 2.0.26
 [runtime install](../spec/install.md).
 
 **Not run:** macOS and Linux x64 (the same scripts, with their own platform
-branches), and Windows, where oar runs no installer (`platform`).
+branches), and Windows for these script installers (`platform`).
 
 ## Per runtime
 
@@ -69,3 +69,29 @@ The sandbox needs `TMPDIR` to exist: kimi's installer stops at
 | --- | --- |
 | `KIMI_INSTALL_DIR=/opt/kimi-code` (`/opt` root-owned) | kimi `unsupported` `requires_privileges`: "the installer writes /opt/kimi-code, and /opt is not writable by this user" (kimi's own docs pipe this case to `sudo`) |
 | PATH holding only `sh` and `bash` | claude `unsupported` `missing_tool` `curl` |
+
+
+## CodeBuddy npm: 2026-10-29
+
+Linux x64, Node 24.19.0, npm 11.17.0. In a bubblewrap sandbox with the host
+filesystem read-only and a fresh temporary HOME, the public OAR installer ran
+`npm install -g @tencent-ai/codebuddy-code` and installed **2.178.1** in about
+11 seconds. npm's prefix, cache and npmrc locations were inside that HOME;
+the global bin directory was deliberately absent from PATH. `installation()`
+found `<prefix>/bin/codebuddy` through npm's own prefix query and reported
+2.178.1. The second `install()` returned `already_installed` without reinstalling.
+No login, account read, conversation or model request was involved.
+
+The [official installation page](https://www.codebuddy.ai/docs/cli/installation)
+documents the npm package for Linux, macOS and Windows. The native script is
+still labeled Beta, so OAR uses npm. It adds no updater or logout support.
+The runtime's [mapping](codebuddy.md#oar-mapping) describes discovery and errors.
+
+[`tests/codebuddy/install-smoke.ts`](../../tests/codebuddy/install-smoke.ts)
+repeats the real install in a child process with isolated HOME, npm prefix,
+cache and configuration files. It checks that planning writes nothing,
+compares the native reported version to the installed package, and verifies
+the second install is idempotent. The three-platform CI check jobs run it;
+macOS and Windows observations are pending the first CI run. Unit regressions
+also cover missing npm, denied write access, failed/timed-out prefix queries,
+explicit executable overrides and environment-specific prefix discovery.

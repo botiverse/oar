@@ -308,6 +308,8 @@ it, without a terminal and never with sudo, when `installation()` finds no
 copy, and judges the result by `installation()` afterwards, never by the
 installer's exit code. oar never installs on its own. Claude, Codex, Grok,
 Kimi and OpenCode install through their vendors' macOS and Linux scripts;
+CodeBuddy uses its official npm package on Linux, macOS and Windows, checks
+the configured global prefix, and discovers its launcher even off PATH.
 OpenCode declares two release lines in `runtime.installLines` (`v1`, `v2`)
 and takes the host's choice as `line` (oar picks none), and a copy of either
 line is `already_installed`, never replaced. Antigravity's plan is

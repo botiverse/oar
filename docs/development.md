@@ -169,7 +169,10 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
-  The same jobs install Kimi 2.4.0 and run its native login tests against a
+  The same jobs verify CodeBuddy's official npm installation in an isolated
+  HOME and global prefix, with its bin directory off PATH, and check the
+  installed package's version and an idempotent second install. They then
+  install Kimi 2.4.0 and run its native login tests against a
   local OAuth/model server, including browser suppression and credential writes.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.

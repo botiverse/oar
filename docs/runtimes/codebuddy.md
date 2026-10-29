@@ -23,10 +23,25 @@ baselines, not a compatibility range.
 ## OAR mapping
 
 `codebuddyRuntime` is in `defaultRuntimes` and has the dedicated
-`@botiverse/oar/runtimes/codebuddy` entry. Install the vendor CLI separately;
+`@botiverse/oar/runtimes/codebuddy` entry. `installPlan()` describes the official
+`npm install -g @tencent-ai/codebuddy-code` command on Linux, macOS and Windows;
+`install()` runs it only when no usable copy is found. Missing npm or an
+unwritable global installation directory returns `missing_tool` or
+`requires_privileges`, with the command and
+[official installation source](https://www.codebuddy.ai/docs/cli/installation).
+The independent binary installer remains a vendor Beta and is not selected.
+
 OAR finds `OAR_CODEBUDDY_BIN`, `codebuddy` on PATH or `~/.local/bin/codebuddy`.
-Installation readiness and version are local probes. OAR does not expose a
-CodeBuddy installer, updater, logout, account quota reader or provider facade.
+If none is found and no explicit override is set, a bounded local
+`npm prefix -g` query adds npm's global bin directory to discovery. This works
+even when that directory is absent from a GUI host's PATH, honors the probe's
+environment overlay, and does not change PATH. The plan uses the same prefix
+query and checks write access before allowing installation. Prefix-query
+failure throws a generic error; it does not mean the runtime is absent or
+permission to install. Readiness and version remain local probes.
+
+OAR does not expose a CodeBuddy updater, logout, account quota reader or
+provider facade. [Installation evidence](install.md#codebuddy-npm-2026-10-29).
 
 | Surface | Native mechanism and OAR behavior |
 | --- | --- |

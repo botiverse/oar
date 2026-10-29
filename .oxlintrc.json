@@ -123,7 +123,8 @@
       "files": [
         "**/*.test.ts",
         "tests/fixtures/**",
-        "tests/clean-install.ts"
+        "tests/clean-install.ts",
+        "tests/codebuddy/install-smoke.ts"
       ],
       "rules": {
         "import/no-nodejs-modules": "off",

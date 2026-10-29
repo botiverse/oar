@@ -58,7 +58,7 @@ test("install and installPlan come together, and a bundled runtime has neither",
   }
   assert.deepEqual(
     [...defaultRuntimes.list(), cursor].filter((runtime) => runtime.install === undefined).map((runtime) => runtime.id),
-    ["codebuddy", "pi", "cursor"],
+    ["pi", "cursor"],
   );
 });
 
