@@ -7,7 +7,7 @@ import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
-import { qoderStartupError } from "./protocol.js";
+import { qoderStartupError, qoderTerminationReason } from "./protocol.js";
 import { qoderPermissionResponse } from "./permission.js";
 import { qoderNativeModelName } from "./list-models.js";
 
@@ -64,7 +64,7 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
         projection.report({ type: "control_response", native: { ...answer, response: { ...envelope, response: redacted } },
           events: effort === null ? [] : [{ kind: "effort", effort }] });
       },
-      exited: control.end, disposing: control.end,
+      exited: control.end, disposing: control.end, exitReason: () => qoderTerminationReason(child),
       permissionResponse: qoderPermissionResponse,
       close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeQoder(child); } },
     });

@@ -45,6 +45,8 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   readonly consume: (message: JsonRecord) => boolean;
   readonly open: (projection: { current(): S; replace(state: S): void; report(body: FrameBody): void }) => Promise<void>;
   readonly exited: (code: number | null) => void;
+  /** Why OAR terminated its owned process; absent for an independent native exit. */
+  readonly exitReason?: () => string | undefined;
   readonly disposing: () => void;
   readonly close?: (active: boolean) => Promise<void>;
   readonly contextBreakdown?: Session["contextBreakdown"];

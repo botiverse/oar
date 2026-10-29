@@ -9,22 +9,27 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
   const controls = qoderControl(child, () => {}, qoderInitializeTimeoutMs);
   const handlers: ((line: string) => void)[] = [];
   const buffered: string[] = [];
-  const accountQueries = new Set<string>();
+  const failure: { error?: Error } = {};
   const stdout = new PassThrough();
   stdout.resume();
   let ready = false;
   child.onLine((line) => {
     const frame = asRecord(parseJson(line));
-    if (frame === null || controls.consume(frame) || frame.type === "keep_alive") { return; }
-    const responseId = asRecord(frame.response)?.request_id;
-    const accountReply = frame.type === "control_response" && frame.session_id === undefined && typeof responseId === "string" && accountQueries.has(responseId);
-    if (frame.session_id !== sessionId && !accountReply) { child.kill(); return; }
+    if (frame === null || failure.error !== undefined) { return; }
+    if (frame.session_id !== undefined && frame.session_id !== sessionId) {
+      failure.error = new Error("Qoder daemon received a frame belonging to another session; OAR terminated the owned process");
+      controls.end(); child.kill(); return;
+    }
+    if (controls.consume(frame) || frame.type === "keep_alive") { return; }
+    // Connection-wide notifications may be added by newer native daemons.
+    // Preserve unfamiliar frames without an id instead of guessing their meaning.
     if (!ready) { buffered.push(line); return; }
     stdout.write(`${line}\n`);
     for (const handler of handlers) { handler(line); }
   });
   child.onExit(() => { controls.end(); stdout.end(); });
   const write = (text: string): void => {
+    if (failure.error !== undefined) { throw failure.error; }
     for (const line of text.split("\n")) {
       if (line.trim().length === 0) { continue; }
       const frame = asRecord(parseJson(line));
@@ -35,7 +40,6 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
       if (frame.type === "control_request" && request?.subtype === "get_models" && typeof frame.request_id === "string") {
         // The official daemon query plane moved account-level controls out of
         // sessions. Its reply has the identical payload and no session_id.
-        accountQueries.add(frame.request_id);
         const { subtype: _subtype, ...params } = request;
         child.write(`${JSON.stringify({ type: frame.type, request_id: frame.request_id, request: { ...params, type: "daemon.get_models" } })}\n`);
       } else { child.write(`${JSON.stringify({ ...frame, session_id: sessionId })}\n`); }
@@ -62,7 +66,9 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     if (opened.session_id !== sessionId) { throw new Error("Qoder daemon did not confirm the requested session identity"); }
     return {
       spawned: child.spawned, exited: child.exited, stdin, stdout, write,
-      diagnostics: () => child.diagnostics(), resources: child.resources,
+      diagnostics: () => ({ ...child.diagnostics(), ...(failure.error === undefined ? {} : {
+        error: { code: "QODER_PROTOCOL_ERROR", message: failure.error.message },
+      }) }), resources: child.resources,
       kill: () => { child.kill(); }, onExit: (handler) => { child.onExit(handler); },
       onLine(handler) {
         handlers.push(handler);
@@ -71,5 +77,5 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
         for (const line of buffered.splice(0)) { stdout.write(`${line}\n`); handler(line); }
       },
     };
-  } catch (error) { controls.end(); child.kill(); await child.exited; throw error; }
+  } catch (error) { controls.end(); child.kill(); await child.exited; throw failure.error ?? error; }
 }

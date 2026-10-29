@@ -85,6 +85,14 @@ test("foreign session input is refused and foreign output stops the dedicated da
   expect(() => { process.write('{"type":"user","session_id":"wrong"}\n'); }).toThrow("does not belong");
   child.emit('{"type":"assistant","session_id":"wrong"}\n');
   expect(child.killed()).toBe(true);
+  expect(process.diagnostics().error?.code).toBe("QODER_PROTOCOL_ERROR");
+  expect(process.diagnostics().error?.message).toContain("frame belonging to another session");
+});
+
+test("a foreign startup frame refuses opening with the protocol reason", async () => {
+  const child = daemon({ openedId: "foreign" });
+  await expect(qoderDaemonSession(child, "s1", [], "/work", {})).rejects.toThrow("frame belonging to another session");
+  expect(child.killed()).toBe(true);
 });
 
 test("authentication selection preserves explicit child environment credentials", () => {

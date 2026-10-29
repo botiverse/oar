@@ -23,8 +23,8 @@ export function reduceTurnStop(previous: TurnStop | undefined, record: RawEvent)
 }
 
 /** An observed exit ends stopped work as aborted, preserving the exit record itself. */
-export function exitTurnOutcome(stop: TurnStop | undefined): TurnOutcome {
+export function exitTurnOutcome(stop: TurnStop | undefined, reason?: string): TurnOutcome {
   return stop?.abortedOnExit === true
     ? { kind: "aborted" }
-    : { kind: "failed", reason: "runtime exited", failure: "runtime_exited" };
+    : { kind: "failed", reason: reason ?? "runtime exited", failure: "runtime_exited" };
 }

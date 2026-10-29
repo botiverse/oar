@@ -56,7 +56,12 @@ placement requires the full [design evidence gate](../design/system.md#shared-ru
 The native permission regression explicitly switches a replay session to the
 native default permission mode to trigger `can_use_tool`, proves the tool has
 not run before the response, and uses the production stdio response policy to
-allow it. Normal OAR sessions retain `bypass_permissions`.
+allow it. Normal OAR sessions retain `bypass_permissions`. The synthetic login
+fixture depends on the native credential storage format; a format change must
+fail native CI explicitly rather than silently substituting a real login.
+Unknown daemon frames without a session id remain verbatim in records. A frame
+for another session stops the owned daemon with an explanatory `exited.reason`;
+its foreign content is not attributed to the current conversation.
 
 ## Native interface
 

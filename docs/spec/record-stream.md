@@ -46,6 +46,13 @@ frames, and oar adds no echoing response (it would be a synthesized
 record: the action was initiated and the outcome was not observed (crash,
 oar itself killed). Backfilling a guessed response is forbidden.
 
+An `exited` response can carry an optional `reason` only when OAR itself
+terminated the owned process. It explains OAR's decision, such as receiving a
+frame for another session. An independent native exit has no `reason`; OAR
+never guesses its cause. The derived `exited` event preserves the same field,
+and an unfinished turn's `runtime_exited` outcome uses it as its explanation.
+This is an OAR control outcome, not a synthesized native frame or `turn_ended`.
+
 Further rules:
 
 - **Credential configuration values do not enter records.** This is the

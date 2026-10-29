@@ -64,7 +64,7 @@ function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, o
       }
     }
     return record.seq > afterSeq && record.kind === "response" && record.body.kind === "exited"
-      ? exitTurnOutcome(previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop)
+      ? exitTurnOutcome(previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop, record.body.reason)
       : null;
   };
 }

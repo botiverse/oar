@@ -1,3 +1,5 @@
+import type { LineProcess } from "../../shared/executable/index.js";
+
 /** 1.1.81 removed the SDK worker from the ordinary headless stream. */
 export function qoderProtocol(version: string | undefined): "worker" | "daemon" {
   const parts = /^(\d+)\.(\d+)\.(\d+)$/u.exec(version ?? "");
@@ -23,4 +25,10 @@ export function qoderDaemonAuth(env: NodeJS.ProcessEnv): Record<string, string> 
 /** Startup applies all flags together; include the choice without inventing a cause. */
 export function qoderStartupError(error: unknown, effort: string | undefined): unknown {
   return effort === undefined ? error : new Error(`Qoder startup failed (requested effort ${JSON.stringify(effort)}): ${String(error)}`, { cause: error });
+}
+
+/** Only an OAR-owned protocol termination supplies an exit reason. */
+export function qoderTerminationReason(child: LineProcess): string | undefined {
+  const error = child.diagnostics().error;
+  return error?.code === "QODER_PROTOCOL_ERROR" ? error.message : undefined;
 }

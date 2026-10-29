@@ -217,8 +217,8 @@ export type ControlEventBody =
   | { readonly kind: "app_request"; readonly requestId: string; readonly type: string }
   /** oar answered a `toApp` request automatically (an `answered` response). */
   | { readonly kind: "app_answered"; readonly requestId: string }
-  /** The runtime process exited (an `exited` response). */
-  | { readonly kind: "exited"; readonly code: number | null };
+  /** The runtime process exited (an `exited` response). Optional reason explains an OAR-initiated termination, never a guessed native cause. */
+  | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 
 /** Every event kind `Session.events()` can deliver. */
 export type EventBody = RuntimeEventBody | ControlEventBody;
@@ -284,8 +284,8 @@ export type ResponseBody =
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
   | { readonly kind: "answered"; readonly native: unknown }
-  /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. */
-  | { readonly kind: "exited"; readonly code: number | null };
+  /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason exists only when OAR terminated the process and explains why. */
+  | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 
 /** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
 export interface ContextUsage {

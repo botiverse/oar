@@ -103,7 +103,7 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
       }
       if (record.body.kind === "exited" && previous.kind === "idle") { return { kind: "idle", ...(previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }) }; }
       if (record.body.kind === "exited" && previous.kind === "running") {
-        return { kind: "idle", lastTurnOutcome: exitTurnOutcome(previous.stop) };
+        return { kind: "idle", lastTurnOutcome: exitTurnOutcome(previous.stop, record.body.reason) };
       }
       return previous;
     case "frame": {

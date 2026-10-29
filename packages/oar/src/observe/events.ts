@@ -57,7 +57,7 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, KnownCon
         : [];
     case "response": {
       if (record.body.kind === "exited") {
-        return [{ kind: "exited", code: record.body.code, ...envelope }];
+        return [{ kind: "exited", code: record.body.code, ...(record.body.reason === undefined ? {} : { reason: record.body.reason }), ...envelope }];
       }
       if (record.body.kind === "answered") {
         return [{ kind: "app_answered", requestId: record.requestId, ...envelope }];

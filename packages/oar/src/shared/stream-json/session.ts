@@ -135,7 +135,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   child.onExit((code) => {
     abortFallback.clear();
     // An exit before fallback still precedes the rejected pending controls.
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+    const reason = profile.exitReason?.();
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
     state.active = null;
     state.spontaneous = false;
     for (const requestId of pendingInterrupts.keys()) {

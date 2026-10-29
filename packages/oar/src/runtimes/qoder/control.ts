@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
+import { qoderTerminationReason } from "./protocol.js";
 
 // Qoder initializes built-in plugins on every open; measured native starts reach 25s.
 export const qoderInitializeTimeoutMs = 60_000;
@@ -18,7 +19,7 @@ export function qoderControl(child: LineProcess, remember: (value: unknown) => v
   let ended = false;
   const end = (): void => {
     ended = true;
-    for (const finish of pending.values()) { finish(new Error("Qoder exited before answering a control request")); }
+    for (const finish of pending.values()) { finish(new Error(qoderTerminationReason(child) ?? "Qoder exited before answering a control request")); }
     pending.clear();
   };
   return {
