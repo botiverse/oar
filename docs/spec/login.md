@@ -257,10 +257,22 @@ caller closes it. A prompt or event handler that throws stops the login with
 ## Status results
 
 `logged_in` (with `account` when the status names one), `logged_out`, or
-`unknown` when the status query failed or answered in a way oar cannot read;
-never a guess either way. `source` names the native command, SDK call or
+`unknown` when the status query failed, answered in a way oar cannot read, or
+found local configuration without establishing a login; never a guess either
+way. `source` names the native command, SDK call or
 configuration observed. `logged_out.detail` can give setup guidance and the
 limits of that observation.
+
+The `unknown` variant has an optional `configured?: readonly string[]`. A
+nonempty list means the reader observed local authentication configuration
+from those sources without validating it. Each entry names only a source
+kind and location, such as `environment: OPENAI_API_KEY` or
+`user settings: security.auth.apiKey (openai)`, never a credential value.
+These labels do not select an effective provider or prove remote validity.
+Query failures omit `configured`; its absence does not mean no configuration
+exists. Hosts can distinguish configured-but-unverified from unreadable
+status without parsing `detail`. Readers omit the field rather than return
+an empty list.
 
 `LoginAccount.credential` optionally reports account versus API-key form;
 `metering` independently reports plan versus usage billing. Unknown facts stay
@@ -383,7 +395,8 @@ or `launchArgs` option. Qwen's local reader includes the session environment
 user-level `.env` files independent of a workspace walk, and Vertex ADC file
 existence. Project settings, workspace `.env` and `--openai-api-key` launch
 arguments are excluded. Configured or offline-indeterminate sources return
-`unknown` with source kinds only, never credential values. No source in that
+`unknown` with `configured` source labels, never credential values. A query
+failure returns `unknown` without `configured`. No source in that
 scope returns `logged_out` with the explicit caveat that the excluded sources
 may still supply credentials. Neither result validates a remote credential.
 Qwen's OAuth free tier ended on 2026-04-15; use provider configuration instead.

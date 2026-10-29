@@ -157,7 +157,13 @@ export type AuthStatus =
   | { readonly kind: "logged_in"; readonly account?: LoginAccount; readonly source: string }
   | { readonly kind: "logged_out"; readonly source: string; readonly detail?: string }
   /** The status query failed, was unreadable, or local configuration cannot establish a login. */
-  | { readonly kind: "unknown"; readonly detail?: string; readonly source?: string };
+  | {
+    readonly kind: "unknown";
+    readonly detail?: string;
+    readonly source?: string;
+    /** Nonempty source labels for observed, unvalidated local configuration. No values. Omitted on query failure; absence does not mean no configuration. */
+    readonly configured?: readonly string[];
+  };
 
 export interface AuthStatusOptions {
   /** Same overlay as SessionOptions.env: strings set, null deletes; never changes the host environment. */

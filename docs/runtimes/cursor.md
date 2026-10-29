@@ -553,8 +553,10 @@ account; a status that reads logged out is `not_logged_in`.
 `CURSOR_API_KEY` comes first: the SDK uses it before the stored login for
 every call (an explicit key, then the variable, then the stored key), and
 `status()` ignores it. When the variable is present, including an empty value,
-OAR's `authStatus` returns `unknown` and explains that native status neither
-reads nor validates the key sessions will use. It does not attach the stored
+OAR's `authStatus` returns `unknown` with
+`configured: ["environment: CURSOR_API_KEY"]` and explains that native status
+neither reads nor validates the key sessions will use. Failed or unreadable
+status queries omit `configured`. It does not attach the stored
 login's email or expiry. A login started while the variable is set adds an `info`
 event saying that the variable wins until it is unset; its value is never
 read. A key stored against another backend (`CURSOR_BACKEND_URL`) also reads

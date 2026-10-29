@@ -72,7 +72,7 @@ async function inspectCredentials(env: Readonly<NodeJS.ProcessEnv>, signal: Abor
   if (await qwenCredentialFileExists(path.join(files.qwenHome, "oauth_creds.json"), signal)) { observed.push("legacy Qwen OAuth credential file exists; free tier discontinued 2026-04-15"); }
   signal.throwIfAborted();
   return observed.length > 0
-    ? unknown(`Configured sources: ${observed.join("; ")}. No credential was validated. ${SCOPE}`)
+    ? { kind: "unknown", source: SOURCE, configured: observed, detail: `Configured sources: ${observed.join("; ")}. No credential was validated. ${SCOPE}` }
     : { kind: "logged_out", source: SOURCE, detail: `No user/system provider credential found. Configure OPENAI_API_KEY + OPENAI_BASE_URL + OPENAI_MODEL, or BAILIAN_CODING_PLAN_API_KEY / BAILIAN_TOKEN_PLAN_API_KEY with the region's plan URL, or OPENROUTER_API_KEY / REQUESTY_API_KEY with its provider URL. ${SCOPE}` };
 }
 

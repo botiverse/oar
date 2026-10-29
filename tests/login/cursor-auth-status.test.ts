@@ -12,8 +12,9 @@ test.each(["environment-key", ""])("an environment key hides unrelated stored-lo
   vi.stubEnv("CURSOR_API_KEY", key);
   await Promise.all(([{ status: "logged-out" }, { status: "logged-in", email: "stale@example.invalid", apiKeyExpiresAtMs: EXPIRES_MS }] as const).map(async (stored) => {
     const result = await new FakeCursor({ stored }).runtime().authStatus(bundled);
-    expect(result).toEqual({ kind: "unknown", detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: "Cursor.auth.status" });
+    expect(result).toEqual({ kind: "unknown", configured: ["environment: CURSOR_API_KEY"], detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: "Cursor.auth.status" });
     expect(result).not.toHaveProperty("account");
+    if (key !== "") { expect(JSON.stringify(result)).not.toContain(key); }
   }));
 });
 
@@ -108,4 +109,11 @@ test("orient observes Cursor in its host environment when sessions refuse env", 
   expect(report.runtimes[0]?.installation).toMatchObject({ kind: "ok", value: { kind: "available", via: "bundled" } });
   expect(report.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "logged_in", account: { email: "host@example.invalid" } } });
   expect(process.env.CURSOR_API_KEY).toBeUndefined();
+});
+
+test("orient preserves the configured source without exposing the Cursor key", async () => {
+  vi.stubEnv("CURSOR_API_KEY", KEY);
+  const report = await orient(new RuntimeRegistry([new FakeCursor().runtime()]));
+  expect(report.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "unknown", configured: ["environment: CURSOR_API_KEY"] } });
+  assert.ok(!leaks(report));
 });

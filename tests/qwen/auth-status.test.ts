@@ -31,6 +31,7 @@ test("no user/system credential is logged out with workspace caveat, without cre
   const result = await status();
   expect(result).toMatchObject({ kind: "logged_out", detail: expect.stringContaining("Project settings, workspace .env files and launch arguments may still supply credentials") });
   expect(result).toHaveProperty("detail", expect.stringContaining("OPENAI_API_KEY"));
+  expect(result).not.toHaveProperty("configured");
   expect(await fixture.snapshot()).toEqual([]);
   expect(qwenRuntime.authStatus.localOnly).toBe(true);
   expect(qwenRuntime).not.toHaveProperty("login");
@@ -39,7 +40,7 @@ test("no user/system credential is logged out with workspace caveat, without cre
 
 test.each(["OPENAI_API_KEY", "BAILIAN_CODING_PLAN_API_KEY", "BAILIAN_TOKEN_PLAN_API_KEY", "OPENROUTER_API_KEY", "REQUESTY_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"])("%s is presence evidence, never a validated login", async (key) => {
   const result = await status({ ...fixture.env, [key]: SECRET });
-  expect(result).toMatchObject({ kind: "unknown", detail: expect.stringContaining(`environment: ${key}`) });
+  expect(result).toMatchObject({ kind: "unknown", configured: [`environment: ${key}`], detail: expect.stringContaining(`environment: ${key}`) });
   expect(result).not.toHaveProperty("account");
   expect(JSON.stringify(result)).not.toContain(SECRET);
 });
@@ -53,18 +54,27 @@ test("the overlay inherits, replaces and removes a key without changing the host
   expect(process.env.OPENAI_API_KEY).toBe(SECRET);
 });
 
-test.each([".qwen/settings.json", "system/settings.json", "system/system-defaults.json"])("reads %s JSONC without migration or secret-bearing output", async (file) => {
+test.each([[".qwen/settings.json", "user settings"], ["system/settings.json", "system settings"], ["system/system-defaults.json", "system defaults"]])("reads %s JSONC without migration or secret-bearing output", async (file, source) => {
   await fixture.write(file, `\uFEFF{ // native JSONC\n"security":{"auth":{"selectedType":"openai","apiKey":"${SECRET}"}}}`);
   const before = await fixture.snapshot();
   const result = await status();
-  expect(result).toMatchObject({ kind: "unknown", detail: expect.stringContaining("security.auth.apiKey (openai)") });
+  expect(result).toMatchObject({ kind: "unknown", configured: [`${source}: security.auth.apiKey (openai)`], detail: expect.stringContaining("security.auth.apiKey (openai)") });
   expect(JSON.stringify(result)).not.toContain(SECRET);
   expect(await fixture.snapshot()).toEqual(before);
 });
 
 test("custom modelProviders envKey resolves from settings.env and does not validate the selected model", async () => {
   await fixture.write(".qwen/settings.json", { $version: 4, security: { auth: { selectedType: "anthropic" } }, modelProviders: { openai: [{ id: "custom-model", envKey: "MY_PROVIDER_KEY" }] }, env: { MY_PROVIDER_KEY: SECRET } });
-  expect(await status()).toMatchObject({ kind: "unknown", detail: expect.stringContaining("MY_PROVIDER_KEY") });
+  const result = await status();
+  expect(result).toMatchObject({ kind: "unknown", configured: ["user .env or settings.env: MY_PROVIDER_KEY"] });
+  expect(JSON.stringify(result)).not.toContain(SECRET);
+});
+
+test("unrecognized auth types and non-identifier envKey labels do not expose configuration values", async () => {
+  await fixture.write(".qwen/settings.json", { security: { auth: { selectedType: SECRET } }, modelProviders: { openai: [{ envKey: SECRET }] }, env: { [SECRET]: SECRET } });
+  const result = await status();
+  expect(result).toMatchObject({ kind: "unknown", configured: ["user settings: unrecognized selectedType", "user .env or settings.env: custom modelProviders envKey"] });
+  expect(JSON.stringify(result)).not.toContain(SECRET);
 });
 
 test("an unset custom key and a selected API-key auth type alone are not credentials", async () => {
@@ -74,7 +84,9 @@ test("an unset custom key and a selected API-key auth type alone are not credent
 
 test.each([".qwen/.env", ".env"])("user %s supplies quoted keys even after the inherited key is removed", async (file) => {
   await fixture.write(file, `export OPENAI_API_KEY='${SECRET} # literal in quotes'\n`);
-  expect(await status({ ...fixture.env, OPENAI_API_KEY: null })).toMatchObject({ kind: "unknown", detail: expect.stringContaining("user .env or settings.env: OPENAI_API_KEY") });
+  const result = await status({ ...fixture.env, OPENAI_API_KEY: null });
+  expect(result).toMatchObject({ kind: "unknown", configured: ["user .env or settings.env: OPENAI_API_KEY"] });
+  expect(JSON.stringify(result)).not.toContain(SECRET);
 });
 
 test("QWEN_HOME from user .env redirects settings and preserves the legacy user dotenv source", async () => {
@@ -110,15 +122,22 @@ test("ADC and legacy OAuth files are checked for existence without reading their
 
 test("an explicit ADC path is metadata-only; a missing file or metadata-based ADC is still unknown", async () => {
   const adc = await fixture.write("credential.json", SECRET);
-  expect(await status({ ...fixture.env, GOOGLE_APPLICATION_CREDENTIALS: adc })).toHaveProperty("detail", expect.stringContaining("GOOGLE_APPLICATION_CREDENTIALS file exists"));
-  expect(await status({ ...fixture.env, GOOGLE_APPLICATION_CREDENTIALS: `${adc}-missing` })).toHaveProperty("detail", expect.stringContaining("file not found"));
-  expect(await status({ ...fixture.env, GOOGLE_CLOUD_PROJECT: "synthetic-project" })).toHaveProperty("kind", "unknown");
+  const results = await Promise.all([
+    status({ ...fixture.env, GOOGLE_APPLICATION_CREDENTIALS: adc }),
+    status({ ...fixture.env, GOOGLE_APPLICATION_CREDENTIALS: `${adc}-missing` }),
+    status({ ...fixture.env, GOOGLE_CLOUD_PROJECT: "synthetic-project" }),
+  ]);
+  expect(results[0]).toHaveProperty("configured", ["GOOGLE_APPLICATION_CREDENTIALS file exists; contents and validity were not read"]);
+  expect(results[1]).toHaveProperty("configured", ["GOOGLE_APPLICATION_CREDENTIALS file not found; contents and validity were not read"]);
+  expect(results[2]).toMatchObject({ kind: "unknown", configured: ["GOOGLE_CLOUD_PROJECT: Vertex ADC may use external credentials"] });
+  for (const value of [SECRET, adc, "synthetic-project"]) { expect(JSON.stringify(results)).not.toContain(value); }
 });
 
 test.each([`{"apiKey":"${SECRET}", broken`, '{"$version":99}', "[]"])("unreadable configuration stays unknown with no native detail (%#)", async (content) => {
   await fixture.write(".qwen/settings.json", content);
-  const result = await status();
+  const result = await status({ ...fixture.env, OPENAI_API_KEY: SECRET });
   expect(result).toMatchObject({ kind: "unknown", detail: expect.stringContaining("could not be completely inspected") });
+  expect(result).not.toHaveProperty("configured");
   expect(JSON.stringify(result)).not.toContain(SECRET);
 });
 
@@ -127,11 +146,13 @@ test("file metadata stalls obey the reader deadline", async () => {
   vi.mocked(stat).mockImplementationOnce(async () => Promise.withResolvers<never>().promise);
   const pending = qwenRuntime.authStatus(installation, { env: fixture.env, timeoutMs: 10 });
   await vi.advanceTimersByTimeAsync(10);
-  expect(await pending).toMatchObject({ kind: "unknown", detail: expect.stringContaining("timed out") });
+  const result = await pending;
+  expect(result).toMatchObject({ kind: "unknown", detail: expect.stringContaining("timed out") });
+  expect(result).not.toHaveProperty("configured");
 });
 
 test("local orient includes the declared Qwen reader without model or account requests", async () => {
   const report = await orient(new RuntimeRegistry([{ ...qwenRuntime, installation: async () => installation }]), { env: { ...fixture.env, OPENAI_API_KEY: SECRET } });
-  expect(report.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "unknown", detail: expect.stringContaining("OPENAI_API_KEY") } });
+  expect(report.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "unknown", configured: ["environment: OPENAI_API_KEY"] } });
   expect(JSON.stringify(report)).not.toContain(SECRET);
 });

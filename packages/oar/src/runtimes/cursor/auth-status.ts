@@ -67,7 +67,7 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
       return { kind: "unknown", detail: "cursor's sign-in status needs the bundled @cursor/sdk" };
     }
     if (process.env.CURSOR_API_KEY !== undefined) {
-      return { kind: "unknown", detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: STATUS_SOURCE };
+      return { kind: "unknown", configured: ["environment: CURSOR_API_KEY"], detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: STATUS_SOURCE };
     }
     const sdk = await loadedSdk(load);
     if ("failed" in sdk) {

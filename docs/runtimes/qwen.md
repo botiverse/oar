@@ -339,7 +339,8 @@ Project settings, workspace `.env` files and launch arguments such as
 `--openai-api-key` are outside this machine/user observation. `AuthStatusOptions`
 does not add `cwd` or `launchArgs`. Any configured source in scope gives
 `unknown`, including a source shadowed by another setting. The reader does not
-choose an effective provider or test a key. Its detail names source kinds,
+choose an effective provider or test a key. Its nonempty `configured` list
+and human-readable detail name source kinds,
 environment variable names or a known `selectedType`, never values. A selected
 API-key protocol or a model entry with an unset key alone is not a credential.
 
@@ -349,7 +350,8 @@ or a Vertex configuration that might use metadata credentials remains
 `unknown`; offline evidence cannot establish their usability. The ADC locations
 follow [Google's documented lookup](https://docs.cloud.google.com/docs/authentication/application-default-credentials).
 Malformed, unreadable, oversized or unrecognized-version configuration and a
-query timeout also produce `unknown` with generic detail. No key helper,
+query timeout also produce `unknown` with generic detail and no `configured`
+field. The missing field does not establish that configuration is absent. No key helper,
 Google credential client, token refresh or network request runs. The reader
 therefore declares `localOnly: true`.
 
