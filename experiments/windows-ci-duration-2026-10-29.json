@@ -1,0 +1,730 @@
+[
+  {
+    "job": 121578460726,
+    "run": 40324749088,
+    "url": "https://github.com/botiverse/oar/actions/runs/40324749088/job/121578460726",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-26T12:43:45Z",
+    "completedAt": "2026-10-26T13:30:45Z",
+    "seconds": 2820,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T12:44:17Z",
+        "completedAt": "2026-10-26T12:44:45Z",
+        "seconds": 28
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-26T12:44:45Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 121604100950,
+    "run": 40332163567,
+    "url": "https://github.com/botiverse/oar/actions/runs/40332163567/job/121604100950",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-26T13:37:14Z",
+    "completedAt": "2026-10-26T14:23:15Z",
+    "seconds": 2761,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T13:37:47Z",
+        "completedAt": "2026-10-26T13:38:13Z",
+        "seconds": 26
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-26T13:38:13Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 121608579249,
+    "run": 40333444058,
+    "url": "https://github.com/botiverse/oar/actions/runs/40333444058/job/121608579249",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-26T13:45:52Z",
+    "completedAt": "2026-10-26T14:31:53Z",
+    "seconds": 2761,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T13:46:27Z",
+        "completedAt": "2026-10-26T13:46:54Z",
+        "seconds": 27
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-26T13:46:54Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 121702185703,
+    "run": 40359896785,
+    "url": "https://github.com/botiverse/oar/actions/runs/40359896785/job/121702185703",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-26T16:31:13Z",
+    "completedAt": "2026-10-26T17:18:14Z",
+    "seconds": 2821,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:32:07Z",
+        "completedAt": "2026-10-26T16:32:07Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:32:07Z",
+        "completedAt": "2026-10-26T16:32:44Z",
+        "seconds": 37
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:32:44Z",
+        "completedAt": "2026-10-26T16:32:44Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-26T16:32:44Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 122161246118,
+    "run": 40495932395,
+    "url": "https://github.com/botiverse/oar/actions/runs/40495932395/job/122161246118",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-27T11:24:42Z",
+    "completedAt": "2026-10-27T12:12:43Z",
+    "seconds": 2881,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-27T11:25:12Z",
+        "completedAt": "2026-10-27T11:25:12Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-27T11:25:12Z",
+        "completedAt": "2026-10-27T11:25:54Z",
+        "seconds": 42
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-27T11:25:54Z",
+        "completedAt": "2026-10-27T11:25:54Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-27T11:25:54Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 122686910944,
+    "run": 40649785255,
+    "url": "https://github.com/botiverse/oar/actions/runs/40649785255/job/122686910944",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-28T07:23:48Z",
+    "completedAt": "2026-10-28T08:09:48Z",
+    "seconds": 2760,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T07:24:25Z",
+        "completedAt": "2026-10-28T07:24:25Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-28T07:24:25Z",
+        "completedAt": "2026-10-28T07:24:51Z",
+        "seconds": 26
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T07:24:51Z",
+        "completedAt": "2026-10-28T07:24:51Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-28T07:24:51Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 122687558582,
+    "run": 40649988326,
+    "url": "https://github.com/botiverse/oar/actions/runs/40649988326/job/122687558582",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-28T07:25:37Z",
+    "completedAt": "2026-10-28T08:12:38Z",
+    "seconds": 2821,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T07:26:08Z",
+        "completedAt": "2026-10-28T07:26:08Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-28T07:26:08Z",
+        "completedAt": "2026-10-28T07:26:35Z",
+        "seconds": 27
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T07:26:35Z",
+        "completedAt": "2026-10-28T07:26:35Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-28T07:26:35Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 122900087726,
+    "run": 40712178996,
+    "url": "https://github.com/botiverse/oar/actions/runs/40712178996/job/122900087726",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-28T15:04:08Z",
+    "completedAt": "2026-10-28T15:50:08Z",
+    "seconds": 2760,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T15:05:30Z",
+        "completedAt": "2026-10-28T15:05:30Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-28T15:05:30Z",
+        "completedAt": null,
+        "seconds": null
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "pending",
+        "conclusion": null,
+        "startedAt": null,
+        "completedAt": null,
+        "seconds": null
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "pending",
+        "conclusion": null,
+        "startedAt": null,
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 123201861941,
+    "run": 40798866545,
+    "url": "https://github.com/botiverse/oar/actions/runs/40798866545/job/123201861941",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "failure",
+    "startedAt": "2026-10-29T01:11:21Z",
+    "completedAt": "2026-10-29T01:58:22Z",
+    "seconds": 2821,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-29T01:12:00Z",
+        "completedAt": "2026-10-29T01:12:00Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-29T01:12:00Z",
+        "completedAt": "2026-10-29T01:12:29Z",
+        "seconds": 29
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-29T01:12:29Z",
+        "completedAt": "2026-10-29T01:12:29Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "in_progress",
+        "conclusion": null,
+        "startedAt": "2026-10-29T01:12:29Z",
+        "completedAt": null,
+        "seconds": null
+      }
+    ]
+  },
+  {
+    "job": 121634384018,
+    "run": 40333444058,
+    "url": "https://github.com/botiverse/oar/actions/runs/40333444058/job/121634384018",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-26T14:33:46Z",
+    "completedAt": "2026-10-26T14:37:23Z",
+    "seconds": 217,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T14:34:18Z",
+        "completedAt": "2026-10-26T14:34:48Z",
+        "seconds": 30
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T14:34:48Z",
+        "completedAt": "2026-10-26T14:37:18Z",
+        "seconds": 150
+      }
+    ]
+  },
+  {
+    "job": 121671680600,
+    "run": 40351279822,
+    "url": "https://github.com/botiverse/oar/actions/runs/40351279822/job/121671680600",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-26T15:38:23Z",
+    "completedAt": "2026-10-26T15:42:03Z",
+    "seconds": 220,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T15:38:56Z",
+        "completedAt": "2026-10-26T15:38:56Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T15:38:56Z",
+        "completedAt": "2026-10-26T15:39:25Z",
+        "seconds": 29
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T15:39:25Z",
+        "completedAt": "2026-10-26T15:39:25Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T15:39:25Z",
+        "completedAt": "2026-10-26T15:41:57Z",
+        "seconds": 152
+      }
+    ]
+  },
+  {
+    "job": 121677609367,
+    "run": 40352938236,
+    "url": "https://github.com/botiverse/oar/actions/runs/40352938236/job/121677609367",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-26T15:48:30Z",
+    "completedAt": "2026-10-26T15:52:04Z",
+    "seconds": 214,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T15:49:02Z",
+        "completedAt": "2026-10-26T15:49:02Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T15:49:02Z",
+        "completedAt": "2026-10-26T15:49:30Z",
+        "seconds": 28
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T15:49:30Z",
+        "completedAt": "2026-10-26T15:49:30Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T15:49:30Z",
+        "completedAt": "2026-10-26T15:51:59Z",
+        "seconds": 149
+      }
+    ]
+  },
+  {
+    "job": 121689342469,
+    "run": 40356234924,
+    "url": "https://github.com/botiverse/oar/actions/runs/40356234924/job/121689342469",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-26T16:08:44Z",
+    "completedAt": "2026-10-26T16:12:08Z",
+    "seconds": 204,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:09:13Z",
+        "completedAt": "2026-10-26T16:09:13Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:09:13Z",
+        "completedAt": "2026-10-26T16:09:40Z",
+        "seconds": 27
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:09:40Z",
+        "completedAt": "2026-10-26T16:09:40Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:09:40Z",
+        "completedAt": "2026-10-26T16:11:59Z",
+        "seconds": 139
+      }
+    ]
+  },
+  {
+    "job": 121691058554,
+    "run": 40356722686,
+    "url": "https://github.com/botiverse/oar/actions/runs/40356722686/job/121691058554",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-26T16:11:43Z",
+    "completedAt": "2026-10-26T16:15:14Z",
+    "seconds": 211,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:12:16Z",
+        "completedAt": "2026-10-26T16:12:16Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:12:16Z",
+        "completedAt": "2026-10-26T16:12:43Z",
+        "seconds": 27
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:12:43Z",
+        "completedAt": "2026-10-26T16:12:43Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:12:43Z",
+        "completedAt": "2026-10-26T16:15:07Z",
+        "seconds": 144
+      }
+    ]
+  },
+  {
+    "job": 121714186400,
+    "run": 40363303349,
+    "url": "https://github.com/botiverse/oar/actions/runs/40363303349/job/121714186400",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-26T16:52:43Z",
+    "completedAt": "2026-10-26T16:55:28Z",
+    "seconds": 165,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:53:12Z",
+        "completedAt": "2026-10-26T16:53:12Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:53:12Z",
+        "completedAt": "2026-10-26T16:53:36Z",
+        "seconds": 24
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-26T16:53:36Z",
+        "completedAt": "2026-10-26T16:53:36Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-26T16:53:36Z",
+        "completedAt": "2026-10-26T16:55:23Z",
+        "seconds": 107
+      }
+    ]
+  },
+  {
+    "job": 122181981360,
+    "run": 40495932395,
+    "url": "https://github.com/botiverse/oar/actions/runs/40495932395/job/122181981360",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-27T12:13:31Z",
+    "completedAt": "2026-10-27T12:16:04Z",
+    "seconds": 153,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-27T12:13:55Z",
+        "completedAt": "2026-10-27T12:13:55Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-27T12:13:55Z",
+        "completedAt": "2026-10-27T12:14:18Z",
+        "seconds": 23
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-27T12:14:18Z",
+        "completedAt": "2026-10-27T12:14:18Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-27T12:14:18Z",
+        "completedAt": "2026-10-27T12:15:59Z",
+        "seconds": 101
+      }
+    ]
+  },
+  {
+    "job": 122911500525,
+    "run": 40715378986,
+    "url": "https://github.com/botiverse/oar/actions/runs/40715378986/job/122911500525",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-28T15:23:10Z",
+    "completedAt": "2026-10-28T15:27:12Z",
+    "seconds": 242,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T15:23:59Z",
+        "completedAt": "2026-10-28T15:23:59Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-28T15:23:59Z",
+        "completedAt": "2026-10-28T15:24:26Z",
+        "seconds": 27
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-28T15:24:26Z",
+        "completedAt": "2026-10-28T15:24:26Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-28T15:24:26Z",
+        "completedAt": "2026-10-28T15:27:05Z",
+        "seconds": 159
+      }
+    ]
+  },
+  {
+    "job": 123217297319,
+    "run": 40798866545,
+    "url": "https://github.com/botiverse/oar/actions/runs/40798866545/job/123217297319",
+    "name": "behavior (windows-latest, pi-rpc-aimock)",
+    "conclusion": "success",
+    "startedAt": "2026-10-29T01:59:06Z",
+    "completedAt": "2026-10-29T02:02:50Z",
+    "seconds": 224,
+    "stages": [
+      {
+        "name": "Run pnpm run sea-trial",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-29T01:59:39Z",
+        "completedAt": "2026-10-29T01:59:39Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC behavior with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-29T01:59:39Z",
+        "completedAt": "2026-10-29T02:00:05Z",
+        "seconds": 26
+      },
+      {
+        "name": "Run pnpm vitest run sea-trial/vendor",
+        "status": "completed",
+        "conclusion": "skipped",
+        "startedAt": "2026-10-29T02:00:05Z",
+        "completedAt": "2026-10-29T02:00:05Z",
+        "seconds": 0
+      },
+      {
+        "name": "Pi RPC vendor tests with Windows resource samples",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-29T02:00:05Z",
+        "completedAt": "2026-10-29T02:02:44Z",
+        "seconds": 159
+      }
+    ]
+  }
+]

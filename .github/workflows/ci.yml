@@ -79,6 +79,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native]
+        exclude:
+          - os: windows-latest
+            backend: pi-rpc-aimock
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
@@ -116,23 +119,50 @@ jobs:
       - run: npm install -g @qoder-ai/qodercli
         if: matrix.backend == 'qoder-native'
       - run: pnpm run sea-trial
-        if: matrix.os != 'windows-latest' || matrix.backend != 'pi-rpc-aimock'
-      - name: Pi RPC behavior with Windows resource samples
-        if: matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock'
-        shell: pwsh
-        run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
       - run: pnpm vitest run sea-trial/vendor
-        if: matrix.os != 'windows-latest' || matrix.backend != 'pi-rpc-aimock'
-      - name: Pi RPC vendor tests with Windows resource samples
-        if: matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock'
-        shell: pwsh
-        run: ./sea-trial/windows-resources.ps1 -Stage vendor -Command 'pnpm vitest run sea-trial/vendor'
       # The run directory is a test artifact: traces + logs, uploaded even
       # (especially) when the run failed.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn
+
+  # Separate VMs retain each phase's outcome if the other loses its runner.
+  # Commands, sampler, assertions and native deadlines are unchanged.
+  # CI ceilings may preserve a hung step's logs while its runner is alive.
+  pi-rpc-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [behavior, vendor]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      OAR_TEST: pi-rpc-aimock
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pi RPC behavior with Windows resource samples
+        if: matrix.phase == 'behavior'
+        shell: pwsh
+        run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
+      - name: Pi RPC vendor tests with Windows resource samples
+        if: matrix.phase == 'vendor'
+        timeout-minutes: 12
+        shell: pwsh
+        run: ./sea-trial/windows-resources.ps1 -Stage vendor -Command 'pnpm vitest run sea-trial/vendor'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sea-trial-pi-rpc-aimock-windows-latest-${{ matrix.phase }}
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: warn

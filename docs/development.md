@@ -170,7 +170,13 @@ or pull request whose changes are all Markdown files or under `docs/` or
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,
-  `pnpm run sea-trial` plus that backend's vendor tests.
+  `pnpm run sea-trial` plus that backend's vendor tests. Windows Pi RPC is
+  excluded from this combined job and runs as `pi-rpc-windows (behavior)`
+  and `pi-rpc-windows (vendor)` on separate VMs. Both retain the original
+  commands and resource sampler; their artifacts have phase suffixes. The
+  vendor step has a 12-minute CI ceiling and each job has a 20-minute ceiling.
+  This is an observation experiment after repeated runner losses, not a
+  proven fix or a change to assertions, concurrency or native deadlines.
 - `browser-demo`: `pnpm durable-demo:smoke` in headless Chromium on Linux.
   The real Pi Durable Harness and native fetch provider run in the browser;
   provider requests go to local scripted responses using a synthetic key.
