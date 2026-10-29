@@ -670,10 +670,23 @@ runs Kimi against a local OAuth/model server with isolated storage. It checks
 browser-command execution both permitted and suppressed, native model and
 credential writes, status without login, logout, cancellation and a failure
 after the credential write. Linux passed on 2026-10-28; macOS and Windows
-evidence comes from the same test in the three-platform CI check job. Real
-account login remains a separate human validation. Run locally with
+evidence comes from the same test in the three-platform CI check job. These
+tests use synthetic credentials. Run locally with
 `OAR_TEST=kimi-login pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts`
 and an installed Kimi 2.3.3 (`OAR_KIMI_LOGIN_COMMAND` selects its executable).
+
+[env] Real account validation on 2026-10-29 used Kimi 2.3.3 on xxwork
+(Linux x64) through main OAR at `a2840bd` (0.76.0), with the account owner's
+authorization. `kimiRuntime.login(installation, interaction, { region:
+"global", openBrowser: false })` relayed the device URL/code; after the owner
+authorized it, login returned `logged_in` and a separate
+`kimiRuntime.authStatus(installation)` returned `logged_in`. A fresh session
+reported model `kimi-code/kimi-for-coding` and completed one prompt, replying
+exactly `KIMI_GLOBAL_OK`. The session was disposed and the login retained.
+`usage().value.total` remained `null`; the reported 20,100 context tokens out
+of 1,048,576 describe occupancy, not consumption. This establishes real global
+login, readiness and one model turn on Linux, not live logout, renewal,
+mainland-region or cross-platform account validation.
 
 ## Verification and open gaps
 
