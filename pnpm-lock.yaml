@@ -12,8 +12,8 @@ importers:
         specifier: ^1.39.0
         version: 1.39.0(vitest@4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.2.0)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)))
       '@cursor/sdk':
-        specifier: 1.1.0
-        version: 1.1.0(zod@4.4.3)
+        specifier: 1.2.0
+        version: 1.2.0(zod@4.4.3)
       '@earendil-works/chord':
         specifier: 1.4.0
         version: 1.4.0
@@ -63,8 +63,8 @@ importers:
         specifier: workspace:*
         version: link:../oar
       '@cursor/sdk':
-        specifier: 1.1.0
-        version: 1.1.0(zod@4.4.3)
+        specifier: 1.2.0
+        version: 1.2.0(zod@4.4.3)
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -97,8 +97,8 @@ importers:
         version: 2.0.2
     devDependencies:
       '@cursor/sdk':
-        specifier: 1.1.0
-        version: 1.1.0(zod@4.4.3)
+        specifier: 1.2.0
+        version: 1.2.0(zod@4.4.3)
       '@earendil-works/chord':
         specifier: 1.4.0
         version: 1.4.0
@@ -239,38 +239,38 @@ packages:
       vitest:
         optional: true
 
-  '@cursor/sdk-darwin-arm64@1.1.0':
-    resolution: {integrity: sha512-3ii4Yc4KtiHklMUGN6erAfJfDk6qYDi2lWdcj2NPFwidnGcRVrM5a2C28aG5wuqQPZrezdhD7zVYK/BmgwD3VQ==}
+  '@cursor/sdk-darwin-arm64@1.2.0':
+    resolution: {integrity: sha512-UkZ/RdxKCpOQ85nRgzSq+g0h+gIw36/lCEvQvomhs5EkSFZW3OwbeEzkAU3UYglZ7t3RNHj3mc5C5cdDtHguvw==}
     cpu: [arm64]
     os: [darwin]
     hasBin: true
 
-  '@cursor/sdk-darwin-x64@1.1.0':
-    resolution: {integrity: sha512-hjRjNrnjqdom8/wUP00DAXttTSYxnKr8ZAbFZ0vf+Mo4zo6YtjTU0sewoadtuT9T0WGH2fI5SfZsSXyWMWOmqg==}
+  '@cursor/sdk-darwin-x64@1.2.0':
+    resolution: {integrity: sha512-mJTFdX+qv9dHAm59tT7uq7ci7+BDvFoNk4gdF2zGp9SLULicY+FdFD64p1qLen1bX5Y2soZaX5mWBy7BfObjcg==}
     cpu: [x64]
     os: [darwin]
     hasBin: true
 
-  '@cursor/sdk-linux-arm64@1.1.0':
-    resolution: {integrity: sha512-olTKTyselLXGc06ehPtvoCFbSvZ3nZYh0J08b3e49YxdiOrXAIyE9IFD8tsOVaGkjHZISOL2PRWFBsOA03QmDQ==}
+  '@cursor/sdk-linux-arm64@1.2.0':
+    resolution: {integrity: sha512-Rs+cd5snuhxMAHkpqRfEGPB1qAsfqSOYJh5SOHZTOWy2LkRVO62WHwd4x80C2emj+dosTV5WAcuF2kMKKcrDJg==}
     cpu: [arm64]
     os: [linux]
     hasBin: true
 
-  '@cursor/sdk-linux-x64@1.1.0':
-    resolution: {integrity: sha512-/gd/LRroo7qFDCFLnJOHc8HIEYQt020tFUZtdt6WB+SNGIeyUtflTqO97c1axU6IvH75QaNksMBdT0OEz4kNZg==}
+  '@cursor/sdk-linux-x64@1.2.0':
+    resolution: {integrity: sha512-ainsGAFtkWTBZrLABp82Hvfv7VB/FxmZHE42qMVotFTRDwOY2iduvhSig910bVxv+kw3S00Srmu/9CxklLwhbw==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@cursor/sdk-win32-x64@1.1.0':
-    resolution: {integrity: sha512-pL1hQVaUPWEe7ReH6tqRY76BPASd58M0k1hJbXL00EFRtlnSoeDRCvVvOApvOQN/FBdP9DNbgqdWmETODc4jDQ==}
+  '@cursor/sdk-win32-x64@1.2.0':
+    resolution: {integrity: sha512-p3rkyta6R/nXIukd3/ifJq32otkkGoUi41T2jxnHbPHMhzE2F8OuJQGBVmORuQLMr+bIGGVZmCxertgs4WgzcQ==}
     cpu: [x64]
     os: [win32]
     hasBin: true
 
-  '@cursor/sdk@1.1.0':
-    resolution: {integrity: sha512-QrqxwfgbT7e1oOsXzs0O86eGdPKA4VPOGU+v4vesZqRsPUIH/QKStWiE8/kV7eNQm1hEi9y2ijbeniZeXozgNA==}
+  '@cursor/sdk@1.2.0':
+    resolution: {integrity: sha512-Nqm2U0zTWrYEDCv3Rdwsfa1gYZWsg+JnY+I2F8BwWSAr3FNo0TZWwyHWoWngZgriF1w02fJ4gjJWaul9zysvgQ==}
     engines: {node: '>=22.13'}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -1743,22 +1743,22 @@ snapshots:
     optionalDependencies:
       vitest: 4.1.11(@opentelemetry/api@1.9.0)(@types/node@26.2.0)(vite@8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
 
-  '@cursor/sdk-darwin-arm64@1.1.0':
+  '@cursor/sdk-darwin-arm64@1.2.0':
     optional: true
 
-  '@cursor/sdk-darwin-x64@1.1.0':
+  '@cursor/sdk-darwin-x64@1.2.0':
     optional: true
 
-  '@cursor/sdk-linux-arm64@1.1.0':
+  '@cursor/sdk-linux-arm64@1.2.0':
     optional: true
 
-  '@cursor/sdk-linux-x64@1.1.0':
+  '@cursor/sdk-linux-x64@1.2.0':
     optional: true
 
-  '@cursor/sdk-win32-x64@1.1.0':
+  '@cursor/sdk-win32-x64@1.2.0':
     optional: true
 
-  '@cursor/sdk@1.1.0(zod@4.4.3)':
+  '@cursor/sdk@1.2.0(zod@4.4.3)':
     dependencies:
       '@bufbuild/protobuf': 1.10.0
       '@connectrpc/connect': 1.7.0(@bufbuild/protobuf@1.10.0)
@@ -1766,11 +1766,11 @@ snapshots:
       '@statsig/js-client': 3.31.0
       zod: 4.4.3
     optionalDependencies:
-      '@cursor/sdk-darwin-arm64': 1.1.0
-      '@cursor/sdk-darwin-x64': 1.1.0
-      '@cursor/sdk-linux-arm64': 1.1.0
-      '@cursor/sdk-linux-x64': 1.1.0
-      '@cursor/sdk-win32-x64': 1.1.0
+      '@cursor/sdk-darwin-arm64': 1.2.0
+      '@cursor/sdk-darwin-x64': 1.2.0
+      '@cursor/sdk-linux-arm64': 1.2.0
+      '@cursor/sdk-linux-x64': 1.2.0
+      '@cursor/sdk-win32-x64': 1.2.0
 
   '@earendil-works/chord@1.4.0':
     dependencies:

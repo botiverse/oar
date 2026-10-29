@@ -14,9 +14,11 @@ import type { ModelSelection } from "./sdk.js";
  * bookkeeping kinds OAR reads nothing from: `token-delta`,
  * `thinking-completed`, `partial-tool-call`, `tool-requests-listed`,
  * `step-started`, `step-completed`, `shell-output-delta`). Every update is
- * one frame. The SDK drops its `summary*` updates before `onDelta`, so
- * compaction is not observable. The run's end is not an update: `run.wait()`
- * answers with the run's status, recorded as its own frame.
+ * one frame. SDK 1.2.0 drops `summary*` updates before `onDelta`, but exposes
+ * their statuses through `run.stream()`. Its messages are separate frames;
+ * only summaries add events, so text, tools and usage are not counted twice.
+ * The run's end is not an update: `run.wait()` answers with the run's status,
+ * recorded after the message stream drains or its bounded tail wait expires.
  */
 
 /** `tokens`: cumulative per agent path, so usage events stay summable. */
@@ -25,6 +27,21 @@ export interface CursorProjectionState {
 }
 
 export const initialCursorProjection: CursorProjectionState = { tokens: new Map() };
+
+/** The SDK's second view supplies compaction facts missing from `onDelta`. */
+export function cursorStreamFrame(message: unknown): CursorFrame {
+  const value = asRecord(message);
+  const type = typeof value?.type === "string" ? value.type : "unknown";
+  const events: RuntimeEventBody[] = [];
+  if (type === "summary") {
+    switch (value?.status) {
+      case "running": events.push({ kind: "compaction_started" }); break;
+      case "completed": events.push({ kind: "compaction_ended", outcome: "completed" }); break;
+      case "error": events.push({ kind: "compaction_ended", outcome: "failed" }); break;
+    }
+  }
+  return { type: `cursor/stream/${type}`, native: message, events, agentPath: [] };
+}
 
 export interface CursorFrame {
   readonly type: string;

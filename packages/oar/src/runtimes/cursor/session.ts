@@ -14,14 +14,12 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 import { cursorRefusedSessionOptions, openCursorAgent } from "./model.js";
 import {
   cursorOpenedFrame,
-  cursorRunFailedFrame,
-  cursorRunResultFrame,
   foldCursorDelta,
   initialCursorProjection,
   type CursorFrame,
   type CursorProjectionState,
 } from "./projection.js";
-import { giveUp, newLaunch, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
+import { giveUp, newLaunch, observeRun, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
 import type { CursorDeltaListener, CursorRun, CursorSdk } from "./sdk.js";
 
 /*
@@ -96,9 +94,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       active = current;
       void (async (): Promise<void> => {
         try {
-          finish(current, cursorRunResultFrame(await run.wait()));
-        } catch (error) {
-          finish(current, cursorRunFailedFrame(message(error)));
+          finish(current, await observeRun(run, record));
         } finally {
           onEnded();
         }
