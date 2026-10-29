@@ -49,6 +49,7 @@ async function steerOrQueue(session: Session, message: string): Promise<SendResu
 export function createSubagent(identity: SubagentIdentity, session: Session, hooks: SubagentHooks): Subagent {
   let state: SubagentState = "idle";
   let closing = false;
+  let unsubscribe: (() => void) | undefined = undefined;
   let turns = 0;
   let text = "";
   let lastEnd: TaskStatus | null = null;
@@ -92,6 +93,8 @@ export function createSubagent(identity: SubagentIdentity, session: Session, hoo
   };
 
   const shut = (): void => {
+    if (state === "closed") { return; }
+    unsubscribe?.();
     state = "closed";
     settle(null);
     hooks.closed();
@@ -109,11 +112,17 @@ export function createSubagent(identity: SubagentIdentity, session: Session, hoo
   };
 
   const observe = (event: Event): void => {
-    if (event.sessionId !== session.id || event.agentPath.length > 0) {
+    if (state === "closed" || event.sessionId !== session.id || event.agentPath.length > 0) {
       return;
     }
     if (event.kind === "turn_ended") {
       ended(event.outcome, event.receivedAt);
+    } else if (event.kind === "released") {
+      if (state === "running") {
+        const status = session.status().value;
+        ended(status.kind === "idle" && status.lastTurnOutcome !== undefined ? status.lastTurnOutcome : { kind: "aborted" }, event.receivedAt);
+      }
+      shut();
     } else if (event.kind === "exited") {
       exited(event.code, event.receivedAt);
     } else if (event.kind === "control_rejected") {
@@ -132,7 +141,7 @@ export function createSubagent(identity: SubagentIdentity, session: Session, hoo
       }
     }
   };
-  session.events(observe);
+  unsubscribe = session.events(observe);
 
   const followup = async (message: string): Promise<SendResult> => {
     if (session.status().value.kind !== "idle") {
@@ -205,7 +214,7 @@ export function createSubagent(identity: SubagentIdentity, session: Session, hoo
       return outcome;
     },
     close: async (): Promise<void> => {
-      if (state === "closed" || closing) {
+      if (closing) {
         return;
       }
       closing = true;

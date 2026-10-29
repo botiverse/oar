@@ -60,7 +60,7 @@ export interface RecordAt {
  */
 export interface SessionKernel {
   readonly sessionId: string;
-  /** Record the requested and actual placement once the adapter has opened. */
+  /** Record requested and selected placement before any native records are observed. */
   opened(context: SessionOpenContext): void;
   /** Append the runtime's frame. Returns the stamped record. */
   frame(body: FrameBody, at?: RecordAt): Frame;

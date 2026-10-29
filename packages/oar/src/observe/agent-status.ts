@@ -38,6 +38,8 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *   accepted abort / request dispose  → retain stop evidence for this turn
  *   response exited                   → idle{aborted} after accepted abort / dispose
  *                                     → idle{failed runtime_exited} otherwise
+ *   response released                 → idle/released, retaining the stop-based outcome
+ *   later facts after release         → retain idle/released; native facts remain in the log
  * The fold is total: a mid-turn event while idle adopts that turn (a consumer
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
@@ -71,7 +73,7 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
 }
 
 export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?: string): AgentStatus {
-  if (previous.released === true) { return previous; }
+  if (previous.kind === "idle" && previous.released === true) { return previous; }
   const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
   if (foreignSession && !belongsToSession(record, sessionId)) {
     return previous;

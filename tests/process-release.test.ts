@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { RawEvent, Session } from "../packages/oar/src/contracts/session.js";
+import type { RawEvent, RequestRecord, Session } from "../packages/oar/src/contracts/session.js";
 import { createProcessPool } from "../packages/oar/src/shared/process-pool.js";
 import { processSessionLifecycle } from "../packages/oar/src/shared/process-session.js";
 import { createSessionKernel, sealSession } from "../packages/oar/src/kernel.js";
@@ -74,6 +74,7 @@ test("shared abort fallback ends the wait, retains late facts, and leaves a peer
   expect(replay).toEqual(a.session.records());
   await a.session.dispose();
   expect(cleanup).toHaveBeenCalledTimes(2);
+  expect(bodies(a.session).filter((body) => body.kind === "released")).toHaveLength(1);
   expect(f.process.stop).not.toHaveBeenCalled();
   expect(await a.session.prompt("after dispose")).toMatchObject({ kind: "rejected", code: "disposed" });
   await b.session.dispose();
@@ -90,7 +91,7 @@ test("dispose releases one running owner, last dispose observes actual exit", as
   expect(bodies(a.session).filter((body) => body.kind === "exited")).toHaveLength(0);
   expect(a.session.records().filter((record) => record.kind === "frame")).toHaveLength(0);
   await b.session.dispose();
-  expect(bodies(a.session).filter((body) => body.kind === "exited")).toEqual([{ kind: "exited", code: 0 }]);
+  expect(bodies(a.session).filter((body) => body.kind === "exited")).toEqual([]);
   expect(bodies(b.session).at(-1)).toEqual({ kind: "exited", code: 0 });
 });
 
@@ -148,6 +149,7 @@ test("abort fallback closes control before cleanup settles, even if native compl
   expect(f.process.stop).toHaveBeenCalledTimes(1);
 });
 
+// oxlint-disable-next-line max-statements -- Observe both leases and their single terminal reply across concurrent disposal.
 test("concurrent disposal runs each cleanup once and stops the process only after the last owner", async () => {
   const cleanup = vi.fn(async () => { await Promise.resolve(); });
   const f = fixture(); const a = await f.open(cleanup); const b = await f.open(cleanup);
@@ -156,7 +158,9 @@ test("concurrent disposal runs each cleanup once and stops the process only afte
   expect(f.process.stop).toHaveBeenCalledTimes(1);
   for (const { session } of [a, b]) {
     expect(session.records().filter((record) => record.kind === "request" && record.body.kind === "dispose")).toHaveLength(1);
-    expect(bodies(session).filter((body) => body.kind === "exited")).toEqual([{ kind: "exited", code: 0 }]);
+    const terminal = bodies(session).filter((body) => body.kind === "exited" || body.kind === "released");
+    expect(terminal).toHaveLength(1);
+    expect(terminal[0]).toMatchObject(terminal[0]?.kind === "exited" ? { kind: "exited", code: 0 } : { kind: "released", reason: "dispose" });
   }
 });
 
@@ -231,4 +235,65 @@ test("a child release or exit cannot close the root session", async () => {
   expect(statusOf(kernel.records(), "parent").value.kind).toBe("running");
   const queued = await kernel.control({ kind: "queue", input: "still open" }, () => ({ kind: "accepted" }));
   expect(queued.response.body.kind).toBe("accepted");
+});
+
+// oxlint-disable-next-line max-statements -- Inspect the correlated abort response before and after fallback.
+test("fallback reuses an acknowledged abort and never retries a refused abort", async () => {
+  const f = fixture(); const a = await f.open(); const b = await f.open();
+  await a.session.prompt("work");
+  const request = a.kernel.request("toRuntime", { kind: "abort" });
+  const response = a.kernel.respond(request.id, { kind: "accepted" });
+  expect(await a.lifecycle.abortFallback(request)).toEqual({ request, response });
+  expect(a.session.records().filter((record) => record.kind === "response" && record.requestId === request.id && record.body.kind === "accepted")).toHaveLength(1);
+  const refused = b.kernel.request("toRuntime", { kind: "abort" });
+  const refusal = b.kernel.respond(refused.id, { kind: "rejected", code: "runtime_refused", reason: "no" });
+  expect(await b.lifecycle.abortFallback(refused)).toEqual({ request: refused, response: refusal });
+  expect(bodies(b.session).some((body) => body.kind === "released")).toBe(false);
+  await Promise.all([a.session.dispose(), b.session.dispose()]);
+});
+
+// oxlint-disable-next-line max-statements -- A stopped process must retain one failed dispose answer and one successful retry answer.
+test("failed process stop answers dispose, keeps ownership, and permits a later retry", async () => {
+  const f = fixture(); const a = await f.open();
+  f.process.stop.mockImplementationOnce(() => { throw new Error("stop synthetic-test-secret"); });
+  await expect(a.session.dispose()).rejects.toThrow("stop");
+  expect(bodies(a.session)).toContainEqual({ kind: "rejected", code: "error", reason: "stop [redacted]" });
+  expect(bodies(a.session).some((body) => body.kind === "exited")).toBe(false);
+  await a.session.dispose();
+  const requests = a.session.records().filter((record): record is RequestRecord => record.kind === "request" && record.body.kind === "dispose");
+  expect(requests).toHaveLength(2);
+  expect(a.session.records().filter((record) => record.kind === "response" && record.body.kind === "exited")).toMatchObject([{ requestId: requests[1]?.id, body: { kind: "exited", code: 0 } }]);
+  expect(f.process.stop).toHaveBeenCalledTimes(2);
+});
+
+// oxlint-disable-next-line max-statements -- An exception in cleanup reporting must not disable the next cleanup attempt.
+test("a cleanup reporting exception does not poison later cleanup", async () => {
+  const f = fixture(); const cleanup = vi.fn(async () => { await Promise.resolve(); });
+  const a = await f.open(cleanup); const b = await f.open();
+  const respond = a.kernel.respond.bind(a.kernel);
+  let fail = true;
+  vi.spyOn(a.kernel, "respond").mockImplementation((id, body, at) => {
+    if (body.kind === "cleanup" && fail) { fail = false; throw new Error("report failed"); }
+    return respond(id, body, at);
+  });
+  await expect(a.session.abort()).rejects.toThrow("report failed");
+  await a.session.dispose();
+  expect(cleanup).toHaveBeenCalledTimes(2);
+  expect(bodies(a.session)).toContainEqual({ kind: "cleanup", result: { kind: "completed" } });
+  expect(f.process.stop).not.toHaveBeenCalled();
+  await b.session.dispose();
+});
+
+// oxlint-disable-next-line max-statements -- Follow a new wait through a late turn end and actual process death.
+test("a wait begun after abort release still settles on actual exit, ignoring late turn ends", async () => {
+  const f = fixture(); const a = await f.open();
+  await a.session.prompt("work"); await a.session.abort();
+  const after = a.session.records().at(-1)?.seq ?? -1;
+  const waiting = awaitTurnEnd(a.session, after);
+  a.kernel.frame({ type: "late", native: {}, events: [{ kind: "turn_ended", outcome: { kind: "completed" } }] });
+  expect(turnEndAfter(a.session.records(), after, a.session.id)).toBeNull();
+  f.exit(7);
+  await expect(waiting).resolves.toMatchObject({ kind: "failed", failure: "runtime_exited" });
+  expect(a.session.status().value).toMatchObject({ kind: "idle", released: true, lastTurnOutcome: { kind: "aborted" } });
+  await a.session.dispose();
 });

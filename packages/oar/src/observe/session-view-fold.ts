@@ -44,7 +44,7 @@ export interface Draft {
 
 export function draftOf(state: SessionView): Draft {
   return {
-    released: state.status.released === true,
+    released: state.status.kind === "idle" && state.status.released === true,
     messages: [...state.messages],
     pendingInputs: [...state.pendingInputs],
     openTurn: state.openTurn,
@@ -78,7 +78,7 @@ export function assemble(
     serviceTier: draft.serviceTier,
     context: draft.context,
     usage,
-    pendingRequests: status.released === true ? [] : draft.pendingRequests,
+    pendingRequests: (status.kind === "idle" && status.released === true) ? [] : draft.pendingRequests,
     exited: draft.exited,
     conversation,
     rootSessionId: draft.rootSessionId,

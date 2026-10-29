@@ -222,7 +222,8 @@ Sharing follows five rules:
    Where no per-session cleanup exists or it is unverified, the runtime does
    not share.
 4. **One fault, every session.** If the shared process exits, every session
-   in it ends, each with its own exit record. OAR does not restart or replace
+   still attached to it ends, each with its own exit record. A session whose
+   dispose already released its lease has unsubscribed and receives no later exit. OAR does not restart or replace
    a shared process while sessions run in it; the process ends when its last
    session is disposed.
 5. **Shared only with evidence.** A runtime version shares only after these

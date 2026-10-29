@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { defineRuntime, UnsupportedOptionError, claudeRuntime, qwenRuntime, qoderRuntime, codexRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { defineRuntime, UnsupportedOptionError, claudeRuntime, qwenRuntime, qoderRuntime, codexRuntime, codebuddyRuntime, opencodeRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
 import { createPiRuntime } from "../packages/oar/src/runtimes/pi/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 import { pooledMockRuntime } from "../sea-trial/fixtures/pooled-mock-runtime.js";
@@ -61,7 +61,7 @@ test("explicit isolation does not consult the shared version gate", async () => 
   await session.dispose();
 });
 
-test.each([claudeRuntime, qwenRuntime, qoderRuntime, codexRuntime, createPiRuntime({ execution: "subprocess" })])("native $id sharing remains disabled in Phase 1", async (runtime) => {
+test.each([claudeRuntime, qwenRuntime, qoderRuntime, codexRuntime, codebuddyRuntime, opencodeRuntime, createPiRuntime({ execution: "subprocess" })])("native $id sharing remains disabled in Phase 1", async (runtime) => {
   await expect(runtime.withPlacement("shared").session(installation, { cwd: "." })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
 });
 

@@ -38,6 +38,7 @@ class InterruptBatch {
   private collecting = false;
   private nativeEnd = false;
   private exited = false;
+  private released = false;
   private disposed = false;
   private ready = false;
   private settled = 0;
@@ -50,7 +51,7 @@ class InterruptBatch {
     this.stop = session.rawEvents((record) => {
       this.track(record);
       // Withdraw synchronously before the adapter can drain on natural end.
-      if (this.nativeEnd || this.exited || this.disposed || (this.ready && this.tools.size === 0)) { this.collect(); }
+      if (this.nativeEnd || this.exited || this.released || this.disposed || (this.ready && this.tools.size === 0)) { this.collect(); }
     });
   }
 
@@ -85,7 +86,8 @@ class InterruptBatch {
 
   private track(record: RawEvent): void {
     if (record.sessionId !== this.session.id || record.agentPath.length > 0 || record.seq < this.since) { return; }
-    if (record.kind === "response" && (record.body.kind === "exited" || record.body.kind === "released")) { this.exited = true; this.ended.resolve(); }
+    if (record.kind === "response" && record.body.kind === "exited") { this.exited = true; this.ended.resolve(); }
+    if (record.kind === "response" && record.body.kind === "released") { this.released = true; this.ended.resolve(); }
     if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind === "dispose") { this.disposed = true; this.ended.resolve(); }
     if (record.kind !== "frame") { return; }
     for (const event of record.body.events) {
@@ -124,7 +126,7 @@ class InterruptBatch {
       await Promise.all(this.queued);
       this.takeHeld();
       const taken = await Promise.all([...this.withdrawals.values()].map(async (entry) => ({ input: entry.input, result: await entry.result })));
-      inputs = taken.filter((entry) => entry.result.kind === "accepted" || (entry.result.code === "runtime_exited" || entry.result.code === "disposed")).map((entry) => entry.input);
+      inputs = taken.filter((entry) => entry.result.kind === "accepted" || (entry.result.code === "runtime_exited" || entry.result.code === "disposed" || entry.result.code === "session_released")).map((entry) => entry.input);
       const failure = taken.find((entry) => entry.result.kind === "rejected" && entry.result.code !== "not_queued");
       if (failure?.result.kind === "rejected") {
         this.finish(this.failure(failure.result.code, failure.result.reason, inputs.map((value) => value.inputId), failure.result));
@@ -143,13 +145,13 @@ class InterruptBatch {
 
   private async afterWithdrawal(inputs: readonly DeliverMergeInput[]): Promise<BatchResult> {
     const ids = inputs.map((input) => input.inputId);
-    if (!this.nativeEnd && !this.exited && !this.disposed) {
+    if (!this.nativeEnd && !this.exited && !this.released && !this.disposed) {
       const aborted = await this.session.abort();
       if (aborted.kind === "rejected" && !this.hasEnded()) { return this.failure(aborted.code, aborted.reason, ids, aborted); }
     }
-    if (!this.nativeEnd && !this.exited && !this.disposed) { await this.ended.promise; }
-    if (this.exited || this.disposed || !this.nativeEnd) {
-      return this.failure(this.disposed ? "disposed" : "runtime_exited", "runtime did not remain available after its own turn end; inputs were not redelivered", ids);
+    if (!this.nativeEnd && !this.exited && !this.released && !this.disposed) { await this.ended.promise; }
+    if (this.exited || this.released || this.disposed || !this.nativeEnd) {
+      return this.failure(this.disposed ? "disposed" : (this.released && !this.exited ? "session_released" : "runtime_exited"), "runtime did not remain available after its own turn end; inputs were not redelivered", ids);
     }
     const merged = (this.options.merge ?? mergeInputs)(inputs);
     const result = await this.session.prompt(merged.input, { ...(merged.images === undefined ? {} : { images: merged.images }), carries: ids });

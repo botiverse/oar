@@ -81,17 +81,17 @@ function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Sess
   return { ...session, dispose: async () => { disposal ??= release(); await disposal; } };
 }
 
-export const opencodeSession: StartSession = withSessionCredentials(async (installation, options) => {
+export const opencodeSession: StartSession = withSessionCredentials(async (installation, options, _credentials, context) => {
   refuseSessionOptions(opencodeRefusedSessionOptions, options);
   // Invalid MCP entries fail before even the release-line helper can start.
   checkMcpServerNames(options.mcpServers ?? []);
   if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
   if (await opencodeMajor(installation, options) === 2) {
-    return directV2Session(installation, options);
+    return directV2Session(installation, options, context);
   }
   refuseSessionOptions(opencodeV1RefusedSessionOptions, options);
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
-    return directSession(installation, options);
+    return directSession(installation, options, context);
   }
   // The prompts travel in OPENCODE_CONFIG_CONTENT, the session's MCP servers
   // in the ACP open as on the direct path, after validation above.
@@ -107,7 +107,7 @@ export const opencodeSession: StartSession = withSessionCredentials(async (insta
         }
         return Promise.resolve();
       },
-    })(installation, prepared.options);
+    })(installation, prepared.options, context);
     return withPromptCleanup(session, prepared.cleanup);
   } catch (error) {
     await prepared.cleanup();

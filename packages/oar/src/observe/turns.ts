@@ -48,7 +48,10 @@ function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, o
     }
     const previous = status;
     status = reduceStatus(previous, record, sessionId);
-    if (previous.released === true) { return null; }
+    if (previous.kind === "idle" && previous.released === true) {
+      return record.seq > afterSeq && record.kind === "response" && record.body.kind === "exited"
+        ? exitTurnOutcome(undefined, record.body.reason) : null;
+    }
     if (record.kind === "frame") {
       for (const event of record.body.events) {
         if (inputId !== undefined && event.kind === "input_queued" && event.inputId === inputId) { waitingForInput = true; }

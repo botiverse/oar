@@ -71,6 +71,12 @@ images: false }`; the session has `steer` and `withdraw`.
 
 ### Open, resume and release
 
+Morph keeps its existing Console attachment and sharing policy, outside the
+new runtime-instance process pool. `Session.placement` is `null`, its stream
+has no `open`/`opened` pair, and explicit `withPlacement("shared")` or
+`withPlacement("isolated")` requests are refused. An isolated process must not
+be claimed for a session that actually shares or borrows a Console.
+
 Console has no stdio session: the adapter's HTTP calls are its only link.
 Opening needs a Console whose Runtime API has `POST /topics` (mistermorph
 `319fa4b8` and later); an older one answers 405 and the open fails saying so. Before that endpoint existed, a

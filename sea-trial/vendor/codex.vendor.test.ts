@@ -213,14 +213,14 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         expect(record.seq).toBe(index);
       }
       const types = records.map((record) => (record.kind === "frame" ? record.body.type : `${record.kind}:${record.body.kind}`));
-      // The open event is the thread/start reply; frames the app-server sent
-      // before the thread existed (0.154.0: remoteControl/status/changed right
-      // after initialize) are held and recorded ahead of it: events, or toApp
-      // requests if the server asked something; no control of ours (a
-      // toRuntime request) can precede the open.
+      expect(records.slice(0, 2).map((record) => record.body)).toEqual([
+        { kind: "open", placement: "auto" }, { kind: "opened", placement: "isolated" },
+      ]);
+      // OAR's opening pair precedes native frames. Pre-thread notifications
+      // retain their order before thread/start, with no intervening OAR control.
       const open = types.indexOf("thread/start");
-      expect(open).toBeGreaterThanOrEqual(0);
-      expect(records.slice(0, open).some((record) => record.kind === "request" && record.direction === "toRuntime")).toBe(false);
+      expect(open).toBeGreaterThanOrEqual(2);
+      expect(records.slice(2, open).some((record) => record.kind === "request" && record.direction === "toRuntime")).toBe(false);
       expect(types.indexOf("request:prompt")).toBeGreaterThan(open);
       expect(types).toContain("turn/started");
       const activity = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "turn/started" ? record.body.events : []);

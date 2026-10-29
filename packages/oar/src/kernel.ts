@@ -18,8 +18,3 @@ export { inputImagesRefusal, withInputImages } from "./shared/input-images.js";
 export type { LoadedImage } from "./shared/input-images.js";
 export { withdrawHeld } from "./shared/held-input.js";
 export type { HeldInput } from "./shared/held-input.js";
-
-export { createProcessPool } from "./shared/process-pool.js";
-export type { ProcessConfiguration, PooledProcess, ProcessLease } from "./shared/process-pool.js";
-export { processSessionLifecycle } from "./shared/process-session.js";
-export type { ProcessSessionLifecycle } from "./shared/process-session.js";

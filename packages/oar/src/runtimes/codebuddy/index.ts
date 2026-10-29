@@ -13,4 +13,4 @@ export const codebuddyRuntime = defineRuntime({
   login: onFirstCall(async () => { const { codebuddyLogin } = await import("./login.js"); return codebuddyLogin; }),
   authStatus: onFirstCall(async (): Promise<AuthStatusReader> => { const { codebuddyAuthStatus } = await import("./auth-status.js"); return codebuddyAuthStatus; }),
   session: onFirstCall(async () => { const { codebuddySession } = await import("./session.js"); return codebuddySession; }),
-});
+}, { execution: "process" });

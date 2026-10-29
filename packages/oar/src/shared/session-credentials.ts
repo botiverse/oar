@@ -42,10 +42,11 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
 }
 
 /** Keep opening failures and later adapter errors under the same session credential rules as the record stream. */
-export function withSessionCredentials(open: (installation: AvailableInstallation, options: SessionOptions, credentials: SessionCredentials) => Promise<Session>, placement: SessionPlacement = "isolated"): StartSession {
+export function withSessionCredentials(open: (installation: AvailableInstallation, options: SessionOptions, credentials: SessionCredentials, context: SessionOpenContext) => Promise<Session>, placement: SessionPlacement = "isolated"): StartSession {
   return async (installation, options, context) => {
-    const credentials = sessionCredentials(options, context ?? { requested: "auto", placement });
-    try { return await open(installation, options, credentials); }
+    const selected = context ?? { requested: "auto", placement };
+    const credentials = sessionCredentials(options, selected);
+    try { return await open(installation, options, credentials, selected); }
     catch (error) { throw credentials.redactValue(error); }
   };
 }

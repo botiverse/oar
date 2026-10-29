@@ -51,7 +51,7 @@ export type SpawnResult =
   | { readonly kind: "spawned"; readonly agent: Subagent }
   | { readonly kind: "refused"; readonly code: SpawnRefusalCode; readonly reason: string };
 
-/** `running` while a turn of the child's root agent is open; `closed` after `close`. */
+/** `running` while a turn of the child's root agent is open; `closed` after `close`, runtime exit or session release. */
 export type SubagentState = "running" | "idle" | "closed";
 
 /** One finished turn of a subagent: what its parent reads. */

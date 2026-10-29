@@ -28,11 +28,11 @@ export const codebuddyAcpProfile: AcpSessionProfile = {
   },
 };
 
-export const codebuddySession: StartSession = async (installation, options) => {
+export const codebuddySession: StartSession = async (installation, options, context) => {
   codebuddyAcpProfile.validateOptions?.(options);
   const file = options.systemPrompt === undefined ? undefined : await codebuddyPromptFile(options.systemPrompt);
   try {
-    const session = await acpSession({ ...codebuddyAcpProfile, args: (input) => [...args(input), ...file?.args ?? []] })(installation, options);
+    const session = await acpSession({ ...codebuddyAcpProfile, args: (input) => [...args(input), ...file?.args ?? []] })(installation, options, context);
     const unsubscribe = session.rawEvents((record) => {
       if (record.kind === "response" && record.body.kind === "exited") { file?.remove(); }
     });

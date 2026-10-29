@@ -41,7 +41,7 @@ export const sessionDisposeCases: readonly TrialCase[] = [
       const dispose = records.find((record): record is RequestRecord => record.kind === "request" && record.body.kind === "dispose");
       assert.ok(dispose !== undefined, "dispose is a request record");
       const answer = records.find((record): record is ResponseRecord => record.kind === "response" && record.requestId === dispose.id && record.body.kind !== "cleanup");
-      assert.ok(answer !== undefined && (answer.body.kind === "exited" || answer.body.kind === "released" || answer.body.kind === "accepted"), `the observed release answers the dispose request: ${JSON.stringify(answer?.body)}`);
+      assert.ok(answer !== undefined && (answer.body.kind === "exited" || (session.placement === "shared" && answer.body.kind === "released") || answer.body.kind === "accepted"), `the observed release answers the dispose request: ${JSON.stringify(answer?.body)}`);
       const after = await session.prompt("after dispose");
       assert.equal(after.response.body.kind, "rejected", "a disposed session rejects further control");
     },

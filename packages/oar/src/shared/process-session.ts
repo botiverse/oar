@@ -9,68 +9,84 @@ export interface ProcessSessionLifecycle {
   dispose(this: void): Promise<void>;
 }
 
+function cleanupQueue(kernel: SessionKernel, cleanup: () => Promise<void>, timeoutMs: number): (request: RequestRecord) => Promise<void> {
+  let chain = Promise.resolve();
+  const run = async (request: RequestRecord): Promise<void> => {
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
+    const deadline = new Promise<SessionCleanup>((resolve) => { timer = setTimeout(() => { resolve({ kind: "failed", reason: "session cleanup timed out; work may still be running" }); }, timeoutMs); });
+    const attempt = (async (): Promise<SessionCleanup> => {
+      try { await cleanup(); return { kind: "completed" }; }
+      catch (error) { return { kind: "failed", reason: error instanceof Error ? error.message : String(error) }; }
+    })();
+    try { kernel.respond(request.id, { kind: "cleanup", result: await Promise.race([attempt, deadline]) }); }
+    finally { clearTimeout(timer); }
+  };
+  return async (request) => {
+    const previous = chain;
+    chain = (async (): Promise<void> => {
+      try { await previous; } catch { /* A prior reporting failure cannot poison later cleanup attempts. */ }
+      await run(request);
+    })();
+    await chain;
+  };
+}
+
 /** Recording and process ownership; native per-session cleanup stays in the adapter. */
-export function processSessionLifecycle(
-  kernel: SessionKernel,
-  lease: ProcessLease<PooledProcess>,
-  cleanup: () => Promise<void>,
-  cleanupTimeoutMs = 1000,
-): ProcessSessionLifecycle {
+export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLease<PooledProcess>, cleanup: () => Promise<void>, cleanupTimeoutMs = 1000): ProcessSessionLifecycle {
   let exitObserved = false;
+  let released: ResponseRecord | undefined = undefined;
   let disposeRequest: RequestRecord | undefined = undefined;
   let disposal: Promise<void> | undefined = undefined;
-  let cleanupChain = Promise.resolve();
   const hasExited = (): boolean => exitObserved;
-  const exitRequestId = (): string => disposeRequest?.id ?? "";
-  const observedExit = (async (): Promise<void> => {
-    const code = await lease.process.exited;
+  const recordExit = (code: number | null): void => {
+    if (exitObserved) { return; }
     exitObserved = true;
-    kernel.respond(exitRequestId(), { kind: "exited", code });
-  })();
-  const clean = async (request: RequestRecord): Promise<void> => {
-    const run = async (): Promise<void> => {
-      let timer: ReturnType<typeof setTimeout> | undefined = undefined;
-      const deadline = new Promise<SessionCleanup>((resolve) => { timer = setTimeout(() => { resolve({ kind: "failed", reason: "session cleanup timed out; work may still be running" }); }, cleanupTimeoutMs); });
-      const attempt = (async (): Promise<SessionCleanup> => {
-        try { await cleanup(); return { kind: "completed" }; }
-        catch (error) { return { kind: "failed", reason: error instanceof Error ? error.message : String(error) }; }
-      })();
-      const result = await Promise.race([attempt, deadline]);
-      clearTimeout(timer);
-      kernel.respond(request.id, { kind: "cleanup", result });
-    };
-    const previous = cleanupChain;
-    cleanupChain = (async (): Promise<void> => { await previous; await run(); })();
-    await cleanupChain;
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
   };
-  const release = (request: RequestRecord, reason: SessionRelease["reason"]): ResponseRecord => kernel.respond(request.id, {
-    kind: "released", reason, nativeTurnMayContinue: true, workStartedAfterCleanupMayContinue: true,
-  });
+  const unsubscribe = lease.onExit(recordExit);
+  const clean = cleanupQueue(kernel, cleanup, cleanupTimeoutMs);
+  const release = (request: RequestRecord, reason: SessionRelease["reason"]): ResponseRecord => {
+    released ??= kernel.respond(request.id, { kind: "released", reason, nativeTurnMayContinue: true, workStartedAfterCleanupMayContinue: true });
+    return released;
+  };
+  const dispose = async (): Promise<void> => {
+    const request = kernel.request("toRuntime", { kind: "dispose" });
+    disposeRequest = request;
+    try {
+      if (hasExited()) { kernel.respond(request.id, { kind: "accepted" }); return; }
+      if (lease.placement === "shared") { await clean(request); }
+      const result = await lease.dispose();
+      if (result === "released" && !hasExited()) {
+        unsubscribe();
+        if (released === undefined) { release(request, "dispose"); }
+        else { kernel.respond(request.id, { kind: "accepted" }); }
+      } else { recordExit(await lease.process.exited); }
+    } catch (error) {
+      if (hasExited()) { return; }
+      kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) });
+      throw error;
+    } finally { disposeRequest = undefined; }
+  };
   return {
     async abortFallback(request) {
+      const answered = kernel.records().find((record): record is ResponseRecord => record.kind === "response" && record.requestId === request.id && (record.body.kind === "accepted" || record.body.kind === "rejected"));
+      if (answered?.body.kind === "rejected") { return { request, response: answered }; }
       const blocked = kernel.unreachable();
-      if (blocked !== null) { return { request, response: kernel.respond(request.id, blocked) }; }
-      // Acceptance must precede release/exit so a replay retains the stop evidence.
-      const response = kernel.respond(request.id, { kind: "accepted" });
+      if (blocked !== null) { return { request, response: answered ?? kernel.respond(request.id, blocked) }; }
+      // Reuse native acceptance; only a still-pending abort needs a response.
+      const response = answered ?? kernel.respond(request.id, { kind: "accepted" });
       if (lease.placement === "shared") {
-        // Close control before awaiting native cleanup. A late native turn end
-        // must not admit a new prompt while the fallback is releasing this session.
         release(request, "abort_fallback");
         await clean(request);
       } else {
         await lease.dispose();
-        await observedExit;
+        recordExit(await lease.process.exited);
       }
       return { request, response };
     },
     async dispose() {
       disposal ??= (async (): Promise<void> => {
-        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
-        if (hasExited()) { kernel.respond(disposeRequest.id, { kind: "accepted" }); return; }
-        if (lease.placement === "shared") { await clean(disposeRequest); }
-        const result = await lease.dispose();
-        if (result === "released" && !hasExited()) { release(disposeRequest, "dispose"); }
-        else { await observedExit; }
+        try { await dispose(); } catch (error) { disposal = undefined; throw error; }
       })();
       await disposal;
     },

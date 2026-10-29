@@ -36,19 +36,22 @@ The in-process SDK runtimes use `in_process` under `auto` and refuse both
 explicit process placements. Custom adapters without a placement declaration
 keep their existing `auto` behavior and refuse explicit placement requests.
 
-Each opened session exposes its actual `placement` (`shared`, `isolated` or
+Each session from an adapter with declared execution exposes its actual `placement` (`shared`, `isolated` or
 `in_process`). An `open` request records the requested placement and its
 `opened` response records the actual placement, without recording environment
 values or process configuration. A pool belongs to one runtime instance;
 process-level executable, arguments, environment, home and configuration
 directories must all match before sessions join it.
 Environment matching includes resolved inherited values, not only the overlay.
-Session-level cwd, model, effort and MCP settings do not split a pool only where
+Session-level cwd, model, effort and MCP settings may share a pool only where
 the runtime's protocol has proved their isolation. Legacy custom adapters and
 logs without an `opened` record report `Session.placement` as `null`; OAR never
-guesses it from the runtime's name.
+guesses it from the runtime's name. The community Morph adapter also keeps
+its existing undeclared placement: it attaches to a Console or shares one by
+state directory, outside this runtime-instance pool contract. Morph has no
+open/opened pair and rejects explicit placement requests until it is migrated.
 
-On every successful open, including `resume`, the new stream begins at seq 0
+For adapters with declared execution, every successful open, including `resume`, begins at seq 0
 with `toRuntime` request `{ kind: "open", placement: "auto" | "shared" | "isolated" }`.
 Seq 1 is its paired `{ kind: "opened", placement: "shared" | "isolated" | "in_process" }`
 response. These are OAR lifecycle records, not native initialization frames.
@@ -87,12 +90,20 @@ delivery is not declared failed or safe to retry merely because control was
 released: the native process can still consume it. A `cleanup` response
 records whether the per-session cleanup completed or failed; failure never
 claims that work stopped. Cleanup runs at abort fallback and again at dispose.
-Abort fallback records `accepted` and `released` before awaiting bounded cleanup,
+Abort fallback records `accepted` only if the abort is still pending, then
+records `released` before awaiting bounded cleanup,
 so late native completion cannot admit another prompt during that cleanup.
 The cleanup result is recorded separately even if the process exits meanwhile.
 Shared disposal releases this session, or records an actual exit when the last
-session disposes the process. A process fault records its exit for every
-session. Sessions and processes are never silently restarted.
+session disposes the process. A completed dispose that releases a lease
+unsubscribes from process exit; that session receives no later exit report.
+Abort fallback alone retains the lease and exit observation until dispose.
+Dispose after an abort release does not repeat `released`; it answers with
+`accepted` after relinquishing the lease, or `exited` if it stops the process.
+A failed process stop answers dispose with `rejected`, retains shutdown
+ownership and permits a later dispose to retry. New opens never join a
+process whose shutdown began. A process fault records its exit for every
+still-attached session. Sessions and processes are never silently restarted.
 
 **frame**: the runtime's own words. Expects no reply; append-only;
 monotonic seq. oar never synthesizes a frame. The turn's start *is* the

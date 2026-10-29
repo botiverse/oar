@@ -21,7 +21,7 @@ function sessionFactory(placement: "shared" | "isolated"): StartSession {
   return createMockSession(async (kernel, options, stop) => {
     const lease = await pool.acquire({ command: "mock", args: options.launchArgs ?? [], env: options.env ?? {}, ...(options.env?.HOME === undefined || options.env.HOME === null ? {} : { home: options.env.HOME }) }, placement);
     lease.process.stops.add(stop);
-    const lifecycle = processSessionLifecycle(kernel, lease, async () => { stop(); await Promise.resolve(); });
+    const lifecycle = processSessionLifecycle(kernel, lease, async () => { stop(); lease.process.stops.delete(stop); await Promise.resolve(); });
     return { dispose: lifecycle.dispose, resources: lease.resources };
   });
 }

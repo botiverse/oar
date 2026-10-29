@@ -118,3 +118,33 @@ test("observed exit makes resources absent and disposal never stops the dead pro
   await expect(b.dispose()).resolves.toBe("exited");
   expect(a.process.stop).not.toHaveBeenCalled();
 });
+
+// oxlint-disable-next-line max-statements -- Follow failed shutdown, new acquisition and retry across two process generations.
+test("failed shutdown retains its owner for retry without accepting new leases", async () => {
+  const start = vi.fn(async () => { await Promise.resolve(); return processFixture(); });
+  const pool = createProcessPool(start);
+  const old = await pool.acquire(config, "shared");
+  old.process.stop.mockImplementationOnce(() => { throw new Error("stop failed"); });
+  const attempts = await Promise.allSettled([old.dispose(), old.dispose()]);
+  expect(attempts.map((attempt) => attempt.status)).toEqual(["rejected", "rejected"]);
+  expect(old.process.stop).toHaveBeenCalledTimes(1);
+  expect(await old.resources()).not.toBeNull();
+  const next = await pool.acquire(config, "shared");
+  expect(next.process).not.toBe(old.process);
+  await expect(old.dispose()).resolves.toBe("exited");
+  expect(old.process.stop).toHaveBeenCalledTimes(2);
+  expect(next.process.stop).not.toHaveBeenCalled();
+  await next.dispose();
+});
+
+test("exit observers can release their reference without waiting for process death", async () => {
+  const pool = createProcessPool(async () => { await Promise.resolve(); return processFixture(); });
+  const lease = await pool.acquire(config, "shared");
+  const removed = vi.fn<(code: number | null) => void>(); const retained = vi.fn<(code: number | null) => void>();
+  const unsubscribe = lease.onExit(removed);
+  lease.onExit(retained);
+  unsubscribe();
+  await lease.dispose();
+  expect(removed).not.toHaveBeenCalled();
+  expect(retained).toHaveBeenCalledExactlyOnceWith(0);
+});

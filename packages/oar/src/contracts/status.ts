@@ -24,7 +24,7 @@ interface PendingPrompt {
 }
 
 export type AgentStatus = (
-  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome }
+  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome; readonly released?: true }
   | {
       readonly kind: "running";
       /** seq of the record that opened this running span: the prompt request, or the first event of an adopted turn. */
@@ -46,4 +46,4 @@ export type AgentStatus = (
       readonly phase: RunningPhase;
       /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;
-    }) & { readonly pendingPrompt?: PendingPrompt; readonly released?: true };
+    }) & { readonly pendingPrompt?: PendingPrompt };
