@@ -95,27 +95,35 @@ system (that layer exists as separate protocols; oar emits, they persist).
 
 ## When oar lacks something
 
-oar connects each runtime at the lowest interface its vendor ships (an
-app-server, a structured headless protocol, an SDK), so a missing capability
-is a gap in oar's mapping, not a ceiling set by a protocol in between. There
-are two ways past a gap:
+oar connects each runtime through an interface its own vendor ships and
+maintains, preferring the most native one: an app-server, a structured
+headless protocol, an SDK, or the vendor's own ACP server, never a
+third-party adapter
+([decision](decisions.md#reaching-a-runtime-through-another-hosts-adapter-2026-10-05)).
+A missing capability is then either a gap in oar's mapping or a limit of
+the interface oar uses for that runtime, and the runtime page says which.
+Kimi shows the second kind: its Node SDK can steer a running turn, `kimi acp`
+has no steer method, so oar's Kimi session has no `steer`
+([kimi](../runtimes/kimi.md)). There are two ways past either kind of gap:
 
 - **Ask.** Closing it changes one adapter and, where needed, the shared
-  contract, in one repository, released on oar's own schedule. A capability
-  that lives in a cross-vendor protocol moves only as fast as the protocol,
-  every agent's adapter, and their releases. Steering a running turn, for
-  example, was proposed for ACP in May 2026
+  contract, in one repository, released on oar's own schedule. That includes
+  moving an adapter to a lower vendor interface. A capability defined by a
+  cross-vendor protocol moves at the pace of the protocol, each agent's
+  implementation and their releases, unless a vendor adds its own extension.
+  Steering a running turn, for example, was proposed for ACP in May 2026
   ([discussion #1220](https://github.com/orgs/agentclientprotocol/discussions/1220),
   [RFD PR #1261](https://github.com/agentclientprotocol/agent-client-protocol/pull/1261))
-  and is still unmerged at the end of October; the v2 prompt lifecycle RFD
+  and is still unmerged as of 2026-10-29; the
+  [v2 prompt lifecycle RFD](https://github.com/agentclientprotocol/agent-client-protocol/blob/main/docs/rfds/v2/prompt.mdx)
   explicitly leaves queueing and steering out.
 - **Fork.** The contract, every adapter, the behavior suites and the evidence
   live in one repository. A team that needs a native capability now can
   change the adapter and ship its own build, with no separate protocol layer,
   agent-side driver or driver installation to change.
 
-oar is meant to be the developer's last stop: the place where a runtime is
-wired up once, by us or by whoever forks it.
+oar is meant to be the developer's last stop: the one place where a runtime
+is integrated, by us or by whoever forks it.
 
 ## The honest boundary
 
