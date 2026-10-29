@@ -29,6 +29,9 @@
  * Compare Qwen provider presets' envKey values and native auth-key variables
  * with runtimes/qwen/auth-status.ts KEY_NAMES; add new sources and regressions
  * so configured credentials cannot become a false logged_out result.
+ * Watch Qwen issues #15796 (extension-store lock) and #15875 (thinking/text
+ * snapshot ids). After a native snapshot fix, rerun the structure regressions
+ * and remove the Qwen-specific snapshot rule if it is no longer needed.
  * A changed Kimi binary also needs sea-trial/vendor/kimi-login.vendor.test.ts
  * with OAR_TEST=kimi-login (local OAuth stand-in, no account). Recheck all three platforms before updating the CI login pin
  * and the minimum version accepted by loginExecutable in kimi/login.ts and
@@ -49,6 +52,8 @@
  * executable's own line; an unselected line is not an outdated installation.
  * A changed OpenCode binary also needs opencode-release-lines.ts; v1 additionally
  * needs opencode-prompt-options.ts to recheck native configuration and agents.
+ * For v2 startup failures, opencode-startup.ts compares native cold concurrent
+ * bootstrap with sequential/warm controls without OAR or model requests.
  */
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";

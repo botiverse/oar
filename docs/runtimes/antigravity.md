@@ -12,17 +12,17 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 same binary for cancel timing and the model and mode methods. The
 personal-login scenarios below remain this 1.2.1 evidence.
 
-Current check: **1.4.3** (2026-10-24), installed with its companion
-`localharness_external`, passed nine native tests against a local scripted
-Gemini provider after updating one changed MCP title expectation. All 15
-applicable shared session cases passed. Temporary homes and dummy keys covered
-instruction/effort settings, MCP, tool denials, image-only input and failure
-reporting. The 1.4.1 control confirmed the native title change; OAR's existing
-projection already follows it. The native settings and catalog probes still
-show persisted MCP credentials, umask-dependent permissions and complete tool
-list replacement. See the [October 24 report](../../experiments/runtime-version-checks/2026-10-24.md#antigravity-143)
-and [native probe](../../experiments/antigravity-native-settings.ts).
-Scripted-provider results do not extend the account-specific coverage.
+Current check: **1.4.4** (2026-10-29), with its matching companion
+`localharness_external`, passed nine native tests and all 15 applicable
+shared cases against a local scripted Gemini provider. Temporary homes and
+dummy keys covered instruction/effort settings, MCP, tool denials,
+image-only input and failure reporting. The native settings probe still
+finds MCP credentials in `0644` database and WAL files under umask `0022`.
+Concurrent prompts still expose the stream-consumer race documented in the
+[steering investigation](../../experiments/antigravity-steering-2026-10-29.md);
+OAR keeps its queue and absent steer member. See the
+[October 29 report](../../experiments/runtime-version-checks/2026-10-29.md#antigravity-144).
+These checks do not extend the personal-login evidence.
 
 The server ships as a packaged Python archive without a public source
 repository; the 1.4.0 archive includes its ACP Python source. The adapter

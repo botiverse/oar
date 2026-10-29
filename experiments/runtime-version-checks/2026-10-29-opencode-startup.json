@@ -1,0 +1,185 @@
+{
+  "observedAt": "2026-10-29",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "method": "Two sequential, four concurrent fresh-database, then four concurrent existing-database native serve --stdio --port 0 starts; no OAR or model requests.",
+  "runs": [
+    {
+      "version": "2.2.1",
+      "results": [
+        {
+          "name": "sequential-0",
+          "ready": true,
+          "elapsedMs": 361
+        },
+        {
+          "name": "sequential-1",
+          "ready": true,
+          "elapsedMs": 406
+        },
+        {
+          "name": "cold-0",
+          "ready": true,
+          "elapsedMs": 458
+        },
+        {
+          "name": "cold-1",
+          "ready": true,
+          "elapsedMs": 436
+        },
+        {
+          "name": "cold-2",
+          "ready": false,
+          "elapsedMs": 426,
+          "exitCode": 1,
+          "signal": null
+        },
+        {
+          "name": "cold-3",
+          "ready": true,
+          "elapsedMs": 472
+        },
+        {
+          "name": "warm-0",
+          "ready": true,
+          "elapsedMs": 374
+        },
+        {
+          "name": "warm-1",
+          "ready": true,
+          "elapsedMs": 382
+        },
+        {
+          "name": "warm-2",
+          "ready": true,
+          "elapsedMs": 423
+        },
+        {
+          "name": "warm-3",
+          "ready": true,
+          "elapsedMs": 465
+        }
+      ],
+      "attempt": "initial"
+    },
+    {
+      "version": "2.2.1",
+      "attempt": "final probe",
+      "results": [
+        {
+          "name": "sequential-0",
+          "ready": true,
+          "elapsedMs": 396
+        },
+        {
+          "name": "sequential-1",
+          "ready": true,
+          "elapsedMs": 326
+        },
+        {
+          "name": "cold-0",
+          "ready": false,
+          "elapsedMs": 360,
+          "exitCode": 1,
+          "signal": null
+        },
+        {
+          "name": "cold-1",
+          "ready": true,
+          "elapsedMs": 382
+        },
+        {
+          "name": "cold-2",
+          "ready": false,
+          "elapsedMs": 357,
+          "exitCode": 1,
+          "signal": null
+        },
+        {
+          "name": "cold-3",
+          "ready": false,
+          "elapsedMs": 353,
+          "exitCode": 1,
+          "signal": null
+        },
+        {
+          "name": "warm-0",
+          "ready": true,
+          "elapsedMs": 401
+        },
+        {
+          "name": "warm-1",
+          "ready": true,
+          "elapsedMs": 396
+        },
+        {
+          "name": "warm-2",
+          "ready": true,
+          "elapsedMs": 353
+        },
+        {
+          "name": "warm-3",
+          "ready": true,
+          "elapsedMs": 348
+        }
+      ]
+    },
+    {
+      "version": "2.2.0",
+      "results": [
+        {
+          "name": "sequential-0",
+          "ready": true,
+          "elapsedMs": 402
+        },
+        {
+          "name": "sequential-1",
+          "ready": true,
+          "elapsedMs": 420
+        },
+        {
+          "name": "cold-0",
+          "ready": true,
+          "elapsedMs": 505
+        },
+        {
+          "name": "cold-1",
+          "ready": true,
+          "elapsedMs": 438
+        },
+        {
+          "name": "cold-2",
+          "ready": true,
+          "elapsedMs": 529
+        },
+        {
+          "name": "cold-3",
+          "ready": true,
+          "elapsedMs": 527
+        },
+        {
+          "name": "warm-0",
+          "ready": true,
+          "elapsedMs": 361
+        },
+        {
+          "name": "warm-1",
+          "ready": true,
+          "elapsedMs": 388
+        },
+        {
+          "name": "warm-2",
+          "ready": true,
+          "elapsedMs": 382
+        },
+        {
+          "name": "warm-3",
+          "ready": true,
+          "elapsedMs": 364
+        }
+      ]
+    }
+  ],
+  "failedStartStderr": "SQLiteError: table account_state already exists",
+  "scope": "Selected readiness/exit facts only. State, paths and full stderr remain private. Version labels were recorded from the selected executables; the initial probe did not include metadata in its JSON."
+}

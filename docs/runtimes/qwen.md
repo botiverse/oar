@@ -20,6 +20,14 @@ from first-prompt readiness. The official standalone install also passed in
 an isolated HOME; see the [version check](../../experiments/runtime-version-checks/2026-10-25.md#qwen-0261)
 for evidence and limits.
 
+Rechecked npm **0.26.4** on Linux on 2026-10-29, after testing 0.26.3
+earlier that day: all 11 native vendor tests and 16 shared cases passed.
+Native thinking/text snapshots still change message id without another
+`message_start`, and the extension-store lock still blocks a first prompt
+after initialize succeeds. The provider preset key names remain covered by
+the local credential reader. See the
+[version check](../../experiments/runtime-version-checks/2026-10-29.md#qwen-0263-and-0264).
+
 ## OAR mapping
 
 `qwenRuntime` is in `defaultRuntimes` and available separately from
@@ -225,6 +233,11 @@ not establish that extension refresh operations never acquire it again.
 The same probe on 0.26.1 on 2026-10-25 returned initialize in 1.755 seconds
 while the lock was held, then reproduced the blocked first prompt and
 successful later prompt. The lock limitation therefore remains.
+On 2026-10-29 it also reproduced
+on 0.26.3 and 0.26.4; the latter returned initialize in 1.888 seconds with
+the lock held. Upstream's [source analysis](https://github.com/QwenLM/qwen-code/issues/15796#issuecomment-6469876861)
+confirms that initialization readiness follows the SDK initialize reply;
+it is not a released fix.
 Serializing launches only through the initialize response is insufficient. Therefore this failure can
 arrive at the **first prompt**, as `result/error_during_execution`, after OAR
 has returned the Session. It ends that turn as `failed/unknown` with the native

@@ -55,6 +55,28 @@ investigation):
 
 ## OpenCode v2
 
+**Known limitation, 2.2.1** (2026-10-29): concurrent first starts over a
+fresh native database can fail before readiness. Cold MCP resume also
+retains the failure described below. Three shared-suite runs each lost at
+least one process before readiness. A direct, OAR-free startup probe reproduced
+`account_state already exists` in one of four simultaneous starts over a
+fresh database, then in three of four starts in the final probe run.
+Sequential and warm-database controls succeeded in both runs. The inspected
+native bootstrap semaphore is process-local.
+This evidence does not establish that every earlier startup failure has
+this cause, nor that warmup is a general fix. Hosts can serialize the first
+startup and wait for readiness before opening more sessions against the
+same data directory, as in the passing controls. OAR adds no retry or lock.
+
+The boundary probe passed eight checks, including queueing, native steer
+refusal, child attribution, abort, disposal and ordinary resume. Its first
+model catalog failed plugin activation; separate cold/warm catalog controls
+returned eight models. Its MCP cold resume omitted the tool call. An
+independent native reproduction called echo on only two of six resumes,
+with removal/re-addition notices spanning multiple prompts. The existing
+[cold-resume issue](https://github.com/anomalyco/opencode/issues/54794)
+remains open. [Full evidence and controls](../../experiments/runtime-version-checks/2026-10-29.md#opencode-221).
+
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Verified on `@opencode/cli`
 **2.2.0** (2026-10-27,

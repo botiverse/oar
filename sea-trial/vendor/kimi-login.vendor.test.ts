@@ -8,7 +8,7 @@ import { recordedInteraction } from "../../tests/fixtures/login-interaction.js";
 import { kimiLoginFixture } from "./support/kimi-login.js";
 
 describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native device login", () => {
-  const installation = { kind: "available" as const, via: "executable" as const, command: process.env.OAR_KIMI_LOGIN_COMMAND ?? "kimi", version: "2.3.3" };
+  const installation = { kind: "available" as const, via: "executable" as const, command: process.env.OAR_KIMI_LOGIN_COMMAND ?? "kimi", version: "2.4.0" };
   test.each([true, false])("browser permission %s, native storage, status and logout", async (openBrowser) => {
     const fixture = await kimiLoginFixture();
     try {

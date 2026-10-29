@@ -169,7 +169,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
-  The same jobs install Kimi 2.3.3 and run its native login tests against a
+  The same jobs install Kimi 2.4.0 and run its native login tests against a
   local OAuth/model server, including browser suppression and credential writes.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
@@ -181,7 +181,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
   vendor step has a 12-minute CI ceiling and each job has a 20-minute ceiling.
   This is an observation experiment after repeated runner losses, not a
   proven fix or a change to assertions, concurrency or native deadlines.
-- `acp-behavior`: Kimi 2.3.3, Grok 1.0.70 and OpenCode v1 1.19.5 on
+- `acp-behavior`: Kimi 2.4.0, Grok 1.0.70 and OpenCode v1 1.19.5 on
   Linux and macOS, with npm download caches. Shared behavior and
   vendor tests use native programs with local scripted providers, isolated
   configuration and synthetic keys. Shared-case concurrency and Vitest
