@@ -20,6 +20,8 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   readonly assistantAfterMessageStop?: boolean;
   /** False when native partial events omit message_start and the API message id. */
   readonly partialMessageIds?: boolean;
+  /** The next single-block assistant is the completed block's snapshot, even with a new id. */
+  readonly assistantFollowsBlockStop?: boolean;
   readonly assistant: (state: S, message: JsonRecord, root: boolean) => S;
   readonly result: (state: S, message: JsonRecord, agentPath: readonly string[]) => {
     readonly state: S;

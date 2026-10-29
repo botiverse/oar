@@ -25,7 +25,9 @@ const mock = new LLMock({ port: 0 });
 mock.on({ predicate: currentTurnSays(/MCP_MARKER/u), hasToolResult: false }, { toolCalls: [{ id: "native-echo", name: "mcp__echo__echo", arguments: JSON.stringify({ text: "native-probe" }) }] });
 mock.onToolResult("native-echo", { content: "tool completed" });
 mock.onMessage(/SLOW_MARKER/u, { content: "slow answer" }, { latency: 3000 });
-mock.onMessage(/^(?![\s\S]*(?:SLOW_MARKER|MCP_MARKER))[\s\S]*$/u, { content: "native answer" }, { latency: 80 });
+mock.onMessage(/^(?![\s\S]*(?:SLOW_MARKER|MCP_MARKER))[\s\S]*$/u, scenario === "reply-blocks"
+  ? { content: "A repeated paragraph.\nA repeated paragraph.\n", reasoning: "Synthetic reasoning in a separate channel." }
+  : { content: "native answer" }, { latency: 80 });
 await mock.start();
 const capture = await startRawCapture(mock.url);
 const env: NodeJS.ProcessEnv = {};

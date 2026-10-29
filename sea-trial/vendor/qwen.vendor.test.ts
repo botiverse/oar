@@ -31,6 +31,27 @@ function totals(session: Session) {
 }
 
 describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0", () => {
+  test.each([undefined, "Synthetic reasoning in a separate channel."])("text is emitted once with reasoning=%s, including repeated paragraphs and consecutive identical turns", async (reasoning) => {
+    const answer = "A repeated paragraph.\nA repeated paragraph.\n";
+    const env = await startQwenAimock((mock) => { mock.onMessage(/[\s\S]*/u, { content: answer, ...(reasoning === undefined ? {} : { reasoning }) }); });
+    try {
+      const session = await open(env);
+      onTestFailed(async () => {
+        await mkdir("oar-trial-run/qwen-vendor", { recursive: true });
+        await writeFile(`oar-trial-run/qwen-vendor/text-${reasoning === undefined ? "plain" : "thinking"}.json`, JSON.stringify(session.records(), null, 2));
+      });
+      try {
+        const first = await promptAndWait(session, "first identical reply", { timeoutMs: 45_000 });
+        const second = await promptAndWait(session, "second identical reply", { timeoutMs: 45_000 });
+        expect(first).toMatchObject({ kind: "ended", outcome: { kind: "completed" }, text: answer });
+        expect(second).toMatchObject({ kind: "ended", outcome: { kind: "completed" }, text: answer });
+        const thoughts = session.records().flatMap((record) => record.kind === "frame" ? record.body.events : [])
+          .flatMap((event) => event.kind === "reasoning" && event.content.kind === "text" ? [event.content.text] : []).join("");
+        expect(thoughts).toBe(reasoning === undefined ? "" : reasoning + reasoning);
+      } finally { await session.dispose(); }
+    } finally { await env.stop(); }
+  }, 90_000);
+
   test("fresh totals accumulate; restored totals are unknown instead of charging historical work", async () => {
     const env = await startQwenAimock();
     try {

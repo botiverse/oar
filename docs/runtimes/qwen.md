@@ -90,6 +90,25 @@ alongside a tool result or in a separate non-replay runtime user frame is also
 retained only in the native frame. The provider request is probe evidence,
 not an additional OAR input or record.
 
+### Streamed block snapshots
+
+With **0.26.3**, a response containing thinking followed by text emits one
+`message_start`, reuses content-block index 0, and follows each
+`content_block_stop` with a single-block `assistant` snapshot. The text
+deltas still carry the initial message identity, but the text snapshot gets
+a different `message.id`. Requiring equal ids therefore repeats the answer.
+OAR identifies these snapshots by the stopped block's position and type in
+the same agent's current stream, consumes that boundary once, and emits no
+second copy of already streamed text or thinking. Text equality does not
+establish identity. A new block or message and the turn result invalidate
+the pending boundary; unstreamed final content is still projected. Native
+frames and their original ids remain unchanged in the record stream.
+
+The [dated investigation](../../experiments/qwen-native/reply-text-2026-10-29.md)
+records the native sequence, real Token Plan observations, regressions and
+an upstream issue draft. This handles the observed SDK-channel sequence;
+it does not assert that every provider emits thinking or rewrite Qwen's ids.
+
 ## Provider setup
 
 `createQwenProviderAuth(installation, { cwd?, env?, timeoutMs? })` is an async
@@ -146,7 +165,21 @@ neither retries connect nor promises to roll back Qwen's writes.
 Evidence: [source and isolated probes](../../experiments/qwen-provider-auth/README.md)
 on Qwen **0.26.2**, Linux, 2026-10-28; three native facade regressions also
 cover metadata scope, user/workspace writes and key reuse across processes.
-No real account or model tokens were used.
+No real account or model tokens were used in those 0.26.2 probes.
+
+On 2026-10-29, two Linux runs with **0.26.3** and a real Model Studio
+Singapore Token Plan key also passed provider discovery, configuration,
+configuration readback, model listing and a completed model turn. The
+native provider is `token-plan`, region `ap-southeast-1`, endpoint
+`https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`,
+model `qwen3.7-plus`. The connect reply omitted `baseUrl`; a second
+`listProviders()` confirmed the persisted address. `authStatus` moved from
+`logged_out` to `unknown`, as designed for local credential presence.
+Those runs exposed the duplicate text projection described above, so they
+are not clean end-to-end reply validations. The
+[portable probe](../../experiments/qwen-native/token-plan-real.ts) keeps the
+key on the executing machine and reports only fixed configuration labels,
+status, usage numbers and content-free text checks.
 
 ## Usage and failures
 

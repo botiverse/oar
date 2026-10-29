@@ -60,7 +60,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
     }
     case "assistant":
     case "stream_event": {
-      const content = streamJsonContent(state.partials, message, agentPath, profile.assistantAfterMessageStop, profile.partialMessageIds);
+      const content = streamJsonContent(state.partials, message, agentPath, profile.assistantAfterMessageStop, profile.partialMessageIds, profile.assistantFollowsBlockStop);
       const next = rememberToolUses({ ...state, partials: content.partials }, message, agentPath);
       return event({ events: content.events }, message.type === "assistant" ? profile.assistant(next, message, agentPath.length === 0) : next);
     }

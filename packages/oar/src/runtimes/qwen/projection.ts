@@ -33,11 +33,16 @@ function outcome(state: QwenProjection, message: JsonRecord): TurnOutcome {
 
 export const qwenProjectionProfile: StreamJsonProjectionProfile<QwenProjection> = {
   name: "qwen", duplicateReason: "Qwen refused the input", commandLifecycle: false,
+  // 0.26.3 starts a message once, reuses block index 0, then assigns each
+  // completed assistant block its own id after content_block_stop.
+  assistantFollowsBlockStop: true,
   assistant: (state) => state,
   result: (state, message, agentPath) => {
     const usage = agentPath.length === 0 && state.usageKnown ? qwenUsage(message) : null;
     const before: RuntimeEventBody[] = usage === null ? [] : [{ kind: "usage", usage: { total: usage } }];
-    return { state: usage === null ? state : { ...state, usage }, outcome: outcome(state, message), before, after: [] };
+    const partials = new Map(state.partials);
+    partials.delete(JSON.stringify(agentPath));
+    return { state: { ...state, partials, ...(usage === null ? {} : { usage }) }, outcome: outcome(state, message), before, after: [] };
   },
   init: () => [],
   compacted: (state) => state,

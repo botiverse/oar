@@ -15,6 +15,7 @@ type PartialBlock = PartialText | PartialTool;
 interface PartialMessage {
   readonly id?: string;
   readonly blocks: ReadonlyMap<number, PartialBlock>;
+  readonly stoppedIndex?: number | undefined;
 }
 /** Only unfinished API messages, per agent lane. Children can stream while root is idle. */
 export type StreamJsonPartials = ReadonlyMap<string, PartialMessage>;
@@ -37,10 +38,13 @@ function streamContent(previous: PartialMessage | undefined, event: JsonRecord, 
     const id = asRecord(event.message)?.id;
     return { message: { ...(typeof id === "string" ? { id } : {}), blocks: new Map() }, events: [] };
   }
-  const message = previous ?? { blocks: new Map<number, PartialBlock>() };
+  const message: PartialMessage = { ...previous, blocks: previous?.blocks ?? new Map(), stoppedIndex: undefined };
+  if (event.type === "content_block_stop" && typeof event.index === "number") {
+    return { message: { ...message, stoppedIndex: event.index }, events: [] };
+  }
   const body = event.type === "content_block_start" ? asRecord(event.content_block)
     : (event.type === "content_block_delta" ? asRecord(event.delta) : null);
-  if (typeof event.index !== "number") { return { message: previous, events: [] }; }
+  if (typeof event.index !== "number") { return { message, events: [] }; }
   const blocks = new Map(message.blocks);
   if (body?.type === "tool_use" && typeof body.id === "string" && typeof body.name === "string") {
     const prior = blocks.get(event.index);
@@ -49,12 +53,12 @@ function streamContent(previous: PartialMessage | undefined, event: JsonRecord, 
   }
   if (body?.type === "input_json_delta" && typeof body.partial_json === "string") {
     const tool = blocks.get(event.index);
-    return { message: previous, events: tool?.type === "tool_use" ? [{ kind: "tool_call_input_delta", callId: tool.callId, delta: body.partial_json }] : [] };
+    return { message, events: tool?.type === "tool_use" ? [{ kind: "tool_call_input_delta", callId: tool.callId, delta: body.partial_json }] : [] };
   }
   const type = body?.type === "text" || body?.type === "text_delta" ? "text"
     : (body?.type === "thinking" || body?.type === "thinking_delta" ? "thinking" : null);
   if (type === null) {
-    return { message: previous, events: [] };
+    return { message, events: [] };
   }
   const value = body?.[type];
   const text = typeof value === "string" ? value : "";
@@ -67,11 +71,20 @@ function streamContent(previous: PartialMessage | undefined, event: JsonRecord, 
 /** Native 2.1.293 emits one completed block just before its content_block_stop,
  * with the same API id for every block. Consume that block's streamed prefix
  * once, rather than treating an entire message id as already projected. */
-function finalContent(message: JsonRecord, partial: PartialMessage | undefined, partialMessageIds: boolean): { message: PartialMessage | undefined; events: RuntimeEventBody[] } {
+function finalContent(message: JsonRecord, partial: PartialMessage | undefined, partialMessageIds: boolean, assistantFollowsBlockStop: boolean): { message: PartialMessage | undefined; events: RuntimeEventBody[] } {
   const id = asRecord(message.message)?.id;
   const identity = typeof id === "string" ? { messageId: id } : {};
   const blocks = new Map(partial?.blocks);
+  const content = contentBlocks(message);
   const remainder = (type: "text" | "thinking", full: string): string | null => {
+    const stoppedIndex = partial?.stoppedIndex;
+    const stopped = stoppedIndex === undefined ? undefined : blocks.get(stoppedIndex);
+    if (assistantFollowsBlockStop && content.length === 1 && stoppedIndex !== undefined && stopped?.type === type && !stopped.finalized) {
+      // This dialect emits a snapshot after a complete streamed block. The
+      // stop/start sequence identifies it, not text equality or the final id.
+      blocks.set(stoppedIndex, { ...stopped, finalized: true });
+      return stopped.text.length === 0 ? full : null;
+    }
     if (typeof id !== "string" || (partial?.id !== id && (partialMessageIds || partial?.id !== undefined))) {
       return full;
     }
@@ -88,7 +101,7 @@ function finalContent(message: JsonRecord, partial: PartialMessage | undefined, 
     return suffix.length === 0 ? null : suffix;
   };
   const events: RuntimeEventBody[] = [];
-  for (const block of contentBlocks(message)) {
+  for (const block of content) {
     switch (block.type) {
       case "text": {
         const text = typeof block.text === "string" ? remainder("text", block.text) : null;
@@ -125,11 +138,11 @@ function finalContent(message: JsonRecord, partial: PartialMessage | undefined, 
         break;
     }
   }
-  return { message: partial === undefined ? undefined : { ...partial, blocks }, events };
+  return { message: partial === undefined ? undefined : { ...partial, blocks, stoppedIndex: undefined }, events };
 }
 
 /** Pure content projection; the caller records the original frame even if events is empty. */
-export function streamJsonContent(partials: StreamJsonPartials, message: JsonRecord, agentPath: readonly string[], assistantAfterMessageStop = false, partialMessageIds = true): { partials: StreamJsonPartials; events: RuntimeEventBody[] } {
+export function streamJsonContent(partials: StreamJsonPartials, message: JsonRecord, agentPath: readonly string[], assistantAfterMessageStop = false, partialMessageIds = true, assistantFollowsBlockStop = false): { partials: StreamJsonPartials; events: RuntimeEventBody[] } {
   const lane = JSON.stringify(agentPath);
   if (message.type === "stream_event" && asRecord(message.event)?.type === "message_stop") {
     // Retain at most the latest API message in this lane until its final
@@ -144,7 +157,7 @@ export function streamJsonContent(partials: StreamJsonPartials, message: JsonRec
   const previous = partials.get(lane);
   const next = message.type === "stream_event"
     ? streamContent(previous, asRecord(message.event) ?? {}, partialMessageIds)
-    : finalContent(message, previous, partialMessageIds);
+    : finalContent(message, previous, partialMessageIds, assistantFollowsBlockStop);
   return { partials: next.message === undefined ? partials : new Map([...partials, [lane, next.message]]), events: next.events };
 }
 
