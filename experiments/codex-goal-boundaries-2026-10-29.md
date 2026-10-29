@@ -27,7 +27,7 @@ paused, resume, repeated clear, automatic continuation without another host
 prompt, native completion, budget exhaustion, and pause during an active
 turn. The [unit regression](../tests/codex/codex-goals.test.ts) covers
 omitted/false opt-in, a conflicting launch override, unsupported values
-before send, response/notification wire order, identical serialized replay,
+before send, reply Frame/notification wire order, identical serialized replay,
 child attribution, unknown status words, missing fields, native refusals,
 malformed replies, process death and credential redaction.
 

@@ -274,13 +274,12 @@ export type RejectionCode =
 
 /**
  * Control responses answer only "accepted or not"; final states and landing
- * points require native events, including state observed in an accepted reply.
- * The remaining bodies are outcomes only oar
+ * points are always events. The remaining bodies are outcomes only oar
  * observes: its own answer to a runtime→app request, and the process exit.
  */
 export type ResponseBody =
-  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. `events` contains only facts the reply actually reports, never state inferred from acceptance. */
-  | { readonly kind: "accepted"; readonly native?: unknown; readonly events?: readonly RuntimeEventBody[] }
+  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
+  | { readonly kind: "accepted"; readonly native?: unknown }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */

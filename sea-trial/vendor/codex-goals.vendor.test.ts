@@ -39,7 +39,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex native goal cont
       await expect.poll(() => latest(events), { timeout: 10_000 }).toMatchObject({ objective: "Persist this objective", status: "paused" });
       expect(await session.goal?.clear()).toMatchObject({ kind: "accepted" });
       expect(latest(events)).toBeNull();
-      expect(await session.goal?.clear()).toMatchObject({ kind: "accepted", response: { body: { native: { cleared: false } } } });
+      expect(await session.goal?.clear()).toMatchObject({ kind: "accepted" });
+      expect(session.records().findLast((record) => record.kind === "frame" && record.body.type === "thread/goal/clear")).toMatchObject({ body: { native: { cleared: false } } });
       expect(await session.goal?.read()).toMatchObject({ kind: "accepted" });
       expect(latest(events)).toBeNull();
     } finally { await session?.dispose(); await provider.stop(); }

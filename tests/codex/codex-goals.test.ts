@@ -63,8 +63,12 @@ test("goals opt-in records native answers in wire order and replays the same eve
   expect(set).toMatchObject({ kind: "accepted", request: { body: { kind: "goal_set" } } });
   const observed = live.filter((event) => event.kind === "goal_changed");
   expect(observed).toHaveLength(2);
-  expect(observed[0]).toMatchObject({ goal: { objective: "Native objective", status: "paused", tokensUsed: 0, tokenBudget: null }, seq: set?.response.seq });
+  expect(observed[0]).toMatchObject({ goal: { objective: "Native objective", status: "paused", tokensUsed: 0, tokenBudget: null }, seq: (set?.request.seq ?? 0) + 1 });
   expect(observed[1]?.seq).toBeGreaterThan(observed[0]?.seq ?? -1);
+  expect(set?.response.seq).toBeGreaterThan(observed[0]?.seq ?? -1);
+  expect(set?.response.seq).toBeLessThan(observed[1]?.seq ?? 0);
+  expect(set?.response.body).toEqual({ kind: "accepted" });
+  expect(session.records().find((record) => record.seq === observed[0]?.seq)).toMatchObject({ kind: "frame", body: { type: "thread/goal/set", native: { goal } } });
   expect(session.status().value.kind).toBe("idle");
   const read = await session.goal?.read();
   expect(read).toMatchObject({ kind: "accepted", request: { body: { kind: "goal_read" } } });

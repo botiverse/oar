@@ -55,21 +55,23 @@ function setRefusal(options: GoalSetOptions): ResponseBody | null {
   return null;
 }
 
-/** Native responses are recorded synchronously before subsequent notifications, never optimistically. */
+/** Native replies enter frames at their wire position; control responses only accept or reject. */
 export function codexGoalControl(kernel: SessionKernel, client: AppServerClient, threadId: string): AdapterGoalControl {
   const send = async (action: "set" | "read" | "clear", options?: GoalSetOptions): Promise<ControlResult> => {
+    const method = `thread/goal/${action === "read" ? "get" : action}`;
     const result = await rpcControl(kernel, client, {
       body: action === "set" ? { kind: "goal_set", options: options ?? { objective: "" } } : { kind: action === "read" ? "goal_read" : "goal_clear" },
       gate: () => options === undefined ? null : setRefusal(options),
-      method: `thread/goal/${action === "read" ? "get" : action}`,
+      method,
       params: () => ({ threadId, ...(action === "read" ? {} : { origin: "user" }), ...options }),
       onReply: (reply) => {
         // A successful clear, including cleared:false, confirms there is no goal.
         const goal = action === "clear" ? (typeof reply.cleared === "boolean" ? null : undefined) : codexGoal(reply.goal);
-        if (goal === undefined || (action === "set" && goal === null)) {
-          return { kind: "rejected", code: "runtime_refused", reason: "codex goal response did not report a valid outcome", native: reply };
-        }
-        return { kind: "accepted", native: reply, events: [{ kind: "goal_changed", goal }] };
+        const valid = goal !== undefined && (action !== "set" || goal !== null);
+        client.mark(() => { kernel.frame({ type: method, native: reply, events: valid ? [{ kind: "goal_changed", goal }] : [] }); });
+        return valid ? { kind: "accepted" } : {
+          kind: "rejected", code: "runtime_refused", reason: "codex goal response did not report a valid outcome",
+        };
       },
       onError: (reason, native) => ({ kind: "rejected", code: "runtime_refused", reason, ...(native === undefined ? {} : { native }) }),
     });

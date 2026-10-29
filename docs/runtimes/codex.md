@@ -403,7 +403,7 @@ and exposes no member; this does not disable tools enabled by the user's
 config. Supply true again when resuming.
 
 The controls map to `thread/goal/set`, `/get`, and `/clear`, with native
-`origin: "user"` on mutations. Native answers and `thread/goal/updated` or
+`origin: "user"` on mutations. Frames for native answers and `thread/goal/updated` or
 `thread/goal/cleared` notifications project `goal_changed`; unknown status
 words and missing counter fields stay as reported. The reply and any later
 notification remain separate observations, including repeated snapshots.

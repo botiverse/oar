@@ -134,11 +134,8 @@ Further rules:
   observed exit: it is recorded and answered `accepted` at once (nothing is
   left to release), so a session whose runtime died on its own still ends
   with an answered dispose rather than a dangling one.
-- **Control acceptance does not imply a final state.** Final states and
-  landing points require native observations. A native control reply can
-  report state itself: its accepted response retains `native` and projects
-  that observation in `events`, with the response envelope. Goal reads use
-  this path; acceptance alone still creates no state. A rejection carries one typed `code`
+- **Control responses answer only "accepted or not".** Final states and
+  landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`,
   `disposed`, `runtime_refused`, `error`) next to the prose `reason`, so an application
   branches on a word, not on vendor text. `unsupported` means the runtime
@@ -359,9 +356,9 @@ interface RequestRecord extends RecordEnvelope {
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // accepted {native?, events?: RuntimeEventBody[]} | rejected {code, reason, native?} | answered {native} | exited {code}
+  body: ResponseBody;           // accepted {native?} | rejected {code, reason, native?} | answered {native} | exited {code}
 }
-// accepted/rejected answers "taken over or not"; accepted events project only state in the native reply.
+// accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
 // grant): an outcome the runtime did not say.
 // exited: the process exit, the one outcome the runtime can never say
