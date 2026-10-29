@@ -107,8 +107,11 @@ false, the adapter holds queued input in this process.
 interrupt, and the outcome is the runtime's own turn end. It does not promise
 that processes the turn started have stopped. Some runtimes keep a command
 running across turns on purpose, so a later turn can read its output. Ending a
-session with `dispose()` is a different operation: OAR stops the runtime's
-process tree and, for ACP runtimes, every terminal OAR hosted for the session.
+session with `dispose()` is a different operation. Where OAR owns the
+runtime's process, it stops that process tree and, for ACP runtimes, every
+terminal OAR hosted for the session. A Pi Durable session on a host-owned
+harness is the exception: `dispose()` ends OAR's observation and leaves the
+harness's work running.
 Observed on Linux on 2026-10-28 with a command that starts a parent and a
 child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 
@@ -117,11 +120,13 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 | codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop it; OAR does not call them yet |
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
-| claude, qwen, qoder, pi, cursor | not measured | `dispose()` |
+| claude, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
+| pi (in process), cursor | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
+| pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
 
-A host that must know the command is gone ends the session, or waits for the
-command's own end in the record stream. It never infers that from the turn
-end.
+A host that must know the command is gone ends a session whose process OAR
+owns, or waits for the command's own end in the record stream. It never
+infers that from the turn end.
 
 ## Context breakdown
 
