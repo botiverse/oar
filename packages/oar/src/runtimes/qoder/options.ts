@@ -10,7 +10,7 @@ export const qoderRefusedSessionOptions: RefusedSessionOptions = {
 };
 export function checkQoderLaunchArgs(args: readonly string[] | undefined): void {
   const managed = new Set(["--print", "-p", "--input-format", "-f", "--output-format", "-o", "--session-id", "--resume", "-r", "--continue", "-c",
-    "--fork-session", "--remote", "--remote-session", "--permission-mode", "--permission-prompt-tool", "--reasoning-effort", "--name", "-n",
+    "--sdk", "--acp", "--fork-session", "--remote", "--remote-session", "--permission-mode", "--permission-prompt-tool", "--reasoning-effort", "--name", "-n",
     "--replay-user-messages", "--no-replay-user-messages", "--"]);
   for (const arg of args ?? []) {
     const flag = arg.split("=", 1)[0] ?? arg;

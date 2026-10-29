@@ -47,7 +47,7 @@ describe.skipIf(process.env.OAR_TEST !== "qoder-native")("Qoder native model rep
 
   test("applied effort is read back while native private settings stay private", async () => {
     const env = await qoderFixture([{ text: "effort" }]);
-    const session = await open(env, { effort: "high" });
+    const session = await open(env, { model: "ultimate", effort: "high" });
     try {
       expect(session.effort().value).toBe("high");
       expect(JSON.stringify(session.records())).not.toContain('"useExternal"');

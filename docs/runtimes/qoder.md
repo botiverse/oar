@@ -1,9 +1,12 @@
 # Qoder
 
-Qoder CLI exposes a bidirectional JSON-line protocol through `--print
---input-format stream-json --output-format stream-json`. OAR uses this native
-interface, with one process per open session. The interface and the bundled
-implementation were probed on Qoder 1.1.78, Linux, on October 23, 2026.
+OAR uses Qoder's native bidirectional JSON-line SDK protocol, with one
+owned process per open session. Qoder 1.1.78 through 1.1.80 use `--print
+--input-format stream-json --output-format stream-json` and the native stdio
+permission flag. From 1.1.81, OAR uses `--sdk` and the official SDK's daemon
+protocol. The old worker interface was probed on 1.1.78, Linux, on October 23,
+2026; the daemon migration was verified on October 29
+([evidence and reproduction](../../experiments/qoder-native/daemon-2026-10-29.md)).
 The 1.1.79 recheck on October 27 passed eight native cases, 17 shared
 behavior cases (two skipped), and all eight native priority controls after
 isolating the test settings files. The first shared run's startup failure
@@ -16,6 +19,44 @@ This does not establish that native inline settings no longer share a path.
 Those replay checks used no real account or paid provider. The later
 [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
+
+## Transport versions
+
+[src] Qoder 1.1.81 explicitly rejects the old SDK worker with
+`sdk_worker_removed`. Removing `--permission-prompt-tool stdio` from ordinary
+headless stream-json is insufficient: that path accepts user input but no
+longer processes the SDK's `initialize` control. This is an intentional
+transport removal. On October 29, the published official
+`@qoder-ai/qoder-agent-sdk` 1.0.56 still bundled CLI 1.1.78 and its default
+process transport still used the old flags; its public `startDaemon()` already
+used `--sdk`. OAR follows that public entry point and protocol, without adding
+a runtime dependency on the SDK.
+
+The new owned process receives `daemon.initialize` with protocol version 2,
+then `daemon.open_session` with the original worker arguments and cwd. OAR
+requires `multi_session_v2` and `daemon_queries_v1`; an incompatible handshake
+refuses opening and closes the process. Session messages and permission replies
+carry their native `session_id`. Model reads move to `daemon.get_models`, an
+account-level query without a session id, with the same catalog payload. Its
+private replies, including late duplicates, remain outside public records.
+An unreadable or non-stable CLI version refuses opening explicitly as a
+version compatibility error instead of guessing a permission transport.
+
+The daemon uses the child environment's personal access token or service-account
+key when supplied, otherwise the native local `qodercli` login. A service-account
+key combined with another explicit credential is refused, as in the native CLI.
+A job token without a personal access token is refused: the official daemon
+requires a host callback for that auth mode, which OAR does not implement.
+Authentication travels only in the private handshake, never argv or records.
+
+[env] One native 1.1.81 daemon ran two sessions concurrently on Linux; closing
+one left the other able to complete another turn. This is only a routing and
+basic close observation. OAR still owns one daemon per session, and shared
+placement requires the full [design evidence gate](../design/system.md#shared-runtime-processes).
+The native permission regression explicitly switches a replay session to the
+native default permission mode to trigger `can_use_tool`, proves the tool has
+not run before the response, and uses the production stdio response policy to
+allow it. Normal OAR sessions retain `bypass_permissions`.
 
 ## Native interface
 
@@ -41,7 +82,7 @@ identity, organization data or authentication material.
 | Surface | Mapping and boundary |
 | --- | --- |
 | Session | Native session UUID; `--resume` opens its saved conversation. A missing id is refused, without creating a replacement. |
-| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`). Init may report the catalog's `serverModel.display_name`, exposed as `resolvedId` only when non-empty and different from `id`; a mismatch with the requested id is confirmed by an exact lookup in the same process's native catalog. `model()` retains the init name. `--reasoning-effort` is confirmed by applied settings. Failure to confirm an explicit choice refuses opening. |
+| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`). Init may report the catalog's `serverModel.display_name`, exposed as `resolvedId` only when non-empty and different from `id`; a mismatch with the requested id is confirmed by an exact lookup in the same process's native catalog. `model()` retains the init name. `--reasoning-effort` is confirmed by applied settings. A startup failure includes the requested effort as context, without claiming it caused the failure; a later model-confirmation error keeps its model-specific reason. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
@@ -319,6 +360,9 @@ requests `initialize` and `get_models` with `fetchStrategy: live`. It can perfor
 account/catalog network I/O and pays native process initialization cost. No model
 prompt is submitted. `authStatus()` has no proven no-network declaration and is
 therefore skipped by local orientation; it is available at account depth.
+
+On the daemon transport the catalog request is `daemon.get_models`; on the
+worker transport it remains `get_models`.
 
 An explicit model whose init name differs from the requested selector adds
 one `get_models` query with `fetchStrategy: cache` in that session's process.

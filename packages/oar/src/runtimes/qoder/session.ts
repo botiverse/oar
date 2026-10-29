@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Native transport, controls, projection and credential boundary. */
 import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
@@ -6,6 +7,8 @@ import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
+import { qoderStartupError } from "./protocol.js";
+import { qoderPermissionResponse } from "./permission.js";
 import { qoderNativeModelName } from "./list-models.js";
 
 async function readSelectedModel(control: ReturnType<typeof qoderControl>, requested: string, fetchStrategy: "cache" | "live"): Promise<JsonRecord | undefined> {
@@ -30,7 +33,7 @@ async function confirmModel(control: ReturnType<typeof qoderControl>, requested:
 export const qoderSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") { throw new Error("Qoder requires its executable installation"); }
   const sessionId = options.resume ?? randomUUID();
-  const child = await launchQoder(installation.command, sessionId, options);
+  const child = await launchQoder(installation.command, sessionId, options, installation.version);
   const control = qoderControl(child, (value) => { rememberQoderSecrets(value, credentials.add); });
   let model: string | null = null;
   try {
@@ -45,9 +48,12 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
         return control.consume(message);
       },
       open: async (projection) => {
-        await control.request({ subtype: "initialize" }, qoderInitializeTimeoutMs);
+        await control.request({ subtype: "initialize" }, qoderInitializeTimeoutMs).catch((error: unknown) => { throw qoderStartupError(error, options.effort); });
         if (options.model !== undefined && model !== options.model) { await confirmModel(control, options.model, model); }
-        const answer = await control.request({ subtype: "get_settings" });
+        const answer = await control.request({ subtype: "get_settings" }).catch((error: unknown) => {
+          if (options.effort === undefined) { throw error; }
+          throw new Error(`Qoder could not confirm effort ${JSON.stringify(options.effort)}: ${String(error)}`, { cause: error });
+        });
         const applied = asRecord(asRecord(asRecord(answer.response)?.response)?.applied);
         const effort = typeof applied?.effort === "string" ? applied.effort : null;
         if (options.effort !== undefined && effort !== options.effort) { throw new Error(`Qoder did not confirm effort ${JSON.stringify(options.effort)}; reported ${JSON.stringify(effort)}`); }
@@ -59,13 +65,11 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
           events: effort === null ? [] : [{ kind: "effort", effort }] });
       },
       exited: control.end, disposing: control.end,
-      permissionResponse: (requestId, request) => ({ type: "control_response", response: { subtype: "success", request_id: requestId,
-        response: { behavior: "allow", ...(request.input === undefined ? {} : { updatedInput: request.input }) } } }),
+      permissionResponse: qoderPermissionResponse,
       close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeQoder(child); } },
     });
   } catch (error) {
     control.end(); await closeQoder(child);
-    if (options.effort !== undefined) { throw new Error(`Qoder could not confirm effort ${JSON.stringify(options.effort)}: ${String(error)}`, { cause: error }); }
     throw error;
   }
 });

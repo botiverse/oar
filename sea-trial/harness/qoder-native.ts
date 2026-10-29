@@ -2,6 +2,7 @@ import { cp, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { SessionOptions } from "../../packages/oar/src/contracts/session.js";
+import { seedQoderReplayIdentity } from "./qoder-auth-fixture.js";
 import { record } from "./trace.js";
 
 /** Preserve cleanup boundaries even if a test times out after the native process exits. */
@@ -33,9 +34,10 @@ export interface QoderNativeEnv {
   readonly options: SessionOptions;
   stop(this: void): Promise<void>;
 }
-/** Qoder's own fake-response reader drives its real model loop, with no login or network provider. */
+/** Qoder's own fake-response reader drives its real model loop, with a synthetic local identity and no real model provider. */
 export async function startQoderNative(replies: readonly QoderReply[], delayMs = 1): Promise<QoderNativeEnv> {
   const home = await mkdtemp(path.join(tmpdir(), "oar-qoder-native-"));
+  await seedQoderReplayIdentity(home);
   const cwd = path.join(home, "project"); await mkdir(cwd);
   // Native inline settings reuse and overwrite a content-hash file in the
   // system temp directory. Concurrent fixtures must not share that file.
@@ -48,12 +50,12 @@ export async function startQoderNative(replies: readonly QoderReply[], delayMs =
   })) })).join("\n")  }\n`);
   const options: SessionOptions = { cwd,
     env: { HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: path.join(home, "config"), QODER_FAKE_STREAM_DELAY_MS: String(delayMs),
-      QODER_PERSONAL_ACCESS_TOKEN: "", QODER_API_KEY: "", NO_PROXY: "*" },
+      QODER_PERSONAL_ACCESS_TOKEN: "", QODER_API_KEY: "", QODER_SERVICE_ACCOUNT_KEY: "", QODER_JOB_TOKEN: "", QODER_CONFIG_DIR: "", QODER_CLI_HOME: "", NO_PROXY: "*" },
     launchArgs: ["--settings", settings, "--fake-responses", responses],
   };
   return { options, home, stop: async (): Promise<void> => {
     try {
-      // Only this isolated, unauthenticated replay fixture retains native startup logs.
+      // Only this isolated, synthetic-identity replay fixture retains native startup logs.
       const artifacts = process.env.OAR_TRIAL_RUN_DIR;
       if (artifacts !== undefined && artifacts !== "") {
         const destination = path.join(artifacts, "qoder-native", path.basename(home));

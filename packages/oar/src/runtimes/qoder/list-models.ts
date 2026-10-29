@@ -30,8 +30,8 @@ export function projectQoderModels(payload: unknown): ModelEntry[] {
   });
 }
 
-export async function readQoderModels(command: string, options: SessionOptions, timeoutMs = 30_000): Promise<ModelEntry[]> {
-  const child = await launchQoder(command, randomUUID(), options);
+export async function readQoderModels(command: string, options: SessionOptions, timeoutMs = 30_000, version?: string): Promise<ModelEntry[]> {
+  const child = await launchQoder(command, randomUUID(), options, version);
   const control = qoderControl(child, () => {}, timeoutMs);
   child.onLine((line) => { const message = asRecord(parseJson(line)); if (message !== null) { control.consume(message); } });
   child.onExit(control.end);
@@ -46,5 +46,5 @@ export const qoderListModels: ModelLister = async (installation, options = {}) =
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Qoder model listing requires its executable" }; }
   const status = await qoderAuthStatus(installation, options);
   if (status.kind === "logged_out") { return { kind: "unauthenticated" }; }
-  return { kind: "ok", models: await readQoderModels(installation.command, { cwd: listingCwd(options), ...(options.env === undefined ? {} : { env: options.env }) }, options.timeoutMs) };
+  return { kind: "ok", models: await readQoderModels(installation.command, { cwd: listingCwd(options), ...(options.env === undefined ? {} : { env: options.env }) }, options.timeoutMs, installation.version) };
 };

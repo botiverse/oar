@@ -218,3 +218,32 @@ test.each(["cache", "live"] as const)("a silent %s catalog read keeps the normal
   expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
   expect(catalogStrategies(children[0])).toEqual(strategy === "cache" ? ["cache"] : ["cache", "live"]);
 });
+
+
+test("a model confirmation failure is not mislabeled as effort when both were requested", async () => {
+  const children = catalogProcesses([], "wrong-model");
+  await expect(qoderSession(installation, { cwd: "/work", model: "qfmodel", effort: "high" })).rejects.toMatchObject({
+    message: 'Qoder model catalog did not contain requested selector "qfmodel"',
+  });
+  expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
+});
+
+test("a failed effort settings query retains the effort context and closes the process", async () => {
+  vi.useFakeTimers();
+  const child = slowControlProcess(0, null);
+  const rejected = expect(qoderSession(installation, { cwd: "/work", effort: "high" })).rejects.toThrow('Qoder could not confirm effort "high":');
+  await vi.advanceTimersByTimeAsync(30_001);
+  await rejected;
+  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+});
+
+test("native startup refusal retains the requested effort without blaming the effort", async () => {
+  const child = fakeLineProcess((line, process) => {
+    const frame = asRecord(parseJson(line));
+    process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: frame?.request_id, error: "secret-token" } })}\n`);
+  });
+  launch.launchQoder.mockResolvedValue(child);
+  launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
+  await expect(qoderSession(installation, { cwd: "/work", effort: "oar-no-such-effort" })).rejects.toThrow('Qoder startup failed (requested effort "oar-no-such-effort"): Error: Qoder refused initialize');
+  expect(launch.closeQoder).toHaveBeenCalledWith(child);
+});

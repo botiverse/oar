@@ -1,11 +1,14 @@
+/* oxlint-disable eslint/max-statements -- Launch file ownership and failure cleanup need a single ordered scenario. */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { beforeEach, expect, test, vi } from "vitest";
 import { launchQoder } from "../../packages/oar/src/runtimes/qoder/launch.js";
+import assert from "node:assert/strict";
+import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess } from "../fixtures/fake-line-process.js";
 
-const spawned = vi.hoisted(() => ({ spawnLineProcess: vi.fn() }));
+const spawned = vi.hoisted(() => ({ spawnLineProcess: vi.fn(), readExecutableVersion: vi.fn(async () => "1.1.80") }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => spawned);
 beforeEach(() => { spawned.spawnLineProcess.mockReset(); });
 
@@ -65,4 +68,38 @@ test.each(["throw", "reject"])("prompt-only directory is cleaned when spawn fail
   expect(file).not.toBe("");
   expect(existsSync(path.dirname(file))).toBe(false);
   if (failure === "reject") { expect(child.killed()).toBe(true); }
+});
+
+test.each(["1.1.78", "1.1.79", "1.1.80"])("legacy %s keeps the worker and stdio permission arguments", async (version) => {
+  const child = fakeLineProcess(); spawned.spawnLineProcess.mockReturnValue(child);
+  await launchQoder("qoder", "session", { cwd: tmpdir() }, version);
+  const args: unknown = spawned.spawnLineProcess.mock.calls[0]?.[1];
+  expect(args).toEqual(expect.arrayContaining(["--print", "--input-format", "stream-json", "--permission-prompt-tool", "stdio"]));
+  expect(args).not.toContain("--sdk"); child.end(0);
+});
+
+test("1.1.81 sends private launch files inside open_session, not daemon argv, and removes them on failure", async () => {
+  let file = "";
+  const child = fakeLineProcess((line, process) => {
+    const frame = asRecord(parseJson(line)); const request = asRecord(frame?.request); assert.ok(frame); assert.ok(request);
+    if (request.type === "daemon.initialize") {
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: frame.request_id,
+        response: { daemon_protocol_version: 2, capabilities: ["multi_session_v2", "daemon_queries_v1"] } } })}\n`);
+    } else {
+      const args = request.worker_args; assert.ok(Array.isArray(args) && args.every((arg): arg is string => typeof arg === "string"));
+      file = fileArgument(args, "--system-prompt-file");
+      expect(readFileSync(file, "utf8")).toBe("private prompt");
+      expectPrivateFiles(path.dirname(file), [file]);
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: frame.request_id, error: "native secret" } })}\n`);
+    }
+  });
+  spawned.spawnLineProcess.mockReturnValue(child);
+  await expect(launchQoder("qoder", "session", { cwd: tmpdir(), systemPrompt: "private prompt" }, "1.1.81")).rejects.toThrow("Qoder refused daemon.open_session");
+  expect(spawned.spawnLineProcess.mock.calls[0]?.[1]).toEqual(["--sdk"]);
+  expect(file).not.toBe(""); expect(existsSync(path.dirname(file))).toBe(false); expect(child.killed()).toBe(true);
+});
+
+test("an unknown version fails before spawning any control or permission transport", async () => {
+  await expect(launchQoder("qoder", "session", { cwd: tmpdir() }, "unknown")).rejects.toThrow("version compatibility");
+  expect(spawned.spawnLineProcess).not.toHaveBeenCalled();
 });

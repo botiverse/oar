@@ -35,7 +35,7 @@ export function qoderControl(child: LineProcess, remember: (value: unknown) => v
       const id = `oar-qoder-${randomUUID()}`;
       const { promise, resolve } = Promise.withResolvers<JsonRecord | Error>();
       privateIds.add(id); pending.set(id, resolve);
-      const timer = setTimeout(() => { resolve(new Error(`Qoder did not answer ${String(request.subtype)} within ${String(requestTimeoutMs)} ms`)); }, requestTimeoutMs);
+      const timer = setTimeout(() => { resolve(new Error(`Qoder did not answer ${String(request.subtype ?? request.type)} within ${String(requestTimeoutMs)} ms`)); }, requestTimeoutMs);
       try {
         if (ended) { throw new Error("Qoder process has exited"); }
         child.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);
@@ -44,7 +44,7 @@ export function qoderControl(child: LineProcess, remember: (value: unknown) => v
         const response = asRecord(answer.response);
         if (response?.subtype !== "success") {
           // An account/configuration error may itself contain the private object.
-          throw new Error(`Qoder refused ${String(request.subtype)}`);
+          throw new Error(`Qoder refused ${String(request.subtype ?? request.type)}`);
         }
         return answer;
       } finally { clearTimeout(timer); pending.delete(id); }

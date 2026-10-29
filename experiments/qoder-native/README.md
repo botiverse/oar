@@ -6,6 +6,7 @@ The reusable probe is the native vendor suite and its fixture builder:
 OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder.vendor.test.ts
 OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder-prompts.vendor.test.ts
 OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder-steer.vendor.test.ts
+OAR_TEST=qoder-native pnpm vitest run sea-trial/vendor/qoder-permission.vendor.test.ts
 OAR_TEST=qoder-native pnpm sea-trial
 pnpm vitest run tests/qoder tests/login/qoder-login.test.ts
 ```
@@ -14,7 +15,9 @@ Install Qoder 1.1.78, or set `OAR_QODER_BIN` to the selected executable. The
 fixture creates a temporary home and project, sets native
 `security.auth.useExternal`, and supplies `--fake-responses`. Only the model
 provider is replaced; the native session loop, files, controls and MCP clients
-run normally. No existing login or paid model request is used.
+run normally. No existing login or paid model request is used. The current fixture also
+seeds an explicitly synthetic local identity for the daemon auth gate; see the
+[1.1.81 transport migration](daemon-2026-10-29.md).
 
 Observed on Linux on October 23, 2026:
 
