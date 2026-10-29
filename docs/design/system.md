@@ -147,3 +147,42 @@ contract does not change with placement; differences are declared like any
 other capability difference. A host shipped as a single executable supplies
 the command that starts the runtime process, and OAR checks that the started
 runtime is the version it pins.
+
+### Shared runtime processes
+
+One process per session stays the default. Some runtimes' own servers hold
+many sessions in one process: the Codex app-server, and ACP agents that accept
+concurrent `session/new` on one connection. Sharing saves a lot: ten Codex
+sessions took about 1,974 MiB of RSS as ten app-servers and 218 MiB as ten
+threads on one, and the ACP agents measured showed similar ratios
+([2026-10-28 report](../../experiments/runtime-resources-2026-10-28.md)).
+A host may therefore choose shared placement when it creates such a runtime.
+The choice belongs to the runtime, because the pool is shared state across
+sessions, and the Session contract stays the same. Five rules hold it:
+
+1. **Share only what the process fixes.** Sessions join one process only when
+   everything the runtime reads at process level is identical: executable and
+   arguments, environment overlay, home and configuration directories, launch
+   arguments. What the protocol carries per session (cwd, model, effort,
+   instructions, MCP servers) does not split the pool.
+2. **A stop without killing the process.** `abort` stays the runtime's own
+   interrupt. A session whose turn does not end within the fallback interval
+   is failed and detached, with the reason recorded, instead of ending the
+   process its peers run in. This is the guarantee sharing gives up.
+3. **Ending a session stops what it started, and only that.** Disposal uses
+   the runtime's own per-session cleanup: terminating the session's
+   background commands (Codex `thread/backgroundTerminals/terminate`), or
+   releasing the terminals OAR hosts for that ACP session. A cleanup that
+   changes persisted state is used only with that change handled: Codex
+   `thread/archive` stops every command of the thread, but a later resume must
+   unarchive it first, and archiving twice fails. Where no per-session cleanup
+   exists or it is unverified, the runtime does not offer shared placement.
+4. **One fault, every session.** If the shared process exits, every session
+   in it ends, each with its own exit record. The process ends when its last
+   session is disposed.
+5. **Offered only with evidence.** A runtime offers shared placement for a
+   version only after concurrent sessions, isolation of messages, cwd and MCP
+   servers, cancellation that leaves peers running, and per-session cleanup
+   have been observed on it. Otherwise it refuses the option with a typed
+   reason. Claude, Qwen, Qoder and Pi RPC run one session per native process
+   and do not offer it.
