@@ -18,7 +18,8 @@ export const codebuddyInstallation: InstallationProbe = async (options = {}) => 
   if (direct.kind !== "not_found" || (pinned !== undefined && pinned !== "")) { return direct; }
   const npm = resolveExecutable("npm", env);
   if (npm === null) { return direct; }
-  const prefix = await npmGlobalPrefix(npm, env);
+  const prefix = await npmGlobalPrefix(npm, env).catch((): null => null);
+  if (prefix === null) { return direct; }
   const command = path.join(npmGlobalBin(prefix), process.platform === "win32" ? "codebuddy.cmd" : "codebuddy");
   return executableInstallation("OAR_CODEBUDDY_BIN", "codebuddy", [command], ["--help"])(options);
 };

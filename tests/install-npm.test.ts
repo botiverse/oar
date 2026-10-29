@@ -1,4 +1,6 @@
 import path from "node:path";
+import { existsSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { afterEach, expect, test, vi } from "vitest";
 import type { ExecutableRunner } from "../packages/oar/src/shared/executable/run.js";
 import type { InstallHost } from "../packages/oar/src/shared/install.js";
@@ -35,7 +37,7 @@ test("the prefix query is bounded, suppresses logging and keeps npm configuratio
   prefixResult();
   const env = { npm_config_prefix: prefix, npm_lifecycle_event: "check", HOME: path.resolve("isolated-home") };
   await expect(npmGlobalPrefix("npm", env)).resolves.toBe(prefix);
-  expect(runExecutable).toHaveBeenCalledWith("npm", ["prefix", "-g", "--cache", path.dirname(process.execPath), "--loglevel=error", "--logs-max=0", "--timing=false", "--update-notifier=false"], {
+  expect(runExecutable).toHaveBeenCalledWith("npm", ["prefix", "-g", "--cache", expect.any(String), "--loglevel=error", "--logs-max=0", "--timing=false", "--update-notifier=false"], {
     timeoutMs: 15_000, env: { npm_config_prefix: prefix, HOME: env.HOME },
   });
 });
@@ -53,4 +55,23 @@ test("unsupported OS and release lines do not query npm; global bin placement fo
   expect(runExecutable).not.toHaveBeenCalled();
   expect(npmGlobalBin(prefix, "win32")).toBe(prefix);
   expect(npmGlobalBin(prefix, "darwin")).toBe(path.join(prefix, "bin"));
+});
+
+function capturedCache(): string {
+  const cache = runExecutable.mock.calls.at(-1)?.[1][3];
+  if (cache === undefined) { throw new Error("missing query cache argument"); }
+  return cache;
+}
+
+test.each([true, false])("prefix query owns a private temporary cache and removes writes after success=%s", async (ok) => {
+  runExecutable.mockImplementation(async () => {
+    const cache = capturedCache();
+    expect(path.dirname(cache)).toBe(tmpdir());
+    if (process.platform !== "win32") { expect(statSync(cache).mode & 0o777).toBe(0o700); }
+    writeFileSync(path.join(cache, "unexpected-npm-write"), "fixture");
+    return { ok, exitCode: ok ? 0 : 1, stdout: `${prefix}\n`, stderr: "" };
+  });
+  const query = npmGlobalPrefix("npm");
+  await (ok ? expect(query).resolves.toBe(prefix) : expect(query).rejects.toThrow("Could not read npm"));
+  expect(existsSync(capturedCache())).toBe(false);
 });

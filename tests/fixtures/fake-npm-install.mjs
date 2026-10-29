@@ -10,6 +10,10 @@ assert.ok(typeof prefix === "string" && typeof log === "string");
 const args = process.argv.slice(2);
 appendFileSync(log, `${JSON.stringify(args)}\n`);
 if (args[0] === "prefix" && args[1] === "-g") {
+  if (process.env.OAR_NPM_TEST_FAIL === "1") {
+    process.stderr.write("native failure with private details\n");
+    process.exit(1);
+  }
   process.stdout.write(`${prefix}\n`);
 } else {
   assert.deepEqual(args, ["install", "-g", "@tencent-ai/codebuddy-code"]);

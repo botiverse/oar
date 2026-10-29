@@ -2,6 +2,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
 import { codebuddyInstallation } from "../../packages/oar/src/runtimes/codebuddy/installation.js";
 
@@ -55,4 +56,12 @@ test("missing npm exposes the exact vendor command and does not install", async 
     steps: [{ command: ["npm", "install", "-g", "@tencent-ai/codebuddy-code"], display: "npm install -g @tencent-ai/codebuddy-code" }] });
   expect(await codebuddyRuntime.install()).toEqual(plan);
   expect(readFileSync(log, "utf8")).toBe("");
+});
+
+test("broken npm does not reject installation discovery or orientation, but a plan still rejects", async () => {
+  vi.stubEnv("OAR_NPM_TEST_FAIL", "1");
+  await expect(codebuddyInstallation()).resolves.toEqual({ kind: "not_found" });
+  const snapshot = await orient(new RuntimeRegistry([codebuddyRuntime]));
+  expect(snapshot.runtimes[0]?.installation).toMatchObject({ kind: "ok", value: { kind: "not_found" } });
+  await expect(codebuddyRuntime.installPlan()).rejects.toThrow(/^Could not read npm's global installation directory$/u);
 });

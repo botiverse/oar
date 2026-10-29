@@ -33,12 +33,13 @@ installer behaved when run.
   `~/.grok/bin`, kimi's `~/.kimi-code/bin`, opencode's `~/.opencode/bin`),
   which a GUI or service process's PATH can miss. CodeBuddy also queries npm's
   configured global prefix when ordinary discovery finds nothing.
-- **`installPlan` is read only.** It looks up the installer's tools on PATH
+- **`installPlan` does not change installations or user configuration.** It looks up the installer's tools on PATH
   and checks that the directories it writes are writable. npm plans may run
   a bounded, local `npm prefix -g` configuration query with logging, timing
-  files and update checks disabled. Its cache points at an existing directory
-  for the query only, preventing npm from creating a cache while planning;
-  they never run an installer, download or write anything. A failed prefix
+  files and update checks disabled. OAR creates a private cache in the system
+  temporary directory and removes it after the query, including failures. It
+  leaves HOME and Node's installation unchanged and never runs an installer
+  or downloads packages while planning. A failed prefix
   query throws a generic error instead of guessing the destination or rights.
   The plan gives the same `unsupported` that `install`
   would.

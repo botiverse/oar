@@ -89,7 +89,8 @@ The runtime's [mapping](codebuddy.md#oar-mapping) describes discovery and errors
 
 [`tests/codebuddy/install-smoke.ts`](../../tests/codebuddy/install-smoke.ts)
 repeats the real install in a child process with isolated HOME, npm prefix,
-cache and configuration files. It checks that planning writes nothing,
+cache and configuration files. It checks that planning leaves both HOME
+and Node's installation unchanged and removes its private temporary cache,
 compares the native reported version to the installed package, and verifies
 the second install is idempotent. The three-platform CI check jobs run it;
 macOS and Windows observations are pending the first CI run. Unit regressions

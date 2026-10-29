@@ -86,6 +86,14 @@ typed exception so the caller can inspect the unsupported option.
 | `account` | Installation, all `authStatus` readers, resolved `providers`, `accountUsage` | Native status or usage queries can contact services, execute configured key commands and refresh credentials in the native store. |
 | `models` | Everything at `account`, plus `listModels` | Can start native processes or inspection sessions, load user/project code, connect MCP servers and query remote catalogs. No model prompt is submitted. |
 
+CodeBuddy installation discovery first checks its override, PATH and ordinary
+fallback location. If it finds nothing and npm exists, each probe starts a
+local `npm prefix -g` query with a 15-second limit to discover the configured
+global bin directory. The query uses and then removes a private temporary
+cache, leaving HOME and Node's installation unchanged. A failed or timed-out
+query returns the original `not_found`; a missing npm skips the query. This
+extra process cost applies even at `local` depth on hosts without CodeBuddy.
+
 An auth reader without an evidenced `localOnly` declaration is skipped at
 `local` depth with `{ kind: "skipped", because: "depth" }`. An absent reader
 is `unsupported`. Currently only Cursor declares local auth status;

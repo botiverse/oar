@@ -3,6 +3,7 @@ import type { InstallPlanner, InstallStep } from "../contracts/install.js";
 import { runExecutable } from "./executable/index.js";
 import { defaultInstallHost, type InstallHost } from "./install.js";
 import { updaterEnv } from "./update.js";
+import { privateTempDir } from "./private-temp.js";
 
 /** A vendor's documented npm package, installed globally without selecting a version. */
 export interface NpmInstallMethod {
@@ -10,19 +11,21 @@ export interface NpmInstallMethod {
   readonly source: string;
 }
 
-/** Read npm's own configuration, including environment and user/global npmrc, without installing or logging. */
+/** Read npm's own configuration, including environment and user/global npmrc, without installing or retaining cache files. */
 export async function npmGlobalPrefix(npm: string, env: NodeJS.ProcessEnv = process.env): Promise<string> {
-  // npm eagerly mkdirs its cache even for prefix. Use an existing directory for
-  // this query only; disable logs/timers/update checks so it remains read-only.
-  const cache = path.dirname(process.execPath);
-  const result = await runExecutable(npm, ["prefix", "-g", "--cache", cache, "--loglevel=error", "--logs-max=0", "--timing=false", "--update-notifier=false"], {
-    env: updaterEnv(env), timeoutMs: 15_000,
-  });
-  const prefix = result.stdout.replace(/\r?\n$/u, "");
-  if (!result.ok || !path.isAbsolute(prefix) || /[\r\n\0]/u.test(prefix)) {
-    throw new Error("Could not read npm's global installation directory");
-  }
-  return prefix;
+  // npm eagerly creates cache files even for prefix. Keep them in OAR's
+  // private system-temporary directory, never in HOME or Node's installation.
+  const cache = await privateTempDir("oar-npm-prefix-");
+  try {
+    const result = await runExecutable(npm, ["prefix", "-g", "--cache", cache.path, "--loglevel=error", "--logs-max=0", "--timing=false", "--update-notifier=false"], {
+      env: updaterEnv(env), timeoutMs: 15_000,
+    });
+    const prefix = result.stdout.replace(/\r?\n$/u, "");
+    if (!result.ok || !path.isAbsolute(prefix) || /[\r\n\0]/u.test(prefix)) {
+      throw new Error("Could not read npm's global installation directory");
+    }
+    return prefix;
+  } finally { cache.remove(); }
 }
 
 /** npm puts global launchers directly in the prefix on Windows, and in its bin directory on POSIX. */
@@ -30,7 +33,7 @@ export function npmGlobalBin(prefix: string, platform: NodeJS.Platform = process
   return platform === "win32" ? prefix : path.join(prefix, "bin");
 }
 
-/** A read-only plan: inspect npm's global prefix and write access, then describe the documented installation. */
+/** A plan that only writes a disposable private cache: inspect npm's global prefix and write access, then describe the documented installation. */
 export function npmInstallPlan(method: NpmInstallMethod, host: InstallHost = defaultInstallHost): InstallPlanner {
   return async (options = {}) => {
     if (options.line !== undefined) {

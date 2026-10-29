@@ -36,9 +36,17 @@ If none is found and no explicit override is set, a bounded local
 `npm prefix -g` query adds npm's global bin directory to discovery. This works
 even when that directory is absent from a GUI host's PATH, honors the probe's
 environment overlay, and does not change PATH. The plan uses the same prefix
-query and checks write access before allowing installation. Prefix-query
-failure throws a generic error; it does not mean the runtime is absent or
-permission to install. Readiness and version remain local probes.
+query and checks write access before allowing installation. A failed or
+timed-out prefix query in discovery returns the original `not_found`;
+`installPlan()` still throws a generic error because it cannot verify the
+destination or write access. Readiness and version remain local probes.
+
+On a machine without CodeBuddy, every discovery call can start an additional
+`npm prefix -g` process with a 15-second limit. A missing npm skips this step;
+a directly found CodeBuddy or an explicit override also avoids it. The query
+uses an OAR-owned private cache in the system temporary directory, removed
+after success or failure, with npm logging, timing files and update checks
+disabled. HOME and Node's installation remain unchanged.
 
 OAR does not expose a CodeBuddy updater, logout, account quota reader or
 provider facade. [Installation evidence](install.md#codebuddy-npm-2026-10-29).

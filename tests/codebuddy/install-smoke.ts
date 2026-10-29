@@ -2,21 +2,30 @@
  * OAR_TEST=codebuddy-install pnpm tsx tests/codebuddy/install-smoke.ts
  */
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { lstat, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
 import { runExecutable } from "../../packages/oar/src/shared/executable/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
+async function directorySnapshot(directory: string): Promise<readonly object[]> {
+  const names = await readdir(directory, { recursive: true });
+  return Promise.all(names.toSorted().map(async (name) => {
+    const info = await lstat(path.join(directory, name));
+    return { name, mode: info.mode, size: info.size, modified: info.mtimeMs };
+  }));
+}
+
 async function assertReadOnly(home: string): Promise<void> {
-  const before = await readdir(home, { recursive: true });
+  const nodeDirectory = path.dirname(process.execPath);
+  const before = await Promise.all([directorySnapshot(home), directorySnapshot(nodeDirectory)]);
   const installation = await codebuddyRuntime.installation();
   assert.equal(installation.kind, "not_found");
   const plan = await codebuddyRuntime.installPlan();
   assert.equal(plan.kind, "plan");
-  const after = await readdir(home, { recursive: true });
-  assert.deepEqual(after, before, "discovery and planning must not write npm caches, logs or install files");
+  const after = await Promise.all([directorySnapshot(home), directorySnapshot(nodeDirectory)]);
+  assert.deepEqual(after, before, "discovery and planning must leave HOME and Node's installation unchanged");
 }
 
 async function verifyInstallation(prefix: string): Promise<void> {
