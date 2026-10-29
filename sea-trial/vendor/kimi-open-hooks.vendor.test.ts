@@ -8,7 +8,9 @@ import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { startKimiAimock } from "../harness/aimock-acp.js";
 import { hookMarks, processRunning, sessionStartHook } from "./support/session-start-hook.js";
 
-const open = acpSession({ ...kimiAcpProfile, requestTimeoutMs: 2000, sessionStartTimeoutMs: 3500 });
+// Only the hook's session-opening bound is shortened; initialize keeps the
+// normal request timeout so a slow cold start does not fail before the hook.
+const open = acpSession({ ...kimiAcpProfile, sessionStartTimeoutMs: 3500 });
 
 async function fixture(delayMs: number) {
   const provider = await startKimiAimock(() => {});

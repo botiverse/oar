@@ -30,7 +30,7 @@ function tool(name: string): { name: string; description: string; inputSchema: {
 
 async function checkedRun(command: string, args: readonly string[], cwd: string, env: NodeJS.ProcessEnv): Promise<string> {
   const result = await runExecutable(command, args, { cwd, env, timeoutMs: 20_000 });
-  assert.ok(result.ok, result.stderr);
+  assert.ok(result.ok, JSON.stringify({ command, exitCode: result.exitCode, stderr: result.stderr, ...result.diagnostics }));
   return result.stdout;
 }
 
@@ -39,7 +39,7 @@ async function refreshServer(home: string, env: NodeJS.ProcessEnv): Promise<Awai
   const key = path.join(home, "key.pem");
   const config = path.join(home, "openssl.cnf");
   await writeFile(config, "[req]\ndistinguished_name=dn\nx509_extensions=ext\nprompt=no\n[dn]\nCN=OAR local configuration probe\n[ext]\nbasicConstraints=critical,CA:TRUE\nsubjectAltName=DNS:api.anthropic.com,DNS:platform.claude.com,DNS:console.anthropic.com,DNS:claude.ai,DNS:claude.com,DNS:api.claude.com\n");
-  await checkedRun("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-config", config, "-keyout", key, "-out", cert], home, env);
+  await checkedRun("openssl", ["req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes", "-days", "1", "-config", config, "-keyout", key, "-out", cert], home, env);
   return mockRefresh(await readFile(key), await readFile(cert));
 }
 
