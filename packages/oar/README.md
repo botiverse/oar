@@ -117,7 +117,7 @@ The package has these public entry points, plus `@botiverse/oar/pi-durable` ([be
 - `@botiverse/oar`: the runtime registry and adapters, bounded `orient` snapshots, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, `serveMcpTools`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
-- `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only when an ACP runtime first opens a session, lists models (kimi, grok, antigravity) reads grok's usage or creates the Qwen provider facade, and the pi and cursor SDKs when theirs first run. Node-only.
+- `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only when an ACP runtime first opens a session, lists models (kimi, grok, antigravity), reads grok's usage, signs Kimi in or out or reads its status, or creates the Qwen provider facade, and the pi and cursor SDKs when theirs first run. Node-only.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `graphOf`, `usageOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
   It also supplies `failureAdvice` (recovery timing per `FailureClass`) and `noticeText`, `noticeTone`, `phaseLabel`, `failureText` and `taskStatusLabel`, alongside `toolActionLabel` and `toolGroupSummary`: English display wording for OAR types, usable in JavaScriptCore too. Wording may change in a minor release; hosts must use the typed values for decisions, not parse the text ([display wording](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#display-wording)).
 - `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse. `withdrawHeld` is the decision behind `withdraw` for a runtime that holds its own queue.
@@ -320,13 +320,16 @@ arrives as a `ProviderLoginInteraction` event, and a code the person pastes
 back is answered through its `manual_code` prompt and written to the
 runtime's stdin only. It never logs the current account out first, and
 `interaction.signal` cancels it. `runtime.authStatus(installation)` reads the
-runtime's local status query. Claude, Codex and Cursor (through its SDK's
-own `Cursor.auth`) have both; Grok, Kimi, OpenCode and Pi have neither yet
-(Pi's provider logins are on `createPiProviderAuth`), and Antigravity has
-neither, since its terms do not allow signing in through a third-party tool.
-`runtime.logout(installation)` signs Claude, Codex and Cursor out through
-their own logout (`claude auth logout`,
-`codex logout`, `Cursor.auth.logout`) and resolves `logged_out` when
+runtime's own status, never a secret, and never starts a login. Claude,
+Codex, Cursor (through its SDK's own `Cursor.auth`), Qoder and Kimi (`kimi
+login`, with `KimiLoginOptions.region`) have both. Qwen has only
+`authStatus`, a local check of whether a provider credential is configured;
+its provider settings are on `createQwenProviderAuth`. Grok, OpenCode and Pi
+have neither yet (Pi's provider logins are on `createPiProviderAuth`), and
+Antigravity has neither, since its terms do not allow signing in through a
+third-party tool. `runtime.logout(installation)` signs Claude, Codex, Cursor
+and Kimi out through their own logout (`claude auth logout`, `codex logout`,
+`Cursor.auth.logout`, Kimi's ACP `logout`) and resolves `logged_out` when
 `authStatus` then reads logged out (or, when it cannot tell, on the
 runtime's own report of success); an API key in the environment is not
 touched, and one the status still reads is `failed` / `still_logged_in`.
