@@ -1,0 +1,569 @@
+{
+  "run": 41065624954,
+  "head": "2b1cf24350c4bc556751459be6212739f778713e",
+  "platform": "win32",
+  "node": "v24.22.1",
+  "partial": false,
+  "summary": {
+    "baseline/sequential": {
+      "attempts": 4,
+      "failures": 0,
+      "totalsMs": {
+        "n": 4,
+        "min": 189.35610000000042,
+        "median": 197.7070000000001,
+        "max": 1817.6996
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    },
+    "exact/native_5s": {
+      "attempts": 4,
+      "failures": 0,
+      "totalsMs": {
+        "n": 4,
+        "min": 362.84249999999975,
+        "median": 388.5698000000002,
+        "max": 1628.4214999999995
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    },
+    "full/sequential": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 389.3220000000001,
+        "median": 394.2293999999997,
+        "max": 443.1864999999998
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 157.17440000000002,
+        "median": 159.8486,
+        "max": 163.3248
+      },
+      "completedOver5s": 0
+    },
+    "projected/sequential": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 370.4323999999997,
+        "median": 379.37360000000035,
+        "max": 385.90329999999994
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 141.7108,
+        "median": 143.36939999999998,
+        "max": 148.93630000000002
+      },
+      "completedOver5s": 0
+    },
+    "projected/paired": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 442.1155999999992,
+        "median": 452.3912500000006,
+        "max": 467.8108999999986
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 156.52700000000002,
+        "median": 161.18205,
+        "max": 170.4529
+      },
+      "completedOver5s": 0
+    },
+    "full/paired": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 464.5144999999993,
+        "median": 477.6261999999997,
+        "max": 496.4840000000004
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 170.82340000000002,
+        "median": 183.4573,
+        "max": 192.02210000000002
+      },
+      "completedOver5s": 0
+    },
+    "full/visibility": {
+      "attempts": 2,
+      "failures": 0,
+      "totalsMs": {
+        "n": 2,
+        "min": 426.7936000000009,
+        "median": 484.1810000000005,
+        "max": 541.5684000000001
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    },
+    "projected/visibility": {
+      "attempts": 2,
+      "failures": 0,
+      "totalsMs": {
+        "n": 2,
+        "min": 413.0680000000011,
+        "median": 415.1035000000011,
+        "max": 417.13900000000103
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    }
+  },
+  "samples": [
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 0,
+      "totalMs": 1817.6996,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 1,
+      "totalMs": 195.5987,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 2,
+      "totalMs": 199.8153000000002,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 3,
+      "totalMs": 189.35610000000042,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 0,
+      "totalMs": 1628.4214999999995,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": true
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 1,
+      "totalMs": 393.97360000000026,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": true
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 2,
+      "totalMs": 383.16600000000017,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": true
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 3,
+      "totalMs": 362.84249999999975,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 0,
+      "totalMs": 443.1864999999998,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 160.1463,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 0,
+      "totalMs": 379.08629999999994,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 148.93630000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 1,
+      "totalMs": 380.0544,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 143.84,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 1,
+      "totalMs": 395.90200000000004,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 159.5509,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 2,
+      "totalMs": 393.8267000000005,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 163.3248,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 2,
+      "totalMs": 385.90329999999994,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 143.6128,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 3,
+      "totalMs": 370.4323999999997,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 142.305,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 3,
+      "totalMs": 393.5537999999997,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 157.17440000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 4,
+      "totalMs": 389.3220000000001,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 159.20600000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 4,
+      "totalMs": 379.0537000000004,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 141.7108,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 5,
+      "totalMs": 379.66090000000077,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 143.126,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 5,
+      "totalMs": 394.6320999999989,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 163.07170000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 0,
+      "totalMs": 451.1288999999997,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 169.7871,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 0,
+      "totalMs": 477.60549999999967,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 189.5303,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 1,
+      "totalMs": 467.8108999999986,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 170.4529,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 1,
+      "totalMs": 496.4840000000004,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 192.02210000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 2,
+      "totalMs": 447.83170000000064,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 159.1568,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 2,
+      "totalMs": 471.1098000000002,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 181.39790000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 3,
+      "totalMs": 454.0141999999996,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 162.8162,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 3,
+      "totalMs": 477.64689999999973,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 182.1338,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 4,
+      "totalMs": 453.65360000000146,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 159.5479,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 4,
+      "totalMs": 479.02390000000014,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 184.7808,
+      "targetSeen": true
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 5,
+      "totalMs": 442.1155999999992,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 156.52700000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 5,
+      "totalMs": 464.5144999999993,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": 170.82340000000002,
+      "targetSeen": true
+    },
+    {
+      "variant": "full",
+      "phase": "visibility",
+      "index": 0,
+      "totalMs": 541.5684000000001,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "projected",
+      "phase": "visibility",
+      "index": 0,
+      "totalMs": 417.13900000000103,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "full",
+      "phase": "visibility",
+      "index": 1,
+      "totalMs": 426.7936000000009,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    },
+    {
+      "variant": "projected",
+      "phase": "visibility",
+      "index": 1,
+      "totalMs": 413.0680000000011,
+      "ok": true,
+      "error": null,
+      "stderrBytes": 0,
+      "queryMs": null,
+      "targetSeen": null
+    }
+  ],
+  "visibility": [
+    {
+      "variant": "full",
+      "index": 0,
+      "round": 0,
+      "getProcessBefore": true,
+      "getProcessAfter": true,
+      "cimSeen": true,
+      "creationToGetProcessBeforeMs": 191.518,
+      "creationToCimAfterMs": 512.015,
+      "queryMs": 91.7081
+    },
+    {
+      "variant": "projected",
+      "index": 0,
+      "round": 0,
+      "getProcessBefore": true,
+      "getProcessAfter": true,
+      "cimSeen": true,
+      "creationToGetProcessBeforeMs": 182.872,
+      "creationToCimAfterMs": 390.252,
+      "queryMs": 77.5283
+    },
+    {
+      "variant": "full",
+      "index": 1,
+      "round": 0,
+      "getProcessBefore": true,
+      "getProcessAfter": true,
+      "cimSeen": true,
+      "creationToGetProcessBeforeMs": 176.269,
+      "creationToCimAfterMs": 395.523,
+      "queryMs": 93.30760000000001
+    },
+    {
+      "variant": "projected",
+      "index": 1,
+      "round": 0,
+      "getProcessBefore": true,
+      "getProcessAfter": true,
+      "cimSeen": true,
+      "creationToGetProcessBeforeMs": 183.9,
+      "creationToCimAfterMs": 385.298,
+      "queryMs": 80.13210000000001
+    }
+  ]
+}

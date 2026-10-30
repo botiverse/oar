@@ -61,6 +61,15 @@ there are no automatic retries. Each step has a 12-minute limit inside a
 `runtimes=["codex","qoder"]`, `platforms=["windows-latest"]` and
 `resources_only=true`. This does not replace the earlier native observations.
 
+Each Windows probe first prepares PowerShell and CIM with one real query,
+bounded to 60 seconds, before creating a runtime fixture or measuring resources.
+It writes `windows-process-table-preparation.jsonl` in that probe's output
+directory and prints the same timing/result to the job log. Preparation failure
+fails the probe. Its process-table result is discarded; later failed reads
+still fail, and earlier failures remain in the evidence. These runs measure
+prepared process services, not first-use latency; the separate
+[CIM experiment](../windows-cim/README.md) retains the cold observations.
+
 The reports retain raw cwd markers and compare both paths after
 `realpathSync.native`, ignoring case on Windows. Native request and condition
 waits record their start, limit, elapsed time and outcome under `waits`;

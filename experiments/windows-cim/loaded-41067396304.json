@@ -1,0 +1,1135 @@
+{
+  "run": "https://github.com/botiverse/oar/actions/runs/41067396304",
+  "head": "0c9926fea8bb7458f84e07908d6e487c90665359",
+  "platform": "win32",
+  "node": "v24.22.1",
+  "partial": false,
+  "cores": 4,
+  "workers": 4,
+  "summary": {
+    "baseline/sequential": {
+      "attempts": 4,
+      "failures": 0,
+      "totalsMs": {
+        "n": 4,
+        "min": 223.48430000000008,
+        "median": 250.3803499999999,
+        "max": 6818.6364
+      },
+      "queryMs": null,
+      "completedOver5s": 1
+    },
+    "exact/native_5s": {
+      "attempts": 4,
+      "failures": 1,
+      "totalsMs": {
+        "n": 3,
+        "min": 392.53110000000015,
+        "median": 403.59120000000075,
+        "max": 1412.8755999999994
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    },
+    "full/sequential": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 389.35189999999784,
+        "median": 432.27750000000015,
+        "max": 452.10159999999996
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 162.328,
+        "median": 176.493,
+        "max": 188.6474
+      },
+      "completedOver5s": 0
+    },
+    "projected/sequential": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 395.12179999999717,
+        "median": 410.2999,
+        "max": 542.6471000000001
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 147.3159,
+        "median": 164.00740000000002,
+        "max": 183.3835
+      },
+      "completedOver5s": 0
+    },
+    "projected/paired": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 464.3597000000009,
+        "median": 477.4728500000001,
+        "max": 498.49540000000343
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 170.1199,
+        "median": 175.6239,
+        "max": 198.29670000000002
+      },
+      "completedOver5s": 0
+    },
+    "full/paired": {
+      "attempts": 6,
+      "failures": 0,
+      "totalsMs": {
+        "n": 6,
+        "min": 490.6840000000011,
+        "median": 502.72565000000213,
+        "max": 530.4127999999982
+      },
+      "queryMs": {
+        "n": 6,
+        "min": 194.6175,
+        "median": 203.486,
+        "max": 225.9659
+      },
+      "completedOver5s": 0
+    },
+    "full/visibility": {
+      "attempts": 2,
+      "failures": 0,
+      "totalsMs": {
+        "n": 2,
+        "min": 436.14770000000135,
+        "median": 492.3412500000013,
+        "max": 548.5348000000013
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    },
+    "projected/visibility": {
+      "attempts": 2,
+      "failures": 0,
+      "totalsMs": {
+        "n": 2,
+        "min": 397.15250000000015,
+        "median": 399.1629000000012,
+        "max": 401.1733000000022
+      },
+      "queryMs": null,
+      "completedOver5s": 0
+    },
+    "full/cpu_load": {
+      "attempts": 3,
+      "failures": 0,
+      "totalsMs": {
+        "n": 3,
+        "min": 965.8404999999984,
+        "median": 997.5772999999972,
+        "max": 999.2036000000007
+      },
+      "queryMs": {
+        "n": 3,
+        "min": 178.9822,
+        "median": 224.21880000000002,
+        "max": 229.9172
+      },
+      "completedOver5s": 0
+    },
+    "projected/cpu_load": {
+      "attempts": 3,
+      "failures": 0,
+      "totalsMs": {
+        "n": 3,
+        "min": 992.5559000000067,
+        "median": 1060.0168000000012,
+        "max": 1383.2056999999986
+      },
+      "queryMs": {
+        "n": 3,
+        "min": 191.4349,
+        "median": 207.23080000000002,
+        "max": 273.6436
+      },
+      "completedOver5s": 0
+    }
+  },
+  "samples": [
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 0,
+      "timeoutMs": 15000,
+      "totalMs": 6818.6364,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 30,
+      "stderrBytes": 0,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 6817.8801
+      }
+    },
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 1,
+      "timeoutMs": 15000,
+      "totalMs": 260.4832999999999,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 30,
+      "stderrBytes": 0,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 260.09469999999965
+      }
+    },
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 2,
+      "timeoutMs": 15000,
+      "totalMs": 240.27739999999994,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 30,
+      "stderrBytes": 0,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 239.90200000000004
+      }
+    },
+    {
+      "variant": "baseline",
+      "phase": "sequential",
+      "index": 3,
+      "timeoutMs": 15000,
+      "totalMs": 223.48430000000008,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 30,
+      "stderrBytes": 0,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 223.16269999999986
+      }
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 0,
+      "timeoutMs": 5000,
+      "totalMs": 5017.1428,
+      "ok": false,
+      "error": {
+        "code": null,
+        "signal": "SIGTERM",
+        "killed": true
+      },
+      "parseError": true,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "shellExit": {
+        "code": null,
+        "signal": "SIGTERM",
+        "totalMs": 5016.632
+      }
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 1,
+      "timeoutMs": 5000,
+      "totalMs": 1412.8755999999994,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 12298,
+      "stderrBytes": 0,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 1412.3234999999986
+      }
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 2,
+      "timeoutMs": 5000,
+      "totalMs": 403.59120000000075,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 12298,
+      "stderrBytes": 0,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 403.09840000000077
+      }
+    },
+    {
+      "variant": "exact",
+      "phase": "native_5s",
+      "index": 3,
+      "timeoutMs": 5000,
+      "totalMs": 392.53110000000015,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 12298,
+      "stderrBytes": 0,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 392.0756000000001
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 0,
+      "timeoutMs": 15000,
+      "totalMs": 452.10159999999996,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 172.3469,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 451.6924999999992
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 0,
+      "timeoutMs": 15000,
+      "totalMs": 401.15160000000105,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 160.0266,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 400.77260000000024
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 1,
+      "timeoutMs": 15000,
+      "totalMs": 542.6471000000001,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 169.3623,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 414.5517999999993
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 1,
+      "timeoutMs": 15000,
+      "totalMs": 423.91110000000117,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 188.6474,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 423.58350000000064
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 2,
+      "timeoutMs": 15000,
+      "totalMs": 408.6051000000007,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 167.79760000000002,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 408.3150999999998
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 2,
+      "timeoutMs": 15000,
+      "totalMs": 435.5669999999991,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 183.3835,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 435.2603999999992
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 3,
+      "timeoutMs": 15000,
+      "totalMs": 416.21529999999984,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 165.76330000000002,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 415.9344999999994
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 3,
+      "timeoutMs": 15000,
+      "totalMs": 440.6438999999991,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 180.7306,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 440.27160000000003
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 4,
+      "timeoutMs": 15000,
+      "totalMs": 441.7114999999976,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 180.6391,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 441.40859999999884
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 4,
+      "timeoutMs": 15000,
+      "totalMs": 395.12179999999717,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 147.3159,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 394.8381999999983
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "sequential",
+      "index": 5,
+      "timeoutMs": 15000,
+      "totalMs": 404.3845000000001,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 162.25150000000002,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 404.1190999999999
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "sequential",
+      "index": 5,
+      "timeoutMs": 15000,
+      "totalMs": 389.35189999999784,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 269,
+      "stderrBytes": 0,
+      "queryMs": 162.328,
+      "count": 150,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 389.0894999999982
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 0,
+      "timeoutMs": 15000,
+      "totalMs": 464.3597000000009,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 171.63230000000001,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 464.0197999999982
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 0,
+      "timeoutMs": 15000,
+      "totalMs": 499.7280000000028,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 269,
+      "stderrBytes": 0,
+      "queryMs": 202.511,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 499.4314000000013
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 1,
+      "timeoutMs": 15000,
+      "totalMs": 476.272399999998,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 176.7589,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 475.9129999999968
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 1,
+      "timeoutMs": 15000,
+      "totalMs": 491.72759999999835,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 198.2973,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 491.4485999999997
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 2,
+      "timeoutMs": 15000,
+      "totalMs": 498.49540000000343,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 198.29670000000002,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 498.1895000000004
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 2,
+      "timeoutMs": 15000,
+      "totalMs": 530.4127999999982,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 225.9659,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 530.101999999999
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 3,
+      "timeoutMs": 15000,
+      "totalMs": 472.8538000000008,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 170.1199,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 472.5611000000026
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 3,
+      "timeoutMs": 15000,
+      "totalMs": 505.7233000000015,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 269,
+      "stderrBytes": 0,
+      "queryMs": 204.461,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 505.3663000000015
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 4,
+      "timeoutMs": 15000,
+      "totalMs": 478.6733000000022,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 174.4889,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 478.3787000000011
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 4,
+      "timeoutMs": 15000,
+      "totalMs": 490.6840000000011,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 270,
+      "stderrBytes": 0,
+      "queryMs": 194.6175,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 490.46340000000055
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "paired",
+      "index": 5,
+      "timeoutMs": 15000,
+      "totalMs": 479.7456999999995,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 184.15650000000002,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 479.4557999999997
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "paired",
+      "index": 5,
+      "timeoutMs": 15000,
+      "totalMs": 510.7494000000006,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 280,
+      "stderrBytes": 0,
+      "queryMs": 210.40730000000002,
+      "count": 154,
+      "targetSeen": true,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 510.41330000000016
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "visibility",
+      "index": 0,
+      "timeoutMs": 20000,
+      "totalMs": 548.5348000000013,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 385,
+      "stderrBytes": 0,
+      "visibility": [
+        {
+          "kind": "query_start",
+          "round": 0,
+          "beforeUtc": "2026-10-30T13:56:54.6690911Z",
+          "getProcessBefore": true,
+          "targetStartedUtc": "2026-10-30T13:56:54.4846032Z"
+        },
+        {
+          "kind": "query_end",
+          "round": 0,
+          "afterUtc": "2026-10-30T13:56:55.0047307Z",
+          "queryMs": 92.4084,
+          "getProcessAfter": true,
+          "cimSeen": true
+        }
+      ],
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 548.0812000000005
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "visibility",
+      "index": 0,
+      "timeoutMs": 20000,
+      "totalMs": 401.1733000000022,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 384,
+      "stderrBytes": 0,
+      "visibility": [
+        {
+          "kind": "query_start",
+          "round": 0,
+          "beforeUtc": "2026-10-30T13:56:55.2184765Z",
+          "getProcessBefore": true,
+          "targetStartedUtc": "2026-10-30T13:56:55.0384538Z"
+        },
+        {
+          "kind": "query_end",
+          "round": 0,
+          "afterUtc": "2026-10-30T13:56:55.4153105Z",
+          "queryMs": 77.748,
+          "getProcessAfter": true,
+          "cimSeen": true
+        }
+      ],
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 400.83040000000256
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "visibility",
+      "index": 1,
+      "timeoutMs": 20000,
+      "totalMs": 436.14770000000135,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 385,
+      "stderrBytes": 0,
+      "visibility": [
+        {
+          "kind": "query_start",
+          "round": 0,
+          "beforeUtc": "2026-10-30T13:56:55.6367762Z",
+          "getProcessBefore": true,
+          "targetStartedUtc": "2026-10-30T13:56:55.4442618Z"
+        },
+        {
+          "kind": "query_end",
+          "round": 0,
+          "afterUtc": "2026-10-30T13:56:55.8549425Z",
+          "queryMs": 93.8589,
+          "getProcessAfter": true,
+          "cimSeen": true
+        }
+      ],
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 435.89340000000084
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "visibility",
+      "index": 1,
+      "timeoutMs": 20000,
+      "totalMs": 397.15250000000015,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 384,
+      "stderrBytes": 0,
+      "visibility": [
+        {
+          "kind": "query_start",
+          "round": 0,
+          "beforeUtc": "2026-10-30T13:56:56.0582542Z",
+          "getProcessBefore": true,
+          "targetStartedUtc": "2026-10-30T13:56:55.8853255Z"
+        },
+        {
+          "kind": "query_end",
+          "round": 0,
+          "afterUtc": "2026-10-30T13:56:56.2582459Z",
+          "queryMs": 77.8045,
+          "getProcessAfter": true,
+          "cimSeen": true
+        }
+      ],
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 396.9016999999985
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "cpu_load",
+      "index": 0,
+      "timeoutMs": 60000,
+      "totalMs": 965.8404999999984,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 476,
+      "stderrBytes": 0,
+      "queryMs": 178.9822,
+      "count": 158,
+      "targetSeen": true,
+      "workerCpuSecondsBefore": [
+        2.46875,
+        2.515625,
+        2.484375,
+        2.453125
+      ],
+      "workerCpuSecondsAfter": [
+        2.65625,
+        2.703125,
+        2.65625,
+        2.59375
+      ],
+      "loadBeforeAt": "2026-10-30T13:56:59.0556381Z",
+      "loadAfterAt": "2026-10-30T13:56:59.2733290Z",
+      "approximateWorkerCorePercent": 315.8146179676698,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 965.4667999999983
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "cpu_load",
+      "index": 0,
+      "timeoutMs": 60000,
+      "totalMs": 1383.2056999999986,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 473,
+      "stderrBytes": 0,
+      "queryMs": 273.6436,
+      "count": 158,
+      "targetSeen": true,
+      "workerCpuSecondsBefore": [
+        3.453125,
+        3.546875,
+        3.546875,
+        3.453125
+      ],
+      "workerCpuSecondsAfter": [
+        3.6875,
+        3.78125,
+        3.8125,
+        3.6875
+      ],
+      "loadBeforeAt": "2026-10-30T13:57:00.3035126Z",
+      "loadAfterAt": "2026-10-30T13:57:00.6100636Z",
+      "approximateWorkerCorePercent": 316.01593209612753,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 1382.8413999999975
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "cpu_load",
+      "index": 1,
+      "timeoutMs": 60000,
+      "totalMs": 1060.0168000000012,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 473,
+      "stderrBytes": 0,
+      "queryMs": 191.4349,
+      "count": 158,
+      "targetSeen": true,
+      "workerCpuSecondsBefore": [
+        4.390625,
+        4.515625,
+        4.5,
+        4.328125
+      ],
+      "workerCpuSecondsAfter": [
+        4.5625,
+        4.671875,
+        4.671875,
+        4.515625
+      ],
+      "loadBeforeAt": "2026-10-30T13:57:01.5050468Z",
+      "loadAfterAt": "2026-10-30T13:57:01.7315879Z",
+      "approximateWorkerCorePercent": 303.4770747899939,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 1059.652900000001
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "cpu_load",
+      "index": 1,
+      "timeoutMs": 60000,
+      "totalMs": 999.2036000000007,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 483,
+      "stderrBytes": 0,
+      "queryMs": 224.21880000000002,
+      "count": 158,
+      "targetSeen": true,
+      "workerCpuSecondsBefore": [
+        5.125,
+        5.203125,
+        5.171875,
+        5.03125
+      ],
+      "workerCpuSecondsAfter": [
+        5.34375,
+        5.421875,
+        5.390625,
+        5.1875
+      ],
+      "loadBeforeAt": "2026-10-30T13:57:02.4398832Z",
+      "loadAfterAt": "2026-10-30T13:57:02.6958806Z",
+      "approximateWorkerCorePercent": 317.38653187342044,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 998.7492999999995
+      }
+    },
+    {
+      "variant": "full",
+      "phase": "cpu_load",
+      "index": 2,
+      "timeoutMs": 60000,
+      "totalMs": 997.5772999999972,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 476,
+      "stderrBytes": 0,
+      "queryMs": 229.9172,
+      "count": 157,
+      "targetSeen": true,
+      "workerCpuSecondsBefore": [
+        5.953125,
+        6.015625,
+        5.96875,
+        5.734375
+      ],
+      "workerCpuSecondsAfter": [
+        6.203125,
+        6.265625,
+        6.1875,
+        5.96875
+      ],
+      "loadBeforeAt": "2026-10-30T13:57:03.4579982Z",
+      "loadAfterAt": "2026-10-30T13:57:03.7318036Z",
+      "approximateWorkerCorePercent": 348.1035773634521,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 997.1520999999993
+      }
+    },
+    {
+      "variant": "projected",
+      "phase": "cpu_load",
+      "index": 2,
+      "timeoutMs": 60000,
+      "totalMs": 992.5559000000067,
+      "ok": true,
+      "error": null,
+      "parseError": false,
+      "stdoutBytes": 480,
+      "stderrBytes": 0,
+      "queryMs": 207.23080000000002,
+      "count": 157,
+      "targetSeen": true,
+      "workerCpuSecondsBefore": [
+        6.765625,
+        6.875,
+        6.75,
+        6.5625
+      ],
+      "workerCpuSecondsAfter": [
+        6.953125,
+        7.09375,
+        6.921875,
+        6.765625
+      ],
+      "loadBeforeAt": "2026-10-30T13:57:04.4883158Z",
+      "loadAfterAt": "2026-10-30T13:57:04.7270795Z",
+      "approximateWorkerCorePercent": 327.20594394464825,
+      "shellExit": {
+        "code": 0,
+        "signal": null,
+        "totalMs": 992.1102000000028
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 /** Qoder >=1.1.81 native shared daemon gates; no real account or model traffic. */
 import assert from "node:assert/strict";
+import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -9,6 +10,7 @@ import { ProbeTiming, cwdEvidence, prepareFixture } from "./observation.js";
 import { identities, running } from "./processes.js";
 
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/qoder-sharing"); await mkdir(out, { recursive: true });
+prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const timing = new ProbeTiming();
 const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
 const fixture = await prepareFixture(out, report, async () => { const value = await qoderFixture(timing); return value; }); report.installation = fixture.installation;

@@ -3,6 +3,7 @@
  */
 /* oxlint-disable eslint/no-await-in-loop -- Serial cohorts prevent resource contention between measurements. */
 import assert from "node:assert/strict";
+import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -15,6 +16,7 @@ const id = acpId(process.argv[2] ?? "kimi");
 const out = path.resolve(process.argv[3] ?? `oar-trial-run/${id}-sharing-resources`);
 const count = Number(process.argv[4] ?? 10); assert.ok(count > 0 && count <= 26);
 await mkdir(out, { recursive: true });
+prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const reports: Record<string, unknown>[] = [];
 for (const mode of ["isolated", "shared"]) {
   const timing = new ProbeTiming();

@@ -2,6 +2,7 @@
  * pnpm tsx experiments/sharing/acp.ts kimi|grok|opencode|antigravity [output-dir]
  */
 import assert from "node:assert/strict";
+import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -19,6 +20,7 @@ function toolOutput(fixture: AcpFixture, key: string): string {
 }
 const id = acpId(process.argv[2] ?? "kimi");
 const out = path.resolve(process.argv[3] ?? `oar-trial-run/shared-${id}`); await mkdir(out, { recursive: true });
+prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const timing = new ProbeTiming();
 const report: JsonRecord = { id, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
 const fixture = await prepareFixture(out, report, async () => { const value = await acpFixture(id, timing); return value; }); report.installation = fixture.installation;

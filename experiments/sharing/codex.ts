@@ -3,6 +3,7 @@
  * Does not archive threads or enable OAR sharing. Detailed output stays private.
  */
 import assert from "node:assert/strict";
+import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -20,6 +21,7 @@ function tools(fixture: CodexFixture, key: string): string {
 }
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/codex-sharing");
 await mkdir(out, { recursive: true });
+prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const timing = new ProbeTiming();
 const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
 const fixture = await prepareFixture(out, report, async () => { const value = await codexFixture(timing); return value; }); report.installation = fixture.installation;

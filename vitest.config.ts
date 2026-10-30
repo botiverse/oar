@@ -2,6 +2,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
+    globalSetup: ["./sea-trial/global-setup.ts"],
     include: [
       "tests/**/*.test.ts",
       "sea-trial/vendor/*.test.ts",

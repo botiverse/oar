@@ -1,6 +1,7 @@
 /** Same-version daemon resource comparison, synthetic native model replies. */
 /* oxlint-disable eslint/no-await-in-loop -- Cohorts and process starts are measured serially. */
 import assert from "node:assert/strict";
+import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -11,6 +12,7 @@ import { ProbeTiming, prepareFixture } from "./observation.js";
 
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/qoder-sharing-resources");
 const count = Number(process.argv[3] ?? 10); assert.ok(count > 0 && count <= 26); await mkdir(out, { recursive: true });
+prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const reports: Record<string, unknown>[] = [];
 for (const mode of ["isolated", "shared"]) {
   const timing = new ProbeTiming();
