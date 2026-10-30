@@ -8,9 +8,10 @@ import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { startKimiAimock } from "../harness/aimock-acp.js";
 import { hookMarks, processRunning, sessionStartHook } from "./support/session-start-hook.js";
 
-// Only the hook's session-opening bound is shortened; initialize keeps the
-// normal request timeout so a slow cold start does not fail before the hook.
-const open = acpSession({ ...kimiAcpProfile, sessionStartTimeoutMs: 3500 });
+// Keep request timeout < hook delay < opening timeout: new and cold resume
+// must fail if either accidentally uses the ordinary request timeout. Allow
+// slow macOS cold starts enough time to initialize before testing the hook.
+const open = acpSession({ ...kimiAcpProfile, requestTimeoutMs: 20_000, sessionStartTimeoutMs: 32_000 });
 
 async function fixture(delayMs: number) {
   const provider = await startKimiAimock(() => {});
@@ -24,7 +25,7 @@ async function fixture(delayMs: number) {
 }
 
 test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi real SessionStart hooks delay new and cold resume without hook progress or model calls", async () => {
-  const env = await fixture(2400);
+  const env = await fixture(24_000);
   let current: Session | undefined = undefined;
   try {
     current = await open(env.installation, env.options);
@@ -43,11 +44,11 @@ test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi real SessionStart hook
 }, 120_000);
 
 test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi kills the process tree when a real SessionStart hook outlasts the fixed opening bound", async () => {
-  const env = await fixture(8000);
+  const env = await fixture(45_000);
   const opened: { session?: Session } = {};
   try {
     const failure: unknown = await open(env.installation, env.options).then((session) => { opened.session = session; return session; }, (error: unknown) => error);
-    expect(failure).toMatchObject({ kind: "timeout", method: "session/new", timeoutMs: 3500 });
+    expect(failure).toMatchObject({ kind: "timeout", method: "session/new", timeoutMs: 32_000 });
     const marks = await hookMarks(env.hook.file);
     expect(marks.map(({ phase }) => phase)).toEqual(["start"]);
     const pid = marks[0]?.pid;
