@@ -215,7 +215,7 @@ function withLine(installation: AvailableInstallation, lineOf: InstallLineOf | u
 
 /**
  * An installer from the runtime's installation probe and its plan. The
- * probe decides both ends: an installation it already finds means nothing
+ * probe decides both ends: an installation it already finds means no installer
  * runs (`already_installed`, whichever line was asked for, so a copy of one
  * line is never replaced by another), and after the plan's steps ran, only
  * an available installation it finds is `installed`, whatever the installer

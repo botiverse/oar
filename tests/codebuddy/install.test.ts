@@ -58,10 +58,25 @@ test("missing npm exposes the exact vendor command and does not install", async 
   expect(readFileSync(log, "utf8")).toBe("");
 });
 
-test("broken npm does not reject installation discovery or orientation, but a plan still rejects", async () => {
+test("broken npm preserves discovery and returns the same typed refusal from planning and installation", async () => {
   vi.stubEnv("OAR_NPM_TEST_FAIL", "1");
   await expect(codebuddyInstallation()).resolves.toEqual({ kind: "not_found" });
   const snapshot = await orient(new RuntimeRegistry([codebuddyRuntime]));
   expect(snapshot.runtimes[0]?.installation).toMatchObject({ kind: "ok", value: { kind: "not_found" } });
-  await expect(codebuddyRuntime.installPlan()).rejects.toThrow(/^Could not read npm's global installation directory$/u);
+  const plan = await codebuddyRuntime.installPlan();
+  expect(plan).toEqual({
+    kind: "unsupported", reason: "location_unknown", detail: "Could not determine npm's global installation directory: query exited with code 1.",
+    source: "https://www.codebuddy.ai/docs/cli/installation",
+    steps: [{ command: ["npm", "install", "-g", "@tencent-ai/codebuddy-code"], display: "npm install -g @tencent-ai/codebuddy-code" }],
+  });
+  expect(await codebuddyRuntime.install()).toEqual(plan);
+  expect(readFileSync(log, "utf8")).not.toContain('"install"');
+});
+
+test("an available copy bypasses a broken npm query during installation", async () => {
+  writeFileSync(path.join(bin, process.platform === "win32" ? "codebuddy.cmd" : "codebuddy"), process.platform === "win32"
+    ? "@echo existing-copy\r\n" : "#!/bin/sh\necho existing-copy\n", { mode: 0o755 });
+  vi.stubEnv("OAR_NPM_TEST_FAIL", "1");
+  expect(await codebuddyRuntime.install()).toMatchObject({ kind: "already_installed", installation: { version: "existing-copy" } });
+  expect(readFileSync(log, "utf8")).toBe("");
 });

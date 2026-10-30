@@ -256,10 +256,12 @@ for (const runtime of defaultRuntimes.list()) {
   reports its version, with no account or network calls. When PATH found
   it, `shadowed` lists the other copies on PATH after it, which never run.
 - **Install:** `installPlan()` says what installing a runtime would run (the
-  vendor's documented installer, with its source page) or why nothing would
-  run, and `install()` runs it for a runtime not found, judged by
-  `installation()` afterwards (claude, codex, grok, kimi, and opencode's
-  `v1` or `v2` line as the host chooses; [reference](docs/spec/install.md)).
+  vendor's documented installer, with its source page) or why no installer
+  would run, and `install()` runs it for a runtime not found, judged by
+  `installation()` afterwards (claude, codex, codebuddy, grok, kimi, and
+  opencode's `v1` or `v2` line as the host chooses). Plans may run bounded
+  local read-only queries; an unknown destination returns `location_unknown`
+  with the vendor command and source ([reference](docs/spec/install.md)).
 - **Login:** `login()` signs a runtime in through its own login without a
   terminal: it relays the sign-in URL or device code, and a code the person
   pastes back goes to the runtime only. `authStatus()` says whether it is

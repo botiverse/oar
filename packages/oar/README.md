@@ -316,16 +316,21 @@ See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/updat
 
 `runtime.installPlan()` reports what installing a runtime would run on this
 machine (the vendor's documented installer and the page that documents it)
-or why it would run nothing (`platform`, `requires_privileges`,
-`requires_gui`, `missing_tool`; `requires_privileges` and `missing_tool`
+or why it would run no installer (`platform`, `requires_privileges`,
+`requires_gui`, `missing_tool`, `location_unknown`; `requires_privileges`, `missing_tool` and `location_unknown`
 still carry the vendor's `steps` and `source`, for the person to run
-themselves once they have the rights or the tool); `runtime.install()` runs
+themselves once they have the rights or the tool, or have checked the installer's
+location configuration); `runtime.install()` runs
 it, without a terminal and never with sudo, when `installation()` finds no
 copy, and judges the result by `installation()` afterwards, never by the
 installer's exit code. oar never installs on its own. Claude, Codex, Grok,
 Kimi and OpenCode install through their vendors' macOS and Linux scripts;
 CodeBuddy uses its official npm package on Linux, macOS and Windows, checks
 the configured global prefix, and discovers its launcher even off PATH.
+Planning may run bounded local read-only queries with private temporary files
+removed afterwards; it never installs, downloads packages or changes user files.
+An unreadable prefix returns `location_unknown` with the failure category in
+`detail`, without npm's raw output.
 OpenCode declares two release lines in `runtime.installLines` (`v1`, `v2`)
 and takes the host's choice as `line` (oar picks none), and a copy of either
 line is `already_installed`, never replaced. Antigravity's plan is

@@ -2,7 +2,7 @@ import path from "node:path";
 import { existsSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { afterEach, expect, test, vi } from "vitest";
-import type { ExecutableRunner } from "../packages/oar/src/shared/executable/run.js";
+import type { ExecutableResult, ExecutableRunner } from "../packages/oar/src/shared/executable/run.js";
 import type { InstallHost } from "../packages/oar/src/shared/install.js";
 import { npmGlobalBin, npmGlobalPrefix, npmInstallPlan } from "../packages/oar/src/shared/install-npm.js";
 
@@ -42,11 +42,42 @@ test("the prefix query is bounded, suppresses logging and keeps npm configuratio
   });
 });
 
-test.each(["failed", "timeout", "relative", "multiple"])("a %s prefix query cannot authorize an install", async (mode) => {
-  const output: Record<string, string> = { relative: "relative/path", multiple: `${prefix}\nextra` };
-  runExecutable.mockResolvedValue({ ok: mode === "relative" || mode === "multiple", exitCode: mode === "failed" ? 1 : null,
-    stdout: output[mode] ?? "", stderr: "unexpected native secret" });
-  await expect(npmInstallPlan(method, host)()).rejects.toThrow(/^Could not read npm's global installation directory$/u);
+const failedQueries: readonly { readonly mode: string; readonly result: ExecutableResult; readonly category: string }[] = [
+  { mode: "exit", result: { ok: false, exitCode: 7, stdout: prefix, stderr: "private stderr" }, category: "query exited with code 7" },
+  { mode: "timeout", result: { ok: false, exitCode: null, stdout: "private stdout", stderr: "private stderr", diagnostics: { exitCode: null, signal: "SIGTERM", timeoutMs: 15_000, stderr: "private tail" } }, category: "query timed out after 15000 ms" },
+  { mode: "spawn", result: { ok: false, exitCode: null, stdout: "", stderr: "", diagnostics: { exitCode: null, signal: null, stderr: "private tail", error: { code: "ENOENT", message: "private path" } } }, category: "query could not start or complete" },
+  { mode: "relative", result: { ok: true, exitCode: null, stdout: "private-relative-path", stderr: "private stderr" }, category: "query output is not an absolute path" },
+  { mode: "empty", result: { ok: true, exitCode: null, stdout: "\n", stderr: "" }, category: "query output is not an absolute path" },
+  { mode: "multiple", result: { ok: true, exitCode: null, stdout: `${prefix}\nprivate extra`, stderr: "" }, category: "query output is not a single path" },
+  { mode: "null byte", result: { ok: true, exitCode: null, stdout: `${prefix}\0private extra`, stderr: "" }, category: "query output is not a single path" },
+];
+
+test.each(failedQueries)("a $mode prefix query returns its category without native output or an installation attempt", async ({ result, category }) => {
+  const unwritable = vi.fn(() => null);
+  runExecutable.mockImplementation(async () => {
+    writeFileSync(path.join(capturedCache(), "npm-log"), "private npm details");
+    return result;
+  });
+  await expect(npmInstallPlan(method, { ...host, unwritable })()).resolves.toEqual({
+    kind: "unsupported", reason: "location_unknown", detail: `Could not determine npm's global installation directory: ${category}.`, steps, source: method.source,
+  });
+  expect(unwritable).not.toHaveBeenCalled();
+  expect(runExecutable).toHaveBeenCalledTimes(1);
+  expect(existsSync(capturedCache())).toBe(false);
+});
+
+test("a rejected prefix query returns a safe category and removes its temporary cache", async () => {
+  runExecutable.mockRejectedValue(new Error("unexpected private failure"));
+  await expect(npmInstallPlan(method, host)()).resolves.toEqual({
+    kind: "unsupported", reason: "location_unknown", detail: "Could not determine npm's global installation directory: local query failed.", steps, source: method.source,
+  });
+  expect(existsSync(capturedCache())).toBe(false);
+});
+
+test("errors after a successful prefix query are not converted into location_unknown", async () => {
+  prefixResult();
+  const error = new Error("unexpected host error");
+  await expect(npmInstallPlan(method, { ...host, unwritable: () => { throw error; } })()).rejects.toBe(error);
 });
 
 test("unsupported OS and release lines do not query npm; global bin placement follows the platform", async () => {
@@ -72,6 +103,6 @@ test.each([true, false])("prefix query owns a private temporary cache and remove
     return { ok, exitCode: ok ? 0 : 1, stdout: `${prefix}\n`, stderr: "" };
   });
   const query = npmGlobalPrefix("npm");
-  await (ok ? expect(query).resolves.toBe(prefix) : expect(query).rejects.toThrow("Could not read npm"));
+  await (ok ? expect(query).resolves.toBe(prefix) : expect(query).rejects.toThrow("query exited with code 1"));
   expect(existsSync(capturedCache())).toBe(false);
 });

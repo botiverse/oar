@@ -1,7 +1,7 @@
 # Runtime install
 
 `runtime.installPlan(options?)` says what installing a runtime would run on
-this machine, or why it would run nothing. `runtime.install(options?)` runs
+this machine, or why it would run no installer. `runtime.install(options?)` runs
 the runtime's own installer when the runtime's installation probe finds no
 copy. Both are independent of sessions, like [updates](update.md), and both
 are optional members that come together; the [table below](#per-runtime)
@@ -24,7 +24,7 @@ installer behaved when run.
   explicit exception: its stable documented method is npm, its independent
   installer remains Beta, and OAR does not yet expose its updater.
 - **The probe decides, not the exit code.** `install` probes first and runs
-  nothing when the probe finds an available installation. After the installer
+  no installer when the probe finds an available installation. After the installer
   ran, it probes again, with the same discovery sessions use: the result is
   `installed` only when that finds an available installation, whatever the
   installer exited with. An installer that puts the binary where the probe
@@ -39,8 +39,11 @@ installer behaved when run.
   files and update checks disabled. OAR creates a private cache in the system
   temporary directory and removes it after the query, including failures. It
   leaves HOME and Node's installation unchanged and never runs an installer
-  or downloads packages while planning. A failed prefix
-  query throws a generic error instead of guessing the destination or rights.
+  or downloads packages while planning. A failed prefix query returns
+  `unsupported / location_unknown`, with the failure category in `detail`
+  and the vendor's `steps` and `source`, instead of guessing the destination
+  or rights. Categories distinguish a timeout, a non-zero exit code, an
+  invalid path response and other local query failures, without native output.
   The plan gives the same `unsupported` that `install`
   would.
 - **Never over another copy.** A runtime whose vendor ships parallel
@@ -76,10 +79,11 @@ and two constants: `network: true` (every installer downloads) and
 is `unsupported` instead).
 
 When oar knows the vendor's step but will not run it here
-(`requires_privileges`, `missing_tool`), the `unsupported` answer still
+(`requires_privileges`, `missing_tool`, `location_unknown`), the `unsupported` answer still
 carries the `steps` and `source` the plan would have had, so a host can show
 the person the vendor's documented command to run themselves once they have
-the rights or the tool. oar runs none of them. Every other reason carries
+the rights or the tool, or have checked the installer's location configuration.
+oar runs none of them. Every other reason carries
 neither.
 
 ## Install results
@@ -87,9 +91,9 @@ neither.
 | Kind | Meaning |
 | --- | --- |
 | installed | The probe after the installer finds an available installation (`installation`), whatever the installer exited with; `output` is the installer's stdout and stderr verbatim. |
-| already_installed | The probe found an available installation first; nothing ran. |
+| already_installed | The probe found an available installation first; no installer ran. |
 | failed | The probe after the installer still finds nothing. `exitCode` is the installer's, 0 included (`curl \| bash` exits 0 when the download failed), or null when the timeout stopped it. |
-| unsupported | Nothing ran; `reason` below, `detail` in plain words. For `requires_privileges` and `missing_tool`, `steps` and `source` are the plan's, for the person to run themselves; `install` returns the same answer as `installPlan`. |
+| unsupported | No installer ran; `reason` below, `detail` in plain words. For `requires_privileges`, `missing_tool` and `location_unknown`, `steps` and `source` are the plan's, for the person to run themselves; `install` returns the same answer as `installPlan`. |
 
 | Reason | Meaning |
 | --- | --- |
@@ -97,6 +101,7 @@ neither.
 | requires_privileges | A directory the installer writes is not writable by this user (an install location variable naming `/usr/local`, say). oar never uses sudo. `steps` and `source` carry the vendor's command, for the person to run with the rights it needs. |
 | requires_gui | The vendor installs the runtime only from inside an app (antigravity). |
 | missing_tool | A program the documented command runs (`curl`, `bash`, `sh`, `npm`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
+| location_unknown | OAR cannot determine where the installer would write. `detail` gives the failure category without native output; `steps` and `source` carry the vendor's command, for the person to run after checking the installer's location configuration. This does not establish missing tools or insufficient rights. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |

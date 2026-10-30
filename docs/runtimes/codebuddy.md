@@ -38,8 +38,12 @@ even when that directory is absent from a GUI host's PATH, honors the probe's
 environment overlay, and does not change PATH. The plan uses the same prefix
 query and checks write access before allowing installation. A failed or
 timed-out prefix query in discovery returns the original `not_found`;
-`installPlan()` still throws a generic error because it cannot verify the
-destination or write access. Readiness and version remain local probes.
+`installPlan()` and an `install()` that found no usable copy return
+`unsupported / location_unknown`, retaining the vendor command and source.
+The detail distinguishes query timeout, non-zero exit code, invalid path
+output and other local query failures without including npm's raw output.
+OAR does not guess the destination or write access. Readiness and version
+remain local probes.
 
 On a machine without CodeBuddy, every discovery call can start an additional
 `npm prefix -g` process with a 15-second limit. A missing npm skips this step;
