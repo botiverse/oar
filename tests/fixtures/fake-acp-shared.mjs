@@ -63,9 +63,19 @@ async function handle(message) {
     const session = sessions.get(params.sessionId);
     if (!session) { throw new Error('unknown native session'); }
     const text = params.prompt[0]?.text;
-    // Node protects process.stdout's fd from stream destruction. Flush writes,
-    // then close the descriptor itself to simulate EOF while this process lives.
-    if (text === 'connection-break') { process.stdout.write('', () => closeSync(1)); return; }
+    // Test-only EOF injection: Node protects stdout from destroy(). Its libuv
+    // pipe handle and stdio descriptor must both close while stdin lives.
+    if (text === 'connection-break') {
+      process.stdout.write('', () => {
+        // oxlint-disable-next-line eslint/no-underscore-dangle -- Test-only fault injection must bypass Node stdout protection.
+        const pipeHandle = process.stdout._handle;
+        if (!pipeHandle) { throw new Error('EOF fixture requires a native stdout pipe handle'); }
+        pipeHandle.close(() => {
+          try { closeSync(1); } catch (error) { if (error.code !== 'EBADF') { throw error; } }
+        });
+      });
+      return;
+    }
     if (text === 'exit') { process.exit(7); }
     if (text === 'late-host-after-release') {
       session.pending = id; session.ignore = true;

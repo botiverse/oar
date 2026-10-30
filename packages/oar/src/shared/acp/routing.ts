@@ -46,18 +46,21 @@ export interface AcpRouting<T> {
   close(): void;
 }
 
-interface Owner<T> { requests: boolean; readonly target: T; readonly ids: Set<string>; opened: number | null; disposed: boolean }
+interface Owner<T> { requests: boolean; readonly target: T; readonly ids: Set<string>; opened: number | null; reserved: number | null; disposed: boolean }
 interface Pending<T> {
   readonly id: string;
-  readonly links: readonly AcpAssociation[];
+  links: readonly AcpAssociation[];
   readonly bytes: number;
   readonly sequence: number;
   readonly diagnostic: Omit<AcpUnattributed, "reason">;
   readonly deliver: (owner: Owner<T>, ingress: AcpIngress) => void;
   readonly reject: (reason: AcpUnattributed["reason"]) => void;
   conflictReported: boolean;
+  delivered: boolean;
   timer: ReturnType<typeof setTimeout> | null;
 }
+
+function beforeReservation<T>(owner: Owner<T>, position: number): boolean { return owner.reserved !== null && position < owner.reserved; }
 
 /** Connection-local ownership, independent of sessions' kernels and native request-id allocation. */
 export function createAcpRouting<T>(options: {
@@ -70,7 +73,9 @@ export function createAcpRouting<T>(options: {
 }): AcpRouting<T> {
   const owners = new Set<Owner<T>>();
   // Native work may outlive disposal. Retain only redactors, not session targets, until exit.
-  const redactors = new Set<CredentialRedactor>();
+  const redactors = new Map<CredentialRedactor, readonly string[]>();
+  let credentialValues: readonly string[] = [];
+  let credentialsChanged = false;
   const ids = new Map<string, Owner<T> | null>();
   const pending = new Set<Pending<T>>();
   const newRequests = new Set<JsonRpcId>();
@@ -83,8 +88,15 @@ export function createAcpRouting<T>(options: {
   let closed = false;
   const redact = (text: string): string => {
     // Merge before replacing: a shorter peer credential must not expose the tail of a longer one.
-    const values = [...new Set([...redactors].flatMap(credentials => credentials.values()))].toSorted((a, b) => b.length - a.length);
-    return redactTokenShapes(values.reduce((result, value) => result.replaceAll(value, "[redacted]"), text));
+    for (const [credentials, previous] of redactors) {
+      const values = credentials.values();
+      if (values !== previous) { redactors.set(credentials, values); credentialsChanged = true; }
+    }
+    if (credentialsChanged) {
+      credentialValues = [...new Set([...redactors.values()].flat())].toSorted((a, b) => b.length - a.length);
+      credentialsChanged = false;
+    }
+    return redactTokenShapes(credentialValues.reduce((result, value) => result.replaceAll(value, "[redacted]"), text));
   };
   const safe = <V>(value: V): V => redactText(value, redact, (text) => redact(text) !== text);
   const report = (entry: Omit<AcpUnattributed, "reason">, reason: AcpUnattributed["reason"]): void => {
@@ -95,7 +107,8 @@ export function createAcpRouting<T>(options: {
     if (entry.timer !== null) { clearTimeout(entry.timer); entry.timer = null; }
   };
   const discard = (entry: Pending<T>, reason: AcpUnattributed["reason"]): void => {
-    remove(entry); report(entry.diagnostic, reason); entry.reject(reason);
+    remove(entry); report(entry.diagnostic, reason);
+    if (!entry.delivered) { entry.reject(reason); }
   };
   const arm = (entry: Pending<T>): void => {
     if (newRequests.size > 0) { return; }
@@ -109,33 +122,49 @@ export function createAcpRouting<T>(options: {
     const carrier = ids.get(entry.id);
     if (carrier === undefined || carrier === null || carrier.disposed) { return false; }
     let changed = false;
+    const unresolved: AcpAssociation[] = [];
     for (const relation of entry.links) {
       const parent = ids.get(relation.parent);
       // A frame may prove links only within its carrier's already established root.
-      if (parent !== carrier || relation.parent === relation.child) { conflict(entry); continue; }
+      if (relation.parent === relation.child) { conflict(entry); continue; }
+      if (parent === undefined) { unresolved.push(relation); continue; }
+      if (parent !== carrier) { conflict(entry); continue; }
       if (ids.has(relation.child)) {
         if (ids.get(relation.child) !== carrier) { conflict(entry); }
       } else { ids.set(relation.child, carrier); carrier.ids.add(relation.child); changed = true; }
     }
+    entry.links = unresolved;
     return changed;
   };
   const flush = (): void => {
     let changed = true;
     while (changed) {
       changed = false;
-      for (const entry of pending) { changed = link(entry) || changed; }
+      for (const entry of pending) {
+        const owner = ids.get(entry.id);
+        if (owner === null) { discard(entry, "retired"); }
+        else if (owner !== undefined && beforeReservation(owner, entry.sequence)) { discard(entry, "pre_reservation"); }
+        else { changed = link(entry) || changed; }
+      }
     }
     for (const entry of pending) {
       const owner = ids.get(entry.id);
       if (owner === null) { discard(entry, "retired"); }
       else if (owner !== undefined && !owner.disposed) {
-        remove(entry);
-        entry.deliver(owner, { receivedAt: entry.diagnostic.receivedAt, afterOpen: owner.opened !== null && entry.sequence > owner.opened });
+        if (!entry.delivered) {
+          entry.delivered = true;
+          entry.deliver(owner, { receivedAt: entry.diagnostic.receivedAt, afterOpen: owner.opened !== null && entry.sequence > owner.opened });
+        }
+        if (entry.links.length === 0) { remove(entry); }
       }
     }
   };
   const bind = (owner: Owner<T>, id: string, resume: boolean): void => {
-    if (closed || owner.disposed || id.length === 0) { throw new AcpProtocolError("ACP ownership is closed or the native session id is empty"); }
+    if (closed || owner.disposed) { throw new Error("ACP ownership is closed"); }
+    if (id.length === 0) {
+      if (resume) { throw new TypeError("ACP resume requires a nonempty session id"); }
+      throw new AcpProtocolError("ACP session/new returned an empty native session id");
+    }
     const controller = ids.get(id);
     if (controller !== undefined && controller !== owner) {
       if (!resume) { throw new AcpProtocolError("ACP session/new returned an owned or retired native session id"); }
@@ -143,12 +172,24 @@ export function createAcpRouting<T>(options: {
       throw new SessionUnavailableError(id, "ACP native session id is already controlled on this connection", { reason: "in_use", method: "oar/open", native: { sessionId: id } });
     }
     if (resume) {
-      reserved.set(id, ++sequence);
+      owner.reserved = ++sequence; reserved.set(id, owner.reserved);
       for (const entry of pending) { if (entry.id === id) { discard(entry, "pre_reservation"); } }
       opened.delete(id);
     }
     if (controller === owner) { return; }
     ids.set(id, owner); owner.ids.add(id); owner.opened ??= opened.get(id) ?? null; flush();
+  };
+  const buffer = (entry: Pending<T>): void => {
+    const capacity = options.maxBytes ?? 1024 * 1024;
+    const maxFrames = options.maxFrames ?? 256;
+    if (entry.bytes > capacity || maxFrames < 1) {
+      report(entry.diagnostic, "capacity"); if (!entry.delivered) { entry.reject("capacity"); } return;
+    }
+    for (const old of pending) {
+      if (pending.size < maxFrames && bytes + entry.bytes <= capacity) { break; }
+      discard(old, "capacity");
+    }
+    pending.add(entry); bytes += entry.bytes; arm(entry);
   };
   const route = (method: string, params: unknown, deliver: Pending<T>["deliver"], refuse: Pending<T>["reject"], requestId?: JsonRpcId): void => {
     const record = asRecord(params);
@@ -163,23 +204,20 @@ export function createAcpRouting<T>(options: {
     if (id === null || id === "") { report(diagnostic, "unowned"); refuse("unowned"); return; }
     const owner = ids.get(id);
     const reservation = reserved.get(id);
-    if (reservation !== undefined && frameSequence < reservation) { report(diagnostic, "pre_reservation"); refuse("pre_reservation"); return; }
+    if ((reservation !== undefined && frameSequence < reservation) || (owner !== undefined && owner !== null && beforeReservation(owner, frameSequence))) {
+      report(diagnostic, "pre_reservation"); refuse("pre_reservation"); return;
+    }
     if (owner === null) { report(diagnostic, "retired"); refuse("retired"); return; }
     const size = Buffer.byteLength(JSON.stringify(params));
     const entry: Pending<T> = { id, links: record === null ? [] : options.associations?.(method, record) ?? [], bytes: size,
-      sequence: frameSequence, diagnostic, deliver, reject: refuse, timer: null, conflictReported: false };
+      sequence: frameSequence, diagnostic, deliver, reject: refuse, timer: null, conflictReported: false, delivered: false };
     if (owner !== undefined && !owner.disposed) {
-      if (link(entry)) { flush(); }
+      const changed = link(entry); entry.delivered = true;
+      if (entry.links.length > 0) { buffer(entry); }
+      if (changed) { flush(); }
       deliver(owner, { receivedAt, afterOpen: owner.opened !== null && frameSequence > owner.opened }); return;
     }
-    const capacity = options.maxBytes ?? 1024 * 1024;
-    const maxFrames = options.maxFrames ?? 256;
-    if (size > capacity || maxFrames < 1) { report(diagnostic, "capacity"); refuse("capacity"); return; }
-    for (const old of pending) {
-      if (pending.size < maxFrames && bytes + size <= capacity) { break; }
-      discard(old, "capacity");
-    }
-    pending.add(entry); bytes += size; arm(entry);
+    buffer(entry);
   };
   return {
     redact, redactValue: safe,
@@ -214,12 +252,12 @@ export function createAcpRouting<T>(options: {
     retired(id): boolean { return ids.get(id) === null; },
     retireUnowned(id): boolean {
       const owner = ids.get(id);
-      if (owner !== undefined && owner !== null) { return false; }
+      if (owner !== undefined) { return false; }
       ids.set(id, null); opened.delete(id); reserved.delete(id); flush(); return true;
     },
     attach(target: T, credentials: CredentialRedactor): AcpOwner<T> {
-      const owner: Owner<T> = { requests: true, target, ids: new Set(), opened: null, disposed: false };
-      owners.add(owner); redactors.add(credentials);
+      const owner: Owner<T> = { requests: true, target, ids: new Set(), opened: null, reserved: null, disposed: false };
+      owners.add(owner); redactors.set(credentials, credentials.values()); credentialsChanged = true;
       return {
         target, bind: (id) => { bind(owner, id, false); }, reserve: (id) => { bind(owner, id, true); },
         opened: () => { owner.opened ??= ++sequence; },

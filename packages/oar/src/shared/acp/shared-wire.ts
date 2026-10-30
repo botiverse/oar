@@ -5,11 +5,24 @@ import { asRecord } from "../json.js";
 import type { AcpRouting } from "./routing.js";
 
 /** Preserve native arrival order/phase and keep SDK connection diagnostics behind pool redaction. */
-export function sharedAcpWire<T>(routing: AcpRouting<T>, extensions: readonly string[], lateNew: (id: string) => void): {
+export function sharedAcpWire<T>(routing: AcpRouting<T>, extensions: readonly string[], lateNew: (id: string) => void, newTimeoutMs = 15_000): {
   outgoing(message: AnyMessage): void;
   incoming(message: AnyMessage): AnyMessage | undefined;
+  close(): void;
 } {
-  const requests = new Map<JsonRpcId, { readonly method: string; readonly sessionId: string | null; cancelled: boolean }>();
+  const requests = new Map<JsonRpcId, { readonly method: string; readonly sessionId: string | null; cancelled: boolean; timer: ReturnType<typeof setTimeout> | null }>();
+  const forget = (id: JsonRpcId): void => {
+    const request = requests.get(id);
+    if (request?.timer !== undefined && request.timer !== null) { clearTimeout(request.timer); }
+    requests.delete(id);
+  };
+  const cancel = (id: JsonRpcId): void => {
+    const request = requests.get(id);
+    if (request?.method !== methods.agent.session.new) { forget(id); return; }
+    if (request.cancelled) { return; }
+    request.cancelled = true; routing.newFinished(id);
+    request.timer = setTimeout(() => { forget(id); }, newTimeoutMs); request.timer.unref();
+  };
   const notifications = new Set([methods.client.session.update, ...extensions]);
   return {
     outgoing(message) {
@@ -17,17 +30,14 @@ export function sharedAcpWire<T>(routing: AcpRouting<T>, extensions: readonly st
         if ("method" in message && message.method === methods.protocol.cancelRequest) {
           const id = asRecord(message.params)?.requestId;
           if (typeof id === "string" || typeof id === "number" || id === null) {
-            const request = requests.get(id);
-            if (request?.method === methods.agent.session.new) {
-              request.cancelled = true; routing.newFinished(id);
-            } else { requests.delete(id); }
+            cancel(id);
           }
         }
         return;
       }
       if ("method" in message) {
         const params = asRecord(message.params);
-        requests.set(message.id, { method: message.method, sessionId: typeof params?.sessionId === "string" ? params.sessionId : null, cancelled: false });
+        requests.set(message.id, { method: message.method, sessionId: typeof params?.sessionId === "string" ? params.sessionId : null, cancelled: false, timer: null });
         if (message.method === methods.agent.session.new) { routing.newStarted(message.id); }
       } else { routing.answered(message.id); }
     },
@@ -37,14 +47,14 @@ export function sharedAcpWire<T>(routing: AcpRouting<T>, extensions: readonly st
       }
       if (!("method" in message)) {
         const request = requests.get(message.id);
-        requests.delete(message.id);
+        forget(message.id);
         if (request === undefined) { routing.diagnostic("unknown_response", message); return undefined; }
         if (request.method === methods.agent.session.new) { routing.newFinished(message.id); }
         if (request.cancelled) {
           routing.diagnostic("cancelled_session_new_response", message);
           const id = "result" in message ? asRecord(message.result)?.sessionId : undefined;
           if (typeof id === "string" && id.length > 0) {
-            // Never clean an id controlled by another lease, even if the native reply is invalid.
+            // Never clean an already owned or retired id, even if the native reply is invalid.
             if (routing.retireUnowned(id)) { lateNew(id); }
             else { routing.diagnostic("cancelled_session_new_collision", { sessionId: id }, "conflict"); }
           }
@@ -70,5 +80,6 @@ export function sharedAcpWire<T>(routing: AcpRouting<T>, extensions: readonly st
       if (params !== null && typeof params === "object" && !Array.isArray(params)) { routing.ingress(params, requestId); }
       return projected;
     },
+    close(): void { for (const id of requests.keys()) { forget(id); } },
   };
 }

@@ -70,7 +70,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
           routing.diagnostic("cancelled_session_new_cleanup", { sessionId: id, result: { kind: "failed", reason: error instanceof Error ? error.message : String(error) } }, "retired");
         }
       })();
-    });
+    }, profile.sessionStartTimeoutMs ?? profile.requestTimeoutMs ?? 15_000);
     const runtime = startAcpProcess(configuration.command, configuration.args, app, {
       ...(configuration.cwd === undefined ? {} : { cwd: configuration.cwd }),
       env: Object.fromEntries(Object.entries(configuration.env).filter((entry): entry is [string, string] => entry[1] !== null)),
@@ -83,7 +83,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     let stopping = false;
     const stop = (): void => {
       if (stopping) { return; }
-      stopping = true; retire(); runtime.kill();
+      stopping = true; retire(); wire.close(); runtime.kill();
     };
     runtime.connection.signal.addEventListener("abort", stop, { once: true });
     if (runtime.connection.signal.aborted) { stop(); }
@@ -99,7 +99,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       const response = await initialized;
       return response;
     };
-    void (async (): Promise<void> => { await runtime.exited; routing.close(); })();
+    void (async (): Promise<void> => { await runtime.exited; wire.close(); routing.close(); })();
 
     return {
       runtime, routing, initialize, exited: runtime.exited, resources: runtime.resources,

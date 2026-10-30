@@ -86,6 +86,8 @@ test.each(["initialize failure", "transport close"])("%s evicts before process s
     } else {
       const old = await f.open("first"); const prompt = await old.prompt("connection-break");
       await stopping.promise;
+      // EOF must arrive while the original process is still alive, before kill is released.
+      expect(() => { process.kill(Number(opening(old)?.pid), 0); }).not.toThrow();
       const fresh = await f.open("fresh");
       expect(opening(fresh)?.pid).not.toBe(opening(old)?.pid);
       expect(await promptAndWait(fresh, "works")).toMatchObject({ kind: "ended" });

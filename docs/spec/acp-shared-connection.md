@@ -37,11 +37,14 @@ native protocol violation, not a resume or placement refusal. It never closes
 the existing controller. Disposing an owner removes its opening metadata as
 well as retiring all its ids.
 
-Cancelling or timing out `session/new` retains its native request id. A late
+Cancelling or timing out `session/new` retains its native request id for one
+additional session-opening timeout. The tombstone expires if no reply arrives;
+connection shutdown clears it immediately. Later unknown replies remain
+diagnostics, with no inferred owner. A late
 successful reply is diagnosed, its unowned native id is retired, and the
 vendor's per-session cleanup is attempted under the normal cleanup bound.
 Completion or failure remains a connection diagnostic, including any reason;
-a failed cleanup never makes the id reusable. A colliding late id is diagnosed
+a failed cleanup never makes the id reusable. An already owned or retired late id is diagnosed
 but never cleaned on behalf of the failed open, since a peer may own it.
 
 A retired id remains unavailable on that connection because ACP does not
@@ -60,7 +63,10 @@ reader. Unknown ids do not become children merely because they share a
 connection. A link is accepted only when its parent belongs to the same root
 as the frame carrying it. A peer's frame cannot establish links into another
 root, and an unknown carrier must first gain proven ownership. Transitive
-links may arrive after a child's update.
+links may arrive after a child's update. A delivered frame's links whose parent
+is not yet known stay in the same bounded buffer until known ids change,
+without delivering the frame twice. A missing parent is not a conflict; a
+parent proven to belong to a different root is.
 
 The connection retains at most 256 unowned frames, one MiB of their encoded
 params, and one second of waiting by default. While any `session/new` is in
@@ -75,7 +81,9 @@ when binding or SDK dispatch happens later; sequence numbers remain dense
 append order. Opening replay and live usage are distinguished at the native
 open response boundary before asynchronous SDK dispatch.
 
-Reserving a resume id discards older buffered frames for that id into
+Reserving a resume id sets a cutoff for the entire controller, including
+children and grandchildren discovered by later links. Older buffered frames
+for any id subsequently proven to belong to that controller become
 `pre_reservation` diagnostics, including host requests. Transport arrival
 sequence also rejects a frame received before reservation but dispatched by
 the SDK afterward. Only subsequent traffic can be delivered to the new
@@ -126,7 +134,8 @@ and disposed leases. Native work may retain those credentials after its owner
 leaves. Only redactors, not disposed session targets, are retained for this
 purpose. The known values are combined first, deduplicated and replaced
 longest first, so one lease's shorter credential cannot expose a suffix of
-another lease's longer credential. Session records use that union directly,
+another lease's longer credential. The sorted union is cached and recomputed
+only after a lease joins or its credential set gains a distinct value. Session records use that union directly,
 without a preceding session-only replacement. It also protects errors and
 retained stderr through final cleanup.
 No inherited environment or credential file is scanned for additional secrets.
