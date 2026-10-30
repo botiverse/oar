@@ -1,9 +1,13 @@
 # Kimi
 
 Shared-process admission: Kimi 2.4.1 remains isolated. A later session on
-an existing ACP connection retained old project instructions and user hook
-configuration after the files changed, whereas a newly opened isolated
-process read the updated files. Same-directory MCP invocation itself passed;
+an existing ACP connection retained old user hooks after the file changed,
+including after a three-second delay, another directory or closing the prior
+session; a newly opened isolated process read the updated hooks. Project
+instructions were old when B opened immediately after editing, but new when
+B opened after three seconds, whether A was still live or closed. These
+observations do not establish a refresh-delay bound. The hook discrepancy
+is the admission blocker. Same-directory MCP invocation itself passed;
 that does not establish configuration freshness. Explicit shared placement
 remains refused. See the [native comparison and follow-up](../../experiments/sharing/same-directory-2026-10-30.md).
 

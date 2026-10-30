@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
 export interface McpInvocation {
   readonly server: string;
@@ -43,4 +43,28 @@ export function invocationEvidence(calls: readonly McpInvocation[], input: strin
   const matching = calls.filter((call) => call.input === input);
   return { input, expectedServer: server, calls: matching,
     isolated: matching.length === 1 && matching[0]?.server === server && matching[0].output === `MCP_RESULT=${server} input=${input}` };
+}
+
+/** Recheck the full journal after releases; retain the final checks in the report. */
+export function auditFinalInvocations(row: JsonRecord, calls: readonly McpInvocation[]): void {
+  const turns = Array.isArray(row.turns) ? row.turns.map(asRecord) : [];
+  for (const turn of turns) {
+    assert.ok(turn !== null && typeof turn.input === "string");
+    const finalInvocation = invocationEvidence(calls, turn.input, turn.input.startsWith("A_") ? "A" : "B");
+    turn.finalInvocation = finalInvocation;
+    if (!finalInvocation.isolated) { turn.isolated = false; }
+  }
+  row.turns = turns;
+  const released = asRecord(row.releasedDirectory);
+  if (released !== null) {
+    const finalSurvivor = invocationEvidence(calls, "B_mcppeerclosed", "B");
+    released.finalSurvivorInvocation = finalSurvivor;
+    const emptyCalls = calls.filter((call) => call.input === "A_mcpempty");
+    released.calls = emptyCalls; released.retainedMcpInvoked = emptyCalls.length > 0;
+    released.nativeOutputRetained = emptyCalls.some((call) => typeof released.output === "string" && released.output.includes(call.output));
+    row.releasedDirectory = released;
+    if (!finalSurvivor.isolated || emptyCalls.length > 0) { row.isolated = false; }
+  }
+  row.isolated = row.isolated === true && turns.length === 5 && turns.every((turn) => turn?.isolated === true)
+    && released?.observed === true && asRecord(released.afterARelease)?.isolated === true;
 }

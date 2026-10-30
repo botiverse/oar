@@ -21,12 +21,15 @@ or Qoder native frame must also retain that invocation's exact result.
 The sequence is A before B exists, B after joining, A after B joins, then
 A/B concurrently. Every input is unique, so an old correct result in history
 cannot mask a newer wrong call. Missing, duplicate or wrong-server calls
-fail. A recorded three-second settling period follows each initial open;
+fail. The final complete journal rechecks all five inputs, including late
+duplicates and misroutes. A recorded three-second settling period follows each initial open;
 this is neither a retry nor proof of readiness. Each cohort stops before
 the next starts. Installation, native deadlines, cleanup errors, original
 synthetic protocol evidence and configuration observations are retained in
 ignored `oar-trial-run/same-directory-<runtime>/evidence.json`, created with
-mode 0600 where supported. No real credentials or paid model are used.
+mode 0600 where supported. Cleanup is registered as each resource is acquired
+and always attempted, even if fixture setup or evidence collection throws.
+No real credentials or paid model are used.
 
 The run also changes project `AGENTS.md` from marker A to marker B after
 A's baseline and before opening B. Those markers are never prompted.
@@ -41,9 +44,10 @@ which do not expose the model's instruction input here.
 [Selected Linux observations](selected-same-directory-2026-10-30.json)
 retain marker identities, actual calls, close controls and configuration
 observations without transcripts, paths, session IDs or account fields.
-The initial MCP-only run and the expanded configuration run agreed on every
-MCP result. The source base was `ecb829b`; these are measurements of this
-probe change on xxwork, not results from a dispatched workflow.
+One revised run per runtime is selected, including the release controls and
+Kimi timing controls. The source base was `8858813`; these are measurements
+of this probe change on a local Linux x64 host, not results from a dispatched
+workflow.
 
 ## Linux MCP comparison
 
@@ -60,14 +64,28 @@ for all six runtimes, including the same-directory shared-file controls.
 | Antigravity 1.4.5 | A | B | A | A | B | established for this comparison |
 | Qoder 1.1.81 | A | B | B | B | B | crossover |
 
-OpenCode and Qoder also close both A/B, then open the same directory with an
-empty client MCP configuration and request the old echo tool. The shared
-cohort reuses the original process; the separate cohort starts a fresh one.
+All six runtimes release A, invoke B again to check the survivor, then release
+B and open the same directory with an empty client MCP configuration. The
+provider requests the old echo tool. The shared cohort reuses the original
+process; the separate cohort starts a fresh one. Codex uses
+`thread/unsubscribe`; ACP uses `session/close` and disposes the
+per-session OAR terminal owner; Qoder uses `daemon.close_session`.
+An ACP method-not-found response would leave only the OAR terminal-owner
+release and be recorded as **no native close**, never described as a native
+session closing. All four tested ACP versions accepted the native close.
+Antigravity 1.4.5 accepted it despite not advertising that capability; both
+facts are retained. Whether a future Antigravity adapter may rely on that
+unadvertised operation remains a separate admission decision. The current
+isolated adapter's disposal behavior is unchanged.
 
-| Runtime | Original process after close | Fresh process, empty MCP |
-| --- | --- | --- |
-| OpenCode 2.2.3 | B receives the call and its output is retained | no MCP call |
-| Qoder 1.1.81 | no MCP call; native tool lookup reports unavailable | no MCP call |
+| Runtime | Release operation | B after A release, both cohorts | Original process after both releases, empty MCP | Fresh process, empty MCP |
+| --- | --- | --- | --- | --- |
+| Codex 0.166.0 | `thread/unsubscribe` | B, correct result retained | no MCP call | no MCP call |
+| Kimi 2.4.1 | `session/close` | B, correct result retained | no MCP call | no MCP call |
+| Grok 1.0.70 | `session/close` plus OAR terminal disposal | B, correct result retained | no MCP call | no MCP call |
+| OpenCode 2.2.3 | `session/close` | B, correct result retained | B receives call; result retained | no MCP call |
+| Antigravity 1.4.5 | accepted `session/close`, not advertised | B, correct result retained | no MCP call | no MCP call |
+| Qoder 1.1.81 | `daemon.close_session` | B, correct result retained | no MCP call | no MCP call |
 
 For OpenCode, the [official ACP documentation](https://opencode.ai/v2/docs/cli/acp#MCP-servers)
 explains directory-scoped client MCP registration, same-name replacement and
@@ -140,16 +158,20 @@ run A, change files, wait three seconds **before** opening B, then observe B.
 This bounded wait checks one asynchronous-refresh interval; it does not
 prove a cache is permanent. A separate-process B repeats the same sequence.
 
-| Scenario | Shared B instructions | Shared B hook | Separate B instructions/hook |
+| Scenario, all with a three-second wait before B | Shared B instructions | Shared B hook | Separate B instructions/hook |
 | --- | --- | --- | --- |
+| A live, B in the same directory after both edits | B | A | B / B |
 | B in another directory after user hook edit | B | A | B / B |
 | A closed, B in A's directory after both edits | B | A | B / B |
 
-The hook discrepancy survives a directory change and `session/close`, so a
-one-active-session-per-directory restriction does not solve it. Closing A
-allows the new same-directory session to read changed instructions in this
-control; the earlier live-A case retains old instructions. Both observations
-remain distinct. Kimi 2.4.1 is not admitted: `auto` remains isolated and
+Each of these six cohorts verifies that B really invoked its MCP server,
+retained its result and emitted a hook record for the matching input. Empty
+hook journals cannot make the comparison pass. The immediate same-directory
+opening in the main run saw instruction A; with the same three-second delay,
+both live-A and closed-A cohorts saw B. Closing A is therefore not established
+as the cause of instruction refresh. The hook discrepancy remains in all
+three delayed controls, including another directory and `session/close`, so
+a one-active-session-per-directory restriction does not solve that discrepancy. Kimi 2.4.1 is not admitted: `auto` remains isolated and
 explicit `shared` refuses. Its adapter work is deferred.
 
 The public [ACP method matrix](https://moonshotai.github.io/kimi-code/en/reference/kimi-acp)
@@ -185,9 +207,12 @@ OAR_QODER_BIN=/absolute/qodercli pnpm tsx experiments/sharing/same-directory.ts 
 
 The report compares only observed instruction markers and exercised hook
 revisions for B; an unobserved field is null, not a freshness pass. MCP
-crossover or an observed configuration difference exits nonzero after
-saving evidence. Thus the known OpenCode/Qoder/Kimi failures remain visible
-in the manual workflow; they are not waived into a passing status. The
+crossover, an observed configuration difference, or **missing instruction or
+hook evidence** exits nonzero after saving evidence. Missing observations
+explicitly report "missing evidence". Thus all six current Linux runs fail
+the complete revised gate: measured defects and missing coverage both remain
+visible in the manual workflow. No runtime version on any platform currently
+meets that complete gate. The
 ordinary PR gate does not run this native evidence experiment.
 
 After merge, run the full six-runtime, three-platform manual workflow with

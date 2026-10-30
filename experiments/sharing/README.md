@@ -20,15 +20,19 @@ alone, and no native adapter enables sharing yet.
 
 The [updated-version report](updated-versions-2026-10-30.md) and
 [completed follow-up](followup-2026-10-30.md) cover different-directory
-observations and resources for Codex 0.166.0, Antigravity 1.4.5, Kimi 2.4.1,
-OpenCode 2.2.3 and Qoder 1.1.81 on Linux x64, macOS arm64 and Windows x64.
-Grok 1.0.70 has the same earlier scope in the
-[admission report](admission-2026-10-30.md). Other versions do not inherit
-these results.
+observations and resources for Codex 0.166.0, Antigravity 1.4.5, Kimi 2.4.1
+and OpenCode 2.2.3 on Linux x64, macOS arm64 and Windows x64. Their Qoder
+1.1.81 contribution is Windows resources only. Qoder's Linux/macOS resources
+and all three platforms' different-directory observations, along with Grok
+1.0.70, are in the [admission report](admission-2026-10-30.md).
+Other versions do not inherit these results.
 
-The new Linux same-directory comparison passes the MCP check for Codex,
-Kimi, Grok and Antigravity, but OpenCode and Qoder overwrite A's same-name
-MCP configuration when B joins. OpenCode also retains the tool after closing
+**Under the revised admission requirements, no runtime version on any
+platform currently meets the complete gate.**
+The new Linux five-turn same-directory comparison observes correct MCP
+routing for Codex, Kimi, Grok and Antigravity. Release controls and missing
+configuration coverage are recorded separately; this is not a complete pass.
+OpenCode and Qoder overwrite A's same-name MCP configuration when B joins. OpenCode also retains the tool after closing
 both sessions and opening with an empty MCP list. Qoder did not retain it in
 that close control; its underlying configuration lifetime remains unproven.
 Both require one session per canonical directory **per process lifetime**
@@ -37,8 +41,9 @@ even after release or with an identical/empty MCP list: automatic placement
 opens a fresh isolated process; explicit shared placement refuses.
 
 Kimi 2.4.1 separately fails configuration freshness: a later shared session
-uses old project instructions and hook settings that a newly opened isolated
-process reads afresh. It remains isolated; its future shared adapter is on
+uses old hook settings that a newly opened isolated process reads afresh.
+The instruction observation is timing-dependent: immediate opening saw old
+text, while opening after three seconds saw new text, with A live or closed. It remains isolated; its future shared adapter is on
 hold. Same-directory Windows/macOS comparisons and the remaining freshness
 coverage are missing. The [new report](same-directory-2026-10-30.md) records
 exactly what each configuration observation does and does not establish.
@@ -84,7 +89,7 @@ The same-directory and resource steps run after a successful native
 installation even when an earlier observation fails. Each step retains its
 own failure status and evidence;
 there are no automatic retries. Each step has a 12-minute limit inside a
-40-minute job limit. To fill only missing Windows resource cells, dispatch with
+50-minute job limit. To fill only missing Windows resource cells, dispatch with
 `runtimes=["codex","qoder"]`, `platforms=["windows-latest"]` and
 `resources_only=true`. Alternatively, `same_directory_only=true` runs only
 the same-directory MCP and project/hook observations plus their separate-process

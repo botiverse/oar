@@ -68,6 +68,7 @@ export function compareDirectoryConfiguration(shared: JsonRecord, separate: Json
   const projectMarkersMatch = hasMarker(a.markers) || hasMarker(b.markers)
     ? a.markers.initial === b.markers.initial && a.markers.changed === b.markers.changed : null;
   const hookRevisionsMatch = a.hooks.length > 0 || b.hooks.length > 0 ? JSON.stringify(a.hooks) === JSON.stringify(b.hooks) : null;
-  return { projectMarkersMatch, hookRevisionsMatch, differenceObserved: projectMarkersMatch === false || hookRevisionsMatch === false,
+  const missingEvidence = projectMarkersMatch === null || hookRevisionsMatch === null;
+  return { projectMarkersMatch, hookRevisionsMatch, missingEvidence, passed: projectMarkersMatch === true && hookRevisionsMatch === true, differenceObserved: projectMarkersMatch === false || hookRevisionsMatch === false,
     limitation: "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration." };
 }

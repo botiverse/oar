@@ -1,12 +1,13 @@
 [
   {
     "runtime": "codex",
-    "at": "2026-10-30T20:21:20.515Z",
+    "at": "2026-10-30T21:13:46.982Z",
     "platform": "linux",
     "architecture": "x64",
     "scope": "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
     "settlingMs": 3000,
     "version": "0.166.0",
+    "beforeBOpenDelayMs": 0,
     "cohorts": [
       {
         "mode": "shared",
@@ -27,104 +28,7 @@
               ],
               "isolated": true
             },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcpafter",
-            "invocation": {
-              "input": "B_mcpafter",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcpafter",
-                  "output": "MCP_RESULT=B input=B_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": true
-            }
-          },
-          {
-            "input": "A_mcpafter",
-            "invocation": {
-              "input": "A_mcpafter",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcpafter",
-                  "output": "MCP_RESULT=A input=A_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcptogether",
-            "invocation": {
-              "input": "A_mcptogether",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcptogether",
-                  "output": "MCP_RESULT=A input=A_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcptogether",
-            "invocation": {
-              "input": "B_mcptogether",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcptogether",
-                  "output": "MCP_RESULT=B input=B_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": true
-            }
-          }
-        ],
-        "hooks": [],
-        "hookScope": "not exercised"
-      },
-      {
-        "mode": "separate",
-        "observed": true,
-        "isolated": true,
-        "turns": [
-          {
-            "input": "A_mcpbefore",
-            "invocation": {
+            "finalInvocation": {
               "input": "A_mcpbefore",
               "expectedServer": "A",
               "calls": [
@@ -156,6 +60,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -165,6 +81,18 @@
           {
             "input": "A_mcpafter",
             "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpafter",
               "expectedServer": "A",
               "calls": [
@@ -196,6 +124,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": true,
@@ -216,6 +156,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -224,18 +176,281 @@
           }
         ],
         "hooks": [],
-        "hookScope": "not exercised"
+        "hookScope": "not exercised",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          }
+        ],
+        "hooks": [],
+        "hookScope": "not exercised",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
       }
-    ]
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": null,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true
   },
   {
     "runtime": "kimi",
-    "at": "2026-10-30T20:40:08.262Z",
+    "at": "2026-10-30T21:13:47.015Z",
     "platform": "linux",
     "architecture": "x64",
     "scope": "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
     "settlingMs": 3000,
     "version": "2.4.1",
+    "beforeBOpenDelayMs": 0,
     "cohorts": [
       {
         "mode": "shared",
@@ -256,125 +471,7 @@
               ],
               "isolated": true
             },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcpafter",
-            "invocation": {
-              "input": "B_mcpafter",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcpafter",
-                  "output": "MCP_RESULT=B input=B_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcpafter",
-            "invocation": {
-              "input": "A_mcpafter",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcpafter",
-                  "output": "MCP_RESULT=A input=A_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcptogether",
-            "invocation": {
-              "input": "A_mcptogether",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcptogether",
-                  "output": "MCP_RESULT=A input=A_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcptogether",
-            "invocation": {
-              "input": "B_mcptogether",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcptogether",
-                  "output": "MCP_RESULT=B input=B_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": true,
-              "changed": false
-            }
-          }
-        ],
-        "hooks": [
-          {
-            "revision": "A",
-            "input": "A_mcpbefore"
-          },
-          {
-            "revision": "A",
-            "input": "B_mcpafter"
-          },
-          {
-            "revision": "A",
-            "input": "A_mcpafter"
-          },
-          {
-            "revision": "A",
-            "input": "B_mcptogether"
-          },
-          {
-            "revision": "A",
-            "input": "A_mcptogether"
-          }
-        ],
-        "hookScope": "disposable KIMI_CODE_HOME/config.toml"
-      },
-      {
-        "mode": "separate",
-        "observed": true,
-        "isolated": true,
-        "turns": [
-          {
-            "input": "A_mcpbefore",
-            "invocation": {
+            "finalInvocation": {
               "input": "A_mcpbefore",
               "expectedServer": "A",
               "calls": [
@@ -406,15 +503,39 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
-              "initial": false,
-              "changed": true
+              "initial": true,
+              "changed": false
             }
           },
           {
             "input": "A_mcpafter",
             "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpafter",
               "expectedServer": "A",
               "calls": [
@@ -446,6 +567,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": true,
@@ -455,6 +588,258 @@
           {
             "input": "B_mcptogether",
             "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable KIMI_CODE_HOME/config.toml",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "B_mcptogether",
               "expectedServer": "B",
               "calls": [
@@ -493,21 +878,85 @@
           {
             "revision": "B",
             "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
           }
         ],
-        "hookScope": "disposable KIMI_CODE_HOME/config.toml"
+        "hookScope": "disposable KIMI_CODE_HOME/config.toml",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
       }
     ],
     "configurationFollowup": [
       {
-        "scenario": "different_directory",
+        "scenario": "alive_same_directory",
         "mode": "shared",
         "observed": true,
         "closedBeforeEdit": false,
+        "beforeBOpenDelayMs": 3000,
         "newSessionMarkers": {
           "initial": false,
           "changed": true
         },
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
         "hooks": [
           {
             "revision": "A",
@@ -521,99 +970,113 @@
         "waits": [
           {
             "label": "installation",
-            "at": "2026-10-30T20:40:32.988Z",
+            "at": "2026-10-30T21:14:20.259Z",
             "limitMs": null,
             "outcome": "completed",
-            "elapsedMs": 2767.802523999999
+            "elapsedMs": 2759.998449999999
           },
           {
             "label": "initialize",
-            "at": "2026-10-30T20:40:35.771Z",
+            "at": "2026-10-30T21:14:23.036Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 1520.5654689999974
+            "elapsedMs": 1602.5326290000012
           },
           {
             "label": "authenticate",
-            "at": "2026-10-30T20:40:37.292Z",
+            "at": "2026-10-30T21:14:24.639Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 60.43180500000017
+            "elapsedMs": 63.83813000000373
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:40:37.359Z",
+            "at": "2026-10-30T21:14:24.710Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 266.6926600000006
+            "elapsedMs": 313.71877099999983
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:40:37.626Z",
+            "at": "2026-10-30T21:14:25.024Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 7.565468000000692
+            "elapsedMs": 7.14197100000456
           },
           {
             "label": "catalog settling before A",
-            "at": "2026-10-30T20:40:37.633Z",
+            "at": "2026-10-30T21:14:25.031Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3002.5049270000018
+            "elapsedMs": 3003.538858
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:40:40.636Z",
+            "at": "2026-10-30T21:14:28.034Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 255.58576399999583
+            "elapsedMs": 344.82862100000057
           },
           {
             "label": "configuration settling before B open",
-            "at": "2026-10-30T20:40:40.894Z",
+            "at": "2026-10-30T21:14:28.385Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3002.345110999995
+            "elapsedMs": 3002.298296000001
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:40:43.896Z",
+            "at": "2026-10-30T21:14:31.388Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 113.51032399999531
+            "elapsedMs": 158.68783000000258
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:40:44.010Z",
+            "at": "2026-10-30T21:14:31.546Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 2.607890999999654
+            "elapsedMs": 3.02665700000216
           },
           {
             "label": "catalog settling before B",
-            "at": "2026-10-30T20:40:44.013Z",
+            "at": "2026-10-30T21:14:31.550Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3000.3436719999954
+            "elapsedMs": 3000.777092000004
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:40:47.013Z",
+            "at": "2026-10-30T21:14:34.550Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 149.01963799999794
+            "elapsedMs": 230.9125950000016
           }
         ]
       },
       {
-        "scenario": "different_directory",
+        "scenario": "alive_same_directory",
         "mode": "separate",
         "observed": true,
         "closedBeforeEdit": false,
+        "beforeBOpenDelayMs": 3000,
         "newSessionMarkers": {
           "initial": false,
           "changed": true
         },
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
         "hooks": [
           {
             "revision": "A",
@@ -627,113 +1090,127 @@
         "waits": [
           {
             "label": "installation",
-            "at": "2026-10-30T20:40:47.244Z",
+            "at": "2026-10-30T21:14:34.926Z",
             "limitMs": null,
             "outcome": "completed",
-            "elapsedMs": 2639.1772619999974
+            "elapsedMs": 3314.3601080000008
           },
           {
             "label": "initialize",
-            "at": "2026-10-30T20:40:49.909Z",
+            "at": "2026-10-30T21:14:38.270Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 1459.2002599999978
+            "elapsedMs": 1936.6552699999957
           },
           {
             "label": "authenticate",
-            "at": "2026-10-30T20:40:51.368Z",
+            "at": "2026-10-30T21:14:40.207Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 62.73048599999311
+            "elapsedMs": 68.15750399999524
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:40:51.441Z",
+            "at": "2026-10-30T21:14:40.287Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 277.7111650000006
+            "elapsedMs": 463.2215340000039
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:40:51.719Z",
+            "at": "2026-10-30T21:14:40.750Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 33.50952999999572
+            "elapsedMs": 7.32253099999798
           },
           {
             "label": "catalog settling before A",
-            "at": "2026-10-30T20:40:51.752Z",
+            "at": "2026-10-30T21:14:40.758Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3002.662795999997
+            "elapsedMs": 3003.653467999997
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:40:54.755Z",
+            "at": "2026-10-30T21:14:43.761Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 240.31727200000023
+            "elapsedMs": 382.75624000000244
           },
           {
             "label": "configuration settling before B open",
-            "at": "2026-10-30T20:40:54.997Z",
+            "at": "2026-10-30T21:14:44.162Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3003.522493999997
+            "elapsedMs": 3001.2089699999997
           },
           {
             "label": "initialize",
-            "at": "2026-10-30T20:40:58.013Z",
+            "at": "2026-10-30T21:14:47.176Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 1524.9124090000041
+            "elapsedMs": 2190.994297999998
           },
           {
             "label": "authenticate",
-            "at": "2026-10-30T20:40:59.538Z",
+            "at": "2026-10-30T21:14:49.367Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 63.326328999995894
+            "elapsedMs": 98.08077000000048
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:40:59.610Z",
+            "at": "2026-10-30T21:14:49.483Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 232.25905000000057
+            "elapsedMs": 342.5618680000043
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:40:59.842Z",
+            "at": "2026-10-30T21:14:49.825Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 5.569368000004033
+            "elapsedMs": 7.638937000003352
           },
           {
             "label": "catalog settling before B",
-            "at": "2026-10-30T20:40:59.848Z",
+            "at": "2026-10-30T21:14:49.833Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3002.2687970000043
+            "elapsedMs": 3000.660717999999
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:41:02.850Z",
+            "at": "2026-10-30T21:14:52.834Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 304.5323669999998
+            "elapsedMs": 431.47176899999613
           }
         ]
       },
       {
-        "scenario": "closed_same_directory",
+        "scenario": "different_directory",
         "mode": "shared",
         "observed": true,
-        "closedBeforeEdit": true,
+        "closedBeforeEdit": false,
+        "beforeBOpenDelayMs": 3000,
         "newSessionMarkers": {
           "initial": false,
           "changed": true
         },
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
         "hooks": [
           {
             "revision": "A",
@@ -747,106 +1224,113 @@
         "waits": [
           {
             "label": "installation",
-            "at": "2026-10-30T20:41:03.265Z",
+            "at": "2026-10-30T21:14:53.450Z",
             "limitMs": null,
             "outcome": "completed",
-            "elapsedMs": 2854.4783889999962
+            "elapsedMs": 3367.1712960000004
           },
           {
             "label": "initialize",
-            "at": "2026-10-30T20:41:06.139Z",
+            "at": "2026-10-30T21:14:56.855Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 1565.4949480000068
+            "elapsedMs": 2392.966155000002
           },
           {
             "label": "authenticate",
-            "at": "2026-10-30T20:41:07.705Z",
+            "at": "2026-10-30T21:14:59.248Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 63.493436000004294
+            "elapsedMs": 93.56506100000115
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:41:07.776Z",
+            "at": "2026-10-30T21:14:59.354Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 254.57326900000044
+            "elapsedMs": 427.1092210000061
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:41:08.030Z",
+            "at": "2026-10-30T21:14:59.781Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 6.7569579999981215
+            "elapsedMs": 37.09562999999616
           },
           {
             "label": "catalog settling before A",
-            "at": "2026-10-30T20:41:08.037Z",
+            "at": "2026-10-30T21:14:59.818Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3000.2646049999967
+            "elapsedMs": 3007.9204940000054
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:41:11.037Z",
+            "at": "2026-10-30T21:15:02.826Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 235.8023499999981
-          },
-          {
-            "label": "session/close",
-            "at": "2026-10-30T20:41:11.273Z",
-            "limitMs": 30000,
-            "outcome": "completed",
-            "elapsedMs": 25.341863000001467
+            "elapsedMs": 451.212950000001
           },
           {
             "label": "configuration settling before B open",
-            "at": "2026-10-30T20:41:11.300Z",
+            "at": "2026-10-30T21:15:03.290Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3001.339807000004
+            "elapsedMs": 3001.5634700000082
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:41:14.301Z",
+            "at": "2026-10-30T21:15:06.292Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 127.888134000008
+            "elapsedMs": 349.1111649999948
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:41:14.429Z",
+            "at": "2026-10-30T21:15:06.641Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 2.9743390000076033
+            "elapsedMs": 6.442087999996147
           },
           {
             "label": "catalog settling before B",
-            "at": "2026-10-30T20:41:14.432Z",
+            "at": "2026-10-30T21:15:06.648Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3000.2630289999943
+            "elapsedMs": 3000.1689049999986
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:41:17.433Z",
+            "at": "2026-10-30T21:15:09.648Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 154.32650500000454
+            "elapsedMs": 179.0333959999989
           }
         ]
       },
       {
-        "scenario": "closed_same_directory",
+        "scenario": "different_directory",
         "mode": "separate",
         "observed": true,
-        "closedBeforeEdit": true,
+        "closedBeforeEdit": false,
+        "beforeBOpenDelayMs": 3000,
         "newSessionMarkers": {
           "initial": false,
           "changed": true
         },
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
         "hooks": [
           {
             "revision": "A",
@@ -860,121 +1344,421 @@
         "waits": [
           {
             "label": "installation",
-            "at": "2026-10-30T20:41:17.675Z",
+            "at": "2026-10-30T21:15:09.927Z",
             "limitMs": null,
             "outcome": "completed",
-            "elapsedMs": 2639.1907969999884
+            "elapsedMs": 2931.5089020000014
           },
           {
             "label": "initialize",
-            "at": "2026-10-30T20:41:20.335Z",
+            "at": "2026-10-30T21:15:12.877Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 1397.5682729999971
+            "elapsedMs": 1531.1200319999916
           },
           {
             "label": "authenticate",
-            "at": "2026-10-30T20:41:21.732Z",
+            "at": "2026-10-30T21:15:14.408Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 63.666903999997885
+            "elapsedMs": 62.48966000000655
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:41:21.807Z",
+            "at": "2026-10-30T21:15:14.479Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 251.5759459999972
+            "elapsedMs": 229.82349100000283
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:41:22.058Z",
+            "at": "2026-10-30T21:15:14.709Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 7.143448999995599
+            "elapsedMs": 5.2821770000009565
           },
           {
             "label": "catalog settling before A",
-            "at": "2026-10-30T20:41:22.066Z",
+            "at": "2026-10-30T21:15:14.714Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3001.947576999999
+            "elapsedMs": 3002.510731000002
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:41:25.068Z",
+            "at": "2026-10-30T21:15:17.717Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 331.38754399999743
-          },
-          {
-            "label": "session/close",
-            "at": "2026-10-30T20:41:25.399Z",
-            "limitMs": 30000,
-            "outcome": "completed",
-            "elapsedMs": 26.163520999994944
+            "elapsedMs": 259.25918900000397
           },
           {
             "label": "configuration settling before B open",
-            "at": "2026-10-30T20:41:25.426Z",
+            "at": "2026-10-30T21:15:17.982Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3002.453855999993
+            "elapsedMs": 3003.5285960000037
           },
           {
             "label": "initialize",
-            "at": "2026-10-30T20:41:28.446Z",
+            "at": "2026-10-30T21:15:20.998Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 1534.8036129999964
+            "elapsedMs": 1433.9391570000007
           },
           {
             "label": "authenticate",
-            "at": "2026-10-30T20:41:29.981Z",
+            "at": "2026-10-30T21:15:22.432Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 63.60778800000844
+            "elapsedMs": 63.70191100001102
           },
           {
             "label": "session/new",
-            "at": "2026-10-30T20:41:30.051Z",
+            "at": "2026-10-30T21:15:22.504Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 245.9429700000037
+            "elapsedMs": 247.0975069999986
           },
           {
             "label": "session/set_mode",
-            "at": "2026-10-30T20:41:30.297Z",
+            "at": "2026-10-30T21:15:22.751Z",
             "limitMs": 30000,
             "outcome": "completed",
-            "elapsedMs": 5.144397999989451
+            "elapsedMs": 4.804507000008016
           },
           {
             "label": "catalog settling before B",
-            "at": "2026-10-30T20:41:30.302Z",
+            "at": "2026-10-30T21:15:22.756Z",
             "limitMs": 3000,
             "outcome": "completed",
-            "elapsedMs": 3003.1624579999916
+            "elapsedMs": 3001.4190979999985
           },
           {
             "label": "session/prompt",
-            "at": "2026-10-30T20:41:33.305Z",
+            "at": "2026-10-30T21:15:25.757Z",
             "limitMs": 60000,
             "outcome": "completed",
-            "elapsedMs": 296.2669500000047
+            "elapsedMs": 253.20899400000053
+          }
+        ]
+      },
+      {
+        "scenario": "closed_same_directory",
+        "mode": "shared",
+        "observed": true,
+        "closedBeforeEdit": true,
+        "beforeBOpenDelayMs": 3000,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "waits": [
+          {
+            "label": "installation",
+            "at": "2026-10-30T21:15:26.102Z",
+            "limitMs": null,
+            "outcome": "completed",
+            "elapsedMs": 2583.616169999994
+          },
+          {
+            "label": "initialize",
+            "at": "2026-10-30T21:15:28.703Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 1411.1864099999948
+          },
+          {
+            "label": "authenticate",
+            "at": "2026-10-30T21:15:30.114Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 61.834027000004426
+          },
+          {
+            "label": "session/new",
+            "at": "2026-10-30T21:15:30.182Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 227.45573099999456
+          },
+          {
+            "label": "session/set_mode",
+            "at": "2026-10-30T21:15:30.409Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 32.11652799999865
+          },
+          {
+            "label": "catalog settling before A",
+            "at": "2026-10-30T21:15:30.442Z",
+            "limitMs": 3000,
+            "outcome": "completed",
+            "elapsedMs": 3001.5232530000067
+          },
+          {
+            "label": "session/prompt",
+            "at": "2026-10-30T21:15:33.443Z",
+            "limitMs": 60000,
+            "outcome": "completed",
+            "elapsedMs": 247.59040899999673
+          },
+          {
+            "label": "session/close",
+            "at": "2026-10-30T21:15:33.691Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 24.951780000003055
+          },
+          {
+            "label": "configuration settling before B open",
+            "at": "2026-10-30T21:15:33.717Z",
+            "limitMs": 3000,
+            "outcome": "completed",
+            "elapsedMs": 3002.5163489999977
+          },
+          {
+            "label": "session/new",
+            "at": "2026-10-30T21:15:36.719Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 147.0373350000009
+          },
+          {
+            "label": "session/set_mode",
+            "at": "2026-10-30T21:15:36.867Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 2.692413000011584
+          },
+          {
+            "label": "catalog settling before B",
+            "at": "2026-10-30T21:15:36.869Z",
+            "limitMs": 3000,
+            "outcome": "completed",
+            "elapsedMs": 3000.414518000005
+          },
+          {
+            "label": "session/prompt",
+            "at": "2026-10-30T21:15:39.870Z",
+            "limitMs": 60000,
+            "outcome": "completed",
+            "elapsedMs": 128.36256700000376
+          }
+        ]
+      },
+      {
+        "scenario": "closed_same_directory",
+        "mode": "separate",
+        "observed": true,
+        "closedBeforeEdit": true,
+        "beforeBOpenDelayMs": 3000,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "waits": [
+          {
+            "label": "installation",
+            "at": "2026-10-30T21:15:40.075Z",
+            "limitMs": null,
+            "outcome": "completed",
+            "elapsedMs": 2694.8109200000035
+          },
+          {
+            "label": "initialize",
+            "at": "2026-10-30T21:15:42.786Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 1437.83333400001
+          },
+          {
+            "label": "authenticate",
+            "at": "2026-10-30T21:15:44.224Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 73.8609609999985
+          },
+          {
+            "label": "session/new",
+            "at": "2026-10-30T21:15:44.305Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 247.42550099999062
+          },
+          {
+            "label": "session/set_mode",
+            "at": "2026-10-30T21:15:44.553Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 5.604533999998239
+          },
+          {
+            "label": "catalog settling before A",
+            "at": "2026-10-30T21:15:44.559Z",
+            "limitMs": 3000,
+            "outcome": "completed",
+            "elapsedMs": 3000.6800030000013
+          },
+          {
+            "label": "session/prompt",
+            "at": "2026-10-30T21:15:47.559Z",
+            "limitMs": 60000,
+            "outcome": "completed",
+            "elapsedMs": 308.77194400000735
+          },
+          {
+            "label": "session/close",
+            "at": "2026-10-30T21:15:47.868Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 24.2197210000013
+          },
+          {
+            "label": "configuration settling before B open",
+            "at": "2026-10-30T21:15:47.894Z",
+            "limitMs": 3000,
+            "outcome": "completed",
+            "elapsedMs": 3001.688313999999
+          },
+          {
+            "label": "initialize",
+            "at": "2026-10-30T21:15:50.909Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 1541.0333570000075
+          },
+          {
+            "label": "authenticate",
+            "at": "2026-10-30T21:15:52.450Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 62.029203999991296
+          },
+          {
+            "label": "session/new",
+            "at": "2026-10-30T21:15:52.519Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 255.53787099999317
+          },
+          {
+            "label": "session/set_mode",
+            "at": "2026-10-30T21:15:52.774Z",
+            "limitMs": 30000,
+            "outcome": "completed",
+            "elapsedMs": 4.359386000011
+          },
+          {
+            "label": "catalog settling before B",
+            "at": "2026-10-30T21:15:52.779Z",
+            "limitMs": 3000,
+            "outcome": "completed",
+            "elapsedMs": 3002.2388539999956
+          },
+          {
+            "label": "session/prompt",
+            "at": "2026-10-30T21:15:55.781Z",
+            "limitMs": 60000,
+            "outcome": "completed",
+            "elapsedMs": 230.66937899999903
           }
         ]
       }
-    ]
+    ],
+    "configurationFollowupComparison": [
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": false,
+        "missingEvidence": false,
+        "passed": false,
+        "differenceObserved": true,
+        "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "alive_same_directory"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": false,
+        "missingEvidence": false,
+        "passed": false,
+        "differenceObserved": true,
+        "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "different_directory"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": false,
+        "missingEvidence": false,
+        "passed": false,
+        "differenceObserved": true,
+        "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "closed_same_directory"
+      }
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": false,
+      "hookRevisionsMatch": false,
+      "missingEvidence": false,
+      "passed": false,
+      "differenceObserved": true,
+      "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": false
   },
   {
     "runtime": "grok",
-    "at": "2026-10-30T20:22:04.704Z",
+    "at": "2026-10-30T21:14:11.845Z",
     "platform": "linux",
     "architecture": "x64",
     "scope": "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
     "settlingMs": 3000,
     "version": "1.0.70",
+    "beforeBOpenDelayMs": 0,
     "cohorts": [
       {
         "mode": "shared",
@@ -995,104 +1779,7 @@
               ],
               "isolated": true
             },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcpafter",
-            "invocation": {
-              "input": "B_mcpafter",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcpafter",
-                  "output": "MCP_RESULT=B input=B_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcpafter",
-            "invocation": {
-              "input": "A_mcpafter",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcpafter",
-                  "output": "MCP_RESULT=A input=A_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcptogether",
-            "invocation": {
-              "input": "A_mcptogether",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcptogether",
-                  "output": "MCP_RESULT=A input=A_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcptogether",
-            "invocation": {
-              "input": "B_mcptogether",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcptogether",
-                  "output": "MCP_RESULT=B input=B_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          }
-        ],
-        "hooks": [],
-        "hookScope": "not exercised"
-      },
-      {
-        "mode": "separate",
-        "observed": true,
-        "isolated": true,
-        "turns": [
-          {
-            "input": "A_mcpbefore",
-            "invocation": {
+            "finalInvocation": {
               "input": "A_mcpbefore",
               "expectedServer": "A",
               "calls": [
@@ -1124,6 +1811,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1133,6 +1832,18 @@
           {
             "input": "A_mcpafter",
             "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpafter",
               "expectedServer": "A",
               "calls": [
@@ -1164,6 +1875,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1184,6 +1907,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1192,18 +1927,289 @@
           }
         ],
         "hooks": [],
-        "hookScope": "not exercised"
+        "hookScope": "not exercised",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [],
+        "hookScope": "not exercised",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
       }
-    ]
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": null,
+      "hookRevisionsMatch": null,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true
   },
   {
     "runtime": "opencode",
-    "at": "2026-10-30T20:20:28.457Z",
+    "at": "2026-10-30T21:14:44.557Z",
     "platform": "linux",
     "architecture": "x64",
     "scope": "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
     "settlingMs": 3000,
     "version": "2.2.3",
+    "beforeBOpenDelayMs": 0,
     "cohorts": [
       {
         "mode": "shared",
@@ -1224,6 +2230,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": true,
@@ -1233,6 +2251,18 @@
           {
             "input": "B_mcpafter",
             "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "B_mcpafter",
               "expectedServer": "B",
               "calls": [
@@ -1264,6 +2294,18 @@
               ],
               "isolated": false
             },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=B input=A_mcpafter"
+                }
+              ],
+              "isolated": false
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": true,
@@ -1273,6 +2315,18 @@
           {
             "input": "A_mcptogether",
             "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=B input=A_mcptogether"
+                }
+              ],
+              "isolated": false
+            },
+            "finalInvocation": {
               "input": "A_mcptogether",
               "expectedServer": "A",
               "calls": [
@@ -1304,6 +2358,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1314,6 +2380,7 @@
         "hooks": [],
         "hookScope": "not exercised",
         "releasedDirectory": {
+          "observed": true,
           "sentMcpServers": [],
           "calls": [
             {
@@ -1323,7 +2390,46 @@
             }
           ],
           "retainedMcpInvoked": true,
-          "nativeOutputRetained": true
+          "nativeOutputRetained": true,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
         }
       },
       {
@@ -1334,6 +2440,18 @@
           {
             "input": "A_mcpbefore",
             "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpbefore",
               "expectedServer": "A",
               "calls": [
@@ -1365,6 +2483,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1374,6 +2504,18 @@
           {
             "input": "A_mcpafter",
             "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpafter",
               "expectedServer": "A",
               "calls": [
@@ -1405,6 +2547,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": true,
@@ -1414,6 +2568,18 @@
           {
             "input": "B_mcptogether",
             "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "B_mcptogether",
               "expectedServer": "B",
               "calls": [
@@ -1435,22 +2601,72 @@
         "hooks": [],
         "hookScope": "not exercised",
         "releasedDirectory": {
+          "observed": true,
           "sentMcpServers": [],
           "calls": [],
           "retainedMcpInvoked": false,
-          "nativeOutputRetained": false
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
         }
       }
-    ]
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": null,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true
   },
   {
     "runtime": "antigravity",
-    "at": "2026-10-30T20:22:04.958Z",
+    "at": "2026-10-30T21:15:19.260Z",
     "platform": "linux",
     "architecture": "x64",
     "scope": "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
     "settlingMs": 3000,
     "version": "1.4.5",
+    "beforeBOpenDelayMs": 0,
     "cohorts": [
       {
         "mode": "shared",
@@ -1460,6 +2676,18 @@
           {
             "input": "A_mcpbefore",
             "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpbefore",
               "expectedServer": "A",
               "calls": [
@@ -1491,6 +2719,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1500,6 +2740,18 @@
           {
             "input": "A_mcpafter",
             "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcpafter",
               "expectedServer": "A",
               "calls": [
@@ -1531,6 +2783,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1551,6 +2815,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1559,7 +2835,53 @@
           }
         ],
         "hooks": [],
-        "hookScope": "not exercised"
+        "hookScope": "not exercised",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
       },
       {
         "mode": "separate",
@@ -1580,6 +2902,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1589,6 +2923,18 @@
           {
             "input": "B_mcpafter",
             "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "B_mcpafter",
               "expectedServer": "B",
               "calls": [
@@ -1620,6 +2966,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1629,6 +2987,18 @@
           {
             "input": "A_mcptogether",
             "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "A_mcptogether",
               "expectedServer": "A",
               "calls": [
@@ -1660,6 +3030,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1668,18 +3050,74 @@
           }
         ],
         "hooks": [],
-        "hookScope": "not exercised"
+        "hookScope": "not exercised",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
       }
-    ]
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": null,
+      "hookRevisionsMatch": null,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true
   },
   {
     "runtime": "qoder",
-    "at": "2026-10-30T20:20:28.274Z",
+    "at": "2026-10-30T21:15:59.416Z",
     "platform": "linux",
     "architecture": "x64",
     "scope": "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
     "settlingMs": 3000,
     "version": "1.1.81",
+    "beforeBOpenDelayMs": 0,
     "cohorts": [
       {
         "mode": "shared",
@@ -1700,6 +3138,18 @@
               ],
               "isolated": true
             },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1709,6 +3159,18 @@
           {
             "input": "B_mcpafter",
             "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
               "input": "B_mcpafter",
               "expectedServer": "B",
               "calls": [
@@ -1740,6 +3202,18 @@
               ],
               "isolated": false
             },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=B input=A_mcpafter"
+                }
+              ],
+              "isolated": false
+            },
             "nativeOutputRetained": true,
             "directoryRuleMarkers": {
               "initial": false,
@@ -1749,6 +3223,18 @@
           {
             "input": "A_mcptogether",
             "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=B input=A_mcptogether"
+                }
+              ],
+              "isolated": false
+            },
+            "finalInvocation": {
               "input": "A_mcptogether",
               "expectedServer": "A",
               "calls": [
@@ -1780,131 +3266,7 @@
               ],
               "isolated": true
             },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          }
-        ],
-        "hooks": [
-          {
-            "revision": "A",
-            "input": "A_mcpbefore"
-          },
-          {
-            "revision": "B",
-            "input": "B_mcpafter"
-          },
-          {
-            "revision": "B",
-            "input": "A_mcpafter"
-          },
-          {
-            "revision": "B",
-            "input": "B_mcptogether"
-          },
-          {
-            "revision": "B",
-            "input": "A_mcptogether"
-          }
-        ],
-        "hookScope": "project .qoder/settings.json",
-        "releasedDirectory": {
-          "sentMcpServers": {},
-          "calls": [],
-          "retainedMcpInvoked": false,
-          "nativeOutputRetained": false
-        }
-      },
-      {
-        "mode": "separate",
-        "observed": true,
-        "isolated": true,
-        "turns": [
-          {
-            "input": "A_mcpbefore",
-            "invocation": {
-              "input": "A_mcpbefore",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcpbefore",
-                  "output": "MCP_RESULT=A input=A_mcpbefore"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcpafter",
-            "invocation": {
-              "input": "B_mcpafter",
-              "expectedServer": "B",
-              "calls": [
-                {
-                  "server": "B",
-                  "input": "B_mcpafter",
-                  "output": "MCP_RESULT=B input=B_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcpafter",
-            "invocation": {
-              "input": "A_mcpafter",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcpafter",
-                  "output": "MCP_RESULT=A input=A_mcpafter"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "A_mcptogether",
-            "invocation": {
-              "input": "A_mcptogether",
-              "expectedServer": "A",
-              "calls": [
-                {
-                  "server": "A",
-                  "input": "A_mcptogether",
-                  "output": "MCP_RESULT=A input=A_mcptogether"
-                }
-              ],
-              "isolated": true
-            },
-            "nativeOutputRetained": true,
-            "directoryRuleMarkers": {
-              "initial": false,
-              "changed": false
-            }
-          },
-          {
-            "input": "B_mcptogether",
-            "invocation": {
+            "finalInvocation": {
               "input": "B_mcptogether",
               "expectedServer": "B",
               "calls": [
@@ -1938,21 +3300,306 @@
           },
           {
             "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
             "input": "A_mcptogether"
           },
           {
             "revision": "B",
-            "input": "B_mcptogether"
+            "input": "B_mcppeerclosed"
           }
         ],
         "hookScope": "project .qoder/settings.json",
         "releasedDirectory": {
+          "observed": true,
           "sentMcpServers": {},
           "calls": [],
           "retainedMcpInvoked": false,
-          "nativeOutputRetained": false
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "project .qoder/settings.json",
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
         }
       }
-    ]
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": null,
+      "hookRevisionsMatch": true,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed AGENTS.md markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true
   }
 ]
