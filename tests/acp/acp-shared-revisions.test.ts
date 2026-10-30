@@ -56,6 +56,7 @@ test("overlapping peer credentials redact prompts, host records, native failures
 
 
 test.each(["initialize failure", "transport close"])("%s evicts before process shutdown so a concurrent open starts fresh", async mode => {
+  if (mode === "transport close") { const { default: relayAcpOutput } = await import("../fixtures/acp-output-relay.js"); await relayAcpOutput(); }
   const processModule = await import("../../packages/oar/src/shared/acp/process.js");
   const start = processModule.startAcpProcess;
   const stopping = Promise.withResolvers<void>(); const shutdown: { release?: () => void } = {}; let first = true;

@@ -8,6 +8,7 @@ import { cleanupAcpOwner } from "../../packages/oar/src/shared/acp/shared-sessio
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
 import { fixture, opening, text } from "../fixtures/acp-shared-support.js";
+import relayAcpOutput from "../fixtures/acp-output-relay.js";
 
 function alive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch { return false; } }
 
@@ -226,6 +227,7 @@ test("bounded native cleanup does not skip terminals when native cleanup never r
 
 
 test("native output EOF terminates the shared process and settles every lease", async () => {
+  await relayAcpOutput();
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
   const held = await a.prompt("hold");
   expect(await promptAndWait(b, "connection-break")).toMatchObject({ kind: "ended" });

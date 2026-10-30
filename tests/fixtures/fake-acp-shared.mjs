@@ -1,6 +1,6 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions, typescript/promise-function-async, eslint/max-statements, eslint/max-lines-per-function, promise/avoid-new, promise/prefer-await-to-then, promise/prefer-await-to-callbacks -- Standalone untyped ACP adversarial wire fixture, with independent reply scheduling and raw native payloads. */
 import readline from 'node:readline';
-import { appendFileSync, closeSync } from 'node:fs';
+import { appendFileSync } from 'node:fs';
 
 const sessions = new Map();
 const requests = new Map();
@@ -63,17 +63,10 @@ async function handle(message) {
     const session = sessions.get(params.sessionId);
     if (!session) { throw new Error('unknown native session'); }
     const text = params.prompt[0]?.text;
-    // Test-only EOF injection: Node protects stdout from destroy(). Its libuv
-    // pipe handle and stdio descriptor must both close while stdin lives.
+    // The test-only output relay exits on this marker. This agent keeps stdin
+    // open and stays alive, independent of platform-specific stdout handles.
     if (text === 'connection-break') {
-      process.stdout.write('', () => {
-        // oxlint-disable-next-line eslint/no-underscore-dangle -- Test-only fault injection must bypass Node stdout protection.
-        const pipeHandle = process.stdout._handle;
-        if (!pipeHandle) { throw new Error('EOF fixture requires a native stdout pipe handle'); }
-        pipeHandle.close(() => {
-          try { closeSync(1); } catch (error) { if (error.code !== 'EBADF') { throw error; } }
-        });
-      });
+      send({ method: 'fixture/break-output' });
       return;
     }
     if (text === 'exit') { process.exit(7); }
