@@ -1,5 +1,6 @@
 import { RequestError, type JsonRpcId } from "@agentclientprotocol/sdk";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { SessionUnavailableError } from "../../contracts/session-unavailable-error.js";
 import type { CredentialRedactor } from "../credential-redactor.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { redactText } from "../redact-text.js";
@@ -31,6 +32,7 @@ export interface AcpRouting<T> {
   ingress(params: object, requestId?: JsonRpcId): void;
   answered(requestId: JsonRpcId): void;
   opened(id: string): void;
+  retired(id: string): boolean;
   attach(target: T, credentials: CredentialRedactor): AcpOwner<T>;
   notify(method: string, params: unknown, deliver: (target: T, ingress: AcpIngress) => void): void;
   request(method: string, params: unknown, requestId?: JsonRpcId): Promise<{ readonly target: T; readonly ingress: AcpIngress; readonly active: () => boolean }>;
@@ -111,8 +113,15 @@ export function createAcpRouting<T>(options: {
     }
   };
   const bind = (owner: Owner<T>, id: string): void => {
-    if (closed || owner.disposed || id.length === 0 || (ids.has(id) && ids.get(id) !== owner)) {
-      throw new UnsupportedOptionError("resume", "ACP native session id is owned or retired on this connection");
+    if (closed || owner.disposed || id.length === 0) { throw new Error("ACP ownership is closed or the native session id is empty"); }
+    const controller = ids.get(id);
+    if (controller === null) {
+      throw new UnsupportedOptionError("placement", "ACP native session id is retired on this shared connection; resume requires an isolated process");
+    }
+    if (controller !== undefined && controller !== owner) {
+      throw new SessionUnavailableError(id, "ACP native session id is already controlled on this connection", {
+        reason: "in_use", method: "oar/open", native: { sessionId: id },
+      });
     }
     ids.set(id, owner); owner.ids.add(id); owner.opened ??= opened.get(id) ?? null; flush();
   };
@@ -172,6 +181,7 @@ export function createAcpRouting<T>(options: {
       const owner = ids.get(id);
       if (owner !== undefined && owner !== null) { owner.opened = position; }
     },
+    retired(id): boolean { return ids.get(id) === null; },
     attach(target: T, credentials: CredentialRedactor): AcpOwner<T> {
       const owner: Owner<T> = { requests: true, target, credentials, ids: new Set(), opened: null, disposed: false };
       owners.add(owner); redactors.add(credentials);

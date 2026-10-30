@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
+import { SessionUnavailableError } from "../../packages/oar/src/contracts/session-unavailable-error.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { closeAcpSession, type AcpSessionProfile } from "../../packages/oar/src/shared/acp/profile.js";
 import { sharedAcpSession, cleanupAcpOwner, type AcpSharedOptions } from "../../packages/oar/src/shared/acp/shared-session.js";
@@ -29,14 +29,14 @@ async function fixture(overrides: Partial<AcpSharedOptions> = {}, profile: Parti
     extensionNotifications: ["fixture/lineage", "fixture/usage"], ...profile,
   }, { processCwd: () => cwd, cleanup: closeAcpSession, diagnostic: (entry) => { diagnostics.push(entry); }, pending: { waitMs: 100 },
     associations: (_method, params) => typeof params.sessionId === "string" && typeof params.child === "string" ? [{ parent: params.sessionId, child: params.child }] : [], ...overrides });
-  return { cwd, diagnostics, open: async (name: string, options: Partial<SessionOptions> = {}) => {
+  return { cwd, diagnostics, open: async (name: string, options: Partial<SessionOptions> = {}, requested: "auto" | "shared" = "auto") => {
     const directory = path.join(cwd, name); await mkdir(directory, { recursive: true });
-    const session = await open(installation, { cwd: directory, ...options }); sessions.push(session); return session;
+    const session = await open(installation, { cwd: directory, ...options }, { requested, placement: "shared" }); sessions.push(session); return session;
   } };
 }
 
-function opening(session: Session) {
-  const frame = session.records().find(record => record.kind === "frame" && record.body.type === "session/new");
+function opening(session: Session, method = "session/new") {
+  const frame = session.records().find(record => record.kind === "frame" && record.body.type === method);
   return frame?.kind === "frame" ? asRecord(frame.body.native) : null;
 }
 function text(session: Session): string { return session.records().flatMap(record => record.kind === "frame" ? record.body.events.flatMap(event => event.kind === "text_delta" ? [event.text] : []) : []).join("|"); }
@@ -76,15 +76,40 @@ test("permission and late multi-level child traffic stay with their native root"
   expect([...a.records(), ...b.records()].some(record => record.kind === "request" && record.direction === "toApp" && record.body.kind === "native" && asRecord(record.body.native)?.sessionId === "unowned")).toBe(false);
 });
 
-test("busy and retired native ids refuse resume without closing another controller", async () => {
+test("controlled native ids report in_use without sending resume or closing another controller", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
-  await expect(f.open("duplicate", { resume: a.id })).rejects.toBeInstanceOf(UnsupportedOptionError);
+  await expect(f.open("duplicate", { resume: a.id })).rejects.toBeInstanceOf(SessionUnavailableError);
+  await expect(f.open("duplicate-shared", { resume: a.id }, "shared")).rejects.toMatchObject({ reason: "in_use", sessionId: a.id, cause: { method: "oar/open", native: { sessionId: a.id } } });
   const result0 = await promptAndWait(a, "still-alive"); expect(result0.kind).toBe("ended");
+  await promptAndWait(b, "resume-count"); expect(text(b)).toContain("resume-count:0");
+});
+
+test("retired id auto-resume opens isolated before sending; explicit shared reports placement refusal", async () => {
+  const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
   await a.dispose();
-  await expect(f.open("retired", { resume: a.id })).rejects.toBeInstanceOf(UnsupportedOptionError);
+  await expect(f.open("retired", { resume: a.id }, "shared")).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
+  const resumed = await f.open("retired-auto", { resume: a.id });
+  expect(resumed.id).toBe(a.id); expect(resumed.placement).toBe("isolated");
+  expect(opening(resumed, "session/resume")?.pid).not.toBe(opening(b)?.pid);
+  expect(resumed.records().find(record => record.kind === "request" && record.body.kind === "open")?.body).toEqual({ kind: "open", placement: "auto" });
+  expect(resumed.records().find(record => record.kind === "response" && record.body.kind === "opened")?.body).toEqual({ kind: "opened", placement: "isolated" });
+  expect(await promptAndWait(resumed, "resumed")).toMatchObject({ kind: "ended" });
+  await promptAndWait(b, "resume-count"); expect(text(b)).toContain("resume-count:0");
   const result1 = await promptAndWait(b, "still-peer"); expect(result1.kind).toBe("ended");
   expect(a.records().some(record => record.kind === "response" && record.body.kind === "released")).toBe(true);
   expect(a.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
+});
+
+test("native resume failure never retries in another process under auto", async () => {
+  const f = await fixture(); const trace = path.join(f.cwd, "requests.jsonl"); const env = { FIXTURE_TRACE_FILE: trace };
+  const a = await f.open("a", { env });
+  await expect(f.open("resume-failure", { resume: "old-root", env })).rejects.toThrow("native resume refused");
+  await promptAndWait(a, "resume-count"); expect(text(a)).toContain("resume-count:1");
+  const traceText = await readFile(trace, "utf8");
+  const requests = traceText.trim().split("\n").map(line => asRecord(JSON.parse(line)));
+  expect(requests.filter(request => request?.method === "initialize")).toHaveLength(1);
+  expect(requests.filter(request => request?.method === "session/resume")).toHaveLength(1);
+  expect(await promptAndWait(a, "peer-survives")).toMatchObject({ kind: "ended" });
 });
 
 test("abort fallback releases one root; disposal cleans again, leaving peer usable", async () => {
@@ -208,6 +233,7 @@ test("concurrent controls serialize only their root and disposal records one ope
   expect(controls[1].response.body).toMatchObject({ code: "busy" });
   await Promise.all([a.dispose(), a.dispose()]);
   expect(a.records().filter(record => record.kind === "request" && record.body.kind === "dispose")).toHaveLength(1);
+  expect(await awaitTurnEnd(b, controls[2].request.seq)).toMatchObject({ kind: "completed" });
   expect(await promptAndWait(b, "peer")).toMatchObject({ kind: "ended" });
 });
 

@@ -1,11 +1,13 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions, typescript/promise-function-async, eslint/max-statements, eslint/max-lines-per-function, promise/avoid-new, promise/prefer-await-to-then, promise/prefer-await-to-callbacks -- Standalone untyped ACP adversarial wire fixture, with independent reply scheduling and raw native payloads. */
 import readline from 'node:readline';
+import { appendFileSync, closeSync } from 'node:fs';
 
 const sessions = new Map();
 const requests = new Map();
 let nextSession = 0;
 let nextRequest = 0;
 let initialized = 0;
+let resumes = 0;
 const send = (value) => process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', ...value })}\n`);
 const result = (id, value) => send({ id, result: value });
 const update = (sessionId, text) => send({ method: 'session/update', params: { sessionId, update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text } } } });
@@ -20,6 +22,7 @@ async function handle(message) {
     return;
   }
   const { id, method, params = {} } = message;
+  if (process.env.FIXTURE_TRACE_FILE) { appendFileSync(process.env.FIXTURE_TRACE_FILE, `${JSON.stringify({ pid: process.pid, method })}\n`); }
   if (method === 'initialize') {
     initialized++;
     if (process.env.FAIL_INIT === '1') { send({ id, error: { code: -32_000, message: 'initialize refused' } }); return; }
@@ -31,6 +34,8 @@ async function handle(message) {
     send({ method: 'fixture/usage', params: { sessionId, key: 'before-open' } });
     setTimeout(() => { result(id, { sessionId, pid: process.pid, initialized, cwd: params.cwd, servers: params.mcpServers.map(s => s.name) }); send({ method: 'fixture/usage', params: { sessionId, key: 'after-open' } }); }, nextSession === 1 ? 30 : 0);
   } else if (method === 'session/resume' || method === 'session/load') {
+    resumes++;
+    if (params.cwd.endsWith('resume-failure')) { send({ id, error: { code: -32_000, message: 'native resume refused' } }); return; }
     sessions.set(params.sessionId, { ...params, pending: null, ignore: false }); update(params.sessionId, 'resume-replay'); result(id, { pid: process.pid, initialized });
   } else if (method === 'session/close') {
     const session = sessions.get(params.sessionId);
@@ -44,7 +49,9 @@ async function handle(message) {
     const session = sessions.get(params.sessionId);
     if (!session) { throw new Error('unknown native session'); }
     const text = params.prompt[0]?.text;
-    if (text === 'connection-break') { process.stdout.end(); return; }
+    // Node protects process.stdout's fd from stream destruction. Flush writes,
+    // then close the descriptor itself to simulate EOF while this process lives.
+    if (text === 'connection-break') { process.stdout.write('', () => closeSync(1)); return; }
     if (text === 'exit') { process.exit(7); }
     if (text === 'late-host-after-release') {
       session.pending = id; session.ignore = true;
@@ -68,6 +75,7 @@ async function handle(message) {
       try { await host('terminal/output', { sessionId: params.sessionId, terminalId: peer?.[1].terminal }); update(params.sessionId, 'stolen'); }
       catch { update(params.sessionId, 'peer-terminal-refused'); }
     } else if (text === 'session-count') { update(params.sessionId, `count:${sessions.size}`);
+    } else if (text === 'resume-count') { update(params.sessionId, `resume-count:${resumes}`);
     } else if (text === 'child') {
       update(`${params.sessionId}-grandchild`, 'grandchild-first');
       send({ method: 'fixture/lineage', params: { sessionId: `${params.sessionId}-child`, child: `${params.sessionId}-grandchild` } });

@@ -25,11 +25,19 @@ explicitly acquired native id. No already-open peer is restarted or replayed.
 The connection's initialize reply is not a root session frame.
 
 Reserve a resume/load id before sending the request. For a new session, bind
-only the id in its successful native response. An id already controlled,
-released, closing or retired on this connection cannot be taken over:
-`UnsupportedOptionError` rejects resume. Retired ids remain unavailable for
-the connection's lifetime because ACP does not prove a generation boundary
-that would distinguish late old traffic from a new controller.
+only the id in its successful native response. An id still controlled by
+another lease, including a closing lease, rejects with
+`SessionUnavailableError` and reason `in_use`. The cause method `oar/open`
+identifies OAR's own ownership check; its native data contains only the
+observed session id, not a fabricated native error.
+
+A retired id remains unavailable on that connection because ACP does not
+prove a generation boundary that would distinguish late old traffic from
+a new controller. Before sending any native resume request, `auto` instead
+opens an isolated process and records the actual placement as `isolated`.
+Explicit `shared` rejects with `UnsupportedOptionError("placement")` and
+explains the need for an isolated process. The old pool and its peers remain
+untouched; a native resume or configuration failure never triggers fallback.
 
 ## Routing and buffering
 

@@ -721,7 +721,12 @@ the same redaction rules. Like `SessionNotFoundError` it is not a
 |---|---|
 | codex | `thread/resume` JSON-RPC error `-32600` with message `session <id> is archived. …` (`archived`) or `thread <id> already has an active writer` (`in_use`); exact prose is the last resort |
 
-Runtimes not listed above never throw `SessionUnavailableError`. Evidence:
+Runtimes not listed above do not map native errors to
+`SessionUnavailableError`. The internal [ACP shared factory](acp-shared-connection.md)
+also rejects a native id controlled by another lease with `in_use`; its
+cause method is `oar/open` and its native data contains only the observed
+session id. That is an OAR ownership observation, not a native error. No
+runtime is admitted to sharing by that foundation alone. Native evidence:
 [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0, a second app-server standing in for the user's app) and
 [`codex-session-name.vendor.test.ts`](../../sea-trial/vendor/codex-session-name.vendor.test.ts).

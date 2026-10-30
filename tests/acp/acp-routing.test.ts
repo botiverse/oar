@@ -1,6 +1,7 @@
 /* oxlint-disable eslint/max-statements -- Each test retains the full routing sequence and its observable assertions. */
 import { afterEach, expect, test, vi } from "vitest";
 import { UnsupportedOptionError } from "../../packages/oar/src/contracts/errors.js";
+import { SessionUnavailableError } from "../../packages/oar/src/contracts/session-unavailable-error.js";
 import { sessionCredentialRedactor } from "../../packages/oar/src/shared/credential-redactor.js";
 import { createAcpRouting, type AcpUnattributed } from "../../packages/oar/src/shared/acp/routing.js";
 
@@ -48,9 +49,12 @@ test("late explicit multi-level lineage routes children and cannot steal a peer"
 
 test("host requests wait for explicit ownership, and retirement forbids same-id rebind", async () => {
   const f = fixture(); f.a.bind("A");
+  expect(() => { f.b.bind("A"); }).toThrow(SessionUnavailableError);
+  expect(f.router.retired("A")).toBe(false);
   const pending = f.router.request("terminal/create", { sessionId: "child" });
   f.notify("A", "link", "child"); const result = await pending; expect(result.target).toBe("a");
   f.a.dispose();
+  expect(f.router.retired("A")).toBe(true);
   expect(() => { f.b.bind("A"); }).toThrow(UnsupportedOptionError);
   expect(() => { f.b.bind("child"); }).toThrow(UnsupportedOptionError);
   await expect(f.router.request("terminal/create", { sessionId: "child" })).rejects.toThrow("no active native session owner");

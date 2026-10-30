@@ -1,5 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Connection ownership composes the existing ACP session mechanisms. */
 import type { SessionOptions, StartSession } from "../../contracts/session.js";
+import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { sessionEnvironment } from "../environment.js";
 import { cleanupFailureReason, appendCleanupFailure } from "../executable/process-cleanup.js";
 import { asRecord, type JsonRecord } from "../json.js";
@@ -14,7 +15,7 @@ import { acpOpenStep } from "./failure.js";
 import { sharedAcpWire } from "./shared-wire.js";
 import { methods, startAcpProcess, type AcpProcess } from "./process.js";
 import { createAcpRouting, type AcpAssociation, type AcpUnattributed } from "./routing.js";
-import { createAcpSessionState, finishAcpSession } from "./session.js";
+import { acpSession, createAcpSessionState, finishAcpSession } from "./session.js";
 
 /** Evidence-backed vendor choices. This factory alone does not admit a runtime to sharing. */
 export interface AcpSharedOptions {
@@ -45,6 +46,7 @@ export async function cleanupAcpOwner(native: () => Promise<void>, terminals: ()
 
 /** A fresh factory owns a fresh pool. Native runtime definitions opt in only in their own admission PR. */
 export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOptions): StartSession {
+  const isolated = acpSession(profile);
   const pool = createProcessPool((configuration: ProcessConfiguration) => {
     const routing = createAcpRouting<AcpClientTarget>({
       associations: shared.associations, diagnostic: shared.diagnostic,
@@ -90,18 +92,26 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       exitReason: (): string | undefined => cleanupFailureReason(runtime.diagnostics().cleanup),
     };
   });
-  return withSessionCredentials(async (installation, options, credentials) => {
+  return withSessionCredentials(async (installation, options, credentials, context) => {
     if (installation.via !== "executable") { throw new Error("ACP runtimes require an executable installation"); }
     profile.validateOptions?.(options);
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const environment = sessionEnvironment(options.env);
-    const state = createAcpSessionState(profile, options, environment, (method, params) => owner.associations(method, params));
     const lease = await pool.acquire({
       command: installation.command, args: acpLaunchArgs(profile, options),
       env: Object.fromEntries(Object.entries(environment).filter((entry): entry is [string, string] => entry[1] !== undefined)),
       cwd: shared.processCwd(options), protocol: JSON.stringify(profile.initializeMeta?.(options) ?? null),
     }, "shared");
     const { runtime, routing, initialize } = lease.process;
+    // This is a pre-open decision, never a retry of a native resume or configuration failure.
+    if (options.resume !== undefined && routing.retired(options.resume)) {
+      await lease.dispose();
+      if (context.requested === "auto") {
+        return isolated(installation, options, { requested: "auto", placement: "isolated" });
+      }
+      throw new UnsupportedOptionError("placement", "ACP native session id is retired on this shared connection; resume requires an isolated process");
+    }
+    const state = createAcpSessionState(profile, options, environment, (method, params) => owner.associations(method, params));
     const owner = routing.attach({ terminal: state.terminalHost, hooks: state.hooks }, credentials);
     let nativeId: string | null = null;
     const cleanup = async (): Promise<void> => {
