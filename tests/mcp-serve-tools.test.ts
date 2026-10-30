@@ -1,7 +1,6 @@
 /* oxlint-disable max-statements -- Each test follows one client conversation with the server end to end. */
 import { once } from "node:events";
 import { get, type IncomingMessage } from "node:http";
-import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test } from "vitest";
 import { serveMcpTools, type HostTool, type ServedMcpTools } from "../packages/oar/src/index.js";
 
@@ -174,10 +173,11 @@ test("setTools replaces the served set and sends tools/list_changed on every ope
 
 test("a call already running finishes with the tool it started with", async () => {
   const gate = Promise.withResolvers<void>();
-  const slow: HostTool = { name: "slow", inputSchema: { type: "object" }, handler: async () => { await gate.promise; return "old handler"; } };
+  const started = Promise.withResolvers<void>();
+  const slow: HostTool = { name: "slow", inputSchema: { type: "object" }, handler: async () => { started.resolve(); await gate.promise; return "old handler"; } };
   const entry = await serve([slow]);
   const running = rpc(entry, "tools/call", { name: "slow", arguments: {} });
-  await delay(50);
+  await started.promise;
   entry.setTools([{ ...slow, handler: () => "new handler" }]);
   gate.resolve();
   expect(await running).toMatchObject({ result: { content: [{ type: "text", text: "old handler" }] } });
