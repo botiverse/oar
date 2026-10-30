@@ -40,7 +40,12 @@ function expectTermination(records: ReturnType<typeof asRecord>[], mode: string,
     expect(exitedAt - Number(records[0]?.at)).toBeLessThan(12_000);
   }
   expect(Number(records[1]?.elapsedMs)).toBeLessThan(12_000);
-  if (mode === "unreturned") { expect(Number(records[1]?.elapsedMs)).toBeGreaterThanOrEqual(10_000); }
+  if (mode === "unreturned") {
+    // Windows waits can expire one clock tick (~15.6 ms) before Stopwatch reaches the requested duration.
+    // https://learn.microsoft.com/en-us/windows/win32/sync/wait-functions#wait-functions-and-time-out-intervals
+    const clockTickMs = process.platform === "win32" ? 16 : 0;
+    expect(Number(records[1]?.elapsedMs)).toBeGreaterThanOrEqual(10_000 - clockTickMs);
+  }
   expect(records.at(-1)).toMatchObject({ kind: "stage_exit", exitCode: 124 });
   expect(exitedAt - Number(records.at(-1)?.at)).toBeLessThan(2000);
 }
