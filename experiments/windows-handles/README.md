@@ -42,6 +42,35 @@ the job setup log. Microsoft's
 also distinguishes process exit from completion of asynchronous output
 processing.
 
-No Windows result yet. Retain `oar-trial-run/windows-handles` and the entire
-workflow log before choosing a monitor change. A missing log or artifact
-does not establish VM failure, resource exhaustion or a blocked kill.
+## Windows observation, 2026-10-30
+
+[Run 41029707952](https://github.com/botiverse/oar/actions/runs/41029707952)
+used commit `eb598a0`, Windows runner 2.338.0, PowerShell 7.6.7, .NET
+10.0.13 and Node 24.22.1. The observation and artifact upload steps ran.
+
+| Case | Observation |
+| --- | --- |
+| Inherited output handles | Next step started 5663 ms after the wrapper's final record. The descendant was still alive and honored its stop file. |
+| File output handles | Next step started after 397 ms. The descendant was still alive and honored its stop file. |
+| Normal native kill | Kill returned in 10 ms; helper exit code 124; target gone. Total helper time including startup was 14,738 ms. |
+| Injected unreturned kill | The helper wrote `termination_unreturned` after 10,016 ms and then a `stage_exit` 124 record. The collector failed its 25-second wait for Node's `close` event. |
+
+The first two cases support a roughly five-second stream wait, not a
+25-minute delay. The failed collector did not observe root exit separately,
+so it cannot distinguish a surviving root from an exited root with open
+pipes. A checkpoint announcing exit is not proof of actual process exit.
+The current revision records `exit` and `close` independently and saves
+output incrementally. It requires actual root exit 124 before target
+cleanup, observes whether pipes remain open, then requires cleanup and
+stream closure. The root's 25-second ceiling and the kill's 10-second
+ceiling are unchanged.
+
+[Node's event documentation](https://nodejs.org/api/child_process.html#event-close)
+distinguishes `exit` from `close`: the latter also waits for the child's
+stdio streams. Do not label the first run's collector failure a failure of
+the bounded-kill operation without the separate exit observation.
+
+Retain `oar-trial-run/windows-handles` and the entire workflow log. A missing
+log or artifact does not establish VM failure, resource exhaustion or a
+blocked kill. This probe has not established the cause of the earlier
+Windows CI cancellations.
