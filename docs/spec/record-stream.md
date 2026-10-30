@@ -280,6 +280,9 @@ Further rules:
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
   read once, preserving both observations and the five-second ps/CIM budget.
+  Successful observations count skipped permission-denied procfs entries and
+  Windows entries without creation times; these identities are never signalled.
+  Malformed rows or a missing host identity still fail the observation.
   A successful retry uses the normal snapshot path. If both reads fail, or a
   later identity check fails, `exited.reason` explicitly says descendant
   cleanup could not be verified; startup errors retain their native class

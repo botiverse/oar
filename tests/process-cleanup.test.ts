@@ -38,11 +38,11 @@ test("force escalation still stops the owned root when the revalidation read fai
 
 test("a valid snapshot with no descendants needs no retry or warning", () => {
   const root = { pid: 123, ppid: process.pid, pgid: 0, start: "same" };
-  const read = vi.spyOn(tree, "observeProcessTable").mockReturnValue({ ok: true, source: "windows", elapsedMs: 1, table: new Map([[root.pid, root]]) });
+  const read = vi.spyOn(tree, "observeProcessTable").mockReturnValue({ ok: true, source: "windows", elapsedMs: 1, skipped: 2, table: new Map([[root.pid, root]]) });
   const cleanup = processTreeCleanup(root.pid);
   cleanup.capture(); cleanup.finish();
   expect(read).toHaveBeenCalledOnce();
-  expect(cleanup.diagnostics().status).toBe("observed");
+  expect(cleanup.diagnostics()).toEqual({ status: "observed", observations: [{ ok: true, phase: "before_eof", source: "windows", elapsedMs: 1, skipped: 2 }] });
   expect(cleanupFailureReason(cleanup.diagnostics())).toBeUndefined();
 });
 
@@ -53,7 +53,7 @@ test("revalidation does not signal a reused descendant PID or an unrelated proce
   const tool = { pid: 456, ppid: 123, pgid: 456, start: "tool" };
   const initial = new Map([host, root, tool].map((entry) => [entry.pid, entry]));
   const current = new Map([host, { ...tool, ppid: 1, start: "reused" }, { pid: 789, ppid: process.pid, pgid: 99, start: "sentinel" }].map((entry) => [entry.pid, entry]));
-  vi.spyOn(tree, "observeProcessTable").mockReturnValueOnce({ ok: true, source: "ps", elapsedMs: 1, table: initial }).mockReturnValueOnce({ ok: true, source: "ps", elapsedMs: 1, table: current });
+  vi.spyOn(tree, "observeProcessTable").mockReturnValueOnce({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: initial }).mockReturnValueOnce({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: current });
   const signal = vi.spyOn(process, "kill").mockReturnValue(true);
   const cleanup = processTreeCleanup(root.pid);
   cleanup.capture(); cleanup.finish();
@@ -71,12 +71,21 @@ test("native tree termination does not act on a root already reported exited", a
   expect(direct).not.toHaveBeenCalled();
 });
 
+// Give the tool an independent console on Windows too, and wait for its
+// own readiness plus IPC disconnection before the root may be closed.
 const nativeTree = String.raw`
-  const tool = require('node:child_process').spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { detached: process.platform !== 'win32', stdio: 'ignore' });
-  tool.unref();
+  const tool = require('node:child_process').spawn(process.execPath, ['-e', "setTimeout(() => {}, 60000); process.send('ready', () => process.disconnect());"], {
+    detached: true, windowsHide: true, stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+  });
+  let ready = false;
+  tool.once('message', (message) => { ready = message === 'ready'; });
+  tool.once('disconnect', () => {
+    if (!ready) { console.error('tool disconnected before readiness'); process.exit(1); }
+    tool.unref();
+    console.log(tool.pid);
+  });
   process.stdin.resume();
   process.stdin.on('end', () => { console.log('hook-complete'); process.exit(0); });
-  tool.once('spawn', () => console.log(tool.pid));
 `;
 
 // oxlint-disable-next-line eslint/max-statements -- Real EOF, surviving descendant, diagnostics and independent cleanup form one regression.
@@ -93,6 +102,7 @@ test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native gra
   child.onExit((code, reason) => { exits.push({ code, reason }); });
   try {
     tool = await ready.promise;
+    expect(await gone(tool, 50), "the independent tool must be ready and alive before shutdown").toBe(false);
     const nativeRead = tree.observeProcessTable;
     const read = vi.spyOn(tree, "observeProcessTable");
     if (scenario === "capture-fails") { read.mockReturnValue(failure); }

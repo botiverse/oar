@@ -24,6 +24,12 @@ export interface ProcessEntry {
 /** The process table at one moment, by pid. */
 export type ProcessTable = ReadonlyMap<number, ProcessEntry>;
 
+interface ProcessTableRead {
+  readonly table: ProcessTable;
+  /** Entries omitted because access or a start identity was unavailable. */
+  readonly skipped: number;
+}
+
 export type ProcessTableSource = "procfs" | "ps" | "windows";
 export type ProcessTableFailureReason = "timeout" | "command_failed" | "spawn_failed" | "read_failed" | "invalid_output" | "missing_host" | "missing_root";
 /** No command output, process names, arguments or environment values are retained. */
@@ -37,12 +43,11 @@ export interface ProcessTableFailure {
   readonly signal?: string;
   readonly timeoutMs?: number;
 }
-export type ProcessTableObservation = ProcessTableFailure | {
+export type ProcessTableObservation = ProcessTableFailure | (ProcessTableRead & {
   readonly ok: true;
   readonly source: ProcessTableSource;
   readonly elapsedMs: number;
-  readonly table: ProcessTable;
-};
+});
 
 class InvalidProcessTableError extends Error {
   constructor(readonly reason: "invalid_output" | "missing_host" = "invalid_output") { super(reason); this.name = "InvalidProcessTableError"; }
@@ -54,8 +59,8 @@ function readStat(pid: number): ProcessEntry | null {
   try {
     stat = readFileSync(`/proc/${String(pid)}/stat`, "utf8");
   } catch (error) {
-    // Processes can disappear during enumeration. Other read failures must
-    // not turn an incomplete table into evidence that no descendants exist.
+    // Processes can disappear during enumeration. The caller separately
+    // counts permission-denied entries; other read errors fail the table.
     if (error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ESRCH")) { return null; }
     throw error;
   }
@@ -68,19 +73,26 @@ function readStat(pid: number): ProcessEntry | null {
 }
 
 /** Linux: every process's stat. */
-function readProcfs(): ProcessTable {
+function readProcfs(): ProcessTableRead {
   const table = new Map<number, ProcessEntry>();
+  let skipped = 0;
   for (const name of readdirSync("/proc")) {
-    const entry = /^\d+$/u.test(name) ? readStat(Number(name)) : null;
-    if (entry !== null) {
-      table.set(entry.pid, entry);
+    try {
+      const entry = /^\d+$/u.test(name) ? readStat(Number(name)) : null;
+      if (entry !== null) { table.set(entry.pid, entry); }
+    } catch (error) {
+      // hidepid can deny other users' stat files without hiding our tree.
+      // Never signal these entries, but keep the count visible to cleanup.
+      const code = asRecord(error)?.code;
+      if (code === "EACCES" || code === "EPERM") { skipped += 1; }
+      else { throw error; }
     }
   }
-  return table;
+  return { table, skipped };
 }
 
 /** Other POSIX systems (macOS): one `ps` run; `lstart` is the start time to the second. */
-function readPs(): ProcessTable {
+function readPs(): ProcessTableRead {
   const output = execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,lstart="], {
     encoding: "utf8",
     env: { ...process.env, LC_ALL: "C" },
@@ -97,28 +109,30 @@ function readPs(): ProcessTable {
       table.set(pid, { pid, ppid: Number(match[2]), pgid: Number(match[3]), start: match[4] ?? "" });
     } else { throw new InvalidProcessTableError(); }
   }
-  return table;
+  return { table, skipped: 0 };
 }
 
 /** Windows has no process groups; creation time distinguishes reused PIDs. */
-function readWindows(): ProcessTable {
+function readWindows(): ProcessTableRead {
   const output = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
     "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}} | ConvertTo-Json -Compress"], {
     encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, maxBuffer: 16 * 1024 * 1024,
   });
   const values: unknown = JSON.parse(output);
   const table = new Map<number, ProcessEntry>();
+  let skipped = 0;
   for (const value of Array.isArray(values) ? values : [values]) {
     const entry = asRecord(value);
-    // Idle and System can omit CreationDate; neither is a runtime descendant.
-    if (entry?.ProcessId === 0 || entry?.ProcessId === 4) { continue; }
-    if (entry !== null && typeof entry.ProcessId === "number" && Number.isInteger(entry.ProcessId) && entry.ProcessId > 0
-      && typeof entry.ParentProcessId === "number" && Number.isInteger(entry.ParentProcessId) && entry.ParentProcessId >= 0
-      && typeof entry.Started === "string" && entry.Started.length > 0) {
-      table.set(entry.ProcessId, { pid: entry.ProcessId, ppid: entry.ParentProcessId, pgid: 0, start: entry.Started });
-    } else { throw new InvalidProcessTableError(); }
+    if (entry === null || typeof entry.ProcessId !== "number" || !Number.isInteger(entry.ProcessId) || entry.ProcessId < 0
+      || typeof entry.ParentProcessId !== "number" || !Number.isInteger(entry.ParentProcessId) || entry.ParentProcessId < 0) { throw new InvalidProcessTableError(); }
+    // Non-admin hosts may not see protected processes' creation times.
+    // Omit identities we cannot revalidate, without rejecting readable peers.
+    if (entry.Started === undefined || entry.Started === null || entry.Started === "") { skipped += 1; continue; }
+    if (typeof entry.Started !== "string") { throw new InvalidProcessTableError(); }
+    if (entry.ProcessId === 0 || entry.ProcessId === 4) { skipped += 1; continue; }
+    table.set(entry.ProcessId, { pid: entry.ProcessId, ppid: entry.ParentProcessId, pgid: 0, start: entry.Started });
   }
-  return table;
+  return { table, skipped };
 }
 
 /**
@@ -129,9 +143,9 @@ function readWindows(): ProcessTable {
 export function observeProcessTable(source: ProcessTableSource = process.platform === "linux" ? "procfs" : (process.platform === "win32" ? "windows" : "ps")): ProcessTableObservation {
   const started = performance.now();
   try {
-    const table = source === "procfs" ? readProcfs() : (source === "windows" ? readWindows() : readPs());
-    if (!table.has(process.pid)) { throw new InvalidProcessTableError("missing_host"); }
-    return { ok: true, source, elapsedMs: performance.now() - started, table };
+    const result = source === "procfs" ? readProcfs() : (source === "windows" ? readWindows() : readPs());
+    if (!result.table.has(process.pid)) { throw new InvalidProcessTableError("missing_host"); }
+    return { ok: true, source, elapsedMs: performance.now() - started, ...result };
   } catch (error) {
     const native = asRecord(error);
     // Node's execFileSync error can embed stdout and the whole command.
@@ -153,7 +167,7 @@ export function observeProcessTable(source: ProcessTableSource = process.platfor
   }
 }
 
-/** Convenience for probes that require a complete observation. Never returns an empty fallback. */
+/** Convenience for probes that require a usable observation. Never returns an empty fallback. */
 export function readProcessTable(source?: ProcessTableSource): ProcessTable {
   const result = observeProcessTable(source);
   if (result.ok) { return result.table; }

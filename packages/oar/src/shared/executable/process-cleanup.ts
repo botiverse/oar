@@ -5,6 +5,7 @@ type Observation = (Exclude<ProcessTableObservation, { ok: true }> | {
   readonly ok: true;
   readonly source: ProcessTableObservation["source"];
   readonly elapsedMs: number;
+  readonly skipped: number;
 }) & { readonly phase: Phase };
 
 /** Internal observations, not a guarantee that every descendant has exited. */
@@ -52,7 +53,7 @@ export function processTreeCleanup(pid: number): {
       observations.push({ ok: false, phase, source: result.source, elapsedMs: result.elapsedMs, reason: "missing_root" });
       return undefined;
     }
-    observations.push({ ok: true, phase, source: result.source, elapsedMs: result.elapsedMs });
+    observations.push({ ok: true, phase, source: result.source, elapsedMs: result.elapsedMs, skipped: result.skipped });
     return result.table;
   };
   return {
