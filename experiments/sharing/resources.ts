@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { readProcessTable, descendantsOf, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { descendantsOf, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { checkedProcessTable } from "./process-table.js";
+import { windowsReadings } from "./windows-resources.js";
 
 interface Reading { readonly identity: ProcessEntry; readonly rss: number; readonly cpuMs: number }
 
 export function rootsSince(before: ReadonlyMap<number, ProcessEntry>): ProcessEntry[] {
-  const after = readProcessTable();
-  assert.ok(after.has(process.pid), "process table unavailable");
+  const after = checkedProcessTable();
   return [...after.values()].filter((entry) => {
     if (entry.ppid !== process.pid || before.get(entry.pid)?.start === entry.start) { return false; }
     // A Windows process-table reader can appear in its own snapshot, then exit.
@@ -33,13 +33,9 @@ function nativeReadings(entries: readonly ProcessEntry[]): Reading[] {
   const pids = entries.map((entry) => entry.pid).join(",");
   if (pids.length === 0) { return []; }
   if (process.platform === "win32") {
-    const raw: unknown = JSON.parse(execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
-      `Get-Process -Id ${pids} -ErrorAction SilentlyContinue | Select-Object Id,WorkingSet64,@{Name='CpuMs';Expression={$_.TotalProcessorTime.TotalMilliseconds}} | ConvertTo-Json -Compress`],
-    { encoding: "utf8", timeout: 10_000 }));
-    return (Array.isArray(raw) ? raw : [raw]).flatMap((value: unknown) => {
-      const row = asRecord(value); const identity = entries.find((entry) => entry.pid === row?.Id);
-      assert.ok(identity && typeof row?.WorkingSet64 === "number" && typeof row.CpuMs === "number");
-      return [{ identity, rss: row.WorkingSet64, cpuMs: row.CpuMs }];
+    return windowsReadings(entries.map((entry) => entry.pid)).map((row) => {
+      const identity = entries.find((entry) => entry.pid === row.pid); assert.ok(identity);
+      return { identity, rss: row.rss, cpuMs: row.cpuMs };
     });
   }
   const output = execFileSync("ps", ["-p", pids, "-o", "pid=,rss=,time="], { encoding: "utf8", timeout: 10_000 });
@@ -53,7 +49,7 @@ function nativeReadings(entries: readonly ProcessEntry[]): Reading[] {
 }
 
 function read(roots: readonly ProcessEntry[]): { at: number; rows: Reading[] } {
-  const table = readProcessTable(); assert.ok(table.has(process.pid), "process table unavailable");
+  const table = checkedProcessTable();
   const members = new Map<number, ProcessEntry>();
   for (const root of roots) {
     if (table.get(root.pid)?.start === root.start) {

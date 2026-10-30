@@ -7,6 +7,14 @@ on:
         description: 'JSON array of runtimes to observe'
         required: true
         default: '["codex","kimi","grok","opencode","antigravity","qoder"]'
+      platforms:
+        description: 'JSON array of runner platforms'
+        required: true
+        default: '["ubuntu-latest","windows-latest","macos-latest"]'
+      resources_only:
+        description: 'Collect resources only; retain earlier observation results separately'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,10 +24,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON(inputs.platforms) }}
         runtime: ${{ fromJSON(inputs.runtimes) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
       EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.165.0","kimi":"@moonshot-ai/kimi-code@2.4.0","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.1","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
@@ -64,15 +72,15 @@ jobs:
           }
           "OAR_ANTIGRAVITY_BIN=$($binaries[0].FullName)" >> $env:GITHUB_ENV
       - name: Codex native observations
-        if: matrix.runtime == 'codex'
+        if: ${{ !inputs.resources_only && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex.ts
         timeout-minutes: 12
       - name: ACP native observations
-        if: contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime)
+        if: ${{ !inputs.resources_only && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/acp.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Qoder native observations
-        if: matrix.runtime == 'qoder'
+        if: ${{ !inputs.resources_only && matrix.runtime == 'qoder' }}
         run: pnpm tsx experiments/sharing/qoder.ts
         timeout-minutes: 12
       - name: Codex resources

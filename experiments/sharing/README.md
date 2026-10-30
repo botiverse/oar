@@ -48,7 +48,9 @@ platform run remains missing evidence, even if another platform passes.
 Resource steps run after a successful native installation even when an
 observation fails. Both steps retain their own failure status and evidence;
 there are no automatic retries. Each step has a 12-minute limit inside a
-30-minute job limit.
+40-minute job limit. To fill only missing Windows resource cells, dispatch with
+`runtimes=["codex","qoder"]`, `platforms=["windows-latest"]` and
+`resources_only=true`. This does not replace the earlier native observations.
 
 The reports retain raw cwd markers and compare both paths after
 `realpathSync.native`, ignoring case on Windows. Native request and condition
@@ -69,3 +71,19 @@ adds overhead. Compare only the same version and platform. Exited processes
 make a CPU interval a lower bound and that interval must not establish a
 no-higher-CPU conclusion. These short idle samples do not prove long-running
 memory stability, active-workload CPU parity, or a universal threshold.
+
+The Windows resource reader enumerates processes, then selects requested PIDs.
+A PID that exited is absent, including an empty array when all requested PIDs
+exited. A genuine enumeration/property failure or malformed output still fails
+the measurement. This avoids `Get-Process -Id` discarding valid rows because a
+different requested PID already exited.
+
+An unreadable product process table still fails the experiment. The failure
+records elapsed time, entry count and missing host identity. On Windows it also
+runs a separate five-second CIM read and records only structural diagnostics
+(status, signal, error code, byte/row counts and host presence). That follow-up
+does not replace the failed reading or establish its cause. No command lines,
+environment values or raw CIM output are saved by this diagnostic. Product
+Windows `resources()` currently returns null; these resource numbers come from
+the experiment, not that public method. Product process-tree cleanup's empty
+table handling is a separate follow-up.

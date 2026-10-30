@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { readProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { checkedProcessTable } from "./process-table.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { codexFixture } from "./codex-fixture.js";
 import { resourceSample, rootsSince } from "./resources.js";
@@ -20,8 +20,8 @@ for (const mode of ["isolated", "shared", "shared", "isolated"]) {
   const timing = new ProbeTiming();
   const report: Record<string, unknown> = { mode, count, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
   const fixture = await prepareFixture(out, report, async () => { const value = await codexFixture(timing); return value; }); report.installation = fixture.installation;
-  const before = readProcessTable();
   try {
+    const before = checkedProcessTable();
     const first = await fixture.connect();
     const sessions = [];
     for (let index = 0; index < count; index += 1) {
