@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 
 const tool = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000); process.send('ready', () => process.disconnect());"], {
-  detached: true, windowsHide: true, stdio: ["ignore", "ignore", "ignore", "ipc"],
+  detached: true, windowsHide: true, stdio: ["ignore", process.env.OAR_ACP_HOLD_STDOUT === "1" ? 1 : "ignore", "ignore", "ipc"],
 });
 let ready = false;
 tool.once("message", (value) => { ready = value === "ready"; });

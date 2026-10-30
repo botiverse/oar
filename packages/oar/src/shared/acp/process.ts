@@ -154,6 +154,9 @@ export function startAcpProcess(
     ended = true;
     exitCode = code;
     connection.close(acpProcessExitedError(code));
+    // Final cleanup is complete. An unobserved descendant may still hold the
+    // pipe, but must not keep the cancelled raw-byte drain or the host alive.
+    child.stdout.destroy();
   });
   return {
     connection,

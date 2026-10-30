@@ -303,9 +303,10 @@ Further rules:
   silently ignored, including before EOF while capture is pending. Capture,
   force revalidation and final descendant cleanup are ordered for each root.
   ACP cancellation stops protocol delivery immediately but drains the raw
-  stdout bytes until native exit, without parsing or recording them. It must
+  stdout bytes during shutdown, without parsing or recording them. It must
   not close that pipe during capture and cause the agent to exit on EPIPE
-  before EOF or its shutdown hook.
+  before EOF or its shutdown hook. After final cleanup it closes that input,
+  even if a surviving, unobserved descendant still holds the writer.
   The final `exited` notification is still emitted exactly once after cleanup;
   it may follow the native exit by an asynchronous cleanup phase. Failed
   asynchronous observations settle as cleanup diagnostics, not unhandled
