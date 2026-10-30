@@ -24,7 +24,7 @@ export interface ProcessEntry {
 /** The process table at one moment, by pid. */
 export type ProcessTable = ReadonlyMap<number, ProcessEntry>;
 
-interface ProcessTableRead {
+export interface ProcessTableRead {
   readonly table: ProcessTable;
   /** Entries omitted because access or a start identity was unavailable. */
   readonly skipped: number;
@@ -49,7 +49,7 @@ export type ProcessTableObservation = ProcessTableFailure | (ProcessTableRead & 
   readonly elapsedMs: number;
 });
 
-class InvalidProcessTableError extends Error {
+export class InvalidProcessTableError extends Error {
   constructor(readonly reason: "invalid_output" | "missing_host" = "invalid_output") { super(reason); this.name = "InvalidProcessTableError"; }
 }
 
@@ -64,6 +64,10 @@ function readStat(pid: number): ProcessEntry | null {
     if (error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ESRCH")) { return null; }
     throw error;
   }
+  return parseProcessStat(pid, stat);
+}
+
+export function parseProcessStat(pid: number, stat: string): ProcessEntry {
   // Field 2, the command name, is parenthesized and may itself hold spaces
   // and parentheses; the fields after its last ")" start at field 3 (state).
   const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
@@ -100,6 +104,10 @@ function readPs(): ProcessTableRead {
     timeout: 5000,
     maxBuffer: 16 * 1024 * 1024,
   });
+  return parseProcessPs(output);
+}
+
+export function parseProcessPs(output: string): ProcessTableRead {
   const table = new Map<number, ProcessEntry>();
   for (const line of output.split("\n")) {
     if (line.trim() === "") { continue; }
@@ -118,6 +126,10 @@ function readWindows(): ProcessTableRead {
     "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}} | ConvertTo-Json -Compress"], {
     encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, maxBuffer: 16 * 1024 * 1024,
   });
+  return parseProcessWindows(output);
+}
+
+export function parseProcessWindows(output: string): ProcessTableRead {
   const values: unknown = JSON.parse(output);
   const table = new Map<number, ProcessEntry>();
   let skipped = 0;
@@ -147,24 +159,29 @@ export function observeProcessTable(source: ProcessTableSource = process.platfor
     if (!result.table.has(process.pid)) { throw new InvalidProcessTableError("missing_host"); }
     return { ok: true, source, elapsedMs: performance.now() - started, ...result };
   } catch (error) {
-    const native = asRecord(error);
-    // Node's execFileSync error can embed stdout and the whole command.
-    // Preserve its identifying fields, never its message or output.
-    const code = typeof native?.code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/u.test(native.code) ? native.code : undefined;
-    const exitCode = typeof native?.status === "number" ? native.status : undefined;
-    const signal = typeof native?.signal === "string" && /^SIG[A-Z0-9]{1,16}$/u.test(native.signal) ? native.signal : undefined;
-    let reason: ProcessTableFailureReason = "read_failed";
-    if (code === "ETIMEDOUT") { reason = "timeout"; }
-    else if (error instanceof InvalidProcessTableError) { reason = error.reason; }
-    else if (error instanceof SyntaxError) { reason = "invalid_output"; }
-    else if (exitCode !== undefined) { reason = "command_failed"; }
-    else if (code === "ENOENT" || code === "EACCES" && source !== "procfs") { reason = "spawn_failed"; }
-    return {
-      ok: false, source, elapsedMs: performance.now() - started, reason,
-      ...(code === undefined ? {} : { code }), ...(exitCode === undefined ? {} : { exitCode }),
-      ...(signal === undefined ? {} : { signal }), ...(reason === "timeout" ? { timeoutMs: 5000 } : {}),
-    };
+    return processTableFailure(error, source, performance.now() - started);
   }
+}
+
+/** Only bounded metadata leaves a failed process-table observation. */
+export function processTableFailure(error: unknown, source: ProcessTableSource, elapsedMs: number): ProcessTableFailure {
+  const native = asRecord(error);
+  // Node's execFileSync error can embed stdout and the whole command.
+  // Preserve its identifying fields, never its message or output.
+  const code = typeof native?.code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/u.test(native.code) ? native.code : undefined;
+  const exitCode = typeof native?.status === "number" ? native.status : (typeof native?.code === "number" ? native.code : undefined);
+  const signal = typeof native?.signal === "string" && /^SIG[A-Z0-9]{1,16}$/u.test(native.signal) ? native.signal : undefined;
+  let reason: ProcessTableFailureReason = "read_failed";
+  if (code === "ETIMEDOUT") { reason = "timeout"; }
+  else if (error instanceof InvalidProcessTableError) { reason = error.reason; }
+  else if (error instanceof SyntaxError) { reason = "invalid_output"; }
+  else if (exitCode !== undefined) { reason = "command_failed"; }
+  else if (code === "ENOENT" || code === "EACCES" && source !== "procfs") { reason = "spawn_failed"; }
+  return {
+    ok: false, source, elapsedMs, reason,
+    ...(code === undefined ? {} : { code }), ...(exitCode === undefined ? {} : { exitCode }),
+    ...(signal === undefined ? {} : { signal }), ...(reason === "timeout" ? { timeoutMs: 5000 } : {}),
+  };
 }
 
 /** Convenience for probes that require a usable observation. Never returns an empty fallback. */

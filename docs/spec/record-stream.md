@@ -282,7 +282,8 @@ Further rules:
 - **A failed process-table read is not an empty tree.** Cleanup records the
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
-  read once, preserving both observations and the five-second ps/CIM budget.
+  read once (at most two reads), preserving both observations and the
+  five-second ps/CIM budget for each query.
   Successful observations count skipped permission-denied procfs entries and
   Windows entries without creation times; these identities are never signalled.
   Malformed rows or a missing host identity still fail the observation.
@@ -296,6 +297,36 @@ Further rules:
   synchronous host-exit hook reports an unavailable table to stderr and
   continues stopping other owned roots. These observations do not change
   installation deadlines or Windows `resources()` (which remains `null`).
+- **Normal cleanup does not block the host's event loop.** Disposal and
+  startup-failure cleanup read process tables asynchronously. `kill()` marks
+  the transport as stopping immediately; subsequent `write()` calls are
+  silently ignored, including before EOF while capture is pending. Capture,
+  force revalidation and final descendant cleanup are ordered for each root.
+  ACP cancellation stops protocol delivery immediately but drains the raw
+  stdout bytes during shutdown, without parsing or recording them. It must
+  not close that pipe during capture and cause the agent to exit on EPIPE
+  before EOF or its shutdown hook. After final cleanup it closes that input,
+  even if a surviving, unobserved descendant still holds the writer.
+  Protocol or stream errors that close the SDK also start process shutdown,
+  so an isolated session records an exit without waiting for host disposal.
+  Normal stdout EOF is identified at the transport boundary and does not
+  start cleanup: the agent can finish native shutdown after closing stdout.
+  If it stays alive, host disposal still performs the normal cleanup.
+  The final `exited` notification is still emitted exactly once after cleanup;
+  it may follow the native exit by an asynchronous cleanup phase. Failed
+  asynchronous observations settle as cleanup diagnostics, not unhandled
+  promise rejections. A root observed exiting during capture cannot claim a
+  reused PID or initiate another capture attempt.
+  Concurrent callers may share a query only when all requested it before
+  that query started. Requests arriving during a query wait for a later
+  query; completed results are never cached for subsequent cleanup phases.
+  Query subprocesses belong to the host's ownership registry, and their
+  timeout includes pipe drain without recursively observing their own trees.
+  A failed spawn without stdout settles as a read failure without leaving a
+  deadline callback that can throw. The host-exit hook combines duplicate
+  table-read warnings into one stderr report.
+  Windows keeps its existing `taskkill` path for ordinary termination and
+  asynchronous CIM observations for EOF shutdown.
 - **An exit after a host stop ends the running turn as aborted.** `status()`,
   `turnEndAfter` / `awaitTurnEnd`, and the record-based session view read an
   exit after that turn's accepted abort (by the runtime or OAR), or its
@@ -319,7 +350,12 @@ Further rules:
   from it) and their groups; Windows synchronously runs `taskkill /T /F` for each
   live child to include its descendants (bounded to ten seconds per call,
   falling back to the direct child on failure). Windows cannot reclaim a
-  tree through a launcher that already exited: its pid may be reused. This is a final
+  tree through a launcher that already exited: its pid may be reused.
+  Pending asynchronous cleanup remains registered even after root and pipe
+  closure. This hook revalidates its already captured descendant identities
+  against a fresh synchronous table shared by all pending cleanups; an
+  unreadable table is reported as unverified, never guessed from an old PID.
+  This is a final
   fallback, not a substitute for disposal: no graceful hooks run. Node
   does not emit `exit` for an unhandled terminating signal, including
   SIGKILL, so hosts must handle ordinary termination signals themselves.

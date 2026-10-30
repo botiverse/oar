@@ -133,6 +133,7 @@ test.each(process.platform === "win32" ? [false] : [false, true])("host exit kil
     if (unavailable) {
       expect(host.stderr).toContain("Descendant cleanup could not be verified");
       expect(host.stderr).toContain("EACCES");
+      expect(host.stderr.match(/\[oar\]/gu)).toHaveLength(1);
       expect(host.stderr).not.toContain("private-process-output");
     } else { expect(host.stderr).toBe(""); }
     expect(host.status).toBe(23);

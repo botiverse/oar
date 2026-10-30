@@ -13,6 +13,7 @@ import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./error
 import { nativeErrorCause } from "../native-error.js";
 import type { SessionResources } from "../../contracts/session.js";
 import { observeAcpOpening, type AcpOpening } from "./opening.js";
+import { acpEofInput, drainingAcpInput } from "./input.js";
 
 export { client as createAcpClient, methods } from "@agentclientprotocol/sdk";
 export type { ClientApp, SessionNotification } from "@agentclientprotocol/sdk";
@@ -130,7 +131,7 @@ export function startAcpProcess(
   const output = Writable.toWeb(child.stdin) as Parameters<typeof ndJsonStream>[0];
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
   const input = Readable.toWeb(child.stdout) as Parameters<typeof ndJsonStream>[1];
-  const nativeStream = ndJsonStream(output, input);
+  const nativeStream = ndJsonStream(output, drainingAcpInput(input));
   const incoming = options.incoming;
   const writer = options.outgoing === undefined ? undefined : nativeStream.writable.getWriter();
   const stream = incoming === undefined && writer === undefined ? nativeStream : {
@@ -146,13 +147,25 @@ export function startAcpProcess(
       },
     })),
   };
-  const connection = app.connect(options.opening === undefined ? stream : observeAcpOpening(stream, options.opening));
+  const observed = options.opening === undefined ? stream : observeAcpOpening(stream, options.opening);
+  const { readable, eof } = acpEofInput(observed.readable);
+  const connection = app.connect({ writable: observed.writable, readable });
+  // A protocol or stream failure can close the SDK without a host dispose.
+  // Draining stdout must not leave that disconnected agent running forever.
+  // Normal EOF preserves the native shutdown lifetime, including hooks that
+  // continue after stdout closes. It never starts an OAR cleanup on its own.
+  const disconnected = (): void => { if (connection.signal.reason !== eof) { child.kill(); } };
+  connection.signal.addEventListener("abort", disconnected, { once: true });
+  if (connection.signal.aborted) { disconnected(); }
   let ended = false;
   let exitCode: number | null = null;
   child.onExit((code) => {
     ended = true;
     exitCode = code;
     connection.close(acpProcessExitedError(code));
+    // Final cleanup is complete. An unobserved descendant may still hold the
+    // pipe, but must not keep the cancelled raw-byte drain or the host alive.
+    child.stdout.destroy();
   });
   return {
     connection,

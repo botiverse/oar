@@ -148,6 +148,22 @@ test("null once stdin has ended without a dispose (the abort fallback's kill), a
   await session.dispose();
 });
 
+// oxlint-disable-next-line eslint/max-statements -- Keep the stop, open stdin and context query in one causal sequence.
+test("abort fallback returns null while stopping capture still leaves stdin open", async () => {
+  const child = scripted(ANSWER);
+  let stopping = false;
+  child.stopping = () => stopping;
+  child.kill = () => { stopping = true; };
+  const session = await claudeSession(installation, { cwd: "/work" });
+  child.kill();
+  expect(child.stdin.writableEnded).toBe(false);
+  expect(child.stdin.destroyed).toBe(false);
+  expect(await session.contextBreakdown?.()).toBeNull();
+  expect(asked(child)).toEqual([]);
+  child.end(null);
+  await session.dispose();
+});
+
 test("null once the process has exited, for a read in flight and every later one", async () => {
   const child = fakeLineProcess();
   spawnLineProcess.mockReturnValue(child);
